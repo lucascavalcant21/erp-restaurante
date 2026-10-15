@@ -13,6 +13,7 @@ import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode,
 import { comFecharImpressao } from "../../../lib/imprimir";
 import { fmtBRL } from "../../../components/ui";
 import CampoDecimal from "../../../components/CampoDecimal";
+import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 
@@ -152,7 +153,7 @@ function CardapioRunner() {
     if (!guiaProduto) return;
     setGuiaLoading(true);
     try {
-      const res = await fetch("/api/ia-guia-montagem", {
+      const res = await fetchComSessao("/api/ia-guia-montagem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

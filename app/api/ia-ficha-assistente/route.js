@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Classifica um pedido em linguagem natural sobre uma ficha técnica e devolve a
 // INTENÇÃO estruturada. Só isso.
@@ -78,6 +79,9 @@ const ESQUEMA = {
 const desconhecido = () => NextResponse.json({ intencao: { tipo: "desconhecido" } });
 
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { texto, ingredientes = [] } = await request.json();
 

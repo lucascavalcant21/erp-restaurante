@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Gera o corpo formal de um RECIBO de prestação de serviço de manutenção
 // a partir dos dados informados. Retorna o texto pronto (editável).
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { servico, descricao, valor, prestador, pagador, forma_pagamento, data, unidade_nome } = await request.json();
 

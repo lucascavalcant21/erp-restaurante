@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '../../lib/server/supabase-server.mjs';
+import { autorizarLeituraDaUnidade } from '../../lib/server/autorizacao-unidade.mjs';
 import { integrationRegistry } from '../../lib/integrations/core/registry.mjs';
 import { sanitizeLastError } from '../../lib/integrations/sanitizer.mjs';
 
@@ -12,22 +12,11 @@ export async function GET(request) {
       return NextResponse.json({ ok: false, error: 'Parâmetro unidade_id é obrigatório' }, { status: 400 });
     }
 
-    const supabaseServer = getSupabaseServerClient();
-    const { data: authUser } = await supabaseServer.auth.getUser();
-
-    // Em produção/autenticado, exige membership do usuário na unidade
-    if (authUser?.user) {
-      const { data: membership } = await supabaseServer
-        .from('usuario_unidades')
-        .select('unidade_id')
-        .eq('usuario_id', authUser.user.id)
-        .eq('unidade_id', unidadeId)
-        .maybeSingle();
-
-      if (!membership) {
-        return NextResponse.json({ ok: false, error: 'Acesso negado: Usuário não possui permissão para visualizar integrações desta unidade' }, { status: 403 });
-      }
-    }
+    // SEC-API-1: sessão obrigatória e vínculo com a unidade. Antes, sem token,
+    // getUser() voltava vazio e a checagem era PULADA (falha aberta).
+    const acesso = await autorizarLeituraDaUnidade(request, unidadeId);
+    if (acesso.erro) return NextResponse.json({ ok: false, error: acesso.erro.mensagem, codigo: acesso.erro.codigo }, { status: acesso.erro.status });
+    const supabaseServer = acesso.db;
 
     // Consulta segura via Backend (service_role)
     const { data: connections, error } = await supabaseServer

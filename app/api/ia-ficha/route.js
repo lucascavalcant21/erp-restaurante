@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { promptDaFichaIA, normalizarFichaIA } from "../../lib/ficha-ia.mjs";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // "Criar com IA": monta uma ficha a partir de uma receita em texto solto e/ou
 // uma foto (print, caderno de receitas, foto do prato com anotação).
@@ -9,6 +10,9 @@ import { promptDaFichaIA, normalizarFichaIA } from "../../lib/ficha-ia.mjs";
 // PRODUÇÃO (tempo, modo de preparo, equipamentos, alergênicos). O pedido e a
 // limpeza da resposta ficam em lib/ficha-ia.mjs, com teste.
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { texto, imagem_base64, imagem_media_type, departamento, tipo } = await request.json();
 

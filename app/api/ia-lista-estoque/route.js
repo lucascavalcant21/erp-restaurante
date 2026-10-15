@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Lê a FOTO de uma lista/planilha de produtos (impressa ou manuscrita) e extrai
 // nome, marca, quantidade e unidade de cada item — para dar entrada no estoque.
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { imagem_base64, media_type, texto } = await request.json();
     if (!imagem_base64 && !(texto || "").trim()) {

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Lê a FOTO do cardápio e extrai os itens com preço — vira ficha + produto.
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { imagem_base64, media_type } = await request.json();
     if (!imagem_base64) return NextResponse.json({ error: "Envie a foto do cardápio." }, { status: 400 });

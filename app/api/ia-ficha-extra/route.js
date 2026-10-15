@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Lê a FOTO da ficha de controle do extra preenchida à mão e extrai os dados.
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { imagem_base64, media_type } = await request.json();
     if (!imagem_base64) return NextResponse.json({ error: "Envie a foto da ficha." }, { status: 400 });

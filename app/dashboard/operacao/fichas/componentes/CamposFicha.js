@@ -23,6 +23,7 @@ import {
 } from "../../../../lib/ficha-editor.mjs";
 import { parseNumero, calculateFichaFinanceiro, porcoesParaCusto } from "../../../../lib/ficha-calculos.mjs";
 import CampoDecimal from "../../../../components/CampoDecimal";
+import { fetchComSessao } from "../../../../lib/api-sessao.js";
 
 const numero = (n, casas = 3) => (Number(n) || 0).toLocaleString("pt-BR", { maximumFractionDigits: casas });
 
@@ -276,7 +277,7 @@ export function CampoInstrucoes({ id, valor, onChange, placeholder, tipo, nomeRe
     setCarregando(true);
     setErro("");
     try {
-      const resposta = await fetch("/api/ia-preparo", {
+      const resposta = await fetchComSessao("/api/ia-preparo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

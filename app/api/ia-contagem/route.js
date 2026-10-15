@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Lê a contagem de estoque: FOTO da planilha preenchida à mão e/ou TEXTO ditado
 // por voz ("banana cinco quilos, tomate três caixas"). Devolve item + quantidade.
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { imagem_base64, media_type, texto } = await request.json();
     if (!imagem_base64 && !(texto || "").trim()) {

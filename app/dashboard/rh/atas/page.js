@@ -33,6 +33,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchColaboradores } from "../../../lib/rh";
 import { fetchUnidades } from "../../../lib/unidades";
 import { fetchAtasReuniao, salvarAtaReuniao, removerAtaReuniao } from "../../../lib/atas";
+import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 const FORM_VAZIO = () => ({
   id: null,
@@ -86,7 +87,7 @@ export default function AtasReuniaoPage() {
   const transcreverFotoAta = async (b64, mediaType = "image/jpeg") => {
     setGerando(true);
     try {
-      const res = await fetch("/api/ia-ata", {
+      const res = await fetchComSessao("/api/ia-ata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -141,7 +142,7 @@ export default function AtasReuniaoPage() {
     if (!form.tema.trim()) return alert("Informe o tema da reunião.");
     setGerando(true);
     try {
-      const res = await fetch("/api/ia-ata", {
+      const res = await fetchComSessao("/api/ia-ata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

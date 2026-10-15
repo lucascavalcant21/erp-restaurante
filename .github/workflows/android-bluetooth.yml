@@ -1,0 +1,57 @@
+name: APK Héfisto Etiquetas (Bluetooth)
+
+# Gera o APK de diagnóstico e impressão Bluetooth. Não publica nada:
+# o APK fica como artefato do workflow (Actions → execução → Artifacts).
+on:
+  push:
+    paths:
+      - "android-bluetooth/**"
+      - ".github/workflows/android-bluetooth.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Testes (JVM)
+        working-directory: android-bluetooth
+        run: gradle --no-daemon testDebugUnitTest
+
+      - name: APK debug
+        working-directory: android-bluetooth
+        run: gradle --no-daemon assembleDebug
+
+      - name: Lint (erros de API/permissão)
+        working-directory: android-bluetooth
+        run: gradle --no-daemon lintDebug
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hefisto-etiquetas-apk
+          path: android-bluetooth/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: relatorios
+          path: |
+            android-bluetooth/app/build/reports/
+            android-bluetooth/app/build/test-results/
+          retention-days: 14

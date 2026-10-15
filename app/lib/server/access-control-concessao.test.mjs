@@ -63,7 +63,7 @@ function banco() {
         if (op === "insert") { const novas = [].concat(payload).map((p) => ({ id: `novo-${t[tabela].length}`, ...p })); t[tabela].push(...novas); escritas.push([tabela, "insert", novas]); return novas; }
         if (op === "update") { const ls = linhas(); ls.forEach((l) => Object.assign(l, payload)); escritas.push([tabela, "update", payload]); return ls; }
         if (op === "delete") { const ls = linhas(); t[tabela] = t[tabela].filter((l) => !ls.includes(l)); escritas.push([tabela, "delete", ls.length]); return ls; }
-        return linhas();
+        return linhas().map((l) => ({ ...l })); // cópia, como o Supabase (o "antes" não muda com o update)
       };
       const b = {
         select(_c, o) { if (o?.count) contar = true; return b; },
@@ -143,4 +143,41 @@ test("S-31: administrador geral continua podendo, menos mexer em si pela regra d
   globalThis.__bancoAcesso = banco();
   const r = await post("super", { action: "save-user-permissions", id: "u-cozB", allowPermissions: ["financeiro.*"], denyPermissions: [] });
   assert.equal(r.status, 200, JSON.stringify(r.corpo));
+});
+
+test("auditoria: toda alteração fica registrada e só aparece para quem pode ver o alvo", async () => {
+  globalThis.__bancoAcesso = banco();
+  const db = globalThis.__bancoAcesso;
+  // recusa não audita (nada escrito)
+  assert.equal((await post("gerA", { action: "save-user-permissions", id: "u-gerA", allowPermissions: ["*"] })).status, 403);
+  assert.equal(db.t.permissoes_auditoria.length, 0, "recusa não grava auditoria");
+
+  assert.equal((await post("gerA", { action: "save-user-permissions", id: "u-cozA", allowPermissions: ["estoque.overview.view"], denyPermissions: [] })).status, 200);
+  assert.equal((await post("super", { action: "set-user-status", id: "u-cozB", status: "ativo" })).status, 200);
+  const [a, b] = db.t.permissoes_auditoria;
+  assert.equal(db.t.permissoes_auditoria.length, 2, "uma linha por alteração");
+  assert.deepEqual([a.ator_auth_user_id, a.alvo_tipo, a.alvo_id, a.evento], ["auth-gerA", "usuario", "u-cozA", "permissoes_atualizadas"]);
+  assert.ok(a.depois.some((p) => p.permission_key === "estoque.overview.view"), "o depois guarda a permissão concedida");
+  assert.deepEqual([b.ator_auth_user_id, b.alvo_id, b.evento], ["auth-super", "u-cozB", "status_ativo"]);
+  assert.equal(b.antes.status, "inativo", "o antes guarda o estado anterior");
+
+  // consulta: gerente da empresa A só vê o histórico de quem gerencia
+  const g = await get("gerA");
+  assert.deepEqual(g.corpo.permissionLogs.map((l) => l.alvo_id), ["u-cozA"], "não vê alteração na empresa B");
+  const s = await get("super");
+  assert.deepEqual(s.corpo.permissionLogs.map((l) => l.alvo_id).sort(), ["u-cozA", "u-cozB"]);
+});
+
+test("auditoria: se a gravação falhar, o erro vai para o log (não some em silêncio)", async () => {
+  globalThis.__bancoAcesso = banco();
+  const db = globalThis.__bancoAcesso;
+  const de = db.from.bind(db);
+  db.from = (tb) => (tb === "permissoes_auditoria" ? { insert: async () => ({ error: { message: "falha simulada" } }) } : de(tb));
+  const erros = [];
+  const original = console.error;
+  console.error = (...a) => erros.push(a.join(" "));
+  try {
+    assert.equal((await post("super", { action: "set-user-status", id: "u-cozB", status: "ativo" })).status, 200);
+  } finally { console.error = original; }
+  assert.ok(erros.some((e) => /auditoria NÃO gravada/.test(e) && /falha simulada/.test(e)), JSON.stringify(erros));
 });

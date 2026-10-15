@@ -9,6 +9,7 @@ import PermissionBuilder from "../../../components/access-control/PermissionBuil
 import { accessCommand, avatarInitials, fetchAccessBootstrap, formatLastAccess } from "../../../lib/access-control";
 import { allPermissionKeys, permissionMatches } from "../../../lib/permissions-catalog.mjs";
 import { mascaraTelefone } from "../../../lib/mascaras.mjs";
+import { historicoDoUsuario } from "../../../lib/auditoria-acessos.mjs";
 
 const EMPTY = {
   nome: "", funcionario_id: "", avatar_url: "", email: "", telefone: "", login: "",
@@ -267,7 +268,16 @@ export default function UsuariosAcessosPage() {
 
       {modal==="view"&&<Modal title={form.nome} subtitle={form.login} onClose={()=>setModal(null)}><div className="grid grid-cols-2 gap-4 p-5 text-sm">{[["Perfil",profileName(form.perfil_id)],["Tipo",TYPES.find(([id])=>id===form.tipo_acesso)?.[1]],["Setor",sectorName(form.setor_principal_id)],["Unidade",unitName(form.unidade_principal_id)],["Status",form.status],["Último acesso",formatLastAccess(form.ultimo_acesso_em)],["E-mail",form.email||"—"],["Telefone",form.telefone||"—"],["Cargo",form.cargo||"—"],["Página inicial",form.pagina_inicial]].map(([k,v])=><div key={k}><p className={LABEL}>{k}</p><p className="font-bold text-fg-soft">{v}</p></div>)}</div></Modal>}
 
-      {modal==="history"&&<Modal title={`Histórico de ${form.nome}`} subtitle="Acessos permitidos, falhas e bloqueios." onClose={()=>setModal(null)}><div className="max-h-[30rem] divide-y overflow-y-auto p-5">{(data.accessLogs||[]).filter(log=>log.usuario_id===form.id).map(log=><div key={log.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-bold text-fg-soft">{log.evento.replaceAll("_"," ")}</p><p className="text-xs text-subtle">{log.ip||"IP não informado"} · {log.device_id||"dispositivo não identificado"}</p></div><div className="text-right"><Status value={log.sucesso?"ativo":"bloqueado"}/><p className="mt-1 text-xs text-subtle">{formatLastAccess(log.created_at)}</p></div></div>)}{!(data.accessLogs||[]).some(log=>log.usuario_id===form.id)&&<p className="py-8 text-center text-sm font-bold text-subtle">Nenhum acesso registrado.</p>}</div></Modal>}
+      {modal==="history"&&<Modal title={`Histórico de ${form.nome}`} subtitle="Quem alterou o acesso, e as entradas no sistema." onClose={()=>setModal(null)}><div className="max-h-[30rem] overflow-y-auto p-5">
+        <p className="mb-2 text-xs font-black uppercase tracking-wide text-subtle">Alterações de acesso</p>
+        <div className="divide-y">{historicoDoUsuario(data.permissionLogs, form, data).map(item=><div key={item.id} className="py-3">
+          <div className="flex items-center justify-between gap-3"><p className="font-bold text-fg-soft">{item.evento}{item.doPerfil&&<span className="ml-2 rounded bg-card px-1.5 py-0.5 text-[10px] font-bold text-subtle">no perfil</span>}</p><p className="text-xs text-subtle">{formatLastAccess(item.quando)}</p></div>
+          <p className="text-xs text-subtle">por {item.ator}</p>
+          {item.mudancas.length>0&&<ul className="mt-1 space-y-0.5 text-xs">{item.mudancas.map((m,i)=><li key={i} className="text-fg-soft"><span className="font-bold">{m.campo}:</span> <span className="text-subtle line-through">{m.antes}</span> → <span>{m.depois}</span></li>)}</ul>}
+        </div>)}{historicoDoUsuario(data.permissionLogs, form, data).length===0&&<p className="py-4 text-center text-sm font-bold text-subtle">Nenhuma alteração registrada.</p>}</div>
+        <p className="mb-2 mt-5 text-xs font-black uppercase tracking-wide text-subtle">Entradas no sistema</p>
+        <div className="divide-y">{(data.accessLogs||[]).filter(log=>log.usuario_id===form.id).map(log=><div key={log.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-bold text-fg-soft">{log.evento.replaceAll("_"," ")}</p><p className="text-xs text-subtle">{log.ip||"IP não informado"} · {log.device_id||"dispositivo não identificado"}</p></div><div className="text-right"><Status value={log.sucesso?"ativo":"bloqueado"}/><p className="mt-1 text-xs text-subtle">{formatLastAccess(log.created_at)}</p></div></div>)}{!(data.accessLogs||[]).some(log=>log.usuario_id===form.id)&&<p className="py-4 text-center text-sm font-bold text-subtle">Nenhum acesso registrado.</p>}</div>
+      </div></Modal>}
     </div>
   );
 }

@@ -26,7 +26,8 @@ import {
 } from "../../../lib/impressaoBluetooth";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { imprimirHtml } from "../../../lib/imprimir";
-import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb } from "../../../lib/impressaoMdk022";
+import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb, gerarComandosTsplMdk022 } from "../../../lib/impressaoMdk022";
+import { escolherLinguagemBluetooth, LINGUAGENS_BLUETOOTH } from "../../../lib/bluetooth-linguagem.mjs";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
 import EtiquetasRapidas from "../../../components/EtiquetasRapidas";
 
@@ -225,6 +226,14 @@ function EtiquetasRunner() {
   const [btNome, setBtNome] = useState("");
   const [btErro, setBtErro] = useState("");
   const [btConectando, setBtConectando] = useState(false);
+  // Linguagem fixada neste aparelho (TSPL para etiquetadora, ESC/POS para cupom).
+  const [btLinguagem, setBtLinguagemEstado] = useState(() => {
+    try { return (typeof window !== "undefined" && localStorage.getItem("hefisto.bt.linguagem")) || "auto"; } catch { return "auto"; }
+  });
+  const setBtLinguagem = (v) => {
+    setBtLinguagemEstado(v);
+    try { localStorage.setItem("hefisto.bt.linguagem", v); } catch { /* navegador sem armazenamento */ }
+  };
   const temBluetooth = typeof window !== "undefined" && bluetoothDisponivel();
   const temWebUsb = typeof window !== "undefined" && WebUsbDisponivel();
   const conectarBluetooth = async () => {
@@ -686,21 +695,22 @@ function EtiquetasRunner() {
         });
         setSalvou(`${quantidadeCopias} etiqueta${quantidadeCopias !== 1 ? "s" : ""} enviada${quantidadeCopias !== 1 ? "s" : ""} para ${impressoraNome}`);
       } else if (modoImpressao === "bluetooth") {
-        // Tablet/celular Android falando direto com a impressora — sem PC.
-        const bytes = await gerarComandosEtiqueta({
-          tamanho, copias: quantidadeCopias,
-          perfilFisico,
-          dados: {
-            codigo, produto: nomeProduto, modeloEtiqueta: modelo, conservacao: form.conservacao,
-            quantidade: form.quantidade, unidade: form.unidade, tipoEtiqueta,
-            momento: momentoImpressao, validade: validadeImpressao,
-            responsavel: form.responsavel.trim(), lote: form.lote,
-            unidadeNome: unidadeInfo.nome_fantasia || unidadeInfo.nome,
-            cnpj: fmtCNPJ(cnpjUnidade), endereco: enderecoUnidade, localizacao: localizacaoUnidade,
-          },
-        });
+        // Celular/tablet falando direto com a impressora — sem PC.
+        // Etiquetadora (MDK-022) recebe TSPL, igual ao cabo USB; cupom recebe ESC/POS.
+        const dadosBt = {
+          codigo, produto: nomeProduto, modeloEtiqueta: modelo, conservacao: form.conservacao,
+          quantidade: form.quantidade, unidade: form.unidade, tipoEtiqueta,
+          momento: momentoImpressao, validade: validadeImpressao,
+          responsavel: form.responsavel.trim(), lote: form.lote,
+          unidadeNome: unidadeInfo.nome_fantasia || unidadeInfo.nome,
+          cnpj: fmtCNPJ(cnpjUnidade), endereco: enderecoUnidade, localizacao: localizacaoUnidade,
+        };
+        const linguagem = escolherLinguagemBluetooth({ escolha: btLinguagem, printerType: perfilFisico?.printerType, nome: nomeImpressoraBluetooth() });
+        const bytes = linguagem === "tspl"
+          ? gerarComandosTsplMdk022({ dados: dadosBt, tamanho, copias: quantidadeCopias, perfilFisico })
+          : await gerarComandosEtiqueta({ tamanho, copias: quantidadeCopias, perfilFisico, dados: dadosBt });
         await enviarBytesBluetooth(bytes);
-        setSalvou(`${quantidadeCopias} etiqueta${quantidadeCopias !== 1 ? "s" : ""} enviada${quantidadeCopias !== 1 ? "s" : ""} por Bluetooth`);
+        setSalvou(`${quantidadeCopias} etiqueta${quantidadeCopias !== 1 ? "s" : ""} enviada${quantidadeCopias !== 1 ? "s" : ""} por Bluetooth (${linguagem.toUpperCase()})`);
       } else if (modoImpressao === "navegador") {
         // Impressão ISOLADA: abre uma janela só com as etiquetas (o resto da tela
         // fazia o navegador gerar várias folhas em branco).
@@ -977,9 +987,9 @@ function EtiquetasRunner() {
               </a>
             </Card>
 
-            {/* Impressora Bluetooth — caminho do tablet/celular Android */}
+            {/* Impressora Bluetooth — celular/tablet (Android no Chrome; iPhone pelo Bluefy) */}
             <Card>
-              <SectionLabel>Impressora Bluetooth (tablet)</SectionLabel>
+              <SectionLabel>Impressora Bluetooth (celular ou tablet)</SectionLabel>
               {temBluetooth ? (
                 <>
                   <div className="flex items-center justify-between gap-3 mt-1">
@@ -999,13 +1009,23 @@ function EtiquetasRunner() {
                     </button>
                   </div>
                   {btErro && <p className="text-2xs font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mt-2">{btErro}</p>}
+                  <label className="block text-3xs font-bold uppercase tracking-wide mt-3" style={{ color: "var(--dim)" }}>Linguagem da impressora</label>
+                  <select value={btLinguagem} onChange={(e) => setBtLinguagem(e.target.value)}
+                    className="w-full mt-1 rounded-lg border border-line bg-card px-3 py-2 text-xs font-bold text-fg">
+                    {Object.entries(LINGUAGENS_BLUETOOTH).map(([v, rotulo]) => <option key={v} value={v}>{rotulo}</option>)}
+                  </select>
+                  {btNome && btLinguagem === "auto" && (
+                    <p className="text-3xs font-medium mt-1" style={{ color: "var(--dim)" }}>
+                      Vai usar {escolherLinguagemBluetooth({ printerType: perfilFisico?.printerType, nome: btNome }).toUpperCase()}. Se sair em branco, troque a linguagem acima.
+                    </p>
+                  )}
                   {btNome && (
                     <Btn variant="primary" className="w-full mt-3" disabled={salvando} onClick={() => pedirImpressao("bluetooth")}>
                       <Printer size={15} /> Imprimir por Bluetooth
                     </Btn>
                   )}
                   <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>
-                    Imprime direto do tablet, sem computador e sem driver. Ligue a impressora e toque em Conectar.
+                    Imprime direto do celular ou tablet, sem cabo, computador ou driver. Ligue o Bluetooth da impressora e toque em Conectar.
                   </p>
                 </>
               ) : (

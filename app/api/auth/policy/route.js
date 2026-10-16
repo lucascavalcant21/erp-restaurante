@@ -11,7 +11,10 @@ function service() {
   }
 }
 
-const genericDenied = () => NextResponse.json({ ok: false, error: "Usuário ou senha incorretos." }, { status: 403 });
+const JANELA_AUDITORIA_MS = 15 * 60 * 1000;
+const TETO_AUDITORIA_POR_JANELA = 20;
+
+const genericDenied =() => NextResponse.json({ ok: false, error: "Usuário ou senha incorretos." }, { status: 403 });
 const privateIp = (ip = "") =>
   ip === "127.0.0.1" || ip === "::1" || /^10\./.test(ip) || /^192\.168\./.test(ip) ||
   /^172\.(1[6-9]|2\d|3[01])\./.test(ip);
@@ -32,17 +35,22 @@ export async function POST(request) {
   const ip = (request.headers.get("x-forwarded-for") || "").split(",")[0].trim() || null;
   const now = new Date();
   if (body.event === "failure") {
-    const failures = Number(user.failed_attempts || 0) + 1;
-    const blocked = failures >= Number(user.max_failed_attempts || 5);
-    await db.from("usuarios_erp").update({
-      failed_attempts: failures,
-      locked_until: blocked ? new Date(Date.now() + 30 * 60 * 1000).toISOString() : user.locked_until,
-      status: blocked ? "bloqueado" : user.status,
-    }).eq("id", user.id);
-    await db.from("acessos_auditoria").insert({
-      usuario_id: user.id, auth_user_id: user.auth_user_id, evento: "login_falhou", sucesso: false,
-      ip, user_agent: request.headers.get("user-agent"), device_id: body.deviceId || null,
-    });
+    // S-27: este aviso chega SEM login e ninguém prova que a senha errou de
+    // verdade. Antes, 5 avisos travavam a conta e marcavam status "bloqueado"
+    // para sempre: qualquer pessoa derrubava o acesso de qualquer outra só
+    // sabendo o login. Agora o aviso só vira registro de auditoria (com teto
+    // por janela, para não encher a tabela) e não mexe no cadastro. A trava
+    // contra força bruta é a do Supabase Auth, que conta as tentativas reais.
+    const desde = new Date(Date.now() - JANELA_AUDITORIA_MS).toISOString();
+    const { count } = await db.from("acessos_auditoria")
+      .select("id", { count: "exact", head: true })
+      .eq("usuario_id", user.id).eq("evento", "login_falhou").gte("created_at", desde);
+    if (Number(count || 0) < TETO_AUDITORIA_POR_JANELA) {
+      await db.from("acessos_auditoria").insert({
+        usuario_id: user.id, auth_user_id: user.auth_user_id, evento: "login_falhou", sucesso: false,
+        ip, user_agent: request.headers.get("user-agent"), device_id: body.deviceId || null,
+      });
+    }
     return genericDenied();
   }
 
@@ -81,7 +89,10 @@ export async function PUT(request) {
   const { data: user } = await db.from("usuarios_erp").select("*").eq("auth_user_id", auth.user.id).maybeSingle();
   if (!user) return NextResponse.json({ ok: true });
   const ip = (request.headers.get("x-forwarded-for") || "").split(",")[0].trim() || null;
-  await db.from("usuarios_erp").update({ failed_attempts: 0, locked_until: null, ultimo_acesso_em: new Date().toISOString() }).eq("id", user.id);
+  // S-27: o próprio usuário NÃO destrava a conta. locked_until é decisão do
+  // administrador; antes, quem estivesse travado limpava a trava chamando
+  // este PUT com o próprio token.
+  await db.from("usuarios_erp").update({ failed_attempts: 0, ultimo_acesso_em: new Date().toISOString() }).eq("id", user.id);
   await db.from("acessos_auditoria").insert({
     usuario_id: user.id, auth_user_id: auth.user.id, evento: "login_sucesso", sucesso: true,
     ip, user_agent: request.headers.get("user-agent"), device_id: body.deviceId || null,

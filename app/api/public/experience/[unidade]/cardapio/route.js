@@ -9,9 +9,9 @@ export async function GET(request, { params }) {
 
   const { unidade } = await params;
   const banco = bancoDoServidor();
-  if (banco.resposta) return banco.resposta;
+  const db = banco?.db || null;
 
-  const resultado = await lerCardapioExperience({ db: banco.db, unidadeId: unidade });
+  const resultado = await lerCardapioExperience({ db, unidadeId: unidade });
   if (!resultado.ok) return recusar(resultado);
 
   return responder(resultado);

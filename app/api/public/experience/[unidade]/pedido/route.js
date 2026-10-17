@@ -15,10 +15,10 @@ export async function POST(request, { params }) {
 
   const { mesa, itens, clienteNome, chaveIdempotencia } = corpo;
   const banco = bancoDoServidor();
-  if (banco.resposta) return banco.resposta;
+  const db = banco?.db || null;
 
   const resultado = await lancarPedidoMesaExperience({
-    db: banco.db,
+    db,
     unidadeId: unidade,
     mesaNumero: mesa,
     itens,

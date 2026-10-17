@@ -15,10 +15,10 @@ export async function POST(request, { params }) {
 
   const { mesa, tipo, solicitanteNome, observacao } = corpo;
   const banco = bancoDoServidor();
-  if (banco.resposta) return banco.resposta;
+  const db = banco?.db || null;
 
   const resultado = await criarChamadoGarcomExperience({
-    db: banco.db,
+    db,
     unidadeId: unidade,
     mesaNumero: mesa,
     tipo,

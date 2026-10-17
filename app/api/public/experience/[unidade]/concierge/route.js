@@ -10,7 +10,7 @@ export async function POST(request, { params }) {
 
   const { unidade } = await params;
   const banco = bancoDoServidor();
-  if (banco.resposta) return banco.resposta;
+  const db = banco?.db || null;
 
   let body = {};
   try {
@@ -22,8 +22,8 @@ export async function POST(request, { params }) {
   const { tipo = "welcome", acao, subOpcao, pergunta, idioma = "pt" } = body;
 
   // Busca catálogo de produtos reais
-  const cardapioRes = await lerCardapioExperience({ db: banco.db, unidadeId: unidade });
-  const produtos = cardapioRes.ok ? cardapioRes.itens : [];
+  const cardapioRes = await lerCardapioExperience({ db, unidadeId: unidade });
+  const produtos = cardapioRes.ok ? (cardapioRes.produtos || cardapioRes.itens || []) : [];
   const unidadeNome = cardapioRes.unidade?.nome || "Seldeestrela";
 
   if (tipo === "welcome") {

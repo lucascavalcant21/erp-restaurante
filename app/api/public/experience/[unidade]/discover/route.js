@@ -17,13 +17,14 @@ export async function GET(request, { params }) {
   }
 
   const banco = bancoDoServidor();
-  if (banco.resposta) return banco.resposta;
+  const db = banco?.db || null;
 
   // Busca prato no cardápio
-  const cardapioRes = await lerCardapioExperience({ db: banco.db, unidadeId: unidade });
+  const cardapioRes = await lerCardapioExperience({ db, unidadeId: unidade });
   if (!cardapioRes.ok) return recusar(cardapioRes);
 
-  const prato = cardapioRes.itens.find(p => String(p.id) === String(produtoId));
+  const listaProdutos = cardapioRes.produtos || cardapioRes.itens || [];
+  const prato = listaProdutos.find(p => String(p.id) === String(produtoId));
   if (!prato) {
     return recusar({ ok: false, mensagem: "Prato não encontrado no cardápio." }, 404);
   }

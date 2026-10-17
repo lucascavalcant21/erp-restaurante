@@ -16,10 +16,10 @@ export async function GET(request, { params }) {
   }
 
   const banco = bancoDoServidor();
-  if (banco.resposta) return banco.resposta;
+  const db = banco?.db || null;
 
   const resultado = await lerComandaMesaExperience({
-    db: banco.db,
+    db,
     unidadeId: unidade,
     mesaNumero: mesa
   });

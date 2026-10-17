@@ -49,6 +49,7 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - **Banco:** `eventos` não tem as colunas do orçamento (B-019). A tela avisa e a Agenda volta a mostrar os eventos; o orçamento só passa a gravar com a **APR-012** (migração aditiva `EVENTOS_ORC_1`, TESTADO LOCAL no PGlite, NÃO APLICADA).
 - **Marmitaria:** primeiros passos no topo da visão geral, lista de marmitas legível em 390 px, marmita fora do cardápio de volta (B-020, B-021).
 - Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
+- **Rodada 2 (Estoque, Financeiro, painel):** Financeiro com barra de áreas (Visão geral, A pagar, A receber, Caixa, DRE, Pizza, CMV); `/fluxo`, `/documentos` e `/margem` redirecionam (gravavam/liam tabelas fora do financeiro novo, B-024); CMV sem 0% inventado (B-023); Contas a Pagar em cartões no celular; Pizza do Lucro visível no celular; paleta sem fundo preto no Estoque e no Financeiro; abas do Estoque à vista no celular; painel inicial com faturamento vazio compacto. Simulador com o **esquema e o volume reais** (369 produtos, 374 saldos, 350 movimentos; leitura só). Mesmo resultado de testes; build OK.
 
 ## Validação por camada
 

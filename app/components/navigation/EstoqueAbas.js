@@ -4,6 +4,7 @@
 // em Operacional → Estoque. O resto é secundário. Aba sem permissão some
 // (Painel e Produtos mostram custo: só quem tem estoque.overview).
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
@@ -14,25 +15,35 @@ const ABAS = [
   { href: "/dashboard/operacao/estoque/contagens", rotulo: "Inventário", ativa: (p) => p.startsWith("/dashboard/operacao/estoque/contagens") },
   { href: "/dashboard/operacao/estoque/historico", rotulo: "Histórico", ativa: (p) => p.startsWith("/dashboard/operacao/estoque/historico") },
   { href: "/dashboard/operacao/estoque/painel", rotulo: "Painel", ativa: (p) => p === "/dashboard/operacao/estoque/painel" },
-  { href: "/dashboard/operacao/estoque/painel/produtos", rotulo: "Produtos e locais", ativa: (p) => p.startsWith("/dashboard/operacao/estoque/painel/produtos") },
+  { href: "/dashboard/operacao/estoque/painel/produtos", rotulo: "Produtos e locais", curto: "Produtos", ativa: (p) => p.startsWith("/dashboard/operacao/estoque/painel/produtos") },
 ];
 
 export default function EstoqueAbas() {
   const pathname = usePathname() || "";
   const { sessao } = useERP();
   const visiveis = ABAS.filter((a) => !sessao?.gerenciado || canAccessRoute(sessao, a.href, ""));
+  // No celular as abas rolam para o lado: a aba aberta (ex.: Produtos, a
+  // última) ficava escondida à direita, sem sinal de que existia.
+  const trilha = useRef(null);
+  useEffect(() => {
+    const el = trilha.current?.querySelector('[aria-current="page"]');
+    if (el && trilha.current) trilha.current.scrollLeft = el.offsetLeft - 8;
+  }, [pathname]);
   return (
     <nav aria-label="Estoque" className="sticky top-0 z-20 border-b border-hf-border bg-hf-surface print:hidden">
-      <div className="mx-auto flex max-w-[1500px] items-center gap-1 overflow-x-auto px-2 [scrollbar-width:none] sm:px-6">
+      <div className="relative mx-auto max-w-[1500px]">
+      <div ref={trilha} className="relative flex items-center gap-1 overflow-x-auto px-2 [scrollbar-width:none] sm:px-6">
         {visiveis.map((a) => {
           const ativa = a.ativa(pathname);
           return (
             <Link key={a.href} href={a.href} aria-current={ativa ? "page" : undefined}
               className={`inline-flex h-11 shrink-0 items-center border-b-2 px-3 text-sm font-bold transition-colors ${ativa ? "border-hf-accent text-hf-text" : "border-transparent text-hf-text-2 hover:text-hf-text"}`}>
-              {a.rotulo}
+              {a.curto ? <><span className="sm:hidden">{a.curto}</span><span className="hidden sm:inline">{a.rotulo}</span></> : a.rotulo}
             </Link>
           );
         })}
+      </div>
+      <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-hf-surface sm:hidden" />
       </div>
     </nav>
   );

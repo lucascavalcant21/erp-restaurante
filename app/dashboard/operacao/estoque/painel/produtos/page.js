@@ -2111,12 +2111,14 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       })()}
                     </div>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2.5">
-                    <button onClick={() => onEntrada(item)} className="h-14 rounded-2xl bg-hf-accent hover:brightness-110 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
-                      <Plus size={20} /> + ADICIONAR
+                  {/* Retirar não é ação de perigo: botão neutro, não vermelho, e
+                      sem o sinal repetido ("− − RETIRAR"). */}
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button onClick={() => onEntrada(item)} className="h-11 rounded-xl bg-hf-accent text-hf-accent-fg hover:brightness-110 font-bold text-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all">
+                      <Plus size={18} /> Adicionar
                     </button>
-                    <button onClick={() => onSaida(item)} className="h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-red-600/20 active:scale-95 transition-all">
-                      <span className="text-2xl leading-none">−</span> − RETIRAR
+                    <button onClick={() => onSaida(item)} className="h-11 rounded-xl border border-hf-border bg-hf-surface text-hf-text hover:bg-hf-elevated font-bold text-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all">
+                      <PackageMinus size={18} /> Retirar
                     </button>
                   </div>
                   <div className="mt-2.5 grid grid-cols-2 gap-2.5">

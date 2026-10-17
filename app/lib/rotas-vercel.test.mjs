@@ -7,9 +7,7 @@
 // chave de produção e as rotas de escrita gravavam no Firestore.
 //
 // Agora: TODO /api vai para o Next. No servidor antigo ficam só:
-//   - /api/auth/policy: a versão do Next bloqueia conta de terceiros por 5
-//     tentativas sem login (S-27); até ser corrigida, o login segue como hoje
-//     (o servidor antigo responde 404 e o login segue sem a política).
+//   (/api/auth/policy saiu daqui com a correção do S-27.)
 //   - /api/triggers/verificar: o cron antigo (dados de demonstração).
 // Essa lista só pode diminuir.
 import test from "node:test";
@@ -20,7 +18,7 @@ import { fileURLToPath } from "node:url";
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const vercel = JSON.parse(fs.readFileSync(path.join(raiz, "vercel.json"), "utf8"));
-const NO_SERVIDOR_ANTIGO = ["auth/policy", "triggers/verificar"];
+const NO_SERVIDOR_ANTIGO = ["triggers/verificar"];
 
 // Primeiro route que casa decide, como na Vercel.
 function destino(caminho) {

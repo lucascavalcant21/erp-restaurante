@@ -12,10 +12,6 @@
   ],
   "routes": [
     {
-      "src": "^/api/auth/policy$",
-      "dest": "backend_cloud_code/server.js"
-    },
-    {
       "src": "^/api/triggers/verificar$",
       "dest": "backend_cloud_code/server.js"
     },

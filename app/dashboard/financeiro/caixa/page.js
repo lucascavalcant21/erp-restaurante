@@ -98,9 +98,11 @@ export default function CaixaEContasPage() {
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Caixa e Contas</h1>
           <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Fluxo de caixa · contas financeiras · taxas</p>
-          <div className="mt-4 flex gap-2 overflow-x-auto">
-            {[["fluxo", "Fluxo de caixa"], ["contas", "Contas financeiras"], ["taxas", "Taxas de cartão/plataforma"]].map(([id, r]) => (
-              <button key={id} onClick={() => setAba(id)} className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap ${aba === id ? "bg-emerald-500 text-slate-950" : "bg-hf-elevated text-hf-text-2"}`}>{r}</button>
+          {/* Quebra linha em vez de rolar: no celular a terceira aba ficava
+              cortada ("Taxas de car…") sem sinal de que havia mais. */}
+          <div role="tablist" className="mt-4 flex flex-wrap gap-2">
+            {[["fluxo", "Fluxo de caixa"], ["contas", "Contas bancárias e caixas"], ["taxas", "Taxas de cartão"]].map(([id, r]) => (
+              <button key={id} type="button" role="tab" aria-selected={aba === id} onClick={() => setAba(id)} className={`min-h-[40px] px-4 rounded-xl text-xs font-bold whitespace-nowrap ${aba === id ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-elevated text-hf-text-2"}`}>{r}</button>
             ))}
           </div>
         </div>

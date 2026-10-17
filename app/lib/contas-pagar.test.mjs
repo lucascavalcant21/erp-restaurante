@@ -314,14 +314,17 @@ conferir("sem UUID falso de unidade", appSrc.includes("00000000-0000-0000-0000-0
 // ── 15. navegação: uma rota só, alcançável pelo menu e pela Central ──────────
 {
   const ler = (f) => fs.readFileSync(path.join(raiz, f), "utf8");
-  const menu = ler("app/components/layout/TopNavigation.js");
   const central = ler("app/components/navigation/FinanceiroHub.js");
-  const menuFin = menu.slice(menu.indexOf('id: "financeiro"'));
-  conferir("menu Financeiro: Visão Geral, Contas a Pagar, Contas a Receber, Caixa e Contas, DRE Gerencial",
-    [...menuFin.matchAll(/label: "([^"]+)", href: "([^"]+)"/g)].slice(0, 5).map((m) => [m[1], m[2]]),
-    [["Visão Geral", "/dashboard/financeiro"], ["Contas a Pagar", "/dashboard/financeiro/contas"],
-     ["Contas a Receber", "/dashboard/financeiro/receber"], ["Caixa e Contas", "/dashboard/financeiro/caixa"],
-     ["DRE Gerencial", "/dashboard/financeiro/dre"]]);
+  // As áreas do financeiro ficam na barra do módulo (layout.js), não no submenu do topo.
+  const barra = ler("app/dashboard/financeiro/layout.js");
+  conferir("barra do Financeiro: Visão geral, Contas a pagar, Contas a receber, Caixa e contas, DRE",
+    [...barra.matchAll(/href: (?:BASE|`\$\{BASE\}([^`]*)`), rotulo: "([^"]+)"/g)].slice(0, 5).map((m) => [m[2], `/dashboard/financeiro${m[1] || ""}`]),
+    [["Visão geral", "/dashboard/financeiro"], ["Contas a pagar", "/dashboard/financeiro/contas"],
+     ["Contas a receber", "/dashboard/financeiro/receber"], ["Caixa e contas", "/dashboard/financeiro/caixa"],
+     ["DRE", "/dashboard/financeiro/dre"]]);
+  conferir("telas antigas que gravavam fora do financeiro novo redirecionam (fluxo→caixa, documentos→contas, margem→pizza)",
+    [["fluxo", "caixa"], ["documentos", "contas"], ["margem", "pizza"]].every(([de, para]) =>
+      ler(`app/dashboard/financeiro/${de}/page.js`).includes(`router.replace("/dashboard/financeiro/${para}")`)), true);
   conferir("Central: botão direto 'Contas a Pagar' no topo", /push\("\/dashboard\/financeiro\/contas"\)[\s\S]{0,120}Contas a Pagar/.test(central), true);
   conferir("Central: 'Resolver' abre Contas a Pagar filtrado em vencidas", (() => { const i = central.indexOf("Resolver"); const trecho = central.slice(Math.max(0, i - 250), i); return i > 0 && trecho.includes('"/dashboard/financeiro/contas?situacao=vencido"'); })(), true);
   conferir("tela lê o filtro da URL (recarregar mantém)", /params\?\.get\("situacao"\)/.test(pagina) && /params\?\.get\("periodo"\)/.test(pagina), true);

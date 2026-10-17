@@ -15,7 +15,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, AlertTriangle, Info, Calculator, ChevronRight } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import { carregarBaseDre, cmvDoMes, cmoDoMesRH, lancarFechamentoMes } from "../../../lib/dre-dados";
+import { carregarBaseDre, cmvDoMes, cmoDoMesRH } from "../../../lib/dre-dados";
 import { janelaDoMes, faturamentoDoMes, montarDre } from "../../../lib/dre-gerencial.mjs";
 import { fmtReais, fmtPct } from "../../../lib/valor-percentual.mjs";
 import { lerValor } from "../../../lib/contas-pagar.mjs";

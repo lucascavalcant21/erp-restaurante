@@ -30,7 +30,7 @@ const DESTINOS = [
   { termos: ["producao", "produção"], rota: "/dashboard/operacao/producao", nome: "Produção" },
   { termos: ["financeiro", "financas", "finanças"], rota: "/dashboard/modulo/financeiro", nome: "Financeiro" },
   { termos: ["dre"], rota: "/dashboard/financeiro/dre", nome: "DRE" },
-  { termos: ["fluxo de caixa", "fluxo"], rota: "/dashboard/financeiro/fluxo", nome: "Fluxo de Caixa" },
+  { termos: ["fluxo de caixa", "fluxo"], rota: "/dashboard/financeiro/caixa", nome: "Fluxo de Caixa" },
   { termos: ["rh", "recursos humanos"], rota: "/dashboard/modulo/rh", nome: "RH" },
   { termos: ["banco de talentos", "recrutamento", "candidatos"], rota: "/dashboard/rh/recrutamento", nome: "Banco de Talentos" },
   { termos: ["funcionarios", "funcionários", "equipe"], rota: "/dashboard/rh/gestao", nome: "Gestão de Equipe" },

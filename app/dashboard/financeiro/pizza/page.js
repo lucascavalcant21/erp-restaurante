@@ -977,16 +977,21 @@ export default function PizzaDoLucroPage() {
                         {ehAtual && (
                           <tr>
                             <td colSpan={10} className="bg-white px-3 py-4">
+                              {/* No celular a tabela rola para o lado e esta célula tem a
+                                  largura das 10 colunas: centralizada, a pizza ficava fora
+                                  da tela. Presa à esquerda, fica sempre à vista. */}
+                              <div className="sticky left-3 w-[calc(100vw-4.5rem)] max-w-xl md:static md:mx-auto md:w-auto">
                               {(x.entrada.semCusto || x.entrada.semRendimento) && (
-                                <p className="mx-auto mb-3 flex max-w-xl items-start gap-1.5 rounded-lg bg-card px-2.5 py-2 text-3xs font-bold text-slate-900">
+                                <p className="mb-3 flex items-start gap-1.5 rounded-lg bg-card px-2.5 py-2 text-3xs font-bold text-slate-900">
                                   <AlertTriangle size={12} className="mt-0.5 shrink-0" />
                                   {x.entrada.semCusto
                                     ? "Este item não tem custo de produto na ficha (revenda, por exemplo). O lucro está alto porque falta o custo, não porque ele é bom."
                                     : "A ficha não diz em quantas porções rende, então o rendimento inteiro está valendo como uma porção. Se ela rende mais de uma, defina o peso da porção na ficha."}
                                 </p>
                               )}
-                              <div className="mx-auto max-w-md">
+                              <div className="max-w-md md:mx-auto">
                                 <PizzaDoPrato {...x.entrada} />
+                              </div>
                               </div>
                             </td>
                           </tr>

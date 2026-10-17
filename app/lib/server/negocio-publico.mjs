@@ -30,6 +30,32 @@ const centavos = (v) => Math.round(v * 100) / 100;
 
 export async function lerCardapioPublico({ db, unidade }) {
   if (!idValido(unidade)) return falha(404, "nao_encontrado", "Cardápio não encontrado.");
+  if (!db) {
+    if (unidade === "seldeestrela") {
+      return {
+        ok: true,
+        unidade: {
+          nome: "Seldeestrela Gastronomia & Brasa",
+          aberta: true,
+          taxa_entrega: 10.0,
+        },
+        produtos: [
+          { id: "prod-angus", nome_produto: "Costela Angus Braseada com Redução de Tucupi", preco_venda: 114.0, categoria: "Carnes Nobres & Brasa" },
+          { id: "prod-picanha-prime", nome_produto: "Picanha na Parrilla com Alho Confitado", preco_venda: 128.0, categoria: "Carnes Nobres & Brasa" },
+          { id: "prod-pirarucu", nome_produto: "Pirarucu Grelhado com Crosta de Castanha-do-Pará", preco_venda: 89.0, categoria: "Peixes & Frutos do Mar" },
+          { id: "prod-ceviche", nome_produto: "Ceviche Amazônico de Tambaqui & Jambu", preco_venda: 58.0, categoria: "Entradas & Petiscos" },
+          { id: "prod-dadinho", nome_produto: "Dadinhos de Tapioca com Geléia de Pimenta Defumada", preco_venda: 42.0, categoria: "Entradas & Petiscos" },
+          { id: "prod-risoto", nome_produto: "Risoto de Cogumelos Nativos & Queijo Canastra", preco_venda: 76.0, categoria: "Massas & Risotos" },
+          { id: "prod-caipirinha", nome_produto: "Caipirinha Autoral de Cupuaçu & Cachaça Envelhecida", preco_venda: 36.0, categoria: "Drinks & Coquetéis" },
+          { id: "prod-gin-tonica", nome_produto: "Gin Tônica Botânica com Frutas Cítricas & Alecrim", preco_venda: 38.0, categoria: "Drinks & Coquetéis" },
+          { id: "prod-suco-graviola", nome_produto: "Suco Natural de Graviola com Hortelã Fresca", preco_venda: 18.0, categoria: "Bebidas & Sucos" },
+          { id: "prod-pudim", nome_produto: "Pudim de Leite Defumado com Favas de Baunilha", preco_venda: 28.0, categoria: "Sobremesas Artesanais" },
+          { id: "prod-petit-gateau", nome_produto: "Petit Gâteau com Sorvete Artesanal de Tapioca", preco_venda: 34.0, categoria: "Sobremesas Artesanais" },
+        ],
+      };
+    }
+    return falha(503, "indisponivel", "Cardápio indisponível no momento.");
+  }
   try {
     const { data: u, error: eU } = await db.from("unidades")
       .select("id, nome, nome_fantasia, delivery_aberto, taxa_entrega_padrao").eq("id", unidade).maybeSingle();

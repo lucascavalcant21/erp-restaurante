@@ -11,8 +11,11 @@ export async function GET(request, { params }) {
   if (freio) return freio;
   const { unidade } = await params;
   const banco = bancoDoServidor();
-  if (banco.resposta) return banco.resposta;
-  const r = await lerCardapioPublico({ db: banco.db, unidade });
-  if (!r.ok) return recusar(r);
+  const db = banco?.db || null;
+  const r = await lerCardapioPublico({ db, unidade });
+  if (!r.ok) {
+    if (banco.resposta) return banco.resposta;
+    return recusar(r);
+  }
   return responder({ unidade: r.unidade, produtos: r.produtos });
 }

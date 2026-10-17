@@ -9,6 +9,7 @@ import { CalendarDays, Clock, Users, Loader2, PartyPopper, UtensilsCrossed } fro
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
 import { normalizarEtapa, rotuloEtapa } from "../../../lib/evento-financeiro.mjs";
+import { erroDeColunaDeEventos } from "../../../lib/evento-orcamento.mjs";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const somarDias = (dIso, n) => { const d = new Date(`${dIso}T12:00:00`); d.setDate(d.getDate() + n); return iso(d); };
@@ -35,9 +36,16 @@ export default function AgendaPage() {
     let ativo = true;
     setCarregando(true);
     const ate = somarDias(hoje, dias);
+    const eventos = (colunas) => supabase.from("eventos").select(colunas)
+      .eq("unidade_id", unidadeAtiva).gte("data_evento", hoje).lte("data_evento", ate);
+    // Banco sem a EVENTOS-ORC-1 não tem hora_inicio: busca sem a hora em vez
+    // de esconder os eventos atrás do erro.
+    const eventosComHora = eventos("id, nome, cliente_nome, data_evento, hora_inicio, capacidade, funil_status, tipo_evento")
+      .then((r) => (r.error && erroDeColunaDeEventos(r.error.message)
+        ? eventos("id, nome, cliente_nome, data_evento, capacidade, funil_status, tipo_evento")
+        : r));
     Promise.all([
-      supabase.from("eventos").select("id, nome, cliente_nome, data_evento, hora_inicio, capacidade, funil_status, tipo_evento")
-        .eq("unidade_id", unidadeAtiva).gte("data_evento", hoje).lte("data_evento", ate),
+      eventosComHora,
       supabase.from("reservas").select("id, cliente_nome, data_reserva, horario, qtd_pessoas, status")
         .eq("unidade_id", unidadeAtiva).gte("data_reserva", hoje).lte("data_reserva", ate),
     ]).then(([ev, rs]) => {

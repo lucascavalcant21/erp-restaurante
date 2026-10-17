@@ -58,7 +58,7 @@ async function gravarEvento(id, campos) {
 export default function EventoPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { unidadeAtiva, unidadeInfo, user } = useERP();
+  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
   const [outrosEventos, setOutrosEventos] = useState([]);
   const [modelos, setModelos] = useState([]);
   const [paramsSis, setParamsSis] = useState(PARAMS_PADRAO);
@@ -200,7 +200,7 @@ export default function EventoPage() {
     const { data, error } = await supabase.from("eventos").insert([{
       nome: copia.cliente.nome_evento, cliente_nome: copia.cliente.cliente_nome || null, cliente_telefone: copia.cliente.cliente_telefone || null,
       data_evento: dataNova, capacidade: Math.round(Number(r.convidados) || 0), local_evento: copia.cliente.local_evento || null,
-      tipo_evento: "buffet", funil_status: "NOVO CONTATO", status: "ativo", unidade_id: unidadeAtiva, responsavel_id: user?.id || null,
+      tipo_evento: "buffet", funil_status: "NOVO CONTATO", status: "ativo", unidade_id: unidadeAtiva, responsavel_id: sessao?.id || null,
       valor_contratado: r.receita, operacao_detalhes: { orcamento: copia, resumo: resumoParaFunil(r) },
     }]).select("id").single();
     if (error) { setAviso(`Não duplicou: ${mensagemErroEvento(error.message)}`); return; }

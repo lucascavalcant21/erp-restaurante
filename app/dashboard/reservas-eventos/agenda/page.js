@@ -5,11 +5,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Clock, Users, Loader2, PartyPopper, UtensilsCrossed } from "lucide-react";
+import { Clock, Users, Loader2, PartyPopper, UtensilsCrossed } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
 import { normalizarEtapa, rotuloEtapa } from "../../../lib/evento-financeiro.mjs";
 import { erroDeColunaDeEventos } from "../../../lib/evento-orcamento.mjs";
+import { rotuloStatusReserva } from "../../../lib/reservas-lista.mjs";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const somarDias = (dIso, n) => { const d = new Date(`${dIso}T12:00:00`); d.setDate(d.getDate() + n); return iso(d); };
@@ -56,7 +57,7 @@ export default function AgendaPage() {
           titulo: e.nome || e.cliente_nome || "Evento", sub: e.cliente_nome && e.nome ? e.cliente_nome : "", pessoas: e.capacidade, etapa: rotuloEtapa(normalizarEtapa(e.funil_status)) }));
       const reservas = (rs.data || []).filter((r) => !/cancel/i.test(String(r.status || "")))
         .map((r) => ({ tipo: "reserva", id: r.id, data: String(r.data_reserva).slice(0, 10), hora: String(r.horario || "").slice(0, 5),
-          titulo: r.cliente_nome || "Reserva", sub: "", pessoas: r.qtd_pessoas, etapa: r.status || "" }));
+          titulo: r.cliente_nome || "Reserva", sub: "", pessoas: r.qtd_pessoas, etapa: r.status }));
       setItens([...eventos, ...reservas]);
       setCarregando(false);
     });
@@ -75,45 +76,42 @@ export default function AgendaPage() {
   const totais = { eventos: itens.filter((i) => i.tipo === "evento").length, reservas: itens.filter((i) => i.tipo === "reserva").length,
     pessoas: itens.reduce((t, i) => t + (Number(i.pessoas) || 0), 0) };
 
-  if (!unidadeAtiva) return <div className="p-8 text-center text-slate-900">Selecione uma loja.</div>;
+  if (!unidadeAtiva) return null;
 
   return (
-    <main className="mx-auto w-full max-w-4xl p-4 sm:p-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight text-slate-900"><CalendarDays className="text-emerald-600" /> Agenda</h1>
-          <p className="text-sm font-medium text-slate-600">Eventos e reservas dos próximos {dias} dias · {totais.eventos} evento(s), {totais.reservas} reserva(s), {totais.pessoas.toLocaleString("pt-BR")} pessoas</p>
-        </div>
-        <div className="flex rounded-xl bg-slate-100 p-1" role="radiogroup" aria-label="Período">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-hf-text-2">Próximos {dias} dias · {totais.eventos} evento(s), {totais.reservas} reserva(s), {totais.pessoas.toLocaleString("pt-BR")} pessoas</p>
+        <div className="flex rounded-xl bg-hf-elevated p-1" role="radiogroup" aria-label="Período">
           {JANELAS.map(([n, rotulo]) => (
             <button key={n} type="button" role="radio" aria-checked={dias === n} onClick={() => setDias(n)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-bold ${dias === n ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`}>{rotulo}</button>
+              className={`min-h-[36px] rounded-lg px-3 text-sm font-semibold ${dias === n ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2 hover:text-hf-text"}`}>{rotulo}</button>
           ))}
         </div>
       </div>
 
-      {erro && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{erro}</p>}
+      {erro && <p className="rounded-xl border border-hf-warning/30 bg-hf-warning/5 p-3 text-sm text-hf-text">{erro}</p>}
       {carregando ? (
-        <div className="grid min-h-[30vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
+        <div className="grid min-h-[30vh] place-items-center"><Loader2 className="animate-spin text-hf-accent" size={28} /></div>
       ) : porDia.length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm font-semibold text-slate-600">Nada agendado nos próximos {dias} dias.</div>
+        <div className="rounded-2xl border border-dashed border-hf-border-strong bg-hf-surface/60 p-8 text-center text-sm font-semibold text-hf-text-2">Nada agendado nos próximos {dias} dias.</div>
       ) : (
-        <div className="mt-6 space-y-6">
+        <div className="space-y-5">
           {porDia.map(([data, lista]) => (
             <section key={data}>
-              <h2 className={`mb-2 text-xs font-black uppercase tracking-widest ${data === hoje ? "text-emerald-700" : "text-slate-500"}`}>{rotuloDia(data, hoje)}</h2>
-              <ul className="space-y-2">
+              <h2 className={`mb-2 text-xs font-bold uppercase tracking-wide ${data === hoje ? "text-hf-accent" : "text-hf-text-2"}`}>{rotuloDia(data, hoje)}</h2>
+              <ul className="grid gap-2 lg:grid-cols-2">
                 {lista.map((i) => {
                   const conteudo = (
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 hover:border-slate-300">
-                      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${i.tipo === "evento" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-700"}`}>
+                    <div className={`flex items-center gap-3 rounded-xl border border-hf-border bg-hf-surface px-3 py-3 ${i.tipo === "evento" ? "hover:border-hf-border-strong" : ""}`}>
+                      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${i.tipo === "evento" ? "bg-hf-accent/10 text-hf-accent" : "bg-hf-elevated text-hf-text-2"}`}>
                         {i.tipo === "evento" ? <PartyPopper size={16} /> : <UtensilsCrossed size={16} />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <strong className="block truncate text-sm font-bold text-slate-900">{i.titulo}</strong>
-                        <span className="block truncate text-xs font-medium text-slate-600">{i.tipo === "evento" ? `Evento · ${i.etapa}` : `Reserva${i.etapa ? ` · ${i.etapa}` : ""}`}{i.sub ? ` · ${i.sub}` : ""}</span>
+                        <strong className="block truncate text-sm font-bold text-hf-text">{i.titulo}</strong>
+                        <span className="block truncate text-xs text-hf-text-2">{i.tipo === "evento" ? `Evento · ${i.etapa}` : `Reserva · ${rotuloStatusReserva(i.etapa)}`}{i.sub ? ` · ${i.sub}` : ""}</span>
                       </span>
-                      <span className="flex items-center gap-3 text-xs font-bold text-slate-700">
+                      <span className="flex shrink-0 items-center gap-3 text-xs font-bold text-hf-text-2">
                         {i.hora && <span className="flex items-center gap-1"><Clock size={12} /> {i.hora}</span>}
                         {Number(i.pessoas) > 0 && <span className="flex items-center gap-1"><Users size={12} /> {i.pessoas}</span>}
                       </span>
@@ -126,6 +124,6 @@ export default function AgendaPage() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }

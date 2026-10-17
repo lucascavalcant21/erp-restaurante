@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Calendar, Users, Building2, ChevronRight, LayoutGrid, List, X, Check } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Plus, Search, Calendar, Users, Building2, ChevronRight, LayoutGrid, List, X, Check, AlertTriangle } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
 import { FUNIL_ETAPAS, normalizarEtapa, rotuloEtapa } from "../../../lib/evento-financeiro.mjs";
@@ -12,18 +13,43 @@ import { mascaraTelefone } from "../../../lib/mascaras.mjs";
 
 // As etapas do funil vêm de evento-financeiro.mjs (a mesma lista do seletor
 // dentro do evento): antes eram duas listas e o evento sumia do funil.
+//
+// São 14 etapas. No quadro, etapa vazia vira uma coluna estreita (continua
+// recebendo o card arrastado); na lista, só aparecem as etapas com evento.
+// No celular a lista é o padrão: 14 colunas lado a lado não cabem.
+
+const VISAO_KEY = "hefisto_funil_visao";
+const ENCERRADAS = ["EVENTO", "FINALIZADO", "CANCELADO"];
+const hojeIso = () => new Date().toLocaleDateString("sv-SE");
+const dataTxt = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "Sem data");
+
+function visaoInicial() {
+  try {
+    const salva = localStorage.getItem(VISAO_KEY);
+    if (salva === "lista" || salva === "kanban") return salva;
+  } catch (_) {}
+  return typeof window !== "undefined" && window.innerWidth >= 1024 ? "kanban" : "lista";
+}
 
 export default function EventosKanbanPage() {
-  const { unidadeAtiva, user } = useERP();
+  const { unidadeAtiva, sessao } = useERP();
+  const router = useRouter();
   const [eventos, setEventos] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [modoVisao, setModoVisao] = useState("kanban"); // "kanban" | "lista"
+  const [erro, setErro] = useState("");
+  const [modoVisao, setModoVisao] = useState("lista");
   const [modalAberto, setModalAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const [mes, setMes] = useState(""); // "" = todos; "YYYY-MM" = mês da data do evento
   const [arrastando, setArrastando] = useState(null);
   const [alvo, setAlvo] = useState(null);
   const [erroMover, setErroMover] = useState("");
+
+  useEffect(() => { setModoVisao(visaoInicial()); }, []);
+  const trocarVisao = (v) => {
+    setModoVisao(v);
+    try { localStorage.setItem(VISAO_KEY, v); } catch (_) {}
+  };
 
   async function carregarEventos() {
     if (!unidadeAtiva) return;
@@ -34,16 +60,17 @@ export default function EventosKanbanPage() {
       .eq("unidade_id", unidadeAtiva)
       .neq("tipo_evento", "especial") // Oculta os antigos temáticos legados
       .order("data_evento", { ascending: true });
-      
+    setErro(error ? `Não foi possível carregar os eventos: ${error.message}` : "");
     if (!error && data) setEventos(data);
     setCarregando(false);
   }
 
   useEffect(() => {
     carregarEventos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unidadeAtiva]);
 
-  if (!unidadeAtiva) return <div className="p-8 text-center text-slate-900">Selecione uma loja.</div>;
+  if (!unidadeAtiva) return null;
 
   // Busca por nome do evento, cliente, telefone ou data (dd/mm).
   const termo = busca.trim().toLowerCase();
@@ -56,192 +83,201 @@ export default function EventosKanbanPage() {
   const moverPara = async (eventoId, etapa) => {
     const antes = eventos.find(e => e.id === eventoId);
     if (!antes || normalizarEtapa(antes.funil_status) === etapa) return;
+    setErroMover("");
     setEventos(l => l.map(e => e.id === eventoId ? { ...e, funil_status: etapa } : e));
     const { error } = await supabase.from("eventos").update({ funil_status: etapa }).eq("id", eventoId);
     if (error) { setEventos(l => l.map(e => e.id === eventoId ? antes : e)); setErroMover(`Não mudou a etapa: ${error.message}`); }
   };
   const visiveis = !termo ? doMes : doMes.filter(e => {
-    const data = e.data_evento ? new Date(e.data_evento).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "";
+    const data = dataTxt(e.data_evento);
     return [e.nome, e.cliente_nome, e.cliente_telefone, data].some(v => String(v || "").toLowerCase().includes(termo));
   });
-  const getEventosPorEtapa = (etapa) => visiveis.filter(e => normalizarEtapa(e.funil_status) === etapa);
+  const porEtapa = (etapa) => visiveis.filter(e => normalizarEtapa(e.funil_status) === etapa);
+  const hoje = hojeIso();
+  const cartao = (evt, arrastavel) => (
+    <CartaoEvento key={evt.id} evt={evt} hoje={hoje} arrastavel={arrastavel} esmaecido={arrastando === evt.id}
+      onInicio={(e) => { e.dataTransfer.setData("text/plain", evt.id); e.dataTransfer.effectAllowed = "move"; setArrastando(evt.id); }}
+      onFim={() => { setArrastando(null); setAlvo(null); }} />
+  );
+  const soltar = (etapa) => ({
+    onDragOver: (e) => { if (arrastando) { e.preventDefault(); setAlvo(etapa); } },
+    onDragLeave: () => setAlvo(a => (a === etapa ? null : a)),
+    onDrop: (e) => { e.preventDefault(); const idEv = e.dataTransfer.getData("text/plain") || arrastando; setAlvo(null); setArrastando(null); if (idEv) moverPara(idEv, etapa); },
+  });
+
+  const kpis = [
+    ["Eventos", String(ind.eventos)],
+    ["Fechados", String(ind.fechados)],
+    ["Valor fechado", fmtReais(ind.valor)],
+    ["Lucro previsto", ind.lucro === null ? "—" : `${fmtReais(ind.lucro)}${ind.lucroParcial ? "*" : ""}`],
+    ["Conversão", ind.conversao === null ? "—" : fmtPct(ind.conversao, 0)],
+  ];
 
   return (
-    <div className="flex flex-col w-full h-[780px] overflow-hidden bg-white border border-slate-200 rounded-3xl p-4">
-      
-  <div className="flex justify-between items-center mb-4">
-    <div className="flex bg-slate-100 p-1 rounded-xl">
-      <button onClick={() => setModoVisao("lista")} className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${modoVisao === 'lista' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:bg-slate-200'}`}>
-        <List size={16} /> Lista
-      </button>
-      <button onClick={() => setModoVisao("kanban")} className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${modoVisao === 'kanban' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:bg-slate-200'}`}>
-        <LayoutGrid size={16} /> Kanban
-      </button>
-    </div>
-    <button onClick={() => setModalAberto(true)} className="h-10 px-4 rounded-xl bg-accent text-accent-fg font-bold flex items-center gap-2 hover:opacity-90">
-      <Plus size={18} /> Novo Evento
-    </button>
-  </div>
-  
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => setModalAberto(true)} className="inline-flex min-h-[44px] items-center gap-2 whitespace-nowrap rounded-xl bg-hf-accent px-4 text-sm font-bold text-hf-accent-fg hover:brightness-110">
+          <Plus size={18} /> Novo evento
+        </button>
+        <div role="tablist" aria-label="Forma de ver o funil" className="ml-auto flex rounded-xl bg-hf-elevated p-1">
+          {[["lista", "Lista", List], ["kanban", "Quadro", LayoutGrid]].map(([id, rotulo, Icone]) => (
+            <button key={id} type="button" role="tab" aria-selected={modoVisao === id} onClick={() => trocarVisao(id)}
+              className={`flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 text-sm font-semibold ${modoVisao === id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2 hover:text-hf-text"}`}>
+              <Icone size={15} /> {rotulo}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <div className="mb-4 grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-5">
-        {[["Eventos", String(ind.eventos)], ["Fechados", String(ind.fechados)], ["Valor fechado", fmtReais(ind.valor)],
-          ["Lucro previsto", ind.lucro === null ? "—" : `${fmtReais(ind.lucro)}${ind.lucroParcial ? "*" : ""}`], ["Conversão", ind.conversao === null ? "—" : fmtPct(ind.conversao, 0)]].map(([r, v]) => (
-          <div key={r} className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{r}</p>
-            <p className="truncate text-base font-black tabular-nums text-slate-900">{v}</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {kpis.map(([r, v], i) => (
+          <div key={r} className={`min-w-0 rounded-xl border border-hf-border bg-hf-surface px-3 py-2 ${i === kpis.length - 1 ? "col-span-2 sm:col-span-1" : ""}`}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-hf-muted">{r}</p>
+            <p className="truncate text-base font-black tabular-nums text-hf-text">{v}</p>
           </div>
         ))}
       </div>
-      {ind.lucroParcial && <p className="-mt-2 mb-3 text-xs font-medium text-slate-500">* Só dos eventos já abertos no orçamento novo.</p>}
-      {erroMover && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{erroMover}</p>}
-      <div className="mb-6 flex shrink-0 flex-wrap items-center gap-2">
-      <select value={mes} onChange={e => setMes(e.target.value)} aria-label="Mês do evento"
-        className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-800 outline-none focus:border-slate-500">
-        <option value="">Todos os meses</option>
-        {meses.map(m => <option key={m} value={m}>{rotuloMes(m)}</option>)}
-      </select>
-      <div className="relative w-full max-w-md shrink-0">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800" size={18} />
-        <input 
-          type="text" 
-          placeholder="Buscar por evento, cliente, telefone ou data..." value={busca} onChange={e => setBusca(e.target.value)} 
-          className="w-full pl-10 pr-4 h-11 rounded-xl border border-slate-300 focus:border-slate-500 focus:ring-1 focus:ring-slate-500 outline-none font-medium"
-        />
+      {ind.lucroParcial && <p className="-mt-2 text-xs text-hf-muted">* Só dos eventos já abertos no orçamento novo.</p>}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <select value={mes} onChange={e => setMes(e.target.value)} aria-label="Mês do evento"
+          className="min-h-[44px] rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent focus:ring-2 focus:ring-hf-accent/15">
+          <option value="">Todos os meses</option>
+          {meses.map(m => <option key={m} value={m}>{rotuloMes(m)}</option>)}
+        </select>
+        <div className="relative min-w-[220px] flex-1 sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-muted" size={16} />
+          <input type="search" placeholder="Buscar evento, cliente, telefone ou data" value={busca} onChange={e => setBusca(e.target.value)}
+            className="min-h-[44px] w-full rounded-xl border border-hf-border bg-hf-surface pl-9 pr-3 text-sm text-hf-text outline-none focus:border-hf-accent focus:ring-2 focus:ring-hf-accent/15" />
+        </div>
       </div>
-      </div>
+
+      {erro && <Aviso>{erro}</Aviso>}
+      {erroMover && <Aviso>{erroMover}</Aviso>}
 
       {carregando ? (
-        <div className="flex-1 flex items-center justify-center font-bold text-slate-900">Carregando pipeline...</div>
+        <div className="rounded-2xl border border-hf-border bg-hf-surface p-6 text-sm text-hf-muted">Carregando o funil…</div>
+      ) : !eventos.length && !erro ? (
+        <div className="rounded-2xl border border-dashed border-hf-border-strong bg-hf-surface/60 p-6 text-center">
+          <p className="font-bold text-hf-text">Nenhum evento ainda</p>
+          <p className="mt-1 text-sm text-hf-muted">Cadastre o primeiro contato: nome do cliente, data e quantas pessoas. O orçamento você monta depois, em etapas.</p>
+          <button type="button" onClick={() => setModalAberto(true)} className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-hf-accent px-4 text-sm font-bold text-hf-accent-fg"><Plus size={16} /> Novo evento</button>
+        </div>
+      ) : !visiveis.length ? (
+        <div className="rounded-2xl border border-dashed border-hf-border-strong bg-hf-surface/60 p-6 text-sm text-hf-muted">Nenhum evento com esse filtro.</div>
       ) : modoVisao === "kanban" ? (
-        // VISÃO KANBAN (Horizontal scroll)
-        <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4 flex gap-4 snap-x">
+        <div className="-mx-4 flex items-start gap-3 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6">
           {FUNIL_ETAPAS.map((etapa) => {
-            const cards = getEventosPorEtapa(etapa);
-            return (
-              <div key={etapa}
-                onDragOver={e => { if (arrastando) { e.preventDefault(); setAlvo(etapa); } }}
-                onDragLeave={() => setAlvo(a => (a === etapa ? null : a))}
-                onDrop={e => { e.preventDefault(); const idEv = e.dataTransfer.getData("text/plain") || arrastando; setAlvo(null); setArrastando(null); if (idEv) moverPara(idEv, etapa); }}
-                className={`w-80 min-w-[320px] bg-white border rounded-3xl flex flex-col shrink-0 snap-start transition-colors ${alvo === etapa ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
-                <header className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-100/50 rounded-t-3xl">
-                  <h3 className="font-bold text-slate-800 text-sm tracking-wide">{rotuloEtapa(etapa)}</h3>
-                  <span className="bg-slate-200 text-slate-900 text-xs font-black px-2 py-0.5 rounded-full">{cards.length}</span>
-                </header>
-                
-                <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                  {cards.map(evt => (
-                    <Link key={evt.id} href={`/dashboard/reservas-eventos/eventos/${evt.id}`} draggable
-                      onDragStart={e => { e.dataTransfer.setData("text/plain", evt.id); e.dataTransfer.effectAllowed = "move"; setArrastando(evt.id); }}
-                      onDragEnd={() => { setArrastando(null); setAlvo(null); }}
-                      title="Arraste para outra etapa"
-                      className={`block bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-slate-300 transition-all cursor-grab group ${arrastando === evt.id ? "opacity-50" : ""}`}>
-                      <div className="flex justify-between items-start mb-2">
-                        <strong className="text-slate-900 font-bold leading-tight group-hover:text-emerald-700 transition-colors">
-                          {evt.nome || evt.cliente_nome || "Evento sem título"}
-                        </strong>
-                        <ChevronRight size={16} className="text-slate-300 group-hover:text-emerald-600" />
-                      </div>
-                      
-                      {evt.cliente_nome && (
-                        <div className="text-sm text-slate-900 font-medium mb-3">
-                          {evt.cliente_nome}
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-3 text-xs font-bold text-slate-900">
-                        <span className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-lg">
-                          <Calendar size={12} className="text-slate-800" /> 
-                          {evt.data_evento ? new Date(evt.data_evento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-'}
-                        </span>
-                        <span className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-lg">
-                          <Users size={12} className="text-slate-800" /> 
-                          {evt.capacidade || 0}
-                        </span>
-                        {Number(evt.valor_contratado) > 0 && (
-                          <span className="ml-auto whitespace-nowrap rounded-lg bg-emerald-50 px-2 py-1 text-emerald-800">{fmtReais(evt.valor_contratado)}</span>
-                        )}
-                      </div>
-                      {typeof evt.operacao_detalhes?.resumo?.lucro === "number" && Number(evt.valor_contratado) > 0 && (
-                        <div className={`mt-2 text-xs font-bold ${evt.operacao_detalhes.resumo.lucro < 0 ? "text-red-600" : "text-slate-600"}`}>
-                          Lucro limpo: {fmtReais(evt.operacao_detalhes.resumo.lucro)}{evt.operacao_detalhes.resumo.lucro_pct !== null && evt.operacao_detalhes.resumo.lucro_pct !== undefined ? ` · ${fmtPct(evt.operacao_detalhes.resumo.lucro_pct)}` : ""}
-                        </div>
-                      )}
-                    </Link>
-                  ))}
-                  
-                  {cards.length === 0 && (
-                    <div className="p-4 text-center text-xs font-bold text-slate-800 uppercase tracking-widest border-2 border-dashed border-slate-200 rounded-2xl mt-2">
-                      Vazio
-                    </div>
-                  )}
+            const cards = porEtapa(etapa);
+            const marcado = alvo === etapa;
+            if (!cards.length) {
+              return (
+                <div key={etapa} {...soltar(etapa)} title={`${rotuloEtapa(etapa)}: nenhum evento`}
+                  className={`flex min-h-[220px] w-11 shrink-0 flex-col items-center gap-2 rounded-2xl border py-3 transition-colors ${marcado ? "border-hf-accent bg-hf-accent/10" : "border-dashed border-hf-border-strong bg-hf-surface/50"}`}>
+                  <span className="text-[11px] font-bold text-hf-muted">0</span>
+                  <span className="text-xs font-semibold text-hf-text-2 [writing-mode:vertical-rl]">{rotuloEtapa(etapa)}</span>
                 </div>
-              </div>
+              );
+            }
+            return (
+              <section key={etapa} {...soltar(etapa)} aria-label={rotuloEtapa(etapa)}
+                className={`flex w-72 shrink-0 flex-col rounded-2xl border bg-hf-elevated/60 transition-colors ${marcado ? "border-hf-accent ring-2 ring-hf-accent/20" : "border-hf-border"}`}>
+                <header className="flex items-center justify-between gap-2 px-3 pb-2 pt-3">
+                  <h3 className="text-sm font-bold text-hf-text">{rotuloEtapa(etapa)}</h3>
+                  <span className="rounded-full bg-hf-surface px-2 py-0.5 text-xs font-bold text-hf-text-2">{cards.length}</span>
+                </header>
+                <div className="max-h-[65vh] space-y-2 overflow-y-auto px-2 pb-2">
+                  {cards.map((evt) => cartao(evt, true))}
+                </div>
+              </section>
             );
           })}
         </div>
       ) : (
-        // VISÃO LISTA
-        <div className="flex-1 overflow-auto bg-white border border-slate-200 rounded-3xl">
-          <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 bg-white shadow-sm z-10">
-              <tr className="border-b border-slate-200">
-                <th className="py-4 px-6 text-xs font-black text-slate-800 uppercase tracking-wider">Evento / Cliente</th>
-                <th className="py-4 px-6 text-xs font-black text-slate-800 uppercase tracking-wider">Data</th>
-                <th className="py-4 px-6 text-xs font-black text-slate-800 uppercase tracking-wider">Convidados</th>
-                <th className="py-4 px-6 text-xs font-black text-slate-800 uppercase tracking-wider">Etapa do Funil</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {visiveis.map(evt => (
-                <tr key={evt.id} className="hover:bg-white transition-colors cursor-pointer" onClick={() => window.location.href = `/dashboard/reservas-eventos/eventos/${evt.id}`}>
-                  <td className="py-4 px-6">
-                    <strong className="block text-slate-900 font-bold">{evt.nome || evt.cliente_nome}</strong>
-                    <span className="text-sm text-slate-900 font-medium">{evt.cliente_nome}</span>
-                  </td>
-                  <td className="py-4 px-6 font-bold text-slate-900">
-                    {evt.data_evento ? new Date(evt.data_evento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-'}
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-900 font-bold text-sm">
-                      <Users size={14}/> {evt.capacidade || 0}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="inline-flex px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-700 font-bold text-xs uppercase tracking-wider">
-                      {rotuloEtapa(normalizarEtapa(evt.funil_status))}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-5">
+          {FUNIL_ETAPAS.map((etapa) => {
+            const cards = porEtapa(etapa);
+            if (!cards.length) return null;
+            return (
+              <section key={etapa} aria-label={rotuloEtapa(etapa)}>
+                <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-hf-text-2">
+                  {rotuloEtapa(etapa)} <span className="rounded-full bg-hf-surface px-2 py-0.5 text-[11px] text-hf-muted">{cards.length}</span>
+                </h3>
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {cards.map((evt) => cartao(evt, false))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
 
       {modalAberto && (
-        <NovoEventoModal 
-          onClose={() => setModalAberto(false)} 
-          unidadeAtiva={unidadeAtiva} 
-          user={user}
-          onSuccess={() => {
+        <NovoEventoModal
+          onClose={() => setModalAberto(false)}
+          unidadeAtiva={unidadeAtiva}
+          usuarioId={sessao?.id}
+          onSuccess={(id) => {
             setModalAberto(false);
-            carregarEventos();
-          }} 
+            if (id) router.push(`/dashboard/reservas-eventos/eventos/${id}`);
+            else carregarEventos();
+          }}
         />
       )}
     </div>
   );
 }
 
-function NovoEventoModal({ onClose, onSuccess, unidadeAtiva, user }) {
+function Aviso({ children }) {
+  return (
+    <div className="flex gap-2 rounded-xl border border-hf-warning/30 bg-hf-warning/5 px-3 py-2.5 text-sm text-hf-text">
+      <AlertTriangle size={16} className="mt-0.5 shrink-0 text-hf-warning" /><div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
+function CartaoEvento({ evt, hoje, arrastavel, esmaecido, onInicio, onFim }) {
+  const etapa = normalizarEtapa(evt.funil_status);
+  const dataIso = String(evt.data_evento || "").slice(0, 10);
+  const passou = dataIso && dataIso < hoje && !ENCERRADAS.includes(etapa);
+  const resumo = evt.operacao_detalhes?.resumo;
+  const valor = Number(evt.valor_contratado) || 0;
+  return (
+    <Link href={`/dashboard/reservas-eventos/eventos/${evt.id}`} draggable={arrastavel}
+      onDragStart={arrastavel ? onInicio : undefined} onDragEnd={arrastavel ? onFim : undefined}
+      title={arrastavel ? "Arraste para outra etapa" : undefined}
+      className={`group block rounded-xl border border-hf-border bg-hf-surface p-3 shadow-sm transition hover:border-hf-border-strong hover:shadow ${arrastavel ? "cursor-grab" : ""} ${esmaecido ? "opacity-50" : ""}`}>
+      <div className="flex items-start justify-between gap-2">
+        <strong className="text-sm font-bold leading-snug text-hf-text group-hover:text-hf-accent">{evt.nome || evt.cliente_nome || "Evento sem título"}</strong>
+        <ChevronRight size={16} className="mt-0.5 shrink-0 text-hf-muted" />
+      </div>
+      {evt.cliente_nome && evt.nome && <p className="mt-0.5 truncate text-xs text-hf-text-2">{evt.cliente_nome}</p>}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-hf-text-2">
+        <span className="inline-flex items-center gap-1 rounded-md bg-hf-elevated px-1.5 py-0.5"><Calendar size={12} /> {dataTxt(evt.data_evento)}</span>
+        {Number(evt.capacidade) > 0 && <span className="inline-flex items-center gap-1 rounded-md bg-hf-elevated px-1.5 py-0.5"><Users size={12} /> {evt.capacidade}</span>}
+        {valor > 0 && <span className="ml-auto whitespace-nowrap font-bold tabular-nums text-hf-accent">{fmtReais(valor)}</span>}
+      </div>
+      {typeof resumo?.lucro === "number" && valor > 0 && (
+        <p className={`mt-1.5 text-xs font-semibold ${resumo.lucro < 0 ? "text-hf-danger" : "text-hf-text-2"}`}>
+          Lucro limpo: {fmtReais(resumo.lucro)}{resumo.lucro_pct !== null && resumo.lucro_pct !== undefined ? ` · ${fmtPct(resumo.lucro_pct)}` : ""}
+        </p>
+      )}
+      {passou && <p className="mt-1.5 text-xs font-semibold text-hf-warning">A data já passou: atualize a etapa.</p>}
+    </Link>
+  );
+}
+
+const campoCls = "min-h-[44px] w-full rounded-xl border border-hf-border bg-hf-surface px-3 text-sm text-hf-text outline-none focus:border-hf-accent focus:ring-2 focus:ring-hf-accent/15";
+
+function NovoEventoModal({ onClose, onSuccess, unidadeAtiva, usuarioId }) {
   const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
   const [form, setForm] = useState({
     nome: "",
     cliente_nome: "",
     cliente_telefone: "",
     data_evento: "",
-    capacidade: 50,
+    capacidade: "",
     local_evento: "",
     tipo_evento: "buffet",
     funil_status: "NOVO CONTATO",
@@ -252,95 +288,88 @@ function NovoEventoModal({ onClose, onSuccess, unidadeAtiva, user }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (salvando) return;
+    setErro("");
     setSalvando(true);
-    
+
     const payload = {
       ...form,
+      capacidade: Math.max(0, Math.round(Number(form.capacidade) || 0)),
       unidade_id: unidadeAtiva,
-      responsavel_id: user?.id || null
+      responsavel_id: usuarioId || null
     };
 
-    // 'nome' é not null no banco, então se o usuário não digitar um título, 
+    // 'nome' é not null no banco, então se o usuário não digitar um título,
     // usamos o nome do cliente ou geramos um genérico.
     if (!payload.nome) {
       payload.nome = payload.cliente_nome ? `Evento: ${payload.cliente_nome}` : 'Novo Evento Buffet';
     }
 
-    const { error } = await supabase.from("eventos").insert([payload]);
+    const { data, error } = await supabase.from("eventos").insert([payload]).select("id").single();
     setSalvando(false);
-    
-    if (!error) {
-      onSuccess();
-    } else {
-      console.error(error);
-      alert("Erro ao criar evento.");
-    }
+    if (error) { setErro(`Não foi possível criar o evento: ${error.message}`); return; }
+    onSuccess(data?.id);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <header className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Building2 className="text-emerald-600" /> Novo Contato de Evento
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="novo-evento-titulo" className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-hf-surface shadow-xl sm:rounded-3xl">
+        <header className="flex items-center justify-between border-b border-hf-border px-5 py-4">
+          <h2 id="novo-evento-titulo" className="flex items-center gap-2 text-lg font-black text-hf-text">
+            <Building2 size={20} className="text-hf-accent" /> Novo evento
           </h2>
-          <button onClick={onClose} className="p-2 text-slate-800 hover:text-slate-900 bg-white hover:bg-slate-100 rounded-full transition-colors">
+          <button type="button" onClick={onClose} aria-label="Fechar" className="grid h-11 w-11 place-items-center rounded-full text-hf-text-2 hover:bg-hf-elevated">
             <X size={20} />
           </button>
         </header>
-        
-        <div className="flex-1 overflow-auto p-6">
-          <form id="evento-form" onSubmit={handleSubmit} className="space-y-6">
-            
-            <div className="bg-white p-4 rounded-2xl border border-slate-200">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-4">Informações do Cliente</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-1">Nome do Cliente / Empresa *</label>
-                  <input required type="text" name="cliente_nome" value={form.cliente_nome} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="Ex: Ana Souza" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-1">Telefone (WhatsApp)</label>
-                  <input type="text" inputMode="tel" name="cliente_telefone" value={form.cliente_telefone} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="(11) 90000-0000" />
-                </div>
+
+        <div className="flex-1 overflow-auto p-5">
+          <form id="evento-form" onSubmit={handleSubmit} className="space-y-5">
+            <fieldset className="space-y-3">
+              <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-hf-muted">Cliente</legend>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold text-hf-text-2">Nome do cliente ou empresa *</span>
+                  <input required type="text" name="cliente_nome" value={form.cliente_nome} onChange={handleChange} className={campoCls} placeholder="Ex.: Ana Souza" />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold text-hf-text-2">Telefone (WhatsApp)</span>
+                  <input type="text" inputMode="tel" name="cliente_telefone" value={form.cliente_telefone} onChange={handleChange} className={campoCls} placeholder="(11) 90000-0000" />
+                </label>
               </div>
-            </div>
+            </fieldset>
 
-            <div>
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-4">Detalhes do Evento</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-1">Título do Evento (Opcional)</label>
-                  <input type="text" name="nome" value={form.nome} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="Ex: Casamento Ana e João" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-900 mb-1">Data Estimada *</label>
-                    <input required type="date" name="data_evento" value={form.data_evento} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium text-slate-900" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-900 mb-1">Convidados Estimados</label>
-                    <input required type="number" min="1" name="capacidade" value={form.capacidade} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-1">Local</label>
-                  <input type="text" name="local_evento" value={form.local_evento} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="Ex: Salão Principal do Héfisto, Chácara da Família..." />
-                </div>
+            <fieldset className="space-y-3">
+              <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-hf-muted">Evento</legend>
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-hf-text-2">Nome do evento (opcional)</span>
+                <input type="text" name="nome" value={form.nome} onChange={handleChange} className={campoCls} placeholder="Ex.: Casamento Ana e João" />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold text-hf-text-2">Data *</span>
+                  <input required type="date" name="data_evento" value={form.data_evento} onChange={handleChange} className={campoCls} />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold text-hf-text-2">Convidados</span>
+                  <input type="number" inputMode="numeric" min="0" name="capacidade" value={form.capacidade} onChange={handleChange} className={campoCls} placeholder="Ex.: 80" />
+                </label>
               </div>
-            </div>
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-hf-text-2">Local</span>
+                <input type="text" name="local_evento" value={form.local_evento} onChange={handleChange} className={campoCls} placeholder="Ex.: Salão principal, chácara da família" />
+              </label>
+            </fieldset>
+            {erro && <Aviso>{erro}</Aviso>}
           </form>
         </div>
-        
-        <footer className="px-6 py-5 border-t border-slate-100 bg-white flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="h-11 px-6 rounded-xl font-bold text-slate-900 hover:bg-slate-200 transition-colors">
+
+        <footer className="flex justify-end gap-2 border-t border-hf-border px-5 py-4">
+          <button type="button" onClick={onClose} className="min-h-[44px] rounded-xl px-4 text-sm font-bold text-hf-text-2 hover:bg-hf-elevated">
             Cancelar
           </button>
-          <button type="submit" form="evento-form" disabled={salvando} className="h-11 px-6 rounded-xl bg-slate-900 text-white font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors disabled:opacity-50">
-            {salvando ? "Criando..." : <><Check size={18} /> Iniciar Proposta</>}
+          <button type="submit" form="evento-form" disabled={salvando} className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-hf-accent px-5 text-sm font-bold text-hf-accent-fg hover:brightness-110 disabled:opacity-50">
+            {salvando ? "Criando…" : <><Check size={18} /> Criar e montar orçamento</>}
           </button>
         </footer>
       </div>

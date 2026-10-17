@@ -49,7 +49,7 @@ export function mensagemErro(error) {
 export async function carregarBase(unidadeId) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
-  const [fichasR, insR, embR, precosR, cfgR, estR, itensR, unR] = await Promise.all([
+  const [fichasR, insR, embR, precosR, cfgR, estR, itensR, unR, foraR] = await Promise.all([
     fetchFichas(unidadeId),
     supabase.from("insumos").select("*").eq("unidade_id", unidadeId).is("arquivado_em", null).order("nome"),
     supabase.from("marmitaria_fichas_embalagens").select("*").eq("unidade_id", unidadeId),
@@ -58,6 +58,10 @@ export async function carregarBase(unidadeId) {
     supabase.from("estoques").select("*").eq("unidade_id", unidadeId).eq("status", "ativo").order("ordem"),
     supabase.from("estoque_itens").select("id, estoque_id, insumo_id, quantidade_atual, estoque_minimo, validade, local_interno, ficha_tecnica_id").eq("unidade_id", unidadeId),
     supabase.from("unidades").select("id, nome, ifood_conectado").eq("id", unidadeId).maybeSingle(),
+    // fetchFichas só traz ficha ativa. Marmita fora do cardápio (ativo =
+    // false) sumia da tela e não havia como devolvê-la ao cardápio.
+    supabase.from("fichas_tecnicas").select("*, fichas_ingredientes!ficha_id(*, insumos(*))")
+      .eq("unidade_id", unidadeId).eq("departamento", "marmitaria").eq("ativo", false).order("nome_receita"),
   ]);
   const erros = [
     fichasR.error && `Fichas: ${fichasR.error}`,
@@ -79,8 +83,8 @@ export async function carregarBase(unidadeId) {
     m[p.canal] = Number(p.preco_venda);
     precosPorFicha.set(p.ficha_id, m);
   }
-  const marmitas = fichas
-    .filter((f) => f.departamento === "marmitaria")
+  const foraDoCardapio = (foraR.data || []).filter((f) => !fichas.some((x) => x.id === f.id));
+  const marmitas = [...fichas.filter((f) => f.departamento === "marmitaria"), ...foraDoCardapio]
     .map((f) => ({
       ...f,
       itens: (f.fichas_ingredientes || []).map((fi) => ({

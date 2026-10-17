@@ -75,7 +75,7 @@ export default function VisaoGeralPage() {
   if (base.config.tributos_pct === null) pendencias.push(["Alíquota de tributos não configurada.", "/dashboard/marmitaria/configuracoes", "Configurar"]);
   if (base.config.margem_alvo_pct === null) pendencias.push(["Margem-alvo não configurada (sem sugestão de preço).", "/dashboard/marmitaria/configuracoes", "Configurar"]);
   if (!locais.length) pendencias.push(["Estoque da marmitaria não ativado (sem CMV real).", "/dashboard/marmitaria/estoque?aba=estoque", "Ativar estoque"]);
-  const incompletas = base.marmitas.filter((m) => !custos.get(m.id)?.completo).length;
+  const incompletas = base.marmitas.filter((m) => m.ativo !== false && !custos.get(m.id)?.completo).length;
   if (incompletas) pendencias.push([`${incompletas} marmita(s) com custo incompleto.`, "/dashboard/marmitaria/marmitas", "Revisar"]);
   if (vendas && !vendas.length) pendencias.push(["Nenhuma venda lançada no período.", "/dashboard/marmitaria/financeiro?aba=vendas", "Lançar vendas"]);
   if (doMes && !doMes.cmo.linhas.length) pendencias.push(["Nenhum funcionário alocado (sem CMO).", "/dashboard/marmitaria/funcionarios", "Alocar"]);

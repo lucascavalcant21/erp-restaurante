@@ -3,8 +3,8 @@
 // FONTE ÚNICA das contas do orçamento. Funções puras (testes em
 // evento-orcamento.test.mjs).
 //
-// O orçamento mora em `eventos.operacao_detalhes.orcamento` (coluna JSON que
-// já existe): nada muda no banco. As fichas exclusivas do evento ficam só
+// O orçamento mora em `eventos.operacao_detalhes.orcamento` (coluna JSON;
+// no banco real ela chega com db/EVENTOS_ORC_1_COLUNAS_DO_ORCAMENTO.sql). As fichas exclusivas do evento ficam só
 // aqui dentro — não entram nas fichas técnicas do restaurante. O DRE do
 // evento é só dele: não lê nem escreve nada do DRE da casa.
 
@@ -658,5 +658,22 @@ export function camposDoEventoParaGravar(orc, r, operacaoDetalhesAtual = {}) {
 // Colunas sem as quais não faz sentido gravar (o resto é descartado se o
 // banco não tiver a coluna).
 export const CAMPOS_ESSENCIAIS = ["operacao_detalhes", "nome"];
+
+// Banco sem a migração EVENTOS-ORC-1 (db/EVENTOS_ORC_1_COLUNAS_DO_ORCAMENTO.sql):
+// o orçamento e os pagamentos não têm onde ser gravados. A tela avisa em
+// português em vez de mostrar "Could not find the 'operacao_detalhes' column".
+export const MSG_BANCO_EVENTOS = "O banco ainda não recebeu a atualização de Eventos (EVENTOS-ORC-1): o orçamento e os pagamentos deste evento não ficam salvos. Avise o administrador para aplicá-la.";
+
+export function bancoSemOrcamento(evento) {
+  return !!evento && typeof evento === "object" && !("operacao_detalhes" in evento);
+}
+
+export function erroDeColunaDeEventos(msg) {
+  return /(operacao_detalhes|historico_pagamentos|hora_inicio|hora_fim|observacoes).*(schema cache|does not exist)|column "?eventos\.(operacao_detalhes|historico_pagamentos|hora_inicio|hora_fim|observacoes)"? does not exist|Could not find the '(operacao_detalhes|historico_pagamentos|hora_inicio|hora_fim|observacoes)' column/i.test(String(msg || ""));
+}
+
+export function mensagemErroEvento(msg) {
+  return erroDeColunaDeEventos(msg) ? MSG_BANCO_EVENTOS : String(msg || "Não foi possível gravar.");
+}
 
 export { novoId };

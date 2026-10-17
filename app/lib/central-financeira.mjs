@@ -48,7 +48,8 @@ export const ROTAS = Object.freeze({
   novaContaPagar: "/dashboard/financeiro/contas?nova=1",
   contasReceber: "/dashboard/financeiro/receber",
   caixa: "/dashboard/financeiro/caixa",
-  fluxo: "/dashboard/financeiro/fluxo",
+  // o fluxo antigo (/fluxo) redireciona para cá
+  fluxo: "/dashboard/financeiro/caixa",
   dre: "/dashboard/financeiro/dre",
   compras: "/dashboard/operacao/compras",
   cmvReal: "/dashboard/operacao/estoque/cmv",

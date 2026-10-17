@@ -341,7 +341,7 @@ function EntradasSaidas({ apurados }) {
     <Secao titulo="Entradas e saídas por produto (médias por dia, semana e mês)">
       <p className="text-3xs text-fg">Entrada = compras confirmadas. Saída = inicial + entradas − final (saída física apurada entre contagens; inclui venda, produção, perda e desperdício). Média ponderada pelos dias dos períodos apurados ({nPer}); semana = ×7 e mês = ×30 dias. Inclui embalagens e limpeza.</p>
       <div className="flex flex-wrap gap-1 my-2">{[["todos", "Todos"], ["mercadoria", "Mercadoria"], ["embalagem", "Embalagens"], ["operacional", "Limpeza / operacional"]].map(([g, r]) => (
-        <button key={g} onClick={() => setGrupo(g)} className={`px-3 py-1 rounded-lg text-xs font-bold border ${grupo === g ? "bg-slate-900 text-white" : "bg-white border-line"}`}>{r}</button>))}</div>
+        <button key={g} onClick={() => setGrupo(g)} className={`px-3 py-1 rounded-lg text-xs font-bold border ${grupo === g ? "bg-hf-accent text-hf-accent-fg" : "bg-white border-line"}`}>{r}</button>))}</div>
       {!nPer ? <p className="text-xs font-bold">Ainda não há período apurado: as médias aparecem depois de dois inventários fechados.</p> : !lista.length ? <p className="text-xs text-fg">Nenhum produto neste grupo.</p> : (
         <div className="overflow-x-auto"><table className="w-full text-xs">
           <thead><tr className="text-left text-fg"><th className="py-1">Produto</th><th className="text-right">Entrada/dia</th><th className="text-right">Saída/dia</th><th className="text-right">Saída/semana</th><th className="text-right">Saída/mês</th><th className="text-right">Entrada/mês</th><th className="text-right">Estoque cobre</th><th className="text-right">Base</th></tr></thead>
@@ -435,7 +435,7 @@ function Faturamento({ ap, dados, unidade, pode, onSalvo }) {
           <label>Cancelamentos<CampoDecimal value={form.cancelamentos} onChange={(e) => setForm({ ...form, cancelamentos: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
           <label>Descontos<CampoDecimal value={form.descontos} onChange={(e) => setForm({ ...form, descontos: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
           <label className="sm:col-span-1 col-span-2">Fonte<input required value={form.fonte} onChange={(e) => setForm({ ...form, fonte: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
-          <button disabled={salvando} className="h-10 rounded-lg bg-emerald-500 text-white font-black disabled:opacity-50">{salvando ? "Salvando..." : "Salvar dia"}</button>
+          <button disabled={salvando} className="h-10 rounded-lg bg-hf-accent text-white font-black disabled:opacity-50">{salvando ? "Salvando..." : "Salvar dia"}</button>
         </form>
       )}
     </Secao>

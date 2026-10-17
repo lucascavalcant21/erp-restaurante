@@ -121,6 +121,8 @@ export default function ContasAPagarPage() {
     // "vencido" = qualquer conta em aberto com vencimento passado (inclui parcial
     // vencida), o mesmo critério do card "Vencido"
     if (fSituacao === "vencido" ? !c.vencida : fSituacao && c.situacao !== fSituacao) return false;
+    // Cancelada só aparece quando pedida: na lista padrão ela só atrapalha.
+    if (!fSituacao && c.situacao === "cancelado") return false;
     if (fCategoria && c.categoria_codigo !== fCategoria) return false;
     if (fCentro && c.centro_custo_codigo !== fCentro) return false;
     if (fFornecedor && c.fornecedor_id !== fFornecedor) return false;
@@ -227,7 +229,7 @@ export default function ContasAPagarPage() {
               <RefreshCw size={16} /> Recorrentes
             </button>
             <button onClick={abrirNova} disabled={processando}
-              className="px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center gap-2 disabled:opacity-60">
+              className="px-5 py-3 bg-hf-accent hover:brightness-110 text-white font-black rounded-2xl flex items-center gap-2 disabled:opacity-60">
               <Plus size={18} /> Nova conta
             </button>
           </div>
@@ -268,7 +270,7 @@ export default function ContasAPagarPage() {
               <input type="date" value={custom.ate} onChange={(e) => setCustom({ ...custom, ate: e.target.value })} className={sel} />
             </>}
             <select value={fSituacao} onChange={(e) => setFSituacao(e.target.value)} className={sel}>
-              <option value="">Todas as situações</option>
+              <option value="">Todas (menos canceladas)</option>
               {["pendente", "parcial", "pago", "vencido", "cancelado"].map((s) => <option key={s} value={s}>{rotuloSituacao({ situacao: s })}</option>)}
             </select>
             <select value={fCategoria} onChange={(e) => setFCategoria(e.target.value)} className={sel}>
@@ -297,9 +299,35 @@ export default function ContasAPagarPage() {
           {loading ? <div className="py-12 text-center text-fg font-bold">Carregando contas a pagar...</div>
             : !filtradas.length ? <div className="py-12 text-center font-bold text-slate-900">Nenhuma conta para os filtros escolhidos.</div>
             : (
-            <div className="rounded-2xl border border-line overflow-x-auto">
+            <>
+            {/* Celular: um cartão por conta. A tabela de 8 colunas espremia a
+                descrição em uma palavra por linha. */}
+            <ul className="space-y-2 md:hidden">
+              {filtradas.map((c) => (
+                <li key={c.id} className="rounded-2xl border border-hf-border bg-hf-surface p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-hf-text">{c.descricao}</p>
+                      <p className="mt-0.5 text-xs text-hf-muted">{[nomeFornecedor(c.fornecedor_id), nomeCategoria(c.categoria_codigo) + (c.categoria_inferida ? " (antigo)" : "")].filter(Boolean).join(" · ")}</p>
+                    </div>
+                    <span className={`shrink-0 px-2 py-1 rounded-full text-3xs font-black uppercase ${COR[c.situacao] || COR.desconhecido}`}>{rotuloSituacao(c)}</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-3 gap-2 rounded-xl bg-hf-elevated/60 px-3 py-2 text-xs">
+                    <div><p className="text-hf-muted">Vence</p><p className="font-bold text-hf-text">{fmtData(c.data_vencimento)}</p></div>
+                    <div><p className="text-hf-muted">Valor</p><p className="font-bold tabular-nums text-hf-text">{fmtBRL(c.valor_original)}</p></div>
+                    <div><p className="text-hf-muted">Saldo</p><p className="font-black tabular-nums text-hf-text">{fmtBRL(c.saldo)}</p></div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {podeReceberPagamento(c) && <button disabled={processando} onClick={() => setContaPagar(c)} className="min-h-[40px] rounded-lg bg-hf-accent px-4 text-xs font-bold text-hf-accent-fg disabled:opacity-50">Pagar</button>}
+                    <button onClick={() => abrirDetalhe(c)} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-hf-border px-3 text-xs font-bold text-hf-text"><Eye size={14} /> Detalhes</button>
+                    {c.situacao !== "cancelado" && <button disabled={processando} onClick={() => abrirEdicao(c)} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-hf-border px-3 text-xs font-bold text-hf-text disabled:opacity-50"><Pencil size={14} /> Editar</button>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden rounded-2xl border border-line overflow-x-auto md:block">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-900 text-white uppercase font-black tracking-wider">
+                <thead className="bg-hf-elevated text-hf-text-2 uppercase font-black tracking-wider">
                   <tr>
                     <th className="p-3">Conta</th><th className="p-3">Competência</th><th className="p-3">Vencimento</th>
                     <th className="p-3 text-right">Valor</th><th className="p-3 text-right">Pago</th><th className="p-3 text-right">Saldo</th>
@@ -324,13 +352,14 @@ export default function ContasAPagarPage() {
                       <td className="p-3 text-right whitespace-nowrap space-x-1.5">
                         <button title="Detalhes e histórico" onClick={() => abrirDetalhe(c)} className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg"><Eye size={14} /></button>
                         {c.situacao !== "cancelado" && <button title="Editar" disabled={processando} onClick={() => abrirEdicao(c)} className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-50"><Pencil size={14} /></button>}
-                        {podeReceberPagamento(c) && <button disabled={processando} onClick={() => setContaPagar(c)} className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg text-2xs disabled:opacity-50">Pagar</button>}
+                        {podeReceberPagamento(c) && <button disabled={processando} onClick={() => setContaPagar(c)} className="px-2.5 py-1.5 bg-hf-accent hover:brightness-110 text-white font-bold rounded-lg text-2xs disabled:opacity-50">Pagar</button>}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       </div>
@@ -396,7 +425,7 @@ export default function ContasAPagarPage() {
             {form.id && <p className="text-3xs text-fg">Editar não mexe em pagamentos nem na situação.</p>}
             <div className="flex gap-3 pt-3 border-t border-line">
               <button type="button" onClick={() => setForm(null)} disabled={processando} className="flex-1 py-3 bg-slate-100 font-bold text-sm rounded-xl">Cancelar</button>
-              <button type="submit" disabled={processando} className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white font-black text-sm rounded-xl">{processando ? "Salvando..." : "Salvar"}</button>
+              <button type="submit" disabled={processando} className="flex-1 py-3 bg-hf-accent hover:brightness-110 disabled:opacity-60 text-white font-black text-sm rounded-xl">{processando ? "Salvando..." : "Salvar"}</button>
             </div>
           </form>
         </div>
@@ -472,7 +501,7 @@ export default function ContasAPagarPage() {
               )}
 
               <div className="flex flex-wrap gap-2 pt-2 border-t border-line">
-                {podeReceberPagamento(c) && <button disabled={processando} onClick={() => setContaPagar(c)} className="px-4 py-2.5 bg-emerald-500 text-white font-black text-xs rounded-xl disabled:opacity-50">Registrar pagamento</button>}
+                {podeReceberPagamento(c) && <button disabled={processando} onClick={() => setContaPagar(c)} className="px-4 py-2.5 bg-hf-accent text-white font-black text-xs rounded-xl disabled:opacity-50">Registrar pagamento</button>}
                 {c.situacao !== "cancelado" && <button disabled={processando} onClick={() => abrirEdicao(c)} className="px-4 py-2.5 bg-slate-100 font-bold text-xs rounded-xl disabled:opacity-50">Editar</button>}
                 {podeCancelar(c) && <button disabled={processando} onClick={() => setMotivo({ tipo: "cancelamento", alvo: c.id, texto: "" })} className="px-4 py-2.5 bg-stone-200 font-bold text-xs rounded-xl inline-flex items-center gap-1 disabled:opacity-50"><Ban size={13} /> Cancelar conta</button>}
               </div>
@@ -499,7 +528,7 @@ export default function ContasAPagarPage() {
               : "Nenhuma conta recorrente a gerar para este mês."} Repetir não duplica.</p>
             <div className="flex gap-3">
               <button type="button" onClick={() => setRecorrencia(null)} disabled={processando} className="flex-1 py-3 bg-slate-100 font-bold text-sm rounded-xl">Fechar</button>
-              <button type="submit" disabled={processando || !planoRecorrencia.length} className="flex-1 py-3 bg-emerald-500 text-white font-black text-sm rounded-xl disabled:opacity-50">{processando ? "Gerando..." : "Gerar"}</button>
+              <button type="submit" disabled={processando || !planoRecorrencia.length} className="flex-1 py-3 bg-hf-accent text-white font-black text-sm rounded-xl disabled:opacity-50">{processando ? "Gerando..." : "Gerar"}</button>
             </div>
           </form>
         </div>

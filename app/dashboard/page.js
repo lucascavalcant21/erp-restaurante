@@ -26,6 +26,8 @@ const ROTAS = {
   contas: "/dashboard/financeiro/contas",
   rh: "/dashboard/rh",
   eventos: "/dashboard/reservas-eventos",
+  // reservas de mesa ganharam área própria em Eventos & Reservas
+  reservas: "/dashboard/reservas-eventos/reservas",
   estoque: "/dashboard/operacao/estoque",
   mesas: "/dashboard/mesas",
 };
@@ -322,7 +324,7 @@ export default function Inicio() {
             {pode.eventos && (() => {
               const r = dados?.reservas?.ok ? dados.reservas.dados : null;
               return (
-                <Indicador href={ROTAS.eventos} icone={CalendarDays} rotulo="Reservas hoje" bloco={bloco("reservas")}>
+                <Indicador href={ROTAS.reservas} icone={CalendarDays} rotulo="Reservas hoje" bloco={bloco("reservas")}>
                   <div>
                     <Valor>{r ? r.lista.length : ""}</Valor>
                     <Detalhe>{r?.lista.length ? `${plural(r.pessoas, "pessoa", "pessoas")} · próxima às ${String(r.lista[0].horario || "").slice(0, 5)}` : "Nenhuma reserva para hoje"}</Detalhe>
@@ -369,7 +371,7 @@ export default function Inicio() {
           {/* Painéis */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {pode.financeiro && (
-              <Painel className="lg:col-span-2" titulo="Faturamento dos últimos 7 dias" href={ROTAS.dre} acao="DRE"
+              <Painel className={`lg:col-span-2 ${f?.disponivel && f.diasLancados ? "" : "lg:self-start"}`} titulo="Faturamento dos últimos 7 dias" href={ROTAS.dre} acao="DRE"
                 subtitulo={f?.disponivel && f.diasLancados
                   ? `${fmtBRL(f.totalLancado)} em ${plural(f.diasLancados, "dia lançado", "dias lançados")}${f.diasSemLancamento ? ` · ${plural(f.diasSemLancamento, "dia", "dias")} sem lançamento` : ""}`
                   : "\u00a0"}>
@@ -385,7 +387,12 @@ export default function Inicio() {
                     </span>
                   </Vazio>
                 ) : !f.diasLancados ? (
-                  <Vazio>Nenhum faturamento lançado nos últimos 7 dias.</Vazio>
+                  <Vazio>
+                    <span>
+                      Nenhum faturamento lançado nos últimos 7 dias.{" "}
+                      <Link href={ROTAS.lancarFaturamento} className="font-bold text-emerald-700 hover:underline">Lançar o faturamento do dia</Link>
+                    </span>
+                  </Vazio>
                 ) : (
                   <GraficoSemana dias={f.dias} destaque={f.ultimo?.iso} />
                 )}
@@ -429,7 +436,7 @@ export default function Inicio() {
                   )}
                 </Painel>
 
-                <Painel titulo="Reservas de hoje" href={ROTAS.eventos} acao="Reservas">
+                <Painel titulo="Reservas de hoje" href={ROTAS.reservas} acao="Reservas">
                   {dados === undefined ? (
                     <div className="h-24 animate-pulse rounded-xl bg-slate-50" aria-hidden />
                   ) : !dados?.reservas?.ok ? (

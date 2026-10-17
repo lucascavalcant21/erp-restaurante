@@ -113,19 +113,25 @@ export default function CmvPage() {
         });
         if (!temFicha) return null;
         const preco = Number(p.preco_venda) || 0;
-        return { id: p.id, nome: p.nome_produto, departamento: p.departamento, preco, custo, cmv: preco > 0 ? (custo / preco) * 100 : 0 };
+        // Ficha sem custo (revenda sem ingrediente, insumo sem preço) não tem
+        // CMV de 0%: não tem CMV apurado. Antes entrava como 0%, puxava a média
+        // para baixo e virava o "melhor CMV da carta".
+        const semCusto = !(custo > 0);
+        return { id: p.id, nome: p.nome_produto, departamento: p.departamento, preco, custo, semCusto, cmv: semCusto ? null : (custo / preco) * 100 };
       })
       .filter(Boolean)
-      .sort((a, b) => b.cmv - a.cmv);
+      .sort((a, b) => (a.semCusto - b.semCusto) || (b.cmv ?? 0) - (a.cmv ?? 0));
   }, [produtos, fichas]);
 
+  const comCusto = useMemo(() => linhas.filter((l) => !l.semCusto), [linhas]);
   const resumo = useMemo(() => {
-    if (!linhas.length) return { medio: 0, acima: 0, melhor: null };
-    const medio = linhas.reduce((a, l) => a + l.cmv, 0) / linhas.length;
-    const acima = linhas.filter((l) => l.cmv > META_CMV).length;
-    const melhor = linhas.reduce((m, l) => (l.cmv < m.cmv ? l : m));
-    return { medio, acima, melhor };
-  }, [linhas]);
+    const semCusto = linhas.length - comCusto.length;
+    if (!comCusto.length) return { medio: null, acima: 0, melhor: null, semCusto };
+    const medio = comCusto.reduce((a, l) => a + l.cmv, 0) / comCusto.length;
+    const acima = comCusto.filter((l) => l.cmv > META_CMV).length;
+    const melhor = comCusto.reduce((m, l) => (l.cmv < m.cmv ? l : m));
+    return { medio, acima, melhor, semCusto };
+  }, [linhas, comCusto]);
 
   // Cada area tem sua carta e seu proprio patamar de CMV: misturar drink com
   // prato esconde o problema de um dos dois.
@@ -135,7 +141,7 @@ export default function CmvPage() {
       { chave: "bar", rotulo: "Bar", teste: (d) => String(d || "").toLowerCase().includes("bar") },
     ];
     return areas.map(a => {
-      const daArea = linhas.filter(l => a.teste(l.departamento));
+      const daArea = comCusto.filter(l => a.teste(l.departamento));
       if (!daArea.length) return { ...a, itens: 0, medio: 0, acima: 0 };
       return {
         ...a,
@@ -144,7 +150,7 @@ export default function CmvPage() {
         acima: daArea.filter(l => l.cmv > META_CMV).length,
       };
     }).filter(a => a.itens > 0);
-  }, [linhas]);
+  }, [comCusto]);
 
   return (
     <div className="min-h-screen">
@@ -158,9 +164,15 @@ export default function CmvPage() {
         ) : (
           <>
             <KpiGrid>
-              <Kpi icon={Percent} label="CMV médio da carta" value={fmtPct(resumo.medio)} tint={resumo.medio <= META_CMV ? "#10B981" : "#EF4444"} />
+              <Kpi icon={Percent} label="CMV médio da carta" value={resumo.medio === null ? "Dados insuficientes" : fmtPct(resumo.medio)} tint={resumo.medio === null ? "#71717A" : resumo.medio <= META_CMV ? "#10B981" : "#EF4444"} />
               <Kpi icon={AlertCircle} label={`Acima da meta (${META_CMV}%)`} value={resumo.acima} tint={resumo.acima > 0 ? "#EF4444" : "#10B981"} />
             </KpiGrid>
+
+            {resumo.semCusto > 0 && (
+              <p className="rounded-xl border border-hf-warning/30 bg-hf-warning/5 px-3 py-2 text-sm text-hf-text">
+                {resumo.semCusto} produto(s) sem custo na ficha ficam fora da média (no fim da lista). Complete a ficha técnica ou o preço dos ingredientes.
+              </p>
+            )}
 
             {porArea.length > 1 && (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -213,7 +225,7 @@ export default function CmvPage() {
               <SectionLabel>CMV por prato (maior → menor)</SectionLabel>
               <div className="space-y-2">
                 {linhas.map((l) => {
-                  const alto = l.cmv > META_CMV;
+                  const alto = !l.semCusto && l.cmv > META_CMV;
                   return (
                     <Card key={l.id} className="!p-3">
                       <div className="flex items-center justify-between mb-1.5 gap-2">
@@ -236,10 +248,12 @@ export default function CmvPage() {
                             );
                           })()}
                         </div>
-                        <span className="text-sm font-bold flex-shrink-0" style={{ color: alto ? "#DC2626" : "var(--accent-fg)" }}>{fmtPct(l.cmv)}</span>
+                        {l.semCusto
+                          ? <span className="flex-shrink-0 rounded bg-hf-warning/10 px-1.5 py-0.5 text-xs font-bold text-hf-warning">Sem custo na ficha</span>
+                          : <span className="text-sm font-bold flex-shrink-0" style={{ color: alto ? "#DC2626" : "var(--accent-fg)" }}>{fmtPct(l.cmv)}</span>}
                       </div>
                       <div className="h-2 rounded-full overflow-hidden mb-1" style={{ background: "var(--elevated)" }}>
-                        <div className="h-full rounded-full" style={{ width: `${Math.min(l.cmv, 100)}%`, background: alto ? "#EF4444" : "#10B981" }} />
+                        <div className="h-full rounded-full" style={{ width: `${l.semCusto ? 0 : Math.min(l.cmv, 100)}%`, background: alto ? "#EF4444" : "#10B981" }} />
                       </div>
                       <div className="flex justify-between text-3xs" style={{ color: "var(--dim)" }}>
                         <span>Custo {fmtBRL(l.custo)}</span><span>Preço {fmtBRL(l.preco)}</span>

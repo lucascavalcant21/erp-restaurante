@@ -95,16 +95,11 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       ]
     },
     {
+      // Sem submenu: as áreas do financeiro ficam na barra do próprio módulo
+      // (app/dashboard/financeiro/layout.js), como na Marmitaria.
       id: "financeiro",
       label: "Financeiro",
-      href: "/dashboard/financeiro",
-      submodules: [
-        { label: "Visão Geral", href: "/dashboard/financeiro" },
-        { label: "Contas a Pagar", href: "/dashboard/financeiro/contas" },
-        { label: "Contas a Receber", href: "/dashboard/financeiro/receber" },
-        { label: "Caixa e Contas", href: "/dashboard/financeiro/caixa" },
-        { label: "DRE Gerencial", href: "/dashboard/financeiro/dre" }
-      ]
+      href: "/dashboard/financeiro"
     },
     {
       // Sem submenu: as seis áreas da marmitaria ficam na barra do próprio

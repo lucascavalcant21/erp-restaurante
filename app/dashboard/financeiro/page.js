@@ -426,7 +426,7 @@ Motivo do cancelamento:`);
               {/* BARRA DE PROGRESSO DO DIA */}
               <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-card">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${calculoPE.vendasHoje >= calculoPE.metaVendaDiaria ? "bg-emerald-500" : "bg-amber-500"}`}
+                  className={`h-full rounded-full transition-all duration-500 ${calculoPE.vendasHoje >= calculoPE.metaVendaDiaria ? "bg-hf-accent text-hf-accent-fg" : "bg-amber-500"}`}
                   style={{ width: `${calculoPE.progressoHojePct}%` }}
                 />
               </div>
@@ -606,7 +606,7 @@ Motivo do cancelamento:`);
             return <div key={id} className="overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
               <div className="flex items-center justify-between gap-3 border-b border-line-soft p-4">
                 <div className="min-w-0"><h3 className="truncate font-black text-fg">{categoria?.label || id}</h3><p className="text-sm font-bold text-fg">{fmtBRL(total)} · {quantidade} lançamento(s)</p></div>
-                {automatico ? <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-3xs font-bold uppercase tracking-wider text-emerald-700">Automático</span> : <button onClick={() => abrirDespesa(id)} className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white"><Plus size={18} /> Adicionar</button>}
+                {automatico ? <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-3xs font-bold uppercase tracking-wider text-emerald-700">Automático</span> : <button onClick={() => abrirDespesa(id)} className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-hf-accent px-4 text-sm font-black text-hf-accent-fg"><Plus size={18} /> Adicionar</button>}
               </div>
               <div className="max-h-72 divide-y divide-slate-100 overflow-y-auto">
                 {id === "cmo" && <><div className="flex items-center justify-between gap-3 p-4"><div><p className="font-bold text-slate-800">Funcionários contratados</p><p className="text-xs font-semibold text-fg">Salários e benefícios do período</p></div><b>{fmtBRL(resumo.automaticos.folha)}</b></div><div className="flex items-center justify-between gap-3 p-4"><div><p className="font-bold text-slate-800">Extras pagos</p><p className="text-xs font-semibold text-fg">{resumo.automaticos.recibosExtras.length} recibo(s) pago(s)</p></div><b>{fmtBRL(resumo.automaticos.extras)}</b></div></>}

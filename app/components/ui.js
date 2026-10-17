@@ -18,7 +18,9 @@ export function fmtBRL(v, dec = 2) {
     minimumFractionDigits: dec, maximumFractionDigits: dec,
   });
 }
-export function fmtPct(v, dec = 1) { return `${Number(v || 0).toFixed(dec)}%`; }
+export function fmtPct(v, dec = 1) {
+  return `${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec })}%`;
+}
 export function fmtData(iso) { return iso ? new Date(iso).toLocaleDateString("pt-BR") : "—"; }
 
 // ── Cabeçalho de página ────────────────────────────────────────

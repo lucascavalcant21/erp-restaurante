@@ -42,6 +42,15 @@ O ERP está em produção (`app.hefisto.com.br`, deploy da `main` `c3d45cb`).
 
 Preview do Vercel: READY.
 
+## 17/10/2026 — Marmitaria e Eventos (pedido do dono)
+
+Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
+- **Eventos:** módulo em três áreas (Funil, Agenda, Reservas); funil sem caixa de altura fixa, etapas vazias recolhidas, lista por etapa no celular; reservas com busca, confirmar e cancelar.
+- **Banco:** `eventos` não tinha as colunas do orçamento (B-019). **APR-012 aplicada em 17/10** (EVENTOS_ORC_1, impressão 3ae8f62e…, TESTADO NO SUPABASE REAL): o orçamento, os pagamentos e a hora do evento gravam. Os 28 boletos antigos sem unidade de `documentos` foram arquivados (APR-013, nada apagado).
+- **Marmitaria:** primeiros passos no topo da visão geral, lista de marmitas legível em 390 px, marmita fora do cardápio de volta (B-020, B-021).
+- Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
+- **Rodada 2 (Estoque, Financeiro, painel):** Financeiro com barra de áreas (Visão geral, A pagar, A receber, Caixa, DRE, Pizza, CMV); `/fluxo`, `/documentos` e `/margem` redirecionam (gravavam/liam tabelas fora do financeiro novo, B-024); CMV sem 0% inventado (B-023); Contas a Pagar em cartões no celular; Pizza do Lucro visível no celular; paleta sem fundo preto no Estoque e no Financeiro; abas do Estoque à vista no celular; painel inicial com faturamento vazio compacto. Simulador com o **esquema e o volume reais** (369 produtos, 374 saldos, 350 movimentos; leitura só). Mesmo resultado de testes; build OK.
+
 ## Validação por camada
 
 | Camada | Estado |

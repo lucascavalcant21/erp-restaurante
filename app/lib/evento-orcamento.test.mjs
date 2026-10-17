@@ -5,6 +5,7 @@ import {
   orcamentoVazio, orcamentoDoEvento, custoDaFichaExclusiva, itensDoOrcamento, resumoDoOrcamento,
   pendenciasDoOrcamento, cardapioParaCliente, textoDoOrcamento, listaDeComprasDoOrcamento, camposDoEventoParaGravar, secaoDoItem,
   custoDaPessoa, realizadoDoEvento, historicoDoCliente, conflitosDeEquipe, sugestoesDeEquipe, indicadoresDoFunil, modeloDoOrcamento, aplicarModelo, copiaDoOrcamento,
+  bancoSemOrcamento, erroDeColunaDeEventos, mensagemErroEvento, MSG_BANCO_EVENTOS,
 } from "./evento-orcamento.mjs";
 import { custoPorcaoDaFicha } from "./evento-financeiro.mjs";
 
@@ -250,4 +251,16 @@ test("modelos e cópia: sem cliente, ids novos, mantém cardápio e preço", () 
   assert.equal(c.cliente.data_evento, "");
   assert.equal(c.cliente.nome_evento, "Cópia de Aniv");
   assert.deepEqual(c.realizado, {});
+});
+
+test("banco sem a EVENTOS-ORC-1: detecta pela linha lida e traduz o erro do PostgREST", () => {
+  assert.equal(bancoSemOrcamento({ id: "e", nome: "x" }), true);
+  assert.equal(bancoSemOrcamento({ id: "e", nome: "x", operacao_detalhes: null }), false);
+  assert.equal(bancoSemOrcamento(null), false);
+  assert.equal(erroDeColunaDeEventos("Could not find the 'operacao_detalhes' column of 'eventos' in the schema cache"), true);
+  assert.equal(erroDeColunaDeEventos("Could not find the 'historico_pagamentos' column of 'eventos' in the schema cache"), true);
+  assert.equal(erroDeColunaDeEventos("column eventos.hora_inicio does not exist"), true);
+  assert.equal(erroDeColunaDeEventos("new row violates row-level security policy"), false);
+  assert.equal(mensagemErroEvento("column eventos.hora_inicio does not exist"), MSG_BANCO_EVENTOS);
+  assert.equal(mensagemErroEvento("Failed to fetch"), "Failed to fetch");
 });

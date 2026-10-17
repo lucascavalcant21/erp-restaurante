@@ -26,6 +26,13 @@ Antes de banco ou migração, siga `hefisto-seguranca-supabase`. Para testar e p
 | Acesso a dados | `app/lib/financeiro.js`, `financeiro-domain.js` |
 | Base do esquema | `db/F2_1_FUNDACAO_FINANCEIRA.sql` (e o rollback ao lado, que **não** se roda sem o dono) |
 
+## Telas
+
+- Barra de áreas em `app/dashboard/financeiro/layout.js`: Visão geral · A pagar · A receber · Caixa · DRE · Pizza do Lucro · CMV. O topo não tem submenu do Financeiro.
+- Redirecionam (rota viva, não crie tela nova nelas): `/fluxo` → Caixa, `/documentos` → Contas a Pagar, `/margem` → Pizza, `/custos-fixos` e `/equilibrio` → Pizza, `/recebiveis` e `/conciliacao` → Contas a Receber.
+- Fonte única: contas em `contas_pagar`/`fin_contas_receber` (views `vw_fin_*`), dinheiro em `fin_pagamentos`/`fin_recebimentos`. As tabelas antigas `lancamentos` e `documentos` não são lidas por nada.
+- CMV por prato: item sem custo na ficha fica fora da média (nunca vira 0%).
+
 ## Números
 
 - Todo valor é determinístico (código + SQL testados) e tem natureza (REAL, ESTIMATIVA, PROJEÇÃO…). Sem dado: **DADOS INSUFICIENTES**.

@@ -98,9 +98,11 @@ export default function CaixaEContasPage() {
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Caixa e Contas</h1>
           <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Fluxo de caixa · contas financeiras · taxas</p>
-          <div className="mt-4 flex gap-2 overflow-x-auto">
-            {[["fluxo", "Fluxo de caixa"], ["contas", "Contas financeiras"], ["taxas", "Taxas de cartão/plataforma"]].map(([id, r]) => (
-              <button key={id} onClick={() => setAba(id)} className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap ${aba === id ? "bg-emerald-500 text-slate-950" : "bg-hf-elevated text-hf-text-2"}`}>{r}</button>
+          {/* Quebra linha em vez de rolar: no celular a terceira aba ficava
+              cortada ("Taxas de car…") sem sinal de que havia mais. */}
+          <div role="tablist" className="mt-4 flex flex-wrap gap-2">
+            {[["fluxo", "Fluxo de caixa"], ["contas", "Contas bancárias e caixas"], ["taxas", "Taxas de cartão"]].map(([id, r]) => (
+              <button key={id} type="button" role="tab" aria-selected={aba === id} onClick={() => setAba(id)} className={`min-h-[40px] px-4 rounded-xl text-xs font-bold whitespace-nowrap ${aba === id ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-elevated text-hf-text-2"}`}>{r}</button>
             ))}
           </div>
         </div>
@@ -167,7 +169,7 @@ export default function CaixaEContasPage() {
                 <p className="text-2xl font-black">{contas.some((c) => c.ativa) ? fmtBRL(saldoGerencial) : "—"}</p>
                 <p className="text-3xs text-fg">Saldo inicial informado + recebimentos − pagamentos registrados aqui. Não é o saldo conciliado do banco.</p>
               </div>
-              <button onClick={() => setFormConta({ nome: "", tipo: "banco", saldo_inicial: "", saldo_inicial_em: hoje })} className="px-4 py-2.5 bg-emerald-500 text-white font-black rounded-xl text-sm inline-flex items-center gap-1"><Plus size={16} /> Nova conta</button>
+              <button onClick={() => setFormConta({ nome: "", tipo: "banco", saldo_inicial: "", saldo_inicial_em: hoje })} className="px-4 py-2.5 bg-hf-accent text-white font-black rounded-xl text-sm inline-flex items-center gap-1"><Plus size={16} /> Nova conta</button>
             </div>
             {!contas.length ? <p className="text-sm font-bold text-center py-6">Nenhuma conta financeira cadastrada.</p> : (
               <ul className="bg-card rounded-3xl border border-line divide-y divide-line">
@@ -192,7 +194,7 @@ export default function CaixaEContasPage() {
             <div className="bg-card rounded-3xl border border-line p-4 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-fg max-w-xl">Cadastre as taxas reais do seu contrato (ex.: Stone, crédito Visa/Master 1x, 3%). Sem cadastro, a taxa do recebível fica "não informada": o Héfisto não assume nenhum percentual.</p>
               <button onClick={() => setFormTaxa({ meio: "credito", adquirente: "", bandeira: "", modalidade: "a_vista", parcelas_min: 1, parcelas_max: 1, taxa_percentual: "", taxa_fixa: "", dias_para_recebimento: "", vigente_desde: hoje })}
-                className="px-4 py-2.5 bg-emerald-500 text-white font-black rounded-xl text-sm inline-flex items-center gap-1"><Plus size={16} /> Nova taxa</button>
+                className="px-4 py-2.5 bg-hf-accent text-white font-black rounded-xl text-sm inline-flex items-center gap-1"><Plus size={16} /> Nova taxa</button>
             </div>
             {!taxas.length ? <p className="text-sm font-bold text-center py-6">Nenhuma taxa cadastrada.</p> : (
               <ul className="bg-card rounded-3xl border border-line divide-y divide-line text-xs">
@@ -230,7 +232,7 @@ export default function CaixaEContasPage() {
                 <input required type="date" max={hoje} value={formConta.saldo_inicial_em} onChange={(e) => setFormConta({ ...formConta, saldo_inicial_em: e.target.value })} className={campo} /></label>
             </div>
             <p className="text-3xs text-fg">O saldo inicial é o que a conta tinha de fato nessa data. Depois de salvo ele não muda (mudaria o histórico). Movimentos registrados depois dessa data entram no saldo gerencial.</p>
-            <button type="submit" disabled={processando} className="w-full py-3 bg-emerald-500 text-white font-black rounded-xl disabled:opacity-60">{processando ? "Salvando..." : "Salvar"}</button>
+            <button type="submit" disabled={processando} className="w-full py-3 bg-hf-accent text-white font-black rounded-xl disabled:opacity-60">{processando ? "Salvando..." : "Salvar"}</button>
           </form>
         </div>
       )}
@@ -265,7 +267,7 @@ export default function CaixaEContasPage() {
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Vale desde</span>
                 <input required type="date" value={formTaxa.vigente_desde} onChange={(e) => setFormTaxa({ ...formTaxa, vigente_desde: e.target.value })} className={campo} /></label>
             </div>
-            <button type="submit" disabled={processando} className="w-full py-3 bg-emerald-500 text-white font-black rounded-xl disabled:opacity-60">{processando ? "Salvando..." : "Cadastrar"}</button>
+            <button type="submit" disabled={processando} className="w-full py-3 bg-hf-accent text-white font-black rounded-xl disabled:opacity-60">{processando ? "Salvando..." : "Cadastrar"}</button>
           </form>
         </div>
       )}

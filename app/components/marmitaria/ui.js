@@ -49,13 +49,15 @@ export function Secao({ titulo, subtitulo, direita, children, className = "" }) 
   );
 }
 
-// Abas contextuais: quebram linha em vez de rolar para o lado.
+// Abas contextuais: quebram linha em vez de rolar para o lado. O rótulo não
+// quebra ("Planejar e comprar" em três linhas no celular): a aba inteira
+// desce para a linha de baixo.
 export function Abas({ abas, valor, onChange }) {
   return (
     <div role="tablist" className="flex flex-wrap gap-1 rounded-xl bg-hf-elevated p-1">
       {abas.map((a) => (
-        <button key={a.id} role="tab" aria-selected={valor === a.id} onClick={() => onChange(a.id)}
-          className={`min-h-[40px] flex-1 rounded-lg px-3 text-sm font-semibold transition ${valor === a.id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2 hover:text-hf-text"}`}>
+        <button key={a.id} type="button" role="tab" aria-selected={valor === a.id} onClick={() => onChange(a.id)}
+          className={`min-h-[40px] flex-auto whitespace-nowrap rounded-lg px-3 text-sm font-semibold transition ${valor === a.id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2 hover:text-hf-text"}`}>
           {a.rotulo}
         </button>
       ))}
@@ -68,11 +70,11 @@ export function Indicador({ rotulo, valor, natureza, nota, formato = "brl", dest
   const texto = semDado ? "Sem dados apurados" : formato === "pct" ? pctTxt(valor) : formato === "int" ? num(valor, 0) : brl(valor);
   return (
     <Cartao className={destaque ? "border-hf-accent/40" : ""}>
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-hf-muted">{rotulo}</p>
+      <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
+        <p className="min-w-0 text-xs font-semibold uppercase tracking-wide text-hf-muted">{rotulo}</p>
         {!semDado && <Selo natureza={natureza} />}
       </div>
-      <p className={`mt-2 tabular-nums ${semDado ? "text-sm font-semibold text-hf-muted" : `text-2xl font-black ${Number(valor) < 0 ? "text-hf-danger" : "text-hf-text"}`}`}>{texto}</p>
+      <p className={`mt-2 break-words tabular-nums ${semDado ? "text-sm font-semibold text-hf-muted" : `text-xl font-black sm:text-2xl ${Number(valor) < 0 ? "text-hf-danger" : "text-hf-text"}`}`}>{texto}</p>
       {nota && <p className="mt-1 text-xs text-hf-muted">{nota}</p>}
     </Cartao>
   );

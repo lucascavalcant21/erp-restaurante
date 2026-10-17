@@ -92,18 +92,17 @@ const MODULOS = {
     columns: [
       { title: "Caixa e resultado", subtitle: "Entradas, saídas, contas e o DRE", icon: Wallet, accent: "#4f46e5", items: [
         { label: "Fluxo de Caixa", desc: "Entradas e saídas", href: "/dashboard/financeiro", icon: Wallet },
-        { label: "Fluxo detalhado", desc: "Movimentações e histórico", href: "/dashboard/financeiro/fluxo", icon: Landmark },
+        { label: "Caixa e contas", desc: "Movimentações e saldos", href: "/dashboard/financeiro/caixa", icon: Landmark },
         { label: "Resultado (DRE)", desc: "Receita, custos e lucro", href: "/dashboard/financeiro/dre", icon: FileBarChart },
-        { label: "Contas", desc: "O que há para pagar e receber", href: "/dashboard/financeiro/contas", icon: ReceiptText, countKey: "contasPendentes" },
+        { label: "Contas a pagar", desc: "Boletos, notas e vencimentos", href: "/dashboard/financeiro/contas", icon: ReceiptText, countKey: "contasPendentes" },
+        { label: "Contas a receber", desc: "O que ainda vai entrar", href: "/dashboard/financeiro/receber", icon: ReceiptText },
       ]},
       { title: "Custos e margem", subtitle: "Para onde vai cada real da venda", icon: Calculator, accent: "#0891b2", items: [
         { label: "CMV", desc: "Custo de mercadoria", href: "/dashboard/financeiro/cmv", icon: Calculator },
-        { label: "Margens", desc: "Rentabilidade por produto", href: "/dashboard/financeiro/margem", icon: BarChart3 },
         { label: "Pizza do Lucro", desc: "Para onde vai cada real", href: "/dashboard/financeiro/pizza", icon: PieChart },
       ]},
       { title: "Fiscal e documentos", subtitle: "Notas, impostos e arquivos", icon: ShieldCheck, accent: "#ea580c", items: [
         { label: "Dados Fiscais", desc: "Cadastros e obrigações", href: "/dashboard/gestao/fiscal", icon: ShieldCheck },
-        { label: "Documentos", desc: "Notas, contratos e comprovantes", href: "/dashboard/financeiro/documentos", icon: FileText },
       ]},
     ],
   },

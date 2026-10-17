@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, UtensilsCrossed } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import EditorMarmita from "../../../components/marmitaria/EditorMarmita";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Cartao, Secao, SemDados, Selo, brl, inputCls, pctTxt } from "../../../components/marmitaria/ui";
@@ -81,7 +81,7 @@ function Cardapio({ onEditar, onNova, recarregar }) {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-muted" />
           <input className={`${inputCls} pl-9`} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar marmita" />
         </div>
-        <select className={`${inputCls} w-auto`} value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Filtro">
+        <select className={`${inputCls.replace("w-full ", "")} w-full sm:w-52`} value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Filtro">
           <option value="todas">Todas</option><option value="disponiveis">No cardápio</option><option value="fora">Fora do cardápio</option>
         </select>
       </div>
@@ -91,31 +91,40 @@ function Cardapio({ onEditar, onNova, recarregar }) {
           const c = custos.get(m.id);
           const preco = canalPrincipal && m.precos[canalPrincipal.id] !== undefined ? m.precos[canalPrincipal.id] : Number(m.preco_venda) || 0;
           const r = canalPrincipal && preco > 0 && c ? resultadoPorCanal({ preco, custoTecnico: c.total, canal: canalPrincipal, tributosPct: base.config.tributos_pct }) : null;
+          const fora = m.ativo === false;
+          const numeros = (
+            <>
+              <div><p className="text-[11px] text-hf-muted">Custo</p><p className="font-bold tabular-nums">{c ? brl(c.total) : "—"}</p></div>
+              <div><p className="truncate text-[11px] text-hf-muted">{canalPrincipal ? `Preço ${canalPrincipal.nome}` : "Preço"}</p><p className="font-bold tabular-nums">{preco > 0 ? brl(preco) : "—"}</p></div>
+              <div><p className="text-[11px] text-hf-muted">Margem</p>
+                <p className={`font-bold tabular-nums ${r?.margemContribuicao < 0 ? "text-hf-danger" : ""}`}>{r?.valido && r.margemContribuicaoPct !== null ? pctTxt(r.margemContribuicaoPct) : "—"}</p></div>
+            </>
+          );
           return (
-            <li key={m.id} className="flex flex-wrap items-center gap-3 py-3">
-              <button type="button" onClick={() => onEditar(m)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-hf-elevated">
-                  {m.imagem ? <img src={m.imagem} alt="" className="h-full w-full object-cover" /> : null}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-hf-text">{m.nome_receita}</p>
-                  <p className="text-xs text-hf-muted">{[m.codigo, m.tamanho_marmita, m.peso_final_g ? `${Number(m.peso_final_g)} g` : null, m.categoria].filter(Boolean).join(" · ")}</p>
-                  {c && !c.completo && <p className="text-xs font-semibold text-hf-warning">Custo incompleto</p>}
-                </div>
-              </button>
-              <div className="grid grid-cols-3 gap-4 text-right text-sm">
-                <div><p className="text-[11px] text-hf-muted">Custo</p><p className="font-bold tabular-nums">{c ? brl(c.total) : "—"}</p></div>
-                <div><p className="text-[11px] text-hf-muted">{canalPrincipal ? `Preço ${canalPrincipal.nome}` : "Preço"}</p><p className="font-bold tabular-nums">{preco > 0 ? brl(preco) : "—"}</p></div>
-                <div><p className="text-[11px] text-hf-muted">Margem contrib.</p>
-                  <p className={`font-bold tabular-nums ${r?.margemContribuicao < 0 ? "text-hf-danger" : ""}`}>{r?.valido && r.margemContribuicaoPct !== null ? pctTxt(r.margemContribuicaoPct) : "—"}</p></div>
+            <li key={m.id} className="py-3">
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => onEditar(m)} className={`flex min-w-0 flex-1 items-center gap-3 text-left ${fora ? "opacity-60" : ""}`}>
+                  <div className="grid h-14 w-14 flex-shrink-0 place-items-center overflow-hidden rounded-xl bg-hf-elevated text-hf-muted">
+                    {m.imagem ? <img src={m.imagem} alt="" className="h-full w-full object-cover" /> : <UtensilsCrossed size={20} />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="line-clamp-2 text-sm font-bold text-hf-text">{m.nome_receita}</p>
+                    <p className="truncate text-xs text-hf-muted">{[m.codigo, m.tamanho_marmita, m.peso_final_g ? `${Number(m.peso_final_g)} g` : null, m.categoria].filter(Boolean).join(" · ")}</p>
+                    {c && !c.completo && <p className="text-xs font-semibold text-hf-warning">Custo incompleto</p>}
+                  </div>
+                </button>
+                <div className="hidden w-80 flex-shrink-0 grid-cols-3 gap-4 text-right text-sm sm:grid">{numeros}</div>
+                <label className="flex min-h-[44px] flex-shrink-0 items-center gap-2 text-xs font-semibold text-hf-text-2">
+                  <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={!fora} onChange={() => alternar(m)} />
+                  <span className="w-[4.5rem] leading-tight sm:w-auto">No cardápio</span>
+                </label>
               </div>
-              <label className="flex min-h-[44px] items-center gap-2 text-xs font-semibold text-hf-text-2">
-                <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={m.ativo !== false} onChange={() => alternar(m)} /> No cardápio
-              </label>
+              <div className={`mt-2 grid grid-cols-3 gap-2 rounded-xl bg-hf-elevated/60 px-3 py-2 text-sm sm:hidden ${fora ? "opacity-60" : ""}`}>{numeros}</div>
             </li>
           );
         })}
       </ul>
+      {!lista.length && <p className="py-4 text-sm text-hf-muted">{filtro === "fora" ? "Nenhuma marmita fora do cardápio." : "Nenhuma marmita com essa busca."}</p>}
       {!canalPrincipal && <Aviso className="mt-3">Configure os canais de venda em Configurações para ver a margem de cada marmita.</Aviso>}
     </Secao>
   );

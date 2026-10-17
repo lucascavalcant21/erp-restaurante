@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 0** (APR-007: falta só o merge do PR #171)
+**Pendentes agora: 1** (APR-011; APR-007: falta só o merge do PR #171)
 
 ### APR-001 · EXECUTADO
 
@@ -153,3 +153,38 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Status:** PENDENTE
 - **Criado em:** 2026-10-14
 - **Chave:** deploy:vercel.json:sec-api-1
+
+### APR-012 · EXECUTADO
+
+- **Missão:** Pedido do dono 17/10: Marmitaria e Eventos
+- **Ação:** Aplicar db/EVENTOS_ORC_1_COLUNAS_DO_ORCAMENTO.sql no Supabase real (5 colunas novas em eventos: operacao_detalhes, historico_pagamentos, hora_inicio, hora_fim, observacoes)
+- **Ambiente:** supabase (produção)
+- **Risco:** MEDIUM
+- **Motivo:** O banco real não tem essas colunas (conferido 17/10): o orçamento em etapas não grava nada, os pagamentos do evento falham, duplicar evento falha e a Agenda escondia os eventos. O app novo já avisa em vez de quebrar, mas só a migração faz o orçamento ficar salvo.
+- **Impacto:** Só aditiva: colunas novas com default; nenhuma linha existente muda (2 eventos hoje). Não mexe em RLS, policy, grant, função nem trigger de eventos. Cria backup_eventos_eventos_orc_1_20261017 fora da API. Trava ACCESS EXCLUSIVE de milissegundos na tabela eventos.
+- **Rollback:** alter table public.eventos drop column if exists observacoes, drop column if exists hora_fim, drop column if exists hora_inicio, drop column if exists historico_pagamentos, drop column if exists operacao_detalhes; (apaga o que foi gravado nelas; não rodar sem decisão do dono)
+- **Evidências:** PGlite com as colunas reais de eventos: 6/6 (só aditiva, linha existente intacta, backup com RLS, reexecutável, preflight aborta com tipo divergente, gravação do orçamento e dos pagamentos passa). Impressão digital esperada 3ae8f62e5382a8a442f21fa488369feb.
+- **Comando/alteração:** `Rodar o arquivo inteiro (SQL Editor ou apply_migration); conferir a impressão digital no select do fim.`
+- **Status:** EXECUTADO
+- **Criado em:** 2026-10-17 19:09
+- **Decidido em:** 2026-10-17
+- **Decidido por:** lucas (no chat da sessão: "pode sim")
+- **Nota:** Aplicada em 17/10/2026 ~20:00 UTC pelo conector Supabase (arquivo inteiro numa transação). Verificação OK: impressão digital 3ae8f62e5382a8a442f21fa488369feb (igual ao PGlite); 2 eventos intactos com os defaults; backup_eventos_eventos_orc_1_20261017 com 2 linhas, RLS ligado, 0 grants para o app; policy sec_unidade inalterada. Gravação do orçamento, pagamentos e hora como usuário real sob RLS: OK, em transação desfeita (TESTADO NO SUPABASE REAL)
+- **Chave:** migracao:db/EVENTOS_ORC_1_COLUNAS_DO_ORCAMENTO.sql
+
+### APR-013 · EXECUTADO
+
+- **Missão:** B-025 — boletos antigos sem unidade na tabela `documentos`
+- **Ação:** Rodar db/DOC_LEGADO_1_ARQUIVAR_DOCUMENTOS.sql no Supabase real (28 linhas pendentes sem unidade → status 'arquivado')
+- **Ambiente:** supabase (produção)
+- **Risco:** MEDIUM (UPDATE em 28 linhas de tabela antiga que nenhuma tela lê)
+- **Motivo:** A tela Notas e Boletos foi trocada por Contas a Pagar; as 28 linhas (R$ 7.964,69, vencimentos 2020–2026) ficavam pendentes para sempre, sem unidade
+- **Impacto:** Nenhuma tela lê `documentos`; nada apagado; valores, datas e descrições iguais
+- **Rollback:** update public.documentos d set status = b.status from public.backup_documentos_doc_legado_1_20261017 b where d.id = b.id and d.status = 'arquivado';
+- **Evidências:** PGlite 5/5 (só as 28 sem unidade, backup fora da API, preflight aborta com contagem diferente, rollback devolve o status)
+- **Status:** EXECUTADO
+- **Criado em:** 2026-10-17
+- **Decidido em:** 2026-10-17
+- **Decidido por:** lucas (no chat da sessão: "arquivar")
+- **Nota:** Executado em 17/10/2026. Verificação: 28 arquivadas, 0 pendentes sem unidade, R$ 7.964,69; md5 de (id, valor, vencimento) antes = depois = fdd6c4cf0d7eddee75c20b680ff8a0f0; backup_documentos_doc_legado_1_20261017 com 28 linhas, RLS ligado, 0 grants para o app (TESTADO NO SUPABASE REAL)
+- **Chave:** dados:db/DOC_LEGADO_1_ARQUIVAR_DOCUMENTOS.sql

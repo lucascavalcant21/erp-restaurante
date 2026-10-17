@@ -325,7 +325,7 @@ function Campo({ label, children }) {
 
 function BotaoSalvar({ carregando, children = "Salvar" }) {
   return (
-    <button disabled={carregando} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-extrabold text-white hover:opacity-90 disabled:opacity-50">
+    <button disabled={carregando} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-hf-accent px-5 py-3 font-extrabold text-white hover:opacity-90 disabled:opacity-50">
       {carregando ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{children}
     </button>
   );
@@ -1112,7 +1112,7 @@ function EstoqueRunner() {
 
       <main className="mx-auto max-w-[1500px] space-y-5 px-4 py-5 sm:px-7">
         {(erro || sucesso) && (
-          <div className={`fixed right-4 top-4 z-[150] max-w-sm rounded-2xl px-5 py-4 text-sm font-bold text-white shadow-xl ${erro ? "bg-red-600" : "bg-emerald-600"}`}>
+          <div className={`fixed right-4 top-4 z-[150] max-w-sm rounded-2xl px-5 py-4 text-sm font-bold text-white shadow-xl ${erro ? "bg-red-600" : "bg-hf-accent text-hf-accent-fg"}`}>
             {erro || sucesso}
           </div>
         )}
@@ -1138,7 +1138,7 @@ function EstoqueRunner() {
                   onClick={() => setEstoqueId(estoque.id)}
                   className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900"
+                      ? "bg-hf-accent text-hf-accent-fg shadow-md ring-2 ring-hf-accent"
                       : "border border-line bg-white text-fg-soft hover:bg-card hover:border-slate-300"
                   } ${estoque.status !== "ativo" ? "opacity-55" : ""}`}
                 >
@@ -1167,10 +1167,10 @@ function EstoqueRunner() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <button disabled={!ativo} onClick={() => abrirOperacao("entrada")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-extrabold text-white hover:bg-emerald-700 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
+                <button disabled={!ativo} onClick={() => abrirOperacao("entrada")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-hf-accent px-4 text-xs font-extrabold text-white hover:brightness-110 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
                   <PackagePlus size={16} /> Nova entrada
                 </button>
-                <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("saida")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-extrabold text-white hover:bg-slate-800 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
+                <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("saida")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-4 text-xs font-extrabold text-hf-text hover:bg-hf-elevated shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
                   <PackageMinus size={16} /> Nova baixa
                 </button>
                 {/* Contar estoque é só pelo inventário: ao fechar, o contado vira o
@@ -1216,7 +1216,7 @@ function EstoqueRunner() {
                           <button
                             key={grupo}
                             onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
-                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-emerald-600 text-white shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
+                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-hf-accent text-white shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
                           >
                             {grupo} ({contagemGrupos[grupo] || 0})
                           </button>
@@ -1238,7 +1238,7 @@ function EstoqueRunner() {
                               key={id}
                               type="button"
                               onClick={() => setFiltros(atuais => ({ ...atuais, tempBar: id }))}
-                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
+                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-hf-accent text-hf-accent-fg shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
                             >
                               {label}
                             </button>
@@ -1257,7 +1257,7 @@ function EstoqueRunner() {
                               key={id}
                               type="button"
                               onClick={() => setFiltros(atuais => ({ ...atuais, estadoCozinha: id }))}
-                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
+                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-hf-accent text-hf-accent-fg shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
                             >
                               {label}
                             </button>
@@ -1419,7 +1419,7 @@ function EstoqueRunner() {
                 <div className="mt-3 flex gap-2">
                   <button type="button" onClick={() => setNovoProduto(null)} className="h-11 rounded-xl border border-line bg-card px-4 text-sm font-bold text-slate-900">Cancelar</button>
                   <button type="button" onClick={cadastrarProdutoAqui} disabled={novoProduto.salvando}
-                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-hf-accent px-4 text-sm font-black text-white hover:brightness-110 disabled:opacity-60">
                     {novoProduto.salvando ? "Cadastrando..." : "Cadastrar e usar"}
                   </button>
                 </div>
@@ -1752,7 +1752,7 @@ function EstoqueRunner() {
               return (
                 <div className="max-h-96 overflow-y-auto rounded-xl border border-line">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-900 text-white">
+                    <thead className="bg-hf-elevated text-hf-text-2">
                       <tr>
                         <th className="p-3">Data/Hora</th>
                         <th className="p-3">Tipo</th>
@@ -1827,7 +1827,7 @@ function EstoqueRunner() {
               }}
               className="flex w-full items-center gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-4 text-left hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
             >
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white transition-colors">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-hf-accent text-white transition-colors">
                 <Share2 size={24} />
               </div>
               <div>
@@ -1985,7 +1985,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                           <div className="grid h-6 w-6 place-items-center rounded-lg bg-slate-200 text-fg-soft">
                             {isColapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
                           </div>
-                          <span className="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
+                          <span className="h-2.5 w-2.5 rounded-full bg-hf-accent"></span>
                           {categoria}
                           <span className="rounded-full bg-card px-2.5 py-0.5 text-2xs font-bold text-fg-soft shadow-sm border border-line">
                             {lista.length} {lista.length === 1 ? "item" : "itens"}
@@ -2040,7 +2040,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-900"}`}>{fmtData(item.validade)}</td>}
                       <td className="px-4 py-3.5 whitespace-nowrap text-xs font-bold text-slate-900">{fmtData(item.ultima_movimentacao_em, true)}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5">
-                        <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
+                        <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-hf-accent text-white hover:brightness-110 font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
                         <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-rose-600 bg-rose-600 text-white hover:bg-rose-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Baixa / Retirar"><span className="text-xl leading-none">−</span></button>
                         <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-white text-fg-soft hover:bg-slate-200 font-bold" title="Histórico do produto"><History size={17} /></button>
                         <SimuladorRendimento item={item} variant="icon" />
@@ -2111,12 +2111,14 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       })()}
                     </div>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2.5">
-                    <button onClick={() => onEntrada(item)} className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
-                      <Plus size={20} /> + ADICIONAR
+                  {/* Retirar não é ação de perigo: botão neutro, não vermelho, e
+                      sem o sinal repetido ("− − RETIRAR"). */}
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button onClick={() => onEntrada(item)} className="h-11 rounded-xl bg-hf-accent text-hf-accent-fg hover:brightness-110 font-bold text-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all">
+                      <Plus size={18} /> Adicionar
                     </button>
-                    <button onClick={() => onSaida(item)} className="h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-red-600/20 active:scale-95 transition-all">
-                      <span className="text-2xl leading-none">−</span> − RETIRAR
+                    <button onClick={() => onSaida(item)} className="h-11 rounded-xl border border-hf-border bg-hf-surface text-hf-text hover:bg-hf-elevated font-bold text-sm flex items-center justify-center gap-1.5 active:scale-95 transition-all">
+                      <PackageMinus size={18} /> Retirar
                     </button>
                   </div>
                   <div className="mt-2.5 grid grid-cols-2 gap-2.5">

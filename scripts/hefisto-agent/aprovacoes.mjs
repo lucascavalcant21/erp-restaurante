@@ -42,40 +42,92 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 `;
 
-const limpar = (v) => String(v ?? "").replace(/\r?\n+/g, " ").trim();
+const ORDEM = Object.fromEntries(CAMPOS.map(([k], i) => [k, i]));
+const RE_CAMPO = /^- \*\*([^*]+):\*\* ?(.*)$/;
+const RE_CONTADOR = /^(\*\*Pendentes agora: )\d+(\*\*)/m;
 
-/** Lê o arquivo. [{ id, status, missao, … }] na ordem do arquivo. */
-export function lerAprovacoes(arq) {
-  if (!existsSync(arq)) return [];
-  const texto = readFileSync(arq, "utf8").replace(/\r\n/g, "\n");
-  const out = [];
-  for (const bloco of texto.split(/^### /m).slice(1)) {
-    const id = /^(APR-\d+)/.exec(bloco)?.[1];
-    if (!id) continue;
-    const a = { id };
-    for (const m of bloco.matchAll(/^- \*\*([^*]+):\*\* ?(.*)$/gm)) {
-      const k = CAMPO_DO_ROTULO[m[1].trim().toLowerCase()];
-      if (k) a[k] = m[2].trim().replace(/^`(.*)`$/, "$1");
+const limpar = (v) => String(v ?? "").replace(/\r?\n+/g, " ").trim();
+const valorLido = (bruto) => bruto.trim().replace(/^`(.*)`$/, "$1");
+const linhaCampo = (k, v) => `- **${ROTULO[k]}:** ${k === "comando" ? `\`${limpar(v).replaceAll("`", "'")}\`` : limpar(v)}`;
+
+// O arquivo é do dono (editado à mão no Obsidian) e é o histórico: quem grava nunca o
+// reescreve a partir do que leu. Pedido novo entra no fim; atualizar e decidir trocam só
+// as linhas dos campos que mudam. Sub-listas, notas e linhas que o leitor não conhece
+// ficam byte a byte.
+
+/**
+ * Seções "### APR-…" com as linhas que ocupam e os campos. Um campo vai da linha
+ * "- **Rótulo:** …" até a última linha recuada logo abaixo (sub-lista ou continuação).
+ */
+function mapear(linhas) {
+  const secoes = [];
+  let atual = null;
+  linhas.forEach((l, i) => {
+    if (!/^#{1,3} /.test(l)) return;
+    if (atual) atual.fim = i;
+    const id = /^### (APR-\d+)/.exec(l)?.[1];
+    atual = id ? { id, inicio: i, fim: linhas.length, campos: [] } : null;
+    if (atual) secoes.push(atual);
+  });
+  for (const s of secoes) {
+    for (let i = s.inicio + 1; i < s.fim; i++) {
+      const m = RE_CAMPO.exec(linhas[i]);
+      if (!m) continue;
+      let fim = i + 1;
+      for (let j = fim; j < s.fim && (/^[ \t]/.test(linhas[j]) || !linhas[j].trim()); j++) if (linhas[j].trim()) fim = j + 1;
+      s.campos.push({ k: CAMPO_DO_ROTULO[m[1].trim().toLowerCase()], valor: valorLido(m[2]), inicio: i, fim });
+      i = fim - 1;
     }
-    out.push(a);
   }
-  return out;
+  return secoes;
+}
+
+const comoObjeto = (s) => ({ id: s.id, ...Object.fromEntries(s.campos.filter((c) => c.k).map((c) => [c.k, c.valor])) });
+const lerTexto = (texto) => mapear(texto.split(/\r?\n/)).map(comoObjeto);
+const fimDeLinha = (texto) => (texto.includes("\r\n") ? "\r\n" : "\n");
+
+/** Lê o arquivo. [{ id, status, missao, … }] na ordem do arquivo (de cada campo, a primeira linha). */
+export function lerAprovacoes(arq) {
+  return existsSync(arq) ? lerTexto(readFileSync(arq, "utf8")) : [];
 }
 
 function secao(a) {
   const linhas = [`### ${a.id} · ${a.status}`, ""];
-  for (const [k, rotulo] of CAMPOS) {
-    if (a[k] == null || a[k] === "") continue;
-    linhas.push(`- **${rotulo}:** ${k === "comando" ? `\`${limpar(a[k]).replaceAll("`", "'")}\`` : limpar(a[k])}`);
-  }
+  for (const [k] of CAMPOS) if (a[k] != null && a[k] !== "") linhas.push(linhaCampo(k, a[k]));
   return linhas.join("\n");
 }
 
-export function gravarAprovacoes(arq, lista) {
-  mkdirSync(dirname(arq), { recursive: true });
-  const pend = lista.filter((a) => a.status === "PENDENTE").length;
-  writeFileSync(arq, `${CABECALHO}\n**Pendentes agora: ${pend}**\n\n${lista.map(secao).join("\n\n")}\n`);
+/** Troca na seção `id` os campos de `mudancas` (e o status do título). O resto do texto não muda. */
+function editarSecao(texto, id, mudancas) {
+  const linhas = texto.split(/\r?\n/);
+  for (const [k, v] of Object.entries(mudancas)) {
+    const s = mapear(linhas).find((x) => x.id === id);
+    const nova = linhaCampo(k, v);
+    const atual = s.campos.findLast((c) => c.k === k);
+    if (atual) {
+      if (k === "status") linhas[s.inicio] = linhas[s.inicio].replace(` · ${atual.valor}`, ` · ${limpar(v)}`);
+      // mesmo valor: o campo fica como está, com as sub-listas que o dono pôs embaixo
+      if (valorLido(RE_CAMPO.exec(nova)[2]) !== atual.valor) linhas.splice(atual.inicio, atual.fim - atual.inicio, nova);
+      continue;
+    }
+    // campo que a seção ainda não tem: na ordem do dono, depois do anterior que existir
+    const antes = s.campos.filter((c) => c.k && ORDEM[c.k] < ORDEM[k]).at(-1);
+    const depois = s.campos.find((c) => c.k && ORDEM[c.k] > ORDEM[k]);
+    let pos = antes?.fim ?? depois?.inicio;
+    if (pos == null) for (pos = s.fim; pos > s.inicio + 1 && !linhas[pos - 1].trim(); pos--);
+    linhas.splice(pos, 0, ...(pos === s.inicio + 1 ? ["", nova] : [nova]));
+  }
+  return linhas.join(fimDeLinha(texto));
 }
+
+/** Grava o texto com o contador "Pendentes agora" recalculado (só o número; o que vem depois fica). */
+function gravarTexto(arq, texto) {
+  const pend = lerTexto(texto).filter((a) => a.status === "PENDENTE").length;
+  mkdirSync(dirname(arq), { recursive: true });
+  writeFileSync(arq, texto.replace(RE_CONTADOR, `$1${pend}$2`));
+}
+
+const lerTextoDoArquivo = (arq) => (existsSync(arq) ? readFileSync(arq, "utf8") : "");
 
 export const contarPendentes = (arq) => lerAprovacoes(arq).filter((a) => a.status === "PENDENTE").length;
 
@@ -85,13 +137,14 @@ export const contarPendentes = (arq) => lerAprovacoes(arq).filter((a) => a.statu
  */
 export function pedirAprovacao(arq, dados, agora = new Date()) {
   for (const k of ["missao", "acao", "ambiente", "risco", "motivo"]) if (!limpar(dados[k])) throw new Error(`pedido de aprovação sem "${ROTULO[k]}"`);
-  const lista = lerAprovacoes(arq);
+  const texto = lerTextoDoArquivo(arq);
+  const lista = lerTexto(texto);
   const chave = limpar(dados.chave) || `${limpar(dados.missao)}:${limpar(dados.acao)}:${limpar(dados.ambiente)}`.toLowerCase();
   const igual = lista.find((a) => a.status === "PENDENTE" && a.chave === chave);
   if (igual) {
-    Object.assign(igual, Object.fromEntries(Object.entries(dados).filter(([k, v]) => ROTULO[k] && v != null && v !== "" && k !== "status")), { chave });
-    gravarAprovacoes(arq, lista);
-    return { aprovacao: igual, nova: false };
+    const mudancas = { ...Object.fromEntries(Object.entries(dados).filter(([k, v]) => ROTULO[k] && v != null && v !== "" && k !== "status")), chave };
+    gravarTexto(arq, editarSecao(texto, igual.id, mudancas));
+    return { aprovacao: Object.assign(igual, Object.fromEntries(Object.entries(mudancas).map(([k, v]) => [k, limpar(v)]))), nova: false };
   }
   const n = lista.reduce((m, a) => Math.max(m, Number(a.id.slice(4))), 0) + 1;
   const nova = {
@@ -99,8 +152,11 @@ export function pedirAprovacao(arq, dados, agora = new Date()) {
     ...Object.fromEntries(Object.entries(dados).filter(([k]) => ROTULO[k])),
     id: `APR-${String(n).padStart(3, "0")}`, status: "PENDENTE", criado_em: agora.toISOString().slice(0, 16).replace("T", " "), chave,
   };
-  lista.push(nova);
-  gravarAprovacoes(arq, lista);
+  // só acrescenta no fim: as seções que já existem não passam pelo leitor
+  const eol = fimDeLinha(texto);
+  const base = texto || `${CABECALHO}\n**Pendentes agora: 0**\n`;
+  const sep = base.endsWith(eol + eol) ? "" : base.endsWith(eol) ? eol : eol + eol;
+  gravarTexto(arq, `${base}${sep}${secao(nova).replaceAll("\n", eol)}${eol}`);
   return { aprovacao: nova, nova: true };
 }
 
@@ -109,16 +165,14 @@ export function decidirAprovacao(arq, id, novo, { por = "dono", nota = "", agora
   novo = String(novo).toUpperCase();
   if (!STATUS_APROVACAO.includes(novo)) throw new Error(`status inválido: ${novo}`);
   if ((novo === "APROVADO" || novo === "REJEITADO") && env.HEFISTO_AGENT === "1") throw new Error("o agente pede aprovação; só o dono aprova ou rejeita");
-  const lista = lerAprovacoes(arq);
-  const a = lista.find((x) => x.id === String(id).toUpperCase());
+  const texto = lerTextoDoArquivo(arq);
+  const a = lerTexto(texto).find((x) => x.id === String(id).toUpperCase());
   if (!a) throw new Error(`aprovação ${id} não encontrada`);
   if (!(TRANSICOES[a.status] || []).includes(novo)) throw new Error(`${a.id} está ${a.status}; não pode ir para ${novo}`);
-  a.status = novo;
-  a.decidido_em = agora.toISOString().slice(0, 16).replace("T", " ");
-  a.decidido_por = limpar(por);
-  if (nota) a.nota = limpar(nota);
-  gravarAprovacoes(arq, lista);
-  return a;
+  const mudancas = { status: novo, decidido_em: agora.toISOString().slice(0, 16).replace("T", " "), decidido_por: limpar(por) };
+  if (nota) mudancas.nota = limpar(nota);
+  gravarTexto(arq, editarSecao(texto, a.id, mudancas));
+  return Object.assign(a, mudancas);
 }
 
 /** "APROVAR APR-001", "rejeitar apr-7 motivo" → { acao, id, resto } ou null. Para o canal do WhatsApp. */

@@ -99,7 +99,7 @@ function Painel({ unidade }) {
   };
 
   return (
-    <div className="min-h-screen pb-24 bg-hf-bg text-slate-800">
+    <div className="min-h-screen pb-24 bg-hf-bg text-hf-text">
       <EstoqueAbas />
       <div className="bg-hf-bg border-b border-hf-border px-4 sm:px-8 pt-6 pb-6 text-hf-text">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
@@ -107,7 +107,7 @@ function Painel({ unidade }) {
             <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Contagem de estoque</h1>
             <p className="text-hf-text-2 font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Inventário · ao fechar, vira o saldo do estoque · base do CMV real</p>
           </div>
-          <button onClick={() => setNova({ data: hoje, tipo: sugestaoTipo, nota: "" })} className="px-4 py-3 bg-emerald-500 hover:bg-emerald-600 font-black rounded-2xl flex items-center gap-2 text-sm">
+          <button onClick={() => setNova({ data: hoje, tipo: sugestaoTipo, nota: "" })} className="px-4 py-3 bg-hf-accent text-hf-accent-fg hover:brightness-110 font-black rounded-2xl flex items-center gap-2 text-sm">
             <Plus size={18} /> Nova contagem
           </button>
         </div>
@@ -145,7 +145,7 @@ function Painel({ unidade }) {
             <label className="block"><span className="text-xs font-bold uppercase text-fg">Observação (opcional)</span>
               <input value={nova.nota} onChange={(e) => setNova({ ...nova, nota: e.target.value })} className="mt-1 w-full h-12 px-3 rounded-xl border border-line bg-white font-bold" /></label>
             <p className="text-xs text-fg">Um inventário cobre a unidade inteira: cada pessoa escolhe o local (Cozinha, Bar, Pré-preparos, Outros) na hora de contar.</p>
-            <button disabled={processando} className="w-full h-12 bg-emerald-500 text-white font-black rounded-2xl disabled:opacity-60">{processando ? "Abrindo..." : "Começar a contar"}</button>
+            <button disabled={processando} className="w-full h-12 bg-hf-accent text-white font-black rounded-2xl disabled:opacity-60">{processando ? "Abrindo..." : "Começar a contar"}</button>
           </form>
         )}
 
@@ -156,7 +156,7 @@ function Painel({ unidade }) {
               <p className="font-black text-lg">{tituloContagem(c)}</p>
               <p className="text-xs text-fg">{fmtData(c.data_referencia)} · {itensDe(c.id).length} produto(s) já contado(s)</p>
             </div>
-            <button onClick={() => router.push(`/dashboard/operacao/estoque/contagens?id=${c.id}`)} className="h-12 px-5 bg-emerald-500 text-white font-black rounded-2xl">Continuar</button>
+            <button onClick={() => router.push(`/dashboard/operacao/estoque/contagens?id=${c.id}`)} className="h-12 px-5 bg-hf-accent text-white font-black rounded-2xl">Continuar</button>
           </div>
         ))}
 
@@ -410,14 +410,14 @@ function TelaContagem({ id, unidade, sessao }) {
             <div className="flex gap-2 overflow-x-auto pb-1">
               {[{ id: "todos", rotulo: "Todos" }, ...GRUPOS_LOCAL].map((g) => (
                 <button key={g.id} onClick={() => setF({ ...f, grupo: g.id, estoqueId: "", categoria: "" })}
-                  className={`shrink-0 h-11 px-4 rounded-2xl font-black text-sm border ${f.grupo === g.id ? "bg-emerald-500 text-white border-emerald-500" : "bg-white border-line"}`}>{g.rotulo}</button>
+                  className={`shrink-0 h-11 px-4 rounded-2xl font-black text-sm border ${f.grupo === g.id ? "bg-hf-accent text-white border-hf-accent" : "bg-white border-line"}`}>{g.rotulo}</button>
               ))}
             </div>
             {estoquesDoGrupo.length > 1 && f.grupo !== "todos" && (
               <div className="flex gap-2 overflow-x-auto pb-1">
-                <button onClick={() => setF({ ...f, estoqueId: "" })} className={`shrink-0 h-9 px-3 rounded-xl text-xs font-bold border ${!f.estoqueId ? "bg-slate-900 text-white" : "bg-white border-line"}`}>Todos deste grupo</button>
+                <button onClick={() => setF({ ...f, estoqueId: "" })} className={`shrink-0 h-9 px-3 rounded-xl text-xs font-bold border ${!f.estoqueId ? "bg-hf-accent text-hf-accent-fg" : "bg-white border-line"}`}>Todos deste grupo</button>
                 {estoquesDoGrupo.map((e) => (
-                  <button key={e.id} onClick={() => setF({ ...f, estoqueId: e.id })} className={`shrink-0 h-9 px-3 rounded-xl text-xs font-bold border ${f.estoqueId === e.id ? "bg-slate-900 text-white" : "bg-white border-line"}`}>{e.nome}</button>
+                  <button key={e.id} onClick={() => setF({ ...f, estoqueId: e.id })} className={`shrink-0 h-9 px-3 rounded-xl text-xs font-bold border ${f.estoqueId === e.id ? "bg-hf-accent text-hf-accent-fg" : "bg-white border-line"}`}>{e.nome}</button>
                 ))}
               </div>
             )}
@@ -475,7 +475,7 @@ function TelaContagem({ id, unidade, sessao }) {
               <div className="flex items-center justify-between gap-2">
                 <p className="font-black text-sm">Produtos não cadastrados ({obs.pendencias.filter((x) => (x.status || "pendente") === "pendente").length} pendente(s))</p>
                 <button onClick={() => setModal({ tipo: "pendencia", nome: f.busca, unidade: "kg", estoque_id: f.estoqueId || estoquesDoGrupo[0]?.id || "", quantidade: "" })}
-                  className="h-10 px-3 rounded-xl bg-slate-900 text-white text-xs font-black flex items-center gap-1"><Plus size={14} /> Produto não cadastrado</button>
+                  className="h-10 px-3 rounded-xl bg-hf-accent text-hf-accent-fg text-xs font-black flex items-center gap-1"><Plus size={14} /> Produto não cadastrado</button>
               </div>
               {obs.pendencias.length > 0 && (
                 <ul className="mt-2 divide-y divide-line text-sm">
@@ -506,7 +506,7 @@ function TelaContagem({ id, unidade, sessao }) {
       {aberta && podeFechar && (
         <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 border-t border-line p-3">
           <div className="max-w-5xl mx-auto">
-            <button onClick={() => setModal({ tipo: "finalizar", etapa: 1 })} className="w-full h-14 rounded-2xl bg-slate-900 text-white font-black text-base flex items-center justify-center gap-2">
+            <button onClick={() => setModal({ tipo: "finalizar", etapa: 1 })} className="w-full h-14 rounded-2xl bg-hf-accent text-hf-accent-fg font-black text-base flex items-center justify-center gap-2">
               <ClipboardList size={20} /> Finalizar inventário
             </button>
           </div>
@@ -529,7 +529,7 @@ function TelaContagem({ id, unidade, sessao }) {
               <option value="">Local não informado</option>
               {estoques.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
-            <button disabled={processando} className="w-full h-12 bg-emerald-500 text-white font-black rounded-2xl disabled:opacity-60">{processando ? "Registrando..." : "Registrar pendência"}</button>
+            <button disabled={processando} className="w-full h-12 bg-hf-accent text-white font-black rounded-2xl disabled:opacity-60">{processando ? "Registrando..." : "Registrar pendência"}</button>
           </form>
         </div>
       )}
@@ -541,7 +541,7 @@ function TelaContagem({ id, unidade, sessao }) {
             <p className="text-sm"><b>{modal.p.insumo?.nome}</b>{estoquePorId.get(modal.estoqueId)?.nome ? <> em <b>{estoquePorId.get(modal.estoqueId).nome}</b></> : null}: não há nenhuma unidade?</p>
             <p className="text-xs text-fg">Grava ZERO de verdade. Produto que você não olhou NÃO é zero: deixe sem contar. Depois de confirmado, só o administrador corrige.</p>
             <button onClick={() => { registrar(modal.p, "0", modal.estoqueId, "produto zerado (confirmado)"); setModal(null); }}
-              className="w-full h-14 bg-slate-900 text-white font-black rounded-2xl">CONFIRMAR PRODUTO ZERADO</button>
+              className="w-full h-14 bg-hf-accent text-hf-accent-fg font-black rounded-2xl">CONFIRMAR PRODUTO ZERADO</button>
             <button onClick={() => setModal(null)} className="w-full h-11 rounded-2xl bg-slate-100 font-bold">Voltar</button>
           </div>
         </div>
@@ -645,7 +645,7 @@ function LinhaProduto({ p, contado, pendente, valor, onValor, onConfirmar, refIn
                   placeholder={`quantidade (${uc.rotulo})`} className="w-0 flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg placeholder:text-sm placeholder:font-semibold disabled:opacity-50" />
               )}
             </div>
-            <button disabled={desabilitado || vazio} onClick={confirmar} className={`h-12 px-3 sm:px-4 rounded-xl bg-emerald-600 text-white font-black text-sm disabled:opacity-40 flex items-center justify-center gap-1 ${frac ? "flex-1 sm:flex-none" : ""}`}><Check size={16} /> Contado</button>
+            <button disabled={desabilitado || vazio} onClick={confirmar} className={`h-12 px-3 sm:px-4 rounded-xl bg-hf-accent text-white font-black text-sm disabled:opacity-40 flex items-center justify-center gap-1 ${frac ? "flex-1 sm:flex-none" : ""}`}><Check size={16} /> Contado</button>
             <button disabled={desabilitado} onClick={() => onZero?.()} className="h-12 px-3 rounded-xl bg-slate-200 font-black text-sm disabled:opacity-40">Zero</button>
           </div>
           {doBar && <p className="mt-1.5 text-xs font-semibold text-slate-500">Expositor e depósito: conte cada um e some no campo, ex.: 6+4.</p>}
@@ -705,7 +705,7 @@ function ModalCorrigir({ p, item, onFechar, onFeito }) {
         <input required type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))} placeholder="PIN do administrador" className="w-full h-12 px-3 rounded-xl border border-line bg-white font-black tracking-widest" />
         {erro && <p className="text-sm font-bold text-red-700">{erro}</p>}
         <p className="text-3xs text-fg">A correção fica registrada na linha (de quanto para quanto, quem e por quê).</p>
-        <button disabled={enviando || quantidade == null} className="w-full h-12 bg-slate-900 text-white font-black rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
+        <button disabled={enviando || quantidade == null} className="w-full h-12 bg-hf-accent text-hf-accent-fg font-black rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
           {enviando ? <><Loader2 size={18} className="animate-spin" /> Corrigindo...</> : "Corrigir com PIN"}
         </button>
       </form>
@@ -796,7 +796,7 @@ function Finalizar({ id, unidade, contagem, sessao, estMov = false, itens, produ
                 </label>
               )}
               <button disabled={fila.length > 0 || !resumo.contadosTotal || (resumo.precisaConfirmar && !ciente)} onClick={() => onEtapa(2)}
-                className="w-full h-12 rounded-2xl bg-slate-900 text-white font-black disabled:opacity-40">Continuar para valorização</button>
+                className="w-full h-12 rounded-2xl bg-hf-accent text-hf-accent-fg font-black disabled:opacity-40">Continuar para valorização</button>
             </>
           )}
           {etapa === 2 && (
@@ -804,7 +804,7 @@ function Finalizar({ id, unidade, contagem, sessao, estMov = false, itens, produ
               <p className="text-xs text-fg">O custo de cada produto é congelado no fechamento. Use o custo conferido do cadastro ou informe. Itens contados como zero não precisam de custo.</p>
               <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-900">Ao fechar, o saldo do estoque de cada produto contado passa a ser a quantidade contada, com histórico (saldo anterior → contado, quem e quando). Produtos não contados não mudam.</p>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => aplicar(["ok"])} className="h-10 px-3 rounded-xl bg-emerald-500 text-white text-xs font-black">Usar custos conferidos</button>
+                <button onClick={() => aplicar(["ok"])} className="h-10 px-3 rounded-xl bg-hf-accent text-white text-xs font-black">Usar custos conferidos</button>
                 <button onClick={() => aplicar(["ok", "unico"])} className="h-10 px-3 rounded-xl bg-amber-100 text-amber-900 text-xs font-black">Usar também custos sem conferência</button>
               </div>
               <ul className="divide-y divide-line text-sm">
@@ -842,7 +842,7 @@ function Finalizar({ id, unidade, contagem, sessao, estMov = false, itens, produ
               </label>
               <div className="flex gap-2">
                 <button onClick={() => onEtapa(1)} disabled={processando} className="h-12 px-4 rounded-2xl bg-slate-100 font-bold">Voltar</button>
-                <button onClick={fechar} disabled={processando || faltando.length > 0 || !confirmar || fila.length > 0} className="flex-1 h-12 rounded-2xl bg-emerald-500 text-white font-black disabled:opacity-40 flex items-center justify-center gap-2">
+                <button onClick={fechar} disabled={processando || faltando.length > 0 || !confirmar || fila.length > 0} className="flex-1 h-12 rounded-2xl bg-hf-accent text-white font-black disabled:opacity-40 flex items-center justify-center gap-2">
                   {processando ? <><Loader2 size={18} className="animate-spin" /> Fechando...</> : "Fechar inventário"}
                 </button>
               </div>
@@ -915,7 +915,7 @@ function AjusteInventario({ contagem, unidade, itens, insumoPorId, estoquePorId,
       {ajustes.desatualizado && <p className="text-xs font-bold text-amber-800">O banco ainda não recebeu a atualização do estoque (EST-MOV): o ajuste fica disponível depois dela.</p>}
       {admin && !ajustes.desatualizado && contagem.status === "fechada" && (
         <button onClick={() => setModal({ justificativa: `Inventário de ${fmtData(contagem.data_referencia)}`, pin: "", erro: "", enviando: false })} disabled={!pendentes}
-          className="w-full h-12 rounded-2xl bg-slate-900 text-white font-black disabled:opacity-40 flex items-center justify-center gap-2">
+          className="w-full h-12 rounded-2xl bg-hf-accent text-hf-accent-fg font-black disabled:opacity-40 flex items-center justify-center gap-2">
           <Lock size={16} /> {pendentes ? `Ajustar o estoque pelo inventário (${pendentes})` : "Estoque já ajustado por este inventário"}
         </button>
       )}
@@ -935,7 +935,7 @@ function AjusteInventario({ contagem, unidade, itens, insumoPorId, estoquePorId,
             <input required value={modal.justificativa} onChange={(e) => setModal({ ...modal, justificativa: e.target.value })} placeholder="Motivo" className="w-full h-12 px-3 rounded-xl border border-line bg-white font-bold" />
             <input required type="password" inputMode="numeric" autoComplete="off" value={modal.pin} onChange={(e) => setModal({ ...modal, pin: e.target.value.replace(/\D/g, "").slice(0, 8) })} placeholder="PIN do administrador" className="w-full h-12 px-3 rounded-xl border border-line bg-white font-black tracking-widest" />
             {modal.erro && <p className="text-sm font-bold text-red-700">{modal.erro}</p>}
-            <button disabled={modal.enviando} className="w-full h-12 bg-slate-900 text-white font-black rounded-2xl disabled:opacity-60 flex items-center justify-center gap-2">
+            <button disabled={modal.enviando} className="w-full h-12 bg-hf-accent text-hf-accent-fg font-black rounded-2xl disabled:opacity-60 flex items-center justify-center gap-2">
               {modal.enviando ? <><Loader2 size={18} className="animate-spin" /> Ajustando...</> : "Confirmar ajuste com PIN"}
             </button>
           </form>
@@ -1008,7 +1008,7 @@ function FechadoResumo({ contagem, itens, insumoPorId, estoquePorId, obs, unidad
                 <p className="font-bold">Saldo do estoque: {noSaldo.aplicados} de {noSaldo.total} produto(s) contados estão no saldo.</p>
                 {!ehOMaisRecente ? <p className="text-xs">Há um inventário fechado mais recente ({fmtData(maisRecente?.data_referencia)}): o saldo segue o mais recente.</p>
                   : podeAplicar ? (
-                    <button onClick={aplicar} disabled={aplicando} className="h-11 px-4 rounded-xl bg-emerald-600 text-white font-black text-sm disabled:opacity-60">
+                    <button onClick={aplicar} disabled={aplicando} className="h-11 px-4 rounded-xl bg-hf-accent text-white font-black text-sm disabled:opacity-60">
                       {aplicando ? "Aplicando..." : `Aplicar ao saldo (${noSaldo.faltando})`}
                     </button>
                   ) : <p className="text-xs">Quem pode finalizar inventários aplica o contado ao saldo.</p>}

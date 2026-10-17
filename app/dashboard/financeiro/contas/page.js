@@ -229,7 +229,7 @@ export default function ContasAPagarPage() {
               <RefreshCw size={16} /> Recorrentes
             </button>
             <button onClick={abrirNova} disabled={processando}
-              className="px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center gap-2 disabled:opacity-60">
+              className="px-5 py-3 bg-hf-accent hover:brightness-110 text-white font-black rounded-2xl flex items-center gap-2 disabled:opacity-60">
               <Plus size={18} /> Nova conta
             </button>
           </div>
@@ -352,7 +352,7 @@ export default function ContasAPagarPage() {
                       <td className="p-3 text-right whitespace-nowrap space-x-1.5">
                         <button title="Detalhes e histórico" onClick={() => abrirDetalhe(c)} className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg"><Eye size={14} /></button>
                         {c.situacao !== "cancelado" && <button title="Editar" disabled={processando} onClick={() => abrirEdicao(c)} className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-50"><Pencil size={14} /></button>}
-                        {podeReceberPagamento(c) && <button disabled={processando} onClick={() => setContaPagar(c)} className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg text-2xs disabled:opacity-50">Pagar</button>}
+                        {podeReceberPagamento(c) && <button disabled={processando} onClick={() => setContaPagar(c)} className="px-2.5 py-1.5 bg-hf-accent hover:brightness-110 text-white font-bold rounded-lg text-2xs disabled:opacity-50">Pagar</button>}
                       </td>
                     </tr>
                   ))}
@@ -425,7 +425,7 @@ export default function ContasAPagarPage() {
             {form.id && <p className="text-3xs text-fg">Editar não mexe em pagamentos nem na situação.</p>}
             <div className="flex gap-3 pt-3 border-t border-line">
               <button type="button" onClick={() => setForm(null)} disabled={processando} className="flex-1 py-3 bg-slate-100 font-bold text-sm rounded-xl">Cancelar</button>
-              <button type="submit" disabled={processando} className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white font-black text-sm rounded-xl">{processando ? "Salvando..." : "Salvar"}</button>
+              <button type="submit" disabled={processando} className="flex-1 py-3 bg-hf-accent hover:brightness-110 disabled:opacity-60 text-white font-black text-sm rounded-xl">{processando ? "Salvando..." : "Salvar"}</button>
             </div>
           </form>
         </div>
@@ -501,7 +501,7 @@ export default function ContasAPagarPage() {
               )}
 
               <div className="flex flex-wrap gap-2 pt-2 border-t border-line">
-                {podeReceberPagamento(c) && <button disabled={processando} onClick={() => setContaPagar(c)} className="px-4 py-2.5 bg-emerald-500 text-white font-black text-xs rounded-xl disabled:opacity-50">Registrar pagamento</button>}
+                {podeReceberPagamento(c) && <button disabled={processando} onClick={() => setContaPagar(c)} className="px-4 py-2.5 bg-hf-accent text-white font-black text-xs rounded-xl disabled:opacity-50">Registrar pagamento</button>}
                 {c.situacao !== "cancelado" && <button disabled={processando} onClick={() => abrirEdicao(c)} className="px-4 py-2.5 bg-slate-100 font-bold text-xs rounded-xl disabled:opacity-50">Editar</button>}
                 {podeCancelar(c) && <button disabled={processando} onClick={() => setMotivo({ tipo: "cancelamento", alvo: c.id, texto: "" })} className="px-4 py-2.5 bg-stone-200 font-bold text-xs rounded-xl inline-flex items-center gap-1 disabled:opacity-50"><Ban size={13} /> Cancelar conta</button>}
               </div>
@@ -528,7 +528,7 @@ export default function ContasAPagarPage() {
               : "Nenhuma conta recorrente a gerar para este mês."} Repetir não duplica.</p>
             <div className="flex gap-3">
               <button type="button" onClick={() => setRecorrencia(null)} disabled={processando} className="flex-1 py-3 bg-slate-100 font-bold text-sm rounded-xl">Fechar</button>
-              <button type="submit" disabled={processando || !planoRecorrencia.length} className="flex-1 py-3 bg-emerald-500 text-white font-black text-sm rounded-xl disabled:opacity-50">{processando ? "Gerando..." : "Gerar"}</button>
+              <button type="submit" disabled={processando || !planoRecorrencia.length} className="flex-1 py-3 bg-hf-accent text-white font-black text-sm rounded-xl disabled:opacity-50">{processando ? "Gerando..." : "Gerar"}</button>
             </div>
           </form>
         </div>

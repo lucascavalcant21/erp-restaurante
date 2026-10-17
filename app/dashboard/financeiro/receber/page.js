@@ -180,7 +180,7 @@ export default function ContasAReceberPage() {
             <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Contas a Receber</h1>
             <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Receita bruta · taxas · dinheiro que entrou</p>
           </div>
-          <button onClick={abrirNova} disabled={processando} className="px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center gap-2 disabled:opacity-60 text-sm">
+          <button onClick={abrirNova} disabled={processando} className="px-4 py-3 bg-hf-accent hover:brightness-110 text-white font-black rounded-2xl flex items-center gap-2 disabled:opacity-60 text-sm">
             <Plus size={18} /> <span className="hidden sm:inline">Nova receita</span><span className="sm:hidden">Nova</span>
           </button>
         </div>
@@ -263,7 +263,7 @@ export default function ContasAReceberPage() {
                       </div>
                       <div className="flex gap-1.5">
                         <button title="Detalhes" onClick={() => abrirDetalhe(c)} className="p-2 bg-slate-100 rounded-lg"><Eye size={14} /></button>
-                        {podeReceber(c) && <button disabled={processando} onClick={() => setReceber(c)} className="px-3 py-2 bg-emerald-500 text-white font-bold rounded-lg text-2xs disabled:opacity-50">Receber</button>}
+                        {podeReceber(c) && <button disabled={processando} onClick={() => setReceber(c)} className="px-3 py-2 bg-hf-accent text-white font-bold rounded-lg text-2xs disabled:opacity-50">Receber</button>}
                       </div>
                     </div>
                   </li>
@@ -369,7 +369,7 @@ export default function ContasAReceberPage() {
             </div>
             <div className="flex gap-3 p-4 border-t border-line">
               <button type="button" onClick={() => setForm(null)} disabled={processando} className="flex-1 py-3 bg-slate-100 font-bold text-sm rounded-xl">Cancelar</button>
-              <button type="submit" disabled={processando} className="flex-1 py-3 bg-emerald-500 text-white font-black text-sm rounded-xl disabled:opacity-60">{processando ? "Salvando..." : "Salvar"}</button>
+              <button type="submit" disabled={processando} className="flex-1 py-3 bg-hf-accent text-white font-black text-sm rounded-xl disabled:opacity-60">{processando ? "Salvando..." : "Salvar"}</button>
             </div>
           </form>
         </div>
@@ -445,7 +445,7 @@ export default function ContasAReceberPage() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2 p-4 border-t border-line">
-                {podeReceber(c) && <button disabled={processando} onClick={() => setReceber(c)} className="flex-1 px-4 py-2.5 bg-emerald-500 text-white font-black text-xs rounded-xl disabled:opacity-50">Registrar recebimento</button>}
+                {podeReceber(c) && <button disabled={processando} onClick={() => setReceber(c)} className="flex-1 px-4 py-2.5 bg-hf-accent text-white font-black text-xs rounded-xl disabled:opacity-50">Registrar recebimento</button>}
                 {c.situacao !== "cancelado" && <button disabled={processando} onClick={() => abrirEdicao(c)} className="px-4 py-2.5 bg-slate-100 font-bold text-xs rounded-xl inline-flex items-center gap-1 disabled:opacity-50"><Pencil size={13} /> Editar</button>}
                 {podeCancelarReceber(c) && <button disabled={processando} onClick={() => setMotivo({ tipo: "cancelamento", alvo: c.id, texto: "" })} className="px-4 py-2.5 bg-stone-200 font-bold text-xs rounded-xl inline-flex items-center gap-1 disabled:opacity-50"><Ban size={13} /> Cancelar</button>}
               </div>

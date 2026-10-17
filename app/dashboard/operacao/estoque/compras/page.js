@@ -93,11 +93,11 @@ function Compras() {
             <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Compras</h1>
             <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Entrada de mercadoria · custo médio · conta a pagar · compra não é CMV</p>
           </div>
-          {pode("create") && <button onClick={() => { setForm(formVazio()); irAba("nova"); }} className="px-4 py-3 bg-emerald-500 hover:bg-emerald-600 font-black rounded-2xl flex items-center gap-2 text-sm"><Plus size={18} /> Nova compra</button>}
+          {pode("create") && <button onClick={() => { setForm(formVazio()); irAba("nova"); }} className="px-4 py-3 bg-hf-accent text-hf-accent-fg hover:brightness-110 font-black rounded-2xl flex items-center gap-2 text-sm"><Plus size={18} /> Nova compra</button>}
         </div>
         <div className="max-w-6xl mx-auto mt-4 flex gap-2">
           {[["compras", "Compras"], ["nova", form.id ? "Editar rascunho" : "Nova compra"], ["custos", "Custo médio"]].map(([id, r]) => (
-            <button key={id} onClick={() => irAba(id)} className={`px-4 py-2 rounded-xl text-sm font-black ${aba === id ? "bg-emerald-500" : "bg-hf-elevated border border-hf-border"}`}>{r}</button>
+            <button key={id} onClick={() => irAba(id)} className={`px-4 py-2 rounded-xl text-sm font-black ${aba === id ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-elevated border border-hf-border"}`}>{r}</button>
           ))}
         </div>
       </div>
@@ -262,7 +262,7 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
               <option value="">Não informado</option>
               {base.fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
             </select>
-            <button type="button" onClick={novoForn} className="px-3 rounded-xl bg-slate-900 text-white text-xs font-black whitespace-nowrap">+ novo</button>
+            <button type="button" onClick={novoForn} className="px-3 rounded-xl bg-hf-accent text-hf-accent-fg text-xs font-black whitespace-nowrap">+ novo</button>
           </div>
           {base.avisoFornecedores && <span className="text-3xs text-amber-700">Não foi possível ler os fornecedores: {base.avisoFornecedores}</span>}</label>
         <label className="block"><span className="text-xs font-bold uppercase text-fg">Nº da nota / documento</span><input value={form.numero_documento} onChange={set("numero_documento")} className={`${campo} mt-1`} /></label>
@@ -354,7 +354,7 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
         <div className="flex gap-2">
           <button disabled={processando || !form.itens.length} onClick={salvar} className="h-12 px-4 rounded-2xl bg-slate-100 font-black disabled:opacity-40">Salvar rascunho</button>
           {podeConfirmar && <button disabled={processando || !form.itens.length || erros.length > 0 || (form.gerar_conta && !form.data_vencimento)} onClick={() => setConfirmando(true)}
-            className="h-12 px-5 rounded-2xl bg-emerald-500 text-white font-black disabled:opacity-40 flex items-center gap-2"><ShoppingCart size={18} /> Confirmar compra</button>}
+            className="h-12 px-5 rounded-2xl bg-hf-accent text-white font-black disabled:opacity-40 flex items-center gap-2"><ShoppingCart size={18} /> Confirmar compra</button>}
         </div>
       </div>
 
@@ -371,7 +371,7 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
             </ul>
             <div className="flex gap-2">
               <button onClick={() => setConfirmando(false)} disabled={processando} className="h-12 px-4 rounded-2xl bg-slate-100 font-bold">Voltar</button>
-              <button onClick={confirmar} disabled={processando} className="flex-1 h-12 rounded-2xl bg-emerald-500 text-white font-black flex items-center justify-center gap-2">
+              <button onClick={confirmar} disabled={processando} className="flex-1 h-12 rounded-2xl bg-hf-accent text-white font-black flex items-center justify-center gap-2">
                 {processando ? <><Loader2 size={18} className="animate-spin" /> Confirmando...</> : "Confirmar"}
               </button>
             </div>
@@ -459,7 +459,7 @@ function DetalheCompra({ compra, itens, insumoPorId, fornecedorPorId, estoques, 
           </div>
         ) : (
           <div className="p-4 border-t border-line flex flex-wrap items-center gap-2">
-            {compra.status === "rascunho" && <button onClick={() => onEditar(compra)} className="h-11 px-4 rounded-xl bg-emerald-500 text-white font-black text-sm">Continuar rascunho</button>}
+            {compra.status === "rascunho" && <button onClick={() => onEditar(compra)} className="h-11 px-4 rounded-xl bg-hf-accent text-white font-black text-sm">Continuar rascunho</button>}
             {podeCancelar && compra.status !== "cancelada" && (!confirmada || podeAutorizar) && <button onClick={() => setCancelando({ motivo: "", pin: "", erro: "" })} disabled={processando} className="h-11 px-4 rounded-xl bg-stone-200 font-black text-sm disabled:opacity-50">Cancelar compra</button>}
             {podeCancelar && confirmada && !podeAutorizar && <p className="text-xs text-fg">Cancelar compra confirmada: só o administrador, com o PIN.</p>}
           </div>

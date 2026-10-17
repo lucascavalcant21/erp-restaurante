@@ -3,8 +3,8 @@
 // FONTE ÚNICA das contas do orçamento. Funções puras (testes em
 // evento-orcamento.test.mjs).
 //
-// O orçamento mora em `eventos.operacao_detalhes.orcamento` (coluna JSON que
-// já existe): nada muda no banco. As fichas exclusivas do evento ficam só
+// O orçamento mora em `eventos.operacao_detalhes.orcamento` (coluna JSON;
+// no banco real ela chega com db/EVENTOS_ORC_1_COLUNAS_DO_ORCAMENTO.sql). As fichas exclusivas do evento ficam só
 // aqui dentro — não entram nas fichas técnicas do restaurante. O DRE do
 // evento é só dele: não lê nem escreve nada do DRE da casa.
 

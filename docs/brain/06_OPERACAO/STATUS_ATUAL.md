@@ -42,6 +42,14 @@ O ERP está em produção (`app.hefisto.com.br`, deploy da `main` `c3d45cb`).
 
 Preview do Vercel: READY.
 
+## 17/10/2026 — Marmitaria e Eventos (pedido do dono)
+
+Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
+- **Eventos:** módulo em três áreas (Funil, Agenda, Reservas); funil sem caixa de altura fixa, etapas vazias recolhidas, lista por etapa no celular; reservas com busca, confirmar e cancelar.
+- **Banco:** `eventos` não tem as colunas do orçamento (B-019). A tela avisa e a Agenda volta a mostrar os eventos; o orçamento só passa a gravar com a **APR-012** (migração aditiva `EVENTOS_ORC_1`, TESTADO LOCAL no PGlite, NÃO APLICADA).
+- **Marmitaria:** primeiros passos no topo da visão geral, lista de marmitas legível em 390 px, marmita fora do cardápio de volta (B-020, B-021).
+- Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
+
 ## Validação por camada
 
 | Camada | Estado |

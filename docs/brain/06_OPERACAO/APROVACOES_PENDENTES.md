@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 0** (APR-007: falta só o merge do PR #171)
+**Pendentes agora: 2** (APR-011 e APR-012; APR-007: falta só o merge do PR #171)
 
 ### APR-001 · EXECUTADO
 
@@ -153,3 +153,18 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Status:** PENDENTE
 - **Criado em:** 2026-10-14
 - **Chave:** deploy:vercel.json:sec-api-1
+
+### APR-012 · PENDENTE
+
+- **Missão:** Pedido do dono 17/10: Marmitaria e Eventos
+- **Ação:** Aplicar db/EVENTOS_ORC_1_COLUNAS_DO_ORCAMENTO.sql no Supabase real (5 colunas novas em eventos: operacao_detalhes, historico_pagamentos, hora_inicio, hora_fim, observacoes)
+- **Ambiente:** supabase (produção)
+- **Risco:** MEDIUM
+- **Motivo:** O banco real não tem essas colunas (conferido 17/10): o orçamento em etapas não grava nada, os pagamentos do evento falham, duplicar evento falha e a Agenda escondia os eventos. O app novo já avisa em vez de quebrar, mas só a migração faz o orçamento ficar salvo.
+- **Impacto:** Só aditiva: colunas novas com default; nenhuma linha existente muda (2 eventos hoje). Não mexe em RLS, policy, grant, função nem trigger de eventos. Cria backup_eventos_eventos_orc_1_20261017 fora da API. Trava ACCESS EXCLUSIVE de milissegundos na tabela eventos.
+- **Rollback:** alter table public.eventos drop column if exists observacoes, drop column if exists hora_fim, drop column if exists hora_inicio, drop column if exists historico_pagamentos, drop column if exists operacao_detalhes; (apaga o que foi gravado nelas; não rodar sem decisão do dono)
+- **Evidências:** PGlite com as colunas reais de eventos: 6/6 (só aditiva, linha existente intacta, backup com RLS, reexecutável, preflight aborta com tipo divergente, gravação do orçamento e dos pagamentos passa). Impressão digital esperada 3ae8f62e5382a8a442f21fa488369feb.
+- **Comando/alteração:** `Rodar o arquivo inteiro (SQL Editor ou apply_migration); conferir a impressão digital no select do fim.`
+- **Status:** PENDENTE
+- **Criado em:** 2026-10-17 19:09
+- **Chave:** migracao:db/EVENTOS_ORC_1_COLUNAS_DO_ORCAMENTO.sql

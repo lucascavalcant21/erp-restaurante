@@ -1,8 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    EVENTOS-ORC-1 · COLUNAS QUE O ORÇAMENTO DE EVENTOS USA E O BANCO NÃO TEM
 
-   STATUS: ESCRITA em 17/10/2026. NÃO APLICADA. Aplicar só com aprovação do
-   dono (APR-004 em docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md).
+   STATUS: APLICADA em 17/10/2026 com aprovação do dono (APR-012 em
+   docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md). Impressão digital
+   conferida no banco real: 3ae8f62e5382a8a442f21fa488369feb.
 
    PROBLEMA (conferido no banco real em 17/10/2026, information_schema):
    a tabela eventos não tem operacao_detalhes, historico_pagamentos,

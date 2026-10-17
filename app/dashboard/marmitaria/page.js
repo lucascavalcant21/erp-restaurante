@@ -1,14 +1,16 @@
 "use client";
 
-// Painel da marmitaria. Seis números primeiro; depois rankings, alertas e o
-// que falta cadastrar. Sem dado → "Sem dados apurados" e o caminho para
-// resolver. Nenhum número de demonstração.
+// Painel da marmitaria. Enquanto falta configuração, "Primeiros passos" vem
+// primeiro; sem venda no período, um aviso só (em vez de seis cartões "Sem
+// dados apurados"); com vendas, os seis números, rankings e alertas.
+// Nenhum número de demonstração.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMarmitaria } from "../../components/marmitaria/contexto";
 import { useDreMarmitaria } from "../../components/marmitaria/Dre";
-import { Abas, Aviso, Campo, Indicador, Secao, SemDados, brl, inputCls, pctTxt, num } from "../../components/marmitaria/ui";
+import { CheckCircle2, Circle } from "lucide-react";
+import { Abas, Aviso, Campo, Indicador, Secao, Selo, brl, inputCls, pctTxt, num } from "../../components/marmitaria/ui";
 import { fetchVendas, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../lib/marmitaria/dados";
 import { cmvPrevisto, dreMarmitaria, fatorSaldo, periodo, rankingMarmitas, resultadoPorCanal } from "../../lib/marmitaria/nucleo.mjs";
 
@@ -69,18 +71,23 @@ export default function VisaoGeralPage() {
     return motivo ? { nome: ins?.nome || "Produto", motivo } : null;
   }).filter(Boolean);
 
-  const pendencias = [];
-  if (!base.marmitas.length) pendencias.push(["Nenhuma marmita cadastrada.", "/dashboard/marmitaria/marmitas", "Cadastrar marmita"]);
-  if (!base.config.canais.length) pendencias.push(["Canais de venda e taxas não configurados.", "/dashboard/marmitaria/configuracoes", "Configurar canais"]);
-  if (base.config.tributos_pct === null) pendencias.push(["Alíquota de tributos não configurada.", "/dashboard/marmitaria/configuracoes", "Configurar"]);
-  if (base.config.margem_alvo_pct === null) pendencias.push(["Margem-alvo não configurada (sem sugestão de preço).", "/dashboard/marmitaria/configuracoes", "Configurar"]);
-  if (!locais.length) pendencias.push(["Estoque da marmitaria não ativado (sem CMV real).", "/dashboard/marmitaria/estoque?aba=estoque", "Ativar estoque"]);
+  // Primeiros passos: o que precisa existir para os números aparecerem, na
+  // ordem em que o dono configura. Com tudo pronto, o cartão some.
   const incompletas = base.marmitas.filter((m) => m.ativo !== false && !custos.get(m.id)?.completo).length;
-  if (incompletas) pendencias.push([`${incompletas} marmita(s) com custo incompleto.`, "/dashboard/marmitaria/marmitas", "Revisar"]);
-  if (vendas && !vendas.length) pendencias.push(["Nenhuma venda lançada no período.", "/dashboard/marmitaria/financeiro?aba=vendas", "Lançar vendas"]);
-  if (doMes && !doMes.cmo.linhas.length) pendencias.push(["Nenhum funcionário alocado (sem CMO).", "/dashboard/marmitaria/funcionarios", "Alocar"]);
+  const passos = [
+    { feito: base.marmitas.length > 0, texto: "Cadastrar as marmitas", href: "/dashboard/marmitaria/marmitas", acao: "Cadastrar" },
+    { feito: base.marmitas.length > 0 && !incompletas, texto: incompletas ? `Completar o custo de ${incompletas} marmita(s)` : "Custo das marmitas completo", href: "/dashboard/marmitaria/marmitas", acao: "Revisar" },
+    { feito: base.config.canais.length > 0, texto: "Canais de venda e taxas (iFood, WhatsApp, balcão)", href: "/dashboard/marmitaria/configuracoes", acao: "Configurar" },
+    { feito: base.config.tributos_pct !== null, texto: "Alíquota de tributos", href: "/dashboard/marmitaria/configuracoes", acao: "Configurar" },
+    { feito: base.config.margem_alvo_pct !== null, texto: "Margem-alvo (para sugerir preço)", href: "/dashboard/marmitaria/configuracoes", acao: "Configurar" },
+    { feito: locais.length > 0, texto: "Ativar o estoque da marmitaria (CMV real)", href: "/dashboard/marmitaria/estoque?aba=estoque", acao: "Ativar" },
+    { feito: !!doMes?.cmo.linhas.length, texto: "Alocar quem trabalha na marmitaria (CMO)", href: "/dashboard/marmitaria/funcionarios", acao: "Alocar" },
+  ];
+  const prontos = passos.filter((x) => x.feito).length;
+  const semVendas = vendas !== null && !vendas.length;
 
   const mesTxt = new Date(`${mes}-15T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const periodoTxt = filtro === "hoje" ? "hoje" : filtro === "semana" ? "nesta semana" : filtro === "mes" ? `em ${mesTxt}` : "no período";
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
@@ -93,40 +100,59 @@ export default function VisaoGeralPage() {
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Indicador rotulo="Marmitas vendidas" valor={ip?.marmitas ?? null} formato="int" natureza="real" />
-        <Indicador rotulo="Faturamento" valor={ip?.receita ?? null} natureza="real" nota="vendas − descontos − cancelamentos" />
-        <Indicador rotulo={cmvLinha?.rotulo?.includes("real") ? "CMV real" : "CMV"} valor={ip?.cmv ?? null} natureza={cmvLinha?.natureza} nota={ip?.cmvPct !== null && ip?.cmvPct !== undefined ? `${pctTxt(ip.cmvPct)} do faturamento${cmvLinha?.natureza === "estimado" ? " · previsto pelas fichas" : ""}` : cmvLinha?.nota} />
-        <Indicador rotulo="CMO" valor={im?.cmo ?? null} natureza="estimativa" nota={im?.cmo !== null && im?.cmo !== undefined ? `${mesTxt}${im.cmoPct !== null ? ` · ${pctTxt(im.cmoPct)} do faturamento` : ""}` : "aloque os funcionários"} />
-        <Indicador rotulo="Margem de contribuição" valor={ip?.margemContribuicao ?? null} natureza={doPeriodo?.natureza} nota={ip?.margemContribuicaoPct !== null && ip?.margemContribuicaoPct !== undefined ? pctTxt(ip.margemContribuicaoPct) : null} />
-        <Indicador rotulo="Lucro líquido" valor={im?.lucroLiquido ?? null} natureza={doMes?.dre?.natureza} nota={im?.lucroLiquido !== null && im?.lucroLiquido !== undefined ? `${mesTxt} · gerencial` : "depende de vendas, CMV, CMO e despesas do mês"} destaque />
-      </div>
-
-      {pendencias.length > 0 && (
-        <Secao titulo="Para os números aparecerem" subtitulo="O que ainda falta cadastrar ou lançar.">
+      {prontos < passos.length && (
+        <Secao titulo="Primeiros passos" subtitulo={`${prontos} de ${passos.length} prontos. Sem isso, os números da marmitaria ficam incompletos.`}>
+          <div className="mb-3 h-2 overflow-hidden rounded-full bg-hf-elevated" aria-hidden="true">
+            <div className="h-full rounded-full bg-hf-accent" style={{ width: `${Math.round((prontos / passos.length) * 100)}%` }} />
+          </div>
           <ul className="divide-y divide-hf-border">
-            {pendencias.map(([t, href, acao]) => (
-              <li key={t} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                <span className="text-hf-text-2">{t}</span>
-                <Link href={href} className="inline-flex min-h-[40px] items-center rounded-lg px-2 font-semibold text-hf-accent hover:bg-hf-accent/5">{acao} →</Link>
+            {passos.map((x) => (
+              <li key={x.texto} className="flex items-center gap-3 py-1.5 text-sm">
+                {x.feito ? <CheckCircle2 size={18} className="shrink-0 text-hf-accent" /> : <Circle size={18} className="shrink-0 text-hf-border-strong" />}
+                <span className={`min-w-0 flex-1 ${x.feito ? "text-hf-muted line-through decoration-hf-border-strong" : "text-hf-text"}`}>{x.texto}</span>
+                {!x.feito && <Link href={x.href} className="inline-flex min-h-[40px] shrink-0 items-center rounded-lg px-2 font-semibold text-hf-accent hover:bg-hf-accent/5">{x.acao} →</Link>}
               </li>
             ))}
           </ul>
         </Secao>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Secao titulo="Mais vendidas no período">
-          {ranking.length ? (
-            <ol className="divide-y divide-hf-border">{ranking.map((r, i) => <li key={r.ficha_id} className="flex justify-between gap-2 py-2 text-sm"><span>{i + 1}. {r.nome}</span><span className="tabular-nums text-hf-text-2">{num(r.quantidade, 0)} un · {brl(r.receita)}</span></li>)}</ol>
-          ) : <SemDados motivo="Lance as vendas com a marmita identificada para ver o ranking." href="/dashboard/marmitaria/financeiro?aba=vendas" acao="Lançar vendas" />}
+      {semVendas ? (
+        <Secao>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-bold text-hf-text">Nenhuma venda lançada {periodoTxt}</p>
+              <p className="mt-0.5 text-sm text-hf-muted">Faturamento, CMV, margem, lucro e as mais vendidas aparecem quando houver vendas lançadas.</p>
+              {im?.cmo !== null && im?.cmo !== undefined && <p className="mt-1 text-sm text-hf-text-2">CMO de {mesTxt}: <strong className="tabular-nums">{brl(im.cmo)}</strong> <Selo natureza="estimativa" /></p>}
+            </div>
+            <Link href="/dashboard/marmitaria/financeiro?aba=vendas" className="inline-flex min-h-[44px] items-center rounded-xl bg-hf-accent px-4 text-sm font-bold text-hf-accent-fg hover:brightness-110">Lançar vendas</Link>
+          </div>
         </Secao>
-        <Secao titulo="Maior margem por marmita" subtitulo={canal ? `Prevista pela ficha no ${canal.nome}` : null}>
-          {maisLucro.length ? (
-            <ol className="divide-y divide-hf-border">{maisLucro.map(({ m, r }) => <li key={m.id} className="flex justify-between gap-2 py-2 text-sm"><span>{m.nome_receita}</span><span className="tabular-nums font-semibold">{brl(r.margemContribuicao)} · {pctTxt(r.margemContribuicaoPct)}</span></li>)}</ol>
-          ) : <SemDados motivo={canal ? "Cadastre marmitas com preço e custo." : "Configure os canais de venda."} href={canal ? "/dashboard/marmitaria/marmitas" : "/dashboard/marmitaria/configuracoes"} acao={canal ? "Ver marmitas" : "Configurar canais"} />}
-        </Secao>
-      </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <Indicador rotulo="Marmitas vendidas" valor={ip?.marmitas ?? null} formato="int" natureza="real" />
+          <Indicador rotulo="Faturamento" valor={ip?.receita ?? null} natureza="real" nota="vendas − descontos − cancelamentos" />
+          <Indicador rotulo={cmvLinha?.rotulo?.includes("real") ? "CMV real" : "CMV"} valor={ip?.cmv ?? null} natureza={cmvLinha?.natureza} nota={ip?.cmvPct !== null && ip?.cmvPct !== undefined ? `${pctTxt(ip.cmvPct)} do faturamento${cmvLinha?.natureza === "estimado" ? " · previsto pelas fichas" : ""}` : cmvLinha?.nota} />
+          <Indicador rotulo="CMO" valor={im?.cmo ?? null} natureza="estimativa" nota={im?.cmo !== null && im?.cmo !== undefined ? `${mesTxt}${im.cmoPct !== null ? ` · ${pctTxt(im.cmoPct)} do faturamento` : ""}` : "aloque os funcionários"} />
+          <Indicador rotulo="Margem de contribuição" valor={ip?.margemContribuicao ?? null} natureza={doPeriodo?.natureza} nota={ip?.margemContribuicaoPct !== null && ip?.margemContribuicaoPct !== undefined ? pctTxt(ip.margemContribuicaoPct) : null} />
+          <Indicador rotulo="Lucro líquido" valor={im?.lucroLiquido ?? null} natureza={doMes?.dre?.natureza} nota={im?.lucroLiquido !== null && im?.lucroLiquido !== undefined ? `${mesTxt} · gerencial` : "depende de vendas, CMV, CMO e despesas do mês"} destaque />
+        </div>
+      )}
+
+      {(ranking.length > 0 || maisLucro.length > 0) && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {ranking.length > 0 && (
+            <Secao titulo="Mais vendidas no período">
+              <ol className="divide-y divide-hf-border">{ranking.map((r, i) => <li key={r.ficha_id} className="flex justify-between gap-2 py-2 text-sm"><span className="min-w-0 truncate">{i + 1}. {r.nome}</span><span className="shrink-0 tabular-nums text-hf-text-2">{num(r.quantidade, 0)} un · {brl(r.receita)}</span></li>)}</ol>
+            </Secao>
+          )}
+          {maisLucro.length > 0 && (
+            <Secao titulo="Maior margem por marmita" subtitulo={canal ? `Prevista pela ficha no ${canal.nome}` : null}>
+              <ol className="divide-y divide-hf-border">{maisLucro.map(({ m, r }) => <li key={m.id} className="flex justify-between gap-2 py-2 text-sm"><span className="min-w-0 truncate">{m.nome_receita}</span><span className="shrink-0 tabular-nums font-semibold">{brl(r.margemContribuicao)} · {pctTxt(r.margemContribuicaoPct)}</span></li>)}</ol>
+            </Secao>
+          )}
+        </div>
+      )}
 
       {negativas.length > 0 && (
         <Aviso tipo="alerta">
@@ -135,11 +161,12 @@ export default function VisaoGeralPage() {
         </Aviso>
       )}
 
-      <Secao titulo="Alertas de estoque" subtitulo="Locais da marmitaria.">
-        {!locais.length ? <SemDados motivo="Ative o estoque da marmitaria." href="/dashboard/marmitaria/estoque?aba=estoque" acao="Ativar" />
-          : alertasEstoque.length ? <ul className="divide-y divide-hf-border">{alertasEstoque.slice(0, 12).map((a) => <li key={a.nome} className="flex justify-between py-2 text-sm"><span>{a.nome}</span><span className="font-semibold text-hf-warning">{a.motivo}</span></li>)}</ul>
+      {locais.length > 0 && (
+        <Secao titulo="Alertas de estoque" subtitulo="Locais da marmitaria.">
+          {alertasEstoque.length ? <ul className="divide-y divide-hf-border">{alertasEstoque.slice(0, 12).map((a) => <li key={a.nome} className="flex justify-between gap-2 py-2 text-sm"><span className="min-w-0 truncate">{a.nome}</span><span className="shrink-0 font-semibold text-hf-warning">{a.motivo}</span></li>)}</ul>
             : <p className="text-sm text-hf-text-2">Nada zerado, vencendo ou abaixo do mínimo.</p>}
-      </Secao>
+        </Secao>
+      )}
 
       {base.unidade?.ifood_conectado && (
         <Aviso>A unidade está marcada como conectada ao iFood, mas a importação de pedidos para a marmitaria ainda não foi homologada: os pedidos pendentes aparecerão aqui quando estiver.</Aviso>

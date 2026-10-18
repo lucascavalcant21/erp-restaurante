@@ -332,7 +332,8 @@ export function normalizarItens(obj) {
 
 export function normalizarPromocao(p, i = 0) {
   const tipo = TIPOS_PROMOCAO.some((t) => t.id === p?.tipo) ? p.tipo : "aviso";
-  const preco = centavos(p?.preco_promocional);
+  // O editor guarda o que foi digitado ("29,90"); aqui vira número.
+  const preco = centavos(String(p?.preco_promocional ?? "").replace(/\./g, (m, i, t) => (t.includes(",") ? "" : m)).replace(",", "."));
   const pct = Math.round(Number(p?.desconto_pct));
   const dias = [...new Set((Array.isArray(p?.dias_semana) ? p.dias_semana : []).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
   return {

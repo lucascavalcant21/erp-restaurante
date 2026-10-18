@@ -92,8 +92,18 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const tipoPedido = mesa ? "qrcode" : "delivery";
   const chaveCarrinho = chave(unidadeId, `carrinho:${mesa || "delivery"}`);
 
-  // A prévia do editor muda a cada toque do dono.
-  useEffect(() => { if (previa) setCardapio(inicial); }, [previa, inicial]);
+  // Prévia do editor: o painel (mesma origem, janela-mãe) manda o rascunho do
+  // dono já montado, a cada mudança. Nada é gravado nem enviado na prévia.
+  useEffect(() => {
+    if (!previa) return;
+    const aoReceber = (e) => {
+      if (e.origin !== window.location.origin || e.source !== window.parent) return;
+      if (e.data?.tipo === "hefisto-cardapio-previa" && e.data.cardapio?.produtos) { setCardapio(e.data.cardapio); setEstado("ok"); }
+    };
+    window.addEventListener("message", aoReceber);
+    if (window.parent !== window) window.parent.postMessage({ tipo: "hefisto-cardapio-previa-pronta" }, window.location.origin);
+    return () => window.removeEventListener("message", aoReceber);
+  }, [previa]);
 
   // ── carga e atualização ──────────────────────────────────────────────────
   const buscar = useCallback(async () => {

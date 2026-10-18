@@ -1,204 +1,212 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+// Editor do cardápio digital. Tudo o que o cliente vê é editável aqui:
+// cores, fundo, logo, abertura (fotos e vídeos), seções, pratos (nome
+// comercial, descrição, foto, selos, destaque), promoções, conversa, textos
+// e QR Codes. A prévia ao lado é o cardápio de verdade com o rascunho, em
+// celular e tablet, em pé ou deitado.
+//
+// Antes esta tela só gerava QR Codes (por um site de fora) e apontava as
+// mesas para o "Experience", que mostrava pratos de demonstração (B-028).
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Eye, Loader2, Save, UtensilsCrossed, X, ExternalLink } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import { ArrowLeft, QrCode, Copy, ExternalLink, Smartphone, ArrowDown, Sparkles, UtensilsCrossed } from "lucide-react";
+import { PageBody, PageHeader } from "../../../components/ui";
+import {
+  categoriasEfetivas, juntarProdutosEFichas, montarCardapioPublico, normalizarConfigCardapio,
+} from "../../../lib/cardapio-digital.mjs";
+import { carregarEditorCardapio, criarProdutoDaFicha, salvarEditorCardapio } from "../../../lib/cardapio-editor";
+import { caminhoDoCardapio } from "../../../lib/cardapio-link.mjs";
+import { Aviso, Botao } from "../../../components/cardapio-digital/editor/ui";
+import Aparencia from "../../../components/cardapio-digital/editor/Aparencia";
+import Abertura from "../../../components/cardapio-digital/editor/Abertura";
+import Secoes from "../../../components/cardapio-digital/editor/Secoes";
+import Pratos from "../../../components/cardapio-digital/editor/Pratos";
+import Promocoes from "../../../components/cardapio-digital/editor/Promocoes";
+import Textos from "../../../components/cardapio-digital/editor/Textos";
+import QrCodes from "../../../components/cardapio-digital/editor/QrCodes";
+import Previa from "../../../components/cardapio-digital/editor/Previa";
 
-export default function CardapioGeradorPage() {
-  const router = useRouter();
-  const { abrirMenu } = useERP();
-  const { unidadeAtiva, unidadeInfo } = useERP();
+const ABAS = [
+  { id: "aparencia", rotulo: "Aparência" },
+  { id: "abertura", rotulo: "Abertura" },
+  { id: "secoes", rotulo: "Seções" },
+  { id: "pratos", rotulo: "Pratos" },
+  { id: "promocoes", rotulo: "Promoções" },
+  { id: "textos", rotulo: "Conversa e textos" },
+  { id: "qr", rotulo: "Link e QR Code" },
+];
+const VAZIO = { fichas: {}, produtos: {} };
+const fichaAtiva = (f) => f.ativo !== false && (!f.status || ["ativa", "ativo"].includes(String(f.status).toLowerCase()));
 
-  const [tipoCardapio, setTipoCardapio] = useState("experience"); // "experience" ou "delivery"
-  const [mesaFiltro, setMesaFiltro] = useState("");
-  const [urlPublica, setUrlPublica] = useState("");
-  const [qrCodeUrl, setQrCodeUrl] = useState("");
+export default function CardapioEditorPage() {
+  const { unidadeAtiva } = useERP();
+  const [dados, setDados] = useState(null);
+  const [erro, setErro] = useState("");
+  const [config, setConfig] = useState(null);
+  const [salvo, setSalvo] = useState("");
+  const [pendentes, setPendentes] = useState(VAZIO);
+  const [aba, setAba] = useState("aparencia");
+  const [salvando, setSalvando] = useState(false);
+  const [resultado, setResultado] = useState(null);
+  const [previaAberta, setPreviaAberta] = useState(false);
+
+  const carregar = useCallback(async ({ manterRascunho = false } = {}) => {
+    if (!unidadeAtiva) return;
+    setErro("");
+    const r = await carregarEditorCardapio(unidadeAtiva);
+    if (r.erro) { setErro(r.erro); setDados(null); return; }
+    setDados(r);
+    if (!manterRascunho) {
+      const c = normalizarConfigCardapio(r.config);
+      setConfig(c);
+      setSalvo(JSON.stringify(c));
+      setPendentes(VAZIO);
+    }
+  }, [unidadeAtiva]);
+
+  useEffect(() => { setDados(null); setConfig(null); carregar(); }, [carregar]);
+
+  const mudar = useCallback((fn) => { setConfig((c) => fn(c)); setResultado(null); }, []);
+  const mudarPendentes = useCallback((fn) => { setPendentes(fn); setResultado(null); }, []);
+  const temPendente = Object.keys(pendentes.fichas).length + Object.keys(pendentes.produtos).length > 0;
+  const mudou = Boolean(config) && (temPendente || JSON.stringify(normalizarConfigCardapio(config)) !== JSON.stringify(normalizarConfigCardapio(JSON.parse(salvo || "{}"))));
 
   useEffect(() => {
-    if (unidadeAtiva && typeof window !== "undefined") {
-      const baseUrl = window.location.origin;
-      let link = "";
+    if (!mudou) return;
+    const aviso = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", aviso);
+    return () => window.removeEventListener("beforeunload", aviso);
+  }, [mudou]);
 
-      if (tipoCardapio === "experience") {
-        link = mesaFiltro.trim()
-          ? `${baseUrl}/experience/${unidadeAtiva}/${encodeURIComponent(mesaFiltro.trim())}`
-          : `${baseUrl}/experience/${unidadeAtiva}`;
-      } else {
-        link = `${baseUrl}/cardapio/${unidadeAtiva}`;
-      }
+  // O que a prévia e as listas usam: banco + o que foi mexido e ainda não salvo.
+  const juntos = useMemo(() => {
+    if (!dados) return [];
+    const produtos = dados.produtos.map((p) => (pendentes.produtos[p.id] ? { ...p, ...pendentes.produtos[p.id] } : p));
+    const fichas = dados.fichas.map((f) => (pendentes.fichas[f.id] ? { ...f, ...pendentes.fichas[f.id] } : f));
+    return juntarProdutosEFichas(produtos, fichas, dados.alergenicos, {
+      fichasComFoto: dados.fichasComFoto,
+      fotoDaFicha: (id) => `/api/public/cardapio/${encodeURIComponent(unidadeAtiva)}/foto/${encodeURIComponent(id)}`,
+    });
+  }, [dados, pendentes, unidadeAtiva]);
 
-      setUrlPublica(link);
-      setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(link)}&color=0f172a`);
-    }
-  }, [unidadeAtiva, tipoCardapio, mesaFiltro]);
+  const cardapio = useMemo(() => (dados && config
+    ? montarCardapioPublico({ unidade: dados.unidade, produtos: juntos, config })
+    : null), [dados, config, juntos]);
 
-  const copiarLink = () => {
-    navigator.clipboard.writeText(urlPublica);
-    alert("Link copiado com sucesso!");
+  const categorias = useMemo(() => {
+    if (!config) return [];
+    const base = categoriasEfetivas(normalizarConfigCardapio(config), juntos);
+    return cardapio?.categorias.some((c) => c.id === "outros") && !base.some((c) => c.id === "outros")
+      ? [...base, { id: "outros", nome: "Outros", descricao: "", imagem_url: "", visivel: true, papel: "outro" }] : base;
+  }, [config, juntos, cardapio]);
+
+  const fichasSemProduto = useMemo(() => {
+    if (!dados) return [];
+    const ligadas = new Set(dados.produtos.map((p) => String(p.ficha_id || "")));
+    return dados.fichas.filter((f) => !f.eh_base && fichaAtiva(f) && !ligadas.has(String(f.id)))
+      .sort((a, b) => String(a.nome_receita).localeCompare(String(b.nome_receita), "pt-BR"));
+  }, [dados]);
+
+  const salvar = async () => {
+    setSalvando(true);
+    setResultado(null);
+    const r = await salvarEditorCardapio(unidadeAtiva, { config, fichas: pendentes.fichas, produtos: pendentes.produtos });
+    setSalvando(false);
+    if (r.erros.length) { setResultado({ ok: false, texto: r.erros.join(" ") }); return; }
+    setResultado({ ok: true, texto: "Salvo. O cardápio dos clientes já está assim." });
+    setPendentes(VAZIO);
+    await carregar();
+  };
+
+  const criarProduto = async (ficha, preco) => {
+    const r = await criarProdutoDaFicha(unidadeAtiva, ficha, preco);
+    if (!r.erro) await carregar({ manterRascunho: true });
+    return r;
+  };
+
+  if (!unidadeAtiva || unidadeAtiva === "todas") {
+    return (
+      <>
+        <PageHeader title="Cardápio digital" icon={UtensilsCrossed} back={false} />
+        <PageBody><Aviso>Escolha uma unidade no topo para editar o cardápio dela.</Aviso></PageBody>
+      </>
+    );
+  }
+
+  const opcoesBanner = {
+    categorias: (cardapio?.categorias || []).map((c) => ({ id: c.id, nome: c.nome })),
+    promocoes: (config?.promocoes || []).map((p) => ({ id: p.id, nome: p.titulo || "Sem nome" })),
+    produtos: (cardapio?.produtos || []).map((p) => ({ id: p.id, nome: p.nome })),
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
-      {/* TOPBAR */}
-      <div className="bg-card border-b border-line py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <button onClick={() => abrirMenu()} className="p-3 text-fg hover:text-slate-800 bg-white rounded-full border border-line">
-              <ArrowLeft size={20} />
-            </button>
-            <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-amber-500/10 text-amber-600 items-center justify-center border border-amber-500/20">
-              <Sparkles size={28} />
+    <>
+      <PageHeader title="Cardápio digital" subtitle="O que o cliente vê no QR Code da mesa e no link do delivery." icon={UtensilsCrossed} back={false}>
+        <a href={caminhoDoCardapio(unidadeAtiva)} target="_blank" rel="noreferrer"
+          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-4 text-sm font-bold text-hf-text hover:bg-hf-elevated">
+          <ExternalLink size={16} /> Abrir cardápio
+        </a>
+        <Botao onClick={salvar} disabled={!mudou || salvando || !config}>
+          {salvando ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {salvando ? "Salvando…" : mudou ? "Salvar" : "Tudo salvo"}
+        </Botao>
+      </PageHeader>
+      <PageBody>
+        {erro ? <Aviso tipo="alerta">{erro} <button type="button" className="font-semibold text-hf-accent underline" onClick={() => carregar()}>Tentar de novo</button></Aviso> : null}
+        {resultado ? <Aviso tipo={resultado.ok ? "info" : "alerta"}>{resultado.texto}</Aviso> : null}
+        {!dados || !config ? (
+          !erro ? <p className="flex items-center gap-2 text-sm text-hf-muted"><Loader2 size={16} className="animate-spin" /> Carregando o cardápio…</p> : null
+        ) : (
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+            <div className="min-w-0 space-y-4">
+              <div role="tablist" aria-label="Partes do cardápio" className="flex flex-wrap gap-1 rounded-xl bg-hf-elevated p-1">
+                {ABAS.map((a) => (
+                  <button key={a.id} type="button" role="tab" aria-selected={aba === a.id} onClick={() => setAba(a.id)}
+                    className={`min-h-[40px] flex-auto whitespace-nowrap rounded-lg px-3 text-sm font-semibold transition ${aba === a.id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2 hover:text-hf-text"}`}>
+                    {a.rotulo}
+                  </button>
+                ))}
+              </div>
+              {aba === "aparencia" ? <Aparencia config={config} mudar={mudar} unidadeId={unidadeAtiva} /> : null}
+              {aba === "abertura" ? <Abertura config={config} mudar={mudar} unidadeId={unidadeAtiva} opcoes={opcoesBanner} /> : null}
+              {aba === "secoes" ? <Secoes config={config} mudar={mudar} unidadeId={unidadeAtiva} produtos={juntos} /> : null}
+              {aba === "pratos" ? (
+                <Pratos config={config} mudar={mudar} unidadeId={unidadeAtiva} juntos={juntos} categorias={categorias}
+                  pendentes={pendentes} setPendentes={mudarPendentes} fichasSemProduto={fichasSemProduto} onCriarProduto={criarProduto} />
+              ) : null}
+              {aba === "promocoes" ? <Promocoes config={config} mudar={mudar} unidadeId={unidadeAtiva} produtos={juntos} /> : null}
+              {aba === "textos" ? <Textos config={config} mudar={mudar} /> : null}
+              {aba === "qr" ? <QrCodes unidadeId={unidadeAtiva} nomeLoja={dados.unidade.nome} mesasDoBanco={dados.mesas} /> : null}
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-fg">Héfisto Experience & Cardápio</h1>
-              <p className="text-fg-soft font-bold uppercase tracking-widest text-xs mt-1">Gere os QR Codes das mesas e do salão</p>
-            </div>
+            <aside className="hidden xl:block">
+              <div className="sticky top-24">
+                <Previa unidadeId={unidadeAtiva} cardapio={cardapio} alturaMax={680} />
+              </div>
+            </aside>
+          </div>
+        )}
+      </PageBody>
+
+      {dados && config ? (
+        <div className="fixed inset-x-3 bottom-3 z-30 flex gap-2 xl:hidden print:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          <Botao variante="secundario" className="flex-1 shadow-lg" onClick={() => setPreviaAberta(true)}><Eye size={16} /> Ver prévia</Botao>
+          {mudou ? <Botao className="flex-1 shadow-lg" onClick={salvar} disabled={salvando}>{salvando ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar</Botao> : null}
+        </div>
+      ) : null}
+
+      {previaAberta && cardapio ? (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-hf-bg p-3" role="dialog" aria-modal="true" aria-label="Prévia do cardápio">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-bold text-hf-text">Prévia</p>
+            <Botao variante="secundario" onClick={() => setPreviaAberta(false)} aria-label="Fechar prévia"><X size={16} /> Fechar</Botao>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <Previa unidadeId={unidadeAtiva} cardapio={cardapio} alturaMax={typeof window !== "undefined" ? window.innerHeight - 150 : 640} />
           </div>
         </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
-        {/* SELETOR DE MODO */}
-        <div className="bg-card p-1.5 rounded-2xl border border-line flex gap-1 mb-8 max-w-md shadow-sm">
-          <button
-            onClick={() => setTipoCardapio("experience")}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 ${
-              tipoCardapio === "experience"
-                ? "bg-amber-600 text-white shadow-md shadow-amber-900/20"
-                : "text-subtle hover:text-fg"
-            }`}
-          >
-            <Sparkles size={16} /> Héfisto Experience (Mesas)
-          </button>
-          <button
-            onClick={() => setTipoCardapio("delivery")}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 ${
-              tipoCardapio === "delivery"
-                ? "bg-card text-fg border border-line shadow-sm"
-                : "text-subtle hover:text-fg"
-            }`}
-          >
-            Cardápio Web Simples
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-          {/* LADO ESQUERDO (Ações e Link) */}
-          <div>
-            <h2 className="text-2xl font-black text-slate-800 mb-2">
-              {tipoCardapio === "experience" ? "O Restaurante na Palma da Mão" : "Cardápio Digital Rápido"}
-            </h2>
-            <p className="text-fg font-medium mb-6">
-              {tipoCardapio === "experience"
-                ? "O cliente escaneia o QR Code na mesa e tem acesso a fotos em alta definição, pedidos integrados à comanda, chamada de garçom e consulta de consumo em tempo real."
-                : "Link direto para clientes consultarem pratos ou fazerem pedidos rápidos de entrega e balcão."}
-            </p>
-
-            {tipoCardapio === "experience" && (
-              <div className="bg-card p-4 rounded-2xl border border-line mb-6">
-                <label className="text-3xs font-bold uppercase tracking-widest text-fg block mb-1">
-                  Mesa Específica (Opcional)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={mesaFiltro}
-                    onChange={(e) => setMesaFiltro(e.target.value)}
-                    placeholder="Ex: 04 ou deixe vazio para geral"
-                    className="flex-1 bg-white border border-line rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-amber-500"
-                  />
-                  {mesaFiltro && (
-                    <button
-                      onClick={() => setMesaFiltro("")}
-                      className="px-3 py-2 bg-muted text-subtle text-xs font-bold rounded-xl"
-                    >
-                      Limpar
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="bg-card p-6 rounded-3xl border border-line shadow-sm mb-6">
-              <label className="text-3xs font-bold uppercase tracking-widest text-fg mb-2 block">Link Oficial</label>
-              <div className="flex items-center gap-2 bg-white p-3 rounded-xl border border-line-soft">
-                <input
-                  type="text"
-                  readOnly
-                  value={urlPublica}
-                  className="flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none truncate"
-                />
-                <button
-                  onClick={copiarLink}
-                  className="p-2 bg-card rounded-lg border border-line text-fg hover:text-amber-600 transition-colors"
-                  title="Copiar"
-                >
-                  <Copy size={16} />
-                </button>
-              </div>
-
-              <a
-                href={urlPublica}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-900/20"
-              >
-                <ExternalLink size={18} /> Testar Héfisto Experience
-              </a>
-            </div>
-
-            <div className="bg-[#1c1613] text-amber-100 p-6 rounded-3xl shadow-lg border border-amber-900/30">
-              <div className="flex gap-4 items-center mb-2">
-                <Smartphone size={32} className="text-amber-400 opacity-80" />
-                <h3 className="text-xl font-black text-amber-50">Mobile-First & Sem Login</h3>
-              </div>
-              <p className="text-amber-200/70 text-sm">
-                Desenvolvido para máxima velocidade no celular dos clientes. Sem formulários cansativos, com navegação por toques rápidos e suporte a múltiplos idiomas (Português, Inglês e Espanhol).
-              </p>
-            </div>
-          </div>
-
-          {/* LADO DIREITO (QR Code Viewer) */}
-          <div className="bg-card p-5 sm:p-8 rounded-3xl sm:rounded-[40px] border border-line shadow-xl flex flex-col items-center justify-center text-center min-w-0">
-            <h3 className="text-xl font-black text-slate-800 mb-1">
-              QR Code Oficial {mesaFiltro ? `• Mesa ${mesaFiltro}` : "• Salão"}
-            </h3>
-            <p className="text-sm text-fg font-medium mb-8">
-              Imprima para os displays de mesa ou envie para a gráfica.
-            </p>
-
-            <div className="bg-white p-4 rounded-3xl border-4 border-line-soft shadow-sm relative group cursor-pointer hover:border-line transition-colors">
-              {qrCodeUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={qrCodeUrl}
-                  alt="QR Code Experience"
-                  className="w-full max-w-64 aspect-square object-contain transition-transform group-hover:scale-105"
-                />
-              ) : (
-                <div className="w-full max-w-64 aspect-square flex items-center justify-center bg-white text-fg">
-                  <QrCode size={64} />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-amber-600/90 text-white rounded-[24px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center font-black">
-                <ArrowDown size={32} className="mb-2" />
-                Clique p/ Salvar
-              </div>
-            </div>
-
-            <a
-              href={qrCodeUrl}
-              download={mesaFiltro ? `QR_Mesa_${mesaFiltro}.png` : "QR_Experience.png"}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-8 text-amber-600 hover:text-amber-700 font-black hover:underline uppercase tracking-widest text-sm"
-            >
-              Baixar Imagem em Alta Resolução
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
+      ) : null}
+      <div className="h-20 xl:hidden" aria-hidden="true" />
+    </>
   );
 }

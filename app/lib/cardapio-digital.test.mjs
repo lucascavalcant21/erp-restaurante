@@ -142,7 +142,7 @@ test("texto de quando vale e rótulo", () => {
 // ─── montagem a partir da ficha ─────────────────────────────────────────────
 
 test("cardápio sai das fichas: nome comercial, descrição, alergênicos e categoria da ficha; preço do produto", () => {
-  const c = montarCardapioPublico({ unidade: { nome: "Sel de Estrela", aberta: true, taxa_entrega: 10 }, produtos: PRODUTOS, config: CONFIG, agora: SAB_1830 });
+  const c = montarCardapioPublico({ unidade: { nome: "Sel de Estrela", delivery_aberto: true, taxa_entrega: 10 }, produtos: PRODUTOS, config: CONFIG, agora: SAB_1830 });
   const p1 = c.produtos.find((p) => p.id === "p1");
   assert.equal(p1.nome, "Maniçoba paraense");
   assert.equal(p1.descricao, "Folha de mandioca cozida por sete dias.");
@@ -290,4 +290,14 @@ test("total mostrado usa o preço do cardápio e a taxa só no delivery", () => 
   const { validos, removidos } = conferirCarrinho([...carrinho, { id: "p8", quantidade: 1 }], c);
   assert.deepEqual(validos.map((v) => v.id), ["p1", "p3"]);
   assert.deepEqual(removidos.map((v) => v.id), ["p8"]);
+});
+
+test("link do cardápio: mesa limpa e links antigos do Experience", async () => {
+  const { limparMesa, caminhoDoCardapio } = await import("./cardapio-link.mjs");
+  assert.equal(limparMesa("Mesa 12"), "12");
+  assert.equal(limparMesa("mesa-7"), "7");
+  assert.equal(limparMesa("<script>"), "script");
+  assert.equal(limparMesa(""), "");
+  assert.equal(caminhoDoCardapio("seldeestrela"), "/cardapio/seldeestrela");
+  assert.equal(caminhoDoCardapio("seldeestrela", { mesa: "Mesa 4" }), "/cardapio/seldeestrela?mesa=4");
 });

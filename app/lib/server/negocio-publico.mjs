@@ -15,6 +15,8 @@
 // banco; nenhuma mensagem interna do banco na resposta. Módulo sem Next: o
 // banco entra por parâmetro, para dar para testar.
 
+import { montarCardapioPublico, juntarProdutosEFichas } from "../cardapio-digital.mjs";
+
 const falha = (status, codigo, mensagem) => ({ ok: false, status, codigo, mensagem });
 const idValido = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(v);
 const texto = (v, max) => {
@@ -27,64 +29,162 @@ const numero = (v) => { const n = Number(String(v ?? "").replace(",", ".")); ret
 const centavos = (v) => Math.round(v * 100) / 100;
 
 // ─── CARDÁPIO ────────────────────────────────────────────────────────────────
+//
+// O cardápio é montado a partir do produto de venda ligado à ficha técnica
+// (nome comercial, descrição, categoria e alergênicos da ficha; preço do
+// produto) e da vitrine que o dono configurou (config_sistema.params
+// .cardapio_digital). Regras em app/lib/cardapio-digital.mjs. Daqui só sai a
+// lista fechada que montarCardapioPublico devolve — nada de custo, CMV,
+// parâmetros financeiros nem dado fiscal da loja.
 
-export async function lerCardapioPublico({ db, unidade }) {
-  if (!idValido(unidade)) return falha(404, "nao_encontrado", "Cardápio não encontrado.");
-  if (!db) {
-    if (unidade === "seldeestrela") {
-      return {
-        ok: true,
-        unidade: {
-          nome: "Seldeestrela Gastronomia & Brasa",
-          aberta: true,
-          taxa_entrega: 10.0,
-        },
-        produtos: [
-          { id: "prod-angus", nome_produto: "Costela Angus Braseada com Redução de Tucupi", preco_venda: 114.0, categoria: "Carnes Nobres & Brasa" },
-          { id: "prod-picanha-prime", nome_produto: "Picanha na Parrilla com Alho Confitado", preco_venda: 128.0, categoria: "Carnes Nobres & Brasa" },
-          { id: "prod-pirarucu", nome_produto: "Pirarucu Grelhado com Crosta de Castanha-do-Pará", preco_venda: 89.0, categoria: "Peixes & Frutos do Mar" },
-          { id: "prod-ceviche", nome_produto: "Ceviche Amazônico de Tambaqui & Jambu", preco_venda: 58.0, categoria: "Entradas & Petiscos" },
-          { id: "prod-dadinho", nome_produto: "Dadinhos de Tapioca com Geléia de Pimenta Defumada", preco_venda: 42.0, categoria: "Entradas & Petiscos" },
-          { id: "prod-risoto", nome_produto: "Risoto de Cogumelos Nativos & Queijo Canastra", preco_venda: 76.0, categoria: "Massas & Risotos" },
-          { id: "prod-caipirinha", nome_produto: "Caipirinha Autoral de Cupuaçu & Cachaça Envelhecida", preco_venda: 36.0, categoria: "Drinks & Coquetéis" },
-          { id: "prod-gin-tonica", nome_produto: "Gin Tônica Botânica com Frutas Cítricas & Alecrim", preco_venda: 38.0, categoria: "Drinks & Coquetéis" },
-          { id: "prod-suco-graviola", nome_produto: "Suco Natural de Graviola com Hortelã Fresca", preco_venda: 18.0, categoria: "Bebidas & Sucos" },
-          { id: "prod-pudim", nome_produto: "Pudim de Leite Defumado com Favas de Baunilha", preco_venda: 28.0, categoria: "Sobremesas Artesanais" },
-          { id: "prod-petit-gateau", nome_produto: "Petit Gâteau com Sorvete Artesanal de Tapioca", preco_venda: 34.0, categoria: "Sobremesas Artesanais" },
-        ],
-      };
-    }
-    return falha(503, "indisponivel", "Cardápio indisponível no momento.");
+const COLUNA_FALTANDO = /column|could not find|does not exist|schema cache/i;
+
+/** Tenta as colunas da mais completa à mínima (bancos antigos não têm todas). */
+async function selecionar(consulta, opcoes) {
+  let r = null;
+  for (const colunas of opcoes) {
+    r = await consulta(colunas);
+    if (!r.error || !COLUNA_FALTANDO.test(r.error.message || "")) return r;
   }
+  return r;
+}
+
+async function emLotes(ids, consulta, tamanho = 100) {
+  const data = [];
+  for (let i = 0; i < ids.length; i += tamanho) {
+    const r = await consulta(ids.slice(i, i + tamanho));
+    if (r.error) return { data: null, error: r.error };
+    data.push(...(r.data || []));
+  }
+  return { data, error: null };
+}
+
+export const fotoDaFichaUrl = (unidade, produtoId) =>
+  `/api/public/cardapio/${encodeURIComponent(unidade)}/foto/${encodeURIComponent(produtoId)}`;
+
+/**
+ * Tudo o que monta o cardápio de uma unidade. Ficha, alergênico e
+ * configuração são complementos: se a tabela ou a coluna faltar, o cardápio
+ * sai só dos produtos (nunca com dado inventado).
+ */
+export async function carregarCardapio({ db, unidade, agora = new Date() }) {
+  const { data: u, error: eU } = await db.from("unidades")
+    .select("id, nome, nome_fantasia, delivery_aberto, taxa_entrega_padrao").eq("id", unidade).maybeSingle();
+  if (eU) return falha(503, "indisponivel", "Cardápio indisponível no momento.");
+  if (!u) return falha(404, "nao_encontrado", "Cardápio não encontrado.");
+
+  const rP = await selecionar((c) => db.from("produtos").select(c).eq("unidade_id", unidade).eq("ativo", true).order("nome_produto"), [
+    "id, nome_produto, preco_venda, categoria, departamento, imagem_url, ficha_id",
+    "id, nome_produto, preco_venda, categoria",
+  ]);
+  if (rP.error) return falha(503, "indisponivel", "Cardápio indisponível no momento.");
+  const produtos = rP.data || [];
+
+  const fichaIds = [...new Set(produtos.map((p) => p.ficha_id).filter((id) => id != null).map(String))];
+  let fichas = [];
+  let alergenicos = [];
+  let fichasComFoto = [];
+  if (fichaIds.length) {
+    // Sempre filtrado pela unidade: ficha de outra loja nunca entra, mesmo
+    // que um produto aponte para ela.
+    const rF = await emLotes(fichaIds, (lote) => selecionar((c) => db.from("fichas_tecnicas").select(c).eq("unidade_id", unidade).in("id", lote), [
+      "id, nome_comercial, descricao_comercial, categoria, departamento, ativo, status, alergenicos_pode_conter",
+      "id, categoria, departamento",
+      "id",
+    ]));
+    if (!rF.error) fichas = rF.data;
+    // A foto da ficha pode ser um texto enorme (base64): aqui só se pergunta
+    // quais têm foto; a foto em si sai pela rota /foto, uma de cada vez.
+    const rFoto = await emLotes(fichaIds, (lote) => db.from("fichas_tecnicas").select("id")
+      .eq("unidade_id", unidade).in("id", lote).not("imagem", "is", null).neq("imagem", ""));
+    if (!rFoto.error) fichasComFoto = rFoto.data.map((f) => f.id);
+    const rA = await emLotes(fichaIds, (lote) => db.from("fichas_alergenicos").select("ficha_id, alergenico")
+      .eq("unidade_id", unidade).in("ficha_id", lote));
+    if (!rA.error) alergenicos = rA.data;
+  }
+
+  let config = {};
+  const rC = await db.from("config_sistema").select("params").eq("unidade_id", unidade).limit(1);
+  const params = !rC.error && Array.isArray(rC.data) ? rC.data[0]?.params : null;
+  if (params && typeof params === "object" && params.cardapio_digital && typeof params.cardapio_digital === "object") {
+    config = params.cardapio_digital;
+  }
+
+  const juntos = juntarProdutosEFichas(produtos, fichas, alergenicos, {
+    fichasComFoto,
+    fotoDaFicha: (id) => fotoDaFichaUrl(unidade, id),
+  });
+  const cardapio = montarCardapioPublico({
+    unidade: { nome: u.nome_fantasia || u.nome || "", delivery_aberto: u.delivery_aberto !== false, taxa_entrega: numero(u.taxa_entrega_padrao) },
+    produtos: juntos,
+    config,
+    agora,
+  });
+  return { ok: true, cardapio, loja: u };
+}
+
+export async function lerCardapioPublico({ db, unidade, agora = new Date() }) {
+  if (!idValido(unidade)) return falha(404, "nao_encontrado", "Cardápio não encontrado.");
+  // Sem banco não há cardápio: nada de pratos de demonstração para o cliente.
+  if (!db) return falha(503, "indisponivel", "Cardápio indisponível no momento.");
   try {
-    const { data: u, error: eU } = await db.from("unidades")
-      .select("id, nome, nome_fantasia, delivery_aberto, taxa_entrega_padrao").eq("id", unidade).maybeSingle();
-    if (eU) return falha(503, "indisponivel", "Cardápio indisponível no momento.");
-    if (!u) return falha(404, "nao_encontrado", "Cardápio não encontrado.");
-    const { data: prods, error: eP } = await db.from("produtos")
-      .select("id, nome_produto, preco_venda, categoria")
-      .eq("unidade_id", unidade).eq("ativo", true)
-      .order("categoria").order("nome_produto");
-    if (eP) return falha(503, "indisponivel", "Cardápio indisponível no momento.");
-    return {
-      ok: true,
-      unidade: {
-        nome: u.nome_fantasia || u.nome || "",
-        aberta: u.delivery_aberto !== false,
-        taxa_entrega: numero(u.taxa_entrega_padrao),
-      },
-      produtos: (prods || []).map((p) => ({
-        id: p.id, nome_produto: p.nome_produto, preco_venda: numero(p.preco_venda), categoria: p.categoria || "Outros",
-      })),
-    };
+    const r = await carregarCardapio({ db, unidade, agora });
+    return r.ok ? { ok: true, cardapio: r.cardapio } : r;
   } catch {
     return falha(503, "indisponivel", "Cardápio indisponível no momento.");
   }
 }
 
+const TIPOS_IMAGEM = [
+  ["image/jpeg", /^\/9j\//], ["image/png", /^iVBORw0KGgo/], ["image/webp", /^UklGR/], ["image/gif", /^R0lGOD/],
+];
+
+/** Decodifica a foto guardada na ficha (data URL ou base64 puro). Só imagem. */
+export function decodificarFotoDaFicha(valor, limiteBytes = 4 * 1024 * 1024) {
+  const s = String(valor ?? "").trim();
+  if (!s) return null;
+  let tipo = null;
+  let b64 = s;
+  const m = /^data:(image\/(?:jpeg|jpg|png|webp|gif));base64,(.+)$/is.exec(s);
+  if (m) { tipo = m[1].toLowerCase().replace("jpg", "jpeg"); b64 = m[2]; }
+  b64 = b64.replace(/\s+/g, "");
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) return null;
+  const detectado = TIPOS_IMAGEM.find(([, re]) => re.test(b64))?.[0];
+  if (!detectado || (tipo && tipo !== detectado)) return null;
+  const bytes = Buffer.from(b64, "base64");
+  if (!bytes.length || bytes.length > limiteBytes) return null;
+  return { tipo: detectado, bytes };
+}
+
+/**
+ * Foto do prato guardada na ficha técnica. Só de produto ativo da unidade e
+ * de ficha da mesma unidade.
+ */
+export async function lerFotoPublica({ db, unidade, produto }) {
+  const nao = falha(404, "nao_encontrado", "Foto não encontrada.");
+  if (!idValido(unidade) || !idValido(produto) || !db) return nao;
+  try {
+    const { data: p, error: eP } = await db.from("produtos").select("id, ficha_id")
+      .eq("id", produto).eq("unidade_id", unidade).eq("ativo", true).maybeSingle();
+    if (eP) return falha(503, "indisponivel", "Indisponível no momento.");
+    if (!p?.ficha_id) return nao;
+    const { data: f, error: eF } = await db.from("fichas_tecnicas").select("imagem")
+      .eq("id", p.ficha_id).eq("unidade_id", unidade).maybeSingle();
+    if (eF) return falha(503, "indisponivel", "Indisponível no momento.");
+    const foto = decodificarFotoDaFicha(f?.imagem);
+    return foto ? { ok: true, ...foto } : nao;
+  } catch {
+    return falha(503, "indisponivel", "Indisponível no momento.");
+  }
+}
+
 const TIPOS_PEDIDO = ["delivery", "qrcode"];
 
-/** Valida o pedido do cardápio. Só entram id e quantidade dos itens — preço não. */
+/**
+ * Valida o pedido do cardápio. Só entram id e quantidade dos itens — preço
+ * não. Na mesa (tipo qrcode com número da mesa) o WhatsApp é opcional; no
+ * delivery é obrigatório.
+ */
 export function validarPedidoPublico(corpo) {
   const c = corpo && typeof corpo === "object" ? corpo : {};
   if (!idValido(c.unidade)) return falha(400, "unidade_invalida", "Link inválido.");
@@ -93,12 +193,15 @@ export function validarPedidoPublico(corpo) {
   if (!tipo) return falha(400, "parametro_invalido", "Escolha delivery ou mesa.");
   let nome = texto(cli.nome, 80);
   if (!nome || nome.length < 2) return falha(400, "parametro_invalido", "Digite seu nome.");
-  const tel = soDigitos(cli.telefone);
-  if (tel.length < 10 || tel.length > 13) return falha(400, "parametro_invalido", "Digite seu WhatsApp com DDD.");
-  const endereco = texto(cli.endereco, 300);
-  if (tipo === "delivery" && !endereco) return falha(400, "parametro_invalido", "Digite seu endereço.");
   const mesa = texto(cli.mesa, 10);
   if (mesa && !/^[A-Za-z0-9-]{1,10}$/.test(mesa)) return falha(400, "parametro_invalido", "Mesa inválida.");
+  const tel = soDigitos(cli.telefone);
+  const telefoneOpcional = tipo === "qrcode" && Boolean(mesa);
+  if (tel.length || !telefoneOpcional) {
+    if (tel.length < 10 || tel.length > 13) return falha(400, "parametro_invalido", "Digite seu WhatsApp com DDD.");
+  }
+  const endereco = texto(cli.endereco, 300);
+  if (tipo === "delivery" && !endereco) return falha(400, "parametro_invalido", "Digite seu endereço.");
   if (mesa) nome = `[MESA ${mesa}] ${nome}`;
 
   const itens = Array.isArray(c.itens) ? c.itens : [];
@@ -114,42 +217,46 @@ export function validarPedidoPublico(corpo) {
   return {
     ok: true,
     pedido: {
-      unidade: c.unidade, tipo, nome, telefone: texto(cli.telefone, 20),
+      unidade: c.unidade, tipo, nome, mesa: mesa || null, telefone: tel.length ? texto(cli.telefone, 20) : null,
       endereco: tipo === "delivery" ? endereco : null, troco: texto(cli.troco, 20), itens: limpos,
     },
   };
 }
 
 /**
- * Grava o pedido. Preço de cada item e total vêm do banco; o que o navegador
- * mandou de preço é ignorado. Pedido e itens: se os itens falharem, o pedido
- * é apagado — o cliente nunca fica com um pedido vazio na cozinha.
+ * Grava o pedido. O preço de cada item é o do CARDÁPIO montado agora, no
+ * servidor: preço do produto, com a promoção que estiver valendo neste
+ * minuto. Prato oculto, sem preço ou com a ficha desativada é recusado. O que
+ * o navegador mandou de preço é ignorado. Se os itens falharem, o pedido é
+ * apagado — o cliente nunca fica com um pedido vazio na cozinha.
  */
-export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limitePorTelefone = 5 }) {
+export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limitePorTelefone = 5, limitePorMesa = 8 }) {
   try {
-    const { data: u, error: eU } = await db.from("unidades")
-      .select("id, delivery_aberto, taxa_entrega_padrao").eq("id", pedido.unidade).maybeSingle();
-    if (eU) return falha(503, "indisponivel", "Não foi possível enviar agora.");
-    if (!u) return falha(404, "unidade_invalida", "Link inválido.");
-    if (u.delivery_aberto === false) return falha(409, "loja_fechada", "A loja está fechada no momento.");
-
-    const desde = new Date(agora - 10 * 60 * 1000).toISOString();
-    const { count, error: eC } = await db.from("pedidos").select("id", { count: "exact", head: true })
-      .eq("unidade_id", pedido.unidade).eq("cliente_telefone", pedido.telefone).gte("created_at", desde);
-    if (!eC && (count || 0) >= limitePorTelefone) {
-      return falha(429, "limite", "Recebemos vários pedidos seguidos deste número. Aguarde alguns minutos.");
+    const carga = await carregarCardapio({ db, unidade: pedido.unidade, agora: new Date(agora) });
+    if (!carga.ok) {
+      if (carga.status === 404) return falha(404, "unidade_invalida", "Link inválido.");
+      return falha(503, "indisponivel", "Não foi possível enviar agora.");
+    }
+    const { cardapio, loja } = carga;
+    if (pedido.tipo === "delivery" && loja.delivery_aberto === false) {
+      return falha(409, "loja_fechada", "O delivery está fechado no momento.");
     }
 
-    const ids = [...new Set(pedido.itens.map((i) => i.id))];
-    const { data: prods, error: eP } = await db.from("produtos")
-      .select("id, preco_venda").eq("unidade_id", pedido.unidade).eq("ativo", true).in("id", ids);
-    if (eP) return falha(503, "indisponivel", "Não foi possível enviar agora.");
-    const preco = new Map((prods || []).map((p) => [String(p.id), numero(p.preco_venda)]));
-    if (ids.some((id) => !preco.has(id))) {
+    const desde = new Date(agora - 10 * 60 * 1000).toISOString();
+    const freio = pedido.telefone
+      ? { coluna: "cliente_telefone", valor: pedido.telefone, limite: limitePorTelefone, msg: "Recebemos vários pedidos seguidos deste número. Aguarde alguns minutos." }
+      : { coluna: "cliente_nome", valor: `[MESA ${pedido.mesa}]%`, limite: limitePorMesa, msg: "Recebemos vários pedidos seguidos desta mesa. Chame a equipe, por favor." };
+    let contagem = db.from("pedidos").select("id", { count: "exact", head: true }).eq("unidade_id", pedido.unidade).gte("created_at", desde);
+    contagem = pedido.telefone ? contagem.eq(freio.coluna, freio.valor) : contagem.like(freio.coluna, freio.valor);
+    const { count, error: eC } = await contagem;
+    if (!eC && (count || 0) >= freio.limite) return falha(429, "limite", freio.msg);
+
+    const preco = new Map(cardapio.produtos.map((p) => [p.id, p.preco]));
+    if (pedido.itens.some((i) => !preco.has(i.id))) {
       return falha(409, "item_indisponivel", "Um item do carrinho não está mais disponível. Atualize o cardápio.");
     }
 
-    const taxa = pedido.tipo === "delivery" ? numero(u.taxa_entrega_padrao) : 0;
+    const taxa = pedido.tipo === "delivery" ? numero(loja.taxa_entrega_padrao) : 0;
     const total = centavos(pedido.itens.reduce((s, i) => s + preco.get(i.id) * i.quantidade, 0) + taxa);
 
     const { data: criado, error: eI } = await db.from("pedidos").insert([{
@@ -176,7 +283,7 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       await db.from("pedidos").delete().eq("id", criado.id);
       return falha(503, "indisponivel", "Não foi possível enviar agora.");
     }
-    return { ok: true, total };
+    return { ok: true, total, taxa, itens: pedido.itens.map((i) => ({ id: i.id, quantidade: i.quantidade, preco: preco.get(i.id) })) };
   } catch {
     return falha(503, "indisponivel", "Não foi possível enviar agora.");
   }

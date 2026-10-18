@@ -577,6 +577,51 @@ export function categoriaDoProduto(produto, categorias, itens = {}) {
 
 // ─── MONTAGEM ────────────────────────────────────────────────────────────────
 
+/**
+ * Junta produto de venda, ficha técnica e alergênicos no formato que
+ * montarCardapioPublico espera. Usado pelo servidor e pelo editor, para os
+ * dois verem a mesma coisa. `fotoDaFicha(produtoId)` devolve o endereço que
+ * serve a foto guardada na ficha (só chamado quando a ficha tem foto e o
+ * produto não tem a dele).
+ */
+export function juntarProdutosEFichas(produtos = [], fichas = [], alergenicos = [], { fotoDaFicha = null, fichasComFoto = null } = {}) {
+  const fichaPorId = new Map(fichas.map((f) => [String(f.id), f]));
+  const alergPorFicha = new Map();
+  for (const a of alergenicos) {
+    const k = String(a.ficha_id);
+    if (!alergPorFicha.has(k)) alergPorFicha.set(k, []);
+    alergPorFicha.get(k).push(a.alergenico);
+  }
+  const comFoto = fichasComFoto ? new Set([...fichasComFoto].map(String)) : null;
+  return produtos.map((p) => {
+    const f = p.ficha_id != null ? fichaPorId.get(String(p.ficha_id)) : null;
+    const temFotoNaFicha = f && (comFoto ? comFoto.has(String(f.id)) : Boolean(f.imagem));
+    const fotoFicha = temFotoNaFicha
+      ? ((/^https:\/\//.test(String(f.imagem || "")) && limparUrl(f.imagem)) || (fotoDaFicha ? fotoDaFicha(p.id) : ""))
+      : "";
+    return {
+      id: p.id,
+      nome_produto: p.nome_produto,
+      preco_venda: p.preco_venda,
+      categoria: p.categoria,
+      departamento: p.departamento,
+      imagem_url: p.imagem_url,
+      ficha: f ? {
+        id: f.id,
+        nome_comercial: f.nome_comercial,
+        descricao_comercial: f.descricao_comercial,
+        categoria: f.categoria,
+        departamento: f.departamento,
+        ativo: f.ativo,
+        status: f.status,
+        alergenicos: alergPorFicha.get(String(f.id)) || [],
+        pode_conter: f.alergenicos_pode_conter,
+        imagem_url: fotoFicha,
+      } : null,
+    };
+  });
+}
+
 /** Ficha desativada, arquivada ou inativa tira o prato do cardápio. */
 function fichaAtiva(ficha) {
   if (!ficha) return true;
@@ -661,7 +706,8 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, ago
   return {
     unidade: {
       nome: texto(unidade.nome, 80),
-      aberta: unidade.aberta !== false,
+      // Vale só para o delivery: pedido na mesa não depende disso.
+      delivery_aberto: unidade.delivery_aberto !== false,
       taxa_entrega: centavos(unidade.taxa_entrega),
     },
     tema: cfg.tema,

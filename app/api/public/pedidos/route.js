@@ -7,7 +7,9 @@ import { validarPedidoPublico, criarPedidoPublico } from "../../../lib/server/ne
 // o preço de cada item calculado no próprio navegador. Agora o servidor recebe
 // só id e quantidade, busca o preço no banco e calcula o total.
 //
-// POST { unidade, cliente: { tipo, nome, telefone, endereco?, troco?, mesa? }, itens: [{ id, quantidade, observacao? }] }
+// POST { unidade, cliente: { tipo, nome, telefone?, endereco?, troco?, mesa? }, itens: [{ id, quantidade, observacao? }] }
+// Responde o total COBRADO e o preço de cada item (com a promoção que valia
+// no minuto do pedido) — a tela mostra isso, não a conta que ela fez.
 export const dynamic = "force-dynamic";
 
 export async function POST(request) {
@@ -21,5 +23,5 @@ export async function POST(request) {
   if (banco.resposta) return banco.resposta;
   const r = await criarPedidoPublico({ db: banco.db, pedido: v.pedido });
   if (!r.ok) return recusar(r);
-  return responder({ ok: true, total: r.total });
+  return responder({ ok: true, total: r.total, taxa: r.taxa, itens: r.itens });
 }

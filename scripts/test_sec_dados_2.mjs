@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  lerCardapioPublico, validarPedidoPublico, criarPedidoPublico,
+  lerCardapioPublico, validarPedidoPublico, criarPedidoPublico, lerFotoPublica, decodificarFotoDaFicha,
   lerChamadaPublica, rotuloDaChamada, lerRastreioPublico, lerUnidadePublica,
 } from "../app/lib/server/negocio-publico.mjs";
 
@@ -13,7 +13,7 @@ function banco(tabelas = {}, { falharItens = false } = {}) {
   const t = structuredClone(tabelas);
   let seq = 0;
   function from(nome) {
-    const st = { op: "select", f: [], inn: [], gte: [], valor: null, unico: false, head: false, limite: null };
+    const st = { op: "select", f: [], inn: [], gte: [], neq: [], nulo: [], like: [], valor: null, unico: false, head: false, limite: null };
     const b = {
       select(_c, o) { if (st.op === "select") st.head = Boolean(o?.head); return b; },
       insert(v) { st.op = "insert"; st.valor = Array.isArray(v) ? v : [v]; return b; },
@@ -21,13 +21,19 @@ function banco(tabelas = {}, { falharItens = false } = {}) {
       eq(k, v) { st.f.push([k, v]); return b; },
       in(k, v) { st.inn.push([k, v]); return b; },
       gte(k, v) { st.gte.push([k, v]); return b; },
+      neq(k, v) { st.neq.push([k, v]); return b; },
+      not(k, op, v) { if (op === "is" && v === null) st.nulo.push(k); return b; },
+      like(k, v) { st.like.push([k, new RegExp(`^${String(v).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*")}$`)]); return b; },
       order() { return b; }, limit(n) { st.limite = n; return b; },
       maybeSingle() { st.unico = true; return b; }, single() { st.unico = true; return b; },
       then(ok, falha) { return Promise.resolve().then(exec).then(ok, falha); },
     };
     const casa = (l) => st.f.every(([k, v]) => String(l[k]) === String(v))
       && st.inn.every(([k, v]) => v.map(String).includes(String(l[k])))
-      && st.gte.every(([k, v]) => String(l[k]) >= String(v));
+      && st.gte.every(([k, v]) => String(l[k]) >= String(v))
+      && st.neq.every(([k, v]) => String(l[k]) !== String(v))
+      && st.nulo.every((k) => l[k] != null)
+      && st.like.every(([k, re]) => re.test(String(l[k] ?? "")));
     function exec() {
       const tab = (t[nome] ||= []);
       if (st.op === "select") {
@@ -70,15 +76,89 @@ const BASE = {
 };
 
 // ─── cardápio ────────────────────────────────────────────────────────────────
-test("cardápio: só produtos ativos da loja, sem custo nem margem; da loja, sem CNPJ nem token", async () => {
-  const r = await lerCardapioPublico({ db: banco(BASE).db, unidade: "loja1" });
+const CHAVES_PRODUTO = ["alergenicos", "categoria_id", "descricao", "destaque", "harmoniza", "id", "imagem_url", "nome", "pode_conter", "preco", "preco_original", "promocao_id", "selos"];
+const COM_FICHAS = {
+  ...structuredClone(BASE),
+  produtos: [
+    ...BASE.produtos.map((p) => (p.id === "p1" ? { ...p, ficha_id: "f1", departamento: "cozinha" } : p)),
+    { id: "p4", unidade_id: "loja1", ativo: true, nome_produto: "Café", preco_venda: "0.00", categoria: "Bebidas" },
+    { id: "p5", unidade_id: "loja1", ativo: true, nome_produto: "Prato tirado", preco_venda: "40.00", categoria: "Lanches", ficha_id: "f2" },
+    { id: "p6", unidade_id: "loja1", ativo: true, nome_produto: "Aponta pra outra", preco_venda: "20.00", categoria: "Lanches", ficha_id: "f9" },
+  ],
+  fichas_tecnicas: [
+    { id: "f1", unidade_id: "loja1", nome_receita: "Burger", nome_comercial: "Burger da casa", descricao_comercial: "Pão de fermentação natural.",
+      categoria: "Sanduíches", departamento: "cozinha", ativo: true, status: "ativa", imagem: "/9j/4AAQSkZJRgABAQ==", custo_porcao: 9.1 },
+    { id: "f2", unidade_id: "loja1", nome_receita: "Antiga", ativo: false, status: "ativa" },
+    { id: "f9", unidade_id: "outra", nome_comercial: "SEGREDO DA OUTRA LOJA", descricao_comercial: "receita alheia", categoria: "Outra", ativo: true, status: "ativa" },
+  ],
+  fichas_alergenicos: [
+    { ficha_id: "f1", unidade_id: "loja1", alergenico: "Glúten" },
+    { ficha_id: "f9", unidade_id: "outra", alergenico: "NAO-DEVE-APARECER" },
+  ],
+  config_sistema: [{ id: "c1", unidade_id: "loja1", params: {
+    meta_cmv: 31, custo_aluguel_mes: 12345, faturamento_mes_ref: 160000,
+    cardapio_digital: {
+      tema: { cor_primaria: "#2f5d3a" },
+      itens: { p2: { destaque: true, selos: ["vegano"] } },
+      promocoes: [{ id: "suco", titulo: "Suco em dobro", tipo: "preco", preco_promocional: 6, produto_ids: ["p2"] }],
+    },
+  } }],
+};
+
+test("cardápio: pratos ligados à ficha técnica, preço do produto, sem custo nem parâmetro financeiro", async () => {
+  const r = await lerCardapioPublico({ db: banco(COM_FICHAS).db, unidade: "loja1" });
   assert.equal(r.ok, true);
-  assert.deepEqual(r.produtos.map((p) => p.id).sort(), ["p1", "p2"]);
-  for (const p of r.produtos) assert.deepEqual(Object.keys(p).sort(), ["categoria", "id", "nome_produto", "preco_venda"]);
-  assert.deepEqual(r.unidade, { nome: "Sal de Estrela", aberta: true, taxa_entrega: 5 });
-  assert.doesNotMatch(JSON.stringify(r), /SEGREDO-NFE|0001-00|Rua X/);
+  const c = r.cardapio;
+  assert.deepEqual(c.produtos.map((p) => p.id).sort(), ["p1", "p2", "p6"], "sem inativo, sem preço zero, sem ficha desativada");
+  for (const p of c.produtos) assert.deepEqual(Object.keys(p).sort(), CHAVES_PRODUTO);
+  const p1 = c.produtos.find((p) => p.id === "p1");
+  assert.equal(p1.nome, "Burger da casa");
+  assert.equal(p1.descricao, "Pão de fermentação natural.");
+  assert.deepEqual(p1.alergenicos, ["Glúten"]);
+  assert.equal(p1.preco, 30);
+  assert.equal(p1.imagem_url, "/api/public/cardapio/loja1/foto/p1", "foto da ficha sai por rota, não em base64");
+  const p6 = c.produtos.find((p) => p.id === "p6");
+  assert.equal(p6.nome, "Aponta pra outra", "ficha de outra loja não entra");
+  const p2 = c.produtos.find((p) => p.id === "p2");
+  assert.deepEqual([p2.preco, p2.preco_original, p2.promocao_id], [6, 8.5, "suco"]);
+  assert.equal(c.tema.cor_primaria, "#2f5d3a");
+  assert.deepEqual(c.unidade, { nome: "Sal de Estrela", delivery_aberto: true, taxa_entrega: 5 });
+  const json = JSON.stringify(r);
+  assert.doesNotMatch(json, /SEGREDO|0001-00|Rua X|NAO-DEVE-APARECER|receita alheia|12345|160000|meta_cmv|custo|9\.1|4AAQ/);
   assert.equal((await lerCardapioPublico({ db: banco(BASE).db, unidade: "nao-existe" })).status, 404);
   assert.equal((await lerCardapioPublico({ db: banco(BASE).db, unidade: "../x" })).status, 404);
+  assert.equal((await lerCardapioPublico({ db: null, unidade: "loja1" })).status, 503, "sem banco não há pratos de demonstração");
+});
+
+test("cardápio: banco antigo sem as colunas novas ainda mostra os produtos", async () => {
+  const b = banco(BASE);
+  const from = b.db.from;
+  b.db.from = (nome) => {
+    const q = from(nome);
+    const select = q.select;
+    q.select = (cols, o) => (nome === "produtos" && /ficha_id/.test(cols || "")
+      ? { ...q, then: (ok) => Promise.resolve({ data: null, error: { message: 'column produtos.ficha_id does not exist' } }).then(ok) }
+      : select.call(q, cols, o));
+    return q;
+  };
+  const r = await lerCardapioPublico({ db: b.db, unidade: "loja1" });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.cardapio.produtos.map((p) => p.id).sort(), ["p1", "p2"]);
+});
+
+test("foto da ficha: só imagem de verdade, só de produto ativo da loja", async () => {
+  assert.equal(decodificarFotoDaFicha("/9j/4AAQSkZJRgABAQ==").tipo, "image/jpeg");
+  assert.equal(decodificarFotoDaFicha("data:image/png;base64,iVBORw0KGgoAAAA=").tipo, "image/png");
+  assert.equal(decodificarFotoDaFicha("PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+"), null, "svg/html não passa");
+  assert.equal(decodificarFotoDaFicha("data:text/html;base64,PGgxPg=="), null);
+  assert.equal(decodificarFotoDaFicha("não é base64"), null);
+  const db = banco(COM_FICHAS).db;
+  const ok = await lerFotoPublica({ db, unidade: "loja1", produto: "p1" });
+  assert.equal(ok.ok, true);
+  assert.equal(ok.tipo, "image/jpeg");
+  assert.equal((await lerFotoPublica({ db, unidade: "outra", produto: "p1" })).status, 404);
+  assert.equal((await lerFotoPublica({ db, unidade: "loja1", produto: "p6" })).status, 404, "ficha de outra loja");
+  assert.equal((await lerFotoPublica({ db, unidade: "loja1", produto: "../p1" })).status, 404);
 });
 
 // ─── pedido ──────────────────────────────────────────────────────────────────
@@ -125,6 +205,52 @@ test("pedido: loja fechada → 409; se os itens falharem, o pedido é desfeito",
   const r = await criarPedidoPublico({ db: b.db, pedido: v.pedido });
   assert.equal(r.status, 503);
   assert.equal(b.t.pedidos.length, 2, "o pedido sem itens não fica na cozinha");
+});
+
+test("pedido: cobra o preço da promoção que vale agora, não o que a tela mostrou", async () => {
+  const b = banco(COM_FICHAS);
+  const v = validarPedidoPublico({ ...PEDIDO, itens: [{ id: "p2", quantidade: 3, preco_venda: 0.01 }] });
+  const r = await criarPedidoPublico({ db: b.db, pedido: v.pedido });
+  assert.equal(r.ok, true);
+  assert.equal(r.total, 3 * 6 + 5, "promoção de R$ 6 + taxa de entrega");
+  assert.deepEqual(r.itens, [{ id: "p2", quantidade: 3, preco: 6 }]);
+  assert.equal(b.t.pedidos_itens.at(-1).valor_unitario, 6);
+  // Promoção que acabou: volta o preço do produto.
+  const semPromo = structuredClone(COM_FICHAS);
+  semPromo.config_sistema[0].params.cardapio_digital.promocoes[0].data_fim = "2020-01-01";
+  const r2 = await criarPedidoPublico({ db: banco(semPromo).db, pedido: v.pedido });
+  assert.equal(r2.total, 3 * 8.5 + 5);
+});
+
+test("pedido: prato oculto, sem preço ou com a ficha desativada é recusado", async () => {
+  const oculto = structuredClone(COM_FICHAS);
+  oculto.config_sistema[0].params.cardapio_digital.itens.p1 = { oculto: true };
+  for (const [nome, tabelas, id] of [["oculto", oculto, "p1"], ["preço zero", COM_FICHAS, "p4"], ["ficha desativada", COM_FICHAS, "p5"]]) {
+    const b = banco(tabelas);
+    const v = validarPedidoPublico({ ...PEDIDO, itens: [{ id, quantidade: 1 }] });
+    const r = await criarPedidoPublico({ db: b.db, pedido: v.pedido });
+    assert.equal(r.status, 409, nome);
+    assert.equal(b.t.pedidos.length, 2, `${nome}: nada gravado`);
+  }
+});
+
+test("pedido na mesa: WhatsApp opcional, vale com delivery fechado e tem freio por mesa", async () => {
+  const fechada = banco({ ...BASE, unidades: [{ ...BASE.unidades[0], delivery_aberto: false }] });
+  const v = validarPedidoPublico({ unidade: "loja1", cliente: { tipo: "qrcode", nome: "Ana", mesa: "4" }, itens: [{ id: "p1", quantidade: 1 }] });
+  assert.equal(v.ok, true);
+  assert.equal(v.pedido.telefone, null);
+  const r = await criarPedidoPublico({ db: fechada.db, pedido: v.pedido });
+  assert.equal(r.ok, true, "delivery fechado não fecha o salão");
+  const criado = fechada.t.pedidos.at(-1);
+  assert.equal(criado.cliente_nome, "[MESA 4] Ana");
+  assert.equal(criado.cliente_telefone, null);
+  assert.equal(validarPedidoPublico({ unidade: "loja1", cliente: { tipo: "qrcode", nome: "Ana" }, itens: [{ id: "p1", quantidade: 1 }] }).status, 400, "sem mesa, WhatsApp obrigatório");
+  assert.equal(validarPedidoPublico({ unidade: "loja1", cliente: { tipo: "qrcode", nome: "Ana", mesa: "4", telefone: "12" }, itens: [{ id: "p1", quantidade: 1 }] }).status, 400, "WhatsApp informado tem que ser válido");
+  const b = banco({ ...BASE, pedidos: [] });
+  for (let i = 0; i < 8; i++) assert.equal((await criarPedidoPublico({ db: b.db, pedido: v.pedido })).ok, true);
+  assert.equal((await criarPedidoPublico({ db: b.db, pedido: v.pedido })).status, 429, "9º pedido da mesma mesa em 10 min");
+  const outraMesa = validarPedidoPublico({ unidade: "loja1", cliente: { tipo: "qrcode", nome: "Ana", mesa: "44" }, itens: [{ id: "p1", quantidade: 1 }] });
+  assert.equal((await criarPedidoPublico({ db: b.db, pedido: outraMesa.pedido })).ok, true, "a mesa 44 não é a 4");
 });
 
 test("pedido: validação de entrada e freio por telefone", async () => {

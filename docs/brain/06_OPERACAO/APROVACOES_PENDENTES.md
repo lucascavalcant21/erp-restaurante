@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 2** (APR-011, APR-014; APR-007: falta só o merge do PR #171)
+**Pendentes agora: 1** (APR-011; APR-007: falta só o merge do PR #171)
 
 ### APR-001 · EXECUTADO
 
@@ -189,7 +189,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Nota:** Executado em 17/10/2026. Verificação: 28 arquivadas, 0 pendentes sem unidade, R$ 7.964,69; md5 de (id, valor, vencimento) antes = depois = fdd6c4cf0d7eddee75c20b680ff8a0f0; backup_documentos_doc_legado_1_20261017 com 28 linhas, RLS ligado, 0 grants para o app (TESTADO NO SUPABASE REAL)
 - **Chave:** dados:db/DOC_LEGADO_1_ARQUIVAR_DOCUMENTOS.sql
 
-### APR-014 · PENDENTE
+### APR-014 · EXECUTADO
 
 - **Missão:** Pedido do dono 18/10: fidelidade com cartões de selo por produto, cashback e cadastro pelo QR (CRM) com desconto
 - **Ação:** Aplicar db/FIDELIDADE_1_SELOS_E_CASHBACK.sql no Supabase real
@@ -220,8 +220,18 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
   - Regras puras: `app/lib/fidelidade.test.mjs` 12/12.
   - TESTADO LOCAL. NÃO VALIDADO no Supabase real.
 - **Impressão digital esperada:** 407bcd9c6a4b80101073aecb68d07928
-- **Status:** APROVADO
+- **Status:** EXECUTADO
 - **Criado em:** 2026-10-18
 - **Decidido em:** 2026-10-18
 - **Decidido por:** lucas (no chat da sessão: "Sim, aplicar agora", depois de "já vai publicando tudo")
+- **Nota:** Executado em 18/10/2026 (TESTADO NO SUPABASE REAL):
+  - impressão digital 407bcd9c6a4b80101073aecb68d07928 (igual à do PGlite);
+  - RLS ligado no livro, 1 policy, só SELECT para authenticated; reserva de cashback só para service_role;
+  - backups com as mesmas contagens (clientes 0, pedidos 10).
+  - Ensaio de escrita em transação desfeita:
+    - pedido enviado não ganha; pago dá 2 selos e R$ 5,00 (5% de R$ 100); repetir o status não duplica; cancelado zera;
+    - livro recusa alteração;
+    - cadastro entra no CRM (origem qr); desconto 10% → 0 depois do 1º pedido → 10% de novo com o 1º cancelado.
+  - Depois: 0 clientes, 0 lançamentos, 10 pedidos, config sem fidelidade (nada ficou).
+  - O programa só começa quando o dono ligar em Cardápio digital → Fidelidade.
 - **Chave:** banco:db/FIDELIDADE_1_SELOS_E_CASHBACK.sql

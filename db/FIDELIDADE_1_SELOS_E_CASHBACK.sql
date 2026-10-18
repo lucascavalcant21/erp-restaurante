@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    FIDELIDADE-1 · CARTÕES DE SELO POR PRODUTO, CASHBACK E CADASTRO PELO QR
 
-   STATUS: NÃO APLICADA. Aguarda aprovação do dono (APR-014 em
-   docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md). Testada no PGlite
-   (app/lib/fidelidade-banco.test.mjs).
+   STATUS: APLICADA em 18/10/2026 com aprovação do dono (APR-014 em
+   docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md). Impressão digital
+   conferida no banco real: 407bcd9c6a4b80101073aecb68d07928. Testada no
+   PGlite (app/lib/fidelidade-banco.test.mjs).
 
    O QUE O DONO PEDIU (18/10/2026): cartões de selo digitais para produtos
    do cardápio (café, hambúrguer, drink…), vários ao mesmo tempo, com o

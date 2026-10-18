@@ -220,6 +220,8 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
   - Regras puras: `app/lib/fidelidade.test.mjs` 12/12.
   - TESTADO LOCAL. NÃO VALIDADO no Supabase real.
 - **Impressão digital esperada:** 407bcd9c6a4b80101073aecb68d07928
-- **Status:** PENDENTE
+- **Status:** APROVADO
 - **Criado em:** 2026-10-18
+- **Decidido em:** 2026-10-18
+- **Decidido por:** lucas (no chat da sessão: "Sim, aplicar agora", depois de "já vai publicando tudo")
 - **Chave:** banco:db/FIDELIDADE_1_SELOS_E_CASHBACK.sql

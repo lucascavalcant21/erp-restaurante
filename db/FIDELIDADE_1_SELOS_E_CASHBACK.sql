@@ -48,6 +48,8 @@
           · fidelidade_desconto_cadastro (só o servidor): % do desconto para
             um telefone (0 = não tem), conforme o dono: primeiro pedido ou
             todos, com validade.
+   BACKUP: plano FREE (sem PITR). O passo 0 copia clientes e pedidos para
+   backup_*_fidelidade_1_20261018, fora da API, dentro da mesma transação.
    NÃO FAZ: não altera nenhuma linha existente de pedidos, pedidos_itens,
    clientes nem config_sistema (só colunas novas, vazias/0); não cria policy
    aberta; não muda RLS de tabela existente. Depois de aplicada, a única
@@ -90,6 +92,9 @@ begin
   if to_regprocedure('public.hefisto_user_can(text,text)') is null then
     raise exception 'FIDELIDADE-1: função hefisto_user_can ausente. Nada foi alterado.';
   end if;
+  if to_regclass('public.backup_clientes_fidelidade_1_20261018') is not null or to_regclass('public.backup_pedidos_fidelidade_1_20261018') is not null then
+    raise exception 'FIDELIDADE-1: backup de hoje já existe. Nada foi alterado.';
+  end if;
   if to_regclass('public.fidelidade_movimentos') is not null then
     raise exception 'FIDELIDADE-1: fidelidade_movimentos já existe (já aplicada?). Nada foi alterado.';
   end if;
@@ -107,6 +112,15 @@ begin
     raise exception 'FIDELIDADE-1: pedidos/pedidos_itens sem as colunas esperadas. Nada foi alterado.';
   end if;
 end $$;
+
+-- 0. Backup (plano FREE, sem PITR): cópia de clientes e pedidos antes das
+-- colunas novas, fora da API (RLS ligado, sem policy, sem grant).
+create table public.backup_clientes_fidelidade_1_20261018 as table public.clientes;
+create table public.backup_pedidos_fidelidade_1_20261018 as table public.pedidos;
+alter table public.backup_clientes_fidelidade_1_20261018 enable row level security;
+alter table public.backup_pedidos_fidelidade_1_20261018 enable row level security;
+revoke all on public.backup_clientes_fidelidade_1_20261018 from public, anon, authenticated;
+revoke all on public.backup_pedidos_fidelidade_1_20261018 from public, anon, authenticated;
 
 -- 1. Livro de lançamentos ------------------------------------------------------
 create table public.fidelidade_movimentos (

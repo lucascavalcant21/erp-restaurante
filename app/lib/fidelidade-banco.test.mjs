@@ -93,7 +93,8 @@ test("a migração só adiciona: sem drop, delete, update, truncate; policy e gr
   assert.doesNotMatch(cmd, /\bupdate\s+(public\.)?\w+\s+set\b/);
   assert.doesNotMatch(cmd, /\btruncate\s+(table\s+)?public\./);
   for (const m of cmd.matchAll(/\balter\s+table\s+([\w.]+)\s+(\w+(?:\s+\w+)?)/g)) {
-    assert.ok(m[1] === "public.fidelidade_movimentos" || (["public.clientes", "public.pedidos"].includes(m[1]) && m[2] === "add column"), m[0]);
+    assert.ok(m[1] === "public.fidelidade_movimentos" || /^public\.backup_\w+_fidelidade_1_20261018$/.test(m[1])
+      || (["public.clientes", "public.pedidos"].includes(m[1]) && m[2] === "add column"), m[0]);
   }
   // Dentro das funções: a única escrita fora do livro é o cadastro do próprio cliente.
   const corpos = [...limpo.matchAll(/\$\$([\s\S]*?)\$\$/g)].map((m) => m[1]).join("\n");
@@ -101,7 +102,7 @@ test("a migração só adiciona: sem drop, delete, update, truncate; policy e gr
   assert.deepEqual([...corpos.matchAll(/\bupdate\s+([\w.]+)/g)].map((m) => m[1]), ["public.clientes"]);
   for (const m of cmd.matchAll(/\bcreate\s+policy\s+\w+\s+on\s+([\w.]+)/g)) assert.equal(m[1], "public.fidelidade_movimentos");
   assert.doesNotMatch(cmd, /using\s*\(\s*true\s*\)|auth\.role\(\)\s*=/, "nada de policy aberta");
-  for (const m of cmd.matchAll(/\b(?:grant|revoke)\b[^;]*?\bon\s+(?:function\s+)?([\w.]+)/g)) assert.match(m[1], /^public\.(_?fidelidade)/, m[0]);
+  for (const m of cmd.matchAll(/\b(?:grant|revoke)\b[^;]*?\bon\s+(?:function\s+)?([\w.]+)/g)) assert.match(m[1], /^public\.(_?fidelidade|backup_\w+_fidelidade_1_20261018$)/, m[0]);
 });
 
 test("aplica: tabela com RLS, sem escrita direta, trigger em pedidos e impressão digital", { skip: pular }, async () => {
@@ -116,6 +117,9 @@ test("aplica: tabela com RLS, sem escrita direta, trigger em pedidos e impressã
   if (IMPRESSAO !== "PREENCHER") assert.equal(h, IMPRESSAO);
   else console.log("IMPRESSAO =", h);
   await assert.rejects(() => banco().then((b) => b.exec(SQL)), /já existe/, "preflight aborta na segunda vez");
+  for (const t of ["backup_clientes_fidelidade_1_20261018", "backup_pedidos_fidelidade_1_20261018"]) {
+    assert.equal((await pg.query("select relrowsecurity from pg_class where relname = $1", [t])).rows[0]?.relrowsecurity, true, `${t} fora da API`);
+  }
 });
 
 test("pedido concluído dá selos e cashback; repetir o status não dá de novo; cancelar estorna", { skip: pular }, async () => {

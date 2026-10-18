@@ -6,12 +6,13 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   lerCardapioPublico, validarPedidoPublico, criarPedidoPublico, lerFotoPublica, decodificarFotoDaFicha, lerPedidosPublicos, etapaDoPedido,
-  lerChamadaPublica, rotuloDaChamada, lerRastreioPublico, lerUnidadePublica,
+  lerChamadaPublica, rotuloDaChamada, lerRastreioPublico, lerUnidadePublica, lerFidelidadePublica,
 } from "../app/lib/server/negocio-publico.mjs";
 
-function banco(tabelas = {}, { falharItens = false } = {}) {
+function banco(tabelas = {}, { falharItens = false, semLivro = false, rpc = null } = {}) {
   const t = structuredClone(tabelas);
   let seq = 0;
+  const chamadas = [];
   function from(nome) {
     const st = { op: "select", f: [], inn: [], gte: [], neq: [], nulo: [], like: [], valor: null, unico: false, head: false, limite: null };
     const b = {
@@ -37,6 +38,7 @@ function banco(tabelas = {}, { falharItens = false } = {}) {
     function exec() {
       const tab = (t[nome] ||= []);
       if (st.op === "select") {
+        if (nome === "fidelidade_movimentos" && semLivro) return { data: null, error: { message: 'relation "public.fidelidade_movimentos" does not exist' } };
         let r = tab.filter(casa);
         if (st.limite) r = r.slice(0, st.limite);
         if (st.head) return { count: r.length, error: null };
@@ -53,7 +55,8 @@ function banco(tabelas = {}, { falharItens = false } = {}) {
     }
     return b;
   }
-  return { db: { from }, t };
+  const rpcFn = async (nome, args) => { chamadas.push([nome, args]); return rpc ? rpc(nome, args, t) : { data: null, error: { message: "sem rpc" } }; };
+  return { db: { from, rpc: rpcFn }, t, chamadas };
 }
 
 const BASE = {
@@ -347,4 +350,98 @@ test("unidade pública: nome e logo; CNPJ, endereço fiscal e token da NF-e nunc
   const r = await lerUnidadePublica({ db: banco(BASE).db, unidade: "loja1" });
   assert.deepEqual(r.unidade, { nome: "Sal de Estrela", logo_url: "https://x/logo.png" });
   assert.doesNotMatch(JSON.stringify(r), /SEGREDO-NFE|0001-00|Rua X|interno/);
+});
+
+// ─── fidelidade ──────────────────────────────────────────────────────────────
+const U1 = "00000000-0000-4000-8000-0000000000a1"; // pedido concluído do aparelho
+const U2 = "00000000-0000-4000-8000-0000000000a2"; // pedido ainda aberto
+const FIDELIDADE = {
+  ativo: true,
+  cartoes: [{ id: "burger", nome: "Burger lover", produto_ids: ["p1"], selos: 5, recompensa: "1 burger grátis" }],
+  cashback: { ativo: true, percentual: 5, minimo_pedido: 0, validade_dias: 0, uso_maximo_pct: 50 },
+};
+const COM_FIDELIDADE = {
+  ...structuredClone(BASE),
+  config_sistema: [{ id: "c1", unidade_id: "loja1", params: { fidelidade: FIDELIDADE } }],
+  pedidos: [
+    ...BASE.pedidos,
+    { id: U1, unidade_id: "loja1", cliente_telefone: "(61) 99999-1234", status: "pago", created_at: "2026-10-10T12:00:00Z", valor_total: 60 },
+    { id: U2, unidade_id: "loja1", cliente_telefone: "(61) 98888-0000", status: "novo_online", created_at: "2026-10-11T12:00:00Z", valor_total: 10 },
+  ],
+  fidelidade_movimentos: [
+    { unidade_id: "loja1", cliente_tel: "61999991234", tipo: "selo", cartao_id: "burger", selos: 3, valor: 0, created_at: "2026-10-10T12:00:00Z" },
+    { unidade_id: "loja1", cliente_tel: "61999991234", tipo: "cashback", cartao_id: null, selos: 0, valor: 12, created_at: "2026-10-10T12:00:00Z" },
+    { unidade_id: "outra", cliente_tel: "61999991234", tipo: "cashback", cartao_id: null, selos: 0, valor: 999, created_at: "2026-10-10T12:00:00Z" },
+  ],
+};
+
+test("cardápio público: regras do programa (cartões e cashback), nunca saldo nem telefone", async () => {
+  const r = await lerCardapioPublico({ db: banco(COM_FIDELIDADE).db, unidade: "loja1" });
+  assert.deepEqual(r.cardapio.fidelidade.cartoes.map((c) => [c.id, c.selos, c.recompensa, c.produto_ids]), [["burger", 5, "1 burger grátis", ["p1"]]]);
+  assert.equal(r.cardapio.fidelidade.cashback.percentual, 5);
+  assert.doesNotMatch(JSON.stringify(r.cardapio.fidelidade), /6199999|saldo|cliente/);
+  const sem = await lerCardapioPublico({ db: banco(BASE).db, unidade: "loja1" });
+  assert.equal(sem.cardapio.fidelidade, null, "programa não configurado: nada aparece");
+});
+
+test("fidelidade do aparelho: telefone só por pedido CONCLUÍDO deste aparelho; sai só o final", async () => {
+  const ler = (ids, extra) => lerFidelidadePublica({ db: banco(COM_FIDELIDADE, extra).db, unidade: "loja1", ids });
+  assert.deepEqual(await ler([]), { ok: true, ativo: true, identificado: false });
+  assert.deepEqual(await ler([U2]), { ok: true, ativo: true, identificado: false }, "pedido aberto (pode ser falso) não abre saldo");
+  assert.deepEqual(await ler(["o1", "nao-uuid"]), { ok: true, ativo: true, identificado: false });
+  const r = await ler([U1, U2]);
+  assert.equal(r.identificado, true);
+  assert.equal(r.final, "1234");
+  assert.equal(r.cartoes.burger.selos, 3);
+  assert.equal(r.cashback.saldo, 12, "o cashback de outra unidade não entra");
+  assert.doesNotMatch(JSON.stringify(r), /61999991234|99999-1234/);
+  const semLivro = await ler([U1], { semLivro: true });
+  assert.deepEqual(semLivro, { ok: true, ativo: true, identificado: true, disponivel: false, final: "1234" }, "migração ainda não aplicada");
+  const desligado = await lerFidelidadePublica({ db: banco(BASE).db, unidade: "loja1", ids: [U1] });
+  assert.deepEqual(desligado, { ok: true, ativo: false });
+});
+
+test("cashback no pedido: confere telefone e saldo, respeita o teto e reserva no banco", async () => {
+  const pedidoCom = (telefone, prova = [U1], itens = [{ id: "p1", quantidade: 2 }]) => validarPedidoPublico({
+    unidade: "loja1", cliente: { tipo: "delivery", nome: "Ana", telefone, endereco: "Rua 1" }, itens, cashback: { usar: true, prova },
+  }).pedido;
+  const ok = async () => ({ data: { ok: true }, error: null });
+
+  let b = banco(COM_FIDELIDADE, { rpc: ok });
+  let r = await criarPedidoPublico({ db: b.db, pedido: pedidoCom("61988887777") });
+  assert.equal(r.codigo, "cashback_telefone", "outro número não usa o cashback");
+  r = await criarPedidoPublico({ db: b.db, pedido: pedidoCom("61999991234", [U2]) });
+  assert.equal(r.codigo, "cashback_telefone", "sem pedido concluído não há prova");
+
+  b = banco(COM_FIDELIDADE, { rpc: ok });
+  r = await criarPedidoPublico({ db: b.db, pedido: pedidoCom("(61) 99999-1234") }); // 2 × 30 + 5 de taxa = 65
+  assert.equal(r.ok, true);
+  assert.equal(r.cashback, 12);
+  assert.equal(r.total, 53);
+  assert.deepEqual(b.chamadas, [["fidelidade_reservar_cashback", { p_unidade: "loja1", p_telefone: "(61) 99999-1234", p_pedido: r.id, p_valor: 12 }]]);
+  assert.equal(b.t.pedidos.find((p) => p.id === r.id).valor_total, 53);
+
+  b = banco(COM_FIDELIDADE, { rpc: ok });
+  r = await criarPedidoPublico({ db: b.db, pedido: pedidoCom("61999991234", [U1], [{ id: "p2", quantidade: 1 }]) }); // 8,50 + 5 = 13,50
+  assert.equal(r.cashback, 6.75, "teto de 50% do pedido");
+
+  b = banco(COM_FIDELIDADE, { rpc: async () => ({ data: null, error: { message: "Saldo de cashback insuficiente." } }) });
+  const antes = b.t.pedidos.length;
+  r = await criarPedidoPublico({ db: b.db, pedido: pedidoCom("61999991234") });
+  assert.equal(r.codigo, "cashback_mudou");
+  assert.equal(b.t.pedidos.length, antes, "pedido desfeito");
+  assert.equal((b.t.pedidos_itens || []).length, 0, "itens desfeitos");
+
+  b = banco(COM_FIDELIDADE, { rpc: ok, semLivro: true });
+  r = await criarPedidoPublico({ db: b.db, pedido: pedidoCom("61999991234") });
+  assert.equal(r.codigo, "cashback_sem_saldo", "sem o livro no banco, nada de desconto");
+  assert.equal(b.chamadas.length, 0);
+
+  const semCashback = await criarPedidoPublico({ db: banco(COM_FIDELIDADE).db, pedido: validarPedidoPublico({
+    unidade: "loja1", cliente: { tipo: "delivery", nome: "Ana", telefone: "61999991234", endereco: "Rua 1" }, itens: [{ id: "p1", quantidade: 2 }],
+  }).pedido });
+  assert.equal(semCashback.total, 65);
+  assert.equal(semCashback.cashback, 0);
+  assert.equal(validarPedidoPublico({ unidade: "loja1", cliente: { tipo: "qrcode", mesa: "4", nome: "Ana" }, itens: [{ id: "p1", quantidade: 1 }], cashback: { usar: true } }).codigo,
+    "parametro_invalido", "mesa sem WhatsApp não usa cashback");
 });

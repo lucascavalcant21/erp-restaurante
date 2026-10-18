@@ -16,6 +16,7 @@
 // banco entra por parâmetro, para dar para testar.
 
 import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega } from "../cardapio-digital.mjs";
+import { cashbackUsavel, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO } from "../fidelidade.mjs";
 
 const falha = (status, codigo, mensagem) => ({ ok: false, status, codigo, mensagem });
 const idValido = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(v);
@@ -131,9 +132,10 @@ export async function carregarCardapio({ db, unidade, agora = new Date() }) {
     },
     produtos: juntos,
     config,
+    fidelidade: params?.fidelidade,
     agora,
   });
-  return { ok: true, cardapio, loja: u };
+  return { ok: true, cardapio, loja: u, fidelidade: normalizarFidelidade(params?.fidelidade) };
 }
 
 export async function lerCardapioPublico({ db, unidade, agora = new Date() }) {
@@ -227,11 +229,18 @@ export function validarPedidoPublico(corpo) {
     }
     limpos.push({ id: String(it.id), quantidade: qtd, observacao: texto(it.observacao, 200) || "" });
   }
+  // Cashback da fidelidade: o cliente só diz "quero usar" e manda os pedidos
+  // que este aparelho fez (a prova). Quanto usar, o servidor decide.
+  const cb = c.cashback && typeof c.cashback === "object" ? c.cashback : null;
+  const cashback = cb?.usar === true
+    ? { usar: true, prova: [...new Set((Array.isArray(cb.prova) ? cb.prova : []).map(String).filter((id) => UUID_RE.test(id)))].slice(0, 10) }
+    : null;
+  if (cashback && !tel.length) return falha(400, "parametro_invalido", "Digite seu WhatsApp para usar o cashback.");
   return {
     ok: true,
     pedido: {
       unidade: c.unidade, tipo, nome, mesa: mesa || null, telefone: tel.length ? texto(cli.telefone, 20) : null,
-      endereco: tipo === "delivery" ? endereco : null, troco: texto(cli.troco, 20), itens: limpos,
+      endereco: tipo === "delivery" ? endereco : null, troco: texto(cli.troco, 20), itens: limpos, cashback,
     },
   };
 }
@@ -276,7 +285,23 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       return falha(409, "pedido_minimo", `O pedido mínimo para entrega é R$ ${cardapio.entrega.pedido_minimo.toFixed(2).replace(".", ",")}.`);
     }
     const taxa = regras.taxa;
-    const total = centavos(subtotal + taxa);
+    const bruto = centavos(subtotal + taxa);
+
+    // Cashback: telefone provado por pedido concluído deste aparelho, saldo do
+    // livro e teto do dono. A baixa no livro é feita pelo banco, sob trava.
+    let cashbackUsado = 0;
+    if (pedido.cashback?.usar) {
+      const tel = normalizarTelefone(pedido.telefone);
+      const prova = await telefoneProvado({ db, unidade: pedido.unidade, ids: pedido.cashback.prova });
+      if (!prova.ok) return falha(503, "indisponivel", "Não foi possível enviar agora.");
+      if (!tel || prova.telefone !== tel) {
+        return falha(409, "cashback_telefone", "O cashback fica no WhatsApp dos seus pedidos anteriores. Use o mesmo número ou envie sem o cashback.");
+      }
+      const s = await saldoNoLivro({ db, unidade: pedido.unidade, telefone: tel, cfg: carga.fidelidade });
+      cashbackUsado = s.ok && s.disponivel ? cashbackUsavel(s.saldo.cashback.saldo, bruto, carga.fidelidade) : 0;
+      if (!(cashbackUsado > 0)) return falha(409, "cashback_sem_saldo", "Não há cashback disponível agora. Envie sem ele.");
+    }
+    const total = centavos(bruto - cashbackUsado);
 
     const { data: criado, error: eI } = await db.from("pedidos").insert([{
       unidade_id: pedido.unidade,
@@ -302,7 +327,21 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       await db.from("pedidos").delete().eq("id", criado.id);
       return falha(503, "indisponivel", "Não foi possível enviar agora.");
     }
-    return { ok: true, id: criado.id, total, taxa, itens: pedido.itens.map((i) => ({ id: i.id, quantidade: i.quantidade, preco: preco.get(i.id) })) };
+    if (cashbackUsado > 0) {
+      const { error: eR } = await db.rpc("fidelidade_reservar_cashback", {
+        p_unidade: pedido.unidade, p_telefone: pedido.telefone, p_pedido: criado.id, p_valor: cashbackUsado,
+      });
+      if (eR) {
+        // Saldo mudou entre a conta e a baixa: o pedido não fica com desconto sem lastro.
+        await db.from("pedidos_itens").delete().eq("pedido_id", criado.id);
+        await db.from("pedidos").delete().eq("id", criado.id);
+        return falha(409, "cashback_mudou", "Seu saldo de cashback mudou. Confira e envie de novo.");
+      }
+    }
+    return {
+      ok: true, id: criado.id, total, taxa, cashback: cashbackUsado,
+      itens: pedido.itens.map((i) => ({ id: i.id, quantidade: i.quantidade, preco: preco.get(i.id) })),
+    };
   } catch {
     return falha(503, "indisponivel", "Não foi possível enviar agora.");
   }
@@ -351,6 +390,58 @@ export async function lerPedidosPublicos({ db, unidade, ids }) {
           .map((i) => ({ produto_id: String(i.produto_id), quantidade: Number(i.quantidade) || 0, preco: numero(i.valor_unitario) })),
       })).sort((a, b) => String(b.criado_em).localeCompare(String(a.criado_em))),
     };
+  } catch {
+    return falha(503, "indisponivel", "Indisponível no momento.");
+  }
+}
+
+// ─── FIDELIDADE (saldo no aparelho do cliente) ───────────────────────────────
+//
+// O saldo é de um TELEFONE, mas o telefone nunca entra pela requisição: o
+// aparelho manda os ids dos pedidos que ELE fez (o servidor devolveu na hora
+// do envio) e o servidor acha o telefone de um desses pedidos que já foi
+// CONCLUÍDO. Pedido falso com o telefone de outra pessoa nunca é concluído —
+// então não abre o saldo de ninguém. Do telefone, só saem os 4 últimos dígitos.
+
+const LIVRO_FALTANDO = /fidelidade_movimentos|relation .* does not exist|could not find the table|schema cache/i;
+
+/** Telefone provado pelos pedidos concluídos deste aparelho (o mais recente). */
+async function telefoneProvado({ db, unidade, ids }) {
+  const lista = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => UUID_RE.test(id)))].slice(0, 10);
+  if (!lista.length) return { ok: true, telefone: "" };
+  const { data, error } = await db.from("pedidos").select("id, status, cliente_telefone, created_at")
+    .eq("unidade_id", unidade).in("id", lista).in("status", [...STATUS_CONCLUIDO]);
+  if (error) return falha(503, "indisponivel", "Indisponível no momento.");
+  const achado = (data || []).map((p) => ({ tel: normalizarTelefone(p.cliente_telefone), em: String(p.created_at || "") }))
+    .filter((p) => p.tel).sort((a, b) => b.em.localeCompare(a.em))[0];
+  return { ok: true, telefone: achado?.tel || "" };
+}
+
+async function saldoNoLivro({ db, unidade, telefone, cfg }) {
+  const { data, error } = await db.from("fidelidade_movimentos").select("tipo, cartao_id, selos, valor, created_at")
+    .eq("unidade_id", unidade).eq("cliente_tel", telefone).order("created_at", { ascending: true }).limit(2000);
+  if (error) return LIVRO_FALTANDO.test(error.message || "") ? { ok: true, disponivel: false } : falha(503, "indisponivel", "Indisponível no momento.");
+  return { ok: true, disponivel: true, saldo: saldoDoCliente(data || [], cfg) };
+}
+
+/**
+ * Saldo de fidelidade deste aparelho. Sem pedido concluído: só as regras
+ * (o cardápio já mostra). Livro ainda não criado no banco: disponivel=false.
+ */
+export async function lerFidelidadePublica({ db, unidade, ids }) {
+  if (!idValido(unidade)) return falha(404, "nao_encontrado", "Não encontrado.");
+  try {
+    const { data: rC, error: eC } = await db.from("config_sistema").select("params").eq("unidade_id", unidade).limit(1);
+    if (eC) return falha(503, "indisponivel", "Indisponível no momento.");
+    const cfg = normalizarFidelidade(rC?.[0]?.params?.fidelidade);
+    if (!cfg.ativo) return { ok: true, ativo: false };
+    const prova = await telefoneProvado({ db, unidade, ids });
+    if (!prova.ok) return prova;
+    if (!prova.telefone) return { ok: true, ativo: true, identificado: false };
+    const s = await saldoNoLivro({ db, unidade, telefone: prova.telefone, cfg });
+    if (!s.ok) return s;
+    if (!s.disponivel) return { ok: true, ativo: true, identificado: true, disponivel: false, final: prova.telefone.slice(-4) };
+    return { ok: true, ativo: true, identificado: true, disponivel: true, final: prova.telefone.slice(-4), cartoes: s.saldo.cartoes, cashback: s.saldo.cashback };
   } catch {
     return falha(503, "indisponivel", "Indisponível no momento.");
   }

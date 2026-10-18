@@ -29,6 +29,7 @@ import {
   DIAS_T, HORAS_T, IDS_IDIOMAS, INTENCOES_T, LIGACOES_DIAS, ROTULO_PROMO_T, SAUDACOES, SELOS_T, TEXTOS_PADRAO,
   idiomaValido, infoIdioma, r as resposta, traduzirAlergeno,
 } from "./cardapio-idiomas.mjs";
+import { fidelidadePublica } from "./fidelidade.mjs";
 
 export const FUSO_PADRAO = "America/Sao_Paulo";
 
@@ -787,7 +788,7 @@ function alergenicosDaFicha(ficha) {
  * imagem_url, ficha: { nome_comercial, descricao_comercial, categoria,
  * departamento, ativo, status, alergenicos[], pode_conter, imagem_url } }.
  */
-export function montarCardapioPublico({ unidade = {}, produtos = [], config, agora = new Date(), fuso = FUSO_PADRAO } = {}) {
+export function montarCardapioPublico({ unidade = {}, produtos = [], config, fidelidade = null, agora = new Date(), fuso = FUSO_PADRAO } = {}) {
   const cfg = normalizarConfigCardapio(config);
   const vigentes = promocoesVigentes(cfg.promocoes, agora, fuso);
   let categorias = categoriasEfetivas(cfg, produtos);
@@ -893,6 +894,8 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, ago
     produtos: lista,
     promocoes,
     traducoes,
+    // Regras do programa (cartões de selo e cashback) — nunca saldo nem dado de cliente.
+    fidelidade: fidelidadePublica(fidelidade, lista.map((p) => p.id)),
   };
 }
 

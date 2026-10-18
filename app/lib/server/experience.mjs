@@ -566,8 +566,9 @@ export async function listarChamadosAtivosExperience({ db, unidadeId }) {
 /**
  * Atualiza status do chamado no ERP pelo garçom/gerente.
  */
-export async function atualizarStatusChamadoExperience({ db, chamadoId, novoStatus, atendidoPor = null }) {
+export async function atualizarStatusChamadoExperience({ db, unidadeId, chamadoId, novoStatus, atendidoPor = null }) {
   if (!idValido(chamadoId)) return falha(400, "id_invalido", "Chamado não identificado.");
+  if (!idValido(unidadeId)) return falha(400, "unidade_invalida", "Unidade não identificada.");
 
   const statusPermitidos = ["em_atendimento", "concluido", "cancelado"];
   if (!statusPermitidos.includes(novoStatus)) {
@@ -587,10 +588,12 @@ export async function atualizarStatusChamadoExperience({ db, chamadoId, novoStat
       payload.concluido_em = new Date().toISOString();
     }
 
+    // Só chamado desta unidade (a rota já conferiu que o usuário tem acesso a ela).
     const { error } = await db
       .from("experience_chamados")
       .update(payload)
-      .eq("id", chamadoId);
+      .eq("id", chamadoId)
+      .eq("unidade_id", unidadeId);
 
     if (error) return falha(503, "indisponivel", "Erro ao atualizar atendimento.");
 

@@ -359,7 +359,7 @@ export default function SaloesMesasPage() {
   const carregarChamados = async () => {
     if (!unidadeAtiva) return;
     try {
-      const r = await fetch(`/api/public/experience/${encodeURIComponent(unidadeAtiva)}/chamados`, { cache: 'no-store' });
+      const r = await fetchComSessao(`/api/public/experience/${encodeURIComponent(unidadeAtiva)}/chamados`, { cache: 'no-store' });
       if (r.ok) {
         const json = await r.json();
         setChamadosMesas(json.chamados || []);
@@ -377,10 +377,10 @@ export default function SaloesMesasPage() {
 
   const handleAtualizarChamado = async (chamadoId, novoStatus) => {
     try {
-      await fetch(`/api/public/experience/${encodeURIComponent(unidadeAtiva)}/chamados`, {
+      await fetchComSessao(`/api/public/experience/${encodeURIComponent(unidadeAtiva)}/chamados`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chamadoId, novoStatus, atendidoPor: usuarioLogado?.nome || 'Garçom' })
+        body: JSON.stringify({ chamadoId, novoStatus })
       });
       await carregarChamados();
     } catch {}

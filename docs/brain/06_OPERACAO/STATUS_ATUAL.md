@@ -51,6 +51,15 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
 - **Rodada 2 (Estoque, Financeiro, painel):** Financeiro com barra de áreas (Visão geral, A pagar, A receber, Caixa, DRE, Pizza, CMV); `/fluxo`, `/documentos` e `/margem` redirecionam (gravavam/liam tabelas fora do financeiro novo, B-024); CMV sem 0% inventado (B-023); Contas a Pagar em cartões no celular; Pizza do Lucro visível no celular; paleta sem fundo preto no Estoque e no Financeiro; abas do Estoque à vista no celular; painel inicial com faturamento vazio compacto. Simulador com o **esquema e o volume reais** (369 produtos, 374 saldos, 350 movimentos; leitura só). Mesmo resultado de testes; build OK.
 
+## 18/10/2026 — Cardápio digital, idiomas e fidelidade (pedido do dono)
+
+Branch `claude/sharp-meitner-0i36gu` → PR #187:
+- **Cardápio digital novo** (`/cardapio/[unidade]`): pratos e drinks da ficha técnica; mesa (tablet, estilo Goomer) e delivery (estilo Cardápio Web); celular e tablet em pé ou deitado; banner com fotos e vídeos; conversa; promoções; Meus pedidos; 8 idiomas num botão.
+- **Editor do dono** (`/dashboard/operacao/cardapio`): aparência, abertura, seções, pratos, promoções, textos, idiomas (traduções), entrega, fidelidade e QR Codes, com prévia por aparelho e idioma.
+- **Fidelidade**: cartões de selo por produto, cashback e cadastro pelo QR (CRM, 10% de desconto). Saldos dependem da **APR-014** (FIDELIDADE-1, PGlite 16/16). Tela da equipe em Clientes → Fidelidade e cadastro.
+- **Corrigidos**: B-028 (Experience falso), B-029 (cardápio inventado), B-030 (PIX falso do delivery antigo), B-031 (CRM de demonstração), B-032 (busca de cliente do orçamento), S-29 (chamados sem login).
+- Evidência: TESTADO LOCAL (app/lib 608 com PGLITE, intelligence 131, agente 61, skills 47, sec_dados_2 23, sec-api-1 26), TESTADO EM MOCK (Playwright: mesa, delivery, 8 idiomas, fidelidade), build OK, bundle sem service role. Supabase real: só leitura.
+
 ## Validação por camada
 
 | Camada | Estado |

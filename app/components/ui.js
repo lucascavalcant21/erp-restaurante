@@ -218,8 +218,8 @@ export function Modal({ open, onClose, title, children, maxWidth = "md:max-w-md"
 
   if (!open) return null;
   return (
-    <div className="erp-modal-backdrop fixed inset-0 z-50 flex items-end md:items-center justify-center backdrop-blur-sm bg-slate-900/40" onClick={onClose}>
-      <div className={`erp-modal-panel w-full ${maxWidth} overflow-y-auto overscroll-contain rounded-t-3xl md:rounded-3xl p-4 sm:p-6 pb-8 sm:pb-10 animate-in fade-in zoom-in-95 duration-200 border min-w-0 ${className}`}
+    <div className="erp-modal-backdrop fixed inset-0 z-[120] flex items-end md:items-center justify-center backdrop-blur-sm bg-slate-900/40" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={onClose}>
+      <div className={`erp-modal-panel w-full ${maxWidth} max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.25rem)] overflow-y-auto overscroll-contain rounded-t-3xl md:rounded-3xl p-4 sm:p-6 pb-8 sm:pb-10 animate-in fade-in zoom-in-95 duration-200 border min-w-0 ${className}`}
         style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }}
         role="dialog" aria-modal="true" aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}>

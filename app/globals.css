@@ -282,20 +282,60 @@ body {
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* Distância segura do topo estilo app nativo (OLX, iFood, Instagram):
-   No celular e tablet, garante recuo mínimo da barra de status / câmera / área de puxar notificações,
+   No celular e tablet, garante recuo generoso da barra de status / câmera / área de puxar notificações,
    mesmo quando o navegador ou WebView reporta env(safe-area-inset-top) como 0px. */
 :root {
   --erp-safe-top: env(safe-area-inset-top, 0px);
 }
 @media (max-width: 1279px), (pointer: coarse), (display-mode: standalone), (display-mode: fullscreen) {
   :root {
-    --erp-safe-top: max(2.25rem, calc(env(safe-area-inset-top, 0px) + 0.625rem));
+    --erp-safe-top: max(2.75rem, calc(env(safe-area-inset-top, 0px) + 0.875rem));
   }
+
+  /* Garante que qualquer modal/janela centralizada ou bottom-sheet fique abaixo da barra de status no celular/tablet */
+  div.fixed.inset-0.justify-center {
+    padding-top: calc(var(--erp-safe-top, 2.75rem) + 0.75rem) !important;
+  }
+  div.fixed.inset-0.justify-center > div {
+    max-height: calc(100dvh - var(--erp-safe-top, 2.75rem) - 1.5rem) !important;
+  }
+
+  /* Impede o zoom automático do iOS/Android ao tocar em campos de digitação (< 16px dá zoom forçado no Safari) */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: max(16px, 1rem) !important;
+  }
+}
+
+/* Telas 100% estáticas e sem zoom em todo o sistema:
+   - Bloqueia pinch-zoom e double-tap zoom via touch-action
+   - Elimina efeito elástico (rubber-band / overscroll) e rolagem lateral acidental */
+html,
+body {
+  overscroll-behavior: none !important;
+  overflow-x: hidden !important;
+  touch-action: pan-x pan-y !important;
+  -ms-touch-action: pan-x pan-y !important;
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
+*,
+*::before,
+*::after {
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+}
+
+.erp-app-shell,
+.erp-main-scroll {
+  overscroll-behavior: none !important;
 }
 
 /* Telas cheias (ponto, contagem, etiquetas, KDS): respiro da barra de status/notch. */
 .erp-safe-top {
-  padding-top: var(--erp-safe-top, max(2.25rem, env(safe-area-inset-top, 0px))) !important;
+  padding-top: var(--erp-safe-top, max(2.75rem, env(safe-area-inset-top, 0px))) !important;
 }
 
 /* Telas de tablet (estoque, etiquetas): toque longo não abre seleção de texto;

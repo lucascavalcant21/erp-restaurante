@@ -81,11 +81,11 @@ export default function DashboardLayout({ children }) {
     router.replace("/login");
   }
 
-  const interfaceTelaCheia = pathname === "/dashboard/operacao/etiquetas/tablet" || pathname.startsWith("/dashboard/rh/ponto");
+  const interfaceTelaCheia = pathname === "/dashboard/operacao/etiquetas/tablet" || pathname === "/dashboard/rh/ponto";
 
   if (interfaceTelaCheia) {
     return (
-      <div className="fixed inset-0 z-[200] overflow-hidden bg-hf-bg">
+      <div className="fixed inset-0 z-[200] overflow-hidden overscroll-none bg-hf-bg">
         <Suspense fallback={<div className="grid h-screen place-items-center"><Loader2 className="animate-spin text-emerald-600" /></div>}>
           <ProtecaoPermissao sessao={sessao}>
             {children}
@@ -97,11 +97,11 @@ export default function DashboardLayout({ children }) {
 
   return (
     <HefistoPageContextProvider activeUnitId="matriz" userSession={sessao}>
-      <div className="erp-app-shell flex flex-col h-screen h-[100dvh] min-h-0 bg-hf-bg overflow-hidden print:bg-card print:block print:h-auto print:min-h-0 font-sans">
+      <div className="erp-app-shell fixed inset-0 flex flex-col w-full h-[100dvh] min-h-0 bg-hf-bg overflow-hidden overscroll-none print:static print:bg-card print:block print:h-auto print:min-h-0 font-sans">
         
         <TopNavigation sessao={sessao} onSair={sair} onOpenSearch={() => setCommandCenterOpen(true)} />
 
-        <main className="flex-1 w-full max-w-[1920px] mx-auto overflow-y-auto overflow-x-hidden custom-scrollbar relative print:overflow-visible print:block bg-hf-bg">
+        <main className="erp-main-scroll flex-1 w-full max-w-[1920px] mx-auto overflow-y-auto overflow-x-hidden overscroll-none custom-scrollbar relative print:overflow-visible print:block bg-hf-bg">
           <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-900"><Loader2 className="animate-spin text-emerald-600 mr-2" />Carregando módulo...</div>}>
             <ProtecaoPermissao sessao={sessao}>
               {children}

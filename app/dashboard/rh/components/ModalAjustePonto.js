@@ -215,8 +215,14 @@ export default function ModalAjustePonto({
   if (!aberto || !colaborador) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-sm sm:p-4 overflow-y-auto">
-      <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-card border border-line shadow-2xl animate-in zoom-in-95 my-auto max-h-[92vh]">
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/75 px-3 backdrop-blur-sm sm:px-4 overflow-y-auto overscroll-none"
+      style={{
+        paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)",
+        paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
+      }}
+    >
+      <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-card border border-line shadow-2xl animate-in zoom-in-95 my-auto max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.75rem)]">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between border-b border-line bg-gradient-to-r from-emerald-950 to-slate-900 p-4 text-white sm:px-6">
           <div className="flex items-center gap-3 min-w-0">

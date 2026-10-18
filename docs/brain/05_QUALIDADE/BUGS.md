@@ -10,6 +10,7 @@ Formato: **B-NNN**, situação, onde foi visto, evidência da correção.
 | B-006 | RPCs chamados sem definição no repositório: `salvar_ficha_tecnica_atomica`, `conciliar_recebivel_banco` | `app/lib/recebiveis.js:89` | MÉDIO (risco de divergência com produção) |
 | B-007 | Dados: 2 lotes com saldo (36.000 e 18.036 un, estoque Bar) de produtos que não existem no cadastro da unidade | Banco real, 07/10 | MÉDIO (o Héfisto agora mostra; precisa de decisão de limpeza) |
 | B-008 | Dados: 653 etiquetas ativas já vencidas (desde jul/2026) | Banco real, 07/10 | BAIXO (operacional: dar baixa) |
+| B-019 | Experience inventa número: sem dado, as métricas devolvem tempo de atendimento 3,5 min e conversão 14,8% fixos; sem as colunas da HEXP-001 (caso de produção em 18/10, TESTADO NO SUPABASE REAL), o cardápio público cai num cardápio de demonstração com preços. Viola a regra "nunca inventa número" (deveria ser DADOS INSUFICIENTES). Efeito no app em produção: NÃO VALIDADO | `app/lib/server/experience.mjs` (`obterMetricasIntelligenceExperience`, `lerCardapioExperience`) | MÉDIO |
 
 ## Corrigidos
 

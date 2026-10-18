@@ -18,7 +18,7 @@
      SUPABASE REAL. Nenhum dado foi exposto.
    - ATENÇÃO antes de aplicar: as rotas /api/public/experience/[unidade]/chamados
      (GET/PATCH) e /api/dashboard/experience/intelligence não pedem login e
-     usam a service_role (S-29 e S-30 em docs/brain/02_ARQUITETURA/SEGURANCA.md).
+     usam a service_role (S-30 e S-31 em docs/brain/02_ARQUITETURA/SEGURANCA.md).
      Com esta migração aplicada, elas passam a expor dados reais. Feche as
      rotas antes.
 

@@ -2,28 +2,40 @@
 
 // Cardápio digital do cliente. Recebe o cardápio já montado no servidor
 // (preço do minuto, pratos ligados à ficha técnica, vitrine do dono) e cuida
-// da experiência: abertura com fotos e vídeos, nome do cliente, seções na
-// lateral, busca e filtros, promoções, conversa, pedido.
+// da experiência, em dois jeitos:
+//   - MESA (QR da mesa, tablet na mesa): barra com a mesa, idioma, meus
+//     pedidos e sacola; seções em blocos na lateral; pratos em cartão com
+//     foto à esquerda e "Adicionar";
+//   - DELIVERY (link do delivery): capa com logo redondo, cidade e se está
+//     aberto; cartão de entrega (taxa, tempo, mínimo, grátis acima);
+//     barra inferior no celular.
+// Nos dois: oito idiomas (um botão, uma lista), nome do cliente, conversa,
+// busca e filtros, promoções, meus pedidos com o andamento real.
 //
-// Celular em pé: seções numa gaveta. Celular deitado e tablet em pé: seções
-// na lateral. Tablet deitado e computador: seções na lateral e o pedido à
-// direita. Girar o aparelho só troca o layout (CSS): carrinho, conversa e o
-// que já foi digitado continuam.
+// Celular em pé: seções numa gaveta e barra inferior. Celular deitado e
+// tablet em pé: seções na lateral. Tablet deitado e computador: seções na
+// lateral e o pedido à direita. Girar o aparelho só troca o layout (CSS):
+// carrinho, conversa e o que já foi digitado continuam.
 //
-// `previa`: o editor do painel usa este mesmo componente para a prévia ao
-// vivo — sem buscar nada, sem gravar no aparelho e sem enviar pedido.
+// `previa`: o editor do painel mostra este mesmo componente com o rascunho —
+// sem gravar no aparelho e sem enviar pedido.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ALargeSmall, Menu, MessageCircle, Minus, Plus, Search, Share2, ShoppingBag, WifiOff, X, RotateCcw } from "lucide-react";
 import {
-  aplicarNome, conferirCarrinho, filtrarProdutos, formatarPreco, primeiroNome, saudacao, totalDoCarrinho,
+  ALargeSmall, Clock, Globe, Home, MessageCircle, Menu, Minus, Plus, Receipt, RotateCcw, Search, Share2,
+  ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin,
+} from "lucide-react";
+import {
+  aplicarNome, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, primeiroNome, saudacao, totalDoCarrinho,
 } from "../../lib/cardapio-digital.mjs";
+import { IDIOMAS, TEXTOS_PADRAO, detectarIdioma, infoIdioma, t } from "../../lib/cardapio-idiomas.mjs";
 import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, Selos } from "./partes";
 import Conversa from "./Conversa";
 import Pedido from "./Pedido";
 import s from "./cardapio.module.css";
 
 const ATUALIZAR_MS = 2 * 60 * 1000;
+const PEDIDOS_MS = 20 * 1000;
 const chave = (u, k) => `hefisto-cardapio:${u}:${k}`;
 function ler(k, padrao) {
   try { const v = localStorage.getItem(k); return v == null ? padrao : JSON.parse(v); } catch { return padrao; }
@@ -46,12 +58,15 @@ function useMidia(consulta) {
 
 const LATERAL = "(min-width: 768px), (orientation: landscape) and (min-width: 640px)";
 const LARGO = "(min-width: 1024px)";
+const CELULAR = "(max-width: 767px)";
+const ERROS_POR_CODIGO = { limite: "erro_limite", item_indisponivel: "erro_item", loja_fechada: "erro_fechado", pedido_minimo: "erro_minimo" };
 
 export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm = null, mesa = "", pratoInicial = "", previa = false }) {
-  const [cardapio, setCardapio] = useState(inicial);
+  const [base, setBase] = useState(inicial);
   const [estado, setEstado] = useState(inicial ? "ok" : "carregando");
   const [cacheEm, setCacheEm] = useState(carregadoEm);
   const [montado, setMontado] = useState(false);
+  const [idioma, setIdioma] = useState("pt");
 
   const [nome, setNome] = useState("");
   const [rascunhoNome, setRascunhoNome] = useState("");
@@ -67,6 +82,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const [erroEnvio, setErroEnvio] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
+  const [meusPedidos, setMeusPedidos] = useState([]);
+  const [andamento, setAndamento] = useState({ carregando: false, pedidos: [] });
 
   const [busca, setBusca] = useState("");
   const [buscaAberta, setBuscaAberta] = useState(false);
@@ -77,8 +94,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const [prato, setPrato] = useState(null);
   const [qtdPrato, setQtdPrato] = useState(1);
   const [obsPrato, setObsPrato] = useState("");
-  const [gaveta, setGaveta] = useState(false);
-  const [pedidoAberto, setPedidoAberto] = useState(false);
+  const [folha, setFolha] = useState(""); // "", "secoes", "pedido", "idiomas", "pedidos", "info"
   const [conversaAberta, setConversaAberta] = useState(false);
   const [consultaConversa, setConsultaConversa] = useState("");
   const [mensagens, setMensagens] = useState([]);
@@ -88,9 +104,16 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const pratoInicialAberto = useRef(false);
   const lateral = useMidia(LATERAL);
   const largo = useMidia(LARGO);
+  const celular = useMidia(CELULAR);
   const podePedir = !previa;
+  const modo = mesa ? "mesa" : "delivery";
   const tipoPedido = mesa ? "qrcode" : "delivery";
   const chaveCarrinho = chave(unidadeId, `carrinho:${mesa || "delivery"}`);
+
+  // O cardápio no idioma do cliente (conteúdo traduzido pelo dono; o resto, fixo).
+  const cardapio = useMemo(() => localizarCardapio(base, idioma), [base, idioma]);
+  const lingua = cardapio?.idioma || "pt";
+  const T = useCallback((k, v) => t(lingua, k, v), [lingua]);
 
   // Prévia do editor: o painel (mesma origem, janela-mãe) manda o rascunho do
   // dono já montado, a cada mudança. Nada é gravado nem enviado na prévia.
@@ -98,7 +121,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     if (!previa) return;
     const aoReceber = (e) => {
       if (e.origin !== window.location.origin || e.source !== window.parent) return;
-      if (e.data?.tipo === "hefisto-cardapio-previa" && e.data.cardapio?.produtos) { setCardapio(e.data.cardapio); setEstado("ok"); }
+      if (e.data?.tipo === "hefisto-cardapio-previa" && e.data.cardapio?.produtos) { setBase(e.data.cardapio); setEstado("ok"); }
+      if (e.data?.tipo === "hefisto-cardapio-previa-idioma" && typeof e.data.idioma === "string") setIdioma(e.data.idioma);
     };
     window.addEventListener("message", aoReceber);
     if (window.parent !== window) window.parent.postMessage({ tipo: "hefisto-cardapio-previa-pronta" }, window.location.origin);
@@ -112,7 +136,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       const r = await fetch(`/api/public/cardapio/${encodeURIComponent(unidadeId)}`, { cache: "no-store" });
       const j = await r.json().catch(() => null);
       if (r.ok && j?.cardapio) {
-        setCardapio(j.cardapio);
+        setBase(j.cardapio);
         setEstado("ok");
         setCacheEm(Date.now());
         gravar(chave(unidadeId, "cache"), { em: Date.now(), cardapio: j.cardapio });
@@ -122,7 +146,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       throw new Error("indisponivel");
     } catch {
       const c = ler(chave(unidadeId, "cache"), null);
-      setCardapio((atual) => {
+      setBase((atual) => {
         if (atual) return atual;
         if (c?.cardapio) { setCacheEm(c.em); return c.cardapio; }
         return null;
@@ -137,11 +161,11 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     if (previa) return;
     if (!inicial) buscar();
     else gravar(chave(unidadeId, "cache"), { em: Date.now(), cardapio: inicial });
-    const t = setInterval(buscar, ATUALIZAR_MS);
+    const tm = setInterval(buscar, ATUALIZAR_MS);
     const visivel = () => { if (!document.hidden) buscar(); };
     document.addEventListener("visibilitychange", visivel);
     window.addEventListener("online", buscar);
-    return () => { clearInterval(t); document.removeEventListener("visibilitychange", visivel); window.removeEventListener("online", buscar); };
+    return () => { clearInterval(tm); document.removeEventListener("visibilitychange", visivel); window.removeEventListener("online", buscar); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── o que fica guardado no aparelho do cliente ───────────────────────────
@@ -163,6 +187,10 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     setVoltou(Boolean(sessao.voltou));
     setEscala(Number(ler(chave(unidadeId, "escala"), 1)) === 1.15 ? 1.15 : 1);
     setUltimo(ler(chave(unidadeId, "ultimo"), null));
+    const salvo = ler(chave(unidadeId, "idioma"), "");
+    setIdioma(salvo || detectarIdioma(typeof navigator !== "undefined" ? navigator.languages || [navigator.language] : []));
+    const doisDias = Date.now() - 2 * 86400000;
+    setMeusPedidos((ler(chave(unidadeId, "pedidos"), []) || []).filter((p) => p && typeof p.id === "string" && p.em > doisDias).slice(0, 10));
     const c = ler(chaveCarrinho, []);
     if (Array.isArray(c)) setCarrinho(c.filter((i) => i && typeof i.id === "string" && Number.isInteger(i.quantidade)).slice(0, 50));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -175,13 +203,34 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     const { validos, removidos } = conferirCarrinho(carrinho, cardapio);
     if (removidos.length) {
       setCarrinho(validos.map(({ id, quantidade, observacao }) => ({ id, quantidade, observacao })));
-      setAviso({ texto: removidos.length === 1 ? "Um item saiu do cardápio e foi tirado do seu pedido." : `${removidos.length} itens saíram do cardápio e foram tirados do seu pedido.` });
+      setAviso({ texto: removidos.length === 1 ? T("saiu_um") : T("saiu_varios", { n: removidos.length }) });
     }
-  }, [cardapio]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Girou para o tablet deitado com o pedido aberto: ele já está à direita.
-  useEffect(() => { if (largo) setPedidoAberto(false); }, [largo]);
-  useEffect(() => { if (lateral) setGaveta(false); }, [lateral]);
+  useEffect(() => { if (largo && folha === "pedido") setFolha(""); }, [largo]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (lateral && folha === "secoes") setFolha(""); }, [lateral]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Abriu uma folha: o aviso de antes ("no pedido · ver pedido") já não serve e cobriria o conteúdo.
+  useEffect(() => { if (folha) setAviso(null); }, [folha]);
+
+  // Andamento dos pedidos deste aparelho, enquanto a lista está aberta.
+  const atualizarPedidos = useCallback(async () => {
+    if (previa || !meusPedidos.length) { setAndamento({ carregando: false, pedidos: [] }); return; }
+    setAndamento((a) => ({ ...a, carregando: true }));
+    try {
+      const r = await fetch(`/api/public/pedidos/status?unidade=${encodeURIComponent(unidadeId)}&ids=${meusPedidos.map((p) => p.id).join(",")}`, { cache: "no-store" });
+      const j = await r.json().catch(() => ({}));
+      setAndamento({ carregando: false, lido: r.ok, pedidos: r.ok ? j.pedidos || [] : [], erro: !r.ok });
+    } catch {
+      setAndamento((a) => ({ ...a, carregando: false, lido: false, erro: true }));
+    }
+  }, [previa, meusPedidos, unidadeId]);
+  useEffect(() => {
+    if (folha !== "pedidos") return;
+    atualizarPedidos();
+    const tm = setInterval(atualizarPedidos, PEDIDOS_MS);
+    return () => clearInterval(tm);
+  }, [folha, atualizarPedidos]);
 
   // ── derivados ────────────────────────────────────────────────────────────
   const porId = useMemo(() => new Map((cardapio?.produtos || []).map((p) => [p.id, p])), [cardapio]);
@@ -209,11 +258,11 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const secoesMenu = useMemo(() => {
     if (!cardapio) return [];
     const l = [];
-    if (cardapio.promocoes.length) l.push({ id: "promocoes", nome: "Promoções", total: cardapio.promocoes.length });
-    if (destaques.length) l.push({ id: "destaques", nome: "A casa indica", total: destaques.length });
+    if (cardapio.promocoes.length) l.push({ id: "promocoes", nome: T("promocoes"), total: cardapio.promocoes.length });
+    if (destaques.length) l.push({ id: "destaques", nome: T("casa_indica"), total: destaques.length });
     for (const c of cardapio.categorias) l.push({ id: c.id, nome: c.nome, total: c.produto_ids.length });
     return l;
-  }, [cardapio, destaques]);
+  }, [cardapio, destaques, T]);
 
   // Seção que está na tela (a lateral acompanha a rolagem).
   useEffect(() => {
@@ -230,7 +279,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
 
   // ── ações ────────────────────────────────────────────────────────────────
   const irParaSecao = useCallback((id) => {
-    setGaveta(false);
+    setFolha("");
     setBusca(""); setSelos([]); setPromoAberta(""); setBuscaAberta(false);
     setTimeout(() => {
       const el = document.getElementById(`secao-${id}`);
@@ -267,15 +316,15 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       return novo;
     });
     if (etapa === "enviado") setEtapa("carrinho");
-    setAviso({ texto: `${p.nome} no pedido`, acao: largo ? null : { rotulo: "Ver pedido", fazer: () => setPedidoAberto(true) } });
-  }, [porId, previa, etapa, largo]);
+    setAviso({ texto: T("no_pedido", { prato: p.nome }), acao: largo ? null : { rotulo: T("ver_pedido"), fazer: () => setFolha("pedido") } });
+  }, [porId, previa, etapa, largo, T]);
 
   const alterarQtd = (id, delta) => setCarrinho((c) => c.map((i) => (i.id === id ? { ...i, quantidade: Math.max(1, Math.min(50, i.quantidade + delta)) } : i)));
   const definirObs = (id, observacao) => setCarrinho((c) => c.map((i) => (i.id === id ? { ...i, observacao: observacao.slice(0, 200) } : i)));
   const remover = (id) => {
     const antes = carrinho;
     setCarrinho((c) => c.filter((i) => i.id !== id));
-    setAviso({ texto: "Item tirado do pedido", acao: { rotulo: "Desfazer", fazer: () => setCarrinho(antes) } });
+    setAviso({ texto: T("item_tirado"), acao: { rotulo: T("desfazer"), fazer: () => setCarrinho(antes) } });
   };
 
   const salvarNome = (e) => {
@@ -294,7 +343,14 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     if (!ultimo?.itens?.length || !cardapio) return;
     const { validos, removidos } = conferirCarrinho(ultimo.itens, cardapio);
     validos.forEach((i) => adicionar(i.id, i.quantidade));
-    setAviso({ texto: removidos.length ? `${validos.length} de volta ao pedido; ${removidos.length} não está mais no cardápio.` : "Seu último pedido está de volta.", acao: largo ? null : { rotulo: "Ver pedido", fazer: () => setPedidoAberto(true) } });
+    setAviso({ texto: removidos.length ? T("de_volta_parcial", { n: validos.length, m: removidos.length }) : T("de_volta"), acao: largo ? null : { rotulo: T("ver_pedido"), fazer: () => setFolha("pedido") } });
+  };
+
+  const escolherIdioma = (id) => {
+    setIdioma(id);
+    if (!previa) gravar(chave(unidadeId, "idioma"), id);
+    setMensagens([]); // a conversa recomeça no idioma novo
+    setFolha("");
   };
 
   const compartilhar = async (p) => {
@@ -302,16 +358,16 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     try {
       if (navigator.share) { await navigator.share({ title: p.nome, text: `${p.nome} — ${cardapio.unidade.nome}`, url }); return; }
       await navigator.clipboard.writeText(url);
-      setAviso({ texto: "Link do prato copiado" });
+      setAviso({ texto: T("link_copiado") });
     } catch { /* cliente cancelou */ }
   };
 
   const enviar = async () => {
     const e = {};
     const tel = form.telefone.replace(/\D/g, "");
-    if (form.nome.trim().length < 2) e.nome = "Digite seu nome.";
-    if (!mesa || tel.length) { if (tel.length < 10 || tel.length > 13) e.telefone = "WhatsApp com DDD, só números."; }
-    if (!mesa && !form.endereco.trim()) e.endereco = "Digite o endereço de entrega.";
+    if (form.nome.trim().length < 2) e.nome = T("erro_nome");
+    if (!mesa || tel.length) { if (tel.length < 10 || tel.length > 13) e.telefone = T("erro_tel"); }
+    if (!mesa && !form.endereco.trim()) e.endereco = T("erro_endereco");
     setErros(e);
     setErroEnvio("");
     if (Object.keys(e).length) return;
@@ -329,7 +385,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
-        setErroEnvio(j.erro || "Não foi possível enviar agora. Tente de novo.");
+        const k = ERROS_POR_CODIGO[j.codigo];
+        setErroEnvio(k ? T(k, { valor: formatarPreco(cardapio.entrega?.pedido_minimo || 0, lingua) }) : lingua === "pt" && j.erro ? j.erro : T("erro_envio"));
         if (j.codigo === "item_indisponivel") buscar();
         return;
       }
@@ -337,14 +394,19 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       const ult = { em: Date.now(), itens: carrinho.map(({ id, quantidade }) => ({ id, quantidade })) };
       setUltimo(ult);
       gravar(chave(unidadeId, "ultimo"), ult);
+      if (j.id) {
+        const lista = [{ id: j.id, em: Date.now() }, ...meusPedidos].slice(0, 10);
+        setMeusPedidos(lista);
+        gravar(chave(unidadeId, "pedidos"), lista);
+      }
       gravar(chave(unidadeId, "telefone"), form.telefone.trim());
       if (!mesa) gravar(chave(unidadeId, "endereco"), form.endereco.trim());
       if (!nome && form.nome.trim()) { setNome(form.nome.trim()); gravar(chave(unidadeId, "nome"), form.nome.trim()); }
       setCarrinho([]);
       setEtapa("enviado");
-      if (!largo) setPedidoAberto(true);
+      if (!largo) setFolha("pedido");
     } catch {
-      setErroEnvio("Sem conexão. Confira a internet e tente de novo.");
+      setErroEnvio(T("sem_conexao"));
     } finally {
       setEnviando(false);
     }
@@ -361,14 +423,15 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   // ── estados sem cardápio ─────────────────────────────────────────────────
   if (!cardapio) {
     const cores = { "--c-fundo": "#f6f1e8", "--c-texto": "#221c16", "--c-suave": "#6b6259", "--c-primaria": "#9a3412", "--c-sobre": "#fff", "--c-cartao": "#fffdf8", "--c-linha": "#e4ddd2", "--c-destaque": "#9a3412", "--c-primaria-suave": "#f3e7dd" };
+    const T0 = (k) => t(idioma, k);
     return (
       <div className={s.raiz} style={cores}>
         <div className={s.vazio} style={{ paddingTop: 120 }}>
-          {estado === "carregando" ? <strong>Abrindo o cardápio…</strong> : estado === "nao_encontrado" ? (
-            <><strong>Cardápio não encontrado</strong><span>Confira o link ou o QR Code com a equipe.</span></>
+          {estado === "carregando" ? <strong>{T0("abrindo")}</strong> : estado === "nao_encontrado" ? (
+            <><strong>{T0("nao_encontrado")}</strong><span>{T0("nao_encontrado_sub")}</span></>
           ) : (
-            <><strong>Não conseguimos abrir o cardápio agora</strong><span>Pode ser a internet. Tente de novo em instantes.</span>
-              <button type="button" className={s.primario} onClick={() => { setEstado("carregando"); buscar(); }}><RotateCcw size={18} aria-hidden="true" /> Tentar de novo</button></>
+            <><strong>{T0("erro_abrir")}</strong><span>{T0("erro_abrir_sub")}</span>
+              <button type="button" className={s.primario} onClick={() => { setEstado("carregando"); buscar(); }}><RotateCcw size={18} aria-hidden="true" /> {T0("tentar_de_novo")}</button></>
           )}
         </div>
       </div>
@@ -385,12 +448,15 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const listaClasse = tema.estilo_lista === "cartoes" ? s.grade : s.lista;
   const pAberto = prato ? porId.get(prato) : null;
   const n = primeiroNome(nome);
-  const textoSaudacao = voltou && n
-    ? `${saudacao()}, ${n}! Que bom te ver de novo.`
-    : aplicarNome(textos.boas_vindas, { nome, saudacao: saudacao() });
+  const textoSaudacao = aplicarNome(voltou && n ? TEXTOS_PADRAO[lingua].voltou : textos.boas_vindas, { nome, saudacao: saudacao(new Date(), undefined, lingua) });
   const ultimoValido = ultimo?.itens?.length ? conferirCarrinho(ultimo.itens, cardapio).validos.length : 0;
   const conversaLigada = cardapio.conversa.ativa;
   const secaoAtual = secoesMenu.find((x) => x.id === secaoAtiva);
+  const idiomasOferecidos = IDIOMAS.filter((i) => (cardapio.idiomas || ["pt"]).includes(i.id));
+  const cidade = [unidade.cidade, unidade.uf].filter(Boolean).join(" - ");
+  const temInfo = Boolean(cidade || unidade.horario || unidade.endereco || unidade.telefone);
+  const ent = cardapio.entrega || {};
+  const hora = (iso) => new Date(iso).toLocaleTimeString(infoIdioma(lingua).locale, { hour: "2-digit", minute: "2-digit" });
 
   const listaSecoes = (
     <ul className={s.secoes}>
@@ -403,28 +469,34 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       ))}
     </ul>
   );
-  const marcas = (
-    <span className={s.marcas}>
-      {mesa ? <span className={s.marca}>Mesa {mesa}</span> : unidade.delivery_aberto ? <span className={s.marca}>Delivery aberto</span> : <span className={`${s.marca} ${s.marcaFechado}`}>Delivery fechado agora</span>}
-      {!mesa && unidade.delivery_aberto && unidade.taxa_entrega > 0 ? <span className={s.marca}>Entrega {formatarPreco(unidade.taxa_entrega)}</span> : null}
-    </span>
+  const botaoIdioma = idiomasOferecidos.length > 1 ? (
+    <button type="button" className={s.idiomaBotao} onClick={() => setFolha("idiomas")} aria-label={`${T("idioma")}: ${infoIdioma(lingua).nome}`}>
+      <Globe size={18} aria-hidden="true" /> {lingua.toUpperCase()}
+    </button>
+  ) : null;
+  const linhaItem = (p) => (
+    <Item key={p.id} produto={p} promocao={p.promocao_id ? promoPorId.get(p.promocao_id) : null} qtd={qtdNoCarrinho.get(p.id)}
+      onAbrir={abrirPrato} onAdicionar={adicionar} podePedir={podePedir} idioma={lingua} comTexto={modo === "mesa"} />
   );
+  const rotuloEtapa = (p) => (p.etapa === "recebido" ? T("st_recebido") : p.etapa === "preparo" ? T("st_preparo")
+    : p.etapa === "pronto" ? T(p.tipo === "mesa" ? "st_pronto_mesa" : "st_pronto_delivery") : p.etapa === "saiu" ? T("st_saiu")
+      : p.etapa === "entregue" ? T("st_entregue") : p.etapa === "cancelado" ? T("st_cancelado") : T("st_andamento"));
 
   return (
-    <div className={s.raiz} style={estilo} data-fonte={tema.fonte}>
+    <div className={`${s.raiz} ${modo === "mesa" ? s.modoMesa : s.modoDelivery} ${celular ? s.comNav : ""}`} style={estilo} data-fonte={tema.fonte} lang={infoIdioma(lingua).lang}>
       {tema.fundo_imagem_url ? <div className={s.fundoImagem} style={{ backgroundImage: `url("${tema.fundo_imagem_url}")`, opacity: tema.fundo_opacidade }} aria-hidden="true" /> : null}
       <div className={s.casca}>
         {/* lateral: celular deitado, tablet e computador */}
-        <aside className={s.lateral} aria-label="Seções do cardápio">
+        <aside className={s.lateral} aria-label={T("secoes")}>
           <div className={s.lateralTopo}>
             <Foto src={tema.logo_url} className={s.lateralLogo} />
             <p className={s.lateralNome}>{unidade.nome}</p>
-            <p className={s.lateralSub}>{mesa ? `Mesa ${mesa}` : unidade.delivery_aberto ? "Delivery aberto" : "Delivery fechado agora"}</p>
+            <p className={s.lateralSub}>{mesa ? T("mesa", { mesa }) : unidade.delivery_aberto ? T("delivery_aberto") : T("delivery_fechado")}</p>
           </div>
           {listaSecoes}
           {conversaLigada ? (
             <div className={s.lateralRodape}>
-              <button type="button" className={`${s.secundario} ${s.largo}`} onClick={() => abrirConversa()}><MessageCircle size={18} aria-hidden="true" /> Me ajuda a escolher</button>
+              <button type="button" className={`${s.secundario} ${s.largo}`} onClick={() => abrirConversa()}><MessageCircle size={18} aria-hidden="true" /> {T("me_ajuda")}</button>
             </div>
           ) : null}
         </aside>
@@ -433,54 +505,92 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           <div className={s.barra}>
             {buscaAberta || lateral ? (
               <div className={s.buscaBarra}>
-                <input className={s.campoBusca} type="search" value={busca} onChange={(e) => setBusca(e.target.value.slice(0, 60))} placeholder="Buscar no cardápio" aria-label="Buscar no cardápio" autoFocus={buscaAberta && !lateral} enterKeyHint="search" />
-                {!lateral || busca ? <button type="button" className={s.icone} onClick={() => { setBusca(""); setBuscaAberta(false); }} aria-label="Fechar busca"><X size={20} aria-hidden="true" /></button> : null}
+                <input className={s.campoBusca} type="search" value={busca} onChange={(ev) => setBusca(ev.target.value.slice(0, 60))} placeholder={T("buscar")} aria-label={T("buscar")} autoFocus={buscaAberta && !lateral} enterKeyHint="search" />
+                {!lateral || busca ? <button type="button" className={s.icone} onClick={() => { setBusca(""); setBuscaAberta(false); }} aria-label={T("fechar_busca")}><X size={20} aria-hidden="true" /></button> : null}
               </div>
             ) : (
               <>
-                <button type="button" className={s.botaoSecoes} onClick={() => setGaveta(true)} aria-haspopup="dialog" aria-label="Abrir seções do cardápio">
-                  <Menu size={18} aria-hidden="true" /><span>{filtrando ? "Seções" : secaoAtual?.nome || "Seções"}</span>
+                <button type="button" className={s.botaoSecoes} onClick={() => setFolha("secoes")} aria-haspopup="dialog" aria-label={T("abrir_secoes")}>
+                  <Menu size={18} aria-hidden="true" /><span>{filtrando ? T("secoes") : secaoAtual?.nome || T("secoes")}</span>
                 </button>
-                <button type="button" className={s.icone} onClick={() => setBuscaAberta(true)} aria-label="Buscar no cardápio"><Search size={20} aria-hidden="true" /></button>
+                <button type="button" className={s.icone} onClick={() => setBuscaAberta(true)} aria-label={T("buscar")}><Search size={20} aria-hidden="true" /></button>
               </>
             )}
-            {conversaLigada ? <button type="button" className={s.icone} onClick={() => abrirConversa()} aria-label="Conversar com a casa"><MessageCircle size={20} aria-hidden="true" /></button> : null}
-            <button type="button" className={s.icone} aria-pressed={escala !== 1} onClick={mudarEscala} aria-label="Letra maior"><ALargeSmall size={20} aria-hidden="true" /></button>
+            {mesa && lateral ? <span className={s.chipMesa}>{T("mesa", { mesa })}</span> : null}
+            {botaoIdioma}
+            {conversaLigada && lateral ? <button type="button" className={s.icone} onClick={() => abrirConversa()} aria-label={T("conversar")}><MessageCircle size={20} aria-hidden="true" /></button> : null}
+            {meusPedidos.length ? (
+              <button type="button" className={s.acaoTopo} onClick={() => setFolha("pedidos")}><Receipt size={18} aria-hidden="true" /> {T("meus_pedidos")}</button>
+            ) : null}
+            {podePedir ? (
+              <button type="button" className={`${s.acaoTopo} ${s.acaoSacola}`} onClick={() => setFolha("pedido")}>
+                <ShoppingBag size={18} aria-hidden="true" /> {T("sacola")} {qtdTotal ? <span className={s.contagem}>{qtdTotal}</span> : null}
+              </button>
+            ) : null}
+            <button type="button" className={s.icone} aria-pressed={escala !== 1} onClick={mudarEscala} aria-label={T("letra_maior")}><ALargeSmall size={20} aria-hidden="true" /></button>
           </div>
 
           {estado === "offline" ? (
             <div className={s.aviso} role="status"><WifiOff size={18} aria-hidden="true" style={{ flex: "none", marginTop: 2 }} />
-              <span>Sem internet. Mostrando o cardápio de {cacheEm ? new Date(cacheEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "antes"}; os preços são conferidos no envio.</span>
+              <span>{T("sem_internet", { hora: cacheEm ? hora(cacheEm) : "—" })}</span>
             </div>
           ) : null}
 
-          <Abertura slides={slides} onAcao={acaoBanner} previa={previa} />
-
-          <header className={s.cabecalho}>
-            {!slides.length ? <Foto src={tema.logo_url} className={s.cabecalhoLogo} /> : null}
-            <h1 className={s.nomeLoja}>{unidade.nome}</h1>
-            {textos.apresentacao ? <p className={s.apresentacao}>{textos.apresentacao}</p> : null}
-            {marcas}
-          </header>
+          {modo === "delivery" ? (
+            <>
+              <div className={s.capa}>
+                {slides.length ? <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} /> : null}
+              </div>
+              <section className={s.loja} aria-label={unidade.nome}>
+                <Foto src={tema.logo_url} className={s.lojaLogo} alt="" />
+                <h1 className={s.lojaNome}>{unidade.nome}</h1>
+                <p className={s.lojaLinha}>
+                  {cidade ? <span><MapPin size={14} aria-hidden="true" style={{ verticalAlign: "-2px" }} /> {cidade}</span> : null}
+                  {temInfo ? <button type="button" onClick={() => setFolha("info")}>{T("mais_info")}</button> : null}
+                </p>
+                <p className={`${s.status} ${unidade.delivery_aberto ? s.statusAberto : s.statusFechado}`}>
+                  {unidade.delivery_aberto ? T("delivery_aberto") : T("delivery_fechado")}
+                  {unidade.horario ? <span style={{ color: "var(--c-suave)", fontWeight: 500 }}> · {unidade.horario}</span> : null}
+                </p>
+                {textos.apresentacao ? <p className={s.apresentacao} style={{ margin: "6px 0 0" }}>{textos.apresentacao}</p> : null}
+              </section>
+              <div className={s.entregaCard}>
+                <div className={s.entregaLinha}><Truck size={20} aria-hidden="true" /><span>{unidade.taxa_entrega > 0 ? T("entrega_valor", { valor: formatarPreco(unidade.taxa_entrega, lingua) }) : <strong>{T("entrega_gratis")}</strong>}</span></div>
+                {ent.tempo_min && ent.tempo_max ? <div className={s.entregaLinha}><Clock size={20} aria-hidden="true" /><span>{T("tempo_entrega", { min: ent.tempo_min, max: ent.tempo_max })}</span></div> : null}
+                {ent.pedido_minimo > 0 ? <div className={s.entregaLinha}><Receipt size={20} aria-hidden="true" /><span>{T("pedido_minimo", { valor: formatarPreco(ent.pedido_minimo, lingua) })}</span></div> : null}
+                {ent.gratis_acima > 0 && unidade.taxa_entrega > 0 ? <div className={s.entregaLinha}><Tag size={20} aria-hidden="true" /><strong>{T("gratis_acima", { valor: formatarPreco(ent.gratis_acima, lingua) })}</strong></div> : null}
+              </div>
+            </>
+          ) : (
+            <>
+              <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} />
+              <header className={s.cabecalho}>
+                {!slides.length ? <Foto src={tema.logo_url} className={s.cabecalhoLogo} /> : null}
+                <h1 className={s.nomeLoja}>{unidade.nome}</h1>
+                {textos.apresentacao ? <p className={s.apresentacao}>{textos.apresentacao}</p> : null}
+                <span className={s.marcas}><span className={s.chipMesa}>{T("mesa", { mesa })}</span></span>
+              </header>
+            </>
+          )}
 
           {montado ? (
-            <section className={s.boasVindas} aria-label="Boas-vindas">
+            <section className={s.boasVindas} aria-label={textoSaudacao}>
               {pedirNome ? (
                 <form onSubmit={salvarNome}>
                   <p className={s.saudacao}>{textos.pedir_nome}</p>
                   <div className={s.formNome}>
-                    <input value={rascunhoNome} onChange={(e) => setRascunhoNome(e.target.value.slice(0, 60))} placeholder="Seu primeiro nome" aria-label="Seu nome" autoComplete="given-name" enterKeyHint="done" />
-                    <button type="submit" className={s.primario} disabled={!primeiroNome(rascunhoNome)}>Pronto</button>
+                    <input value={rascunhoNome} onChange={(ev) => setRascunhoNome(ev.target.value.slice(0, 60))} placeholder={T("seu_primeiro_nome")} aria-label={T("seu_nome")} autoComplete="given-name" enterKeyHint="done" />
+                    <button type="submit" className={s.primario} disabled={!primeiroNome(rascunhoNome)}>{T("pronto")}</button>
                   </div>
-                  <button type="button" className={s.link} onClick={pularNome}>Agora não</button>
+                  <button type="button" className={s.link} onClick={pularNome}>{T("agora_nao")}</button>
                 </form>
               ) : (
                 <>
                   <p className={s.saudacao}>{textoSaudacao}</p>
                   <div className={s.boasVindasAcoes}>
-                    {conversaLigada ? <button type="button" className={s.secundario} onClick={() => abrirConversa()}><MessageCircle size={17} aria-hidden="true" /> Me ajuda a escolher</button> : null}
-                    {ultimoValido && podePedir ? <button type="button" className={s.secundario} onClick={pedirDeNovo}><RotateCcw size={17} aria-hidden="true" /> Pedir de novo</button> : null}
-                    <button type="button" className={s.link} onClick={trocarNome}>{n ? `Não é ${n}?` : "Dizer meu nome"}</button>
+                    {conversaLigada ? <button type="button" className={s.secundario} onClick={() => abrirConversa()}><MessageCircle size={17} aria-hidden="true" /> {T("me_ajuda")}</button> : null}
+                    {ultimoValido && podePedir ? <button type="button" className={s.secundario} onClick={pedirDeNovo}><RotateCcw size={17} aria-hidden="true" /> {T("pedir_de_novo")}</button> : null}
+                    <button type="button" className={s.link} onClick={trocarNome}>{n ? T("nao_e", { nome: n }) : T("dizer_nome")}</button>
                   </div>
                 </>
               )}
@@ -488,7 +598,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           ) : null}
 
           {cardapio.filtros.length ? (
-            <div className={s.filtros} role="group" aria-label="Filtrar pratos">
+            <div className={s.filtros} role="group" aria-label={T("filtrar")}>
               {cardapio.filtros.map((f) => {
                 const ativo = selos.includes(f.id);
                 return (
@@ -502,22 +612,20 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           {filtrando ? (
             <section id="resultado">
               <div className={s.voltarFiltro}>
-                <h2>{promoAberta ? promoPorId.get(promoAberta)?.titulo || "Promoção" : busca.trim() ? `“${busca.trim()}”` : "Filtrados"}</h2>
-                <button type="button" className={s.secundario} onClick={() => { setBusca(""); setSelos([]); setPromoAberta(""); setBuscaAberta(false); }}><X size={16} aria-hidden="true" /> Limpar</button>
+                <h2>{promoAberta ? promoPorId.get(promoAberta)?.titulo || T("promocoes") : busca.trim() ? `“${busca.trim()}”` : T("filtrados")}</h2>
+                <button type="button" className={s.secundario} onClick={() => { setBusca(""); setSelos([]); setPromoAberta(""); setBuscaAberta(false); }}><X size={16} aria-hidden="true" /> {T("limpar")}</button>
               </div>
               {promoAberta && promoPorId.get(promoAberta) ? (
-                <p className={s.secaoDescricao} style={{ margin: "6px 28px 0 18px" }}>{[promoPorId.get(promoAberta).rotulo, promoPorId.get(promoAberta).quando, promoPorId.get(promoAberta).texto].filter(Boolean).join(" · ")}</p>
+                <p className={s.secaoDescricao} style={{ margin: "6px 18px 0" }}>{[promoPorId.get(promoAberta).rotulo, promoPorId.get(promoAberta).quando, promoPorId.get(promoAberta).texto].filter(Boolean).join(" · ")}</p>
               ) : null}
               <div className={s.secao} style={{ paddingTop: 8 }}>
                 {resultados.length ? (
-                  <ul className={listaClasse}>
-                    {resultados.map((p) => <Item key={p.id} produto={p} promocao={p.promocao_id ? promoPorId.get(p.promocao_id) : null} qtd={qtdNoCarrinho.get(p.id)} onAbrir={abrirPrato} onAdicionar={adicionar} podePedir={podePedir} />)}
-                  </ul>
+                  <ul className={listaClasse}>{resultados.map(linhaItem)}</ul>
                 ) : (
                   <div className={s.vazio}>
-                    <strong>Nada encontrado</strong>
-                    <span>{busca.trim() ? `Não achamos “${busca.trim()}” no cardápio.` : "Nenhum prato com esses filtros."}</span>
-                    {conversaLigada && busca.trim() ? <button type="button" className={s.secundario} onClick={() => abrirConversa(busca.trim())}><MessageCircle size={17} aria-hidden="true" /> Perguntar para a casa</button> : null}
+                    <strong>{T("nada_encontrado")}</strong>
+                    <span>{busca.trim() ? T("nao_achamos", { busca: busca.trim() }) : T("nenhum_filtro")}</span>
+                    {conversaLigada && busca.trim() ? <button type="button" className={s.secundario} onClick={() => abrirConversa(busca.trim())}><MessageCircle size={17} aria-hidden="true" /> {T("perguntar_casa")}</button> : null}
                   </div>
                 )}
               </div>
@@ -526,7 +634,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             <>
               {cardapio.promocoes.length ? (
                 <section className={s.faixa} id="secao-promocoes" data-secao="promocoes" style={{ scrollMarginTop: 68 }}>
-                  <h2 className={s.faixaTitulo}>Promoções</h2>
+                  <h2 className={s.faixaTitulo}>{T("promocoes")}</h2>
                   <div className={s.trilho}>
                     {cardapio.promocoes.map((p) => (
                       <button key={p.id} type="button" className={s.promo} onClick={() => (p.produto_ids.length ? acaoBanner({ tipo: "promocao", id: p.id }) : null)} disabled={!p.produto_ids.length} style={!p.produto_ids.length ? { cursor: "default" } : undefined}>
@@ -545,36 +653,43 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
 
               {destaques.length ? (
                 <section className={s.faixa} id="secao-destaques" data-secao="destaques" style={{ scrollMarginTop: 68 }}>
-                  <h2 className={s.faixaTitulo}>A casa indica</h2>
-                  <div className={s.trilho}>{destaques.map((p) => <Miniatura key={p.id} produto={p} onAbrir={abrirPrato} />)}</div>
+                  <h2 className={s.faixaTitulo}>{T("casa_indica")}</h2>
+                  <div className={s.trilho}>{destaques.map((p) => <Miniatura key={p.id} produto={p} onAbrir={abrirPrato} idioma={lingua} />)}</div>
                 </section>
               ) : null}
 
               {cardapio.categorias.length ? cardapio.categorias.map((c) => (
                 <section key={c.id} id={`secao-${c.id}`} data-secao={c.id} className={s.secao} aria-labelledby={`titulo-${c.id}`}>
-                  <Foto src={c.imagem_url} className={s.secaoCapa} loading="lazy" />
-                  <h2 className={s.secaoTitulo} id={`titulo-${c.id}`}>{c.nome}</h2>
-                  {c.descricao ? <p className={s.secaoDescricao}>{c.descricao}</p> : null}
-                  <ul className={listaClasse}>
-                    {c.produto_ids.map((id) => {
-                      const p = porId.get(id);
-                      return p ? <Item key={id} produto={p} promocao={p.promocao_id ? promoPorId.get(p.promocao_id) : null} qtd={qtdNoCarrinho.get(id)} onAbrir={abrirPrato} onAdicionar={adicionar} podePedir={podePedir} /> : null;
-                    })}
-                  </ul>
+                  {c.imagem_url && modo === "mesa" ? (
+                    <div className={s.secaoCabeca}>
+                      <Foto src={c.imagem_url} className={s.secaoCapa} loading="lazy" />
+                      <div className={s.secaoTexto}>
+                        <h2 className={s.secaoTitulo} id={`titulo-${c.id}`}>{c.nome}</h2>
+                        {c.descricao ? <p className={s.secaoDescricao}>{c.descricao}</p> : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <Foto src={c.imagem_url} className={s.secaoCapa} loading="lazy" />
+                      <h2 className={s.secaoTitulo} id={`titulo-${c.id}`}>{c.nome}</h2>
+                      {c.descricao ? <p className={s.secaoDescricao}>{c.descricao}</p> : null}
+                    </>
+                  )}
+                  <ul className={listaClasse}>{c.produto_ids.map((id) => (porId.get(id) ? linhaItem(porId.get(id)) : null))}</ul>
                 </section>
               )) : (
-                <div className={s.vazio}><strong>O cardápio está sendo montado</strong><span>A equipe te mostra as opções de hoje.</span></div>
+                <div className={s.vazio}><strong>{T("montando")}</strong><span>{T("montando_sub")}</span></div>
               )}
             </>
           )}
 
           <footer className={s.rodape}>
             {textos.rodape ? <p style={{ whiteSpace: "pre-line" }}>{textos.rodape}</p> : null}
-            <p>Preços conferidos pelo restaurante no envio do pedido.</p>
+            <p>{T("precos_conferidos")}</p>
           </footer>
         </main>
 
-        <aside className={s.painelPedido} aria-label="Seu pedido">
+        <aside className={s.painelPedido} aria-label={T("seu_pedido")}>
           {largo ? (
             <Pedido cardapio={cardapio} carrinho={carrinho} etapa={etapa} setEtapa={setEtapa} mesa={mesa} form={form} setForm={setForm}
               erros={erros} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} resultado={resultado} nome={nome}
@@ -583,28 +698,82 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         </aside>
       </div>
 
-      {!largo && podePedir && (qtdTotal > 0 || etapa === "enviado") && !pedidoAberto ? (
-        <button type="button" className={s.barraPedido} onClick={() => setPedidoAberto(true)}>
-          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {qtdTotal ? <span className={s.barraPedidoQtd}>{qtdTotal}</span> : <ShoppingBag size={20} aria-hidden="true" />}
-            {qtdTotal ? "Ver pedido" : "Pedido enviado"}
-          </span>
-          {qtdTotal ? <span>{formatarPreco(totalCarrinho.total)}</span> : null}
+      {!largo && podePedir && qtdTotal > 0 && folha !== "pedido" ? (
+        <button type="button" className={s.barraPedido} onClick={() => setFolha("pedido")}>
+          <span style={{ display: "flex", alignItems: "center", gap: 10 }}><span className={s.barraPedidoQtd}>{qtdTotal}</span>{T("ver_pedido")}</span>
+          <span>{formatarPreco(totalCarrinho.total, lingua)}</span>
         </button>
       ) : null}
 
-      {pedidoAberto && !largo ? (
-        <Pedido cardapio={cardapio} carrinho={carrinho} etapa={etapa} setEtapa={setEtapa} mesa={mesa} form={form} setForm={setForm}
-          erros={erros} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} resultado={resultado} nome={nome}
-          alterarQtd={alterarQtd} definirObs={definirObs} remover={remover} adicionar={adicionar} onAbrirPrato={(id) => { setPedidoAberto(false); abrirPrato(id); }}
-          modo="folha" onFechar={() => { setPedidoAberto(false); if (etapa === "enviado") setEtapa("carrinho"); }} previa={previa} />
+      {celular ? (
+        <nav className={s.navInferior} aria-label={T("cardapio")}>
+          <button type="button" className={s.navBotao} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><Home size={22} aria-hidden="true" />{T("inicio")}</button>
+          <button type="button" className={s.navBotao} onClick={() => irParaSecao("promocoes")} disabled={!cardapio.promocoes.length} style={!cardapio.promocoes.length ? { opacity: 0.4 } : undefined}><Tag size={22} aria-hidden="true" />{T("promocoes")}</button>
+          <button type="button" className={s.navBotao} onClick={() => abrirConversa()} disabled={!conversaLigada} style={!conversaLigada ? { opacity: 0.4 } : undefined}><MessageCircle size={22} aria-hidden="true" />{T("conversa")}</button>
+          <button type="button" className={s.navBotao} onClick={() => setFolha("pedidos")}><Receipt size={22} aria-hidden="true" />{T("meus_pedidos")}{meusPedidos.length ? <span className={s.contagem}>{meusPedidos.length}</span> : null}</button>
+          <button type="button" className={s.navBotao} onClick={() => setFolha("pedido")} disabled={!podePedir}><ShoppingBag size={22} aria-hidden="true" />{T("sacola")}{qtdTotal ? <span className={s.contagem}>{qtdTotal}</span> : null}</button>
+        </nav>
       ) : null}
 
-      {gaveta && !lateral ? (
-        <Folha titulo="Seções" onFechar={() => setGaveta(false)} classe={s.gaveta}>
+      {folha === "pedido" && !largo ? (
+        <Pedido cardapio={cardapio} carrinho={carrinho} etapa={etapa} setEtapa={setEtapa} mesa={mesa} form={form} setForm={setForm}
+          erros={erros} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} resultado={resultado} nome={nome}
+          alterarQtd={alterarQtd} definirObs={definirObs} remover={remover} adicionar={adicionar} onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }}
+          modo="folha" onFechar={() => { setFolha(""); if (etapa === "enviado") setEtapa("carrinho"); }} previa={previa} />
+      ) : null}
+
+      {folha === "secoes" && !lateral ? (
+        <Folha titulo={T("secoes")} onFechar={() => setFolha("")} classe={s.gaveta} idioma={lingua}>
           {listaSecoes}
           <div className={s.lateralRodape}>
-            <button type="button" className={`${s.secundario} ${s.largo}`} onClick={() => { setGaveta(false); setBuscaAberta(true); }}><Search size={18} aria-hidden="true" /> Buscar no cardápio</button>
+            <button type="button" className={`${s.secundario} ${s.largo}`} onClick={() => { setFolha(""); setBuscaAberta(true); }}><Search size={18} aria-hidden="true" /> {T("buscar")}</button>
+          </div>
+        </Folha>
+      ) : null}
+
+      {folha === "idiomas" ? (
+        <Folha titulo={T("idioma")} onFechar={() => setFolha("")} idioma={lingua}>
+          <ul className={s.idiomaLista}>
+            {idiomasOferecidos.map((i) => (
+              <li key={i.id}>
+                <button type="button" className={s.idiomaOpcao} aria-current={i.id === lingua ? "true" : undefined} onClick={() => escolherIdioma(i.id)} lang={i.lang}>
+                  <span>{i.nome}</span>{i.id === lingua ? <Check size={20} aria-hidden="true" /> : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Folha>
+      ) : null}
+
+      {folha === "pedidos" ? (
+        <Folha titulo={T("meus_pedidos")} onFechar={() => setFolha("")} idioma={lingua}
+          pe={meusPedidos.length ? <button type="button" className={`${s.secundario} ${s.largo}`} style={{ justifyContent: "center" }} onClick={atualizarPedidos} disabled={andamento.carregando}><RotateCcw size={16} aria-hidden="true" /> {T("atualizar")}</button> : null}>
+          <div className={s.folhaCorpo}>
+            {!meusPedidos.length ? <p className={s.pedidoObs}>{T("meus_pedidos_vazio")}</p> : null}
+            {andamento.pedidos.map((p) => (
+              <div key={p.id} className={s.pedidoCard}>
+                <span className={s.etapa} data-etapa={p.etapa}>{rotuloEtapa(p)}</span>
+                <span className={s.pedidoObs}>{T("pedido_das", { hora: p.criado_em ? hora(p.criado_em) : "—" })}</span>
+                {p.itens.map((i) => <span key={i.produto_id} style={{ fontSize: "0.92rem" }}>{i.quantidade} × {porId.get(i.produto_id)?.nome || "—"}</span>)}
+                <span className={s.total} style={{ display: "flex", justifyContent: "space-between" }}><span>{T("total")}</span><span>{formatarPreco(p.total, lingua)}</span></span>
+              </div>
+            ))}
+            {meusPedidos.length && !andamento.pedidos.length && andamento.carregando ? <p className={s.pedidoObs}>…</p> : null}
+            {meusPedidos.length && !andamento.carregando && andamento.erro ? <p className={s.erro} role="alert">{T("pedidos_erro")}</p> : null}
+            {meusPedidos.length && !andamento.carregando && andamento.lido && !andamento.pedidos.length ? <p className={s.pedidoObs}>{T("pedidos_nao_achados")}</p> : null}
+          </div>
+        </Folha>
+      ) : null}
+
+      {folha === "info" ? (
+        <Folha titulo={unidade.nome} onFechar={() => setFolha("")} idioma={lingua}>
+          <div className={s.folhaCorpo}>
+            {cidade ? <div className={s.infoLinha}><strong><MapPin size={14} aria-hidden="true" /> {T("endereco_loja")}</strong><span>{[unidade.endereco, cidade].filter(Boolean).join(" · ")}</span></div> : null}
+            {unidade.horario ? <div className={s.infoLinha}><strong><Clock size={14} aria-hidden="true" /> {T("horario")}</strong><span>{unidade.horario}</span></div> : null}
+            {unidade.telefone ? <div className={s.infoLinha}><strong><Phone size={14} aria-hidden="true" /> {T("telefone_loja")}</strong><a href={`tel:${unidade.telefone.replace(/[^\d+]/g, "")}`}>{unidade.telefone}</a></div> : null}
+            <div className={s.infoLinha}><strong><Truck size={14} aria-hidden="true" /> {T("entrega_titulo")}</strong>
+              <span>{unidade.delivery_aberto ? T("delivery_aberto") : T("delivery_fechado")} · {unidade.taxa_entrega > 0 ? T("entrega_valor", { valor: formatarPreco(unidade.taxa_entrega, lingua) }) : T("entrega_gratis")}</span>
+            </div>
           </div>
         </Folha>
       ) : null}
@@ -616,46 +785,49 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       ) : null}
 
       {pAberto ? (
-        <Folha rotulo={pAberto.nome} onFechar={() => setPrato(null)} semCabeca
+        <Folha rotulo={pAberto.nome} onFechar={() => setPrato(null)} semCabeca idioma={lingua}
           pe={podePedir ? (
             <div className={s.linhaAcoes}>
               <span className={s.contador}>
-                <button type="button" onClick={() => setQtdPrato((q) => Math.max(1, q - 1))} aria-label="Menos um" disabled={qtdPrato <= 1}><Minus size={18} aria-hidden="true" /></button>
+                <button type="button" onClick={() => setQtdPrato((q) => Math.max(1, q - 1))} aria-label={T("menos_um")} disabled={qtdPrato <= 1}><Minus size={18} aria-hidden="true" /></button>
                 <output aria-live="polite">{qtdPrato}</output>
-                <button type="button" onClick={() => setQtdPrato((q) => Math.min(50, q + 1))} aria-label="Mais um"><Plus size={18} aria-hidden="true" /></button>
+                <button type="button" onClick={() => setQtdPrato((q) => Math.min(50, q + 1))} aria-label={T("mais_um")}><Plus size={18} aria-hidden="true" /></button>
               </span>
               <button type="button" className={s.primario} onClick={() => { adicionar(pAberto.id, qtdPrato, obsPrato.trim()); setPrato(null); }}>
-                Adicionar · {formatarPreco(pAberto.preco * qtdPrato)}
+                {T("adicionar_valor", { valor: formatarPreco(pAberto.preco * qtdPrato, lingua) })}
               </button>
             </div>
           ) : null}>
           <div className={s.folhaCorpo}>
             <Foto src={pAberto.imagem_url} className={s.detalheFoto} alt={pAberto.nome} />
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-              <h2 className={s.detalheNome}>{pAberto.nome}</h2>
+              <div style={{ minWidth: 0 }}>
+                <h2 className={s.detalheNome}>{pAberto.nome}</h2>
+                {pAberto.nome_original ? <p className={s.nomeOriginal} lang="pt-BR" style={{ margin: "4px 0 0", fontSize: "0.9rem" }}>{pAberto.nome_original}</p> : null}
+              </div>
               <span style={{ display: "flex", gap: 6, flex: "none" }}>
-                {!previa ? <button type="button" className={s.fechar} onClick={() => compartilhar(pAberto)} aria-label="Compartilhar este prato"><Share2 size={18} aria-hidden="true" /></button> : null}
-                <button type="button" className={s.fechar} onClick={() => setPrato(null)} aria-label="Fechar"><X size={20} aria-hidden="true" /></button>
+                {!previa ? <button type="button" className={s.fechar} onClick={() => compartilhar(pAberto)} aria-label={T("compartilhar")}><Share2 size={18} aria-hidden="true" /></button> : null}
+                <button type="button" className={s.fechar} onClick={() => setPrato(null)} aria-label={T("fechar")}><X size={20} aria-hidden="true" /></button>
               </span>
             </div>
-            <div className={s.itemRodape} style={{ marginTop: 8 }}><Preco produto={pAberto} /><Selos produto={pAberto} promocao={pAberto.promocao_id ? promoPorId.get(pAberto.promocao_id) : null} /></div>
+            <div className={s.itemRodape} style={{ marginTop: 8 }}><Preco produto={pAberto} idioma={lingua} /><Selos produto={pAberto} promocao={pAberto.promocao_id ? promoPorId.get(pAberto.promocao_id) : null} idioma={lingua} /></div>
             {pAberto.descricao ? <p className={s.detalheDescricao}>{pAberto.descricao}</p> : null}
             {pAberto.promocao_id && promoPorId.get(pAberto.promocao_id)?.quando ? (
-              <div className={s.detalheBloco}><strong>PROMOÇÃO</strong><span>{promoPorId.get(pAberto.promocao_id).titulo} · {promoPorId.get(pAberto.promocao_id).quando}</span></div>
+              <div className={s.detalheBloco}><strong>{T("promocao_bloco")}</strong><span>{promoPorId.get(pAberto.promocao_id).titulo} · {promoPorId.get(pAberto.promocao_id).quando}</span></div>
             ) : null}
-            {pAberto.harmoniza ? <div className={s.detalheBloco}><strong>VAI BEM COM</strong><span>{pAberto.harmoniza}</span></div> : null}
+            {pAberto.harmoniza ? <div className={s.detalheBloco}><strong>{T("vai_bem")}</strong><span>{pAberto.harmoniza}</span></div> : null}
             {pAberto.alergenicos.length || pAberto.pode_conter ? (
               <div className={s.detalheBloco}>
-                <strong>ALERGÊNICOS (DA FICHA DA COZINHA)</strong>
-                {pAberto.alergenicos.length ? <span>Contém: {pAberto.alergenicos.join(", ")}.</span> : null}
-                {pAberto.pode_conter ? <span>Pode conter: {pAberto.pode_conter}.</span> : null}
-                <span style={{ color: "var(--c-suave)" }}>Tem alergia? Confirme com a equipe antes de pedir.</span>
+                <strong>{T("alergenicos_titulo")}</strong>
+                {pAberto.alergenicos.length ? <span>{T("contem", { lista: pAberto.alergenicos.join(", ") })}</span> : null}
+                {pAberto.pode_conter ? <span>{T("pode_conter", { lista: pAberto.pode_conter })}</span> : null}
+                <span style={{ color: "var(--c-suave)" }}>{T("alergia_confirme")}</span>
               </div>
             ) : null}
             {podePedir ? (
               <label className={s.detalheBloco} style={{ display: "grid" }}>
-                <strong>OBSERVAÇÃO</strong>
-                <textarea className={s.observacao} value={obsPrato} onChange={(e) => setObsPrato(e.target.value.slice(0, 200))} placeholder="Ex.: sem cebola, molho à parte" />
+                <strong>{T("observacao")}</strong>
+                <textarea className={s.observacao} value={obsPrato} onChange={(ev) => setObsPrato(ev.target.value.slice(0, 200))} placeholder={T("obs_placeholder")} />
               </label>
             ) : null}
           </div>

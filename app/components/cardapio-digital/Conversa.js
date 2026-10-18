@@ -1,19 +1,22 @@
 "use client";
 
-// Conversa com o cliente. Respostas prontas a partir do cardápio montado —
-// o que o dono marcou e o que está na ficha técnica (responderConversa).
-// Não há modelo de linguagem aqui: nada é inventado, e quando falta a
-// informação a resposta diz isso e oferece outro caminho.
+// Conversa com o cliente (o "chatbot" do cardápio). Respostas prontas a
+// partir do cardápio montado — o que o dono marcou e o que está na ficha
+// técnica (responderConversa) — no idioma que o cliente escolheu. Não há
+// modelo de linguagem aqui: nada é inventado, e quando falta a informação a
+// resposta diz isso e oferece outro caminho.
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Plus, SendHorizontal } from "lucide-react";
 import { entenderMensagem, responderConversa, aberturaDaConversa, formatarPreco, primeiroNome } from "../../lib/cardapio-digital.mjs";
+import { t } from "../../lib/cardapio-idiomas.mjs";
 import { Foto, travar, soltar } from "./partes";
 import s from "./cardapio.module.css";
 
 const ESPERA_MS = 380;
 
 export default function Conversa({ cardapio, nome, mensagens, setMensagens, onFechar, onAbrirPrato, onAdicionar, onIrParaSecao, podePedir, consultaInicial = "" }) {
+  const idioma = cardapio.idioma || "pt";
   const [texto, setTexto] = useState("");
   const [digitando, setDigitando] = useState(false);
   const fim = useRef(null);
@@ -21,7 +24,7 @@ export default function Conversa({ cardapio, nome, mensagens, setMensagens, onFe
   const fechar = useRef(onFechar);
   fechar.current = onFechar;
   const porId = new Map(cardapio.produtos.map((p) => [p.id, p]));
-  const atendente = cardapio.conversa.nome_atendente || cardapio.unidade.nome || "A casa";
+  const atendente = cardapio.conversa.nome_atendente || cardapio.unidade.nome || t(idioma, "a_casa");
 
   useEffect(() => {
     if (!mensagens.length) setMensagens([{ de: "casa", ...aberturaDaConversa(cardapio, { nome }) }]);
@@ -44,10 +47,10 @@ export default function Conversa({ cardapio, nome, mensagens, setMensagens, onFe
   }
 
   function perguntar(conteudo, { tipo, id } = {}) {
-    const t = String(conteudo || "").trim();
-    if (!t) return;
-    setMensagens((m) => [...m, { de: "cliente", texto: t }]);
-    responder(tipo === "intencao" ? { tipo: "intencao", id } : entenderMensagem(t, cardapio));
+    const q = String(conteudo || "").trim();
+    if (!q) return;
+    setMensagens((m) => [...m, { de: "cliente", texto: q }]);
+    responder(tipo === "intencao" ? { tipo: "intencao", id } : entenderMensagem(q, cardapio));
   }
 
   function acao(a) {
@@ -55,16 +58,17 @@ export default function Conversa({ cardapio, nome, mensagens, setMensagens, onFe
     perguntar(a.rotulo, { tipo: "intencao", id: a.id });
   }
 
+  const n = primeiroNome(nome);
   return (
-    <div className={s.conversa} role="dialog" aria-modal="true" aria-label={`Conversa com ${atendente}`} ref={caixa} tabIndex={-1}>
+    <div className={s.conversa} role="dialog" aria-modal="true" aria-label={t(idioma, "conversa_com", { nome: atendente })} ref={caixa} tabIndex={-1}>
       <div className={s.conversaCabeca}>
-        <button type="button" className={s.fechar} onClick={() => fechar.current?.()} aria-label="Voltar ao cardápio"><ArrowLeft size={20} aria-hidden="true" /></button>
+        <button type="button" className={s.fechar} onClick={() => fechar.current?.()} aria-label={t(idioma, "voltar_cardapio")}><ArrowLeft size={20} aria-hidden="true" /></button>
         <span className={s.avatar} aria-hidden="true">
           <Foto src={cardapio.tema.logo_url} fallback={(atendente.trim()[0] || "C").toUpperCase()} />
         </span>
         <span className={s.conversaQuem}>
           <strong>{atendente}</strong>
-          <span>{primeiroNome(nome) ? `Conversando com ${primeiroNome(nome)}` : "Pergunte sobre o cardápio"}</span>
+          <span>{n ? t(idioma, "conversando_com", { nome: n }) : t(idioma, "pergunte_cardapio")}</span>
         </span>
       </div>
 
@@ -80,10 +84,11 @@ export default function Conversa({ cardapio, nome, mensagens, setMensagens, onFe
                   <Foto src={p.imagem_url} loading="lazy" fallback={<span className={s.pratoMsgSem} aria-hidden="true">{p.nome.trim()[0]}</span>} />
                   <button type="button" className={s.pratoMsgAbrir} onClick={() => onAbrirPrato(id)}>
                     <strong>{p.nome}</strong>
-                    <span className={s.preco}>{formatarPreco(p.preco)}{p.preco_original ? <span className={s.precoAntigo} style={{ marginLeft: 6 }}>{formatarPreco(p.preco_original)}</span> : null}</span>
+                    {p.nome_original ? <span className={s.nomeOriginal} lang="pt-BR">{p.nome_original}</span> : null}
+                    <span className={s.preco}>{formatarPreco(p.preco, idioma)}{p.preco_original ? <span className={s.precoAntigo} style={{ marginLeft: 6 }}>{formatarPreco(p.preco_original, idioma)}</span> : null}</span>
                   </button>
                   {podePedir ? (
-                    <button type="button" className={s.mais} onClick={() => onAdicionar(id)} aria-label={`Adicionar ${p.nome}`}><Plus size={20} aria-hidden="true" /></button>
+                    <button type="button" className={s.mais} onClick={() => onAdicionar(id)} aria-label={t(idioma, "adicionar_prato", { prato: p.nome })}><Plus size={20} aria-hidden="true" /></button>
                   ) : <span />}
                 </div>
               );
@@ -97,13 +102,13 @@ export default function Conversa({ cardapio, nome, mensagens, setMensagens, onFe
             ) : null}
           </div>
         ))}
-        {digitando ? <div className={s.digitando} aria-label="Respondendo"><i /><i /><i /></div> : null}
+        {digitando ? <div className={s.digitando} aria-label={t(idioma, "respondendo")}><i /><i /><i /></div> : null}
         <div ref={fim} />
       </div>
 
       <form className={s.escrever} onSubmit={(e) => { e.preventDefault(); perguntar(texto); setTexto(""); }}>
-        <input value={texto} onChange={(e) => setTexto(e.target.value.slice(0, 120))} placeholder="Pergunte: tem algo sem glúten?" aria-label="Sua mensagem" enterKeyHint="send" />
-        <button type="submit" className={s.enviar} aria-label="Enviar" disabled={!texto.trim()}><SendHorizontal size={20} aria-hidden="true" /></button>
+        <input value={texto} onChange={(e) => setTexto(e.target.value.slice(0, 120))} placeholder={t(idioma, "conversa_placeholder")} aria-label={t(idioma, "sua_mensagem")} enterKeyHint="send" />
+        <button type="submit" className={s.enviar} aria-label={t(idioma, "enviar")} disabled={!texto.trim()}><SendHorizontal size={20} aria-hidden="true" /></button>
       </form>
     </div>
   );

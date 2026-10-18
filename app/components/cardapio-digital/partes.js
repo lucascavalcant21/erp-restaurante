@@ -1,15 +1,15 @@
 "use client";
 
-// Peças do cardápio digital: preço, selos, prato (lista e cartão), banner de
-// abertura, folha (detalhe, pedido) e aviso rápido. Tudo recebe o cardápio já
-// montado (app/lib/cardapio-digital.mjs) — nada aqui calcula preço.
+// Peças do cardápio digital: foto, preço, selos, prato (lista e cartão),
+// banner de abertura, folha (detalhe, pedido, idiomas) e aviso rápido. Tudo
+// recebe o cardápio já montado e no idioma do cliente — nada aqui calcula
+// preço nem traduz conteúdo.
 
 import { useEffect, useRef, useState } from "react";
 import { Plus, X, Play, ChevronRight } from "lucide-react";
-import { SELOS, formatarPreco } from "../../lib/cardapio-digital.mjs";
+import { formatarPreco, rotuloSelo } from "../../lib/cardapio-digital.mjs";
+import { t } from "../../lib/cardapio-idiomas.mjs";
 import s from "./cardapio.module.css";
-
-const ROTULO_SELO = Object.fromEntries(SELOS.map((x) => [x.id, x.rotulo]));
 
 /** Foto que não carregou (link quebrado, sem internet) some — nunca ícone quebrado. */
 export function Foto({ src, alt = "", fallback = null, ...resto }) {
@@ -19,73 +19,87 @@ export function Foto({ src, alt = "", fallback = null, ...resto }) {
   return <img src={src} alt={alt} decoding="async" onError={() => setErro(true)} {...resto} />;
 }
 
-export function Preco({ produto }) {
+export function Preco({ produto, idioma }) {
   return (
     <>
-      <span className={s.preco}>{formatarPreco(produto.preco)}</span>
-      {produto.preco_original ? <span className={s.precoAntigo} aria-label={`antes ${formatarPreco(produto.preco_original)}`}>{formatarPreco(produto.preco_original)}</span> : null}
+      {produto.preco_original ? <span className={s.precoAntigo} aria-label={t(idioma, "antes_preco", { valor: formatarPreco(produto.preco_original, idioma) })}>{formatarPreco(produto.preco_original, idioma)}</span> : null}
+      <span className={s.preco}>{formatarPreco(produto.preco, idioma)}</span>
     </>
   );
 }
 
-export function Selos({ produto, promocao }) {
+export function Selos({ produto, promocao, idioma }) {
   if (!produto.selos.length && !promocao) return null;
   return (
     <span className={s.selos}>
       {promocao ? <span className={`${s.selo} ${s.seloPromo}`}>{promocao.rotulo || promocao.titulo}</span> : null}
-      {produto.selos.map((id) => <span key={id} className={s.selo}>{ROTULO_SELO[id] || id}</span>)}
+      {produto.selos.map((id) => <span key={id} className={s.selo}>{rotuloSelo(id, idioma)}</span>)}
     </span>
   );
 }
 
-function BotaoMais({ produto, qtd, onAdicionar }) {
+function Nome({ produto }) {
   return (
-    <button type="button" className={s.mais} data-qtd={qtd || 0} onClick={() => onAdicionar(produto.id)}
-      aria-label={qtd ? `Mais um ${produto.nome} (${qtd} no pedido)` : `Adicionar ${produto.nome}`}>
-      {qtd ? qtd : <Plus size={20} strokeWidth={2.2} aria-hidden="true" />}
+    <>
+      <span className={s.itemNome}>{produto.nome}</span>
+      {produto.nome_original ? <span className={s.nomeOriginal} lang="pt-BR">{produto.nome_original}</span> : null}
+    </>
+  );
+}
+
+function BotaoMais({ produto, qtd, onAdicionar, idioma, comTexto }) {
+  return (
+    <button type="button" className={`${s.mais} ${comTexto ? s.maisTexto : ""}`} data-qtd={qtd || 0} onClick={() => onAdicionar(produto.id)}
+      aria-label={qtd ? t(idioma, "mais_prato", { prato: produto.nome, n: qtd }) : t(idioma, "adicionar_prato", { prato: produto.nome })}>
+      {qtd ? <span className={s.maisQtd}>{qtd}</span> : <Plus size={20} strokeWidth={2.2} aria-hidden="true" />}
+      {comTexto ? <span className={s.maisRotulo}>{t(idioma, "adicionar")}</span> : null}
     </button>
   );
 }
 
-export function ItemLista({ produto, promocao, qtd, onAbrir, onAdicionar, podePedir }) {
+// Prato em lista. No delivery a foto fica à direita com o "+" em cima dela;
+// na mesa (tablet) vira cartão: foto à esquerda, texto, botão "Adicionar".
+export function ItemLista({ produto, promocao, qtd, onAbrir, onAdicionar, podePedir, idioma, comTexto }) {
+  const [semFoto, setSemFoto] = useState(false);
+  const temFoto = Boolean(produto.imagem_url) && !semFoto;
   return (
-    <li className={s.item}>
+    <li className={`${s.item} ${temFoto ? s.temFoto : ""}`}>
       <button type="button" className={s.itemAbrir} onClick={() => onAbrir(produto.id)}>
-        <span className={s.itemNome}>{produto.nome}</span>
+        <Nome produto={produto} />
         {produto.descricao ? <span className={s.itemDescricao}>{produto.descricao}</span> : null}
-        <span className={s.itemRodape}><Preco produto={produto} /><Selos produto={produto} promocao={promocao} /></span>
+        <span className={s.itemRodape}><Preco produto={produto} idioma={idioma} /><Selos produto={produto} promocao={promocao} idioma={idioma} /></span>
       </button>
       <span className={s.itemLado}>
-        <Foto src={produto.imagem_url} className={s.itemFoto} loading="lazy" onClick={() => onAbrir(produto.id)} />
-        {podePedir ? <BotaoMais produto={produto} qtd={qtd} onAdicionar={onAdicionar} /> : null}
+        {temFoto ? <img src={produto.imagem_url} className={s.itemFoto} loading="lazy" decoding="async" alt="" onClick={() => onAbrir(produto.id)} onError={() => setSemFoto(true)} /> : null}
+        {podePedir ? <BotaoMais produto={produto} qtd={qtd} onAdicionar={onAdicionar} idioma={idioma} comTexto={comTexto} /> : null}
       </span>
     </li>
   );
 }
 
-export function ItemCartao({ produto, promocao, qtd, onAbrir, onAdicionar, podePedir }) {
+export function ItemCartao({ produto, promocao, qtd, onAbrir, onAdicionar, podePedir, idioma, comTexto }) {
   return (
     <li className={s.cartao}>
-      <Foto src={produto.imagem_url} className={s.cartaoFoto} loading="lazy" onClick={() => onAbrir(produto.id)} />
+      <Foto src={produto.imagem_url} className={s.cartaoFoto} loading="lazy" onClick={() => onAbrir(produto.id)} alt="" />
       <button type="button" className={s.itemAbrir} onClick={() => onAbrir(produto.id)}>
-        <span className={s.itemNome}>{produto.nome}</span>
+        <Nome produto={produto} />
         {produto.descricao ? <span className={s.itemDescricao}>{produto.descricao}</span> : null}
-        <Selos produto={produto} promocao={promocao} />
+        <Selos produto={produto} promocao={promocao} idioma={idioma} />
       </button>
       <span className={s.cartaoRodape}>
-        <span className={s.itemRodape} style={{ marginTop: 0 }}><Preco produto={produto} /></span>
-        {podePedir ? <BotaoMais produto={produto} qtd={qtd} onAdicionar={onAdicionar} /> : null}
+        <span className={s.itemRodape} style={{ marginTop: 0 }}><Preco produto={produto} idioma={idioma} /></span>
+        {podePedir ? <BotaoMais produto={produto} qtd={qtd} onAdicionar={onAdicionar} idioma={idioma} comTexto={comTexto} /> : null}
       </span>
     </li>
   );
 }
 
-export function Miniatura({ produto, onAbrir }) {
+export function Miniatura({ produto, onAbrir, idioma }) {
   return (
     <button type="button" className={s.miniatura} onClick={() => onAbrir(produto.id)}>
       <Foto src={produto.imagem_url} className={s.miniaturaFoto} loading="lazy" fallback={<span className={s.miniaturaSemFoto}>{produto.nome}</span>} />
       {produto.imagem_url ? <span className={s.miniaturaNome}>{produto.nome}</span> : null}
-      <span className={s.itemRodape} style={{ marginTop: 0 }}><Preco produto={produto} /></span>
+      <span className={s.itemRodape} style={{ marginTop: 0 }}><Preco produto={produto} idioma={idioma} /></span>
     </button>
   );
 }
@@ -93,7 +107,7 @@ export function Miniatura({ produto, onAbrir }) {
 const reduzMovimento = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 /** Banner de abertura: fotos e vídeos do dono, com toque que leva a algum lugar. */
-export function Abertura({ slides, onAcao, previa }) {
+export function Abertura({ slides, onAcao, previa, idioma, classe = "" }) {
   const trilho = useRef(null);
   const videos = useRef({});
   const [atual, setAtual] = useState(0);
@@ -116,8 +130,8 @@ export function Abertura({ slides, onAcao, previa }) {
     const slide = slides[atual];
     if (slide?.tipo === "video") return;
     const espera = Math.max(6000, pausadoAte - Date.now());
-    const t = setTimeout(() => { if (!document.hidden) ir(atual + 1); }, espera);
-    return () => clearTimeout(t);
+    const tm = setTimeout(() => { if (!document.hidden) ir(atual + 1); }, espera);
+    return () => clearTimeout(tm);
   }, [atual, slides, pausadoAte, semMovimento]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Só o vídeo visível toca.
@@ -144,8 +158,9 @@ export function Abertura({ slides, onAcao, previa }) {
   }, [atual]);
 
   if (!slides.length) return null;
+  const rotuloAcao = (a) => t(idioma, a.tipo === "produto" ? "ver_prato" : a.tipo === "promocao" ? "ver_promocao" : "ver_secao");
   return (
-    <section className={s.abertura} aria-roledescription="carrossel" aria-label="Destaques da casa">
+    <section className={`${s.abertura} ${classe}`} aria-roledescription="carousel" aria-label={t(idioma, "destaques_casa")}>
       <div className={s.slides} ref={trilho} onScroll={aoRolar} onPointerDown={() => setPausadoAte(Date.now() + 10000)}>
         {slides.map((sl, i) => {
           const conteudo = (
@@ -159,10 +174,10 @@ export function Abertura({ slides, onAcao, previa }) {
                   playsInline
                   preload={i === 0 ? "auto" : "metadata"}
                   loop={slides.length === 1}
-                  onPlay={() => setTocando((t) => ({ ...t, [sl.id]: true }))}
-                  onPause={() => setTocando((t) => ({ ...t, [sl.id]: false }))}
+                  onPlay={() => setTocando((x) => ({ ...x, [sl.id]: true }))}
+                  onPause={() => setTocando((x) => ({ ...x, [sl.id]: false }))}
                   onEnded={() => { if (slides.length > 1) ir(i + 1); }}
-                  aria-label={sl.titulo || "Vídeo da casa"}
+                  aria-label={sl.titulo || t(idioma, "tocar_video")}
                 />
               ) : (
                 <img src={sl.url} alt={sl.titulo || ""} loading={i === 0 ? "eager" : "lazy"} decoding="async" />
@@ -171,13 +186,13 @@ export function Abertura({ slides, onAcao, previa }) {
                 <span className={s.slideTexto}>
                   {sl.titulo ? <span className={s.slideTitulo} style={{ display: "block" }}>{sl.titulo}</span> : null}
                   {sl.texto ? <span className={s.slideSub} style={{ display: "block" }}>{sl.texto}</span> : null}
-                  {sl.acao ? <span className={s.slideAcao}>{sl.acao.tipo === "produto" ? "Ver o prato" : sl.acao.tipo === "promocao" ? "Ver a promoção" : "Ver a seção"} <ChevronRight size={16} aria-hidden="true" /></span> : null}
+                  {sl.acao ? <span className={s.slideAcao}>{rotuloAcao(sl.acao)} <ChevronRight size={16} aria-hidden="true" /></span> : null}
                 </span>
               ) : null}
             </>
           );
           return sl.acao && !previa ? (
-            <button key={sl.id} type="button" className={s.slide} onClick={() => onAcao(sl.acao)} aria-label={sl.titulo || "Abrir destaque"}>
+            <button key={sl.id} type="button" className={s.slide} onClick={() => onAcao(sl.acao)} aria-label={sl.titulo || rotuloAcao(sl.acao)}>
               {conteudo}
             </button>
           ) : (
@@ -186,14 +201,14 @@ export function Abertura({ slides, onAcao, previa }) {
         })}
       </div>
       {slides[atual]?.tipo === "video" && (semMovimento || !tocando[slides[atual].id]) ? (
-        <button type="button" className={s.tocarVideo} aria-label="Tocar vídeo" onClick={() => videos.current[slides[atual].id]?.play?.().catch(() => {})}>
+        <button type="button" className={s.tocarVideo} aria-label={t(idioma, "tocar_video")} onClick={() => videos.current[slides[atual].id]?.play?.().catch(() => {})}>
           <Play size={20} aria-hidden="true" />
         </button>
       ) : null}
       {slides.length > 1 ? (
         <div className={s.pontos}>
           {slides.map((sl, i) => (
-            <button key={sl.id} type="button" className={s.ponto} aria-label={`Destaque ${i + 1} de ${slides.length}`}
+            <button key={sl.id} type="button" className={s.ponto} aria-label={t(idioma, "destaque_n", { i: i + 1, n: slides.length })}
               aria-current={i === atual ? "true" : undefined} onClick={() => { setPausadoAte(Date.now() + 10000); ir(i); }} />
           ))}
         </div>
@@ -208,7 +223,7 @@ let travas = 0;
 export function travar() { travas++; document.body.style.overflow = "hidden"; }
 export function soltar() { travas = Math.max(0, travas - 1); if (!travas) document.body.style.overflow = ""; }
 
-export function Folha({ titulo, rotulo, onFechar, children, pe, classe = s.folha, semCabeca = false }) {
+export function Folha({ titulo, rotulo, onFechar, children, pe, classe = s.folha, semCabeca = false, idioma = "pt" }) {
   const caixa = useRef(null);
   const fechar = useRef(onFechar);
   fechar.current = onFechar;
@@ -231,7 +246,7 @@ export function Folha({ titulo, rotulo, onFechar, children, pe, classe = s.folha
         {semCabeca ? null : (
           <div className={s.folhaCabeca}>
             <h2>{titulo}</h2>
-            <button type="button" className={s.fechar} onClick={() => fechar.current?.()} aria-label="Fechar"><X size={20} aria-hidden="true" /></button>
+            <button type="button" className={s.fechar} onClick={() => fechar.current?.()} aria-label={t(idioma, "fechar")}><X size={20} aria-hidden="true" /></button>
           </div>
         )}
         {children}
@@ -244,8 +259,8 @@ export function Folha({ titulo, rotulo, onFechar, children, pe, classe = s.folha
 export function Aviso({ aviso, onFechar }) {
   useEffect(() => {
     if (!aviso) return;
-    const t = setTimeout(onFechar, aviso.acao ? 5000 : 3000);
-    return () => clearTimeout(t);
+    const tm = setTimeout(onFechar, aviso.acao ? 5000 : 3000);
+    return () => clearTimeout(tm);
   }, [aviso, onFechar]);
   if (!aviso) return null;
   return (

@@ -61,9 +61,9 @@ export default function InstallPrompt() {
     try { localStorage.setItem("hefisto_install_dispensado_ate", String(Date.now() + 3 * 86400000)); } catch {}
   };
 
-  // O portal público é apenas para candidatura. Não oferece instalação do ERP
-  // ao candidato nem mistura a seleção de vaga com recursos administrativos.
-  if (!visivel || pathname?.startsWith("/vagas/")) return null;
+  // Páginas públicas (candidatura, cardápio do cliente): não oferece a
+  // instalação do ERP a quem não é da equipe.
+  if (!visivel || pathname?.startsWith("/vagas/") || pathname?.startsWith("/cardapio/")) return null;
 
   return (
     <div

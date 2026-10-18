@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 1** (APR-011; APR-007: falta só o merge do PR #171)
+**Pendentes agora: 2** (APR-011, APR-014; APR-007: falta só o merge do PR #171)
 
 ### APR-001 · EXECUTADO
 
@@ -188,3 +188,36 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Decidido por:** lucas (no chat da sessão: "arquivar")
 - **Nota:** Executado em 17/10/2026. Verificação: 28 arquivadas, 0 pendentes sem unidade, R$ 7.964,69; md5 de (id, valor, vencimento) antes = depois = fdd6c4cf0d7eddee75c20b680ff8a0f0; backup_documentos_doc_legado_1_20261017 com 28 linhas, RLS ligado, 0 grants para o app (TESTADO NO SUPABASE REAL)
 - **Chave:** dados:db/DOC_LEGADO_1_ARQUIVAR_DOCUMENTOS.sql
+
+### APR-014 · PENDENTE
+
+- **Missão:** Pedido do dono 18/10: fidelidade com cartões de selo por produto e cashback
+- **Ação:** Aplicar db/FIDELIDADE_1_SELOS_E_CASHBACK.sql no Supabase real
+  - tabela nova `fidelidade_movimentos` (livro só de inclusão; RLS: só lê quem tem `clientes.loyalty.view` na unidade; ninguém grava direto);
+  - trigger nova em `pedidos`: pedido pago/entregue dá selo e cashback; cancelado estorna;
+  - funções da equipe (resgatar prêmio, usar cashback, lançar selo de balcão/ajuste) com permissão conferida no banco;
+  - função só do servidor para o cliente usar o cashback num pedido do cardápio
+- **Ambiente:** supabase (produção)
+- **Risco:** HIGH (trigger nova em `pedidos` e valor em dinheiro: o cashback vira desconto de verdade)
+- **Motivo:** sem a tabela, o cardápio só mostra as regras do programa; o saldo dos clientes não existe. Quem dá selo é o banco, só em pedido concluído (pedido falso não ganha nada)
+- **Impacto:**
+  - nenhuma linha existente muda (só leitura de pedidos, itens e configuração);
+  - o programa só começa quando o dono ligar em Cardápio digital → Fidelidade;
+  - erro da fidelidade nunca trava o pedido (vira aviso no log)
+- **Rollback:** no cabeçalho do SQL (apaga o livro e os saldos: exportar antes)
+- **Evidências:** PGlite 12/12 (`app/lib/fidelidade-banco.test.mjs`):
+  - só aditiva;
+  - pedido enviado não ganha; concluído ganha uma vez; cancelado estorna;
+  - sem telefone ou programa desligado não ganha;
+  - configuração ruim não trava o pedido;
+  - livro imutável;
+  - resgate com permissão e saldo; lançamento com motivo;
+  - cashback só pelo servidor, com telefone conferido; validade;
+  - RLS por unidade;
+  - saldo do app = saldo do banco.
+  - Regras puras: `app/lib/fidelidade.test.mjs` 10/10.
+  - TESTADO LOCAL. NÃO VALIDADO no Supabase real.
+- **Impressão digital esperada:** a32b229f546e8c0c55587257a21ada60
+- **Status:** PENDENTE
+- **Criado em:** 2026-10-18
+- **Chave:** banco:db/FIDELIDADE_1_SELOS_E_CASHBACK.sql

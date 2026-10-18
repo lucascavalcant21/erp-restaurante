@@ -7,7 +7,10 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
-// ── Seeds (Fallback caso a tabela não exista) ─────────────────────────────────
+// ── Seeds: só sem banco configurado (desenvolvimento) ────────────────────────
+// Antes, tabela vazia ou erro de leitura também mostravam estes clientes,
+// avaliações e campanhas como se fossem da casa (B-031). Com o banco ligado,
+// lista vazia é lista vazia e erro é erro.
 export const CLIENTES_SEED = [
   { id: "1", nome: "Fernando Costa", telefone: "(11) 9988-7766", unidade: "todas", total_gasto: 3450.00, total_pedidos: 14, ultima_compra: "2026-06-21", status: "Vip" },
   { id: "2", nome: "Mariana Souza", telefone: "(11) 9777-6655", unidade: "todas", total_gasto: 1280.50, total_pedidos: 5, ultima_compra: "2026-06-19", status: "Frequente" },
@@ -33,7 +36,7 @@ export async function fetchClientes(unidadeId) {
     supabase.from("clientes").select("*").order("total_gasto", { ascending: false }),
     unidadeId,
   );
-  if (error || !data) return { data: CLIENTES_SEED, error: null, fromSeed: true };
+  if (error || !data) return { data: [], error: error?.message || "Não foi possível ler os clientes.", fromSeed: false };
   
   // Adiciona a tag "status" dinamicamente
   const enriquecidos = data.map(c => {
@@ -48,7 +51,7 @@ export async function fetchClientes(unidadeId) {
     return { ...c, status: s };
   });
   
-  return { data: enriquecidos.length > 0 ? enriquecidos : CLIENTES_SEED, error: null, fromSeed: false };
+  return { data: enriquecidos, error: null, fromSeed: false };
 }
 
 export async function inserirCliente(cliente, unidadeId) {
@@ -70,7 +73,7 @@ export async function fetchAvaliacoes(unidadeId) {
     supabase.from("avaliacoes_nps").select("*").order("data", { ascending: false }),
     unidadeId,
   );
-  if (error || !data || data.length === 0) return { data: AVALIACOES_SEED, error: null, fromSeed: true };
+  if (error || !data) return { data: [], error: error?.message || "Não foi possível ler as avaliações.", fromSeed: false };
   return { data, error: null, fromSeed: false };
 }
 
@@ -87,7 +90,7 @@ export async function fetchCampanhas(unidadeId) {
     supabase.from("campanhas").select("*").order("created_at", { ascending: false }),
     unidadeId,
   );
-  if (error || !data || data.length === 0) return { data: CAMPANHAS_SEED, error: null, fromSeed: true };
+  if (error || !data) return { data: [], error: error?.message || "Não foi possível ler as campanhas.", fromSeed: false };
   return { data, error: null, fromSeed: false };
 }
 

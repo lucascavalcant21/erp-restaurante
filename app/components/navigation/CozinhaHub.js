@@ -494,6 +494,18 @@ export default function CozinhaHub({ onVerGestaoCompleta }) {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
+                  onClick={() => router.push("/dashboard/assistente")}
+                  className="col-span-2 p-3.5 rounded-xl bg-emerald-950/20 hover:bg-emerald-950/30 border border-emerald-600/40 text-left transition-all min-h-[54px] cursor-pointer flex items-center justify-between"
+                >
+                  <div>
+                    <p className="text-xs font-black text-emerald-800 truncate">✨ Green Dot Assist (Tablet de Bancada)</p>
+                    <p className="text-[10px] text-emerald-700 font-semibold">Receitas rápidas, equipamentos, escala e praças</p>
+                  </div>
+                  <ArrowRight size={16} className="text-emerald-700 shrink-0" />
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => router.push("/dashboard/operacao/fichas?dept=cozinha")}
                   className="p-3 rounded-xl bg-hf-surface hover:bg-hf-elevated border border-hf-border text-left transition-all min-h-[48px] cursor-pointer"
                 >

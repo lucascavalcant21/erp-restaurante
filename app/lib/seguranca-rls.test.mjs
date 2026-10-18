@@ -187,6 +187,136 @@ test("ROLLBACK volta exatamente ao estado aberto de antes", { skip: pular }, asy
   assert.equal((await pg.query("select count(*)::int n from pg_trigger where tgname = 'sec_unidade_padrao'")).rows[0].n, 0);
 });
 
+// ─── HÉFISTO EXPERIENCE: tabelas novas nascem com sec_unidade (18/10/2026) ──
+// SQL REAL das duas migrações sobre as funções de acesso COMO ESTÃO EM PRODUÇÃO (versão SEC-RLS-2).
+// Produção (18/10, só leitura): as tabelas experience_* não existem; nada foi exposto.
+
+const EXPERIENCE = Object.fromEntries(["MIGRACAO_EXPERIENCE_CAMPANHAS.sql", "MIGRACAO_EXPERIENCE_HEXP_001.sql"]
+  .map((f) => [f, fs.readFileSync(path.join(raiz, "db", f), "utf8")]));
+const FASE2 = fs.readFileSync(path.join(raiz, "db", "security", "SEC_RLS_2_FASE2.sql"), "utf8");
+const funcaoDeProducao = (nome) => new RegExp(`create or replace function public\\.${nome}\\(\\)[\\s\\S]*?\\n\\$\\$;`).exec(FASE2)[0];
+// a versão de ff18b9e / 27732ad, para quem chegou a rodar
+const EXPERIENCE_ANTIGA = `
+  create table public.experience_campanhas (id uuid primary key default gen_random_uuid(), unidade_id text not null, produto_id uuid,
+    produto_nome text not null, mensagem_ia text not null, local_exibicao text not null default 'abertura', status text not null default 'ativa',
+    created_at timestamptz default now());
+  alter table public.experience_campanhas enable row level security;
+  create policy "experience_campanhas_select_all" on public.experience_campanhas for select using (true);
+  create policy "experience_campanhas_all_auth" on public.experience_campanhas for all to authenticated using (true) with check (true);
+  create table public.experience_chamados (id uuid primary key default gen_random_uuid(), unidade_id text not null, mesa_id uuid,
+    mesa_numero text not null, tipo text not null default 'garcom', status text not null default 'pendente', solicitante_nome text, observacao text,
+    created_at timestamptz default now());
+  alter table public.experience_chamados enable row level security;
+  create policy "experience_chamados_select_autenticado" on public.experience_chamados for select to authenticated using (true);
+  create policy "experience_chamados_update_autenticado" on public.experience_chamados for update to authenticated using (true) with check (true);
+  create policy "experience_chamados_service_role" on public.experience_chamados for all to service_role using (true) with check (true);
+  insert into public.experience_campanhas (unidade_id, produto_nome, mensagem_ia) values ('seldeestrela', 'Drink', 'oi'), ('outra', 'Prato', 'oi');
+  insert into public.experience_chamados (unidade_id, mesa_numero, solicitante_nome) values ('seldeestrela', '1', 'Ana'), ('outra', '2', 'Bia');`;
+
+async function bancoExperience({ semSecRls = false, extra = "" } = {}) {
+  const { PGlite } = await import(pathToFileURL(path.join(process.env.PGLITE, "dist", "index.js")).href);
+  const pg = new PGlite();
+  await pg.exec(`
+    create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
+    create schema auth;
+    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    grant usage on schema auth to anon, authenticated, service_role; grant usage on schema public to anon, authenticated, service_role;
+    grant execute on all functions in schema auth to anon, authenticated, service_role;
+    -- pior caso: o padrão do Supabase antes da SEC-DADOS-3 (anon recebe tudo em tabela nova)
+    alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+    create table public.unidades (id text primary key, nome text, empresa_id uuid);
+    create table public.usuarios_erp (id uuid primary key default gen_random_uuid(), auth_user_id uuid unique, status text default 'ativo',
+      super_admin boolean default false, unidade_principal_id text, locked_until timestamptz);
+    create table public.usuario_escopos (id uuid primary key default gen_random_uuid(), usuario_id uuid references public.usuarios_erp(id),
+      empresa_id uuid, unidade_id text, data_scope text);
+    create table public.produtos (id uuid primary key default gen_random_uuid(), unidade_id text, nome_produto text);
+    create table public.mesas (id uuid primary key default gen_random_uuid(), unidade_id text, numero text);
+    create table public.pedidos (id uuid primary key default gen_random_uuid(), unidade_id text, valor_total numeric);
+    ${semSecRls ? "" : `${funcaoDeProducao("hefisto_ve_todas_unidades")}\n${funcaoDeProducao("hefisto_unidades_do_usuario")}`}
+    insert into public.unidades values ('seldeestrela', 'Sal de Estrela', null), ('outra', 'Outra empresa', null);
+    insert into public.usuarios_erp (auth_user_id, unidade_principal_id, super_admin, status) values
+      ('${U.a}', 'seldeestrela', false, 'ativo'), ('${U.b}', 'outra', false, 'ativo'), ('${U.admin}', null, true, 'ativo'),
+      ('${U.inativo}', 'seldeestrela', false, 'inativo');
+  `);
+  if (extra) await pg.exec(extra);
+  return pg;
+}
+const comoServidor = async (pg, sql) => { await pg.exec("set role service_role"); try { return await pg.query(sql); } finally { await pg.exec("reset role"); } };
+const aplicarExperience = async (pg) => { for (const sql of Object.values(EXPERIENCE)) await pg.exec(sql); };
+const policiesExperience = async (pg) => (await pg.query(`select tablename, policyname, cmd, coalesce(qual, '') q, coalesce(with_check, '') c from pg_policies
+  where schemaname = 'public' and tablename like 'experience%' order by 1, 2`)).rows;
+
+test("Experience: as duas migrações não abrem RLS e têm preflight, transação, verificação e rollback documentado", () => {
+  for (const [f, sql] of Object.entries(EXPERIENCE)) {
+    const m = classificarMigracao(sql);
+    assert.equal(m.rlsInseguro, false, f);
+    assert.notEqual(m.classe, "CRITICAL", f);
+    for (const k of ["preflight", "transacao", "verificacao", "rollback"]) assert.ok(m[k], `${f}: ${k}`);
+  }
+});
+
+test("Experience DEPOIS: campanhas e chamados isolados por unidade; anon sem acesso; navegador não cria nem apaga chamado", { skip: pular }, async () => {
+  const pg = await bancoExperience();
+  await aplicarExperience(pg);
+  // chamados nascem pela rota pública da mesa (servidor, service_role)
+  await comoServidor(pg, "insert into public.experience_chamados (unidade_id, mesa_numero, solicitante_nome) values ('seldeestrela', '1', 'Ana'), ('outra', '2', 'Bia')");
+  // campanhas nascem na tela do ERP (navegador, authenticated): só na própria unidade
+  await como(pg, U.a, "insert into public.experience_campanhas (unidade_id, produto_nome, mensagem_ia) values ('seldeestrela', 'Drink', 'oi')");
+  await como(pg, U.b, "insert into public.experience_campanhas (unidade_id, produto_nome, mensagem_ia) values ('outra', 'Prato', 'oi')");
+  assert.match(await erro(como(pg, U.a, "insert into public.experience_campanhas (unidade_id, produto_nome, mensagem_ia) values ('outra', 'x', 'invasão')")), /row-level security/);
+  for (const t of ["experience_campanhas", "experience_chamados"]) {
+    assert.equal(await unidadesVistas(pg, U.a, t), "seldeestrela", `A em ${t}`);
+    assert.equal(await unidadesVistas(pg, U.b, t), "outra", `B em ${t}`);
+    assert.equal(await unidadesVistas(pg, U.admin, t), "outra,seldeestrela", `super admin em ${t}`);
+    assert.equal(await unidadesVistas(pg, U.inativo, t), "", `inativo em ${t}`);
+    assert.match(await erro(como(pg, null, `select * from public.${t}`)), /permission denied/, `anon em ${t}`);
+  }
+  assert.equal((await como(pg, U.a, "update public.experience_campanhas set status = 'pausada' where unidade_id = 'outra' returning id")).rows.length, 0, "não pausa a campanha dos outros");
+  assert.equal((await como(pg, U.a, "delete from public.experience_campanhas where unidade_id = 'outra' returning id")).rows.length, 0, "não apaga a campanha dos outros");
+  assert.equal((await como(pg, U.a, "update public.experience_chamados set status = 'concluido' where unidade_id = 'seldeestrela' returning id")).rows.length, 1, "atende o chamado da própria unidade");
+  assert.equal((await como(pg, U.a, "update public.experience_chamados set status = 'concluido' where unidade_id = 'outra' returning id")).rows.length, 0, "não mexe no chamado dos outros");
+  assert.match(await erro(como(pg, U.a, "update public.experience_chamados set unidade_id = 'outra'")), /row-level security/);
+  assert.match(await erro(como(pg, U.a, "insert into public.experience_chamados (unidade_id, mesa_numero) values ('seldeestrela', '9')")), /permission denied/);
+  assert.match(await erro(como(pg, U.a, "delete from public.experience_chamados")), /permission denied/);
+  assert.match(await erro(comoServidor(pg, "insert into public.experience_chamados (unidade_id, mesa_numero) values ('nao-existe', '1')")), /foreign key/, "unidade inventada na URL não grava");
+  const pols = await policiesExperience(pg);
+  assert.deepEqual(pols.map((p) => `${p.tablename}:${p.policyname}:${p.cmd}`), ["experience_campanhas:sec_unidade:ALL", "experience_chamados:sec_unidade:ALL"]);
+  assert.ok(pols.every((p) => /hefisto_ve_todas_unidades/.test(p.q) && /hefisto_unidades_do_usuario/.test(p.c)));
+  await aplicarExperience(pg); // reaplicar só reconfere
+  assert.equal((await policiesExperience(pg)).length, 2);
+  assert.equal((await pg.query("select count(*)::int n from public.experience_chamados")).rows[0].n, 2, "reaplicar não mexe nos dados");
+});
+
+test("Experience: banco que rodou a versão antiga (policy aberta) fica isolado depois, sem perder dado", { skip: pular }, async () => {
+  const pg = await bancoExperience({ extra: EXPERIENCE_ANTIGA });
+  assert.equal(await unidadesVistas(pg, U.b, "experience_chamados"), "outra,seldeestrela", "ANTES: B lê o chamado (nome do cliente) da Sal de Estrela");
+  assert.equal((await como(pg, U.b, "update public.experience_campanhas set status = 'pausada' where unidade_id = 'seldeestrela' returning id")).rows.length, 1, "ANTES: B pausa a campanha dos outros");
+  await aplicarExperience(pg);
+  for (const t of ["experience_campanhas", "experience_chamados"]) {
+    assert.equal(await unidadesVistas(pg, U.b, t), "outra", `DEPOIS: B em ${t}`);
+    assert.equal(await unidadesVistas(pg, U.admin, t), "outra,seldeestrela", `DEPOIS: super admin em ${t}`);
+    assert.match(await erro(como(pg, null, `select * from public.${t}`)), /permission denied/, `DEPOIS: anon em ${t}`);
+  }
+  assert.deepEqual((await policiesExperience(pg)).map((p) => p.policyname), ["sec_unidade", "sec_unidade"]);
+  assert.equal((await pg.query("select count(*)::int n from public.experience_campanhas")).rows[0].n, 2, "nenhuma campanha apagada");
+});
+
+test("Experience: preflight aborta SEM mudar nada (sem SEC-RLS-1; policy desconhecida)", { skip: pular }, async () => {
+  for (const sql of Object.values(EXPERIENCE)) {
+    const pg = await bancoExperience({ semSecRls: true });
+    assert.match(await erro(pg.exec(sql)), /falta a SEC-RLS-1/);
+    await pg.exec("rollback").catch(() => {});
+    assert.equal((await pg.query("select to_regclass('public.experience_campanhas') a, to_regclass('public.experience_chamados') b")).rows[0].a, null);
+    assert.equal((await pg.query("select count(*)::int n from information_schema.columns where table_name = 'produtos' and column_name = 'descricao'")).rows[0].n, 0);
+  }
+  const pg = await bancoExperience({ extra: `${EXPERIENCE_ANTIGA}
+    create policy so_gerente on public.experience_chamados for select to authenticated using (auth.uid() is not null);` });
+  assert.match(await erro(aplicarExperience(pg)), /policy desconhecida "so_gerente" em public.experience_chamados/);
+  await pg.exec("rollback").catch(() => {});
+  // a campanhas (1º arquivo) já foi corrigida; a dos chamados ficou como estava
+  assert.ok((await policiesExperience(pg)).some((p) => p.policyname === "experience_chamados_select_autenticado"), "nada mudou nos chamados");
+});
+
 // ─── TRAVAS CONTRA REGRESSÃO (rodam sem PGLITE, toda rodada do agente) ──────
 
 // Arquivos antigos que JÁ criam policy aberta ou desligam RLS (08/10/2026). Estão congelados:

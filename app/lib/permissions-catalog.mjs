@@ -216,6 +216,9 @@ export const PERMISSION_MODULES = [
       { id: "crm", label: "CRM", route: "/dashboard/clientes/crm", actions: CRUD },
       { id: "campaigns", label: "Campanhas", route: "/dashboard/clientes/campanhas", actions: CRUD },
       { id: "nps", label: "NPS", route: "/dashboard/clientes/nps", actions: ["view", "edit", "export"] },
+      // Fidelidade: ver saldos (view), lançar selo de balcão/ajuste (edit), entregar prêmio e usar cashback (confirm).
+      // As mesmas chaves (clientes.loyalty.*) são conferidas no banco pelas funções da FIDELIDADE-1.
+      { id: "loyalty", label: "Fidelidade e cadastro", route: "/dashboard/clientes/fidelidade", actions: ["view", "edit", "confirm"] },
       { id: "coupons", label: "Cupons", route: "/dashboard/marketing/cupons", actions: CRUD },
     ],
   },

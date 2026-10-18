@@ -63,7 +63,7 @@ export default function InstallPrompt() {
 
   // Páginas públicas (candidatura, cardápio do cliente): não oferece a
   // instalação do ERP a quem não é da equipe.
-  if (!visivel || pathname?.startsWith("/vagas/") || pathname?.startsWith("/cardapio/")) return null;
+  if (!visivel || pathname?.startsWith("/vagas/") || pathname?.startsWith("/cardapio/") || pathname?.startsWith("/cadastro/")) return null;
 
   return (
     <div

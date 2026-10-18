@@ -13,3 +13,8 @@ export function caminhoDoCardapio(unidade, { mesa = "" } = {}) {
   const base = `/cardapio/${encodeURIComponent(String(unidade || ""))}`;
   return m ? `${base}?mesa=${encodeURIComponent(m)}` : base;
 }
+
+/** Página do cadastro pelo QR (CRM + desconto do cadastro). */
+export function caminhoDoCadastro(unidade) {
+  return `/cadastro/${encodeURIComponent(String(unidade || ""))}`;
+}

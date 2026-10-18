@@ -6,7 +6,7 @@
 // preço nem traduz conteúdo.
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, X, Play, ChevronRight } from "lucide-react";
+import { Plus, X, Play, ChevronRight, Stamp } from "lucide-react";
 import { formatarPreco, rotuloSelo } from "../../lib/cardapio-digital.mjs";
 import { t } from "../../lib/cardapio-idiomas.mjs";
 import s from "./cardapio.module.css";
@@ -28,11 +28,16 @@ export function Preco({ produto, idioma }) {
   );
 }
 
-export function Selos({ produto, promocao, idioma }) {
-  if (!produto.selos.length && !promocao) return null;
+export function Selos({ produto, promocao, idioma, cartoes = [] }) {
+  if (!produto.selos.length && !promocao && !cartoes.length) return null;
   return (
     <span className={s.selos}>
       {promocao ? <span className={`${s.selo} ${s.seloPromo}`}>{promocao.rotulo || promocao.titulo}</span> : null}
+      {cartoes.map((c) => (
+        <span key={c.id} className={`${s.selo} ${s.seloFid}`} title={t(idioma, "fid_selo_prato", { cartao: c.nome })}>
+          <Stamp size={12} aria-hidden="true" /> {c.nome}
+        </span>
+      ))}
       {produto.selos.map((id) => <span key={id} className={s.selo}>{rotuloSelo(id, idioma)}</span>)}
     </span>
   );
@@ -59,7 +64,7 @@ function BotaoMais({ produto, qtd, onAdicionar, idioma, comTexto }) {
 
 // Prato em lista. No delivery a foto fica à direita com o "+" em cima dela;
 // na mesa (tablet) vira cartão: foto à esquerda, texto, botão "Adicionar".
-export function ItemLista({ produto, promocao, qtd, onAbrir, onAdicionar, podePedir, idioma, comTexto }) {
+export function ItemLista({ produto, promocao, qtd, onAbrir, onAdicionar, podePedir, idioma, comTexto, cartoes }) {
   const [semFoto, setSemFoto] = useState(false);
   const temFoto = Boolean(produto.imagem_url) && !semFoto;
   return (
@@ -67,7 +72,7 @@ export function ItemLista({ produto, promocao, qtd, onAbrir, onAdicionar, podePe
       <button type="button" className={s.itemAbrir} onClick={() => onAbrir(produto.id)}>
         <Nome produto={produto} />
         {produto.descricao ? <span className={s.itemDescricao}>{produto.descricao}</span> : null}
-        <span className={s.itemRodape}><Preco produto={produto} idioma={idioma} /><Selos produto={produto} promocao={promocao} idioma={idioma} /></span>
+        <span className={s.itemRodape}><Preco produto={produto} idioma={idioma} /><Selos produto={produto} promocao={promocao} idioma={idioma} cartoes={cartoes} /></span>
       </button>
       <span className={s.itemLado}>
         {temFoto ? <img src={produto.imagem_url} className={s.itemFoto} loading="lazy" decoding="async" alt="" onClick={() => onAbrir(produto.id)} onError={() => setSemFoto(true)} /> : null}
@@ -77,14 +82,14 @@ export function ItemLista({ produto, promocao, qtd, onAbrir, onAdicionar, podePe
   );
 }
 
-export function ItemCartao({ produto, promocao, qtd, onAbrir, onAdicionar, podePedir, idioma, comTexto }) {
+export function ItemCartao({ produto, promocao, qtd, onAbrir, onAdicionar, podePedir, idioma, comTexto, cartoes }) {
   return (
     <li className={s.cartao}>
       <Foto src={produto.imagem_url} className={s.cartaoFoto} loading="lazy" onClick={() => onAbrir(produto.id)} alt="" />
       <button type="button" className={s.itemAbrir} onClick={() => onAbrir(produto.id)}>
         <Nome produto={produto} />
         {produto.descricao ? <span className={s.itemDescricao}>{produto.descricao}</span> : null}
-        <Selos produto={produto} promocao={promocao} idioma={idioma} />
+        <Selos produto={produto} promocao={promocao} idioma={idioma} cartoes={cartoes} />
       </button>
       <span className={s.cartaoRodape}>
         <span className={s.itemRodape} style={{ marginTop: 0 }}><Preco produto={produto} idioma={idioma} /></span>

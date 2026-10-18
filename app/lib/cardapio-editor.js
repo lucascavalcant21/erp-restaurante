@@ -6,13 +6,17 @@
 //     a mesma que a cozinha usa — o cardápio é ligado a ela;
 //   - foto do prato: no produto de venda (produtos.imagem_url);
 //   - delivery aberto e taxa de entrega: na unidade (unidades), que é de onde
-//     o servidor tira a taxa cobrada no pedido.
+//     o servidor tira a taxa cobrada no pedido;
+//   - regras da fidelidade (cartões de selo e cashback):
+//     config_sistema.params.fidelidade — os SALDOS ficam no banco
+//     (fidelidade_movimentos, FIDELIDADE-1), nunca aqui.
 // Preço não se edita aqui: é o do produto (Produtos / ficha técnica).
 
 import { supabase, isSupabaseReady } from "./supabase";
 import { salvarParams } from "./parametros";
 import { salvarProduto } from "./vendas";
 import { normalizarConfigCardapio } from "./cardapio-digital.mjs";
+import { normalizarFidelidade } from "./fidelidade.mjs";
 
 const LOTE = 100;
 const COLUNA_FALTANDO = /column .* does not exist|could not find the .* column|schema cache/i;
@@ -51,7 +55,7 @@ export async function carregarEditorCardapio(unidadeId) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") {
     return { erro: "Escolha uma unidade para editar o cardápio dela." };
   }
-  const [rU, rP, rF, rC, rM] = await Promise.all([
+  const [rU, rP, rF, rC, rM, rL] = await Promise.all([
     lerUnidade(unidadeId),
     supabase.from("produtos").select("id, nome_produto, preco_venda, categoria, departamento, imagem_url, ficha_id, ativo")
       .eq("unidade_id", unidadeId).eq("ativo", true).order("nome_produto"),
@@ -60,6 +64,8 @@ export async function carregarEditorCardapio(unidadeId) {
       .eq("unidade_id", unidadeId),
     supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1),
     supabase.from("mesas").select("numero").eq("unidade_id", unidadeId).order("numero"),
+    // Só para saber se o livro da fidelidade já existe no banco (FIDELIDADE-1 aplicada).
+    supabase.from("fidelidade_movimentos").select("id", { count: "exact", head: true }).eq("unidade_id", unidadeId),
   ]);
   if (rP.error) return { erro: "Não foi possível ler os produtos de venda." };
   const fichas = rF.error ? [] : (rF.data || []);
@@ -88,6 +94,8 @@ export async function carregarEditorCardapio(unidadeId) {
     fichasComFoto: rFoto.error ? [] : rFoto.data.map((f) => f.id),
     alergenicos: rA.error ? [] : rA.data,
     config: params && typeof params === "object" && params.cardapio_digital ? params.cardapio_digital : {},
+    fidelidade: params && typeof params === "object" && params.fidelidade ? params.fidelidade : {},
+    livroFidelidade: !rL.error,
     mesas: rM.error ? [] : (rM.data || []).map((m) => m.numero).filter(Boolean),
   };
 }
@@ -120,7 +128,7 @@ export async function enviarArquivoCardapio(unidadeId, arquivo, pasta = "geral")
  * (UPDATE barrado por RLS volta sem erro e sem linha) e a vitrine é relida
  * depois de gravada.
  */
-export async function salvarEditorCardapio(unidadeId, { config, fichas = {}, produtos = {}, unidade = {} }) {
+export async function salvarEditorCardapio(unidadeId, { config, fichas = {}, produtos = {}, unidade = {}, fidelidade }) {
   if (!isSupabaseReady()) return { erros: ["Sem conexão com o banco."] };
   const erros = [];
   const mudancaUnidade = {};
@@ -153,13 +161,17 @@ export async function salvarEditorCardapio(unidadeId, { config, fichas = {}, pro
     if (error || !data?.length) erros.push("A foto de um prato não foi gravada (sem permissão ou produto removido).");
   }
   const vitrine = normalizarConfigCardapio(config);
-  const r = await salvarParams(unidadeId, { cardapio_digital: vitrine });
+  const regras = fidelidade === undefined ? undefined : normalizarFidelidade(fidelidade);
+  const r = await salvarParams(unidadeId, regras === undefined ? { cardapio_digital: vitrine } : { cardapio_digital: vitrine, fidelidade: regras });
   if (r?.error) erros.push("A aparência do cardápio não foi salva.");
   else {
     const { data } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
-    const gravado = data?.[0]?.params?.cardapio_digital;
-    if (estavel(normalizarConfigCardapio(gravado)) !== estavel(vitrine)) {
+    const gravado = data?.[0]?.params;
+    if (estavel(normalizarConfigCardapio(gravado?.cardapio_digital)) !== estavel(vitrine)) {
       erros.push("A aparência do cardápio não foi confirmada no banco. Confira sua permissão e tente de novo.");
+    }
+    if (regras !== undefined && estavel(normalizarFidelidade(gravado?.fidelidade)) !== estavel(regras)) {
+      erros.push("As regras da fidelidade não foram confirmadas no banco. Confira sua permissão e tente de novo.");
     }
   }
   return { erros: [...new Set(erros)], config: vitrine };

@@ -23,7 +23,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ALargeSmall, Clock, Globe, Home, MessageCircle, Menu, Minus, Plus, Receipt, RotateCcw, Search, Share2,
-  ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin,
+  ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin, Gift,
 } from "lucide-react";
 import {
   aplicarNome, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, primeiroNome, saudacao, totalDoCarrinho,
@@ -32,6 +32,8 @@ import { IDIOMAS, TEXTOS_PADRAO, detectarIdioma, infoIdioma, t } from "../../lib
 import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, Selos } from "./partes";
 import Conversa from "./Conversa";
 import Pedido from "./Pedido";
+import { CartaoFidelidade, DetalheFidelidade, cartoesDoPrato } from "./Fidelidade";
+import { cashbackUsavel, descontoDoCadastro } from "../../lib/fidelidade.mjs";
 import s from "./cardapio.module.css";
 
 const ATUALIZAR_MS = 2 * 60 * 1000;
@@ -59,7 +61,11 @@ function useMidia(consulta) {
 const LATERAL = "(min-width: 768px), (orientation: landscape) and (min-width: 640px)";
 const LARGO = "(min-width: 1024px)";
 const CELULAR = "(max-width: 767px)";
-const ERROS_POR_CODIGO = { limite: "erro_limite", item_indisponivel: "erro_item", loja_fechada: "erro_fechado", pedido_minimo: "erro_minimo" };
+const ERROS_POR_CODIGO = {
+  limite: "erro_limite", item_indisponivel: "erro_item", loja_fechada: "erro_fechado", pedido_minimo: "erro_minimo",
+  cashback_telefone: "erro_cashback_tel", cashback_mudou: "erro_cashback", cashback_sem_saldo: "erro_cashback",
+};
+const UM_ANO = 365 * 86400000;
 
 export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm = null, mesa = "", pratoInicial = "", previa = false }) {
   const [base, setBase] = useState(inicial);
@@ -84,6 +90,11 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const [resultado, setResultado] = useState(null);
   const [meusPedidos, setMeusPedidos] = useState([]);
   const [andamento, setAndamento] = useState({ carregando: false, pedidos: [] });
+  // Fidelidade: ids dos pedidos feitos neste aparelho (a prova para o servidor achar o telefone) e o saldo.
+  const [fidPedidos, setFidPedidos] = useState([]);
+  const [fidStatus, setFidStatus] = useState(null);
+  const [usarCashback, setUsarCashback] = useState(false);
+  const [cadastroLocal, setCadastroLocal] = useState(null); // { final, pct, aplica, usado } — cadastro pelo QR feito neste aparelho
 
   const [busca, setBusca] = useState("");
   const [buscaAberta, setBuscaAberta] = useState(false);
@@ -94,7 +105,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const [prato, setPrato] = useState(null);
   const [qtdPrato, setQtdPrato] = useState(1);
   const [obsPrato, setObsPrato] = useState("");
-  const [folha, setFolha] = useState(""); // "", "secoes", "pedido", "idiomas", "pedidos", "info"
+  const [folha, setFolha] = useState(""); // "", "secoes", "pedido", "idiomas", "pedidos", "info", "fidelidade"
   const [conversaAberta, setConversaAberta] = useState(false);
   const [consultaConversa, setConsultaConversa] = useState("");
   const [mensagens, setMensagens] = useState([]);
@@ -191,6 +202,10 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     setIdioma(salvo || detectarIdioma(typeof navigator !== "undefined" ? navigator.languages || [navigator.language] : []));
     const doisDias = Date.now() - 2 * 86400000;
     setMeusPedidos((ler(chave(unidadeId, "pedidos"), []) || []).filter((p) => p && typeof p.id === "string" && p.em > doisDias).slice(0, 10));
+    const umAno = Date.now() - UM_ANO;
+    setFidPedidos((ler(chave(unidadeId, "fid-pedidos"), []) || []).filter((p) => p && typeof p.id === "string" && p.em > umAno).slice(0, 10));
+    const cad = ler(chave(unidadeId, "cadastro"), null);
+    if (cad && /^\d{4}$/.test(String(cad.final || ""))) setCadastroLocal(cad);
     const c = ler(chaveCarrinho, []);
     if (Array.isArray(c)) setCarrinho(c.filter((i) => i && typeof i.id === "string" && Number.isInteger(i.quantidade)).slice(0, 50));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -232,6 +247,21 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     return () => clearInterval(tm);
   }, [folha, atualizarPedidos]);
 
+  // Saldo de fidelidade deste aparelho. O servidor acha o telefone num pedido
+  // concluído entre os que o aparelho fez; sem isso, só as regras aparecem.
+  const temFidelidade = Boolean(base?.fidelidade);
+  const carregarFidelidade = useCallback(async () => {
+    if (previa || !temFidelidade) return;
+    try {
+      const ids = fidPedidos.map((p) => p.id).join(",");
+      const r = await fetch(`/api/public/fidelidade?unidade=${encodeURIComponent(unidadeId)}&pedidos=${ids}`, { cache: "no-store" });
+      const j = await r.json().catch(() => null);
+      if (r.ok && j) setFidStatus(j);
+    } catch { /* sem conexão: fica o que já havia */ }
+  }, [previa, temFidelidade, fidPedidos, unidadeId]);
+  useEffect(() => { carregarFidelidade(); }, [carregarFidelidade]);
+  useEffect(() => { if (folha === "fidelidade" || folha === "pedidos") carregarFidelidade(); }, [folha]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── derivados ────────────────────────────────────────────────────────────
   const porId = useMemo(() => new Map((cardapio?.produtos || []).map((p) => [p.id, p])), [cardapio]);
   const promoPorId = useMemo(() => new Map((cardapio?.promocoes || []).map((p) => [p.id, p])), [cardapio]);
@@ -253,6 +283,21 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     return lista;
   }, [cardapio, filtrando, selos, busca, promoAberta, promoPorId]);
   const totalCarrinho = cardapio ? totalDoCarrinho(carrinho, cardapio, { tipo: tipoPedido }) : { total: 0 };
+  // Desconto do cadastro (estimativa: quem confirma é o servidor, no envio).
+  const telFinal = form.telefone.replace(/\D/g, "").slice(-4);
+  const descontoEstimado = cardapio?.fidelidade?.cadastro && cadastroLocal && telFinal === cadastroLocal.final
+    && (cardapio.fidelidade.cadastro.aplica === "sempre" || !cadastroLocal.usado)
+    ? descontoDoCadastro(totalCarrinho.subtotal || 0, cardapio.fidelidade.cadastro.desconto_pct) : 0;
+  // Cashback: só com saldo conhecido e o mesmo WhatsApp (o servidor confere de novo).
+  const saldoCashback = fidStatus?.identificado && fidStatus?.disponivel ? Number(fidStatus.cashback?.saldo) || 0 : 0;
+  const cashbackPossivel = cardapio?.fidelidade?.cashback && saldoCashback > 0 && fidStatus?.final
+    && telFinal === fidStatus.final
+    ? cashbackUsavel(saldoCashback, (totalCarrinho.total || 0) - descontoEstimado, { ativo: true, cashback: { ...cardapio.fidelidade.cashback, ativo: true } }) : 0;
+  const cashbackAplicado = usarCashback ? cashbackPossivel : 0;
+  const infoCashback = {
+    possivel: cashbackPossivel, usar: usarCashback, setUsar: setUsarCashback, final: fidStatus?.final || "", aplicado: cashbackAplicado,
+    desconto: descontoEstimado, pctCadastro: cardapio?.fidelidade?.cadastro?.desconto_pct || 0,
+  };
   const qtdTotal = carrinho.reduce((n, i) => n + i.quantidade, 0);
 
   const secoesMenu = useMemo(() => {
@@ -372,7 +417,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     setErroEnvio("");
     if (Object.keys(e).length) return;
     setEnviando(true);
-    const mostrado = totalCarrinho.total;
+    const mostrado = Math.round((totalCarrinho.total - descontoEstimado - cashbackAplicado) * 100) / 100;
     try {
       const r = await fetch("/api/public/pedidos", {
         method: "POST",
@@ -381,6 +426,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           unidade: unidadeId,
           cliente: { tipo: tipoPedido, nome: form.nome.trim(), telefone: form.telefone.trim() || null, endereco: mesa ? null : form.endereco.trim(), troco: mesa ? null : form.troco.trim() || null, mesa: mesa || null },
           itens: carrinho.map((i) => ({ id: i.id, quantidade: i.quantidade, observacao: i.observacao || "" })),
+          ...(cashbackAplicado > 0 ? { cashback: { usar: true, prova: fidPedidos.map((p) => p.id) } } : {}),
         }),
       });
       const j = await r.json().catch(() => ({}));
@@ -388,9 +434,15 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         const k = ERROS_POR_CODIGO[j.codigo];
         setErroEnvio(k ? T(k, { valor: formatarPreco(cardapio.entrega?.pedido_minimo || 0, lingua) }) : lingua === "pt" && j.erro ? j.erro : T("erro_envio"));
         if (j.codigo === "item_indisponivel") buscar();
+        if (String(j.codigo || "").startsWith("cashback")) { setUsarCashback(false); carregarFidelidade(); }
         return;
       }
-      setResultado({ total: j.total, taxa: j.taxa || 0, itens: j.itens || [], mostrado });
+      setResultado({ total: j.total, taxa: j.taxa || 0, cashback: j.cashback || 0, desconto: j.desconto || 0, itens: j.itens || [], mostrado });
+      if (j.desconto > 0 && cadastroLocal && cardapio.fidelidade?.cadastro?.aplica !== "sempre") {
+        const usado = { ...cadastroLocal, usado: true };
+        setCadastroLocal(usado);
+        gravar(chave(unidadeId, "cadastro"), usado);
+      }
       const ult = { em: Date.now(), itens: carrinho.map(({ id, quantidade }) => ({ id, quantidade })) };
       setUltimo(ult);
       gravar(chave(unidadeId, "ultimo"), ult);
@@ -398,7 +450,11 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         const lista = [{ id: j.id, em: Date.now() }, ...meusPedidos].slice(0, 10);
         setMeusPedidos(lista);
         gravar(chave(unidadeId, "pedidos"), lista);
+        const fid = [{ id: j.id, em: Date.now() }, ...fidPedidos.filter((p) => p.id !== j.id)].slice(0, 10);
+        setFidPedidos(fid);
+        gravar(chave(unidadeId, "fid-pedidos"), fid);
       }
+      setUsarCashback(false);
       gravar(chave(unidadeId, "telefone"), form.telefone.trim());
       if (!mesa) gravar(chave(unidadeId, "endereco"), form.endereco.trim());
       if (!nome && form.nome.trim()) { setNome(form.nome.trim()); gravar(chave(unidadeId, "nome"), form.nome.trim()); }
@@ -476,7 +532,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   ) : null;
   const linhaItem = (p) => (
     <Item key={p.id} produto={p} promocao={p.promocao_id ? promoPorId.get(p.promocao_id) : null} qtd={qtdNoCarrinho.get(p.id)}
-      onAbrir={abrirPrato} onAdicionar={adicionar} podePedir={podePedir} idioma={lingua} comTexto={modo === "mesa"} />
+      onAbrir={abrirPrato} onAdicionar={adicionar} podePedir={podePedir} idioma={lingua} comTexto={modo === "mesa"} cartoes={cartoesDoPrato(cardapio, p.id)} />
   );
   const rotuloEtapa = (p) => (p.etapa === "recebido" ? T("st_recebido") : p.etapa === "preparo" ? T("st_preparo")
     : p.etapa === "pronto" ? T(p.tipo === "mesa" ? "st_pronto_mesa" : "st_pronto_delivery") : p.etapa === "saiu" ? T("st_saiu")
@@ -560,6 +616,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
                 {ent.pedido_minimo > 0 ? <div className={s.entregaLinha}><Receipt size={20} aria-hidden="true" /><span>{T("pedido_minimo", { valor: formatarPreco(ent.pedido_minimo, lingua) })}</span></div> : null}
                 {ent.gratis_acima > 0 && unidade.taxa_entrega > 0 ? <div className={s.entregaLinha}><Tag size={20} aria-hidden="true" /><strong>{T("gratis_acima", { valor: formatarPreco(ent.gratis_acima, lingua) })}</strong></div> : null}
               </div>
+              <CartaoFidelidade cardapio={cardapio} status={fidStatus} onAbrir={() => setFolha("fidelidade")} unidadeId={unidadeId} cadastroLocal={cadastroLocal} />
             </>
           ) : (
             <>
@@ -570,6 +627,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
                 {textos.apresentacao ? <p className={s.apresentacao}>{textos.apresentacao}</p> : null}
                 <span className={s.marcas}><span className={s.chipMesa}>{T("mesa", { mesa })}</span></span>
               </header>
+              <CartaoFidelidade cardapio={cardapio} status={fidStatus} onAbrir={() => setFolha("fidelidade")} unidadeId={unidadeId} cadastroLocal={cadastroLocal} />
             </>
           )}
 
@@ -693,7 +751,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           {largo ? (
             <Pedido cardapio={cardapio} carrinho={carrinho} etapa={etapa} setEtapa={setEtapa} mesa={mesa} form={form} setForm={setForm}
               erros={erros} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} resultado={resultado} nome={nome}
-              alterarQtd={alterarQtd} definirObs={definirObs} remover={remover} adicionar={adicionar} onAbrirPrato={abrirPrato} modo="painel" previa={previa} />
+              alterarQtd={alterarQtd} definirObs={definirObs} remover={remover} adicionar={adicionar} cashback={infoCashback} onAbrirPrato={abrirPrato} modo="painel" previa={previa} />
           ) : null}
         </aside>
       </div>
@@ -718,7 +776,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       {folha === "pedido" && !largo ? (
         <Pedido cardapio={cardapio} carrinho={carrinho} etapa={etapa} setEtapa={setEtapa} mesa={mesa} form={form} setForm={setForm}
           erros={erros} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} resultado={resultado} nome={nome}
-          alterarQtd={alterarQtd} definirObs={definirObs} remover={remover} adicionar={adicionar} onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }}
+          alterarQtd={alterarQtd} definirObs={definirObs} remover={remover} adicionar={adicionar} cashback={infoCashback} onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }}
           modo="folha" onFechar={() => { setFolha(""); if (etapa === "enviado") setEtapa("carrinho"); }} previa={previa} />
       ) : null}
 
@@ -761,6 +819,14 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             {meusPedidos.length && !andamento.pedidos.length && andamento.carregando ? <p className={s.pedidoObs}>…</p> : null}
             {meusPedidos.length && !andamento.carregando && andamento.erro ? <p className={s.erro} role="alert">{T("pedidos_erro")}</p> : null}
             {meusPedidos.length && !andamento.carregando && andamento.lido && !andamento.pedidos.length ? <p className={s.pedidoObs}>{T("pedidos_nao_achados")}</p> : null}
+          </div>
+        </Folha>
+      ) : null}
+
+      {folha === "fidelidade" && cardapio.fidelidade ? (
+        <Folha titulo={T("fid_titulo")} onFechar={() => setFolha("")} idioma={lingua}>
+          <div className={s.folhaCorpo}>
+            <DetalheFidelidade cardapio={cardapio} status={fidStatus} onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }} unidadeId={unidadeId} cadastroLocal={cadastroLocal} />
           </div>
         </Folha>
       ) : null}
@@ -810,12 +876,18 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
                 <button type="button" className={s.fechar} onClick={() => setPrato(null)} aria-label={T("fechar")}><X size={20} aria-hidden="true" /></button>
               </span>
             </div>
-            <div className={s.itemRodape} style={{ marginTop: 8 }}><Preco produto={pAberto} idioma={lingua} /><Selos produto={pAberto} promocao={pAberto.promocao_id ? promoPorId.get(pAberto.promocao_id) : null} idioma={lingua} /></div>
+            <div className={s.itemRodape} style={{ marginTop: 8 }}><Preco produto={pAberto} idioma={lingua} /><Selos produto={pAberto} promocao={pAberto.promocao_id ? promoPorId.get(pAberto.promocao_id) : null} idioma={lingua} cartoes={cartoesDoPrato(cardapio, pAberto.id)} /></div>
             {pAberto.descricao ? <p className={s.detalheDescricao}>{pAberto.descricao}</p> : null}
             {pAberto.promocao_id && promoPorId.get(pAberto.promocao_id)?.quando ? (
               <div className={s.detalheBloco}><strong>{T("promocao_bloco")}</strong><span>{promoPorId.get(pAberto.promocao_id).titulo} · {promoPorId.get(pAberto.promocao_id).quando}</span></div>
             ) : null}
             {pAberto.harmoniza ? <div className={s.detalheBloco}><strong>{T("vai_bem")}</strong><span>{pAberto.harmoniza}</span></div> : null}
+            {cartoesDoPrato(cardapio, pAberto.id).map((c) => (
+              <button key={c.id} type="button" className={`${s.detalheBloco} ${s.fidNoPrato}`} onClick={() => { setPrato(null); setFolha("fidelidade"); }}>
+                <strong><Gift size={14} aria-hidden="true" /> {T("fid_titulo")}</strong>
+                <span>{T("fid_selo_prato", { cartao: c.nome })} · {T("fid_cartao", { n: c.selos, premio: c.recompensa })}</span>
+              </button>
+            ))}
             {pAberto.alergenicos.length || pAberto.pode_conter ? (
               <div className={s.detalheBloco}>
                 <strong>{T("alergenicos_titulo")}</strong>

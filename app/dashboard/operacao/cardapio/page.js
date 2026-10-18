@@ -17,6 +17,7 @@ import {
   categoriasEfetivas, juntarProdutosEFichas, montarCardapioPublico, normalizarConfigCardapio,
 } from "../../../lib/cardapio-digital.mjs";
 import { carregarEditorCardapio, criarProdutoDaFicha, salvarEditorCardapio } from "../../../lib/cardapio-editor";
+import { normalizarFidelidade } from "../../../lib/fidelidade.mjs";
 import { caminhoDoCardapio } from "../../../lib/cardapio-link.mjs";
 import { Aviso, Botao } from "../../../components/cardapio-digital/editor/ui";
 import Aparencia from "../../../components/cardapio-digital/editor/Aparencia";
@@ -28,6 +29,7 @@ import Textos from "../../../components/cardapio-digital/editor/Textos";
 import QrCodes from "../../../components/cardapio-digital/editor/QrCodes";
 import Idiomas from "../../../components/cardapio-digital/editor/Idiomas";
 import Entrega from "../../../components/cardapio-digital/editor/Entrega";
+import Fidelidade from "../../../components/cardapio-digital/editor/Fidelidade";
 import Previa from "../../../components/cardapio-digital/editor/Previa";
 
 const ABAS = [
@@ -39,6 +41,7 @@ const ABAS = [
   { id: "textos", rotulo: "Conversa e textos" },
   { id: "idiomas", rotulo: "Idiomas" },
   { id: "entrega", rotulo: "Entrega" },
+  { id: "fidelidade", rotulo: "Fidelidade" },
   { id: "qr", rotulo: "Link e QR Code" },
 ];
 const VAZIO = { fichas: {}, produtos: {}, unidade: {} };
@@ -56,6 +59,8 @@ export default function CardapioEditorPage() {
   const [resultado, setResultado] = useState(null);
   const [previaAberta, setPreviaAberta] = useState(false);
   const [idiomaPrevia, setIdiomaPrevia] = useState("pt");
+  const [fidelidade, setFidelidade] = useState(null);
+  const [fidelidadeSalva, setFidelidadeSalva] = useState("");
 
   const carregar = useCallback(async ({ manterRascunho = false } = {}) => {
     if (!unidadeAtiva) return;
@@ -68,6 +73,9 @@ export default function CardapioEditorPage() {
       setConfig(c);
       setSalvo(JSON.stringify(c));
       setPendentes(VAZIO);
+      const f = normalizarFidelidade(r.fidelidade);
+      setFidelidade(f);
+      setFidelidadeSalva(JSON.stringify(f));
     }
   }, [unidadeAtiva]);
 
@@ -77,7 +85,9 @@ export default function CardapioEditorPage() {
   const mudarPendentes = useCallback((fn) => { setPendentes(fn); setResultado(null); }, []);
   const temPendente = Object.keys(pendentes.fichas).length + Object.keys(pendentes.produtos).length + Object.keys(pendentes.unidade).length > 0;
   const setUnidade = useCallback((campos) => mudarPendentes((p) => ({ ...p, unidade: { ...p.unidade, ...campos } })), [mudarPendentes]);
-  const mudou = Boolean(config) && (temPendente || JSON.stringify(normalizarConfigCardapio(config)) !== JSON.stringify(normalizarConfigCardapio(JSON.parse(salvo || "{}"))));
+  const mudarFidelidade = useCallback((fn) => { setFidelidade((f) => fn(f)); setResultado(null); }, []);
+  const fidelidadeMudou = Boolean(fidelidade) && JSON.stringify(normalizarFidelidade(fidelidade)) !== JSON.stringify(normalizarFidelidade(JSON.parse(fidelidadeSalva || "{}")));
+  const mudou = Boolean(config) && (temPendente || fidelidadeMudou || JSON.stringify(normalizarConfigCardapio(config)) !== JSON.stringify(normalizarConfigCardapio(JSON.parse(salvo || "{}"))));
 
   useEffect(() => {
     if (!mudou) return;
@@ -98,8 +108,8 @@ export default function CardapioEditorPage() {
   }, [dados, pendentes, unidadeAtiva]);
 
   const cardapio = useMemo(() => (dados && config
-    ? montarCardapioPublico({ unidade: { ...dados.unidade, ...pendentes.unidade }, produtos: juntos, config })
-    : null), [dados, config, juntos, pendentes.unidade]);
+    ? montarCardapioPublico({ unidade: { ...dados.unidade, ...pendentes.unidade }, produtos: juntos, config, fidelidade })
+    : null), [dados, config, juntos, pendentes.unidade, fidelidade]);
 
   const categorias = useMemo(() => {
     if (!config) return [];
@@ -118,7 +128,7 @@ export default function CardapioEditorPage() {
   const salvar = async () => {
     setSalvando(true);
     setResultado(null);
-    const r = await salvarEditorCardapio(unidadeAtiva, { config, fichas: pendentes.fichas, produtos: pendentes.produtos, unidade: pendentes.unidade });
+    const r = await salvarEditorCardapio(unidadeAtiva, { config, fichas: pendentes.fichas, produtos: pendentes.produtos, unidade: pendentes.unidade, fidelidade });
     setSalvando(false);
     if (r.erros.length) { setResultado({ ok: false, texto: r.erros.join(" ") }); return; }
     setResultado({ ok: true, texto: "Salvo. O cardápio dos clientes já está assim." });
@@ -188,6 +198,10 @@ export default function CardapioEditorPage() {
                   idiomaPrevia={idiomaPrevia} setIdiomaPrevia={setIdiomaPrevia} />
               ) : null}
               {aba === "entrega" ? <Entrega config={config} mudar={mudar} unidade={dados.unidade} pendenteUnidade={pendentes.unidade} setUnidade={setUnidade} /> : null}
+              {aba === "fidelidade" && fidelidade ? (
+                <Fidelidade fidelidade={fidelidade} setFidelidade={mudarFidelidade} produtos={cardapio?.produtos || []}
+                  livroFidelidade={dados.livroFidelidade} unidadeId={unidadeAtiva} nomeLoja={dados.unidade.nome} />
+              ) : null}
               {aba === "qr" ? <QrCodes unidadeId={unidadeAtiva} nomeLoja={dados.unidade.nome} mesasDoBanco={dados.mesas} /> : null}
             </div>
             <aside className="hidden xl:block">

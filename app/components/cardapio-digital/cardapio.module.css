@@ -743,3 +743,53 @@ textarea.campo { height: auto; min-height: 76px; padding: 10px 14px; resize: ver
   .modoMesa .itemNome { font-size: 1.18rem; }
   .modoMesa .preco { font-size: 1.08rem; }
 }
+
+/* ── fidelidade: cartões de selo e cashback ───────────────────────── */
+.fidCartao { display: flex; gap: 12px; align-items: flex-start; width: calc(100% - 32px); margin: 12px 16px 0; padding: 14px 16px; border-radius: 14px; background: var(--c-cartao); border: 1px solid var(--c-linha); text-align: left; color: inherit; }
+.fidCartao:has(.fidAbrir:hover) { border-color: var(--c-primaria); }
+.fidIcone { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--c-primaria-suave); color: var(--c-destaque); }
+.fidCorpo { display: grid; gap: 6px; min-width: 0; font-size: 0.9rem; }
+.fidCorpo > strong { font-size: 0.98rem; }
+.fidLinha { display: grid; gap: 6px; color: var(--c-suave); }
+.fidFalta { font-size: 0.82rem; font-weight: 650; color: var(--c-destaque); margin: 0; }
+.fidSaldo { color: var(--c-texto); font-weight: 700; margin: 0; }
+.bolinhas { display: flex; flex-wrap: wrap; gap: 6px; }
+.bolinha { width: 24px; height: 24px; border-radius: 999px; border: 2px dashed var(--c-linha); display: grid; place-items: center; }
+.bolinhaCheia { border: 2px solid var(--c-primaria); background: var(--c-primaria); color: var(--c-sobre); }
+.fidDetalhe { display: grid; gap: 14px; }
+.fidBloco { display: grid; gap: 8px; padding: 14px; border-radius: 14px; border: 1px solid var(--c-linha); background: var(--c-cartao); }
+.fidBloco h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--fonte-titulo); font-size: 1.1rem; font-weight: 600; }
+.fidBloco h3 svg { color: var(--c-destaque); }
+.fidBloco p { margin: 0; color: var(--c-suave); font-size: 0.92rem; }
+.fidPratos { display: flex; flex-wrap: wrap; gap: 6px; }
+.fidPratos .secundario { min-height: 40px; font-size: 0.85rem; }
+.seloFid { display: inline-flex; align-items: center; gap: 4px; border-color: var(--c-primaria); color: var(--c-destaque); }
+.fidNoPrato { width: 100%; text-align: left; border: 1px solid var(--c-linha); border-radius: 12px; padding: 10px 12px; background: var(--c-primaria-suave); color: inherit; }
+.fidNoPrato strong { display: inline-flex; align-items: center; gap: 6px; }
+.linhaCashback { color: #1f7a3f; font-weight: 650; }
+.usarCashback { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--c-primaria); background: var(--c-primaria-suave); cursor: pointer; }
+.usarCashback input { width: 22px; height: 22px; margin-top: 1px; accent-color: var(--c-primaria); flex: none; }
+.usarCashback span { display: grid; gap: 2px; }
+.usarCashback small { color: var(--c-suave); }
+@media (min-width: 768px) {
+  .fidCartao { width: calc(100% - 56px); margin-left: 28px; margin-right: 28px; }
+}
+
+/* ── cadastro pelo QR ─────────────────────────────────────────────── */
+.cadastro { max-width: 520px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 16px 40px; min-height: 100dvh; }
+.cadastroTopo { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.cadastroTopo .lojaLogo { margin: 0; width: 56px; height: 56px; border-width: 2px; flex: none; }
+.cadastroTopo .lojaNome { font-size: 1.3rem; flex: 1; min-width: 0; }
+.cadastroCartao { display: grid; gap: 12px; padding: 20px 18px; border-radius: 18px; background: var(--c-cartao); border: 1px solid var(--c-linha); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05); }
+.cadastroCartao .detalheNome { margin: 0; font-size: 1.5rem; }
+.cadastroCartao .detalheDescricao { margin: 0; }
+.aceite { display: flex; gap: 12px; align-items: flex-start; font-size: 0.9rem; line-height: 1.4; cursor: pointer; min-height: 44px; }
+.aceite input { width: 22px; height: 22px; margin-top: 1px; flex: none; accent-color: var(--c-primaria); }
+.girando { animation: girar 0.9s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.fidConvite { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: var(--c-primaria-suave); color: var(--c-texto); text-decoration: none; font-weight: 650; font-size: 0.9rem; }
+.fidConvite span:last-child { color: var(--c-destaque); white-space: nowrap; }
+.fidFeito { display: inline-flex; align-items: center; gap: 6px; color: #1f7a3f; font-weight: 650; font-size: 0.88rem; }
+.fidAbrir { display: grid; gap: 6px; padding: 0; border: 0; background: none; text-align: left; width: 100%; }
+.fidAbrir > strong { font-size: 0.98rem; }

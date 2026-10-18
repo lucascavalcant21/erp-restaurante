@@ -285,8 +285,9 @@ test("carrinho: sugere bebida, depois sobremesa, e nada quando já tem", () => {
 test("total mostrado usa o preço do cardápio e a taxa só no delivery", () => {
   const c = montarCardapioPublico({ unidade: { taxa_entrega: 10 }, produtos: PRODUTOS, config: CONFIG, agora: SAB_1830 });
   const carrinho = [{ id: "p1", quantidade: 2 }, { id: "p3", quantidade: 1 }];
-  assert.deepEqual(totalDoCarrinho(carrinho, c, { tipo: "qrcode" }), { subtotal: 200.4, taxa: 0, total: 200.4 });
-  assert.deepEqual(totalDoCarrinho(carrinho, c, { tipo: "delivery" }), { subtotal: 200.4, taxa: 10, total: 210.4 });
+  const pick = ({ subtotal, taxa, total }) => ({ subtotal, taxa, total });
+  assert.deepEqual(pick(totalDoCarrinho(carrinho, c, { tipo: "qrcode" })), { subtotal: 200.4, taxa: 0, total: 200.4 });
+  assert.deepEqual(pick(totalDoCarrinho(carrinho, c, { tipo: "delivery" })), { subtotal: 200.4, taxa: 10, total: 210.4 });
   const { validos, removidos } = conferirCarrinho([...carrinho, { id: "p8", quantidade: 1 }], c);
   assert.deepEqual(validos.map((v) => v.id), ["p1", "p3"]);
   assert.deepEqual(removidos.map((v) => v.id), ["p8"]);

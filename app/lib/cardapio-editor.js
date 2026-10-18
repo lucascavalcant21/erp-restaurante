@@ -79,7 +79,7 @@ export async function enviarArquivoCardapio(unidadeId, arquivo, pasta = "geral")
   const limite = (video ? LIMITE_VIDEO_MB : LIMITE_IMAGEM_MB) * 1024 * 1024;
   if (arquivo.size > limite) return { erro: `Arquivo grande demais: até ${video ? LIMITE_VIDEO_MB : LIMITE_IMAGEM_MB} MB.` };
   const ext = (arquivo.name.split(".").pop() || (video ? "mp4" : "jpg")).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5);
-  const nome = (arquivo.name.replace(/\.[^.]+$/, "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "arquivo");
+  const nome = (arquivo.name.replace(/\.[^.]+$/, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "arquivo");
   const caminho = `cardapio/${unidadeId}/${pasta}/${Date.now()}-${nome}.${ext}`;
   const { error } = await supabase.storage.from("anexos").upload(caminho, arquivo, { contentType: arquivo.type, upsert: false });
   if (error) return { erro: "Não foi possível enviar o arquivo. Tente de novo." };

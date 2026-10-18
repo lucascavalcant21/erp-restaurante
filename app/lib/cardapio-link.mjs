@@ -3,7 +3,7 @@
 
 /** "Mesa 12", "mesa-12" e "12" viram "12". O resto que não for letra/número sai. */
 export function limparMesa(v) {
-  const s = String(v ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim()
+  const s = String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim()
     .replace(/^mesa[\s_-]*/i, "").replace(/[^A-Za-z0-9-]+/g, "");
   return s.slice(0, 10);
 }

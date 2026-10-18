@@ -15,7 +15,7 @@
 // banco; nenhuma mensagem interna do banco na resposta. Módulo sem Next: o
 // banco entra por parâmetro, para dar para testar.
 
-import { montarCardapioPublico, juntarProdutosEFichas } from "../cardapio-digital.mjs";
+import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega } from "../cardapio-digital.mjs";
 
 const falha = (status, codigo, mensagem) => ({ ok: false, status, codigo, mensagem });
 const idValido = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(v);
@@ -68,8 +68,11 @@ export const fotoDaFichaUrl = (unidade, produtoId) =>
  * sai só dos produtos (nunca com dado inventado).
  */
 export async function carregarCardapio({ db, unidade, agora = new Date() }) {
-  const { data: u, error: eU } = await db.from("unidades")
-    .select("id, nome, nome_fantasia, delivery_aberto, taxa_entrega_padrao").eq("id", unidade).maybeSingle();
+  const rU = await selecionar((c) => db.from("unidades").select(c).eq("id", unidade).maybeSingle(), [
+    "id, nome, nome_fantasia, delivery_aberto, taxa_entrega_padrao, cidade, uf, bairro, endereco, numero, horario_funcionamento, telefone_contato",
+    "id, nome, nome_fantasia, delivery_aberto, taxa_entrega_padrao",
+  ]);
+  const { data: u, error: eU } = rU;
   if (eU) return falha(503, "indisponivel", "Cardápio indisponível no momento.");
   if (!u) return falha(404, "nao_encontrado", "Cardápio não encontrado.");
 
@@ -115,7 +118,17 @@ export async function carregarCardapio({ db, unidade, agora = new Date() }) {
     fotoDaFicha: (id) => fotoDaFichaUrl(unidade, id),
   });
   const cardapio = montarCardapioPublico({
-    unidade: { nome: u.nome_fantasia || u.nome || "", delivery_aberto: u.delivery_aberto !== false, taxa_entrega: numero(u.taxa_entrega_padrao) },
+    // Endereço e telefone só saem se o dono ligar em "Mais informações" (o filtro está em montarCardapioPublico).
+    unidade: {
+      nome: u.nome_fantasia || u.nome || "",
+      delivery_aberto: u.delivery_aberto !== false,
+      taxa_entrega: numero(u.taxa_entrega_padrao),
+      cidade: u.cidade || "",
+      uf: u.uf || "",
+      horario: u.horario_funcionamento || "",
+      endereco: [[u.endereco, u.numero].filter(Boolean).join(", "), u.bairro].filter((x) => String(x || "").trim()).join(" · "),
+      telefone: u.telefone_contato || "",
+    },
     produtos: juntos,
     config,
     agora,
@@ -256,8 +269,14 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       return falha(409, "item_indisponivel", "Um item do carrinho não está mais disponível. Atualize o cardápio.");
     }
 
-    const taxa = pedido.tipo === "delivery" ? numero(loja.taxa_entrega_padrao) : 0;
-    const total = centavos(pedido.itens.reduce((s, i) => s + preco.get(i.id) * i.quantidade, 0) + taxa);
+    // Mínimo e grátis-acima do dono: a mesma conta que a página mostra (taxaDeEntrega).
+    const subtotal = centavos(pedido.itens.reduce((s, i) => s + preco.get(i.id) * i.quantidade, 0));
+    const regras = taxaDeEntrega(subtotal, cardapio, pedido.tipo);
+    if (regras.falta_minimo > 0) {
+      return falha(409, "pedido_minimo", `O pedido mínimo para entrega é R$ ${cardapio.entrega.pedido_minimo.toFixed(2).replace(".", ",")}.`);
+    }
+    const taxa = regras.taxa;
+    const total = centavos(subtotal + taxa);
 
     const { data: criado, error: eI } = await db.from("pedidos").insert([{
       unidade_id: pedido.unidade,
@@ -283,9 +302,57 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       await db.from("pedidos").delete().eq("id", criado.id);
       return falha(503, "indisponivel", "Não foi possível enviar agora.");
     }
-    return { ok: true, total, taxa, itens: pedido.itens.map((i) => ({ id: i.id, quantidade: i.quantidade, preco: preco.get(i.id) })) };
+    return { ok: true, id: criado.id, total, taxa, itens: pedido.itens.map((i) => ({ id: i.id, quantidade: i.quantidade, preco: preco.get(i.id) })) };
   } catch {
     return falha(503, "indisponivel", "Não foi possível enviar agora.");
+  }
+}
+
+// ─── MEUS PEDIDOS (andamento no aparelho do cliente) ─────────────────────────
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ETAPAS = {
+  novo_online: "recebido", aguardando: "recebido",
+  preparando_delivery: "preparo", preparando: "preparo", aberto: "preparo", pendente: "preparo",
+  pronto: "pronto", saiu: "saiu", entregue: "entregue", pago: "entregue", fechado: "entregue",
+  cancelado: "cancelado", recusado: "cancelado",
+};
+/** Status do banco → etapa que o cliente entende. Desconhecido: "andamento". */
+export const etapaDoPedido = (status) => ETAPAS[String(status || "").toLowerCase()] || "andamento";
+
+/**
+ * Andamento dos pedidos que ESTE aparelho fez (ele guarda os ids que o
+ * servidor devolveu). Sem id, nada sai: não dá para listar pedidos de
+ * ninguém. Nome, telefone e endereço nunca saem.
+ */
+export async function lerPedidosPublicos({ db, unidade, ids }) {
+  if (!idValido(unidade)) return falha(404, "nao_encontrado", "Não encontrado.");
+  const lista = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => UUID_RE.test(id)))].slice(0, 10);
+  if (!lista.length) return { ok: true, pedidos: [] };
+  try {
+    const { data: peds, error } = await db.from("pedidos").select("id, status, valor_total, created_at, tipo_pedido")
+      .eq("unidade_id", unidade).in("id", lista);
+    if (error) return falha(503, "indisponivel", "Indisponível no momento.");
+    const achados = (peds || []).map((p) => String(p.id));
+    let itens = [];
+    if (achados.length) {
+      const r = await db.from("pedidos_itens").select("pedido_id, produto_id, quantidade, valor_unitario").in("pedido_id", achados);
+      if (!r.error) itens = r.data || [];
+    }
+    return {
+      ok: true,
+      pedidos: (peds || []).map((p) => ({
+        id: String(p.id),
+        etapa: etapaDoPedido(p.status),
+        tipo: p.tipo_pedido === "delivery" ? "delivery" : "mesa",
+        total: numero(p.valor_total),
+        criado_em: p.created_at || null,
+        itens: itens.filter((i) => String(i.pedido_id) === String(p.id))
+          .map((i) => ({ produto_id: String(i.produto_id), quantidade: Number(i.quantidade) || 0, preco: numero(i.valor_unitario) })),
+      })).sort((a, b) => String(b.criado_em).localeCompare(String(a.criado_em))),
+    };
+  } catch {
+    return falha(503, "indisponivel", "Indisponível no momento.");
   }
 }
 

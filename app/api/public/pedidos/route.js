@@ -23,5 +23,5 @@ export async function POST(request) {
   if (banco.resposta) return banco.resposta;
   const r = await criarPedidoPublico({ db: banco.db, pedido: v.pedido });
   if (!r.ok) return recusar(r);
-  return responder({ ok: true, total: r.total, taxa: r.taxa, itens: r.itens });
+  return responder({ ok: true, id: r.id, total: r.total, taxa: r.taxa, itens: r.itens });
 }

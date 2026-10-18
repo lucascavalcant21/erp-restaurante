@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  lerCardapioPublico, validarPedidoPublico, criarPedidoPublico, lerFotoPublica, decodificarFotoDaFicha,
+  lerCardapioPublico, validarPedidoPublico, criarPedidoPublico, lerFotoPublica, decodificarFotoDaFicha, lerPedidosPublicos, etapaDoPedido,
   lerChamadaPublica, rotuloDaChamada, lerRastreioPublico, lerUnidadePublica,
 } from "../app/lib/server/negocio-publico.mjs";
 
@@ -44,7 +44,7 @@ function banco(tabelas = {}, { falharItens = false } = {}) {
       }
       if (st.op === "insert") {
         if (nome === "pedidos_itens" && falharItens) return { data: null, error: { message: "boom" } };
-        const novas = st.valor.map((v) => ({ id: `id-${++seq}`, created_at: new Date().toISOString(), ...v }));
+        const novas = st.valor.map((v) => ({ id: `00000000-0000-4000-8000-${String(++seq).padStart(12, "0")}`, created_at: new Date().toISOString(), ...v }));
         tab.push(...novas);
         return { data: st.unico ? { id: novas[0].id } : novas, error: null };
       }
@@ -122,7 +122,7 @@ test("cardápio: pratos ligados à ficha técnica, preço do produto, sem custo 
   const p2 = c.produtos.find((p) => p.id === "p2");
   assert.deepEqual([p2.preco, p2.preco_original, p2.promocao_id], [6, 8.5, "suco"]);
   assert.equal(c.tema.cor_primaria, "#2f5d3a");
-  assert.deepEqual(c.unidade, { nome: "Sal de Estrela", delivery_aberto: true, taxa_entrega: 5 });
+  assert.deepEqual(c.unidade, { nome: "Sal de Estrela", delivery_aberto: true, taxa_entrega: 5, cidade: "", uf: "", horario: "", endereco: "", telefone: "" });
   const json = JSON.stringify(r);
   assert.doesNotMatch(json, /SEGREDO|0001-00|Rua X|NAO-DEVE-APARECER|receita alheia|12345|160000|meta_cmv|custo|9\.1|4AAQ/);
   assert.equal((await lerCardapioPublico({ db: banco(BASE).db, unidade: "nao-existe" })).status, 404);
@@ -251,6 +251,57 @@ test("pedido na mesa: WhatsApp opcional, vale com delivery fechado e tem freio p
   assert.equal((await criarPedidoPublico({ db: b.db, pedido: v.pedido })).status, 429, "9º pedido da mesma mesa em 10 min");
   const outraMesa = validarPedidoPublico({ unidade: "loja1", cliente: { tipo: "qrcode", nome: "Ana", mesa: "44" }, itens: [{ id: "p1", quantidade: 1 }] });
   assert.equal((await criarPedidoPublico({ db: b.db, pedido: outraMesa.pedido })).ok, true, "a mesa 44 não é a 4");
+});
+
+test("cardápio: endereço e telefone da loja só saem se o dono ligar; cidade e horário sim", async () => {
+  const comLoja = structuredClone(COM_FICHAS);
+  Object.assign(comLoja.unidades[0], { cidade: "Foz do Iguaçu", uf: "pr", bairro: "Centro", endereco: "Av. Brasil", numero: "10", horario_funcionamento: "18h às 0h", telefone_contato: "45999990000" });
+  const r1 = await lerCardapioPublico({ db: banco(comLoja).db, unidade: "loja1" });
+  assert.deepEqual([r1.cardapio.unidade.cidade, r1.cardapio.unidade.uf, r1.cardapio.unidade.horario], ["Foz do Iguaçu", "PR", "18h às 0h"]);
+  assert.equal(r1.cardapio.unidade.endereco, "");
+  assert.equal(r1.cardapio.unidade.telefone, "");
+  comLoja.config_sistema[0].params.cardapio_digital.info = { mostrar_endereco: true, mostrar_telefone: true };
+  const r2 = await lerCardapioPublico({ db: banco(comLoja).db, unidade: "loja1" });
+  assert.equal(r2.cardapio.unidade.endereco, "Av. Brasil, 10 · Centro");
+  assert.equal(r2.cardapio.unidade.telefone, "45999990000");
+});
+
+test("delivery: pedido mínimo recusado no servidor; acima do valor, entrega grátis", async () => {
+  const regras = structuredClone(COM_FICHAS);
+  regras.config_sistema[0].params.cardapio_digital.entrega = { pedido_minimo: 50, gratis_acima: 80 };
+  const pouco = validarPedidoPublico({ ...PEDIDO, itens: [{ id: "p1", quantidade: 1 }] });
+  const b1 = banco(regras);
+  const r1 = await criarPedidoPublico({ db: b1.db, pedido: pouco.pedido });
+  assert.equal(r1.status, 409);
+  assert.equal(r1.codigo, "pedido_minimo");
+  assert.equal(b1.t.pedidos.length, 2, "nada gravado");
+  const muito = validarPedidoPublico({ ...PEDIDO, itens: [{ id: "p1", quantidade: 3 }] });
+  const r2 = await criarPedidoPublico({ db: banco(regras).db, pedido: muito.pedido });
+  assert.equal(r2.ok, true);
+  assert.equal(r2.taxa, 0);
+  assert.equal(r2.total, 90);
+  const mesa = validarPedidoPublico({ unidade: "loja1", cliente: { tipo: "qrcode", nome: "Ana", mesa: "2" }, itens: [{ id: "p1", quantidade: 1 }] });
+  assert.equal((await criarPedidoPublico({ db: banco(regras).db, pedido: mesa.pedido })).ok, true, "na mesa não há mínimo");
+});
+
+test("meus pedidos: só os ids do aparelho, só etapa, total e itens; nunca nome, telefone ou endereço", async () => {
+  const b = banco(COM_FICHAS);
+  const v = validarPedidoPublico(PEDIDO);
+  const r = await criarPedidoPublico({ db: b.db, pedido: v.pedido });
+  assert.match(r.id, /^[0-9a-f-]{36}$/);
+  const lidos = await lerPedidosPublicos({ db: b.db, unidade: "loja1", ids: [r.id, "nao-e-uuid", "../x"] });
+  assert.equal(lidos.ok, true);
+  assert.equal(lidos.pedidos.length, 1);
+  assert.deepEqual(Object.keys(lidos.pedidos[0]).sort(), ["criado_em", "etapa", "id", "itens", "tipo", "total"]);
+  assert.equal(lidos.pedidos[0].etapa, "recebido");
+  assert.doesNotMatch(JSON.stringify(lidos), /João|97777|Rua A/);
+  assert.deepEqual((await lerPedidosPublicos({ db: b.db, unidade: "outra", ids: [r.id] })).pedidos, [], "outra loja não vê");
+  assert.deepEqual((await lerPedidosPublicos({ db: b.db, unidade: "loja1", ids: [] })).pedidos, []);
+  assert.equal(etapaDoPedido("preparando_delivery"), "preparo");
+  assert.equal(etapaDoPedido("saiu"), "saiu");
+  assert.equal(etapaDoPedido("pago"), "entregue");
+  assert.equal(etapaDoPedido("cancelado"), "cancelado");
+  assert.equal(etapaDoPedido("xyz"), "andamento");
 });
 
 test("pedido: validação de entrada e freio por telefone", async () => {

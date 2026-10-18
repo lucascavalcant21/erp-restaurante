@@ -25,6 +25,11 @@
 //   - restrição alimentar: só o que está marcado, sempre com "confirme com a
 //     equipe".
 
+import {
+  DIAS_T, HORAS_T, IDS_IDIOMAS, INTENCOES_T, LIGACOES_DIAS, ROTULO_PROMO_T, SAUDACOES, SELOS_T, TEXTOS_PADRAO,
+  idiomaValido, infoIdioma, r as resposta, traduzirAlergeno,
+} from "./cardapio-idiomas.mjs";
+
 export const FUSO_PADRAO = "America/Sao_Paulo";
 
 export const FONTES = [
@@ -95,7 +100,7 @@ export const CONFIG_PADRAO = Object.freeze({
     pedir_nome: "Antes de tudo: como podemos te chamar?",
     sugestao_bebida: "Que tal uma bebida para acompanhar?",
     sugestao_sobremesa: "E para fechar, uma sobremesa?",
-    pedido_enviado: "Pedido recebido, {nome}. A cozinha já foi avisada.",
+    pedido_enviado: "Pedido recebido, {nome}. A equipe já está conferindo.",
     rodape: "",
   }),
   conversa: Object.freeze({
@@ -107,6 +112,14 @@ export const CONFIG_PADRAO = Object.freeze({
   categorias: Object.freeze([]),
   itens: Object.freeze({}),
   promocoes: Object.freeze([]),
+  // Idiomas que o cliente pode escolher (português sempre).
+  idiomas: Object.freeze([...IDS_IDIOMAS]),
+  // Tradução do que é do dono (pratos, seções, promoções, abertura, textos), por idioma.
+  traducoes: Object.freeze({}),
+  // Delivery: o mínimo e o grátis-acima valem também no servidor, na hora do pedido.
+  entrega: Object.freeze({ pedido_minimo: 0, gratis_acima: 0, tempo_min: 0, tempo_max: 0 }),
+  // O que aparece em "Mais informações" (cidade sempre; o resto, se o dono quiser).
+  info: Object.freeze({ mostrar_horario: true, mostrar_endereco: false, mostrar_telefone: false }),
 });
 
 export const LIMITES = { banner: 8, categorias: 40, promocoes: 30, itens: 2000, produtosPorPromocao: 200 };
@@ -169,13 +182,13 @@ const data = (v) => {
 export const centavos = (v) => Math.round((Number(v) || 0) * 100) / 100;
 
 function slug(v) {
-  return String(v ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+  return String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
 }
 
 /** Texto sem acento e minúsculo, para comparar o que o cliente digitou. */
 export function normalizarBusca(v) {
-  return String(v ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  return String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 /** Id novo, curto, que não colide com os existentes. */
@@ -406,6 +419,48 @@ export function normalizarBanner(lista) {
   return r;
 }
 
+const LIMITE_TRAD = { produtos: { nome: 80, descricao: 280, harmoniza: 140 }, categorias: { nome: 40, descricao: 140 }, promocoes: { titulo: 60, texto: 160 }, banner: { titulo: 60, texto: 120 } };
+const TEXTOS_TRADUZIVEIS = { apresentacao: 140, boas_vindas: 160, pedir_nome: 100, sugestao_bebida: 100, sugestao_sobremesa: 100, pedido_enviado: 160, rodape: 240 };
+
+/** Traduções do dono: { en: { produtos: {id: {nome, descricao}}, categorias, promocoes, banner, textos, conversa } }. */
+export function normalizarTraducoes(raw) {
+  const out = {};
+  for (const idioma of IDS_IDIOMAS) {
+    if (idioma === "pt") continue;
+    const t = raw?.[idioma];
+    if (!t || typeof t !== "object") continue;
+    const lado = {};
+    for (const [grupo, campos] of Object.entries(LIMITE_TRAD)) {
+      const g = {};
+      let n = 0;
+      for (const [id, v] of Object.entries(t[grupo] && typeof t[grupo] === "object" ? t[grupo] : {})) {
+        if (n >= LIMITES.itens || !idValido(id) || !v || typeof v !== "object") continue;
+        const item = {};
+        for (const [c, max] of Object.entries(campos)) { const x = texto(v[c], max); if (x) item[c] = x; }
+        if (Object.keys(item).length) { g[id] = item; n++; }
+      }
+      if (Object.keys(g).length) lado[grupo] = g;
+    }
+    const textos = {};
+    for (const [k, max] of Object.entries(TEXTOS_TRADUZIVEIS)) { const x = texto(t.textos?.[k], max); if (x) textos[k] = x; }
+    if (Object.keys(textos).length) lado.textos = textos;
+    const intro = texto(t.conversa?.intro, 140);
+    if (intro) lado.conversa = { intro };
+    if (Object.keys(lado).length) out[idioma] = lado;
+  }
+  return out;
+}
+
+const dinheiro = (v) => { const n = centavos(String(v ?? "").replace(/\./g, (m, i, x) => (x.includes(",") ? "" : m)).replace(",", ".")); return n > 0 ? n : 0; };
+const minutos = (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 && n <= 600 ? n : 0; };
+
+export function normalizarEntrega(e = {}) {
+  let tempo_min = minutos(e?.tempo_min);
+  let tempo_max = minutos(e?.tempo_max);
+  if (tempo_min && tempo_max && tempo_max < tempo_min) [tempo_min, tempo_max] = [tempo_max, tempo_min];
+  return { pedido_minimo: dinheiro(e?.pedido_minimo), gratis_acima: dinheiro(e?.gratis_acima), tempo_min, tempo_max };
+}
+
 /** Tudo o que o dono salvou, limpo. Campo ruim volta ao padrão; nada quebra. */
 export function normalizarConfigCardapio(raw) {
   const c = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
@@ -417,6 +472,14 @@ export function normalizarConfigCardapio(raw) {
     categorias: normalizarCategorias(c.categorias),
     itens: normalizarItens(c.itens),
     promocoes: normalizarPromocoes(c.promocoes),
+    idiomas: Array.isArray(c.idiomas) ? ["pt", ...IDS_IDIOMAS.filter((i) => i !== "pt" && c.idiomas.includes(i))] : [...IDS_IDIOMAS],
+    traducoes: normalizarTraducoes(c.traducoes),
+    entrega: normalizarEntrega(c.entrega),
+    info: {
+      mostrar_horario: bool(c.info?.mostrar_horario, true),
+      mostrar_endereco: bool(c.info?.mostrar_endereco, false),
+      mostrar_telefone: bool(c.info?.mostrar_telefone, false),
+    },
   };
 }
 
@@ -486,16 +549,34 @@ export function precoEfetivo(produto, vigentes = []) {
 
 // ─── TEXTOS DE PROMOÇÃO ──────────────────────────────────────────────────────
 
-const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-export const formatarPreco = (v) => BRL.format(Number(v) || 0).replace(/ /g, " ");
+const FORMATOS_PRECO = new Map();
+/** Preço no jeito de cada idioma (R$ 29,90 · R$29.90). A moeda é sempre o real. */
+export function formatarPreco(v, idioma = "pt") {
+  const locale = infoIdioma(idioma).locale;
+  if (!FORMATOS_PRECO.has(locale)) FORMATOS_PRECO.set(locale, new Intl.NumberFormat(locale, { style: "currency", currency: "BRL", currencyDisplay: "narrowSymbol" }));
+  return FORMATOS_PRECO.get(locale).format(Number(v) || 0).replace(/\u00a0|\u202f/g, " ");
+}
 
-function textoHora(hhmm) {
+const preencher = (modelo, vars) => String(modelo).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+
+function textoHora(hhmm, idioma) {
+  if (idioma !== "pt") return hhmm === "24:00" ? "24:00" : hhmm;
   const [h, m] = hhmm.split(":");
   return m === "00" ? `${Number(h)}h` : `${Number(h)}h${m}`;
 }
 
-export function textoDias(dias) {
+function textoData(iso, idioma) {
+  const [a, m, d] = iso.split("-").map(Number);
+  if (idioma === "pt" || idioma === "es" || idioma === "fr" || idioma === "it") return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
+  if (idioma === "en") return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(Date.UTC(a, m - 1, d));
+  if (idioma === "ko") return `${m}월 ${d}일`;
+  return `${m}月${d}日`;
+}
+
+export function textoDias(dias, idioma = "pt") {
   if (!dias?.length || dias.length === 7) return "";
+  const nomes = DIAS_T[idioma] || DIAS_T.pt;
+  const lig = LIGACOES_DIAS[idioma] || LIGACOES_DIAS.pt;
   const ordem = [1, 2, 3, 4, 5, 6, 0].filter((d) => dias.includes(d));
   const corridas = [];
   for (const d of ordem) {
@@ -504,29 +585,39 @@ export function textoDias(dias) {
     if (ult && [1, 2, 3, 4, 5, 6, 0].indexOf(d) === posAnterior + 1) ult.push(d);
     else corridas.push([d]);
   }
-  return corridas.map((c) => (c.length >= 3 ? `${DIAS_SEMANA[c[0]]} a ${DIAS_SEMANA[c[c.length - 1]]}`
-    : c.map((d) => DIAS_SEMANA[d]).join(" e "))).join(", ");
+  if (corridas.length === 1 && corridas[0].length === 1 && (idioma === "ja" || idioma === "ko")) {
+    return `${nomes[corridas[0][0]]}${idioma === "ja" ? "曜" : "요일"}`;
+  }
+  return corridas.map((c) => (c.length >= 3 ? preencher(lig.faixa, { a: nomes[c[0]], b: nomes[c[c.length - 1]] })
+    : c.length === 2 ? preencher(lig.par, { a: nomes[c[0]], b: nomes[c[1]] }) : nomes[c[0]])).join(lig.lista);
 }
 
 /** "Seg a Sex · das 18h às 20h · até 31/10" — vazio quando vale sempre. */
-export function quandoVale(promo) {
+export function quandoVale(promo, idioma = "pt") {
   const p = normalizarPromocao(promo);
+  const h = HORAS_T[idioma] || HORAS_T.pt;
   const partes = [];
-  const dias = textoDias(p.dias_semana);
+  const dias = textoDias(p.dias_semana, idioma);
   if (dias) partes.push(dias);
-  if (p.hora_inicio && p.hora_fim) partes.push(`das ${textoHora(p.hora_inicio)} às ${textoHora(p.hora_fim)}`);
-  else if (p.hora_inicio) partes.push(`a partir das ${textoHora(p.hora_inicio)}`);
-  else if (p.hora_fim) partes.push(`até as ${textoHora(p.hora_fim)}`);
-  if (p.data_fim) partes.push(`até ${p.data_fim.slice(8, 10)}/${p.data_fim.slice(5, 7)}`);
+  if (p.hora_inicio && p.hora_fim) partes.push(preencher(h.entre, { a: textoHora(p.hora_inicio, idioma), b: textoHora(p.hora_fim, idioma) }));
+  else if (p.hora_inicio) partes.push(preencher(h.desde, { a: textoHora(p.hora_inicio, idioma) }));
+  else if (p.hora_fim) partes.push(preencher(h.ate, { b: textoHora(p.hora_fim, idioma) }));
+  if (p.data_fim) partes.push(preencher(h.data, { d: textoData(p.data_fim, idioma) }));
   return partes.join(" · ");
 }
 
-export function rotuloDaPromocao(promo) {
+export function rotuloDaPromocao(promo, idioma = "pt") {
   const p = normalizarPromocao(promo);
-  if (p.tipo === "desconto" && p.desconto_pct) return `${p.desconto_pct}% off`;
-  if (p.tipo === "preco" && p.preco_promocional) return `por ${formatarPreco(p.preco_promocional)}`;
+  const m = ROTULO_PROMO_T[idioma] || ROTULO_PROMO_T.pt;
+  if (p.tipo === "desconto" && p.desconto_pct) {
+    const zhe = String((100 - p.desconto_pct) / 10).replace(/\.0$/, "");
+    return preencher(m.desconto, { pct: p.desconto_pct, zhe });
+  }
+  if (p.tipo === "preco" && p.preco_promocional) return preencher(m.preco, { valor: formatarPreco(p.preco_promocional, idioma) });
   return "";
 }
+
+export const rotuloSelo = (id, idioma = "pt") => SELOS_T[id]?.[idioma] || SELOS_T[id]?.pt || id;
 
 // ─── CATEGORIAS ──────────────────────────────────────────────────────────────
 
@@ -693,6 +784,9 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, ago
     .map((p) => ({
       id: p.id, titulo: p.titulo, texto: p.texto, imagem_url: p.imagem_url || null, tipo: p.tipo,
       produto_ids: p.produto_ids, rotulo: rotuloDaPromocao(p), quando: quandoVale(p),
+      // dados crus: a página escreve rótulo e horário no idioma do cliente
+      desconto_pct: p.desconto_pct, preco_promocional: p.preco_promocional, dias_semana: p.dias_semana,
+      hora_inicio: p.hora_inicio, hora_fim: p.hora_fim, data_fim: p.data_fim,
     }));
 
   // Toque do banner que levaria a uma seção, promoção ou prato que não está
@@ -704,13 +798,37 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, ago
   };
   const banner = cfg.banner.map((b) => ({ ...b, acao: b.acao && alvos[b.acao.tipo]?.has(b.acao.id) ? b.acao : null }));
 
+  // Traduções só do que está no ar (nada de nome de prato escondido saindo por aqui).
+  const ativos = { produtos: ids, categorias: alvos.categoria, promocoes: alvos.promocao, banner: new Set(banner.map((b) => b.id)) };
+  const traducoes = {};
+  for (const idioma of cfg.idiomas) {
+    const t = cfg.traducoes[idioma];
+    if (!t) continue;
+    const lado = {};
+    for (const grupo of Object.keys(ativos)) {
+      const g = Object.fromEntries(Object.entries(t[grupo] || {}).filter(([id]) => ativos[grupo].has(id)));
+      if (Object.keys(g).length) lado[grupo] = g;
+    }
+    if (t.textos) lado.textos = t.textos;
+    if (t.conversa) lado.conversa = t.conversa;
+    if (Object.keys(lado).length) traducoes[idioma] = lado;
+  }
+
   return {
+    idioma: "pt",
+    idiomas: cfg.idiomas,
     unidade: {
       nome: texto(unidade.nome, 80),
       // Vale só para o delivery: pedido na mesa não depende disso.
       delivery_aberto: unidade.delivery_aberto !== false,
       taxa_entrega: centavos(unidade.taxa_entrega),
+      cidade: texto(unidade.cidade, 60),
+      uf: texto(unidade.uf, 2).toUpperCase(),
+      horario: cfg.info.mostrar_horario ? texto(unidade.horario, 80) : "",
+      endereco: cfg.info.mostrar_endereco ? texto(unidade.endereco, 160) : "",
+      telefone: cfg.info.mostrar_telefone ? texto(unidade.telefone, 20) : "",
     },
+    entrega: cfg.entrega,
     tema: cfg.tema,
     cores: coresDoTema(cfg.tema),
     textos: cfg.textos,
@@ -720,14 +838,61 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, ago
     categorias: saidaCategorias,
     produtos: lista,
     promocoes,
+    traducoes,
+  };
+}
+
+/**
+ * O cardápio no idioma do cliente. Conteúdo do dono: a tradução dele, ou o
+ * original (nunca tradução automática inventada). Textos fixos (selos,
+ * promoções, saudação): os do idioma. O prato traduzido guarda o nome
+ * original em `nome_original` — a equipe reconhece quando o cliente aponta.
+ */
+export function localizarCardapio(cardapio, idioma = "pt") {
+  if (!cardapio) return cardapio;
+  const id = idiomaValido(idioma) && (cardapio.idiomas || IDS_IDIOMAS).includes(idioma) ? idioma : "pt";
+  const tr = id === "pt" ? {} : cardapio.traducoes?.[id] || {};
+  const g = (grupo, chave) => tr[grupo]?.[chave] || {};
+  const padrao = TEXTOS_PADRAO[id];
+  const textos = { ...cardapio.textos };
+  if (id !== "pt") {
+    for (const k of ["boas_vindas", "pedir_nome", "sugestao_bebida", "sugestao_sobremesa", "pedido_enviado"]) textos[k] = tr.textos?.[k] || padrao[k];
+    for (const k of ["apresentacao", "rodape"]) textos[k] = tr.textos?.[k] || cardapio.textos[k];
+  }
+  return {
+    ...cardapio,
+    idioma: id,
+    textos,
+    conversa: { ...cardapio.conversa, intro: id === "pt" ? cardapio.conversa.intro : tr.conversa?.intro || padrao.intro },
+    produtos: cardapio.produtos.map((p) => {
+      const t = g("produtos", p.id);
+      return {
+        ...p,
+        nome: t.nome || p.nome,
+        nome_original: t.nome && t.nome !== p.nome ? p.nome : "",
+        descricao: t.descricao || p.descricao,
+        harmoniza: t.harmoniza || p.harmoniza,
+        alergenicos: p.alergenicos.map((a) => traduzirAlergeno(a, id)),
+      };
+    }),
+    categorias: cardapio.categorias.map((c) => ({ ...c, nome: g("categorias", c.id).nome || c.nome, descricao: g("categorias", c.id).descricao || c.descricao })),
+    promocoes: cardapio.promocoes.map((p) => ({
+      ...p,
+      titulo: g("promocoes", p.id).titulo || p.titulo,
+      texto: g("promocoes", p.id).texto || p.texto,
+      rotulo: rotuloDaPromocao(p, id),
+      quando: quandoVale(p, id),
+    })),
+    banner: (cardapio.banner || []).map((b) => ({ ...b, titulo: g("banner", b.id).titulo || b.titulo, texto: g("banner", b.id).texto || b.texto })),
+    filtros: (cardapio.filtros || []).map((f) => ({ ...f, rotulo: rotuloSelo(f.id, id) })),
   };
 }
 
 /** Filtros que têm prato atrás: nunca um filtro que mostra lista vazia. */
-export function filtrosDisponiveis(produtos) {
+export function filtrosDisponiveis(produtos, idioma = "pt") {
   const conta = new Map();
   for (const p of produtos) for (const s of p.selos) conta.set(s, (conta.get(s) || 0) + 1);
-  return SELOS.filter((s) => conta.get(s.id)).map((s) => ({ id: s.id, rotulo: s.rotulo, total: conta.get(s.id) }));
+  return SELOS.filter((s) => conta.get(s.id)).map((s) => ({ id: s.id, rotulo: rotuloSelo(s.id, idioma), total: conta.get(s.id) }));
 }
 
 /** Pratos que passam nos filtros (todos os selos marcados) e na busca. */
@@ -739,12 +904,13 @@ export function filtrarProdutos(produtos, { selos = [], busca = "" } = {}) {
 
 // ─── NOME E SAUDAÇÃO ─────────────────────────────────────────────────────────
 
-export function saudacao(agora = new Date(), fuso = FUSO_PADRAO) {
+export function saudacao(agora = new Date(), fuso = FUSO_PADRAO, idioma = "pt") {
   const { minutos } = partesNoFuso(agora, fuso);
-  if (minutos < 5 * 60) return "Boa noite";
-  if (minutos < 12 * 60) return "Bom dia";
-  if (minutos < 18 * 60) return "Boa tarde";
-  return "Boa noite";
+  const [dia, tarde, noite] = SAUDACOES[idioma] || SAUDACOES.pt;
+  if (minutos < 5 * 60) return noite;
+  if (minutos < 12 * 60) return dia;
+  if (minutos < 18 * 60) return tarde;
+  return noite;
 }
 
 /** Primeiro nome, com a inicial maiúscula. Sem letra nenhuma, vazio. */
@@ -760,9 +926,11 @@ export function primeiroNome(nome) {
  * acompanha: "Pedido recebido, {nome}." → "Pedido recebido."
  */
 export function aplicarNome(modelo, { nome = "", saudacao: s = "Olá" } = {}) {
-  let t = String(modelo ?? "").replace(/\{saudacao\}/g, s);
   const n = primeiroNome(nome);
+  // "[, {nome}]" (moldes dos outros idiomas): o trecho todo some sem nome.
+  let t = String(modelo ?? "").replace(/\[([^[\]]*\{nome\}[^[\]]*)\]/g, (m, dentro) => (n ? dentro : "")).replace(/\{saudacao\}/g, s);
   if (n) return t.replace(/\{nome\}/g, n);
+  if (!t.includes("{nome}")) return t.trim();
   t = t.replace(/,\s*\{nome\}/g, "").replace(/\{nome\}\s*,\s*/g, "").replace(/\s*\{nome\}/g, "").replace(/\{nome\}/g, "");
   t = t.replace(/\s+([!?.,])/g, "$1").replace(/\s{2,}/g, " ").trim();
   return t.charAt(0).toLocaleUpperCase("pt-BR") + t.slice(1);
@@ -770,31 +938,48 @@ export function aplicarNome(modelo, { nome = "", saudacao: s = "Olá" } = {}) {
 
 // ─── CONVERSA ────────────────────────────────────────────────────────────────
 
-export const INTENCOES = [
-  { id: "sugestao", rotulo: "O que vocês indicam?", palavras: ["recomend", "sugest", "indica", "melhor", "especial", "carro chefe", "carro-chefe", "famos", "destaque", "pedir o que", "escolher"] },
-  { id: "promocoes", rotulo: "Tem promoção hoje?", palavras: ["promo", "desconto", "oferta", "barat", "happy"] },
-  { id: "compartilhar", rotulo: "Algo para dividir", palavras: ["dividir", "compartilh", "galera", "turma", "duas pessoas", "2 pessoas", "casal", "grupo", "familia"] },
-  { id: "leve", rotulo: "Quero algo leve", palavras: ["leve", "light", "salada", "fit "] },
-  { id: "vegetariano", rotulo: "Opções sem carne", palavras: ["vegetarian", "vegan", "sem carne", "veggie"] },
-  { id: "bebida", rotulo: "O que tem para beber?", palavras: ["beber", "bebida", "drink", "bebe ", "sede"] },
-  { id: "doce", rotulo: "Uma sobremesa", palavras: ["doce", "sobremesa", "adoçar", "adocar"] },
-  { id: "rapido", rotulo: "Estou com pressa", palavras: ["rapid", "pressa", "demora", "tempo", "logo"] },
-  { id: "restricao", rotulo: "Tenho restrição alimentar", palavras: ["gluten", "lactose", "alergi", "intoleran", "celiac", "restric"] },
-];
+const ORDEM_INTENCOES = ["sugestao", "promocoes", "compartilhar", "leve", "vegetariano", "bebida", "doce", "rapido", "restricao"];
+/** Intenções da conversa. `palavras`: as de TODOS os idiomas (o turista pode escrever em inglês com o cardápio em português). */
+export const INTENCOES = ORDEM_INTENCOES.map((id) => ({
+  id,
+  rotulo: INTENCOES_T[id].rotulo.pt,
+  rotulos: INTENCOES_T[id].rotulo,
+  palavras: [...new Set(INTENCOES_T[id].palavras.map((p) => normalizarBusca(p)).filter(Boolean))],
+}));
+const rotuloIntencao = (i, idioma) => i.rotulos[idioma] || i.rotulo;
 
-const PALAVRAS_VAZIAS = new Set(["quero", "queria", "algo", "alguma", "algum", "tem", "voces", "vcs", "para", "pra", "com", "uma", "um", "que", "qual", "quais", "por", "favor", "gostaria", "hoje", "ai", "me", "de", "do", "da", "dos", "das", "e", "o", "a", "os", "as", "no", "na", "mais", "bem", "muito", "tipo", "ola", "oi", "boa", "bom", "noite", "dia", "tarde", "sim", "nao", "ver", "mostra", "mostrar"]);
+const PALAVRAS_VAZIAS = new Set([
+  "quero", "queria", "algo", "alguma", "algum", "tem", "voces", "vcs", "para", "pra", "com", "uma", "um", "que", "qual", "quais", "por", "favor",
+  "gostaria", "hoje", "ai", "me", "de", "do", "da", "dos", "das", "e", "o", "a", "os", "as", "no", "na", "mais", "bem", "muito", "tipo", "ola", "oi",
+  "boa", "bom", "noite", "dia", "tarde", "sim", "nao", "ver", "mostra", "mostrar",
+  "what", "have", "you", "any", "the", "for", "with", "some", "there", "want", "like", "please", "can", "get", "your", "menu",
+  "hay", "tienen", "tiene", "quiero", "con", "una", "los", "las", "del", "por", "favor",
+  "avez", "vous", "est", "les", "des", "une", "pour", "avec", "voglio", "avete", "per", "con", "che", "una", "del",
+]);
+
+const TEM_CJK = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uf900-\ufaff]/;
+// Pares de caracteres (chinês, japonês e coreano não separam palavras por espaço).
+function bigramas(textoCjk) {
+  const so = textoCjk.replace(/[^\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uf900-\ufaff]+/g, " ");
+  const out = new Set();
+  for (const bloco of so.split(" ")) for (let i = 0; i + 1 < bloco.length; i++) out.add(bloco.slice(i, i + 2));
+  return [...out];
+}
 
 function buscarProdutos(consulta, cardapio) {
-  const termos = normalizarBusca(consulta).replace(/[^a-z0-9 ]+/g, " ").split(" ").filter((t) => t.length >= 3 && !PALAVRAS_VAZIAS.has(t));
-  if (!termos.length) return { fortes: [], fracos: [] };
+  const termos = normalizarBusca(consulta).replace(/[^\p{L}\p{N} ]+/gu, " ").split(" ")
+    .filter((t) => t.length >= 3 && !PALAVRAS_VAZIAS.has(t) && !TEM_CJK.test(t));
+  const pares = TEM_CJK.test(consulta) ? bigramas(consulta) : [];
+  if (!termos.length && !pares.length) return { fortes: [], fracos: [] };
   const fortes = [];
   const fracos = [];
   for (const p of cardapio.produtos) {
-    const nome = normalizarBusca(p.nome);
+    const nomeBruto = `${p.nome} ${p.nome_original || ""}`;
+    const nome = normalizarBusca(nomeBruto);
     const desc = normalizarBusca(`${p.descricao} ${p.harmoniza}`);
-    const noNome = termos.filter((t) => nome.includes(t)).length;
+    const noNome = termos.filter((t) => nome.includes(t)).length + pares.filter((b) => nomeBruto.includes(b)).length;
     if (noNome) fortes.push({ id: p.id, n: noNome });
-    else if (termos.some((t) => desc.includes(t))) fracos.push({ id: p.id, n: 1 });
+    else if (termos.some((t) => desc.includes(t)) || pares.some((b) => `${p.descricao}`.includes(b))) fracos.push({ id: p.id, n: 1 });
   }
   const ord = (a, b) => b.n - a.n;
   return { fortes: fortes.sort(ord).map((x) => x.id), fracos: fracos.sort(ord).map((x) => x.id) };
@@ -819,95 +1004,100 @@ const doPapel = (cardapio, papel) => {
   const cats = new Set(cardapio.categorias.filter((c) => c.papel === papel).map((c) => c.id));
   return cardapio.produtos.filter((p) => cats.has(p.categoria_id));
 };
-const chipsDeIntencao = (excluir) => INTENCOES.filter((i) => i.id !== excluir && i.id !== "restricao").slice(0, 4)
-  .map((i) => ({ tipo: "intencao", id: i.id, rotulo: i.rotulo }));
+const chipsDeIntencao = (idioma, excluir) => INTENCOES.filter((i) => i.id !== excluir && i.id !== "restricao").slice(0, 4)
+  .map((i) => ({ tipo: "intencao", id: i.id, rotulo: rotuloIntencao(i, idioma) }));
 const chipsDeCategoria = (cardapio, papel) => cardapio.categorias.filter((c) => !papel || c.papel === papel).slice(0, 6)
   .map((c) => ({ tipo: "categoria", id: c.id, rotulo: c.nome }));
+const LATINOS = new Set(["pt", "en", "es", "fr", "it"]);
 
 /**
- * Resposta da conversa. Sempre a partir do cardápio montado (o que o dono
- * marcou e o que está na ficha). Sem dado: diz que não tem e oferece outro
- * caminho. Devolve { texto, produto_ids, acoes }.
+ * Resposta da conversa, no idioma do cardápio (cardapio.idioma). Sempre a
+ * partir do cardápio montado (o que o dono marcou e o que está na ficha).
+ * Sem dado: diz que não tem e oferece outro caminho. Devolve { texto, produto_ids, acoes }.
  */
 export function responderConversa(pedido, cardapio, { nome = "" } = {}) {
+  const idioma = idiomaValido(cardapio?.idioma) ? cardapio.idioma : "pt";
+  const R = (chave, vars) => resposta(idioma, chave, vars);
   const n = primeiroNome(nome);
-  const comNome = (t) => (n ? `${n}, ${t.charAt(0).toLocaleLowerCase("pt-BR")}${t.slice(1)}` : t);
+  const comNome = (t) => {
+    if (!n) return t;
+    const corpo = LATINOS.has(idioma) ? `${t.charAt(0).toLocaleLowerCase(infoIdioma(idioma).locale)}${t.slice(1)}` : t;
+    return R("com_nome", { nome: n, texto: corpo });
+  };
   const ids = (lista, max = 8) => ordenarVitrine(lista).slice(0, max).map((p) => p.id);
-  const r = (textoResp, produto_ids = [], acoes = []) => ({ texto: textoResp, produto_ids, acoes });
+  const out = (textoResp, produto_ids = [], acoes = []) => ({ texto: textoResp, produto_ids, acoes });
 
-  if (!pedido) return r("Não entendi. Posso te mostrar:", [], chipsDeIntencao());
+  if (!pedido) return out(R("nao_entendi"), [], chipsDeIntencao(idioma));
 
   if (pedido.tipo === "busca") {
-    if (pedido.produto_ids.length) return r(pedido.produto_ids.length === 1 ? "Achei este:" : "Achei estes:", pedido.produto_ids);
-    return r(`Não achei nada com “${pedido.consulta}” no cardápio. Posso te mostrar:`, [], chipsDeIntencao());
+    if (pedido.produto_ids.length) return out(R(pedido.produto_ids.length === 1 ? "achei_um" : "achei_varios"), pedido.produto_ids);
+    return out(R("nao_achei", { q: pedido.consulta }), [], chipsDeIntencao(idioma));
   }
 
+  const aviso = R("aviso_alergia");
   switch (pedido.id) {
     case "sugestao": {
       const d = cardapio.produtos.filter((p) => p.destaque);
-      if (d.length) return r(comNome("Estes são os pratos que a casa faz questão de indicar:"), ids(d));
-      return r("A casa ainda não escolheu os destaques por aqui. Dá uma olhada pelas seções:", [], chipsDeCategoria(cardapio));
+      if (d.length) return out(comNome(R("sugestao_sim")), ids(d));
+      return out(R("sugestao_nao"), [], chipsDeCategoria(cardapio));
     }
     case "promocoes": {
-      if (!cardapio.promocoes.length) return r("Agora não tem promoção valendo. Mas o cardápio inteiro está aqui:", [], chipsDeCategoria(cardapio));
+      if (!cardapio.promocoes.length) return out(R("promo_nao"), [], chipsDeCategoria(cardapio));
       const lista = cardapio.promocoes.map((p) => [p.titulo, p.rotulo, p.quando].filter(Boolean).join(" — ")).join("\n");
       const prods = cardapio.produtos.filter((p) => p.promocao_id);
-      return r(`Valendo agora:\n${lista}`, ids(prods));
+      return out(`${R("promo_sim")}\n${lista}`, ids(prods));
     }
     case "compartilhar": {
       const l = comSelo(cardapio, "serve_2");
-      if (l.length) return r("Para dividir, estes servem bem duas pessoas:", ids(l));
-      return r("Ainda não marcamos quais pratos servem duas pessoas. A equipe te orienta na hora, é só chamar.", [], chipsDeIntencao("compartilhar"));
+      if (l.length) return out(R("dividir_sim"), ids(l));
+      return out(R("dividir_nao"), [], chipsDeIntencao(idioma, "compartilhar"));
     }
     case "leve": {
       const l = comSelo(cardapio, "leve");
-      if (l.length) return r("Mais leves:", ids(l));
-      return r("Ainda não marcamos os pratos leves no cardápio. Pergunte à equipe, que eles indicam.", [], chipsDeIntencao("leve"));
+      if (l.length) return out(R("leve_sim"), ids(l));
+      return out(R("leve_nao"), [], chipsDeIntencao(idioma, "leve"));
     }
     case "vegetariano": {
       const l = comSelo(cardapio, "vegetariano", "vegano");
-      if (l.length) return r("Sem carne:", ids(l));
-      return r("Ainda não marcamos as opções vegetarianas no cardápio. Fale com a equipe antes de pedir.", [], chipsDeIntencao("vegetariano"));
+      if (l.length) return out(R("veg_sim"), ids(l));
+      return out(R("veg_nao"), [], chipsDeIntencao(idioma, "vegetariano"));
     }
     case "bebida": {
       const l = doPapel(cardapio, "bebida");
-      if (!l.length) return r("Não encontrei bebidas neste cardápio. A equipe te mostra as opções.");
-      return r("Para beber:", ids(l, 6), chipsDeCategoria(cardapio, "bebida"));
+      if (!l.length) return out(R("bebida_nao"));
+      return out(R("bebida_sim"), ids(l, 6), chipsDeCategoria(cardapio, "bebida"));
     }
     case "doce": {
       const l = doPapel(cardapio, "sobremesa");
-      if (!l.length) return r("Não encontrei sobremesas neste cardápio hoje.");
-      return r("Para adoçar:", ids(l, 6), chipsDeCategoria(cardapio, "sobremesa"));
+      if (!l.length) return out(R("doce_nao"));
+      return out(R("doce_sim"), ids(l, 6), chipsDeCategoria(cardapio, "sobremesa"));
     }
     case "rapido": {
       const l = comSelo(cardapio, "rapido");
-      if (l.length) return r("Estes costumam sair mais rápido:", ids(l));
-      return r("Não temos o tempo de cada prato aqui. Avise a equipe que está com pressa, que eles te dizem o que sai primeiro.");
+      if (l.length) return out(R("rapido_sim"), ids(l));
+      return out(R("rapido_nao"));
     }
     case "restricao": {
       const l = comSelo(cardapio, "sem_gluten", "sem_lactose", "vegano");
-      const aviso = "Se for alergia, confirme com a equipe antes de pedir.";
-      if (l.length) return r(`A casa marcou estes como sem glúten, sem lactose ou veganos. ${aviso}`, ids(l));
-      return r(`Ainda não temos essa informação marcada no cardápio. ${aviso} Os alergênicos que a cozinha registrou aparecem na página de cada prato.`);
+      if (l.length) return out(R("restricao_sim", { aviso }), ids(l));
+      return out(R("restricao_nao", { aviso }));
     }
     default:
-      return r("Não entendi. Posso te mostrar:", [], chipsDeIntencao());
+      return out(R("nao_entendi"), [], chipsDeIntencao(idioma));
   }
 }
 
-/** Primeira mensagem da conversa, já com o nome. */
+/** Primeira mensagem da conversa, já com o nome, no idioma do cardápio. */
 export function aberturaDaConversa(cardapio, { nome = "", agora = new Date(), fuso = FUSO_PADRAO } = {}) {
-  const s = saudacao(agora, fuso);
-  const n = primeiroNome(nome);
-  const intro = cardapio?.conversa?.intro || CONFIG_PADRAO.conversa.intro;
+  const idioma = idiomaValido(cardapio?.idioma) ? cardapio.idioma : "pt";
+  const intro = cardapio?.conversa?.intro || TEXTOS_PADRAO[idioma].intro;
+  const modelo = TEXTOS_PADRAO[idioma].abertura.replace("{intro}", intro);
   return {
-    texto: `${n ? `${s}, ${n}!` : `${s}!`} ${intro}`,
+    texto: aplicarNome(modelo, { nome, saudacao: saudacao(agora, fuso, idioma) }),
     produto_ids: [],
-    acoes: [
-      ...INTENCOES.filter((i) => ["sugestao", "promocoes", "compartilhar", "bebida", "doce", "restricao"].includes(i.id))
-        .filter((i) => i.id !== "promocoes" || cardapio?.promocoes?.length)
-        .map((i) => ({ tipo: "intencao", id: i.id, rotulo: i.rotulo })),
-    ],
+    acoes: INTENCOES.filter((i) => ["sugestao", "promocoes", "compartilhar", "bebida", "doce", "restricao"].includes(i.id))
+      .filter((i) => i.id !== "promocoes" || cardapio?.promocoes?.length)
+      .map((i) => ({ tipo: "intencao", id: i.id, rotulo: rotuloIntencao(i, idioma) })),
   };
 }
 
@@ -917,8 +1107,24 @@ export function aberturaDaConversa(cardapio, { nome = "", agora = new Date(), fu
 export function totalDoCarrinho(carrinho, cardapio, { tipo = "qrcode" } = {}) {
   const preco = new Map(cardapio.produtos.map((p) => [p.id, p.preco]));
   const subtotal = centavos((carrinho || []).reduce((s, i) => s + (preco.get(i.id) || 0) * (Number(i.quantidade) || 0), 0));
-  const taxa = tipo === "delivery" ? centavos(cardapio.unidade?.taxa_entrega) : 0;
-  return { subtotal, taxa, total: centavos(subtotal + taxa) };
+  const regras = taxaDeEntrega(subtotal, cardapio, tipo);
+  return { subtotal, ...regras, total: centavos(subtotal + regras.taxa) };
+}
+
+/**
+ * Taxa e regras do delivery para um subtotal: grátis acima de X e pedido
+ * mínimo. A MESMA conta roda no servidor na hora do pedido.
+ */
+export function taxaDeEntrega(subtotal, cardapio, tipo = "delivery") {
+  if (tipo !== "delivery") return { taxa: 0, falta_minimo: 0, falta_gratis: 0 };
+  const e = cardapio?.entrega || {};
+  const base = centavos(cardapio?.unidade?.taxa_entrega);
+  const gratis = e.gratis_acima > 0 && subtotal >= e.gratis_acima;
+  return {
+    taxa: gratis ? 0 : base,
+    falta_minimo: e.pedido_minimo > 0 && subtotal < e.pedido_minimo ? centavos(e.pedido_minimo - subtotal) : 0,
+    falta_gratis: e.gratis_acima > 0 && base > 0 && !gratis ? centavos(e.gratis_acima - subtotal) : 0,
+  };
 }
 
 /** Itens do carrinho que saíram do cardápio (ou mudaram de preço) desde que entraram. */

@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   normalizarFidelidade, fidelidadeVigente, normalizarTelefone, selosDoPedido, cashbackDoPedido, saldoDoCliente,
-  cashbackUsavel, progressoDoCartao, cartoesDoProduto, fidelidadePublica, STATUS_CONCLUIDO,
+  cashbackUsavel, progressoDoCartao, cartoesDoProduto, fidelidadePublica, STATUS_CONCLUIDO, validarCadastro, descontoDoCadastro,
 } from "./fidelidade.mjs";
 
 const CAFE = "11111111-1111-4111-8111-111111111111";
@@ -41,11 +41,15 @@ test("configuração: limites, padrões e campos ruins", () => {
   assert.equal(f.cashback.percentual, 30, "teto de 30%");
   assert.equal(f.cashback.minimo_pedido, 0);
   assert.equal(f.cashback.uso_maximo_pct, 1);
-  assert.deepEqual(normalizarFidelidade(null), { ativo: false, cartoes: [], cashback: { ativo: false, percentual: 5, minimo_pedido: 0, validade_dias: 60, uso_maximo_pct: 50 } });
+  assert.deepEqual(normalizarFidelidade(null), {
+    ativo: false, cartoes: [],
+    cashback: { ativo: false, percentual: 5, minimo_pedido: 0, validade_dias: 60, uso_maximo_pct: 50 },
+    cadastro: { ativo: false, desconto_pct: 10, aplica: "primeiro", validade_dias: 0, pedir_email: false, pedir_aniversario: true },
+  });
 });
 
 test("programa desligado não dá nada; cartão sem prêmio ou sem produto não vale", () => {
-  assert.deepEqual(fidelidadeVigente({ ...CFG, ativo: false }), { cartoes: [], cashback: null });
+  assert.deepEqual(fidelidadeVigente({ ...CFG, ativo: false }), { cartoes: [], cashback: null, cadastro: null });
   assert.deepEqual(fidelidadeVigente(CFG).cartoes.map((c) => c.id), ["cafe", "burger"]);
   assert.deepEqual(selosDoPedido([{ produto_id: CAFE, quantidade: 1 }], { ...CFG, ativo: false }), []);
 });
@@ -127,4 +131,28 @@ test("cardápio público: só cartões valendo, com os produtos visíveis, e nad
   assert.equal(fidelidadePublica({ ...CFG, ativo: false }), null);
   assert.equal(fidelidadePublica(CFG, ["nenhum"]).cartoes.length, 0, "cartão sem prato visível não aparece");
   assert.doesNotMatch(JSON.stringify(pub), /tel|telefone|cliente/);
+});
+
+test("cadastro pelo QR: campos limpos, aceite obrigatório e só o que o dono pediu", () => {
+  const cfg = { ativo: true, cadastro: { ativo: true, desconto_pct: 10, pedir_email: true } };
+  const ok = validarCadastro({ nome: "  Ana  Lima ", telefone: "+55 (91) 98888-7777", email: "Ana@Exemplo.com", aniversario: "1990-05-31", aceite: true, novidades: true }, cfg);
+  assert.deepEqual(ok, { ok: true, cadastro: { nome: "Ana Lima", telefone: "91988887777", email: "ana@exemplo.com", aniversario: "1990-05-31", novidades: true } });
+  assert.equal(validarCadastro({ nome: "Ana", telefone: "91988887777" }, cfg).codigo, "aceite", "sem aceite da LGPD não cadastra");
+  assert.equal(validarCadastro({ nome: "A", telefone: "91988887777", aceite: true }, cfg).codigo, "nome");
+  assert.equal(validarCadastro({ nome: "Ana", telefone: "8888-7777", aceite: true }, cfg).codigo, "telefone");
+  assert.equal(validarCadastro({ nome: "Ana", telefone: "91988887777", email: "ana@", aceite: true }, cfg).codigo, "email");
+  assert.equal(validarCadastro({ nome: "Ana", telefone: "91988887777", aniversario: "1990-02-31", aceite: true }, cfg).codigo, "aniversario");
+  assert.equal(validarCadastro({ nome: "Ana", telefone: "91988887777", aniversario: "2999-01-01", aceite: true }, cfg).codigo, "aniversario");
+  const semEmail = validarCadastro({ nome: "Ana", telefone: "91988887777", email: "ana@x.com", aceite: true }, { ativo: true, cadastro: { ativo: true } });
+  assert.equal(semEmail.cadastro.email, null, "e-mail só se o dono pediu");
+  assert.equal(semEmail.cadastro.novidades, false, "novidades só com o sim do cliente");
+  assert.equal(validarCadastro({ nome: "Ana", telefone: "91988887777", aceite: true }, { ativo: true }).codigo, "cadastro_fechado");
+});
+
+test("desconto do cadastro e o que sai no cardápio público", () => {
+  assert.equal(descontoDoCadastro(87.5, 10), 8.75);
+  assert.equal(descontoDoCadastro(100, 0), 0);
+  assert.equal(descontoDoCadastro(100, 90), 50, "teto de 50%");
+  const pub = fidelidadePublica({ ativo: true, cadastro: { ativo: true, desconto_pct: 15, aplica: "sempre" } }, []);
+  assert.deepEqual(pub, { cartoes: [], cashback: null, cadastro: { desconto_pct: 15, aplica: "sempre", pedir_email: false, pedir_aniversario: true } });
 });

@@ -14,6 +14,9 @@
 //     pedido é concluído — por isso só dá para usar na PRÓXIMA visita/pedido.
 //   · Validade: o saldo vence se o cliente ficar N dias sem ganhar selo (ou
 //     cashback). 0 = não vence.
+//   · Cadastro pelo QR: o cliente se cadastra (vira cliente do CRM) e ganha
+//     um desconto nos pedidos pelo cardápio digital — só no primeiro ou em
+//     todos, o dono escolhe. Quem confere o cadastro é o servidor/banco.
 //
 // Nada aqui inventa saldo: sem lançamento, o saldo é zero.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -36,6 +39,7 @@ export const FIDELIDADE_PADRAO = Object.freeze({
   ativo: false,
   cartoes: Object.freeze([]),
   cashback: Object.freeze({ ativo: false, percentual: 5, minimo_pedido: 0, validade_dias: 60, uso_maximo_pct: 50 }),
+  cadastro: Object.freeze({ ativo: false, desconto_pct: 10, aplica: "primeiro", validade_dias: 0, pedir_email: false, pedir_aniversario: true }),
 });
 
 /** Só os dígitos do telefone, sem o 55 do Brasil. Fora de 10–11 dígitos: vazio (sem fidelidade). */
@@ -74,6 +78,8 @@ export function normalizarFidelidade(raw) {
   }).slice(0, LIMITES_FIDELIDADE.cartoes);
   const cb = c.cashback && typeof c.cashback === "object" ? c.cashback : {};
   const P = FIDELIDADE_PADRAO.cashback;
+  const cad = c.cadastro && typeof c.cadastro === "object" ? c.cadastro : {};
+  const PC = FIDELIDADE_PADRAO.cadastro;
   return {
     ativo: c.ativo === true,
     cartoes,
@@ -84,16 +90,25 @@ export function normalizarFidelidade(raw) {
       validade_dias: inteiro(cb.validade_dias, 0, LIMITES_FIDELIDADE.validadeMax, P.validade_dias),
       uso_maximo_pct: inteiro(cb.uso_maximo_pct, 1, 100, P.uso_maximo_pct),
     },
+    cadastro: {
+      ativo: cad.ativo === true,
+      desconto_pct: inteiro(cad.desconto_pct, 1, 50, PC.desconto_pct),
+      aplica: cad.aplica === "sempre" ? "sempre" : "primeiro",
+      validade_dias: inteiro(cad.validade_dias, 0, LIMITES_FIDELIDADE.validadeMax, PC.validade_dias),
+      pedir_email: cad.pedir_email === true,
+      pedir_aniversario: cad.pedir_aniversario !== false,
+    },
   };
 }
 
 /** O que dá para MOSTRAR (e o que está valendo): programa ligado, cartões ativos com produto e prêmio. */
 export function fidelidadeVigente(cfg) {
   const f = normalizarFidelidade(cfg);
-  if (!f.ativo) return { cartoes: [], cashback: null };
+  if (!f.ativo) return { cartoes: [], cashback: null, cadastro: null };
   return {
     cartoes: f.cartoes.filter((c) => c.ativo && c.produto_ids.length && c.recompensa),
     cashback: f.cashback.ativo ? f.cashback : null,
+    cadastro: f.cadastro.ativo ? f.cadastro : null,
   };
 }
 
@@ -196,12 +211,55 @@ export function cartoesDoProduto(produtoId, cfg) {
 
 /** O que sai no cardápio público: só o que o cliente precisa ver (sem dado de ninguém). */
 export function fidelidadePublica(cfg, idsVisiveis) {
-  const { cartoes, cashback } = fidelidadeVigente(cfg);
+  const { cartoes, cashback, cadastro } = fidelidadeVigente(cfg);
   const visiveis = idsVisiveis ? new Set(idsVisiveis) : null;
   const lista = cartoes.map((c) => ({
     id: c.id, nome: c.nome, selos: c.selos, por: c.por, recompensa: c.recompensa, validade_dias: c.validade_dias,
     produto_ids: visiveis ? c.produto_ids.filter((x) => visiveis.has(x)) : c.produto_ids,
   })).filter((c) => c.produto_ids.length);
-  if (!lista.length && !cashback) return null;
-  return { cartoes: lista, cashback: cashback ? { ...cashback } : null };
+  if (!lista.length && !cashback && !cadastro) return null;
+  return {
+    cartoes: lista,
+    cashback: cashback ? { ...cashback } : null,
+    cadastro: cadastro ? { desconto_pct: cadastro.desconto_pct, aplica: cadastro.aplica, pedir_email: cadastro.pedir_email, pedir_aniversario: cadastro.pedir_aniversario } : null,
+  };
+}
+
+/** Desconto do cadastro sobre os itens (centavos). `pct` vem do banco; 0 = sem desconto. */
+export function descontoDoCadastro(subtotalItens, pct) {
+  const p = Math.min(50, Math.max(0, Number(pct) || 0));
+  return centavos(((Number(subtotalItens) || 0) * p) / 100);
+}
+
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
+
+/**
+ * Cadastro feito pelo cliente no QR: nome, WhatsApp, e-mail e aniversário
+ * (opcionais, conforme o dono pediu) e o aceite da LGPD. Devolve os campos
+ * limpos ou o erro (código + campo).
+ */
+export function validarCadastro(corpo, cfg) {
+  const c = corpo && typeof corpo === "object" ? corpo : {};
+  const { cadastro } = fidelidadeVigente(cfg);
+  if (!cadastro) return { ok: false, codigo: "cadastro_fechado" };
+  const nome = texto(c.nome, 80);
+  if (nome.length < 2) return { ok: false, codigo: "nome" };
+  const tel = normalizarTelefone(c.telefone);
+  if (!tel) return { ok: false, codigo: "telefone" };
+  const email = texto(c.email, 254).toLowerCase();
+  if (email && !EMAIL_RE.test(email)) return { ok: false, codigo: "email" };
+  let aniversario = null;
+  const a = String(c.aniversario ?? "").trim();
+  if (a) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(a);
+    const d = m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
+    const ok = d && d.getUTCMonth() === +m[2] - 1 && +m[1] >= 1900 && d.getTime() <= Date.now();
+    if (!ok) return { ok: false, codigo: "aniversario" };
+    aniversario = a;
+  }
+  if (c.aceite !== true) return { ok: false, codigo: "aceite" };
+  return {
+    ok: true,
+    cadastro: { nome, telefone: tel, email: cadastro.pedir_email ? email || null : null, aniversario: cadastro.pedir_aniversario ? aniversario : null, novidades: c.novidades === true },
+  };
 }

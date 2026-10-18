@@ -12,7 +12,7 @@ import { saldoDoCliente } from "./fidelidade.mjs";
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SQL = fs.readFileSync(path.join(raiz, "db", "FIDELIDADE_1_SELOS_E_CASHBACK.sql"), "utf8");
 const pular = !process.env.PGLITE && "PGLITE não informado";
-const IMPRESSAO = "a32b229f546e8c0c55587257a21ada60";
+const IMPRESSAO = "407bcd9c6a4b80101073aecb68d07928";
 
 const U = "seldeestrela";
 const CAFE = "11111111-1111-4111-8111-111111111111";
@@ -37,6 +37,10 @@ const BASE = `
     select coalesce(current_setting('teste.pode', true), '') = '*'
         or position((p_permission || '@' || p_unidade_id) in coalesce(current_setting('teste.pode', true), '')) > 0 $$;
   create table public.config_sistema (id uuid primary key default gen_random_uuid(), unidade_id text, params jsonb, created_at timestamptz default now());
+  create table public.unidades (id text primary key, nome text not null);
+  insert into public.unidades values ('seldeestrela', 'Sel de Estrela'), ('outra', 'Outra');
+  create table public.clientes (id uuid primary key default gen_random_uuid(), nome text not null, tel text, total_gasto numeric default 0,
+    total_pedidos integer default 0, ultima_compra date, unidade_id text, created_at timestamptz default now());
   create table public.pedidos (id uuid primary key default gen_random_uuid(), unidade_id text, mesa_id uuid, status text, valor_total numeric,
     created_at timestamptz default now(), updated_at timestamptz default now(), tipo_pedido text, cliente_nome text, cliente_telefone text,
     endereco_entrega text, troco_para text, forma_pagamento text, garcom_id uuid, identificacao text);
@@ -81,12 +85,20 @@ const comoEquipe = async (pg, pode, sql, args = []) => {
 };
 
 test("a migração só adiciona: sem drop, delete, update, truncate; policy e grants só nos objetos novos", () => {
-  const cmd = SQL.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "").replace(/'(?:[^']|'')*'/g, "''").toLowerCase();
+  const limpo = SQL.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "").replace(/'(?:[^']|'')*'/g, "''").toLowerCase();
+  // Fora das funções (o que roda na hora de aplicar): nada que apague ou altere linha.
+  const cmd = limpo.replace(/\$\$[\s\S]*?\$\$/g, "$$$$");
   assert.doesNotMatch(cmd, /\bdrop\s+(table|column|schema|view|function|index|policy|trigger)\b/);
   assert.doesNotMatch(cmd, /\bdelete\s+from\b/);
   assert.doesNotMatch(cmd, /\bupdate\s+(public\.)?\w+\s+set\b/);
   assert.doesNotMatch(cmd, /\btruncate\s+(table\s+)?public\./);
-  assert.doesNotMatch(cmd, /\balter\s+table\s+(?!public\.fidelidade_movimentos\b)/, "só altera a tabela nova");
+  for (const m of cmd.matchAll(/\balter\s+table\s+([\w.]+)\s+(\w+(?:\s+\w+)?)/g)) {
+    assert.ok(m[1] === "public.fidelidade_movimentos" || (["public.clientes", "public.pedidos"].includes(m[1]) && m[2] === "add column"), m[0]);
+  }
+  // Dentro das funções: a única escrita fora do livro é o cadastro do próprio cliente.
+  const corpos = [...limpo.matchAll(/\$\$([\s\S]*?)\$\$/g)].map((m) => m[1]).join("\n");
+  assert.doesNotMatch(corpos, /\bdelete\s+from\b|\btruncate\b|\bdrop\b/);
+  assert.deepEqual([...corpos.matchAll(/\bupdate\s+([\w.]+)/g)].map((m) => m[1]), ["public.clientes"]);
   for (const m of cmd.matchAll(/\bcreate\s+policy\s+\w+\s+on\s+([\w.]+)/g)) assert.equal(m[1], "public.fidelidade_movimentos");
   assert.doesNotMatch(cmd, /using\s*\(\s*true\s*\)|auth\.role\(\)\s*=/, "nada de policy aberta");
   for (const m of cmd.matchAll(/\b(?:grant|revoke)\b[^;]*?\bon\s+(?:function\s+)?([\w.]+)/g)) assert.match(m[1], /^public\.(_?fidelidade)/, m[0]);
@@ -239,4 +251,61 @@ test("o saldo do app (saldoDoCliente) bate com o do banco", { skip: pular }, asy
   assert.equal(app.cartoes.cafe.selos, await saldoSelos(pg, "cafe", 90));
   assert.equal(app.cartoes.burger.selos, await saldoSelos(pg, "burger", 0));
   assert.equal(app.cashback.saldo, await saldoCash(pg, 60));
+});
+
+// ─── cadastro pelo QR ────────────────────────────────────────────────────────
+const CFG_CAD = { ...CFG, cadastro: { ativo: true, desconto_pct: 10, aplica: "primeiro", validade_dias: 0 } };
+const cadastrar = (pg, tel = TEL, nome = "Ana Lima", extra = {}) => pg.query("select public.fidelidade_cadastrar($1, $2, $3, $4, $5, $6) as r",
+  [extra.unidade || U, nome, tel, extra.email ?? "ana@x.com", extra.aniversario ?? "1990-05-31", extra.novidades ?? true]).then((r) => r.rows[0].r);
+const desconto = (pg, tel = TEL) => pg.query("select public.fidelidade_desconto_cadastro($1, $2) as d", [U, tel]).then((r) => Number(r.rows[0].d));
+
+test("cadastro pelo QR: cria o cliente no CRM; o mesmo telefone não duplica nem troca o nome", { skip: pular }, async () => {
+  const pg = await banco({ cfg: CFG_CAD });
+  assert.deepEqual(await cadastrar(pg), { ok: true, novo: true });
+  assert.deepEqual(await cadastrar(pg, "+55 91 98888-7777", "Outra Pessoa", { email: "golpe@x.com" }), { ok: true, novo: false });
+  const { rows } = await pg.query("select nome, tel, email, aniversario::text, aceita_novidades, origem, cadastro_em is not null as cad, aceite_lgpd_em is not null as lgpd from public.clientes");
+  assert.deepEqual(rows, [{ nome: "Ana Lima", tel: "91988887777", email: "ana@x.com", aniversario: "1990-05-31", aceita_novidades: true, origem: "qr", cad: true, lgpd: true }]);
+  await assert.rejects(() => cadastrar(pg, "123"), /inválido/);
+  await assert.rejects(() => cadastrar(pg, TEL, "Ana", { unidade: "nao-existe" }), /Unidade inválida/);
+});
+
+test("cadastro de quem a equipe já tinha: marca o cadastro e mantém nome e e-mail", { skip: pular }, async () => {
+  const pg = await banco({ cfg: CFG_CAD });
+  await pg.query("insert into public.clientes (nome, tel, unidade_id, email) values ('Ana (balcão)', '(91) 98888-7777', $1, null)", [U]);
+  assert.deepEqual(await cadastrar(pg, TEL, "Ana Nova"), { ok: true, novo: false });
+  const { rows } = await pg.query("select nome, tel, email, cadastro_em is not null as cad from public.clientes");
+  assert.deepEqual(rows, [{ nome: "Ana (balcão)", tel: "91988887777", email: "ana@x.com", cad: true }]);
+});
+
+test("desconto do cadastro: só cadastrado; primeiro pedido; cancelado devolve; validade; programa desligado", { skip: pular }, async () => {
+  const pg = await banco({ cfg: CFG_CAD });
+  assert.equal(await desconto(pg), 0, "sem cadastro, sem desconto");
+  await cadastrar(pg);
+  assert.equal(await desconto(pg), 10);
+  assert.equal(await desconto(pg, "(91) 97777-0000"), 0, "outro telefone");
+  const id = await pedido(pg);
+  await pg.query("update public.pedidos set desconto = 4, desconto_origem = 'cadastro' where id = $1", [id]);
+  assert.equal(await desconto(pg), 0, "primeiro pedido já usou");
+  await status(pg, id, "cancelado");
+  assert.equal(await desconto(pg), 10, "pedido cancelado devolve o benefício");
+  await pg.query("update public.config_sistema set params = jsonb_set(params, '{fidelidade,cadastro,aplica}', '\"sempre\"')");
+  const id2 = await pedido(pg);
+  await pg.query("update public.pedidos set desconto = 4, desconto_origem = 'cadastro' where id = $1", [id2]);
+  assert.equal(await desconto(pg), 10, "em todos os pedidos");
+  await pg.query("update public.config_sistema set params = jsonb_set(params, '{fidelidade,cadastro,validade_dias}', '30')");
+  await pg.query("update public.clientes set cadastro_em = now() - interval '31 days'");
+  assert.equal(await desconto(pg), 0, "venceu");
+  await pg.query("update public.config_sistema set params = jsonb_set(params, '{fidelidade,ativo}', 'false')");
+  await pg.query("update public.clientes set cadastro_em = now()");
+  assert.equal(await desconto(pg), 0, "programa desligado");
+});
+
+test("cadastro e desconto: só o servidor chama; cashback do pedido é sobre o que foi pago", { skip: pular }, async () => {
+  const pg = await banco({ cfg: CFG_CAD });
+  await assert.rejects(() => comoEquipe(pg, "*", "select public.fidelidade_cadastrar($1, 'Ana', $2, null, null, false)", [U, TEL]), /permission denied/);
+  await assert.rejects(() => comoEquipe(pg, "*", "select public.fidelidade_desconto_cadastro($1, $2)", [U, TEL]), /permission denied/);
+  const id = await pedido(pg, { itens: [[OUTRO, 4, 25]] }); // R$ 100 de itens
+  await pg.query("update public.pedidos set desconto = 10, desconto_origem = 'cadastro' where id = $1", [id]);
+  await status(pg, id, "pago");
+  assert.equal(await saldoCash(pg), 4.5, "5% de R$ 90 (pagou com 10% de desconto)");
 });

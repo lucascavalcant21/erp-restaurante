@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   FIDELIDADE-1 · CARTÕES DE SELO POR PRODUTO E CASHBACK
+   FIDELIDADE-1 · CARTÕES DE SELO POR PRODUTO, CASHBACK E CADASTRO PELO QR
 
    STATUS: NÃO APLICADA. Aguarda aprovação do dono (APR-014 em
    docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md). Testada no PGlite
@@ -37,14 +37,27 @@
      5. fidelidade_reservar_cashback: só o servidor (service_role) chama,
         quando o cliente usa o cashback num pedido do cardápio; confere o
         telefone do pedido e o saldo sob trava.
-   NÃO FAZ: não mexe em pedidos, pedidos_itens, clientes nem config_sistema
-   (só lê); não cria policy aberta; não muda RLS de tabela existente.
+     6. CADASTRO PELO QR (pedido do dono 18/10): o cliente se cadastra no QR
+        do restaurante e ganha desconto nos pedidos pelo cardápio.
+          · colunas novas em clientes (CRM): email, aniversario, cadastro_em,
+            aceite_lgpd_em, aceita_novidades, origem;
+          · colunas novas em pedidos: desconto, desconto_origem (o desconto
+            fica no pedido, à vista da equipe e do financeiro);
+          · fidelidade_cadastrar (só o servidor): cria o cliente ou marca o
+            cadastro de quem já existe — NUNCA troca nome/e-mail já gravados;
+          · fidelidade_desconto_cadastro (só o servidor): % do desconto para
+            um telefone (0 = não tem), conforme o dono: primeiro pedido ou
+            todos, com validade.
+   NÃO FAZ: não altera nenhuma linha existente de pedidos, pedidos_itens,
+   clientes nem config_sistema (só colunas novas, vazias/0); não cria policy
+   aberta; não muda RLS de tabela existente. Depois de aplicada, a única
+   escrita em clientes é a de fidelidade_cadastrar (cliente que se cadastra).
 
    VALIDADE: o saldo vence quando o cliente fica N dias sem ganhar (N do
    dono; 0 = não vence). O próximo crédito lança o "expira" do saldo velho.
 
    VERIFICAÇÃO: o select do fim devolve a impressão digital (colunas da
-   tabela + funções + trigger). Esperado: a32b229f546e8c0c55587257a21ada60
+   tabela + funções + trigger). Esperado: 407bcd9c6a4b80101073aecb68d07928
    (conferido no PGlite por app/lib/fidelidade-banco.test.mjs).
 
    ROLLBACK (não rodar sem decisão do dono; o livro com os saldos dos
@@ -58,7 +71,12 @@
        public._fidelidade_config(text), public._fidelidade_tel(text), public._fidelidade_num(text, numeric, numeric, numeric),
        public._fidelidade_cartao(jsonb, text);
      drop table if exists public.fidelidade_movimentos;  -- o trigger de imutabilidade cai junto
-     drop function if exists public.fidelidade_imutavel_trg();
+     drop function if exists public.fidelidade_imutavel_trg(),
+       public.fidelidade_cadastrar(text, text, text, text, date, boolean), public.fidelidade_desconto_cadastro(text, text);
+     drop index if exists public.clientes_cadastro_tel;
+     alter table public.pedidos drop column if exists desconto_origem, drop column if exists desconto;
+     alter table public.clientes drop column if exists origem, drop column if exists aceita_novidades,
+       drop column if exists aceite_lgpd_em, drop column if exists cadastro_em, drop column if exists aniversario, drop column if exists email;
    ═══════════════════════════════════════════════════════════════════════════ */
 
 begin;
@@ -74,6 +92,15 @@ begin
   end if;
   if to_regclass('public.fidelidade_movimentos') is not null then
     raise exception 'FIDELIDADE-1: fidelidade_movimentos já existe (já aplicada?). Nada foi alterado.';
+  end if;
+  if to_regclass('public.clientes') is null or to_regclass('public.unidades') is null
+     or not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'clientes' and column_name = 'tel') then
+    raise exception 'FIDELIDADE-1: tabela clientes (com tel) ou unidades ausente. Nada foi alterado.';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public'
+              and ((table_name = 'clientes' and column_name in ('email', 'aniversario', 'cadastro_em', 'aceite_lgpd_em', 'aceita_novidades', 'origem'))
+                or (table_name = 'pedidos' and column_name in ('desconto', 'desconto_origem')))) then
+    raise exception 'FIDELIDADE-1: clientes/pedidos já têm alguma das colunas novas. Nada foi alterado.';
   end if;
   if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'pedidos' and column_name = 'cliente_telefone')
      or not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'pedidos_itens' and column_name = 'valor_unitario') then
@@ -112,6 +139,23 @@ comment on table public.fidelidade_movimentos is 'Fidelidade (selos por cartão 
 -- O mesmo pedido não rende (nem estorna) duas vezes.
 create unique index fidelidade_mov_pedido_unico on public.fidelidade_movimentos (pedido_id, tipo, coalesce(cartao_id, '')) where pedido_id is not null;
 create index fidelidade_mov_cliente on public.fidelidade_movimentos (unidade_id, cliente_tel, created_at);
+
+-- Cadastro pelo QR (CRM) e desconto no pedido: só colunas novas.
+alter table public.clientes add column email text;
+alter table public.clientes add column aniversario date;
+alter table public.clientes add column cadastro_em timestamptz;
+alter table public.clientes add column aceite_lgpd_em timestamptz;
+alter table public.clientes add column aceita_novidades boolean not null default false;
+alter table public.clientes add column origem text;
+comment on column public.clientes.cadastro_em is 'Quando o cliente se cadastrou pelo QR (dá o desconto do cadastro). FIDELIDADE-1.';
+comment on column public.clientes.aceite_lgpd_em is 'Aceite do cliente para guardar os dados (LGPD). FIDELIDADE-1.';
+comment on column public.clientes.aceita_novidades is 'O cliente aceitou receber novidades (marketing). FIDELIDADE-1.';
+-- Um cadastro por telefone e unidade (só entre quem se cadastrou: os antigos não mudam).
+create unique index clientes_cadastro_tel on public.clientes (unidade_id, tel) where cadastro_em is not null;
+alter table public.pedidos add column desconto numeric(12, 2) not null default 0;
+alter table public.pedidos add column desconto_origem text;
+comment on column public.pedidos.desconto is 'Desconto dado no pedido (cadastro e/ou cashback). FIDELIDADE-1.';
+comment on column public.pedidos.desconto_origem is 'De onde veio o desconto: cadastro, cashback ou cadastro+cashback. FIDELIDADE-1.';
 
 create or replace function public.fidelidade_imutavel_trg()
 returns trigger language plpgsql set search_path = public as $$
@@ -290,7 +334,8 @@ begin
         from public.pedidos_itens where pedido_id = new.id and coalesce(status_kds, '') <> 'cancelado';
       select coalesce(-sum(valor), 0) into v_usado
         from public.fidelidade_movimentos where pedido_id = new.id and tipo = 'cashback_uso';
-      v_sub := round(greatest(v_sub - v_usado, 0), 2);
+      -- Cashback só sobre o que foi pago: tira o desconto do pedido (cadastro + cashback usado).
+      v_sub := round(greatest(v_sub - greatest(coalesce(new.desconto, 0), v_usado), 0), 2);
       v_pct := round(public._fidelidade_num(v_cfg -> 'cashback' ->> 'percentual', 0.5, 30, 5), 2);
       if v_sub > 0 and v_sub >= round(public._fidelidade_num(v_cfg -> 'cashback' ->> 'minimo_pedido', 0, 100000, 0), 2) then
         v_cb := round(v_sub * v_pct / 100, 2);
@@ -405,18 +450,78 @@ begin
   return jsonb_build_object('ok', true, 'usado', v_valor, 'saldo', v_saldo - v_valor);
 end $$;
 
--- Quem executa o quê: ajudantes e trigger, ninguém de fora; equipe, as três; servidor, a reserva.
+-- 6. Cadastro pelo QR ---------------------------------------------------------
+-- Cria o cliente ou marca o cadastro de quem a equipe já tinha. Quem já se
+-- cadastrou não muda (ninguém troca o nome de outra pessoa digitando o
+-- telefone dela). Só o servidor chama.
+create or replace function public.fidelidade_cadastrar(p_unidade text, p_nome text, p_telefone text, p_email text, p_aniversario date, p_novidades boolean)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_tel text := public._fidelidade_tel(p_telefone);
+  v_nome text := left(nullif(btrim(p_nome), ''), 80);
+  v_cli record;
+begin
+  if v_tel is null or v_nome is null then raise exception 'Cadastro inválido.'; end if;
+  if not exists (select 1 from public.unidades where id = p_unidade) then raise exception 'Unidade inválida.'; end if;
+  perform pg_advisory_xact_lock(hashtext('fidelidade:' || p_unidade || ':' || v_tel));
+  select id, cadastro_em into v_cli from public.clientes
+   where unidade_id = p_unidade and public._fidelidade_tel(tel) = v_tel
+   order by cadastro_em nulls last, created_at limit 1;
+  if v_cli.id is null then
+    insert into public.clientes (nome, tel, unidade_id, email, aniversario, cadastro_em, aceite_lgpd_em, aceita_novidades, origem)
+    values (v_nome, v_tel, p_unidade, left(nullif(btrim(p_email), ''), 254), p_aniversario, now(), now(), coalesce(p_novidades, false), 'qr');
+    return jsonb_build_object('ok', true, 'novo', true);
+  end if;
+  if v_cli.cadastro_em is null then
+    update public.clientes
+       set cadastro_em = now(), aceite_lgpd_em = now(), aceita_novidades = coalesce(p_novidades, false), origem = coalesce(origem, 'qr'),
+           tel = v_tel, email = coalesce(email, left(nullif(btrim(p_email), ''), 254)), aniversario = coalesce(aniversario, p_aniversario)
+     where id = v_cli.id;
+  end if;
+  return jsonb_build_object('ok', true, 'novo', false);
+end $$;
+
+-- % do desconto do cadastro para este telefone (0 = não tem). Só o servidor chama.
+create or replace function public.fidelidade_desconto_cadastro(p_unidade text, p_telefone text)
+returns numeric language plpgsql stable security definer set search_path = public as $$
+declare
+  v_tel text := public._fidelidade_tel(p_telefone);
+  v_cfg jsonb := public._fidelidade_config(p_unidade);
+  v_cad jsonb := v_cfg -> 'cadastro';
+  v_cadastro_em timestamptz;
+  v_validade integer;
+begin
+  if v_tel is null or coalesce(v_cfg ->> 'ativo', '') <> 'true' or coalesce(v_cad ->> 'ativo', '') <> 'true' then return 0; end if;
+  select cadastro_em into v_cadastro_em from public.clientes
+   where unidade_id = p_unidade and cadastro_em is not null and public._fidelidade_tel(tel) = v_tel
+   order by cadastro_em limit 1;
+  if v_cadastro_em is null then return 0; end if;
+  v_validade := public._fidelidade_num(v_cad ->> 'validade_dias', 0, 730, 0)::integer;
+  if v_validade > 0 and v_cadastro_em + make_interval(days => v_validade) < now() then return 0; end if;
+  if coalesce(v_cad ->> 'aplica', 'primeiro') <> 'sempre' and exists (
+    select 1 from public.pedidos
+     where unidade_id = p_unidade and coalesce(desconto_origem, '') like '%cadastro%'
+       and lower(coalesce(status, '')) not in ('cancelado', 'recusado')
+       and public._fidelidade_tel(cliente_telefone) = v_tel) then
+    return 0;
+  end if;
+  return public._fidelidade_num(v_cad ->> 'desconto_pct', 1, 50, 10);
+end $$;
+
+-- Quem executa o quê: ajudantes e trigger, ninguém de fora; equipe, as três; servidor, a reserva e o cadastro.
 revoke all on function public._fidelidade_tel(text), public._fidelidade_num(text, numeric, numeric, numeric),
   public._fidelidade_config(text), public._fidelidade_cartao(jsonb, text),
   public._fidelidade_saldo_cartao(text, text, text, integer), public._fidelidade_saldo_cashback(text, text, integer),
   public._fidelidade_creditar(text, text, text, text, integer, numeric, uuid, integer), public._fidelidade_estornar_pedido(uuid),
   public.fidelidade_pedido_trg(), public.fidelidade_imutavel_trg(),
   public.fidelidade_resgatar_selos(text, text, text, text), public.fidelidade_usar_cashback(text, text, numeric, text),
-  public.fidelidade_lancar(text, text, text, integer, numeric, text), public.fidelidade_reservar_cashback(text, text, uuid, numeric)
+  public.fidelidade_lancar(text, text, text, integer, numeric, text), public.fidelidade_reservar_cashback(text, text, uuid, numeric),
+  public.fidelidade_cadastrar(text, text, text, text, date, boolean), public.fidelidade_desconto_cadastro(text, text)
   from public, anon, authenticated;
 grant execute on function public.fidelidade_resgatar_selos(text, text, text, text), public.fidelidade_usar_cashback(text, text, numeric, text),
   public.fidelidade_lancar(text, text, text, integer, numeric, text) to authenticated;
-grant execute on function public.fidelidade_reservar_cashback(text, text, uuid, numeric) to service_role;
+grant execute on function public.fidelidade_reservar_cashback(text, text, uuid, numeric),
+  public.fidelidade_cadastrar(text, text, text, text, date, boolean), public.fidelidade_desconto_cadastro(text, text) to service_role;
 
 commit;
 

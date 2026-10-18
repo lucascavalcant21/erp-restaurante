@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   lerCardapioPublico, validarPedidoPublico, criarPedidoPublico, lerFotoPublica, decodificarFotoDaFicha, lerPedidosPublicos, etapaDoPedido,
-  lerChamadaPublica, rotuloDaChamada, lerRastreioPublico, lerUnidadePublica, lerFidelidadePublica,
+  lerChamadaPublica, rotuloDaChamada, lerRastreioPublico, lerUnidadePublica, lerFidelidadePublica, cadastrarClientePublico,
 } from "../app/lib/server/negocio-publico.mjs";
 
 function banco(tabelas = {}, { falharItens = false, semLivro = false, rpc = null } = {}) {
@@ -444,4 +444,54 @@ test("cashback no pedido: confere telefone e saldo, respeita o teto e reserva no
   assert.equal(semCashback.cashback, 0);
   assert.equal(validarPedidoPublico({ unidade: "loja1", cliente: { tipo: "qrcode", mesa: "4", nome: "Ana" }, itens: [{ id: "p1", quantidade: 1 }], cashback: { usar: true } }).codigo,
     "parametro_invalido", "mesa sem WhatsApp não usa cashback");
+});
+
+// ─── cadastro pelo QR ────────────────────────────────────────────────────────
+const COM_CADASTRO = {
+  ...structuredClone(COM_FIDELIDADE),
+  config_sistema: [{ id: "c1", unidade_id: "loja1", params: { fidelidade: { ...FIDELIDADE, cadastro: { ativo: true, desconto_pct: 10, pedir_email: false } } } }],
+};
+
+test("cadastro pelo QR: valida, grava pelo banco e não revela se o telefone já era cliente", async () => {
+  const chamar = (corpo, opcoes) => {
+    const b = banco(COM_CADASTRO, opcoes);
+    return cadastrarClientePublico({ db: b.db, unidade: "loja1", corpo }).then((r) => ({ r, b }));
+  };
+  const ok = async () => ({ data: { ok: true, novo: false }, error: null });
+  let { r, b } = await chamar({ nome: "Ana", telefone: "(61) 99999-1234", email: "ana@x.com", aniversario: "1990-01-02", aceite: true }, { rpc: ok });
+  assert.deepEqual(r, { ok: true, desconto_pct: 10, aplica: "primeiro", final: "1234" });
+  assert.deepEqual(b.chamadas, [["fidelidade_cadastrar", { p_unidade: "loja1", p_nome: "Ana", p_telefone: "61999991234", p_email: null, p_aniversario: "1990-01-02", p_novidades: false }]],
+    "e-mail não pedido pelo dono não é gravado");
+  ({ r } = await chamar({ nome: "Ana", telefone: "61999991234" }, { rpc: ok }));
+  assert.equal(r.codigo, "aceite");
+  assert.equal(r.campo, "aceite");
+  ({ r } = await chamar({ nome: "Ana", telefone: "61999991234", aceite: true }, { rpc: async () => ({ data: null, error: { message: "Could not find the function public.fidelidade_cadastrar" } }) }));
+  assert.equal(r.codigo, "cadastro_indisponivel", "migração não aplicada");
+  const fechado = await cadastrarClientePublico({ db: banco(COM_FIDELIDADE).db, unidade: "loja1", corpo: { nome: "Ana", telefone: "61999991234", aceite: true } });
+  assert.equal(fechado.codigo, "cadastro_fechado");
+});
+
+test("desconto do cadastro no pedido: o banco diz o %; fica gravado no pedido; soma com o cashback", async () => {
+  const pedidoDe = (telefone, cashback) => validarPedidoPublico({
+    unidade: "loja1", cliente: { tipo: "delivery", nome: "Ana", telefone, endereco: "Rua 1" }, itens: [{ id: "p1", quantidade: 2 }], ...(cashback ? { cashback: { usar: true, prova: [U1] } } : {}),
+  }).pedido;
+  const rpc = async (nome) => (nome === "fidelidade_desconto_cadastro" ? { data: 10, error: null } : { data: { ok: true }, error: null });
+  let b = banco(COM_CADASTRO, { rpc });
+  let r = await criarPedidoPublico({ db: b.db, pedido: pedidoDe("61988887777") }); // 60 de itens + 5 de taxa
+  assert.equal(r.desconto, 6);
+  assert.equal(r.total, 59);
+  const gravado = b.t.pedidos.find((p) => p.id === r.id);
+  assert.equal(gravado.desconto, 6);
+  assert.equal(gravado.desconto_origem, "cadastro");
+
+  b = banco(COM_CADASTRO, { rpc });
+  r = await criarPedidoPublico({ db: b.db, pedido: pedidoDe("61999991234", true) }); // 65 − 6 = 59; cashback 12 (teto 29,50)
+  assert.equal(r.total, 47);
+  assert.equal(b.t.pedidos.find((p) => p.id === r.id).desconto_origem, "cadastro+cashback");
+  assert.equal(b.t.pedidos.find((p) => p.id === r.id).desconto, 18);
+
+  b = banco(COM_CADASTRO, { rpc: async () => ({ data: null, error: { message: "Could not find the function" } }) });
+  r = await criarPedidoPublico({ db: b.db, pedido: pedidoDe("61988887777") });
+  assert.equal(r.total, 65, "sem a migração, sem desconto");
+  assert.equal("desconto" in b.t.pedidos.find((p) => p.id === r.id), false, "nem coluna nova no insert");
 });

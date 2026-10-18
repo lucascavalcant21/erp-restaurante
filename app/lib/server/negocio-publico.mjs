@@ -16,7 +16,9 @@
 // banco entra por parâmetro, para dar para testar.
 
 import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega } from "../cardapio-digital.mjs";
-import { cashbackUsavel, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO } from "../fidelidade.mjs";
+import {
+  cashbackUsavel, descontoDoCadastro, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO, validarCadastro,
+} from "../fidelidade.mjs";
 
 const falha = (status, codigo, mensagem) => ({ ok: false, status, codigo, mensagem });
 const idValido = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(v);
@@ -287,6 +289,14 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
     const taxa = regras.taxa;
     const bruto = centavos(subtotal + taxa);
 
+    // Desconto do cadastro pelo QR: o banco diz se este telefone tem e quanto
+    // (primeiro pedido ou todos, validade). Sem a migração, não há desconto.
+    let descontoCadastro = 0;
+    if (pedido.telefone && carga.fidelidade?.ativo && carga.fidelidade.cadastro?.ativo) {
+      const { data: pct, error: eD } = await db.rpc("fidelidade_desconto_cadastro", { p_unidade: pedido.unidade, p_telefone: pedido.telefone });
+      if (!eD && Number(pct) > 0) descontoCadastro = descontoDoCadastro(subtotal, pct);
+    }
+
     // Cashback: telefone provado por pedido concluído deste aparelho, saldo do
     // livro e teto do dono. A baixa no livro é feita pelo banco, sob trava.
     let cashbackUsado = 0;
@@ -298,10 +308,12 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
         return falha(409, "cashback_telefone", "O cashback fica no WhatsApp dos seus pedidos anteriores. Use o mesmo número ou envie sem o cashback.");
       }
       const s = await saldoNoLivro({ db, unidade: pedido.unidade, telefone: tel, cfg: carga.fidelidade });
-      cashbackUsado = s.ok && s.disponivel ? cashbackUsavel(s.saldo.cashback.saldo, bruto, carga.fidelidade) : 0;
+      cashbackUsado = s.ok && s.disponivel ? cashbackUsavel(s.saldo.cashback.saldo, centavos(bruto - descontoCadastro), carga.fidelidade) : 0;
       if (!(cashbackUsado > 0)) return falha(409, "cashback_sem_saldo", "Não há cashback disponível agora. Envie sem ele.");
     }
-    const total = centavos(bruto - cashbackUsado);
+    const total = centavos(bruto - descontoCadastro - cashbackUsado);
+    const desconto = centavos(descontoCadastro + cashbackUsado);
+    const origem = [descontoCadastro > 0 ? "cadastro" : "", cashbackUsado > 0 ? "cashback" : ""].filter(Boolean).join("+");
 
     const { data: criado, error: eI } = await db.from("pedidos").insert([{
       unidade_id: pedido.unidade,
@@ -312,6 +324,8 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       endereco_entrega: pedido.endereco,
       troco_para: pedido.troco,
       valor_total: total,
+      // Só com desconto: sem a FIDELIDADE-1 estas colunas não existem (e aí não há desconto).
+      ...(desconto > 0 ? { desconto, desconto_origem: origem } : {}),
     }]).select("id").single();
     if (eI || !criado?.id) return falha(503, "indisponivel", "Não foi possível enviar agora.");
 
@@ -339,7 +353,7 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       }
     }
     return {
-      ok: true, id: criado.id, total, taxa, cashback: cashbackUsado,
+      ok: true, id: criado.id, total, taxa, cashback: cashbackUsado, desconto: descontoCadastro,
       itens: pedido.itens.map((i) => ({ id: i.id, quantidade: i.quantidade, preco: preco.get(i.id) })),
     };
   } catch {
@@ -444,6 +458,46 @@ export async function lerFidelidadePublica({ db, unidade, ids }) {
     return { ok: true, ativo: true, identificado: true, disponivel: true, final: prova.telefone.slice(-4), cartoes: s.saldo.cartoes, cashback: s.saldo.cashback };
   } catch {
     return falha(503, "indisponivel", "Indisponível no momento.");
+  }
+}
+
+// ─── CADASTRO PELO QR (CRM) ──────────────────────────────────────────────────
+//
+// O cliente lê o QR do restaurante e se cadastra: vira cliente do CRM e ganha
+// o desconto do dono nos pedidos pelo cardápio. A unidade vem do link (e o
+// banco confere que existe); quem grava é o banco (fidelidade_cadastrar), que
+// nunca troca o nome de quem já se cadastrou. A resposta é a mesma para
+// cadastro novo ou repetido: não dá para descobrir se um telefone é cliente.
+
+const FUNCAO_FALTANDO = /function .* does not exist|could not find the function|schema cache/i;
+const ERROS_CADASTRO = {
+  nome: "Digite seu nome.", telefone: "Digite seu WhatsApp com DDD.", email: "Confira o e-mail.",
+  aniversario: "Confira a data do aniversário.", aceite: "Para se cadastrar, aceite o uso dos seus dados.",
+};
+
+export async function cadastrarClientePublico({ db, unidade, corpo }) {
+  if (!idValido(unidade)) return falha(404, "nao_encontrado", "Link inválido.");
+  try {
+    const { data: rC, error: eC } = await db.from("config_sistema").select("params").eq("unidade_id", unidade).limit(1);
+    if (eC) return falha(503, "indisponivel", "Cadastro indisponível no momento.");
+    const cfg = normalizarFidelidade(rC?.[0]?.params?.fidelidade);
+    const v = validarCadastro(corpo, cfg);
+    if (!v.ok) {
+      if (v.codigo === "cadastro_fechado") return falha(404, "cadastro_fechado", "O cadastro não está aberto nesta casa.");
+      return { ...falha(400, v.codigo, ERROS_CADASTRO[v.codigo] || "Confira os dados."), campo: v.codigo };
+    }
+    const c = v.cadastro;
+    const { error } = await db.rpc("fidelidade_cadastrar", {
+      p_unidade: unidade, p_nome: c.nome, p_telefone: c.telefone, p_email: c.email, p_aniversario: c.aniversario, p_novidades: c.novidades,
+    });
+    if (error) {
+      if (FUNCAO_FALTANDO.test(error.message || "")) return falha(503, "cadastro_indisponivel", "O cadastro ainda não está disponível.");
+      if (/Unidade inválida/i.test(error.message || "")) return falha(404, "nao_encontrado", "Link inválido.");
+      return falha(503, "indisponivel", "Cadastro indisponível no momento.");
+    }
+    return { ok: true, desconto_pct: cfg.cadastro.desconto_pct, aplica: cfg.cadastro.aplica, final: c.telefone.slice(-4) };
+  } catch {
+    return falha(503, "indisponivel", "Cadastro indisponível no momento.");
   }
 }
 

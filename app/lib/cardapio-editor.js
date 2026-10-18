@@ -4,7 +4,9 @@
 //     config_sistema.params.cardapio_digital;
 //   - nome comercial e descrição do prato: na FICHA TÉCNICA (fichas_tecnicas),
 //     a mesma que a cozinha usa — o cardápio é ligado a ela;
-//   - foto do prato: no produto de venda (produtos.imagem_url).
+//   - foto do prato: no produto de venda (produtos.imagem_url);
+//   - delivery aberto e taxa de entrega: na unidade (unidades), que é de onde
+//     o servidor tira a taxa cobrada no pedido.
 // Preço não se edita aqui: é o do produto (Produtos / ficha técnica).
 
 import { supabase, isSupabaseReady } from "./supabase";
@@ -13,6 +15,11 @@ import { salvarProduto } from "./vendas";
 import { normalizarConfigCardapio } from "./cardapio-digital.mjs";
 
 const LOTE = 100;
+const COLUNA_FALTANDO = /column .* does not exist|could not find the .* column|schema cache/i;
+const COLUNAS_UNIDADE = [
+  "nome, nome_fantasia, delivery_aberto, taxa_entrega_padrao, cidade, uf, bairro, endereco, numero, horario_funcionamento, telefone_contato",
+  "nome, nome_fantasia, delivery_aberto, taxa_entrega_padrao",
+];
 
 // O banco (jsonb) devolve as chaves em outra ordem: compara sem ligar para ela.
 function estavel(v) {
@@ -30,12 +37,22 @@ async function emLotes(ids, consulta) {
   return { data, error: null };
 }
 
+// Banco sem as colunas de endereço/horário: lê só o básico.
+async function lerUnidade(unidadeId) {
+  let r = null;
+  for (const colunas of COLUNAS_UNIDADE) {
+    r = await supabase.from("unidades").select(colunas).eq("id", unidadeId).maybeSingle();
+    if (!r.error || !COLUNA_FALTANDO.test(r.error.message || "")) return r;
+  }
+  return r;
+}
+
 export async function carregarEditorCardapio(unidadeId) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") {
     return { erro: "Escolha uma unidade para editar o cardápio dela." };
   }
   const [rU, rP, rF, rC, rM] = await Promise.all([
-    supabase.from("unidades").select("nome, nome_fantasia, delivery_aberto, taxa_entrega_padrao").eq("id", unidadeId).maybeSingle(),
+    lerUnidade(unidadeId),
     supabase.from("produtos").select("id, nome_produto, preco_venda, categoria, departamento, imagem_url, ficha_id, ativo")
       .eq("unidade_id", unidadeId).eq("ativo", true).order("nome_produto"),
     supabase.from("fichas_tecnicas")
@@ -55,7 +72,17 @@ export async function carregarEditorCardapio(unidadeId) {
   const u = rU.error ? null : rU.data;
   return {
     erro: null,
-    unidade: { nome: u?.nome_fantasia || u?.nome || "", delivery_aberto: u?.delivery_aberto !== false, taxa_entrega: Number(u?.taxa_entrega_padrao) || 0 },
+    // Os mesmos campos que o servidor monta (negocio-publico.mjs), para a prévia mostrar o que o cliente vê.
+    unidade: {
+      nome: u?.nome_fantasia || u?.nome || "",
+      delivery_aberto: u?.delivery_aberto !== false,
+      taxa_entrega: Number(u?.taxa_entrega_padrao) || 0,
+      cidade: u?.cidade || "",
+      uf: u?.uf || "",
+      horario: u?.horario_funcionamento || "",
+      endereco: [[u?.endereco, u?.numero].filter(Boolean).join(", "), u?.bairro].filter((x) => String(x || "").trim()).join(" · "),
+      telefone: u?.telefone_contato || "",
+    },
     produtos: rP.data || [],
     fichas,
     fichasComFoto: rFoto.error ? [] : rFoto.data.map((f) => f.id),
@@ -93,9 +120,24 @@ export async function enviarArquivoCardapio(unidadeId, arquivo, pasta = "geral")
  * (UPDATE barrado por RLS volta sem erro e sem linha) e a vitrine é relida
  * depois de gravada.
  */
-export async function salvarEditorCardapio(unidadeId, { config, fichas = {}, produtos = {} }) {
+export async function salvarEditorCardapio(unidadeId, { config, fichas = {}, produtos = {}, unidade = {} }) {
   if (!isSupabaseReady()) return { erros: ["Sem conexão com o banco."] };
   const erros = [];
+  const mudancaUnidade = {};
+  if ("delivery_aberto" in unidade) mudancaUnidade.delivery_aberto = unidade.delivery_aberto !== false;
+  if ("taxa_entrega" in unidade) {
+    const taxa = Math.round(Number(unidade.taxa_entrega) * 100) / 100;
+    if (Number.isFinite(taxa) && taxa >= 0 && taxa <= 500) mudancaUnidade.taxa_entrega_padrao = taxa;
+    else erros.push("A taxa de entrega precisa ficar entre R$ 0 e R$ 500.");
+  }
+  if (Object.keys(mudancaUnidade).length) {
+    const { data, error } = await supabase.from("unidades").update(mudancaUnidade).eq("id", unidadeId)
+      .select("delivery_aberto, taxa_entrega_padrao");
+    const g = data?.[0];
+    const confere = g && (!("delivery_aberto" in mudancaUnidade) || (g.delivery_aberto !== false) === mudancaUnidade.delivery_aberto)
+      && (!("taxa_entrega_padrao" in mudancaUnidade) || Math.abs(Number(g.taxa_entrega_padrao || 0) - mudancaUnidade.taxa_entrega_padrao) < 0.005);
+    if (error || !confere) erros.push("O delivery (aberto/fechado e taxa) não foi gravado. Confira sua permissão para alterar a unidade.");
+  }
   for (const [id, campos] of Object.entries(fichas)) {
     const limpo = {};
     if ("descricao_comercial" in campos) limpo.descricao_comercial = String(campos.descricao_comercial || "").trim().slice(0, 280) || null;

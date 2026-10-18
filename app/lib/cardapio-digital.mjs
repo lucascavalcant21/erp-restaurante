@@ -451,6 +451,60 @@ export function normalizarTraducoes(raw) {
   return out;
 }
 
+/**
+ * O que o dono traduz, com o texto original ao lado: seções visíveis, pratos
+ * no ar, promoções, abertura, apresentação e rodapé. Só entra campo que tem
+ * texto no original. As frases do atendimento (boas-vindas, pedido enviado…)
+ * não contam: elas já vêm prontas em cada idioma.
+ */
+export function camposParaTraduzir({ config, produtos = [], categorias = [] }) {
+  const cfg = normalizarConfigCardapio(config);
+  const out = [];
+  const add = (grupo, id, campo, original) => {
+    const o = String(original ?? "").trim();
+    if (!o || !idValido(id)) return;
+    out.push({ grupo, id, campo, original: o, max: grupo === "textos" ? TEXTOS_TRADUZIVEIS[campo] : LIMITE_TRAD[grupo][campo] });
+  };
+  for (const k of ["apresentacao", "rodape"]) add("textos", k, k, cfg.textos[k]);
+  for (const c of categorias) if (c.visivel !== false) { add("categorias", c.id, "nome", c.nome); add("categorias", c.id, "descricao", c.descricao); }
+  for (const p of produtos) { add("produtos", p.id, "nome", p.nome); add("produtos", p.id, "descricao", p.descricao); add("produtos", p.id, "harmoniza", p.harmoniza); }
+  for (const p of cfg.promocoes) { add("promocoes", p.id, "titulo", p.titulo); add("promocoes", p.id, "texto", p.texto); }
+  for (const b of cfg.banner) { add("banner", b.id, "titulo", b.titulo); add("banner", b.id, "texto", b.texto); }
+  return out;
+}
+
+/** A tradução gravada de um campo (vazio quando não há). */
+export function lerTraducao(traducoes, idioma, { grupo, id, campo }) {
+  const t = traducoes?.[idioma] || {};
+  if (grupo === "textos") return t.textos?.[id] || "";
+  if (grupo === "conversa") return t.conversa?.[campo] || "";
+  return t[grupo]?.[id]?.[campo] || "";
+}
+
+/** A configuração com a tradução de um campo trocada (sem mexer no resto). */
+export function comTraducao(config, idioma, { grupo, id, campo }, valor) {
+  if (!idiomaValido(idioma) || idioma === "pt") return config;
+  const tr = { ...(config.traducoes || {}) };
+  const lado = { ...(tr[idioma] || {}) };
+  if (grupo === "textos") lado.textos = { ...(lado.textos || {}), [id]: valor };
+  else if (grupo === "conversa") lado.conversa = { ...(lado.conversa || {}), [campo]: valor };
+  else lado[grupo] = { ...(lado[grupo] || {}), [id]: { ...(lado[grupo]?.[id] || {}), [campo]: valor } };
+  tr[idioma] = lado;
+  return { ...config, traducoes: tr };
+}
+
+/** Quantos campos já têm tradução neste idioma, no total e por grupo. */
+export function progressoDaTraducao(campos, traducoes, idioma) {
+  const porGrupo = {};
+  let feitos = 0;
+  for (const c of campos) {
+    const g = (porGrupo[c.grupo] ||= { feitos: 0, total: 0 });
+    g.total++;
+    if (String(lerTraducao(traducoes, idioma, c)).trim()) { g.feitos++; feitos++; }
+  }
+  return { feitos, total: campos.length, porGrupo };
+}
+
 const dinheiro = (v) => { const n = centavos(String(v ?? "").replace(/\./g, (m, i, x) => (x.includes(",") ? "" : m)).replace(",", ".")); return n > 0 ? n : 0; };
 const minutos = (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 && n <= 600 ? n : 0; };
 

@@ -10,6 +10,7 @@ import {
 import {
   montarCardapioPublico, localizarCardapio, entenderMensagem, responderConversa, aberturaDaConversa, aplicarNome, saudacao,
   formatarPreco, quandoVale, rotuloDaPromocao, taxaDeEntrega, totalDoCarrinho, normalizarConfigCardapio,
+  camposParaTraduzir, lerTraducao, comTraducao, progressoDaTraducao,
 } from "./cardapio-digital.mjs";
 
 const OITO = ["pt", "en", "es", "fr", "it", "zh", "ja", "ko"];
@@ -238,4 +239,46 @@ test("delivery: grátis acima de X e pedido mínimo (a mesma conta do servidor)"
   assert.deepEqual(taxaDeEntrega(100, c), { taxa: 0, falta_minimo: 0, falta_gratis: 0 });
   assert.deepEqual(taxaDeEntrega(30, c, "qrcode"), { taxa: 0, falta_minimo: 0, falta_gratis: 0 }, "mesa não tem taxa nem mínimo");
   assert.equal(totalDoCarrinho([{ id: "p1", quantidade: 2 }], c, { tipo: "delivery" }).total, 116);
+});
+
+test("editor de traduções: o que traduzir, gravar, ler e o progresso por idioma", () => {
+  const config = normalizarConfigCardapio({
+    textos: { apresentacao: "Cozinha paraense", rodape: "" },
+    promocoes: [{ id: "happy", titulo: "Happy hour", texto: "", tipo: "aviso" }],
+    banner: [{ id: "b1", tipo: "imagem", url: "https://x.test/a.jpg", titulo: "Noite de maniçoba", texto: "Toda sexta" }],
+  });
+  const produtos = [{ id: "p1", nome: "Maniçoba", descricao: "Folha de mandioca cozida", harmoniza: "" }, { id: "p2", nome: "Água", descricao: "" }];
+  const categorias = [{ id: "pratos", nome: "Pratos", descricao: "", visivel: true }, { id: "oculta", nome: "Escondida", visivel: false }];
+  const campos = camposParaTraduzir({ config, produtos, categorias });
+  const chaves = campos.map((c) => `${c.grupo}.${c.id}.${c.campo}`);
+  assert.deepEqual(chaves, [
+    "textos.apresentacao.apresentacao", "categorias.pratos.nome",
+    "produtos.p1.nome", "produtos.p1.descricao", "produtos.p2.nome",
+    "promocoes.happy.titulo", "banner.b1.titulo", "banner.b1.texto",
+  ], "só campos com texto no original; seção escondida e rodapé vazio ficam de fora");
+  assert.equal(campos.find((c) => c.grupo === "produtos" && c.campo === "descricao").max, 280);
+
+  let c2 = comTraducao(config, "en", campos[2], "Maniçoba (cassava leaf stew)");
+  c2 = comTraducao(c2, "en", campos[0], "Amazonian cuisine");
+  c2 = comTraducao(c2, "en", { grupo: "conversa", id: "intro", campo: "intro" }, "Want a hand choosing?");
+  c2 = comTraducao(c2, "ja", campos[4], "水");
+  assert.equal(comTraducao(config, "pt", campos[2], "x"), config, "português é o original: não se traduz");
+  assert.equal(lerTraducao(c2.traducoes, "en", campos[2]), "Maniçoba (cassava leaf stew)");
+  assert.equal(lerTraducao(c2.traducoes, "en", campos[3]), "");
+  assert.equal(config.traducoes.en, undefined, "a configuração original não muda");
+
+  const pEn = progressoDaTraducao(campos, c2.traducoes, "en");
+  assert.equal(pEn.feitos, 2);
+  assert.equal(pEn.total, 8);
+  assert.deepEqual(pEn.porGrupo.produtos, { feitos: 1, total: 3 });
+  assert.equal(progressoDaTraducao(campos, c2.traducoes, "ja").feitos, 1);
+
+  // O que foi gravado chega ao cliente no idioma dele (e sobrevive à limpeza da configuração).
+  const salvo = normalizarConfigCardapio(c2);
+  const cardapio = montarCardapioPublico({ unidade: { nome: "Casa" }, produtos: [{ id: "p1", nome_produto: "Maniçoba", preco_venda: 50, categoria: "Pratos", ficha: null }], config: salvo });
+  const en = localizarCardapio(cardapio, "en");
+  assert.equal(en.produtos[0].nome, "Maniçoba (cassava leaf stew)");
+  assert.equal(en.produtos[0].nome_original, "Maniçoba");
+  assert.equal(en.textos.apresentacao, "Amazonian cuisine");
+  assert.equal(en.conversa.intro, "Want a hand choosing?");
 });

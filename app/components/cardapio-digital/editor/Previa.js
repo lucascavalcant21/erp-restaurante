@@ -6,7 +6,8 @@
 // aparelho mostra como o cardápio fica em pé e deitado.
 
 import { useEffect, useRef, useState } from "react";
-import { Smartphone, Tablet } from "lucide-react";
+import { Globe, Smartphone, Tablet } from "lucide-react";
+import { IDIOMAS } from "../../../lib/cardapio-idiomas.mjs";
 
 export const APARELHOS = [
   { id: "celular", rotulo: "Celular", w: 390, h: 844, Icone: Smartphone },
@@ -15,13 +16,17 @@ export const APARELHOS = [
   { id: "tablet-deitado", rotulo: "Tablet deitado", w: 1180, h: 820, Icone: Tablet, deitado: true },
 ];
 
-export default function Previa({ unidadeId, cardapio, alturaMax = 720, aparelhoInicial = "celular" }) {
+export default function Previa({ unidadeId, cardapio, alturaMax = 720, aparelhoInicial = "celular", idioma = "pt", onIdioma }) {
   const [aparelho, setAparelho] = useState(aparelhoInicial);
+  const [modo, setModo] = useState("delivery");
   const [largura, setLargura] = useState(360);
   const moldura = useRef(null);
   const frame = useRef(null);
   const ultimo = useRef(cardapio);
   ultimo.current = cardapio;
+  const lingua = useRef(idioma);
+  lingua.current = idioma;
+  const idiomas = IDIOMAS.filter((i) => (cardapio?.idiomas || ["pt"]).includes(i.id));
   const a = APARELHOS.find((x) => x.id === aparelho) || APARELHOS[0];
   const escala = Math.min(1, largura / a.w, alturaMax / a.h);
 
@@ -35,7 +40,9 @@ export default function Previa({ unidadeId, cardapio, alturaMax = 720, aparelhoI
 
   const enviar = () => {
     const w = frame.current?.contentWindow;
-    if (w && ultimo.current) w.postMessage({ tipo: "hefisto-cardapio-previa", cardapio: ultimo.current }, window.location.origin);
+    if (!w || !ultimo.current) return;
+    w.postMessage({ tipo: "hefisto-cardapio-previa", cardapio: ultimo.current }, window.location.origin);
+    w.postMessage({ tipo: "hefisto-cardapio-previa-idioma", idioma: lingua.current }, window.location.origin);
   };
   useEffect(() => {
     const aoReceber = (e) => {
@@ -44,7 +51,7 @@ export default function Previa({ unidadeId, cardapio, alturaMax = 720, aparelhoI
     window.addEventListener("message", aoReceber);
     return () => window.removeEventListener("message", aoReceber);
   }, []);
-  useEffect(() => { const t = setTimeout(enviar, 120); return () => clearTimeout(t); }, [cardapio]);
+  useEffect(() => { const t = setTimeout(enviar, 120); return () => clearTimeout(t); }, [cardapio, idioma]);
 
   return (
     <div className="min-w-0">
@@ -56,12 +63,29 @@ export default function Previa({ unidadeId, cardapio, alturaMax = 720, aparelhoI
           </button>
         ))}
       </div>
+      <div role="group" aria-label="Qual cardápio" className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-hf-elevated p-1">
+        {[["delivery", "Delivery (link)"], ["mesa", "Mesa (QR Code)"]].map(([id, rotulo]) => (
+          <button key={id} type="button" aria-pressed={modo === id} onClick={() => setModo(id)}
+            className={`min-h-[40px] rounded-lg px-2 text-xs font-semibold transition ${modo === id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2 hover:text-hf-text"}`}>
+            {rotulo}
+          </button>
+        ))}
+      </div>
+      {idiomas.length > 1 && onIdioma ? (
+        <label className="mb-3 flex items-center gap-2 text-xs font-semibold text-hf-text-2">
+          <Globe size={14} /> Idioma da prévia
+          <select value={idiomas.some((i) => i.id === idioma) ? idioma : "pt"} onChange={(e) => onIdioma(e.target.value)}
+            className="min-h-[40px] flex-1 rounded-xl border border-hf-border bg-hf-surface px-2 text-sm text-hf-text">
+            {idiomas.map((i) => <option key={i.id} value={i.id} lang={i.lang}>{i.nome}</option>)}
+          </select>
+        </label>
+      ) : null}
       <div ref={moldura} className="flex w-full justify-center">
         <div style={{ width: a.w * escala, height: a.h * escala }} className="overflow-hidden rounded-[18px] border-[6px] border-hf-text/80 bg-hf-surface shadow-lg">
           <iframe
             ref={frame}
             title="Prévia do cardápio"
-            src={`/cardapio/${encodeURIComponent(unidadeId)}?previa=1`}
+            src={`/cardapio/${encodeURIComponent(unidadeId)}?previa=1${modo === "mesa" ? "&mesa=1" : ""}`}
             onLoad={enviar}
             style={{ width: a.w, height: a.h, transform: `scale(${escala})`, transformOrigin: "0 0", border: 0, display: "block" }}
           />

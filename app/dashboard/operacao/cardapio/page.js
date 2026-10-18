@@ -26,6 +26,8 @@ import Pratos from "../../../components/cardapio-digital/editor/Pratos";
 import Promocoes from "../../../components/cardapio-digital/editor/Promocoes";
 import Textos from "../../../components/cardapio-digital/editor/Textos";
 import QrCodes from "../../../components/cardapio-digital/editor/QrCodes";
+import Idiomas from "../../../components/cardapio-digital/editor/Idiomas";
+import Entrega from "../../../components/cardapio-digital/editor/Entrega";
 import Previa from "../../../components/cardapio-digital/editor/Previa";
 
 const ABAS = [
@@ -35,9 +37,11 @@ const ABAS = [
   { id: "pratos", rotulo: "Pratos" },
   { id: "promocoes", rotulo: "Promoções" },
   { id: "textos", rotulo: "Conversa e textos" },
+  { id: "idiomas", rotulo: "Idiomas" },
+  { id: "entrega", rotulo: "Entrega" },
   { id: "qr", rotulo: "Link e QR Code" },
 ];
-const VAZIO = { fichas: {}, produtos: {} };
+const VAZIO = { fichas: {}, produtos: {}, unidade: {} };
 const fichaAtiva = (f) => f.ativo !== false && (!f.status || ["ativa", "ativo"].includes(String(f.status).toLowerCase()));
 
 export default function CardapioEditorPage() {
@@ -51,6 +55,7 @@ export default function CardapioEditorPage() {
   const [salvando, setSalvando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [previaAberta, setPreviaAberta] = useState(false);
+  const [idiomaPrevia, setIdiomaPrevia] = useState("pt");
 
   const carregar = useCallback(async ({ manterRascunho = false } = {}) => {
     if (!unidadeAtiva) return;
@@ -70,7 +75,8 @@ export default function CardapioEditorPage() {
 
   const mudar = useCallback((fn) => { setConfig((c) => fn(c)); setResultado(null); }, []);
   const mudarPendentes = useCallback((fn) => { setPendentes(fn); setResultado(null); }, []);
-  const temPendente = Object.keys(pendentes.fichas).length + Object.keys(pendentes.produtos).length > 0;
+  const temPendente = Object.keys(pendentes.fichas).length + Object.keys(pendentes.produtos).length + Object.keys(pendentes.unidade).length > 0;
+  const setUnidade = useCallback((campos) => mudarPendentes((p) => ({ ...p, unidade: { ...p.unidade, ...campos } })), [mudarPendentes]);
   const mudou = Boolean(config) && (temPendente || JSON.stringify(normalizarConfigCardapio(config)) !== JSON.stringify(normalizarConfigCardapio(JSON.parse(salvo || "{}"))));
 
   useEffect(() => {
@@ -92,8 +98,8 @@ export default function CardapioEditorPage() {
   }, [dados, pendentes, unidadeAtiva]);
 
   const cardapio = useMemo(() => (dados && config
-    ? montarCardapioPublico({ unidade: dados.unidade, produtos: juntos, config })
-    : null), [dados, config, juntos]);
+    ? montarCardapioPublico({ unidade: { ...dados.unidade, ...pendentes.unidade }, produtos: juntos, config })
+    : null), [dados, config, juntos, pendentes.unidade]);
 
   const categorias = useMemo(() => {
     if (!config) return [];
@@ -112,7 +118,7 @@ export default function CardapioEditorPage() {
   const salvar = async () => {
     setSalvando(true);
     setResultado(null);
-    const r = await salvarEditorCardapio(unidadeAtiva, { config, fichas: pendentes.fichas, produtos: pendentes.produtos });
+    const r = await salvarEditorCardapio(unidadeAtiva, { config, fichas: pendentes.fichas, produtos: pendentes.produtos, unidade: pendentes.unidade });
     setSalvando(false);
     if (r.erros.length) { setResultado({ ok: false, texto: r.erros.join(" ") }); return; }
     setResultado({ ok: true, texto: "Salvo. O cardápio dos clientes já está assim." });
@@ -177,11 +183,16 @@ export default function CardapioEditorPage() {
               ) : null}
               {aba === "promocoes" ? <Promocoes config={config} mudar={mudar} unidadeId={unidadeAtiva} produtos={juntos} /> : null}
               {aba === "textos" ? <Textos config={config} mudar={mudar} /> : null}
+              {aba === "idiomas" ? (
+                <Idiomas config={config} mudar={mudar} produtos={cardapio?.produtos || []} categorias={categorias}
+                  idiomaPrevia={idiomaPrevia} setIdiomaPrevia={setIdiomaPrevia} />
+              ) : null}
+              {aba === "entrega" ? <Entrega config={config} mudar={mudar} unidade={dados.unidade} pendenteUnidade={pendentes.unidade} setUnidade={setUnidade} /> : null}
               {aba === "qr" ? <QrCodes unidadeId={unidadeAtiva} nomeLoja={dados.unidade.nome} mesasDoBanco={dados.mesas} /> : null}
             </div>
             <aside className="hidden xl:block">
               <div className="sticky top-24">
-                <Previa unidadeId={unidadeAtiva} cardapio={cardapio} alturaMax={680} />
+                <Previa unidadeId={unidadeAtiva} cardapio={cardapio} alturaMax={620} idioma={idiomaPrevia} onIdioma={setIdiomaPrevia} />
               </div>
             </aside>
           </div>
@@ -202,7 +213,7 @@ export default function CardapioEditorPage() {
             <Botao variante="secundario" onClick={() => setPreviaAberta(false)} aria-label="Fechar prévia"><X size={16} /> Fechar</Botao>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <Previa unidadeId={unidadeAtiva} cardapio={cardapio} alturaMax={typeof window !== "undefined" ? window.innerHeight - 150 : 640} />
+            <Previa unidadeId={unidadeAtiva} cardapio={cardapio} alturaMax={typeof window !== "undefined" ? window.innerHeight - 260 : 600} idioma={idiomaPrevia} onIdioma={setIdiomaPrevia} />
           </div>
         </div>
       ) : null}

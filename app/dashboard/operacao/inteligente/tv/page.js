@@ -117,7 +117,7 @@ export default function ModoTV() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-hf-bg text-hf-text">
       {/* Cabeçalho: hora grande, porque de longe é o que situa quem olha. */}
-      <header className="flex shrink-0 items-center justify-between gap-6 border-b border-hf-border px-8 py-5">
+      <header className="flex shrink-0 items-center justify-between gap-6 border-b border-hf-border px-8 pb-5" style={{ paddingTop: "calc(var(--erp-safe-top, 0px) + 1.25rem)" }}>
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-black tracking-tight text-hf-text sm:text-3xl">Operação do dia</h1>
           {/* first-letter, e não `capitalize`: este maiusculiza toda palavra e
@@ -165,7 +165,7 @@ export default function ModoTV() {
         </div>
       </footer>
 
-      <div className={`fixed right-6 top-6 z-10 flex gap-2 transition-opacity duration-500 ${controlesVisiveis ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+      <div className={`fixed right-6 z-10 flex gap-2 transition-opacity duration-500 ${controlesVisiveis ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ top: "calc(var(--erp-safe-top, 0px) + 1.25rem)" }}>
         <button type="button" onClick={() => router.push("/dashboard/operacao/inteligente")}
           title="Voltar para a Central Operacional"
           className="grid h-12 w-12 place-items-center rounded-2xl bg-hf-elevated text-hf-text backdrop-blur hover:bg-hf-border">

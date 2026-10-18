@@ -85,7 +85,7 @@ export default function DashboardLayout({ children }) {
 
   if (interfaceTelaCheia) {
     return (
-      <div className="fixed inset-0 z-[200] overflow-hidden bg-hf-bg" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className="fixed inset-0 z-[200] overflow-hidden bg-hf-bg">
         <Suspense fallback={<div className="grid h-screen place-items-center"><Loader2 className="animate-spin text-emerald-600" /></div>}>
           <ProtecaoPermissao sessao={sessao}>
             {children}

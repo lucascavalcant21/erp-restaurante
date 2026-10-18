@@ -21,7 +21,7 @@ export default function ChecklistSeletorPage() {
   return (
     <div className="seletor-setores">
       <style>{`
-        .seletor-setores{position:fixed;inset:0;z-index:80;overflow:auto;background:linear-gradient(145deg,#07111f,#0f2841);color:#fff;padding:clamp(18px,4vw,44px);display:flex;flex-direction:column}
+        .seletor-setores{position:fixed;inset:0;z-index:80;overflow:auto;background:linear-gradient(145deg,#07111f,#0f2841);color:#fff;padding:calc(var(--erp-safe-top, 0px) + clamp(16px,3vw,32px)) clamp(18px,4vw,44px) clamp(18px,4vw,44px);display:flex;flex-direction:column}
         .seletor-topo{display:flex;align-items:center;justify-content:space-between;gap:12px}
         .seletor-topo button{height:46px;border:1px solid rgba(255,255,255,.2);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;padding:0 15px;display:flex;align-items:center;gap:8px;font-weight:800}
         .seletor-centro{width:min(1180px,100%);margin:auto;text-align:center;padding:20px 0}

@@ -103,7 +103,7 @@ export default function PainelHefisto() {
           <div className="absolute inset-0 bg-slate-900/40" onClick={() => setAberto(false)} />
           <section className="absolute inset-x-0 bottom-0 flex max-h-[90dvh] flex-col rounded-t-3xl bg-[#F7F8F7] shadow-2xl sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[440px] sm:rounded-none sm:rounded-l-3xl">
             <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-slate-300 sm:hidden" aria-hidden="true" />
-            <header className="flex items-start justify-between gap-3 px-4 pb-2 pt-3 sm:pt-5">
+            <header className="flex items-start justify-between gap-3 px-4 pb-2 pt-3 sm:pt-[calc(var(--erp-safe-top,0px)+1rem)]">
               <div className="min-w-0">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">Héfisto</p>
                 <h2 className="text-lg font-black text-slate-900">Pergunte ao Héfisto</h2>

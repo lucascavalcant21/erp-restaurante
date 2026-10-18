@@ -281,9 +281,21 @@ body {
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Telas cheias (ponto, contagem, etiquetas): respiro da barra de status/notch. */
+/* Distância segura do topo estilo app nativo (OLX, iFood, Instagram):
+   No celular e tablet, garante recuo mínimo da barra de status / câmera / área de puxar notificações,
+   mesmo quando o navegador ou WebView reporta env(safe-area-inset-top) como 0px. */
+:root {
+  --erp-safe-top: env(safe-area-inset-top, 0px);
+}
+@media (max-width: 1279px), (pointer: coarse), (display-mode: standalone), (display-mode: fullscreen) {
+  :root {
+    --erp-safe-top: max(2.25rem, calc(env(safe-area-inset-top, 0px) + 0.625rem));
+  }
+}
+
+/* Telas cheias (ponto, contagem, etiquetas, KDS): respiro da barra de status/notch. */
 .erp-safe-top {
-  padding-top: max(1rem, env(safe-area-inset-top, 0px)) !important;
+  padding-top: var(--erp-safe-top, max(2.25rem, env(safe-area-inset-top, 0px))) !important;
 }
 
 /* Telas de tablet (estoque, etiquetas): toque longo não abre seleção de texto;

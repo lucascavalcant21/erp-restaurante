@@ -33,9 +33,17 @@ export async function contextoLegado(cliente, uid, unidadeId) {
 
   const superAdmin = s.super_admin === true;
   const escopos = Array.isArray(s.scopes) ? s.scopes : [];
-  // mesma regra de hefisto_user_in_unit em produção: escopo "todos"/"empresa" vale todas as unidades
-  const todas = superAdmin || escopos.some((e) => e?.data_scope === "todos" || e?.data_scope === "empresa");
-  const unidades = todas ? ["*"] : [...new Set([s.unidade, ...escopos.map((e) => e?.unidade_id)].filter(Boolean).map(String))];
+  // Só o super admin vê todas. Escopo "todos"/"empresa" vale as unidades da
+  // PRÓPRIA empresa (SEC-EMPRESA-1): a lista vem do banco, pela mesma regra
+  // das policies (hefisto_unidades_do_usuario), nunca "*".
+  const amplo = escopos.some((e) => e?.data_scope === "todos" || e?.data_scope === "empresa");
+  let unidades;
+  if (superAdmin) unidades = ["*"];
+  else if (amplo) {
+    const { data, error: erroUnidades } = await cliente.rpc("hefisto_unidades_do_usuario");
+    if (erroUnidades) throw new Error("contexto indisponível");
+    unidades = [...new Set((data || []).filter(Boolean).map(String))];
+  } else unidades = [...new Set([s.unidade, ...escopos.map((e) => e?.unidade_id)].filter(Boolean).map(String))];
 
   let unidade = null;
   let permitida = true;

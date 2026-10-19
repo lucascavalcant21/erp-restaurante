@@ -15,22 +15,19 @@ import {
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
   fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
-  fetchAtestados, salvarAtestado, removerAtestado, anexarArquivoAtestado,
-  fetchReunioesColab, inserirReuniaoColab, removerReuniaoColab,
-  fetchTreinamentosColab, inserirTreinamentoColab, removerTreinamentoColab,
   fetchFeriados, inserirFeriado, removerFeriado,
   fetchLiberacoesColab, removerLiberacao,
   salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo, anexarFotoReciboAssinado,
   desligarColaborador, registrarAvisoPrevio, cancelarAvisoPrevio
 } from "../../lib/rh";
-import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto, fetchPontoDoDia } from "../../lib/ponto";
+import { fetchPontoHoje, fetchPontosMesUnidade, fetchHistoricoPontoCompleto, fetchPontoDoDia } from "../../lib/ponto";
 import { domingosParaFolga, folgasDeDomingoNoMes, avisosDaFolga, dataCurta } from "../../lib/folgas-domingo.mjs";
 import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
 import { situacaoExperiencia, emExperiencia, faseContratoCalculada, situacaoAvisoPrevio, tempoDeCasa, aniversario, aniversariantesDoMes, fraseAniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
 import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../lib/mascaras.mjs";
-import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
+import { salvarConta, fetchLancamentos } from "../../lib/financeiro";
 import { hojeLocal, novaChave } from "../../lib/contas-pagar.mjs";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchProdutos } from "../../lib/vendas";
@@ -46,7 +43,6 @@ import {
 import { fmtBRL } from "../../components/ui";
 import { comFecharImpressao } from "../../lib/imprimir";
 import { abrirArquivoRH } from "../../lib/rh-arquivos";
-import BancoTalentos from "./components/BancoTalentos";
 import PlanoCargos, { imprimirCertificadoPromocao } from "./components/PlanoCargos";
 import CampoDecimal from "../../components/CampoDecimal";
 import { formularioDeEdicao, validarCadastro, progressoCadastro, acharDuplicado } from "../../lib/colaborador-cadastro.mjs";
@@ -751,58 +747,6 @@ export default function RHPage() {
     alert(`Pronto: folga registrada e ${fmtMin(total)} compensadas. O banco de ${funcBanco.nome.split(" ")[0]} voltou a zero.`);
     setModalBanco(false);
     carregar();
-  };
-
-  // Lança a folha do mês no Financeiro: fixo + vale alimentação + taxa de
-  // serviço + adicional noturno e horas extras calculados do ponto (CLT)
-  const lancarFolhaMes = async () => {
-    const fixos = funcionarios.filter(f => f.tipo_contrato !== "Freelancer" && (f.status || "ativo") !== "inativo" && Number(f.salario) > 0);
-    if (!fixos.length) return alert("Nenhum funcionário fixo com salário cadastrado.");
-    const agora = new Date();
-    const mesISO = agora.toISOString().slice(0, 7);
-    const mesKey = `${String(agora.getMonth() + 1).padStart(2, "0")}/${agora.getFullYear()}`;
-    const prox = new Date(agora.getFullYear(), agora.getMonth() + 1, 5);
-    const venc = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, "0")}-05`;
-
-    // Monta a folha completa de cada um antes de confirmar
-    const { data: feriadosMes } = await fetchFeriados(unidadeAtiva, mesISO);
-    const folha = [];
-    for (const f of fixos) {
-      const { data: pontos } = await fetchPontosMes(f.id, mesISO);
-      const { regras } = regrasDaCompetencia(mesISO, { convencao });
-      const ad = calcularAdicionaisMes(pontos || [], f.salario, feriadosMes || [], { contratadaDoDia: (d) => jornadaContratadaMin(f, d), regras });
-      const fixo = Number(f.salario) || 0;
-      const va = Number(f.vale_alimentacao) || 0;
-      const taxa = Number(f.taxa_servico_mes) || 0;
-      const total = fixo + va + taxa + ad.valorNoturno + ad.valorExtra + ad.valorFeriado;
-      folha.push({ f, fixo, va, taxa, ad, total });
-    }
-    const totalGeral = folha.reduce((s, x) => s + x.total, 0);
-    const resumo = folha.map(x =>
-      `${x.f.nome.split(" ")[0]}: ${fmtBRL(x.total)} (fixo ${fmtBRL(x.fixo)}${x.va ? ` + VA ${fmtBRL(x.va)}` : ""}${x.taxa ? ` + taxa ${fmtBRL(x.taxa)}` : ""}${x.ad.valorNoturno ? ` + noturno ${fmtBRL(x.ad.valorNoturno)}` : ""}${x.ad.valorExtra ? ` + extra ${fmtBRL(x.ad.valorExtra)}` : ""}${x.ad.valorFeriado ? ` + feriado ${fmtBRL(x.ad.valorFeriado)}` : ""})`
-    ).join("\n");
-    if (!confirm(`Lançar a folha de ${mesKey}?\n\n${resumo}\n\nTOTAL: ${fmtBRL(totalGeral)}\nCada um vira uma conta a pagar (mão de obra), venc. 05/${String(prox.getMonth() + 1).padStart(2, "0")}. Quem já foi lançado no mês não duplica.`)) return;
-
-    const { data: contasExistentes } = await fetchContas(unidadeAtiva, "");
-    const jaLancadas = new Set((contasExistentes || []).map(c => c.descricao));
-    let ok = 0, pulados = 0;
-    const falhas = [];
-    for (const x of folha) {
-      const descricao = `Folha ${mesKey}: ${x.f.nome} - ${x.f.cargo || "—"}`;
-      if (jaLancadas.has(descricao)) { pulados++; continue; }
-      // Conta nasce pendente (contas-pagar.mjs); o pagamento é registrado em Contas a Pagar.
-      // Chave por colaborador e mês: relançar a folha não duplica.
-      const { error } = await salvarConta({
-        unidade_id: unidadeAtiva,
-        descricao,
-        valor: Math.round(x.total * 100) / 100,
-        data_vencimento: venc,
-        competencia: `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`,
-        categoria_codigo: "pessoal_salarios",
-      }, { chave: `folha-rh:${unidadeAtiva}:${mesKey}:${x.f.id}`, origem_tipo: "FOLHA" });
-      if (error) falhas.push(`${x.f.nome}: ${error}`); else ok++;
-    }
-    alert(`Folha lançada: ${ok} conta(s) criada(s)${pulados ? ` · ${pulados} já estavam lançadas` : ""}${falhas.length ? `\n\n${falhas.length} NÃO foram lançadas:\n${falhas.join("\n")}` : ""}.`);
   };
 
   // ── Ler a ficha do EXTRA preenchida à mão (foto) via IA e anexar ──────────
@@ -1549,131 +1493,6 @@ export default function RHPage() {
     else carregar();
   };
 
-  // Central de Ocorrências e Documentos do Colaborador (Lugar Exclusivo)
-  const [modalOcorrencias, setModalOcorrencias] = useState(false);
-  const [funcOcorrencias, setFuncOcorrencias] = useState(null);
-  const [abaOcorrencia, setAbaOcorrencia] = useState("atestados"); // 'atestados' | 'advertencias' | 'reunioes' | 'treinamentos' | 'documentos'
-  const [listaAtestados, setListaAtestados] = useState([]);
-  const [listaAdvertencias, setListaAdvertencias] = useState([]);
-  const [listaReunioes, setListaReunioes] = useState([]);
-  const [listaTreinamentos, setListaTreinamentos] = useState([]);
-  const [loadingOcorrencias, setLoadingOcorrencias] = useState(false);
-
-  // Forms da Central de Ocorrências
-  const [atestedoForm, setAtestadoForm] = useState({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null, parcial: false });
-  const [advFormNovo, setAdvFormNovo] = useState({ data: new Date().toISOString().split("T")[0], tipo: "Advertência Escrita", motivo: "" });
-  const [reuniaoForm, setReuniaoForm] = useState({ data: new Date().toISOString().split("T")[0], titulo: "", resumo: "", participantes: "" });
-  const [treinoForm, setTreinoForm] = useState({ data: new Date().toISOString().split("T")[0], nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
-
-  const abrirOcorrencias = async (f, aba = "atestados") => {
-    setFuncOcorrencias(f);
-    setAbaOcorrencia(aba);
-    setModalOcorrencias(true);
-    const hj = new Date().toISOString().split("T")[0];
-    setAtestadoForm({ data_inicio: hj, dias: "1", cid: "", medico: "", motivo: "", arquivo: null });
-    setAdvFormNovo({ data: hj, tipo: "Advertência Escrita", motivo: "" });
-    setReuniaoForm({ data: hj, titulo: "", resumo: "", participantes: f.nome });
-    setTreinoForm({ data: hj, nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
-
-    await recarregarOcorrencias(f.id);
-  };
-
-  const recarregarOcorrencias = async (colabId) => {
-    setLoadingOcorrencias(true);
-    const [rAtest, rAdv, rReun, rTrein] = await Promise.all([
-      fetchAtestados(colabId),
-      fetchAdvertenciasColab(colabId),
-      fetchReunioesColab(colabId),
-      fetchTreinamentosColab(colabId),
-    ]);
-    setListaAtestados(rAtest.data || []);
-    setListaAdvertencias(rAdv.data || []);
-    setListaReunioes(rReun.data || []);
-    setListaTreinamentos(rTrein.data || []);
-    setLoadingOcorrencias(false);
-  };
-
-  const handleSalvarAtestado = async (e) => {
-    e.preventDefault();
-    if (!atestedoForm.data_inicio) return alert("Informe a data de início do atestado.");
-    const ini = new Date(`${atestedoForm.data_inicio}T12:00:00`);
-    const dias = (Number(atestedoForm.dias) || 1) - 1;
-    const fimDate = new Date(ini.getTime() + Math.max(0, dias) * 86400000);
-    const data_fim = fimDate.toISOString().split("T")[0];
-
-    let arquivoUrl = null;
-    if (atestedoForm.arquivo) {
-      const up = await anexarArquivoAtestado(funcOcorrencias.id, atestedoForm.arquivo);
-      if (up.error) return alert("Erro ao enviar anexo: " + up.error);
-      arquivoUrl = up.url;
-    }
-
-    const payload = {
-      unidade_id: unidadeAtiva,
-      colaborador_id: funcOcorrencias.id,
-      data_inicio: atestedoForm.data_inicio,
-      data_fim,
-      cid: atestedoForm.cid || null,
-      medico: atestedoForm.medico || null,
-      motivo: atestedoForm.motivo || null,
-      arquivo_url: arquivoUrl,
-    };
-
-    const { error } = await salvarAtestado(payload);
-    if (error) return alert("Erro ao salvar atestado: " + error);
-    alert(`Atestado médico de ${atestedoForm.dias} dia(s) registrado! O ponto do colaborador será abonado automaticamente no período.`);
-    setAtestadoForm({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null, parcial: false });
-    recarregarOcorrencias(funcOcorrencias.id);
-  };
-
-  const handleSalvarAdvNovo = async (e) => {
-    e.preventDefault();
-    if (!advFormNovo.motivo) return alert("Informe o motivo da advertência.");
-    const payload = {
-      colaborador_id: funcOcorrencias.id,
-      data: advFormNovo.data,
-      tipo: advFormNovo.tipo,
-      motivo: advFormNovo.motivo,
-    };
-    const { error } = await inserirAdvertencia(payload);
-    if (error) return alert("Erro: " + error);
-    setAdvFormNovo({ data: new Date().toISOString().split("T")[0], tipo: "Advertência Escrita", motivo: "" });
-    recarregarOcorrencias(funcOcorrencias.id);
-  };
-
-  const handleSalvarReuniao = async (e) => {
-    e.preventDefault();
-    if (!reuniaoForm.titulo) return alert("Informe o título/pauta da reunião.");
-    const payload = {
-      colaborador_id: funcOcorrencias.id,
-      data: reuniaoForm.data,
-      titulo: reuniaoForm.titulo,
-      resumo: reuniaoForm.resumo,
-      participantes: reuniaoForm.participantes,
-    };
-    const { error } = await inserirReuniaoColab(payload);
-    if (error) return alert("Erro: " + error);
-    setReuniaoForm({ data: new Date().toISOString().split("T")[0], titulo: "", resumo: "", participantes: funcOcorrencias.nome });
-    recarregarOcorrencias(funcOcorrencias.id);
-  };
-
-  const handleSalvarTreino = async (e) => {
-    e.preventDefault();
-    if (!treinoForm.nome_curso) return alert("Informe o nome do treinamento/curso.");
-    const payload = {
-      colaborador_id: funcOcorrencias.id,
-      data: treinoForm.data,
-      nome_curso: treinoForm.nome_curso,
-      instituicao: treinoForm.instituicao,
-      carga_horaria: treinoForm.carga_horaria,
-      vencimento: treinoForm.vencimento || null,
-    };
-    const { error } = await inserirTreinamentoColab(payload);
-    if (error) return alert("Erro: " + error);
-    setTreinoForm({ data: new Date().toISOString().split("T")[0], nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
-    recarregarOcorrencias(funcOcorrencias.id);
-  };
-
   // "Apagar definitivamente" saiu (RH-B1): o DELETE em colaboradores apaga em
   // cascata o registro_ponto, as folgas, o banco de horas e as advertências —
   // registro de ponto é obrigação legal. Quem sai da casa é desligado.
@@ -1690,9 +1509,9 @@ export default function RHPage() {
      const av = situacaoAvisoPrevio(f, hj);
      if (av) {
         if (av.concluido) {
-           badges.push({ text: `⚠️ Aviso Prévio Concluído (${av.diasTotal}d) · Finalizar Desligamento`, color: 'text-rose-800 bg-rose-100 border-rose-300 font-black animate-pulse' });
+           badges.push({ text: `Aviso Prévio Concluído (${av.diasTotal}d) · Finalizar Desligamento`, color: 'text-rose-800 bg-rose-100 border-rose-300 font-black animate-pulse' });
         } else {
-           badges.push({ text: `⚠️ Cumprindo Aviso Prévio (${av.diasTotal} dias) · Faltam ${av.diasRestantes} dia(s) (Término ${av.fimPrevisto.toLocaleDateString("pt-BR")})`, color: 'text-amber-800 bg-amber-100 border-amber-300 font-bold' });
+           badges.push({ text: `Cumprindo Aviso Prévio (${av.diasTotal} dias) · Faltam ${av.diasRestantes} dia(s) (Término ${av.fimPrevisto.toLocaleDateString("pt-BR")})`, color: 'text-amber-800 bg-amber-100 border-amber-300 font-bold' });
         }
      }
      
@@ -1956,9 +1775,6 @@ export default function RHPage() {
 
          {/* Ferramentas secundárias: linha própria, compactas, com quebra */}
          <div className="flex items-center gap-2 flex-wrap mt-4">
-            <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-1.5 bg-card text-accent-strong border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-accent-soft transition-colors">
-               <CreditCard size={14} /> Lançar Folha (mês)
-            </button>
             <button onClick={imprimirFaltasAtrasos} title="Faltas e atrasos dos fixos + extras por dia (mês atual)" className="flex items-center gap-1.5 bg-card text-rose-700 border border-rose-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
                <Clock size={14} /> Faltas e Atrasos
             </button>
@@ -2095,7 +1911,7 @@ export default function RHPage() {
                           <ul className="space-y-2 text-sm">
                              {aniv.itens.map(it => (
                                 <li key={it.colaborador.id} className="flex justify-between gap-3 border-b border-line pb-2">
-                                   <span className={`font-bold ${it.ehHoje ? "text-accent" : "text-fg"}`}>{it.ehHoje ? "🎂 " : ""}{it.colaborador.nome}</span>
+                                   <span className={`font-bold ${it.ehHoje ? "text-accent" : "text-fg"}`}>{it.colaborador.nome}</span>
                                    <span className="text-subtle text-right">{it.diaMes} · {it.ehHoje ? "faz" : it.jaFez ? "fez" : "vai fazer"} {it.vaiFazer} anos</span>
                                 </li>
                              ))}
@@ -2117,7 +1933,7 @@ export default function RHPage() {
                {aniv.itens.filter(it => !it.jaFez).length > 0 && (
                   <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                      <p className="text-3xs font-bold uppercase tracking-wider text-emerald-700">Aniversários de {aniv.mes}</p>
-                     <ul className="mt-1 space-y-0.5 font-semibold">{aniv.itens.filter(it => !it.jaFez).map(it => <li key={it.colaborador.id}>{it.ehHoje ? "🎂 " : ""}{fraseAniversario(it)}</li>)}</ul>
+                     <ul className="mt-1 space-y-0.5 font-semibold">{aniv.itens.filter(it => !it.jaFez).map(it => <li key={it.colaborador.id}>{fraseAniversario(it)}</li>)}</ul>
                   </div>
                )}
                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 relative">
@@ -2133,38 +1949,6 @@ export default function RHPage() {
             );
          })()}
 
-         {(() => {
-            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-            const alertas = [];
-            funcionarios.filter(f => !ehInativo(f) && f.tipo_contrato !== "Freelancer").forEach(f => {
-               if (!f.data_admissao) {
-                  alertas.push({ id: f.id, nome: f.nome, texto: "Sem data de admissão", nivel: "erro" });
-                  return;
-               }
-               const adm = new Date(`${f.data_admissao}T12:00:00`); adm.setHours(0, 0, 0, 0);
-               const diasDesdeAdmissao = Math.floor((hoje - adm) / 86400000);
-               if (f.status_contrato?.startsWith("Experiência")) {
-                  const fc = faseContratoCalculada(f);
-                  if (fc && !fc.ehDefinitivo) {
-                     const faltam = fc.diasRestantesPeriodo;
-                     if (faltam <= 15) {
-                        alertas.push({ 
-                           id: f.id, 
-                           nome: f.nome, 
-                           texto: faltam < 0 ? `Experiência vencida há ${Math.abs(faltam)} dia(s)` : fc.detalhe, 
-                           nivel: faltam <= 5 ? "erro" : "aviso" 
-                        });
-                     }
-                  }
-               } else {
-                  const aniversario = new Date(adm); aniversario.setFullYear(hoje.getFullYear());
-                  if (aniversario < hoje) aniversario.setFullYear(hoje.getFullYear() + 1);
-                  const faltam = Math.floor((aniversario - hoje) / 86400000);
-                  if (faltam <= 45) alertas.push({ id: f.id, nome: f.nome, texto: `Aniversário de admissão em ${faltam} dia(s) — revisar férias`, nivel: "info" });
-               }
-            });
-            return null; // Ocultado a pedido do usuario (ja existe no quadro)
-         })()}
       </div>
 
       {/* Modal de Detalhe do KPI */}
@@ -2232,10 +2016,6 @@ export default function RHPage() {
                <p className="text-3xs font-bold uppercase tracking-widest text-subtle mb-2.5">Ações rápidas</p>
                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                     { icon: Printer, rot: "Recibo de extra", on: () => { setAbaAtiva("Freelancer"); abrirModalFicha(null); } },
-                     { icon: ClipboardList, rot: "Fechar folha", on: () => router.push('/dashboard/rh/fechamento') },
-                     { icon: Clock, rot: "Faltas e atrasos", on: () => imprimirFaltasAtrasos() },
-                     { icon: CalendarDays, rot: "Feriados", on: () => abrirModalFeriados() },
                      { icon: Users, rot: "Organograma", on: () => router.push('/dashboard/rh/organograma') },
                      { icon: Award, rot: "Cargos", on: () => setAbaAtiva("Cargos & Carreiras") },
                      { icon: LogOut, rot: "Ex-funcionários", on: () => router.push('/dashboard/rh?aba=quadro') },
@@ -2270,8 +2050,6 @@ export default function RHPage() {
                unidadeInfo={unidadeInfo}
                onRecarregar={() => carregar(true)}
             />
-         ) : abaAtiva === "Banco de Talentos" ? (
-            <BancoTalentos unidadeAtiva={unidadeAtiva} />
          ) : null}
 
       </div>
@@ -2761,14 +2539,14 @@ export default function RHPage() {
                                        <div className="flex flex-wrap gap-2 mt-1">
                                           {info.periodo === 1 && (
                                              <button type="button" onClick={() => alert("O contrato já passa automaticamente para o 2º período amanhã caso você não encerre hoje.")} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-3xs rounded-lg border border-zinc-200 transition-colors">
-                                                ✅ Renovar para 2º Período
+                                                Renovar para 2º Período
                                              </button>
                                           )}
                                           <button type="button" onClick={() => setNovoFunc({...novoFunc, status_contrato: "Definitivo"})} className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-3xs rounded-lg border border-emerald-200 transition-colors">
-                                             🌟 Transformar em Fixo
+                                             Transformar em Fixo
                                           </button>
                                           <button type="button" onClick={() => { if(confirm("Deseja realmente marcar o funcionário como Inativo (desligado)?")) setNovoFunc({...novoFunc, status: "inativo"}) }} className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-3xs rounded-lg border border-rose-200 transition-colors">
-                                             ❌ Não Renovar (Desligar)
+                                             Não Renovar (Desligar)
                                           </button>
                                        </div>
                                     )}
@@ -3375,7 +3153,7 @@ export default function RHPage() {
                                 </div>
 
                                 <div className="text-xs space-y-1">
-                                  <p className="font-bold text-slate-800">🛠️ Função exercida: <span className="text-emerald-800">{funcNome}</span></p>
+                                  <p className="font-bold text-slate-800">Função exercida: <span className="text-emerald-800">{funcNome}</span></p>
                                   <p className="font-medium text-slate-900">⏰ Horário de trabalho: <b>{hEntrada} às {hSaida}</b></p>
                                   {topicos.length > 0 && (
                                     <div className="mt-1 bg-white border border-line rounded-xl p-2 text-2xs font-medium text-fg-soft">
@@ -3510,7 +3288,7 @@ export default function RHPage() {
                {/* Se o funcionário já está cumprindo aviso */}
                {(funcDeslig.em_aviso_previo || funcDeslig.status_aviso === "cumprindo_aviso") && (
                   <div className="mb-4 rounded-2xl border-2 border-amber-200 bg-amber-50 p-4">
-                     <p className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">⚠️ Atualmente Cumprindo Aviso Prévio</p>
+                     <p className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">Atualmente Cumprindo Aviso Prévio</p>
                      <p className="text-xs text-amber-800 font-medium">Início em <b>{funcDeslig.inicio_aviso_previo ? new Date(funcDeslig.inicio_aviso_previo + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</b> ({funcDeslig.dias_aviso_previo || 30} dias contratados).</p>
                      <div className="mt-3 flex gap-2">
                         <button type="button" onClick={() => handleCancelarAviso(funcDeslig)} className="py-2 px-3 bg-card border border-amber-300 text-amber-900 font-bold text-xs rounded-xl hover:bg-amber-100">Cancelar Aviso</button>
@@ -3562,7 +3340,7 @@ export default function RHPage() {
                            const faltam = Math.ceil((fim - hj) / 86400000);
                            return (
                               <div className="bg-card border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-900">
-                                 📅 Término previsto do aviso: <b>{fim.toLocaleDateString("pt-BR")}</b>
+                                 Término previsto do aviso: <b>{fim.toLocaleDateString("pt-BR")}</b>
                                  {faltam > 0 ? <span className="block mt-0.5 text-amber-700">· Faltam <b>{faltam} dia(s)</b> de trabalho</span> : <span className="block mt-0.5 text-rose-700">· Prazo de aviso já finalizado!</span>}
                               </div>
                            );
@@ -3603,238 +3381,6 @@ export default function RHPage() {
                      </button>
                   </div>
                </form>
-            </div>
-         </div>
-      )}
-
-      {/* MODAL: CENTRAL EXCLUSIVA DE OCORRÊNCIAS & DOCUMENTOS */}
-      {modalOcorrencias && funcOcorrencias && (
-         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
-            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-3xl p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4 flex flex-col max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)]">
-               <div className="flex flex-wrap justify-between items-center gap-2 mb-4 shrink-0">
-                  <div>
-                     <h2 className="font-black text-2xl text-slate-800">Central de Ocorrências & Documentos</h2>
-                     <p className="text-sm font-bold text-fg mt-0.5">{funcOcorrencias.nome} · {funcOcorrencias.cargo || "Sem cargo"}</p>
-                  </div>
-                  <button onClick={() => setModalOcorrencias(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
-               </div>
-
-               {/* ABAS */}
-               <div className="flex gap-1.5 border-b border-line overflow-x-auto shrink-0 mb-4 pb-1">
-                  {[
-                     { id: "atestados", rotulo: "🏥 Atestados Médicos", count: listaAtestados.length },
-                     { id: "advertencias", rotulo: "⚠️ Advertências", count: listaAdvertencias.length },
-                     { id: "reunioes", rotulo: "🤝 Reuniões & Feedbacks", count: listaReunioes.length },
-                     { id: "treinamentos", rotulo: "🎓 Treinamentos", count: listaTreinamentos.length },
-                  ].map(tab => (
-                     <button key={tab.id} type="button" onClick={() => setAbaOcorrencia(tab.id)} className={`px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 flex items-center gap-1.5 ${abaOcorrencia === tab.id ? "bg-slate-900 text-white shadow-sm" : "bg-card text-slate-900 hover:bg-slate-200"}`}>
-                        <span>{tab.rotulo}</span>
-                        {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-3xs ${abaOcorrencia === tab.id ? "bg-slate-700 text-white" : "bg-slate-200 text-fg-soft"}`}>{tab.count}</span>}
-                     </button>
-                  ))}
-               </div>
-
-               <div className="flex-1 overflow-y-auto pr-1">
-                  {loadingOcorrencias ? (
-                     <div className="py-12 text-center font-bold text-subtle">Carregando histórico do colaborador...</div>
-                  ) : (
-                     <>
-                        {/* ABA 1: ATESTADOS MÉDICOS */}
-                        {abaOcorrencia === "atestados" && (
-                           <div className="space-y-4">
-                              <form onSubmit={handleSalvarAtestado} className="bg-zinc-100/70 border border-zinc-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-900">Novo Atestado Médico</p>
-                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Início do Afastamento</label>
-                                       <input type="date" value={atestedoForm.data_inicio} onChange={e=>setAtestadoForm({...atestedoForm, data_inicio: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Qtd Dias Afastado</label>
-                                       <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-slate-800 text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">CID (Opcional)</label>
-                                       <input type="text" placeholder="Ex: Z76.5, J11" value={atestedoForm.cid} onChange={e=>setAtestadoForm({...atestedoForm, cid: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                 </div>
-
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Médico / CRM (Opcional)</label>
-                                       <input type="text" placeholder="Ex: Dr. Carlos CRM 12345" value={atestedoForm.medico} onChange={e=>setAtestadoForm({...atestedoForm, medico: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
-                                       <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-900 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800 cursor-pointer"/>
-                                    </div>
-                                 </div>
-
-                                 <button type="submit" className="w-full py-3 bg-emerald-800 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
-                                    Registrar Atestado e Abonar Ponto Automático
-                                 </button>
-                              </form>
-
-                              <div className="space-y-2">
-                                 {listaAtestados.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhum atestado médico cadastrado para este colaborador.</p>
-                                 ) : listaAtestados.map(a => (
-                                    <div key={a.id} className="p-3 bg-card border border-line rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
-                                       <div>
-                                          <p className="font-bold text-slate-800 text-xs">{a.parcial ? "🏥 Atestado de Horas (Parcial)" : "🏥 Atestado Médico"} · {new Date(a.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")} até {new Date((a.data_fim || a.data_inicio) + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                                          <p className="text-2xs font-bold text-zinc-800 mt-0.5">{a.cid ? `CID: ${a.cid} · ` : ""}{a.medico ? `Dr(a). ${a.medico}` : "Ausência Abonada"}</p>
-                                       </div>
-                                       <div className="flex items-center gap-2">
-                                          {a.arquivo_url && (
-                                             <a href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("atestado", a.id); }} className="py-1.5 px-3 bg-zinc-100 border border-zinc-200 text-zinc-800 font-bold text-2xs rounded-xl hover:bg-zinc-100">Ver Anexo</a>
-                                          )}
-                                          <button type="button" onClick={async () => { if(confirm("Excluir este atestado?")) { await removerAtestado(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
-                                       </div>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {/* ABA 2: ADVERTÊNCIAS */}
-                        {abaOcorrencia === "advertencias" && (
-                           <div className="space-y-4">
-                              <form onSubmit={handleSalvarAdvNovo} className="bg-rose-50/70 border border-rose-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-rose-900">Nova Advertência Disciplinar</p>
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Data da Ocorrência</label>
-                                       <input type="date" value={advFormNovo.data} onChange={e=>setAdvFormNovo({...advFormNovo, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-rose-500"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Tipo de Medida</label>
-                                       <select value={advFormNovo.tipo} onChange={e=>setAdvFormNovo({...advFormNovo, tipo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-rose-500">
-                                          <option value="Advertência Verbal">Advertência Verbal</option>
-                                          <option value="Advertência Escrita">Advertência Escrita</option>
-                                          <option value="Suspensão (1 dia)">Suspensão (1 dia)</option>
-                                          <option value="Suspensão (3 dias)">Suspensão (3 dias)</option>
-                                       </select>
-                                    </div>
-                                 </div>
-                                 <div>
-                                    <label className="text-3xs font-bold text-fg uppercase block mb-1">Motivo / Descrição Detalhada</label>
-                                    <textarea rows={2} placeholder="Ex: atraso reiterado, não uso de EPI..." value={advFormNovo.motivo} onChange={e=>setAdvFormNovo({...advFormNovo, motivo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-rose-500 resize-none"/>
-                                 </div>
-                                 <button type="submit" className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
-                                    Registrar Advertência
-                                 </button>
-                              </form>
-
-                              <div className="space-y-2">
-                                 {listaAdvertencias.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhuma advertência disciplinar para este colaborador.</p>
-                                 ) : listaAdvertencias.map(a => (
-                                    <div key={a.id} className="p-3 bg-card border border-line rounded-2xl flex items-center justify-between gap-2 shadow-sm">
-                                       <div>
-                                          <span className="text-3xs font-bold uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">{a.tipo || "Advertência"}</span>
-                                          <p className="font-bold text-slate-800 text-xs mt-1">{a.motivo || a.descricao}</p>
-                                          <p className="text-3xs font-bold text-subtle mt-0.5">{a.data ? new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</p>
-                                       </div>
-                                       <button type="button" onClick={async () => { if(confirm("Excluir registro?")) { await removerAdvertencia(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {/* ABA 3: REUNIÕES & FEEDBACKS */}
-                        {abaOcorrencia === "reunioes" && (
-                           <div className="space-y-4">
-                              <form onSubmit={handleSalvarReuniao} className="bg-zinc-100/70 border border-zinc-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-900">Registrar Reunião ou Feedback (1-on-1)</p>
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Data</label>
-                                       <input type="date" value={reuniaoForm.data} onChange={e=>setReuniaoForm({...reuniaoForm, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Título / Pauta da Reunião</label>
-                                       <input type="text" placeholder="Ex: Avaliação de 30 dias, Alinhamento de metas" value={reuniaoForm.titulo} onChange={e=>setReuniaoForm({...reuniaoForm, titulo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                 </div>
-                                 <div>
-                                    <label className="text-3xs font-bold text-fg uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
-                                    <textarea rows={3} placeholder="Pontos fortes, pontos a melhorar, metas combinadas..." value={reuniaoForm.resumo} onChange={e=>setReuniaoForm({...reuniaoForm, resumo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-emerald-600 resize-none"/>
-                                 </div>
-                                 <button type="submit" className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
-                                    Registrar Reunião
-                                 </button>
-                              </form>
-
-                              <div className="space-y-2">
-                                 {listaReunioes.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhuma reunião ou feedback registrado.</p>
-                                 ) : listaReunioes.map(r => (
-                                    <div key={r.id} className="p-3 bg-card border border-line rounded-2xl flex justify-between gap-2 shadow-sm">
-                                       <div>
-                                          <p className="font-bold text-slate-800 text-xs">🤝 {r.titulo} · {new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                                          <p className="text-xs text-slate-900 mt-1 font-medium whitespace-pre-line">{r.resumo}</p>
-                                       </div>
-                                       <button type="button" onClick={async () => { if(confirm("Excluir reunião?")) { await removerReuniaoColab(r.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {/* ABA 4: TREINAMENTOS */}
-                        {abaOcorrencia === "treinamentos" && (
-                           <div className="space-y-4">
-                              <form onSubmit={handleSalvarTreino} className="bg-emerald-50/70 border border-emerald-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-emerald-900">Registrar Treinamento / Certificado</p>
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Nome do Curso / Treinamento</label>
-                                       <input type="text" placeholder="Ex: Higiene ANVISA, Atendimento ao Cliente" value={treinoForm.nome_curso} onChange={e=>setTreinoForm({...treinoForm, nome_curso: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Instituição / Instrutor</label>
-                                       <input type="text" placeholder="Ex: SENAC, Interno, Chef" value={treinoForm.instituicao} onChange={e=>setTreinoForm({...treinoForm, instituicao: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
-                                    </div>
-                                 </div>
-                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Data Conclusão</label>
-                                       <input type="date" value={treinoForm.data} onChange={e=>setTreinoForm({...treinoForm, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Carga Horária</label>
-                                       <input type="text" placeholder="Ex: 8 horas" value={treinoForm.carga_horaria} onChange={e=>setTreinoForm({...treinoForm, carga_horaria: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Vencimento (Opcional)</label>
-                                       <input type="date" value={treinoForm.vencimento} onChange={e=>setTreinoForm({...treinoForm, vencimento: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
-                                    </div>
-                                 </div>
-                                 <button type="submit" className="w-full py-3 bg-accent hover:bg-accent text-accent-fg font-bold text-xs rounded-xl shadow-sm transition-colors">
-                                    Registrar Treinamento
-                                 </button>
-                              </form>
-
-                              <div className="space-y-2">
-                                 {listaTreinamentos.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhum treinamento registrado para este colaborador.</p>
-                                 ) : listaTreinamentos.map(t => (
-                                    <div key={t.id} className="p-3 bg-card border border-line rounded-2xl flex justify-between gap-2 shadow-sm">
-                                       <div>
-                                          <p className="font-bold text-slate-800 text-xs">🎓 {t.nome_curso} {t.carga_horaria ? `(${t.carga_horaria})` : ""}</p>
-                                          <p className="text-2xs font-bold text-fg mt-0.5">{t.instituicao ? `Instituição: ${t.instituicao} · ` : ""}Concluído em {new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                                          {t.vencimento && <p className="text-3xs font-bold text-amber-700 mt-0.5">Reciclagem prevista: {new Date(t.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</p>}
-                                       </div>
-                                       <button type="button" onClick={async () => { if(confirm("Excluir treinamento?")) { await removerTreinamentoColab(t.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-                     </>
-                  )}
-               </div>
             </div>
          </div>
       )}

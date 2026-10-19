@@ -293,7 +293,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
               return (
                 <div className={`mt-4 border rounded-xl p-4 ${ehHoje ? "bg-zinc-100 border-zinc-200" : "bg-zinc-100 border-zinc-200"}`}>
                   <p className={`text-sm font-black mb-1 ${ehHoje ? "text-zinc-900" : "text-zinc-900"}`}>
-                    🎂 {ehHoje ? "Aniversário é HOJE!" : "Aniversariante do Mês!"}
+                    {ehHoje ? "Aniversário é HOJE!" : "Aniversariante do Mês!"}
                   </p>
                   <p className={`text-xs font-bold ${ehHoje ? "text-zinc-800" : "text-zinc-800"}`}>
                     Celebre o aniversário no dia {fmtData(sel.data_nascimento).slice(0, 5)}.
@@ -376,7 +376,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
                     <Linha rotulo="Adicional noturno" valor={ad.valorNoturno} dica={`${fmtMin(ad.minNoturno)} · ${rg.noturnoPct}% das ${rg.noturnoInicioH}h às ${rg.noturnoFimH}h · ${fonteRg}`} />
                     <Linha rotulo="Horas extras" valor={ad.valorExtra} dica={`${fmtMin(ad.minExtra)} · +${rg.extraPct}% · ${fonteRg}`} />
                     <Linha rotulo="Trabalho em feriado" valor={ad.valorFeriado} dica={`${fmtMin(ad.minFeriado)} em feriados · +${rg.feriadoPct}% · ${fonteRg}`} />
-                    <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O botão "Lançar Folha" no RH usa estes valores.</p>
+                    <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O Fechar folha ainda não soma estes adicionais: lance-os em Acréscimos.</p>
                   </Bloco>
                 );
               })()}
@@ -794,7 +794,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
                   <div className="flex-1 min-w-0">
                     <p className="font-bold truncate" style={{ color: "var(--fg)" }}>{c.nome}</p>
                     <p className="text-2xs font-bold uppercase tracking-widest truncate" style={{ color: "var(--dim)" }}>
-                      {c.cargo || "—"}{c.tipo_contrato === "Freelancer" ? " · Extra" : ""}{inativo ? " · inativo" : ""}{(() => { const a = aniversario(c); return a ? ` · ${a.idade} anos${a.ehHoje ? " 🎂" : ""}` : ""; })()}
+                      {c.cargo || "—"}{c.tipo_contrato === "Freelancer" ? " · Extra" : ""}{inativo ? " · inativo" : ""}{(() => { const a = aniversario(c); return a ? ` · ${a.idade} anos${a.ehHoje ? " " : ""}` : ""; })()}
                     </p>
                     {st && (
                       <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-3xs font-bold" style={{ background: st.fundo, color: st.cor }}>

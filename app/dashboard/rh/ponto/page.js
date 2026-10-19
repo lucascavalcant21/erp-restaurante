@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
-import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, fetchLiberacoesDia, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
+import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, registrarBatida } from "../../../lib/ponto";
 import { linhasJornadaSemana } from "../../../lib/jornada-semana.mjs";
 import { fetchPins } from "../../../lib/seguranca";
@@ -242,7 +242,6 @@ export default function PontoPage() {
   const [colaboradores, setColaboradores] = useState([]);
   const [pontosHoje, setPontosHoje] = useState([]);
   const [folgas, setFolgas] = useState([]);
-  const [liberadosHoje, setLiberadosHoje] = useState([]); // ids de freelancers liberados hoje
   const [loading, setLoading] = useState(true);
   const [letra, setLetra] = useState(""); // filtro A-Z (toque rapido no tablet)
   const [horaLocal, setHoraLocal] = useState(new Date());
@@ -325,13 +324,10 @@ export default function PontoPage() {
 
   const carregar = useCallback(async (silencioso = false) => {
     if (!silencioso) setLoading(true);
-    const d = new Date();
-    const hojeISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const [rColab, rPontos, rFolgas, rLib] = await Promise.all([
+    const [rColab, rPontos, rFolgas] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
       fetchAllFolgasDaUnidade(unidadeAtiva),
-      fetchLiberacoesDia(unidadeAtiva, hojeISO),
     ]);
     // Extras têm recibo próprio e não participam do relógio de ponto.
     setColaboradores((rColab.data || []).filter(c =>
@@ -339,12 +335,12 @@ export default function PontoPage() {
     ));
     setPontosHoje(rPontos.data || []);
     setFolgas(rFolgas.data || []);
-    setLiberadosHoje((rLib.data || []).map(l => l.colaborador_id));
     setLoading(false);
   }, [unidadeAtiva]);
 
-  // Extra/freelancer só bate ponto no dia em que o gerente liberou.
-  const bloqueadoFreela = (c) => c?.tipo_contrato === "Freelancer" && !liberadosHoje.includes(c.id);
+  // A "liberação do dia" do extra saiu (RH-B1): a tabela não existe e extras
+  // já ficam fora da lista acima. Nenhum contratado é bloqueado aqui.
+  const bloqueadoFreela = () => false;
 
   // Tempo real: batida em QUALQUER aparelho aparece aqui na hora, sem atualizar
   useTempoReal(["registro_ponto", "colaboradores", "rh_folgas_esporadicas", "rh_banco_horas"], () => carregar(true));
@@ -385,10 +381,6 @@ export default function PontoPage() {
 
   // Abre a tela do funcionário INSTANTANEAMENTE; histórico/banco carregam em segundo plano
   const abrirFuncionario = (c) => {
-    if (bloqueadoFreela(c)) {
-      alert(`${c.nome} é extra/freelancer e o ponto de hoje ainda não foi liberado.\n\nPeça ao gerente para liberar em RH → Ações → "Liberar ponto de hoje".`);
-      return;
-    }
     setSelecionado(c);
     setLetra("");
     setHistorico([]);

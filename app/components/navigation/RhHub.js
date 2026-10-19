@@ -271,7 +271,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   variant="green"
                   icon={CheckCircle2}
                   title="Nenhuma pendência crítica ou inconsistência de ponto no momento."
-                  subtitle="Todos os registros de ponto e horas estão em conformity."
+                  subtitle="Todos os registros de ponto e horas estão em conformidade."
                 />
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -283,7 +283,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                       subtitle={`${pontosIncompletos.length} funcionário(s) finalizaram sem intervalo`}
                       actionButton={
                         <HubActionButton
-                          onClick={() => router.push("/dashboard/rh/ponto")}
+                          onClick={() => router.push("/dashboard/rh/ponto/corrigir")}
                           variant="danger"
                         >
                           Resolver
@@ -300,7 +300,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                       subtitle={`${equipeBancoAtencao.length} colaborador(es) com acúmulo em limite`}
                       actionButton={
                         <HubActionButton
-                          onClick={() => router.push("/dashboard/rh")}
+                          onClick={() => router.push("/dashboard/rh?aba=quadro")}
                           variant="secondary"
                         >
                           Analisar
@@ -362,9 +362,9 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                             statusOperacional === "encerrado" ? "bg-zinc-950/60 text-zinc-400 border border-zinc-800/50" : "bg-slate-50 text-slate-500"
                           }`}>
                             {statusOperacional === "trabalhando" ? "Trabalhando" :
-                             statusOperacional === "intervalo" ? "☕ Intervalo" :
-                             statusOperacional === "atrasado" ? "🟠 Atrasado" :
-                             statusOperacional === "pendente" ? "🔴 Registro Pendente" :
+                             statusOperacional === "intervalo" ? "Intervalo" :
+                             statusOperacional === "atrasado" ? "Atrasado" :
+                             statusOperacional === "pendente" ? "Registro pendente" :
                              statusOperacional === "encerrado" ? "Encerrado" : "Fora do Turno"}
                           </span>
                           {horario?.entrada && (
@@ -408,7 +408,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   </div>
 
                   <HubActionButton
-                    onClick={() => router.push("/dashboard/rh")}
+                    onClick={() => router.push("/dashboard/rh?aba=quadro")}
                     variant="secondary"
                     icon={ArrowRight}
                     fullWidth
@@ -430,7 +430,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/rh/gestao")}
+                  onClick={() => router.push("/dashboard/rh?aba=quadro")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Users size={18} className="text-emerald-600 shrink-0" />
@@ -457,7 +457,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
 
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/rh")}
+                  onClick={() => router.push("/dashboard/rh?aba=quadro")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Clock size={18} className="text-amber-600 shrink-0" />

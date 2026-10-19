@@ -299,11 +299,11 @@ export default function ProntuarioColaboradorPage() {
               </div>
               <p className="text-sm font-semibold text-hf-text-2 mt-0.5">{func.cargo || "Função não informada"}{func.area_escala ? ` · ${func.area_escala}` : ""} · {unidadeInfo?.nome}</p>
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-1 text-xs">
-                <p><span className="text-hf-muted">Vínculo: </span><b className="text-hf-text">{vinculo.categoria}</b> · {vinculo.fase}{vinculo.fonte === "deduzido" && <span className="text-hf-muted" title="Sem vínculo registrado: deduzido do cadastro antigo"> (do cadastro)</span>}{vinculo.alerta && <span className="text-amber-700" title={vinculo.alerta}> ⚠</span>}</p>
+                <p><span className="text-hf-muted">Vínculo: </span><b className="text-hf-text">{vinculo.categoria}</b> · {vinculo.fase}{vinculo.fonte === "deduzido" && <span className="text-hf-muted" title="Sem vínculo registrado: deduzido do cadastro antigo"> (do cadastro)</span>}{vinculo.alerta && <span className="text-amber-700" title={vinculo.alerta}> (atenção)</span>}</p>
                 <p><span className="text-hf-muted">Supervisão: </span><b className="text-hf-text">{supervisores.length ? supervisores.join(", ") : "não definida"}</b></p>
                 <p><span className="text-hf-muted">Na casa: </span><b className="text-hf-text">{tempoDeCasa(func, hoje) || "início não informado"}</b></p>
                 {(() => { const a = aniversario(func, hoje); return (
-                  <p><span className="text-hf-muted">Idade: </span>{a ? <><b className="text-hf-text">{a.idade} anos</b> · {a.ehHoje ? <b className="text-accent">🎂 aniversário hoje</b> : a.faltam <= 31 ? <span className="text-accent font-semibold">aniversário {a.diaMes}, faz {a.idade + 1} em {a.faltam} dia(s)</span> : <span className="text-hf-muted">aniversário {a.diaMes}</span>}</> : <span className="text-hf-muted">data de nascimento não informada</span>}</p>
+                  <p><span className="text-hf-muted">Idade: </span>{a ? <><b className="text-hf-text">{a.idade} anos</b> · {a.ehHoje ? <b className="text-accent">aniversário hoje</b> : a.faltam <= 31 ? <span className="text-accent font-semibold">aniversário {a.diaMes}, faz {a.idade + 1} em {a.faltam} dia(s)</span> : <span className="text-hf-muted">aniversário {a.diaMes}</span>}</> : <span className="text-hf-muted">data de nascimento não informada</span>}</p>
                 ); })()}
               </div>
             </div>

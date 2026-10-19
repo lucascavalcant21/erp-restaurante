@@ -332,15 +332,21 @@ body {
 }
 @media (max-width: 1279px), (pointer: coarse), (display-mode: standalone), (display-mode: fullscreen) {
   :root {
-    --erp-safe-top: max(2.75rem, calc(env(safe-area-inset-top, 0px) + 0.875rem));
+    --erp-safe-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 1.25rem));
   }
 
   /* Garante que qualquer modal/janela centralizada ou bottom-sheet fique abaixo da barra de status no celular/tablet */
-  div.fixed.inset-0.justify-center {
-    padding-top: calc(var(--erp-safe-top, 2.75rem) + 0.75rem) !important;
+  div.fixed.inset-0.justify-center,
+  div.fixed.inset-0[class*="justify-center"],
+  div.fixed.inset-0[class*="items-end"],
+  div.fixed.inset-0[class*="items-center"] {
+    padding-top: calc(var(--erp-safe-top, 3.5rem) + 0.75rem) !important;
   }
-  div.fixed.inset-0.justify-center > div {
-    max-height: calc(100dvh - var(--erp-safe-top, 2.75rem) - 1.5rem) !important;
+  div.fixed.inset-0.justify-center > div,
+  div.fixed.inset-0[class*="justify-center"] > div,
+  div.fixed.inset-0[class*="items-end"] > div,
+  div.fixed.inset-0[class*="items-center"] > div {
+    max-height: calc(100dvh - var(--erp-safe-top, 3.5rem) - 1.5rem) !important;
   }
 
   /* Impede o zoom automático do iOS/Android ao tocar em campos de digitação (< 16px dá zoom forçado no Safari) */

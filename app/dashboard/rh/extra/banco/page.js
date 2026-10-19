@@ -228,8 +228,8 @@ export default function BancoDeExtras() {
 
       {/* Correção do cadastro antes de aprovar */}
       {editando && (
-        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-5" onClick={() => !salvandoEdicao && setEditando(null)}>
-          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl" onClick={ev => ev.stopPropagation()}>
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-5" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => !salvandoEdicao && setEditando(null)}>
+          <div className="max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] w-full overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl" onClick={ev => ev.stopPropagation()}>
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-black text-fg">Corrigir cadastro</h2>

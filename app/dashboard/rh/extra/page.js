@@ -383,21 +383,41 @@ export default function CadastroExtrasPage() {
                         const entrada = r.hora_entrada || r.dados?.entrada || extra.horario_entrada || "";
                         const saida = r.hora_saida || r.dados?.saida || extra.horario_saida || "";
                         const horarioShift = entrada && saida ? `${entrada} às ${saida}` : (entrada ? `Início ${entrada}` : "");
+                        const diasDet = Array.isArray(r.dados?.dias_detalhados) ? r.dados.dias_detalhados : [];
+                        const descItens = Array.isArray(r.dados?.descontos_itens) ? r.dados.descontos_itens : [];
+                        const vDin = Number(r.dados?.valor_dinheiro || 0);
+                        const vPix = Number(r.dados?.valor_pix || 0);
                         return (
                           <div key={r.id} className="rounded-2xl border border-line p-3.5 bg-card hover:border-emerald-300 transition-all flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <strong className="text-sm font-black text-fg">{dataBR(r.data_trabalho)}</strong>
+                                {Number(r.dias_contratados) > 1 && (
+                                  <span className="px-2 py-0.5 rounded-full text-3xs font-bold bg-slate-100 text-slate-700">{r.dias_contratados} dias</span>
+                                )}
                                 <span className={`px-2 py-0.5 rounded-full text-3xs font-bold uppercase ${r.pagamento_realizado ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{r.pagamento_realizado ? "Pago" : "Pendente"}</span>
                               </div>
                               <p className="text-xs font-bold text-fg mt-0.5">Função: <span className="text-slate-800">{r.funcao || extra.cargo || "Extra"}</span>{horarioShift ? ` · Horário: ${horarioShift}` : ""}</p>
-                              <p className="text-xs font-bold text-fg">Forma de pagamento: <span className="text-slate-800">{r.forma_pagamento || "Pix"}</span></p>
+                              {diasDet.length > 0 && (
+                                <p className="text-2xs font-semibold text-slate-700 mt-0.5">
+                                  Dias: {diasDet.map(d => `${d.dia_semana ? d.dia_semana.split("-")[0] + " " : ""}${dataBR(d.data)} (${fmtBRL(d.valor)})`).join(" · ")}
+                                </p>
+                              )}
+                              {descItens.length > 0 && (
+                                <p className="text-2xs font-bold text-rose-700 mt-0.5">
+                                  Descontos: {descItens.map(it => `${it.descricao} (-${fmtBRL(it.valor)})`).join(" · ")}
+                                </p>
+                              )}
+                              <p className="text-xs font-bold text-fg mt-0.5">
+                                Forma de pagamento: <span className="text-slate-800">{r.forma_pagamento || "Pix"}</span>
+                                {(vDin > 0 && vPix > 0) && <span className="text-emerald-800"> ({fmtBRL(vDin)} Dinheiro + {fmtBRL(vPix)} Pix)</span>}
+                              </p>
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 shrink-0">
                               <span className="text-base font-black text-fg">{fmtBRL(r.valor_total)}</span>
-                              <button onClick={() => imprimirReciboExtra({ extra, recibo: r, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos: {} })} className="flex h-9 items-center gap-1 px-3 rounded-xl bg-card text-xs font-bold text-fg-soft hover:bg-slate-200">
-                                <Printer size={14} /> Imprimir
+                              <button onClick={() => imprimirReciboExtra({ extra, recibo: r, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos: {} })} className="flex h-9 items-center gap-1 px-3 rounded-xl bg-card border border-line text-xs font-bold text-fg-soft hover:bg-slate-200">
+                                <Printer size={14} /> Imprimir (2 vias)
                               </button>
                               <button onClick={() => handleExcluirRecibo(r)} title="Excluir recibo" className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100">
                                 <Trash2 size={14} />
@@ -424,16 +444,35 @@ export default function CadastroExtrasPage() {
       {reciboAcaoModal && (() => {
         const recibo = reciboAcaoModal;
         const extraDoRecibo = extras.find(e => String(e.id) === String(recibo.colaborador_id));
-        const nomeExtra = extraDoRecibo?.nome || recibo.dados?.nome || nomes[recibo.colaborador_id] || "Profissional Extra";
+        const nomeExtra = extraDoRecibo?.nome || recibo.dados?.nome || nomes[recibo.colaborador_id] || "Profissional";
+        const diasDet = Array.isArray(recibo.dados?.dias_detalhados) ? recibo.dados.dias_detalhados : [];
+        const descItens = Array.isArray(recibo.dados?.descontos_itens) ? recibo.dados.descontos_itens : [];
+        const vDin = Number(recibo.dados?.valor_dinheiro || 0);
+        const vPix = Number(recibo.dados?.valor_pix || 0);
 
         return (
           <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => setReciboAcaoModal(null)}>
-            <div className="bg-card rounded-3xl w-full max-w-md shadow-2xl p-6 overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+            <div className="bg-card rounded-3xl w-full max-w-md max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] overflow-y-auto shadow-2xl p-6 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
               <div className="flex items-start justify-between gap-3 mb-4 border-b border-line-soft pb-3">
                 <div>
                   <span className="text-3xs font-bold uppercase tracking-widest text-accent">Recibo Selecionado</span>
                   <h2 className="text-lg font-black text-fg">{nomeExtra}</h2>
-                  <p className="text-xs font-semibold text-fg">Trabalho em {dataBR(recibo.data_trabalho)} · {fmtBRL(recibo.valor_total)}</p>
+                  <p className="text-xs font-semibold text-fg">Trabalho em {dataBR(recibo.data_trabalho)} · <b className="text-accent">{fmtBRL(recibo.valor_total)}</b></p>
+                  {diasDet.length > 0 && (
+                    <p className="text-2xs font-semibold text-slate-600 mt-1">
+                      {diasDet.map(d => `${d.dia_semana ? d.dia_semana.split("-")[0] + " " : ""}${dataBR(d.data)}: ${fmtBRL(d.valor)}`).join(" · ")}
+                    </p>
+                  )}
+                  {descItens.length > 0 && (
+                    <p className="text-2xs font-bold text-rose-700 mt-0.5">
+                      Descontos: {descItens.map(it => `${it.descricao} (-${fmtBRL(it.valor)})`).join(", ")}
+                    </p>
+                  )}
+                  {(vDin > 0 && vPix > 0) && (
+                    <p className="text-2xs font-bold text-emerald-800 mt-0.5">
+                      Divisão: {fmtBRL(vDin)} no Dinheiro + {fmtBRL(vPix)} no Pix
+                    </p>
+                  )}
                 </div>
                 <button onClick={() => setReciboAcaoModal(null)} className="w-8 h-8 rounded-full bg-card text-fg hover:bg-slate-200 flex items-center justify-center"><X size={18} /></button>
               </div>
@@ -448,7 +487,7 @@ export default function CadastroExtrasPage() {
                   }}
                   className="w-full py-3.5 px-4 bg-accent hover:bg-accent text-accent-fg font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
                 >
-                  <Printer size={18} /> Visualizar / Reimprimir Recibo
+                  <Printer size={18} /> Visualizar / Reimprimir (2 vias A4)
                 </button>
 
                 {extraDoRecibo && (

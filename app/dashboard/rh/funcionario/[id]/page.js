@@ -36,6 +36,7 @@ import {
 } from "../../../../lib/rh";
 import { fetchPontosMes } from "../../../../lib/ponto";
 import { enviarArquivoRH, abrirArquivoRH } from "../../../../lib/rh-arquivos";
+import { imprimirReciboExtra } from "../../../../lib/recibo-extra";
 import { useContextoInteligencia } from "../../../../components/intelligence/useContextoInteligencia";
 import { fetchConvencaoAtiva } from "../../../../lib/trabalhista/convencoes-dados";
 import { regrasDaCompetencia } from "../../../../lib/trabalhista/regras-competencia.mjs";
@@ -249,7 +250,7 @@ export default function ProntuarioColaboradorPage() {
     if (aba === "ferias") carregar("atestados", async () => (await fetchAtestados(func.id))?.data || []);
     if (aba === "documentos") carregar("docs", async () => (await fetchDocumentos(func.id))?.data || []);
     if (aba === "avaliacao") carregar("advertencias", async () => (await fetchAdvertenciasColab(func.id))?.data || []);
-    if (aba === "pagamentos") carregar("recibos", async () => (await supabase.from("rh_recibos_prestacao").select("id, numero, data_trabalho, valor_total, pagamento_realizado, data_pagamento").eq("colaborador_id", func.id).order("created_at", { ascending: false })).data || []);
+    if (aba === "pagamentos") carregar("recibos", async () => (await supabase.from("rh_recibos_prestacao").select("*").eq("colaborador_id", func.id).order("created_at", { ascending: false })).data || []);
   }, [aba, func]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const gerenciado = !!sessao?.gerenciado;
@@ -438,11 +439,78 @@ export default function ProntuarioColaboradorPage() {
           <div className="space-y-4">
             {podeVerValores ? <ListaDoProntuario chave="holerites" func={func} podeEditar={podeEditar} opcoesDinamicas={opcoesDinamicas} onAviso={setAviso} /> : <EmptyState icon={DollarSign} title="Sem permissão para ver pagamentos." />}
             <Card>
-              <SectionLabel>Recibos de prestação de serviço</SectionLabel>
-              {!extras.recibos ? <p className="text-sm text-hf-muted">Carregando...</p> : extras.recibos.length === 0 ? <p className="text-sm text-hf-muted">Nenhum recibo.</p> : extras.recibos.map((r) => (
-                <Linha key={r.id} rotulo={`Nº ${r.numero || "—"} · ${dataBR(r.data_trabalho) || ""}`} valor={`${podeVerValores ? fmtBRL(r.valor_total) : "—"} · ${r.pagamento_realizado ? `pago ${dataBR(r.data_pagamento) || ""}` : "a pagar"}`} />
-              ))}
-              <div className="mt-3 no-print"><Btn variant="ghost" onClick={() => router.push(extra ? `/dashboard/rh/extra/${func.id}/recibo` : `/dashboard/rh/funcionario/${func.id}/recibo`)}><FileText size={15} /> Gerar recibo</Btn></div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <SectionLabel className="!mb-0">Recibos de pagamento (2 vias A4)</SectionLabel>
+                <div className="no-print">
+                  <Btn variant="primary" onClick={() => router.push(`/dashboard/rh/extra/${func.id}/recibo`)}>
+                    <FileText size={15} /> + Emitir Recibo (2 vias)
+                  </Btn>
+                </div>
+              </div>
+              {!extras.recibos ? (
+                <p className="text-sm text-hf-muted">Carregando...</p>
+              ) : extras.recibos.length === 0 ? (
+                <p className="text-sm text-hf-muted">Nenhum recibo emitido.</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {extras.recibos.map((r) => {
+                    const diasDet = Array.isArray(r.dados?.dias_detalhados) ? r.dados.dias_detalhados.filter((d) => d && (d.data || Number(d.valor) > 0)) : [];
+                    const descItens = Array.isArray(r.dados?.descontos_itens) ? r.dados.descontos_itens.filter((d) => d && (d.descricao || Number(d.valor) > 0)) : [];
+                    const vDin = Number(r.dados?.valor_dinheiro) || 0;
+                    const vPix = Number(r.dados?.valor_pix) || 0;
+                    return (
+                      <div key={r.id} className="rounded-xl border border-hf-border bg-hf-surface p-3 text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="font-black text-hf-text">
+                              Nº {r.numero || "—"} · {dataBR(r.data_trabalho) || ""} · {r.dias_contratados || diasDet.length || 1} dia(s)
+                            </p>
+                            <p className="mt-0.5 font-semibold text-hf-text-2">
+                              {podeVerValores ? <b className="text-emerald-700">{fmtBRL(r.valor_total)}</b> : "—"} ·{" "}
+                              {r.pagamento_realizado ? `Pago em ${dataBR(r.data_pagamento) || ""}` : "Pagamento pendente"}
+                              {podeVerValores && (vDin > 0 || vPix > 0) && (
+                                <span className="ml-1 text-hf-muted">
+                                  ({vDin > 0 && vPix > 0
+                                    ? `${fmtBRL(vDin)} Dinheiro + ${fmtBRL(vPix)} Pix`
+                                    : vDin > 0
+                                    ? `${fmtBRL(vDin)} Dinheiro`
+                                    : `${fmtBRL(vPix)} Pix`})
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="no-print">
+                            <Btn
+                              variant="ghost"
+                              onClick={() => imprimirReciboExtra({ extra: func, recibo: r, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos: {} })}
+                            >
+                              <Printer size={14} /> Imprimir (2 vias)
+                            </Btn>
+                          </div>
+                        </div>
+                        {podeVerValores && diasDet.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {diasDet.map((d, idx) => (
+                              <span key={idx} className="rounded-md border border-hf-border bg-hf-elevated px-2 py-0.5 text-2xs font-bold text-hf-text-2">
+                                {d.dia_semana ? `${d.dia_semana} ` : ""}{dataBR(d.data)}: {fmtBRL(d.valor)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {podeVerValores && descItens.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            {descItens.map((d, idx) => (
+                              <span key={idx} className="rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-2xs font-bold text-rose-700">
+                                - {d.descricao || "Item"}: {fmtBRL(d.valor)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           </div>
         )}

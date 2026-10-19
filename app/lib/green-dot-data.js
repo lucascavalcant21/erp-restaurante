@@ -713,6 +713,7 @@ export const ROTINAS_LIMPEZA_HIGIENIZACAO = {
     mlPorLitro: 3,
     diluicaoPadrao: "Uso puro direto da saboneteira (2 a 3 ml de sabonete líquido)",
     tempoAcaoQuimica: "40 a 60 segundos cronometrados de fricção mecânica",
+    tempoMinimo: "40 a 60 segundos cronometrados de fricção mecânica",
     passos: [
       {
         passo: 1,

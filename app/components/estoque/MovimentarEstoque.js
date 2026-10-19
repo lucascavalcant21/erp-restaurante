@@ -184,20 +184,36 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
     await Promise.all([carregarBase(), carregarUltimos()]);
   };
 
-  if (!base && !erro) return <p className="p-8 text-center font-bold text-hf-text-2">Carregando...</p>;
+  if (!base && !erro) {
+    return (
+      <div className="mx-auto max-w-xl space-y-4 px-3 pb-28 pt-4 sm:px-4">
+        <div className="h-14 animate-pulse rounded-2xl bg-zinc-200/60" />
+        <div className="h-10 animate-pulse rounded-xl bg-zinc-200/50" />
+        <div className="h-48 animate-pulse rounded-2xl bg-zinc-200/40" />
+      </div>
+    );
+  }
 
-  const corTipo = tipo === "entrada" ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-text text-hf-surface";
+  const corTipo = tipo === "entrada" ? "bg-hf-accent text-hf-accent-fg shadow-sm" : "bg-hf-text text-hf-surface shadow-sm";
 
   return (
-    <div className="mx-auto max-w-xl space-y-3 px-3 pb-28 pt-3 text-hf-text sm:px-4">
-      {erro && <p className="text-sm font-bold text-hf-danger">Não foi possível carregar: {erro}</p>}
-      {bancoAntigo && <p className="rounded-2xl border border-hf-warning/30 bg-hf-warning/10 p-3 text-sm font-bold text-hf-warning">{MSG_BANCO_DESATUALIZADO}</p>}
+    <div className="mx-auto max-w-xl space-y-4 px-3 pb-28 pt-4 text-hf-text sm:px-4">
+      {erro && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs sm:text-sm font-bold text-rose-800 shadow-xs">
+          Não foi possível sincronizar: {erro}
+        </div>
+      )}
+      {bancoAntigo && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-xs sm:text-sm font-bold text-amber-800 shadow-xs">
+          {MSG_BANCO_DESATUALIZADO}
+        </div>
+      )}
 
       {/* 1. Entrada ou Retirada */}
-      <div role="radiogroup" aria-label="Tipo de movimentação" className="grid grid-cols-2 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1">
+      <div role="radiogroup" aria-label="Tipo de movimentação" className="grid grid-cols-2 gap-1.5 rounded-2xl border border-zinc-200/80 bg-hf-surface p-1.5 shadow-card">
         {[["entrada", "Entrada", Plus], ["saida", "Retirada", Minus]].map(([t, rot, Icone]) => (
           <button key={t} role="radio" aria-checked={tipo === t} onClick={() => trocarTipo(t)}
-            className={`flex h-12 items-center justify-center gap-2 rounded-xl text-base font-black transition-colors ${tipo === t ? (t === "entrada" ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-text text-hf-surface") : "text-hf-text-2 hover:bg-hf-elevated"}`}>
+            className={`flex h-12 items-center justify-center gap-2 rounded-xl text-sm sm:text-base font-black transition-all active:scale-[0.98] ${tipo === t ? (t === "entrada" ? "bg-hf-accent text-hf-accent-fg shadow-sm" : "bg-hf-text text-hf-surface shadow-sm") : "text-hf-text-2 hover:bg-zinc-100/70"}`}>
             <Icone size={18} /> {rot}
           </button>
         ))}
@@ -239,27 +255,27 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
 
       {/* 3. Busca */}
       {!produto && estoque && (
-        <div className="overflow-hidden rounded-2xl border border-hf-border bg-hf-surface">
-          <div className="flex items-center gap-2 border-b border-hf-border px-3">
-            <Search size={18} className="shrink-0 text-hf-muted" />
+        <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-hf-surface shadow-card">
+          <div className="flex items-center gap-2 border-b border-zinc-200/80 px-3.5">
+            <Search size={18} className="shrink-0 text-zinc-400" />
             <input ref={buscaRef} value={busca} onChange={(e) => setBusca(e.target.value)} autoFocus
               placeholder={tipo === "entrada" ? "Buscar produto (nome, código, marca)" : `Buscar em ${estoque.nome}`}
-              aria-label="Buscar produto" className="h-12 min-w-0 flex-1 bg-transparent text-base font-bold outline-none placeholder:font-medium placeholder:text-hf-muted" />
-            {busca && <button onClick={() => setBusca("")} aria-label="Limpar busca" className="grid h-10 w-10 place-items-center text-hf-muted"><X size={18} /></button>}
+              aria-label="Buscar produto" className="h-12 min-w-0 flex-1 bg-transparent text-base font-bold outline-none placeholder:font-medium placeholder:text-zinc-400 text-hf-text" />
+            {busca && <button onClick={() => setBusca("")} aria-label="Limpar busca" className="grid h-10 w-10 place-items-center text-zinc-400 hover:text-zinc-600"><X size={18} /></button>}
           </div>
           {categoriasPresentes.length > 1 && (
-            <div className="flex gap-1.5 overflow-x-auto border-b border-hf-border px-3 py-2 [scrollbar-width:none]">
+            <div className="flex gap-1.5 overflow-x-auto border-b border-zinc-200/80 px-3 py-2 [scrollbar-width:none]">
               {["", ...categoriasPresentes].map((c) => (
                 <button key={c || "todas"} onClick={() => setCategoria(c)} aria-pressed={categoria === c}
-                  className={`h-8 shrink-0 rounded-full px-3 text-xs font-bold ${categoria === c ? "bg-hf-text text-hf-surface" : "bg-hf-elevated text-hf-text-2"}`}>
+                  className={`h-8 shrink-0 rounded-full px-3 text-xs font-bold transition-all ${categoria === c ? "bg-hf-text text-hf-surface shadow-xs" : "bg-zinc-100 text-hf-text-2 hover:bg-zinc-200/70"}`}>
                   {c || "Todas"}
                 </button>
               ))}
             </div>
           )}
-          <ul className="max-h-[60vh] divide-y divide-hf-border overflow-y-auto">
+          <ul className="max-h-[60vh] divide-y divide-zinc-100 overflow-y-auto">
             {!resultados.length && (
-              <li className="p-4 text-center text-sm text-hf-text-2">
+              <li className="p-5 text-center text-xs sm:text-sm font-medium text-hf-text-2">
                 {busca ? (tipo === "saida" ? `Nada com esse nome em ${estoque.nome}.` : "Nenhum produto no cadastro com esse nome.")
                   : (tipo === "saida" ? "Nenhum produto com saldo neste local." : "Nenhum produto neste local ainda. Busque no cadastro.")}
               </li>
@@ -268,14 +284,14 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
               const conferido = conferidos.has(`${estoqueId}|${p.insumo.id}`);
               return (
                 <li key={p.insumo.id}>
-                  <button onClick={() => escolher(p.insumo)} className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-hf-elevated">
+                  <button onClick={() => escolher(p.insumo)} className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-emerald-50/40">
                     <span className="min-w-0">
-                      <span className="block truncate font-bold leading-tight">{p.insumo.nome}</span>
-                      <span className="block truncate text-xs text-hf-text-2">
+                      <span className="block truncate font-bold text-hf-text leading-tight">{p.insumo.nome}</span>
+                      <span className="block truncate text-xs text-hf-text-2 mt-0.5">
                         {[p.insumo.marca, !p.vinculado && "novo neste local", p.vinculado && !conferido && "não conferido"].filter(Boolean).join(" · ") || " "}
                       </span>
                     </span>
-                    <span className={`shrink-0 text-right text-sm font-black ${p.saldo > 0 ? "" : "text-hf-muted"}`}>{saldoOperacional(p.insumo, p.saldo)}</span>
+                    <span className={`shrink-0 text-right text-sm font-black ${p.saldo > 0 ? "text-hf-text" : "text-zinc-400"}`}>{saldoOperacional(p.insumo, p.saldo)}</span>
                   </button>
                 </li>);
             })}
@@ -285,7 +301,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
 
       {/* 4. Saldo + 5. registro */}
       {produto && (
-        <div className="space-y-3 rounded-2xl border border-hf-border bg-hf-surface p-4">
+        <div className="space-y-4 rounded-2xl border border-zinc-200/80 bg-hf-surface p-4 sm:p-5 shadow-card">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-black ${corTipo}`}>

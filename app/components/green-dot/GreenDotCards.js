@@ -257,6 +257,42 @@ export function WelcomeGovernanceCard({
           </div>
         </div>
 
+        {/* Higienização, Limpeza & Química ANVISA */}
+        <div>
+          <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-bold">
+            🧼 Higienização &amp; Limpeza ANVISA (Chão ml, Panos, Mãos &amp; Frutas)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(TOPICOS_INICIAIS.limpeza || []).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onSelectTopic(t)}
+                className="px-3.5 py-2 rounded-lg border border-[#2E6F4E] bg-[#F0F8F4] hover:bg-[#E1F2E8] text-[#1E4D3B] font-bold text-xs sm:text-sm transition active:scale-[0.98]"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Checklists de Praça & Etiqueta de Validade */}
+        <div>
+          <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-bold">
+            📋 Checklists de Praça (Abertura/Saída) &amp; Validade ANVISA
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(TOPICOS_INICIAIS.checklists || []).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onSelectTopic(t)}
+                className="px-3.5 py-2 rounded-lg border border-[#8C6D23] bg-[#FCF8EE] hover:bg-[#F7EED4] text-[#694E0E] font-bold text-xs sm:text-sm transition active:scale-[0.98]"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Estoque & Escala */}
         <div>
           <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-bold">
@@ -285,8 +321,13 @@ export function WelcomeGovernanceCard({
             <p>1. Pergunte <strong>&ldquo;como se faz um vatapá&rdquo;</strong> e depois diga <strong>&ldquo;só tenho 2L de leite de coco&rdquo;</strong> para recalcular toda a ficha!</p>
             <p>2. Pergunte <strong>&ldquo;esse liquidificador é 110V ou 220V?&rdquo;</strong> para ver as fotos dos aparelhos da loja, clicar no seu e ver como encaixar o copo, usar e limpar.</p>
             <p>3. Pergunte <strong>&ldquo;qual a escala de hoje&rdquo;</strong> ou <strong>&ldquo;quem trabalha hoje&rdquo;</strong> para ver o organograma por área com todas as pessoas e seus horários de trabalho!</p>
+            <p>4. Pergunte <strong>&ldquo;qual produto usar no chão e quantas ml&rdquo;</strong> ou <strong>&ldquo;como limpar um pano&rdquo;</strong> para ver dosagem química exata por balde e regras da ANVISA.</p>
+            <p>5. Pergunte <strong>&ldquo;checklist de abertura&rdquo;</strong> ou <strong>&ldquo;checklist de saída&rdquo;</strong> para conferir mise en place e fechamento de gás/equipamentos sem esquecer nada.</p>
             {mostrarDicas && (
-              <p>4. Clique em <strong>+ Alimentar Receitas, Fotos, Vídeos &amp; Equipamentos</strong> para cadastrar novos pratos, drinks e máquinas com fotos e vídeos.</p>
+              <>
+                <p>6. Diga <strong>&ldquo;gerar etiqueta&rdquo;</strong> para emitir etiquetas térmicas 60x40mm integradas ao seu app Héfisto.</p>
+                <p>7. Clique em <strong>+ Alimentar Receitas, Fotos, Vídeos &amp; Equipamentos</strong> para cadastrar novos pratos, drinks e máquinas com fotos e vídeos.</p>
+              </>
             )}
           </div>
         </div>

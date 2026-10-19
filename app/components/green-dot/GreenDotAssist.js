@@ -20,6 +20,9 @@ import {
   PlusCircle,
   Zap,
   Scale,
+  Droplets,
+  ClipboardCheck,
+  Tag,
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { supabase, isSupabaseReady } from "../../lib/supabase";
@@ -951,6 +954,21 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
       processarPergunta(
         "Esse liquidificador é 110V ou 220V? E como encaixar o copo e a tampa, como usar e como limpar?",
         { id: "liquidificador-voltagem" }
+      );
+    } else if (fluxo === "limpeza") {
+      processarPergunta(
+        "Qual produto usar no chão, quantas ml e como limpar? E como higienizar panos e lavar as mãos?",
+        { id: "limpeza-chao" }
+      );
+    } else if (fluxo === "checklist") {
+      processarPergunta(
+        "Abrir o checklist de abertura e fechamento de turno da praça",
+        { id: "checklist-abertura" }
+      );
+    } else if (fluxo === "etiqueta") {
+      processarPergunta(
+        "Quero gerar uma etiqueta de validade ANVISA conectada ao app",
+        { id: "etiqueta-validade" }
       );
     } else if (fluxo === "escala") {
       setItensConversa((prev) => [

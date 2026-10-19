@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   Users, ArrowLeft, Phone, CreditCard, Clock, Hourglass, CalendarHeart,
   ShoppingBag, FileText, Star, Edit3, Printer, ChevronRight, User, Network,
-  DollarSign, AlertTriangle, MapPin
+  DollarSign, AlertTriangle, MapPin, ClipboardList
 } from "lucide-react";
 import { PageHeader, PageBody, EmptyState, SearchBar, SkeletonList, fmtBRL, fmtData } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";
@@ -59,7 +59,7 @@ function Bloco({ icon: Icon, titulo, extra, children }) {
   );
 }
 
-export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, versao = 0 }) {
+export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAcoes, versao = 0 }) {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const router = useRouter();
   const [colaboradores, setColaboradores] = useState([]);
@@ -124,7 +124,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
   const carregarLista = async (silencioso = false) => {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setLoading(false); return; }
     if (!silencioso) setLoading(true);
-    const hojeISO = new Date().toISOString().split("T")[0];
+    const _h = new Date(); const hojeISO = `${_h.getFullYear()}-${String(_h.getMonth() + 1).padStart(2, "0")}-${String(_h.getDate()).padStart(2, "0")}`;
     const [{ data }, rPonto, rFolgas] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
@@ -222,7 +222,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
       // Encontrar entrada esperada hoje
       let entradaEsperada = null;
       if (sel.horario_por_dia && sel.horarios_dia && sel.horarios_dia[diaSemana]) {
-        entradaEsperada = sel.horarios_dia[diaSemana].entrada;
+        entradaEsperada = sel.horarios_dia[diaSemana].e || sel.horarios_dia[diaSemana].entrada;
       } else if (!sel.horario_por_dia) {
         entradaEsperada = diaSemana === 0 ? sel.horario_dom_entrada : sel.horario_entrada;
       }
@@ -263,6 +263,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
           <button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Espelho</button>
           <button onClick={() => router.push(`/dashboard/rh/ponto/corrigir?colab=${sel.id}&data=${new Date().toISOString().slice(0, 10)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Clock size={14} /> Corrigir Ponto</button>
           <button onClick={() => router.push(isFree ? `/dashboard/rh/extra/${sel.id}/recibo` : `/dashboard/rh/funcionario/${sel.id}/recibo`)} className="erp-btn erp-btn-ghost !h-9 text-xs" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}><FileText size={14} /> Recibo</button>
+          {onAcoes && <button onClick={() => onAcoes(sel)} className="erp-btn erp-btn-ghost !h-9 text-xs"><ClipboardList size={14} /> Ações</button>}
           <button onClick={() => { if (onEditar) onEditar(sel); else router.push("/dashboard/rh"); }} className="erp-btn erp-btn-primary !h-9 text-xs"><Edit3 size={14} /> Editar</button>
         </PageHeader>
         <PageBody>
@@ -485,7 +486,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
                     ))}
                   </div>
                 )}
-                <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Registradas e impressas pela Gestão de RH (botão Advertências).</p>
+                <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Registre e imprima pelo botão Ações, aba Gestão.</p>
               </Bloco>
               {/* Atestados médicos. Fica antes do ponto de propósito: quem abre
                   a ficha para conferir uma falta precisa ver o atestado antes
@@ -696,7 +697,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
 
               {/* Documentos */}
               <Bloco icon={FileText} titulo="Documentos anexados">
-                {vida.docs.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum documento. Anexe pela Gestão de RH.</p> : (
+                {vida.docs.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum documento. Anexe pelo botão Ações, aba Documentos.</p> : (
                   <div className="flex flex-wrap gap-2">
                     {vida.docs.map(doc => (
                       <a key={doc.id} href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("documento", doc.id); }} className="erp-badge erp-badge-ok flex items-center gap-1"><FileText size={11} /> {doc.nome_arquivo}</a>

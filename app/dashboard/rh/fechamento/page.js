@@ -12,7 +12,7 @@ export default function FechamentoFolhaPage() {
   const { abrirMenu } = useERP();
   const { unidadeAtiva } = useERP();
   
-  const [mesAno, setMesAno] = useState(new Date().toISOString().substring(0,7)); // yyyy-MM
+  const [mesAno, setMesAno] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }); // yyyy-MM, no fuso local
   const [loading, setLoading] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [pagamentos, setPagamentos] = useState([]);
@@ -130,7 +130,7 @@ export default function FechamentoFolhaPage() {
             <div className="bg-zinc-100 border border-zinc-200 p-4 rounded-xl flex gap-3 text-zinc-800 text-sm mb-6 font-medium">
                <Info size={20} className="shrink-0"/>
                <p>
-                  <strong>Regras aplicadas:</strong> Funcionários fixos recebem o Salário Fixo. Freelancers recebem o Salário (Diária) multiplicado pelos dias em que bateram ponto no mês selecionado. O vencimento no financeiro será gerado automaticamente para o 5º dia útil do mês seguinte.
+                  <strong>Regras aplicadas:</strong> Entram os contratados que estavam na casa no mês, com o salário fixo; os vales com desconto em folha saem do líquido. Extras ficam fora: são pagos pelo recibo de cada diária. Quem foi desligado no mês aparece marcado para você ajustar o proporcional. Horas extras, noturno e feriado ainda não entram aqui: lance em Acréscimos. O vencimento no financeiro será gerado automaticamente para o 5º dia útil do mês seguinte.
                </p>
             </div>
 
@@ -165,6 +165,9 @@ export default function FechamentoFolhaPage() {
                                  <span className={`text-3xs uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mt-1 ${p.tipo_contrato === 'Freelancer' ? 'bg-amber-100 text-amber-700' : 'bg-card text-slate-900'}`}>
                                     {p.tipo_contrato} {p.tipo_contrato === 'Freelancer' && `(${fmtBRL(p.salario_cadastrado)}/dia)`}
                                  </span>
+                                 {p.desligado_em && (
+                                    <span className="block mt-1 text-3xs font-bold text-amber-800">Desligado em {p.desligado_em.split("-").reverse().join("/")}: ajuste o proporcional</span>
+                                 )}
                               </td>
                               
                               <td className="py-4 text-center">

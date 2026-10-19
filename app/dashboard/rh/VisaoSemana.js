@@ -17,7 +17,7 @@ import {
   Star, UserRound, Users,
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
-import { fetchColaboradores, fetchFeriados, fetchRecibosPrestacaoUnidade } from "../../lib/rh";
+import { fetchColaboradores, fetchFeriados, fetchRecibosPrestacaoUnidade, fetchAllFolgasDaUnidade } from "../../lib/rh";
 import { fetchEventos } from "../../lib/eventos";
 import { isoData } from "../../lib/compras.mjs";
 
@@ -42,6 +42,19 @@ function trabalhaNoDia(colaborador, diaSemana) {
   return dias.split(",").map(d => d.trim()).includes(String(diaSemana));
 }
 
+// Hora de entrada do dia: por dia da semana, domingo próprio ou a fixa.
+function entradaDoDia(c, diaSemana) {
+  const h = c?.horario_por_dia && c?.horarios_dia?.[String(diaSemana)];
+  const e = (h && h.e) || (diaSemana === 0 && c?.horario_dom_entrada) || c?.horario_entrada || "";
+  return String(e).slice(0, 5);
+}
+
+// Datas de trabalho de um recibo: a lista contratada ou, nos antigos, o dia único.
+function datasDoRecibo(r) {
+  const lista = Array.isArray(r?.datas_contratadas) ? r.datas_contratadas.map(d => String(d).slice(0, 10)) : [];
+  return lista.length ? lista : [String(r?.data_trabalho || "").slice(0, 10)];
+}
+
 export default function SemanaPage() {
   const router = useRouter();
   const { unidadeAtiva } = useERP();
@@ -49,6 +62,7 @@ export default function SemanaPage() {
   const [recibos, setRecibos] = useState([]);
   const [feriados, setFeriados] = useState([]);
   const [eventos, setEventos] = useState([]);
+  const [folgas, setFolgas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [referencia, setReferencia] = useState(() => new Date());
   const [mostrarExtras, setMostrarExtras] = useState(false);
@@ -65,13 +79,15 @@ export default function SemanaPage() {
       fetchRecibosPrestacaoUnidade(unidadeAtiva),
       fetchFeriados(unidadeAtiva).catch(() => ({ data: [] })),
       fetchEventos(unidadeAtiva).catch(() => ({ data: [] })),
+      fetchAllFolgasDaUnidade(unidadeAtiva).catch(() => ({ data: [] })),
     ])
-      .then(([pessoas, historico, datasFeriado, agenda]) => {
+      .then(([pessoas, historico, datasFeriado, agenda, folgasUnidade]) => {
         if (!vivo) return;
         setEquipe(pessoas.data || []);
         setRecibos(historico.data || []);
         setFeriados(datasFeriado?.data || []);
         setEventos(agenda?.data || []);
+        setFolgas(folgasUnidade?.data || []);
         setCarregando(false);
       });
     return () => { vivo = false; };
@@ -87,17 +103,27 @@ export default function SemanaPage() {
       data.setDate(inicio.getDate() + i);
       const iso = isoData(data);
 
-      const escalados = contratados.filter(c => trabalhaNoDia(c, data.getDay()));
-      const diarias = recibos.filter(r => String(r.data_trabalho || "").slice(0, 10) === iso && extrasIds.has(r.colaborador_id));
-      const custoDiarias = diarias.reduce((s, r) => s + (Number(r.valor_total) || 0), 0);
+      // Folga marcada e atestado tiram a pessoa do dia: antes a escala mostrava
+      // escalado quem estava de folga.
+      const fora = new Set(folgas.filter(f => String(f.data_folga || "").slice(0, 10) === iso).map(f => f.colaborador_id));
+      const escalados = contratados.filter(c => trabalhaNoDia(c, data.getDay()) && !fora.has(c.id));
+      const deFolga = contratados.filter(c => fora.has(c.id));
+      // Recibo de vários dias vale em cada um deles (datas_contratadas), pela
+      // diária — antes caía inteiro no primeiro dia e sumia dos outros.
+      const diarias = recibos
+        .filter(r => extrasIds.has(r.colaborador_id) && datasDoRecibo(r).includes(iso))
+        .map(r => ({ ...r, valorDoDia: datasDoRecibo(r).length > 1 ? Number(r.valor_diaria) || 0 : Number(r.valor_total) || 0 }));
+      const custoDiarias = diarias.reduce((s, r) => s + r.valorDoDia, 0);
       // slice(0,10) nos dois lados: a data vem "2026-08-30" do feriado e
       // "2026-08-30T00:00:00+00" do evento. Comparar cru nunca casaria.
       const feriadosDoDia = feriados.filter(f => String(f.data || "").slice(0, 10) === iso);
       const eventosDoDia = eventos.filter(e => String(e.data_evento || "").slice(0, 10) === iso);
 
-      return { data, iso, diaSemana: data.getDay(), escalados, diarias, custoDiarias, feriadosDoDia, eventosDoDia };
+      return { data, iso, diaSemana: data.getDay(), escalados, deFolga, diarias, custoDiarias, feriadosDoDia, eventosDoDia };
     });
-  }, [equipe, recibos, feriados, eventos, referencia]);
+  }, [equipe, recibos, feriados, eventos, folgas, referencia]);
+
+  const nomeDoExtra = (r) => String(equipe.find(c => c.id === r.colaborador_id)?.nome || r.funcao || "Extra").split(" ")[0];
 
   const totalSemana = semana.reduce((s, d) => s + d.custoDiarias, 0);
   const hoje = isoData(new Date());
@@ -194,10 +220,15 @@ export default function SemanaPage() {
                         {dia.escalados.map(c => (
                           <span key={c.id} className="rounded-lg bg-card px-2 py-1 text-2xs font-bold text-fg-soft">
                             {String(c.nome || "").split(" ")[0]}
-                            {c.horario_entrada ? ` ${String(c.horario_entrada).slice(0, 5)}` : ""}
+                            {entradaDoDia(c, dia.diaSemana) ? ` ${entradaDoDia(c, dia.diaSemana)}` : ""}
                           </span>
                         ))}
                       </div>
+                    )}
+                    {dia.deFolga.length > 0 && (
+                      <p className="mt-1.5 text-2xs font-bold text-subtle">
+                        Folga marcada: {dia.deFolga.map(c => String(c.nome || "").split(" ")[0]).join(", ")}
+                      </p>
                     )}
 
                     {mostrarExtras && (
@@ -212,9 +243,9 @@ export default function SemanaPage() {
                             {dia.diarias.map(r => (
                               <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg bg-amber-50 px-2 py-1">
                                 <span className="min-w-0 flex-1 truncate text-xs font-bold text-amber-900">
-                                  {r.nome_prestador || r.funcao_exercida || "Extra"}
+                                  {nomeDoExtra(r)}
                                 </span>
-                                <span className="shrink-0 text-xs font-bold text-amber-800">{brl(r.valor_total)}</span>
+                                <span className="shrink-0 text-xs font-bold text-amber-800">{brl(r.valorDoDia)}</span>
                               </div>
                             ))}
                             <p className="pt-1 text-right text-2xs font-bold text-fg">Dia: {brl(dia.custoDiarias)}</p>

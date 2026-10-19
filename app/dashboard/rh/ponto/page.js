@@ -26,6 +26,11 @@ const isoLocalDeHoje = () => {
 const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
 const strToMin = (hhmm) => { const [h, m] = String(hhmm || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// Dia em que o lançamento do banco de horas entra: o da JORNADA. Era o dia em
+// UTC, e quem saía depois das 21h de Brasília ganhava a hora extra no dia
+// seguinte (14 lançamentos assim até 18/10/2026; no último dia do mês, caía no
+// mês seguinte). Saída depois da meia-noite pertence à jornada de ontem.
+const diaDaJornada = (reg) => reg?.data_referencia ? String(reg.data_referencia).slice(0, 10) : isoLocal(new Date());
 
 // Sigla do dia da semana a partir da data do registro. O meio-dia na conversão
 // evita o clássico "sábado virou sexta" por causa de fuso.
@@ -421,7 +426,7 @@ export default function PontoPage() {
       return { creditado: 0, aviso: `Banco de horas já está no limite de 8h — os ${fmtMin(minutos)} NÃO foram creditados. Avise o gestor!` };
     }
     const credito = Math.min(minutos, restante);
-    const hoje = new Date().toISOString().split("T")[0];
+    const hoje = diaDaJornada(registroDe(selecionado.id));
     const { error } = await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, credito, motivo);
     if (error) return { creditado: 0, aviso: "Falha ao creditar no banco de horas: " + error };
     let aviso = "";
@@ -533,7 +538,7 @@ export default function PontoPage() {
         // A tolerância entra aqui, não no registro: voltar 2 min depois não é
         // excesso de intervalo, mas o horário gravado continua sendo o real.
         if (passou > cfgP.tolerancia_retorno) {
-          const hoje = new Date().toISOString().split("T")[0];
+          const hoje = diaDaJornada(reg);
           await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, passou,
             `Passou ${passou}min do intervalo (tirou ${tirou}min de ${intervaloPadrao}min)`, "excesso");
           mostrarSucesso("Atenção ao horário de intervalo!",
@@ -650,7 +655,7 @@ export default function PontoPage() {
       if (error) { alert(error); return; }
       const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const primeiro = selecionado.nome.split(" ")[0];
-      const hoje = new Date().toISOString().split("T")[0];
+      const hoje = isoLocal(new Date());
       setEscolhaAntecipada(null);
       if (modo === "extra") {
         const { creditado, aviso } = await creditarBanco(min, `Entrada antecipada (reunião/serviço): ${min}min antes do horário — autorizada pelo gerente`);

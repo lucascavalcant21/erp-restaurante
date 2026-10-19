@@ -8,9 +8,9 @@ import RhNav from "./RhNav";
 import VisaoColaboradores from "./VisaoColaboradores";
 import VisaoSemana from "./VisaoSemana";
 import {
-  fetchColaboradores, inserirColaborador, removerColaborador, atualizarColaborador, 
+  fetchColaboradores, inserirColaborador, atualizarColaborador,
   fetchDocumentos, uploadDocumentoRH, removerDocumento,
-  fetchCargos, fetchHistoricoPromocoes,
+  fetchCargos,
   fetchAllFolgasDaUnidade, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica,
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
   fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
@@ -19,7 +19,7 @@ import {
   fetchReunioesColab, inserirReuniaoColab, removerReuniaoColab,
   fetchTreinamentosColab, inserirTreinamentoColab, removerTreinamentoColab,
   fetchFeriados, inserirFeriado, removerFeriado,
-  liberarPontoDia, fetchLiberacoesColab, removerLiberacao,
+  fetchLiberacoesColab, removerLiberacao,
   salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo, anexarFotoReciboAssinado,
   desligarColaborador, registrarAvisoPrevio, cancelarAvisoPrevio
 } from "../../lib/rh";
@@ -161,16 +161,9 @@ export default function RHPage() {
   const [fichaDados, setFichaDados] = useState(dadosReciboVazios);
   const [salvandoRecibo, setSalvandoRecibo] = useState(false);
 
-  // Liberar o ponto do extra/freelancer para hoje (com a diária combinada).
-  const dataHojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
-  const liberarPontoHoje = async (f) => {
-    const bruto = prompt(`Liberar o ponto de HOJE para ${f.nome}.\n\nValor da diária combinada (R$):`, f?.salario ? String(f.salario) : "");
-    if (bruto === null) return;
-    const valor = parseFloat(String(bruto).replace(",", ".")) || 0;
-    const { error } = await liberarPontoDia(f.id, unidadeAtiva, dataHojeISO(), valor);
-    if (error) return alert(/rh_ponto_liberado/.test(error) ? "Rode o SQL da tabela rh_ponto_liberado (te passei no chat)." : "Erro ao liberar: " + error);
-    alert(`Ponto liberado para ${f.nome} hoje. Diária: ${fmtBRL(valor)}. Ele já pode bater o ponto.`);
-  };
+  // "Liberar ponto de hoje" do extra saiu (RH-B1): a tabela rh_ponto_liberado
+  // não existe no banco e os dois relógios tiram os extras da lista — a
+  // liberação não tinha onde gravar nem efeito. Extra é controlado pelo recibo.
 
   // Histórico diário do extra: cada dia liberado (diária) + total.
   const [modalDiarias, setModalDiarias] = useState(null);
@@ -191,14 +184,6 @@ export default function RHPage() {
       erroRecibos: recibos.error || "",
       loading: false,
     });
-  };
-
-  // Trajetória / Linha do Tempo de Carreira
-  const [modalCarreira, setModalCarreira] = useState(null); // { func, lista, loading }
-  const abrirHistoricoCarreira = async (f) => {
-    setModalCarreira({ func: f, lista: [], loading: true });
-    const data = await fetchHistoricoPromocoes(f.id);
-    setModalCarreira({ func: f, lista: data || [], loading: false });
   };
 
   const abrirModalFicha = (f) => {
@@ -1689,12 +1674,9 @@ export default function RHPage() {
     recarregarOcorrencias(funcOcorrencias.id);
   };
 
-  const handleRemover = async (id) => {
-    if(confirm("Apagar DEFINITIVAMENTE este funcionário e toda a vida dele?\n\nPara manter o histórico, use 'Desligar' — ele vai para o arquivo de ex-funcionários.")) {
-      await removerColaborador(id);
-      carregar();
-    }
-  };
+  // "Apagar definitivamente" saiu (RH-B1): o DELETE em colaboradores apaga em
+  // cascata o registro_ponto, as folgas, o banco de horas e as advertências —
+  // registro de ponto é obrigação legal. Quem sai da casa é desligado.
 
   const calcularProgresso = (f) => {
      if (f.tipo_contrato !== "Fixo" || !f.data_admissao) return null;
@@ -1936,7 +1918,10 @@ export default function RHPage() {
       <RhNav />
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
-      {abaModulo === "quadro" && <VisaoColaboradores onEditar={abrirModalEdicao} onNovo={abrirModalNovo} onDesligar={abrirDesligamento} versao={versaoQuadro} />}
+      {abaModulo === "quadro" && <VisaoColaboradores onEditar={abrirModalEdicao} onNovo={abrirModalNovo} onDesligar={abrirDesligamento} versao={versaoQuadro}
+        // O menu de ações (banco de horas, folgas, vales, advertências, documentos)
+        // ficou sem botão quando a lista da Visão Geral saiu: abre pelo perfil do Quadro.
+        onAcoes={(c) => { setAbaMenuAcoes("trabalho"); setMenuAcoes(funcionarios.find((x) => x.id === c.id) || c); }} />}
       {abaModulo === "escala" && <VisaoSemana />}
       {abaModulo === "visao" && (
       <>
@@ -2349,15 +2334,16 @@ export default function RHPage() {
                         Banco de Horas
                      </Acao>
                      <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas e Domingos</Acao>
-                     <Acao icon={Award} cor="text-emerald-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Carreira e promoções</Acao>
+                     <Acao icon={Award} cor="text-emerald-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => router.push(`/dashboard/rh/funcionario/${f.id}`))}>Prontuário (carreira e histórico)</Acao>
                   </div>}
 
                   {abaMenuAcoes === "financeiro" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                      <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 group-hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))} extra={(() => { const t = valesPendentes.filter(v => v.funcionario_id === f.id).reduce((sm, v) => sm + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0); return t > 0 ? <span className="shrink-0 text-3xs font-bold text-teal-700">{fmtBRL(t)}</span> : null; })()}>Consumo / Vales</Acao>
-                     <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
+                     {/* Salário do fixo vai pelo Fechar folha (chave por mês, não duplica).
+                         O "Lançar Salário" avulso criava outra conta a cada clique. */}
                      {f.tipo_contrato === "Freelancer" && (
                         <>
-                          <Acao icon={CheckCircle} cor="text-zinc-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
+                          <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar Diária</Acao>
                           <Acao icon={Clock} cor="text-fg-soft" onClick={() => ir(() => abrirHistoricoDiarias(f))}>Histórico completo do extra</Acao>
                         </>
                      )}
@@ -2386,10 +2372,9 @@ export default function RHPage() {
 
                   {abaMenuAcoes === "gestao" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                      <Acao icon={FileText} cor="text-red-600" bg="bg-red-50 group-hover:bg-red-100" onClick={() => ir(() => abrirModalAdv(f))}>Advertências</Acao>
-                     {abaAtiva !== "Ex-funcionários" && (
+                     {!ehInativo(f) && (
                         <Acao icon={LogOut} cor="text-orange-600" bg="bg-orange-50 group-hover:bg-orange-100" onClick={() => ir(() => abrirDesligamento(f))}>Desligar e arquivar</Acao>
                      )}
-                     <Acao icon={Trash2} cor="text-fg" onClick={() => ir(() => handleRemover(f.id))}>Apagar definitivamente</Acao>
                   </div>}
                </div>
                <div className="flex shrink-0 items-center justify-between border-t border-line bg-card px-3 py-2 sm:px-4 sm:py-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>

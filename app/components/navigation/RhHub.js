@@ -439,7 +439,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
 
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/rh/ponto")}
+                  onClick={() => router.push("/dashboard/rh?aba=quadro")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Clock size={18} className="text-zinc-400 shrink-0" />
@@ -448,7 +448,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
 
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/rh/ponto")}
+                  onClick={() => router.push("/dashboard/rh?aba=escala")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <CalendarDays size={18} className="text-zinc-400 shrink-0" />

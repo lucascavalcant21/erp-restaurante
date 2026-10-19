@@ -32,6 +32,8 @@ import {
 import {
   TOPICOS_INICIAIS,
   recalcularReceitaPorIngrediente,
+  ESCALA_ORGANOGRAMA_DO_DIA,
+  ESCALA_TURNO_GANTT,
 } from "../../lib/green-dot-data";
 
 // ── AVATARES OFICIAIS ────────────────────────────────────────────────────────
@@ -271,8 +273,9 @@ export function WelcomeGovernanceCard({
           <div className="space-y-1">
             <p>1. Pergunte <strong>&ldquo;como se faz um vatapá&rdquo;</strong> e depois diga <strong>&ldquo;só tenho 2L de leite de coco&rdquo;</strong> para recalcular toda a ficha!</p>
             <p>2. Pergunte <strong>&ldquo;esse liquidificador é 110V ou 220V?&rdquo;</strong> para ver as fotos dos aparelhos da loja, clicar no seu e ver como encaixar o copo, usar e limpar.</p>
+            <p>3. Pergunte <strong>&ldquo;qual a escala de hoje&rdquo;</strong> ou <strong>&ldquo;quem trabalha hoje&rdquo;</strong> para ver o organograma por área com todas as pessoas e seus horários de trabalho!</p>
             {mostrarDicas && (
-              <p>3. Clique em <strong>+ Alimentar Receitas, Fotos, Vídeos &amp; Equipamentos</strong> para cadastrar novos pratos, drinks e máquinas com fotos e vídeos.</p>
+              <p>4. Clique em <strong>+ Alimentar Receitas, Fotos, Vídeos &amp; Equipamentos</strong> para cadastrar novos pratos, drinks e máquinas com fotos e vídeos.</p>
             )}
           </div>
         </div>
@@ -1994,6 +1997,335 @@ export function EquipmentMaintenanceFlowCard({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── NOVO CARD: ESCALA DE HOJE EM ORGANOGRAMA POR ÁREA & HORÁRIOS DE TRABALHO ──
+export function ShiftOrganogramCard({
+  dados = ESCALA_ORGANOGRAMA_DO_DIA,
+  escala = ESCALA_TURNO_GANTT,
+  onAddPartnerClick,
+}) {
+  const [modoVisualizacao, setModoVisualizacao] = useState("organograma"); // "organograma" | "gantt"
+  const [areaFiltro, setAreaFiltro] = useState("todas");
+  const [termoBusca, setTermoBusca] = useState("");
+
+  const areasFiltradas = dados.areas
+    .map((area) => {
+      const colabs = area.colaboradores.filter((c) => {
+        const atendeArea = areaFiltro === "todas" || area.id === areaFiltro;
+        const atendeBusca =
+          !termoBusca ||
+          c.nome.toLowerCase().includes(termoBusca.toLowerCase()) ||
+          c.cargo.toLowerCase().includes(termoBusca.toLowerCase()) ||
+          c.praca.toLowerCase().includes(termoBusca.toLowerCase());
+        return atendeArea && atendeBusca;
+      });
+      return { ...area, colaboradores: colabs };
+    })
+    .filter((area) => area.colaboradores.length > 0 || (areaFiltro === area.id && !termoBusca));
+
+  const liderVisivel =
+    areaFiltro === "todas" || areaFiltro === "gestao"
+      ? !termoBusca ||
+        dados.liderGeral.nome.toLowerCase().includes(termoBusca.toLowerCase()) ||
+        dados.liderGeral.cargo.toLowerCase().includes(termoBusca.toLowerCase())
+      : false;
+
+  return (
+    <div className="flex items-start gap-3">
+      <GreenDotAvatar />
+      <div className="flex-1 bg-white rounded-2xl border-2 border-[#2E6F4E] shadow-xl overflow-hidden text-[#1C2826]">
+        {/* Cabeçalho Verde Escuro Oficial */}
+        <div className="bg-[#1E4D3B] text-white p-5 sm:p-6 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <Users size={14} /> Organograma &amp; Escala de Trabalho de Hoje
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold bg-white/15 px-3 py-1 rounded-full text-white">
+                {dados.data}
+              </span>
+              <span className="text-xs font-bold bg-emerald-500/30 text-emerald-100 px-3 py-1 rounded-full">
+                {dados.turno}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <div>
+              <h3 className="text-lg sm:text-2xl font-black">
+                Escala por Área &amp; Horários do Dia
+              </h3>
+              <p className="text-xs sm:text-sm text-emerald-100 font-medium">
+                Visualização hierárquica por setores (Cozinha Quente, Cozinha Fria, Bar, Pass e Salão). Todos os horários de início, término e intervalos programados.
+              </p>
+            </div>
+
+            {/* Alternador de Modo: Organograma vs Gantt */}
+            <div className="flex items-center bg-black/20 p-1 rounded-xl border border-white/20 shrink-0">
+              <button
+                onClick={() => setModoVisualizacao("organograma")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition ${
+                  modoVisualizacao === "organograma"
+                    ? "bg-white text-[#1E4D3B] shadow-xs"
+                    : "text-white/80 hover:text-white"
+                }`}
+              >
+                <Layers size={13} /> Organograma por Área
+              </button>
+              <button
+                onClick={() => setModoVisualizacao("gantt")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition ${
+                  modoVisualizacao === "gantt"
+                    ? "bg-white text-[#1E4D3B] shadow-xs"
+                    : "text-white/80 hover:text-white"
+                }`}
+              >
+                <BarChart3 size={13} /> Linha do Tempo (Gantt)
+              </button>
+            </div>
+          </div>
+
+          {/* Faixa de Indicadores Rápidos */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-emerald-800/60">
+            <div className="bg-black/20 rounded-xl p-2.5">
+              <p className="text-[10px] font-black uppercase text-emerald-300">TOTAL ESCALADO</p>
+              <p className="text-base font-black text-white">{dados.totalColaboradores} pessoas</p>
+            </div>
+            <div className="bg-black/20 rounded-xl p-2.5">
+              <p className="text-[10px] font-black uppercase text-emerald-300">EM TURNO AGORA</p>
+              <p className="text-base font-black text-emerald-300 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                {dados.emTurnoAgoraCount} pessoas
+              </p>
+            </div>
+            <div className="bg-black/20 rounded-xl p-2.5">
+              <p className="text-[10px] font-black uppercase text-emerald-300">ENTRAM MAIS TARDE</p>
+              <p className="text-base font-black text-amber-200">{dados.iniciamMaisTardeCount} pessoas</p>
+            </div>
+            <div className="bg-black/20 rounded-xl p-2.5">
+              <p className="text-[10px] font-black uppercase text-emerald-300">PICOS PREVISTOS</p>
+              <p className="text-xs font-black text-white truncate">12h-14h · 19h30-21h30</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Barra de Filtros e Busca */}
+        <div className="p-4 bg-[#FAF9F6] border-b border-[#E2E0D8] space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
+            {/* Pílulas de Área */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold">
+              {[
+                { id: "todas", label: `Todas as Áreas (${dados.totalColaboradores})` },
+                { id: "cozinha-quente", label: "🍳 Cozinha Quente (3)" },
+                { id: "cozinha-fria", label: "🥗 Cozinha Fria (1)" },
+                { id: "pass", label: "🔔 Pass & Qualidade (1)" },
+                { id: "bar", label: "🍸 Bar & Coquetelaria (2)" },
+                { id: "salao", label: "🛎️ Salão (1)" },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setAreaFiltro(p.id)}
+                  className={`px-3 py-1.5 rounded-lg transition ${
+                    areaFiltro === p.id
+                      ? "bg-[#1E4D3B] text-white shadow-xs font-extrabold"
+                      : "bg-[#EFEFEA] text-[#4F5853] hover:bg-[#E2E0D8]"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Campo de Busca Rápida */}
+            <div className="relative w-full sm:w-56">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7A847F]"
+              />
+              <input
+                type="text"
+                placeholder="Buscar pessoa ou praça..."
+                value={termoBusca}
+                onChange={(e) => setTermoBusca(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs font-semibold rounded-lg border border-[#C8C6BC] bg-white text-[#1C2826] focus:outline-none focus:border-[#2E6F4E]"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* CONTEÚDO PRINCIPAL: MODO ORGANOGRAMA OU GANTT */}
+        {modoVisualizacao === "organograma" ? (
+          <div className="p-5 sm:p-6 space-y-6 bg-[#FDFCF9]">
+            {/* 1. NÓ TOPO: LÍDER DE TURNO GERAL */}
+            {liderVisivel && (
+              <div className="flex flex-col items-center">
+                <div className="w-full max-w-md rounded-2xl border-2 border-[#1E4D3B] bg-gradient-to-br from-[#F4F9F6] to-[#E5F1EB] p-4 shadow-sm relative">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[#1E4D3B] text-white text-[10px] font-black uppercase tracking-wider">
+                    👑 Liderança Geral do Turno
+                  </div>
+
+                  <div className="flex items-center gap-3.5 mt-1">
+                    <img
+                      src={dados.liderGeral.avatar}
+                      alt={dados.liderGeral.nome}
+                      className="w-13 h-13 rounded-full object-cover border-2 border-[#1E4D3B] shadow-xs"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <h4 className="text-sm font-black text-[#1C2826]">
+                          {dados.liderGeral.nome}
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                          {dados.liderGeral.statusLabel}
+                        </span>
+                      </div>
+                      <p className="text-xs font-extrabold text-[#1E4D3B]">
+                        {dados.liderGeral.cargo}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 text-[11px] font-bold text-[#4F5853]">
+                        <span className="flex items-center gap-1 text-[#1E4D3B] font-extrabold">
+                          <Clock size={12} /> {dados.liderGeral.horario}
+                        </span>
+                        <span>·</span>
+                        <span>📍 {dados.liderGeral.praca}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-[#55605A] font-medium mt-2.5 pt-2 border-t border-[#C5DDD0]">
+                    {dados.liderGeral.responsabilidade}
+                  </p>
+                </div>
+
+                {/* Linha vertical do organograma conectando às áreas */}
+                <div className="w-0.5 h-6 bg-[#B5D5C5]" />
+                <div className="w-11/12 h-0.5 bg-[#B5D5C5]" />
+              </div>
+            )}
+
+            {/* 2. NÓS DAS ÁREAS HIERÁRQUICAS (COLUNAS EM ÁRVORE) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+              {areasFiltradas.map((area) => (
+                <div
+                  key={area.id}
+                  className="rounded-2xl border overflow-hidden shadow-xs flex flex-col bg-white"
+                  style={{ borderColor: area.bordaCor }}
+                >
+                  {/* Cabeçalho do Setor */}
+                  <div
+                    className="p-3.5 flex items-center justify-between"
+                    style={{ backgroundColor: area.bgCor, borderBottom: `2px solid ${area.bordaCor}` }}
+                  >
+                    <div>
+                      <span
+                        className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: "white", color: area.cor }}
+                      >
+                        {area.sigla} · {area.colaboradores.length} {area.colaboradores.length === 1 ? "colaborador" : "colaboradores"}
+                      </span>
+                      <h4 className="text-sm font-black mt-1" style={{ color: area.cor }}>
+                        {area.nome}
+                      </h4>
+                      <p className="text-[10px] text-[#55605A] font-semibold">
+                        Líder: {area.liderArea}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Cards dos Colaboradores nesta Área */}
+                  <div className="p-3 space-y-2.5 flex-1 divide-y divide-[#F0EFEB]">
+                    {area.colaboradores.map((colab, idx) => (
+                      <div key={colab.id} className={idx > 0 ? "pt-2.5" : ""}>
+                        <div className="flex items-start gap-2.5">
+                          <img
+                            src={colab.avatar}
+                            alt={colab.nome}
+                            className="w-10 h-10 rounded-full object-cover border border-[#C8C6BC] shadow-2xs shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-xs font-black text-[#1C2826] truncate">
+                                {colab.nome}
+                              </p>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[9px] font-black shrink-0 ${
+                                  colab.status === "em-turno"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-amber-100 text-amber-900"
+                                }`}
+                              >
+                                {colab.statusLabel}
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] font-bold text-[#4A5550]">
+                              {colab.cargo}
+                            </p>
+
+                            {/* Horário de Trabalho em Destaque */}
+                            <div className="mt-1.5 p-1.5 rounded-lg bg-[#FAF9F5] border border-[#E5E4DC] flex items-center justify-between text-[11px]">
+                              <span className="font-extrabold text-[#1E4D3B] flex items-center gap-1">
+                                <Clock size={12} /> {colab.horario}
+                              </span>
+                              <span className="text-[10px] text-[#69726D] font-bold truncate max-w-[130px]">
+                                {colab.praca}
+                              </span>
+                            </div>
+
+                            {/* Intervalo programado */}
+                            {Array.isArray(colab.intervalos) && colab.intervalos.length > 0 && (
+                              <div className="flex items-center gap-1 mt-1 text-[10px] font-semibold text-[#5A655F]">
+                                <span>☕ Intervalos:</span>
+                                {colab.intervalos.map((inv, iIdx) => (
+                                  <span
+                                    key={iIdx}
+                                    className={`px-1.5 py-0.5 rounded ${
+                                      inv.ok ? "bg-emerald-50 text-emerald-700 font-bold" : "bg-amber-50 text-amber-800 font-bold"
+                                    }`}
+                                  >
+                                    {inv.h || inv.label} {inv.ok ? "✓" : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* MODO GANTT INTEGRADO */
+          <div className="p-4">
+            <ShiftScheduleGanttCard escala={escala} onAddPartnerClick={onAddPartnerClick} />
+          </div>
+        )}
+
+        {/* Rodapé com Ações e Botão de Adicionar Extra */}
+        <div className="p-4 bg-[#F7F6F2] border-t border-[#E5E4DC] flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-[#4F5853] font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2E6F4E] animate-pulse" />
+            <span>Escala sincronizada com a bancada em tempo real</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onAddPartnerClick}
+              className="px-4 py-2 rounded-xl bg-[#1E4D3B] hover:bg-[#15382A] text-white text-xs font-black shadow-xs flex items-center gap-1.5 transition active:scale-95"
+            >
+              <UserPlus size={15} />
+              + Chamar Colaborador Extra para o Pico
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   EQUIPAMENTOS_MANUTENCAO,
   CHAMADOS_MANUTENCAO_INICIAIS,
   ESCALA_TURNO_GANTT,
+  ESCALA_ORGANOGRAMA_DO_DIA,
   EXTRAS_DISPONIVEIS,
   FORMACAO_PRACAS_BASE,
   recalcularReceitaPorIngrediente,
@@ -108,6 +109,36 @@ test("Green Dot Assist — Equipamentos e Liquidificadores com 110V/220V, Guias 
   assert.ok(liqVitamix.guiaEncaixe?.passos?.length >= 3);
   assert.ok(liqVitamix.guiaUso?.passos?.length >= 3);
   assert.ok(liqVitamix.guiaLimpeza?.passos?.length >= 3);
+});
+
+test("Green Dot Assist — Escala do Dia em Organograma Hierárquico por Área e Horários", () => {
+  assert.ok(ESCALA_ORGANOGRAMA_DO_DIA);
+  assert.equal(ESCALA_ORGANOGRAMA_DO_DIA.totalColaboradores, 9);
+  assert.equal(ESCALA_ORGANOGRAMA_DO_DIA.liderGeral.nome, "Ingrid B.");
+  assert.equal(ESCALA_ORGANOGRAMA_DO_DIA.liderGeral.horario, "08:00 – 17:00");
+  assert.equal(ESCALA_ORGANOGRAMA_DO_DIA.areas.length, 5);
+
+  const areaQuente = ESCALA_ORGANOGRAMA_DO_DIA.areas.find((a) => a.id === "cozinha-quente");
+  assert.ok(areaQuente);
+  assert.equal(areaQuente.colaboradores.length, 3);
+  assert.equal(areaQuente.colaboradores[0].nome, "Gabriel K.");
+  assert.equal(areaQuente.colaboradores[0].horario, "08:00 – 16:20");
+
+  const areaBar = ESCALA_ORGANOGRAMA_DO_DIA.areas.find((a) => a.id === "bar");
+  assert.ok(areaBar);
+  assert.equal(areaBar.colaboradores.length, 2);
+  assert.equal(areaBar.colaboradores[0].nome, "Carlos G.");
+  assert.equal(areaBar.colaboradores[0].horario, "09:15 – 17:35");
+
+  for (const area of ESCALA_ORGANOGRAMA_DO_DIA.areas) {
+    for (const c of area.colaboradores) {
+      assert.ok(c.id && c.nome && c.horario && c.cargo && c.praca);
+      assert.ok(c.horario.includes("–") || c.horario.includes("-"));
+    }
+  }
+
+  const topicoOrg = TOPICOS_INICIAIS.escala.find((t) => t.id === "escala-organograma");
+  assert.ok(topicoOrg, "Tópico de organograma deve existir nos tópicos iniciais");
 });
 
 test("Green Dot Assist — Escala Gantt, Extras disponíveis e Mapa de Praças (Play Caller)", () => {

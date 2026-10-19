@@ -39,6 +39,7 @@ import {
   EQUIPAMENTOS_MANUTENCAO,
   CHAMADOS_MANUTENCAO_INICIAIS,
   ESCALA_TURNO_GANTT,
+  ESCALA_ORGANOGRAMA_DO_DIA,
   EXTRAS_DISPONIVEIS,
   FORMACAO_PRACAS_BASE,
   recalcularReceitaPorIngrediente,
@@ -63,6 +64,7 @@ import {
   OperationalRoutineCard,
   EquipmentVisualSelectorAndGuidesCard,
   EquipmentMaintenanceFlowCard,
+  ShiftOrganogramCard,
   ShiftScheduleGanttCard,
   AvailablePartnersOutreachCard,
   PlayCallerStationMapCard,
@@ -678,17 +680,31 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
       return;
     }
 
-    // 7. Verifica se é Escala Gantt / Pico / Chamar Colaborador Extra
-    if (
+    // 7. Verifica se é Organograma por Área / Escala de Hoje / Quem trabalha hoje / Horários de trabalho
+    const isPerguntaOrganogramaOuEscalaHoje =
+      metaTopico?.id === "escala-organograma" ||
       metaTopico?.id === "escala-turno" ||
+      q.includes("organograma") ||
+      q.includes("organogrma") ||
+      q.includes("quem trabalha hoje") ||
+      q.includes("quem esta trabalhando") ||
+      q.includes("quem está trabalhando") ||
+      (q.includes("escala") && (q.includes("hoje") || q.includes("area") || q.includes("área") || q.includes("dia") || q.includes("setor"))) ||
+      (q.includes("horario") && (q.includes("trabalho") || q.includes("hoje"))) ||
+      (q.includes("horário") && (q.includes("trabalho") || q.includes("hoje"))) ||
       q.includes("escala") ||
-      q.includes("gantt") ||
-      q.includes("horário")
-    ) {
+      q.includes("gantt");
+
+    if (isPerguntaOrganogramaOuEscalaHoje) {
       setItensConversa((prev) => [
         ...prev,
-        { id: `esc-${Date.now()}`, tipo: "escala-gantt" },
+        { id: `esc-org-${Date.now()}`, tipo: "escala-organograma" },
       ]);
+      if (vozAtiva && audioDisponivel()) {
+        falar(
+          "Aqui está a escala e organograma de hoje por área: Cozinha Quente com 3 colaboradores, Cozinha Fria com 1, Bar com 2, Salão com 1, Pass com 1 e Ingrid B. na liderança geral. Você pode alternar entre o organograma hierárquico e a linha do tempo horizontal."
+        );
+      }
       return;
     }
 
@@ -822,7 +838,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
     } else if (fluxo === "escala") {
       setItensConversa((prev) => [
         ...prev,
-        { id: `esc-${Date.now()}`, tipo: "escala-gantt" },
+        { id: `esc-${Date.now()}`, tipo: "escala-organograma" },
       ]);
     } else if (fluxo === "admin") {
       setAbaAdminInicial("receitas");
@@ -999,7 +1015,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
             onViewDetails={() => {
               setItensConversa((prev) => [
                 ...prev,
-                { id: `esc-${Date.now()}`, tipo: "escala-gantt" },
+                { id: `esc-${Date.now()}`, tipo: "escala-organograma" },
               ]);
             }}
           />
@@ -1104,11 +1120,12 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
               );
             }
 
-            // Escala Horária Gantt com Pico
-            if (bloco.tipo === "escala-gantt") {
+            // Escala de Hoje em Organograma por Área & Horários de Trabalho (com toggle para Gantt)
+            if (bloco.tipo === "escala-organograma" || bloco.tipo === "escala-gantt") {
               return (
-                <ShiftScheduleGanttCard
+                <ShiftOrganogramCard
                   key={bloco.id}
+                  dados={ESCALA_ORGANOGRAMA_DO_DIA}
                   escala={ESCALA_TURNO_GANTT}
                   onAddPartnerClick={() => {
                     const nReq = Math.min(5, contagemReq + 1);

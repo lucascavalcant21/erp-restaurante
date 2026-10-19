@@ -412,19 +412,13 @@ export default function PontoPage() {
   const totalBancoMes = somaMinutosBanco(bancoMes);
   const intervaloPadrao = selecionado ? (Number(selecionado.tempo_intervalo) || 60) : 60;
 
-  const creditarBanco = async (minutos, motivo) => {
-    const restante = BANCO_LIMITE_MIN - totalBancoMes;
-    if (restante <= 0) {
-      return { creditado: 0, aviso: `Banco de horas já está no limite de 8h — os ${fmtMin(minutos)} NÃO foram creditados. Avise o gestor!` };
-    }
-    const credito = Math.min(minutos, restante);
+  // Regra da casa (dono, 19/10/2026): hora extra é paga na folha, calculada
+  // do ponto; o relógio não credita mais nada no banco de horas. O que precisa
+  // ficar anotado (motivo do intervalo curto) entra como ocorrência, sem valor.
+  const registrarOcorrencia = async (minutos, motivo, tipo) => {
     const hoje = diaDaJornada(registroDe(selecionado.id));
-    const { error } = await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, credito, motivo);
-    if (error) return { creditado: 0, aviso: "Falha ao creditar no banco de horas: " + error };
-    let aviso = "";
-    if (credito < minutos) aviso = `Só ${fmtMin(credito)} creditados — o banco atingiu o limite de 8h no mês.`;
-    else if (totalBancoMes + credito >= BANCO_ALERTA_MIN) aviso = `Banco de horas chegou a ${fmtMin(totalBancoMes + credito)} — perto do limite de 8h. Programe a folga!`;
-    return { creditado: credito, aviso };
+    const { error } = await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, minutos, motivo, tipo);
+    return error ? `Não consegui anotar a ocorrência: ${error}` : "";
   };
 
   // Comprovante em papel: janela isolada, largura de bobina térmica (58mm) para
@@ -548,9 +542,8 @@ export default function PontoPage() {
 
       // Saída DEPOIS do horário → vira hora extra no banco, automaticamente
       if (etapa === "saida_trabalho" && extrasSaida.extraMin > 0) {
-        const { creditado, aviso } = await creditarBanco(extrasSaida.extraMin, `Hora extra: saiu às ${agoraStr} (previsto ${extrasSaida.prevStr})`);
         mostrarSucesso(`Saída às ${agoraStr}`,
-          `${primeiro}, você passou ${extrasSaida.extraMin} min do horário (${extrasSaida.prevStr}). ${creditado > 0 ? `${fmtMin(creditado)} viraram hora extra no seu banco de horas.` : ""} ${aviso}`,
+          `${primeiro}, você passou ${extrasSaida.extraMin} min do horário (${extrasSaida.prevStr}). Entra como hora extra na folha do mês.`,
           "alerta", comprovante);
         return;
       }
@@ -650,9 +643,8 @@ export default function PontoPage() {
       const hoje = isoLocal(new Date());
       setEscolhaAntecipada(null);
       if (modo === "extra") {
-        const { creditado, aviso } = await creditarBanco(min, `Entrada antecipada (reunião/serviço): ${min}min antes do horário — autorizada pelo gerente`);
         mostrarSucesso(`Entrada às ${agoraStr}`,
-          `${primeiro}, entrada ${min} min antes do horário. ${creditado > 0 ? `${fmtMin(creditado)} viraram hora extra no banco.` : ""} ${aviso}`);
+          `${primeiro}, entrada ${min} min antes do horário, autorizada. Entra como hora extra na folha do mês.`);
       } else {
         await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, min,
           `Entrou ${min}min mais cedo (reunião/serviço) — combinado ser liberado mais cedo hoje`, "excesso");
@@ -675,11 +667,11 @@ export default function PontoPage() {
       if (j.tipo === "retorno_cedo") {
         const { error } = await registrarBatida(selecionado.id, unidadeAtiva, "retorno_intervalo");
         if (error) { alert(error); return; }
-        const { creditado, aviso } = await creditarBanco(j.faltou, `Voltou ${j.tirou}min de intervalo (de ${intervaloPadrao}min). Motivo: ${motivo}`);
+        const aviso = await registrarOcorrencia(j.faltou, `Voltou ${j.tirou}min de intervalo (de ${intervaloPadrao}min). Motivo: ${motivo}`, "intervalo_curto");
         const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
         setJustif(null);
         mostrarSucesso(`Volta registrada às ${agoraStr}`,
-          `${primeiro}, ${j.tirou} min de intervalo. ${creditado > 0 ? `${fmtMin(creditado)} foram pro seu banco de horas.` : ""} ${aviso}`);
+          `${primeiro}, ${j.tirou} min de intervalo. Motivo anotado; o salário não muda. ${aviso}`);
       }
     } finally {
       setBatendo(false);

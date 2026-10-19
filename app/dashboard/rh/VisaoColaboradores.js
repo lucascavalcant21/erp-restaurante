@@ -15,7 +15,7 @@ import {
   fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario, fetchAtestados,
   salvarAtestado, removerAtestado, anexarArquivoAtestado,
   fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
-  fetchAdvertenciasColab, calcularAdicionaisMes, entradaContratadaDoDia, jornadaContratadaMin, fetchFeriados, fetchAllFolgasDaUnidade
+  fetchAdvertenciasColab, calcularAdicionaisMes, entradaContratadaDoDia, jornadaContratadaMin, opcoesDaCasa, fetchFeriados, fetchAllFolgasDaUnidade
 } from "../../lib/rh";
 import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../lib/ponto";
 import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../lib/ponto-status.mjs";
@@ -341,11 +341,10 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
               {!isFree && (() => {
                 const rg = regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao }).regras;
                 const fonteRg = rg.id === "clt" ? "CLT" : "CCT Foz 2026/27";
-                const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario, vida.feriados, {
-                  regras: rg,
-                  contratadaDoDia: (d) => jornadaContratadaMin(sel, d),
+                const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario, vida.feriados, opcoesDaCasa(sel, {
+                  folgas: vida.folgas, regras: rg,
                   entradaDoDia: (d) => entradaContratadaDoDia(sel, d),
-                });
+                }));
                 const fixo = Number(sel.salario) || 0;
                 const nDiasSemana = (sel.dias_trabalho || "").split(",").filter(Boolean).length;
                 const diariabase = nDiasSemana > 0 && fixo > 0 ? (fixo / (nDiasSemana * 4.345)) : 0;
@@ -367,7 +366,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
                     <Linha rotulo="Adicional noturno" valor={ad.valorNoturno} dica={`${fmtMin(ad.minNoturno)} · ${rg.noturnoPct}% das ${rg.noturnoInicioH}h às ${rg.noturnoFimH}h · ${fonteRg}`} />
                     <Linha rotulo="Horas extras" valor={ad.valorExtra} dica={`${fmtMin(ad.minExtra)} · +${rg.extraPct}% · ${fonteRg}`} />
                     <Linha rotulo="Trabalho em feriado" valor={ad.valorFeriado} dica={`${fmtMin(ad.minFeriado)} em feriados · +${rg.feriadoPct}% · ${fonteRg}`} />
-                    <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O Fechar folha soma o noturno e o feriado; a hora extra vai para o banco de horas.</p>
+                    <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O Fechar folha soma estes valores.</p>
                   </Bloco>
                 );
               })()}
@@ -599,7 +598,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
                     {vida.banco.map(b => (
                       <div key={b.id} className="flex justify-between items-center text-xs p-2 rounded-lg" style={{ background: b.tipo === "excesso" ? "rgba(245,158,11,0.10)" : "var(--elevated)" }}>
                         <span className="font-medium truncate" style={{ color: "var(--fg-soft)" }}>{b.data?.split("-").reverse().join("/")} · {b.observacao || "Intervalo não tirado"}</span>
-                        <span className="font-black shrink-0 ml-2" style={{ color: b.tipo === "excesso" ? "#B45309" : "var(--accent-strong)" }}>{b.tipo === "excesso" ? `+${b.minutos}min além` : fmtMin(Number(b.minutos) || 0)}</span>
+                        <span className="font-black shrink-0 ml-2" style={{ color: b.tipo === "excesso" ? "#B45309" : "var(--accent-strong)" }}>{b.tipo === "excesso" ? `+${b.minutos}min além` : b.tipo === "intervalo_curto" ? `intervalo curto (anotação)` : fmtMin(Number(b.minutos) || 0)}</span>
                       </div>
                     ))}
                   </div>

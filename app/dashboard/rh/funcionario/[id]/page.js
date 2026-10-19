@@ -32,7 +32,7 @@ import {
 } from "../../../../lib/pessoas";
 import {
   fetchColaboradores, fetchDocumentos, fetchAtestados, fetchAdvertenciasColab, fetchBancoHorasColaborador, somaMinutosBanco,
-  fetchFolgasEsporadicas, calcularAdicionaisMes, jornadaContratadaMin, fetchFeriados,
+  fetchFolgasEsporadicas, calcularAdicionaisMes, jornadaContratadaMin, opcoesDaCasa, fetchFeriados,
 } from "../../../../lib/rh";
 import { fetchPontosMes } from "../../../../lib/ponto";
 import { enviarArquivoRH, abrirArquivoRH } from "../../../../lib/rh-arquivos";
@@ -275,7 +275,7 @@ export default function ProntuarioColaboradorPage() {
   const adicionais = useMemo(() => {
     if (!func || !extras.ponto || func.tipo_contrato === "Freelancer") return null;
     const rg = regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao }).regras;
-    return { rg, ad: calcularAdicionaisMes(extras.ponto.pontos, func.salario, extras.ponto.feriados, { regras: rg, contratadaDoDia: (d) => jornadaContratadaMin(func, d) }) };
+    return { rg, ad: calcularAdicionaisMes(extras.ponto.pontos, func.salario, extras.ponto.feriados, opcoesDaCasa(func, { folgas: extras.ponto.folgas, regras: rg })) };
   }, [func, extras.ponto, convencao]);
 
   if (erro) return <div className="min-h-screen"><PageHeader title="Prontuário" icon={User} /><PageBody><EmptyState icon={AlertTriangle} title={erro} /></PageBody></div>;

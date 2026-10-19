@@ -1,7 +1,7 @@
 import { supabase, isSupabaseReady } from "./supabase.js";
 import { criarContasPagarEmLote } from "./contas-pagar.mjs";
 import { enviarArquivoRH, removerArquivoRH } from "./rh-arquivos.js";
-import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
+import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados, opcoesDaCasa } from "./jornada-calculo.mjs";
 import { buscarColaboradores } from "./colaboradores-acesso.mjs";
 import { fetchConvencaoAtiva } from "./trabalhista/convencoes-dados.js";
 import { regrasDaCompetencia } from "./trabalhista/regras-competencia.mjs";
@@ -610,7 +610,7 @@ export async function inserirBancoHoras(unidadeId, colaboradorId, dataDia, minut
 // Soma só os CRÉDITOS do banco (excessos de intervalo são ocorrências)
 export function somaMinutosBanco(lancamentos) {
   return (lancamentos || [])
-    .filter(b => b.tipo !== "excesso")
+    .filter(b => !b.tipo || b.tipo === "credito")
     .reduce((s, b) => s + (Number(b.minutos) || 0), 0);
 }
 
@@ -626,7 +626,7 @@ export async function removerBancoHoras(id) {
 // Mora em jornada-calculo.mjs: é o código que decide quanto a casa paga, e lá
 // ele roda sem Supabase, com testes que cobrem a faixa noturna, a hora ficta e
 // a tolerância. Rode com: node app/lib/jornada-calculo.test.mjs
-export { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados };
+export { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados, opcoesDaCasa };
 
 // ─── FERIADOS DA UNIDADE ─────────────────────────────────────────────────────
 export async function fetchFeriados(unidadeId, mesAno = null) {
@@ -825,13 +825,13 @@ export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
   const { data: vales } = await queryVales;
   const valesSeguros = vales || [];
 
-  // 4. Adicionais do ponto, pela regra da competência (CLT ou convenção ativa).
-  // Noturno e feriado entram como acréscimo sugerido; a hora extra só aparece:
-  // o relógio também a credita no banco de horas, e somar aqui pagaria duas
-  // vezes a mesma hora até a casa decidir a regra (RH-B2).
-  const [{ data: feriadosMes }, convencao] = await Promise.all([
+  // 4. Adicionais do ponto, pela regra da competência (CLT ou convenção ativa)
+  // e pelas regras da casa (opcoesDaCasa): noturno, hora extra e feriado não
+  // compensado entram como acréscimo sugerido, editável.
+  const [{ data: feriadosMes }, convencao, { data: folgasUnidade }] = await Promise.all([
     fetchFeriados(unidadeId, mesAno),
     fetchConvencaoAtiva(unidadeId).catch(() => null),
+    fetchAllFolgasDaUnidade(unidadeId),
   ]);
   const { regras } = regrasDaCompetencia(mesAno, { convencao });
 
@@ -851,9 +851,8 @@ export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
     // valor_desconto é o que o funcionário paga (cardápio menos o desconto da casa).
     // A coluna valor_final não existe: a soma dava NaN e zerava o líquido.
     const totalVales = meusVales.reduce((acc, v) => acc + (Number(v.valor_desconto ?? v.valor_original) || 0), 0);
-    const ad = calcularAdicionaisMes(pontosSeguros.filter(p => p.colaborador_id === c.id), c.salario, feriadosMes || [], {
-      regras, contratadaDoDia: (d) => jornadaContratadaMin(c, d),
-    });
+    const ad = calcularAdicionaisMes(pontosSeguros.filter(p => p.colaborador_id === c.id), c.salario, feriadosMes || [],
+      opcoesDaCasa(c, { folgas: folgasUnidade || [], regras }));
     const desligadoNoMes = (c.status || "ativo") === "inativo" ? String(c.data_desligamento).slice(0, 10) : null;
 
     const isFreelancer = c.tipo_contrato === "Freelancer";
@@ -885,7 +884,7 @@ export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
         feriado: ad.valorFeriado, min_feriado: ad.minFeriado, feriado_pct: regras.feriadoPct,
         extra: ad.valorExtra, min_extra: ad.minExtra, extra_pct: regras.extraPct,
       },
-      acrescimos_sugeridos: Math.round(((ad.valorNoturno || 0) + (ad.valorFeriado || 0)) * 100) / 100,
+      acrescimos_sugeridos: Math.round(((ad.valorNoturno || 0) + (ad.valorFeriado || 0) + (ad.valorExtra || 0)) * 100) / 100,
     };
   });
 

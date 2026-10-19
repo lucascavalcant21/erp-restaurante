@@ -205,7 +205,8 @@ export async function GET(request) {
     }
 
     // ── Banco de horas ──────────────────────────────────────────────────────
-    for (const b of (banco || [])) {
+    // Ocorrência anotada (ex.: intervalo_curto) não é movimento de banco: fica fora.
+    for (const b of (banco || []).filter(x => !x.tipo || x.tipo === "credito" || x.tipo === "excesso")) {
       const v = vinculos.get(b.colaborador_id);
       if (!v) continue;
       registros.push(registro07({

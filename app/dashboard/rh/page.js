@@ -26,7 +26,7 @@ import { situacaoDoPonto, atestadoNaData } from "../../lib/ponto-status.mjs";
 import { TOLERANCIA_MARCACAO_MIN } from "../../lib/jornada-calculo.mjs";
 import { situacaoExperiencia, emExperiencia, faseContratoCalculada, situacaoAvisoPrevio, tempoDeCasa, aniversario, aniversariantesDoMes, fraseAniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
-import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
+import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin, opcoesDaCasa } from "../../lib/rh";
 import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../lib/mascaras.mjs";
 import { salvarConta, fetchLancamentos } from "../../lib/financeiro";
 import { hojeLocal, novaChave } from "../../lib/contas-pagar.mjs";
@@ -560,7 +560,7 @@ export default function RHPage() {
     const base = fixo + va + taxa; // remuneração cheia
     const meusPontos = pontosMesUnidade.filter(p => p.colaborador_id === f.id);
     const { regras } = regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao });
-    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual, { contratadaDoDia: (d) => jornadaContratadaMin(f, d), regras });
+    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual, opcoesDaCasa(f, { folgas: folgasUnidade, regras }));
     const descontos = valesPendentes
       .filter(v => v.funcionario_id === f.id)
       .reduce((s, v) => s + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0);
@@ -691,7 +691,7 @@ export default function RHPage() {
   const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
   // Só créditos contam para as 8h — "excesso" (passou do intervalo) é ocorrência
   const totalBancoDe = (colabId) => bancoHoras
-    .filter(b => b.colaborador_id === colabId && b.tipo !== "excesso")
+    .filter(b => b.colaborador_id === colabId && (!b.tipo || b.tipo === "credito"))
     .reduce((s, b) => s + (Number(b.minutos) || 0), 0);
 
   const abrirModalBanco = (f) => {
@@ -730,7 +730,7 @@ export default function RHPage() {
   // Compensar o banco com uma folga: registra a folga e zera os créditos do mês
   const [compensarData, setCompensarData] = useState("");
   const compensarBanco = async () => {
-    const creditos = bancoHoras.filter(b => b.colaborador_id === funcBanco.id && b.tipo !== "excesso");
+    const creditos = bancoHoras.filter(b => b.colaborador_id === funcBanco.id && (!b.tipo || b.tipo === "credito"));
     const total = creditos.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
     if (total <= 0) return alert("Não há créditos para compensar.");
     if (!compensarData) return alert("Escolha a data da folga compensatória.");
@@ -3239,7 +3239,7 @@ export default function RHPage() {
       {/* MODAL: BANCO DE HORAS (intervalo não tirado; limite 8h/mês) */}
       {modalBanco && funcBanco && (() => {
          const lancs = bancoHoras.filter(b => b.colaborador_id === funcBanco.id);
-         const total = lancs.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+         const total = lancs.filter(b => !b.tipo || b.tipo === "credito").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
          const pct = Math.min(100, (total / BANCO_LIMITE_MIN) * 100);
          const critico = total >= BANCO_LIMITE_MIN;
          const alerta = total >= BANCO_ALERTA_MIN;
@@ -3308,6 +3308,8 @@ export default function RHPage() {
                               {b.data ? b.data.split("-").reverse().join("/") : "—"} ·{" "}
                               {b.tipo === "excesso"
                                  ? <span className="text-amber-700">passou {fmtMin(Number(b.minutos) || 0)} do intervalo</span>
+                                 : b.tipo === "intervalo_curto"
+                                 ? <span className="text-subtle">intervalo curto (só anotação, não é crédito)</span>
                                  : <span className="text-zinc-700">{fmtMin(Number(b.minutos) || 0)}</span>}
                            </p>
                            {b.observacao && <p className="text-2xs font-medium text-subtle truncate">{b.observacao}</p>}
@@ -3399,11 +3401,12 @@ export default function RHPage() {
                      </div>
 
                      <div>
-                        <label className="text-xs font-bold text-slate-700 uppercase tracking-widest block mb-1">Folga Extra (Feriado ou Outro)</label>
-                        <p className="text-xs font-medium text-slate-500 mb-2">Qualquer data, inclusive uma que já passou (pede confirmação).</p>
-                        <div className="flex gap-2">
-                           <input type="date" value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 min-w-0 p-3 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
-                           <button onClick={() => handleAdicionarFolga(novaFolgaData, "Extra / Feriado")} className="bg-emerald-600 text-white px-4 font-bold rounded-xl hover:bg-emerald-700 transition-colors">Adicionar</button>
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-widest block mb-1">Outra folga</label>
+                        <p className="text-xs font-medium text-slate-500 mb-2">Qualquer data, inclusive uma que já passou (pede confirmação). Folga que compensa um feriado trabalhado, marcada em até 30 dias, tira o pagamento em dobro daquele feriado.</p>
+                        <div className="flex flex-wrap gap-2">
+                           <input type="date" value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 min-w-[150px] p-3 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
+                           <button onClick={() => handleAdicionarFolga(novaFolgaData, "Folga avulsa")} className="bg-emerald-600 text-white px-4 py-3 font-bold rounded-xl hover:bg-emerald-700 transition-colors">Folga avulsa</button>
+                           <button onClick={() => handleAdicionarFolga(novaFolgaData, "Compensação de feriado")} className="bg-white border border-emerald-600 text-emerald-700 px-4 py-3 font-bold rounded-xl hover:bg-emerald-50 transition-colors">Compensa feriado</button>
                         </div>
                      </div>
                   </div>

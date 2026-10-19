@@ -133,7 +133,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-5 py-6" style={{ background: "var(--surface)" }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-5 py-6" style={{ background: "var(--surface)", paddingTop: "calc(var(--erp-safe-top, 3.5rem) + 1rem)" }}>
       <div className="mb-8 flex flex-col items-center">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: "linear-gradient(135deg,#F97316,#EA580C)" }}>
           <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2}>

@@ -165,7 +165,7 @@ export default function PaginaPublicaVagas() {
   return (
     <div className="min-h-screen bg-hf-bg pb-16">
       {/* Cabeçalho */}
-      <header className="bg-accent px-5 py-8 text-accent-fg sm:py-10">
+      <header className="bg-accent px-5 py-8 text-accent-fg sm:py-10" style={{ paddingTop: "calc(var(--erp-safe-top, 3.5rem) + 1.25rem)" }}>
         <div className="mx-auto max-w-2xl">
           <h1 className="text-2xl font-black leading-tight sm:text-3xl">{config.titulo}</h1>
           <p className="mt-2 text-sm font-medium leading-relaxed text-emerald-50">{config.subtitulo}</p>

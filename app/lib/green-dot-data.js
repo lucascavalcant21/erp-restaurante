@@ -34,6 +34,12 @@ export const TOPICOS_INICIAIS = {
     { id: "checklist-fechamento", label: "🌙 Checklist de Saída / Fechamento", prompt: "Abrir o checklist de saída e fechamento de turno da cozinha e bar." },
     { id: "etiqueta-validade", label: "🏷️ Gerar Etiqueta ANVISA", prompt: "Quero gerar uma etiqueta de validade para um produto manipulado." },
   ],
+  rastreio: [
+    { id: "rastreio-vatapa", label: "📍 Onde está o Vatapá?", prompt: "Onde está o vatapá produzido?" },
+    { id: "rastreio-camarao", label: "🦐 Onde está o Camarão?", prompt: "Onde guardaram o camarão para o turno?" },
+    { id: "rastreio-leite-coco", label: "🥥 Onde fica o Leite de Coco?", prompt: "Onde está o leite de coco no estoque?" },
+    { id: "rastreio-bar", label: "🍸 Onde está a Espuma do Bar?", prompt: "Onde está a espuma de gengibre do Moscow Mule?" },
+  ],
 };
 
 export const RECEITAS_GREEN_DOT = [
@@ -1814,3 +1820,563 @@ export const FORMACAO_PRACAS_BASE = [
     rotinas: ["Rotina de Drinks Autorais", "Tiragem de Chopp"],
   },
 ];
+
+// ── LOCAIS HOMOLOGADOS DE ARMAZENAMENTO & RASTREAMENTO EM PRODUÇÃO (GREEN DOT) ──
+export const LOCAIS_ARMAZENAMENTO_PADRAO = [
+  {
+    id: "camara-fria-prat-2",
+    nome: "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+    setor: "Cozinha Quente / Fria",
+    tipo: "camara-fria",
+    temperatura: "2°C a 4°C",
+    capacidadeGns: "8 cubas GN 1/2 ou 4 cubas GN 1/1",
+    icone: "Snowflake",
+  },
+  {
+    id: "camara-fria-prat-1",
+    nome: "Câmara Fria 1 — Prateleira 1 (Laticínios, Molhos & Sobremesas)",
+    setor: "Cozinha Fria / Garde Manger",
+    tipo: "camara-fria",
+    temperatura: "2°C a 4°C",
+    capacidadeGns: "10 caixas herméticas",
+    icone: "Milk",
+  },
+  {
+    id: "camara-fria-prat-4",
+    nome: "Câmara Fria 1 — Prateleira 4 (Pescados, Frutos do Mar & Carnes)",
+    setor: "Cozinha Quente / Açougue",
+    tipo: "camara-fria",
+    temperatura: "0°C a 2°C",
+    capacidadeGns: "Bandejas drenadas exclusivas",
+    icone: "Fish",
+  },
+  {
+    id: "freezer-proteinas",
+    nome: "Câmara Congelados / Freezer — Gaveta 3 (Proteínas Brutas)",
+    setor: "Estoque Central",
+    tipo: "freezer",
+    temperatura: "-18°C a -22°C",
+    capacidadeGns: "Estoque em caixas",
+    icone: "IceCream",
+  },
+  {
+    id: "geladeira-bar",
+    nome: "Geladeira do Bar — Prateleira Superior (Frutas, Xaropes & Purês)",
+    setor: "Bar & Coquetelaria",
+    tipo: "refrigerador-bar",
+    temperatura: "4°C a 6°C",
+    capacidadeGns: "Sifões iSi e bisnagas dosadoras",
+    icone: "GlassWater",
+  },
+  {
+    id: "bancada-banho-maria",
+    nome: "Bancada Quente — Banho-Maria GN 1/3 (Pronto para Empratamento)",
+    setor: "Cozinha Quente / Fogão",
+    tipo: "aquecido",
+    temperatura: "68°C a 75°C",
+    capacidadeGns: "4 cubas GN 1/3 aquecidas",
+    icone: "Flame",
+  },
+  {
+    id: "garde-manger-gaveta",
+    nome: "Garde Manger — Gaveta Refrigerada 1 (Saladas & Folhas Lavadas)",
+    setor: "Cozinha Fria",
+    tipo: "gaveta-refrigerada",
+    temperatura: "3°C a 5°C",
+    capacidadeGns: "Caixas perfuradas com papel toalha",
+    icone: "Salad",
+  },
+  {
+    id: "estoque-seco-estante-a",
+    nome: "Estoque Seco — Estante A, Prateleira 2 (Secos & Condimentos)",
+    setor: "Almoxarifado Geral",
+    tipo: "estoque-seco",
+    temperatura: "Ambiente (20°C a 24°C)",
+    capacidadeGns: "Potes plásticos atóxicos vedados",
+    icone: "Box",
+  },
+  {
+    id: "pass-aquecido",
+    nome: "Pass & Expedição — Estufa Aquecida de Pratos Prontos",
+    setor: "Expedição / Salão",
+    tipo: "estufa",
+    temperatura: "65°C constante",
+    capacidadeGns: "Bancada de saída",
+    icone: "BellRing",
+  },
+];
+
+// Lotes de pré-preparo e estoque ativos no sistema com rastreamento de localização
+export const LOTES_RASTREIO_INICIAIS = [
+  {
+    id: "rastreio-vtp-01",
+    produto: "Vatapá da Casa (Pré-Preparo Produzido)",
+    produtoId: "vatapa-baiano",
+    lote: "LOTE-VTP-8921",
+    localizacao: "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+    setor: "Cozinha Quente / Câmaras",
+    temperatura: "2°C a 4°C",
+    quantidade: "6,5 kg (2 cubas GN 1/2)",
+    conservacao: "Resfriado",
+    manipuladoEm: "Hoje às 08:30",
+    validadeEm: "Vence em 3 dias (22/10 às 08:30)",
+    responsavel: "Gabriel K.",
+    statusPvps: "🟢 1º QUE SAI (Usar este lote antes do novo)",
+    dicaLocalizacao:
+      "Ao entrar na câmara fria principal, olhe na estante de inox à direita, 2ª prateleira de cima para baixo. Cuba de inox com tampa verde e etiqueta térmica 60x40mm com QR Code de rastreio.",
+    tags: ["vatapa", "vatapá", "molho", "pre-preparo", "base", "baiano"],
+  },
+  {
+    id: "rastreio-cmr-02",
+    produto: "Camarão Rosa GG Dessalgado & Limpo",
+    produtoId: "camarao-seco",
+    lote: "LOTE-CMR-4410",
+    localizacao: "Câmara Fria 1 — Prateleira 4 (Pescados, Frutos do Mar & Carnes)",
+    setor: "Cozinha Quente / Açougue",
+    temperatura: "0°C a 2°C",
+    quantidade: "4,5 kg porcionados em sacos a vácuo (1kg cada)",
+    conservacao: "Resfriado (Descongelamento seguro Pull-to-Thaw)",
+    manipuladoEm: "Ontem às 22:00",
+    validadeEm: "Vence amanhã às 18:00 (Restam 28h)",
+    responsavel: "Fernando A.",
+    statusPvps: "🟢 1º QUE SAI (Lote em processo de degelo concluído)",
+    dicaLocalizacao:
+      "Na prateleira inferior da câmara fria (regra ANVISA: pescados sempre na base), em bandeja plástica branca perfurada com coletor de líquido.",
+    tags: ["camarao", "camarão", "frutos do mar", "pescado", "proteina"],
+  },
+  {
+    id: "rastreio-coco-03",
+    produto: "Leite de Coco Puro (Garrafas 1L)",
+    produtoId: "leite-coco",
+    lote: "LOTE-LCO-3012",
+    localizacao: "Estoque Seco — Estante A, Prateleira 2 (Secos & Condimentos)",
+    setor: "Almoxarifado Geral",
+    temperatura: "Ambiente (22°C)",
+    quantidade: "12 Litros fechados (Caixa lacrada) + 2 Litros abertos na Câmara 1",
+    conservacao: "Ambiente fechado / Resfriado após aberto",
+    manipuladoEm: "Lote de fábrica SIF 8802",
+    validadeEm: "Validade industrial: 15/12/2026",
+    responsavel: "Almoxarife / Recebimento",
+    statusPvps: "⚪ Estoque Geral de Insumos",
+    dicaLocalizacao:
+      "Caixa lacrada na estante A do almoxarifado seco. Garrafas abertas em uso ficam na Prateleira 1 da Câmara Fria 1 etiquetadas.",
+    tags: ["leite de coco", "coco", "leite coco", "garrafa"],
+  },
+  {
+    id: "rastreio-bar-04",
+    produto: "Espuma de Gengibre Artesanal (Moscow Mule)",
+    produtoId: "moscow-mule",
+    lote: "LOTE-ESP-1104",
+    localizacao: "Geladeira do Bar — Prateleira Superior (Frutas, Xaropes & Purês)",
+    setor: "Bar & Coquetelaria",
+    temperatura: "4°C a 6°C",
+    quantidade: "2 Sifões iSi de 1 Litro abastecidos e pressurizados",
+    conservacao: "Resfriado",
+    manipuladoEm: "Hoje às 10:15",
+    validadeEm: "Vence em 2 dias (21/10 às 10:15)",
+    responsavel: "Carlos G.",
+    statusPvps: "🟢 Pronto para Serviço no Bar",
+    dicaLocalizacao:
+      "Dentro da geladeira sob a bancada do bar, na porta esquerda, prateleira superior. Sifões prateados com anel de identificação verde.",
+    tags: ["espuma", "gengibre", "moscow", "mule", "bar", "drink", "sifao"],
+  },
+  {
+    id: "rastreio-rst-05",
+    produto: "Massa de Risoto Pré-Cozida (Arroz Carnaroli)",
+    produtoId: "risoto-camarao",
+    lote: "LOTE-RST-5520",
+    localizacao: "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+    setor: "Cozinha Quente / Fogão",
+    temperatura: "2°C a 4°C",
+    quantidade: "12 porções de 160g em sacos ziploc identificados",
+    conservacao: "Resfriado (Após choque térmico em banho de gelo)",
+    manipuladoEm: "Hoje às 09:00",
+    validadeEm: "Vence em 48 horas (21/10 às 09:00)",
+    responsavel: "Gabriel K.",
+    statusPvps: "🟢 1º QUE SAI",
+    dicaLocalizacao:
+      "Câmara Fria 1, prateleira 2 ao lado da cuba de vatapá. Porções embaladas individualmente para regeneração rápida em 6 minutos.",
+    tags: ["risoto", "arroz", "carnaroli", "massa de risoto", "base risoto"],
+  },
+];
+
+const STORAGE_KEY_RASTREIO = "hefisto_rastreio_etiquetas";
+
+export function obterTodosRastreios(unidadeId = "geral") {
+  if (typeof window === "undefined") return LOTES_RASTREIO_INICIAIS;
+  try {
+    const raw = localStorage.getItem(`${STORAGE_KEY_RASTREIO}_${unidadeId || "geral"}`);
+    const dinamicos = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(dinamicos) || dinamicos.length === 0) return LOTES_RASTREIO_INICIAIS;
+    return [...dinamicos, ...LOTES_RASTREIO_INICIAIS];
+  } catch {
+    return LOTES_RASTREIO_INICIAIS;
+  }
+}
+
+export function salvarRastreioEtiqueta(dados, unidadeId = "geral") {
+  if (typeof window === "undefined" || !dados) return null;
+  try {
+    const novoRastreio = {
+      id: `rastreio-din-${Date.now()}`,
+      produto: dados.produto || "Pré-Preparo",
+      produtoId: normalizarTexto(dados.produto || "").replace(/\s+/g, "-"),
+      lote: dados.lote || `LOTE-${(dados.codigo || "").slice(0, 4) || "AUTO"}`,
+      localizacao: dados.localizacao || "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+      setor: dados.departamento || "Cozinha & Produção",
+      temperatura: dados.conservacao === "Congelado" ? "-18°C" : dados.conservacao === "Resfriado" ? "2°C a 4°C" : "Ambiente",
+      quantidade: `${dados.quantidade || 1} ${dados.unidade || "kg"}`,
+      conservacao: dados.conservacao || "Resfriado",
+      manipuladoEm: new Date().toLocaleDateString("pt-BR") + " às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      validadeEm: `Vence em ${dados.validade_dias || 3} dias`,
+      responsavel: dados.responsavel || "Líder de Turno",
+      statusPvps: "🟢 Lote Etiquetado Recentemente",
+      dicaLocalizacao: `Armazenado em: ${dados.localizacao || "Câmara Fria 1"}. Procure pela etiqueta com lote ${dados.lote || "do dia"}.`,
+      tags: normalizarTexto(dados.produto || "").split(/\s+/).filter(Boolean),
+    };
+
+    const atuais = obterTodosRastreios(unidadeId).filter((r) => !r.id.startsWith("rastreio-vtp"));
+    const novaLista = [novoRastreio, ...atuais.filter((r) => r.id.startsWith("rastreio-din"))];
+    localStorage.setItem(`${STORAGE_KEY_RASTREIO}_${unidadeId || "geral"}`, JSON.stringify(novaLista));
+    return novoRastreio;
+  } catch {
+    return null;
+  }
+}
+
+// Busca tolerante a erros de digitação e variações de fala: "onde ta o vatapa", "kd o camarao", "onde guardou", etc.
+export function buscarLocalizacaoProduto(fraseOuNome, unidadeId = "geral") {
+  const q = normalizarTexto(fraseOuNome || "");
+  const lista = obterTodosRastreios(unidadeId);
+
+  // 1. Match exato ou por tags
+  const encontrado = lista.find((item) => {
+    const nomeNorm = normalizarTexto(item.produto);
+    if (q.includes(nomeNorm) || nomeNorm.includes(q)) return true;
+    return (item.tags || []).some((tag) => q.includes(normalizarTexto(tag)));
+  });
+
+  if (encontrado) return encontrado;
+
+  // 2. Se a frase menciona ingredientes ou pratos conhecidos
+  if (q.includes("vatapa") || q.includes("baiano")) {
+    return lista.find((r) => r.tags?.includes("vatapa")) || lista[0];
+  }
+  if (q.includes("camarao") || q.includes("camarão")) {
+    return lista.find((r) => r.tags?.includes("camarao")) || lista[1];
+  }
+  if (q.includes("coco") || q.includes("leite")) {
+    return lista.find((r) => r.tags?.includes("coco")) || lista[2];
+  }
+  if (q.includes("espuma") || q.includes("mule") || q.includes("bar") || q.includes("drink")) {
+    return lista.find((r) => r.tags?.includes("espuma")) || lista[3];
+  }
+  if (q.includes("risoto") || q.includes("arroz")) {
+    return lista.find((r) => r.tags?.includes("risoto")) || lista[4];
+  }
+
+  // 3. Fallback inteligente: se for carne/pescado ou legume genérico
+  if (q.includes("carne") || q.includes("bife") || q.includes("frango") || q.includes("peixe")) {
+    return {
+      produto: "Proteínas Cruas / Carnes",
+      lote: "LOTE-ESTOQUE-CENTRAL",
+      localizacao: "Câmara Fria 1 — Prateleira 4 (Pescados, Frutos do Mar & Carnes)",
+      setor: "Cozinha Quente / Açougue",
+      temperatura: "0°C a 2°C (Carnes Resfriadas) ou -18°C (Congelados)",
+      quantidade: "Ver saldo em Estoque",
+      conservacao: "Resfriado / Congelado",
+      manipuladoEm: "Conforme etiqueta PVPS",
+      validadeEm: "Regra ANVISA: 72h após descongelamento",
+      responsavel: "Açougue / Cozinha",
+      statusPvps: "Regra PVPS: Sempre na prateleira inferior",
+      dicaLocalizacao:
+        "Segundo a ANVISA RDC 216, todas as carnes, pescados e aves cruas devem ficar obrigatoriamente na prateleira inferior (base) da câmara fria para evitar gotejamento sobre alimentos prontos.",
+    };
+  }
+
+  return lista[0];
+}
+
+// Interpretador adaptativo de perguntas de colaboradores de restaurante.
+// O sistema se adapta a gírias, erros de digitação, frases incompletas e
+// SEMPRE fornece uma resposta clara e uma solução prática em 3 passos!
+export function interpretarPerguntaColaborador(pergunta, {
+  todasAsReceitas = RECEITAS_GREEN_DOT,
+  ultimaReceitaAtiva = null,
+  todosOsEquipamentos = EQUIPAMENTOS_MANUTENCAO,
+  unidadeId = "geral",
+} = {}) {
+  const p = String(pergunta || "").trim();
+  const q = normalizarTexto(p);
+
+  // 1. RASTREABILIDADE & ONDE ESTÁ O PRODUTO (Cadê, Onde tá, Onde guardaram, Onde fica, Onde acho, Onde coloco)
+  const isPerguntaOndeEsta =
+    q.includes("onde ta") ||
+    q.includes("onde esta") ||
+    q.includes("onde fica") ||
+    q.includes("onde guard") ||
+    q.includes("onde bot") ||
+    q.includes("onde enfia") ||
+    q.includes("onde acho") ||
+    q.includes("onde achar") ||
+    q.includes("onde coloco") ||
+    q.includes("kd ") ||
+    q.startsWith("kd") ||
+    q.includes("cade ") ||
+    q.startsWith("cade") ||
+    q.includes("localizacao") ||
+    q.includes("localizac") ||
+    q.includes("rastre") ||
+    (q.includes("tem ") && (q.includes("pronto") || q.includes("pronta") || q.includes("sobrando") || q.includes("feito")));
+
+  if (isPerguntaOndeEsta) {
+    const itemRastreio = buscarLocalizacaoProduto(q, unidadeId);
+    return {
+      tipo: "rastreio-localizacao",
+      item: itemRastreio,
+      respostaVoz: `O ${itemRastreio.produto} está em: ${itemRastreio.localizacao}, lote ${itemRastreio.lote}. Quantidade: ${itemRastreio.quantidade}.`,
+      solucaoTexto: `Localizado no sistema de rastreio! Vá até ${itemRastreio.localizacao}. ${itemRastreio.dicaLocalizacao}`,
+    };
+  }
+
+  // 2. RECÁLCULO PROPORCIONAL ("só tenho 2L", "era pra ser 3L", "tenho pouco ingrediente")
+  const intencaoRecalculo = detectarIntencaoRecalculo(p, ultimaReceitaAtiva, todasAsReceitas);
+  if (intencaoRecalculo && intencaoRecalculo.calculo) {
+    return {
+      tipo: "receita-recalculada",
+      receita: intencaoRecalculo.receita,
+      calculo: intencaoRecalculo.calculo,
+      respostaVoz: `Recalculei ${intencaoRecalculo.receita.nome} para ${intencaoRecalculo.calculo.percentual}% da receita original, com base em ${intencaoRecalculo.calculo.quantidadeDisponivelLimitante} ${intencaoRecalculo.calculo.ingredienteLimitante.unidade} de ${intencaoRecalculo.calculo.ingredienteLimitante.nome}.`,
+      solucaoTexto: `Receita recalculada com sucesso! Todos os insumos foram reduzidos proporcionalmente para manter o ponto e sabor da casa.`,
+    };
+  }
+
+  // 3. EQUIPAMENTOS, VOLTAGEM 110V/220V, ENCAIXE, USO E LIMPEZA
+  const isPerguntaEquip =
+    q.includes("110") ||
+    q.includes("220") ||
+    q.includes("voltagem") ||
+    q.includes("tensao") ||
+    q.includes("tomada") ||
+    q.includes("liquidificador") ||
+    q.includes("forno") ||
+    q.includes("chopeira") ||
+    q.includes("fritadeira") ||
+    q.includes("encaixar") ||
+    q.includes("copo") ||
+    q.includes("tampa") ||
+    (q.includes("como usar") && !q.includes("sistema")) ||
+    (q.includes("como limpar") && (q.includes("maquina") || q.includes("aparelho") || q.includes("equipamento") || q.includes("liquidificador") || q.includes("forno")));
+
+  if (isPerguntaEquip) {
+    const filtroCategoria = q.includes("liquidificador")
+      ? "liquidificador"
+      : q.includes("forno")
+      ? "forno"
+      : q.includes("fritadeira")
+      ? "fritadeira"
+      : q.includes("chopeira")
+      ? "chopeira"
+      : null;
+
+    const abaSugerida =
+      q.includes("encaixar") || q.includes("encaixe") || q.includes("copo") || q.includes("tampa")
+        ? "encaixe"
+        : q.includes("limpar") || q.includes("higienizar") || q.includes("lavar")
+        ? "limpeza"
+        : q.includes("como usar") || q.includes("bater") || q.includes("operar")
+        ? "uso"
+        : "voltagem";
+
+    return {
+      tipo: "equipamento-visual-guia",
+      filtroCategoria,
+      abaInicial: abaSugerida,
+      respostaVoz: "Aqui estão as fotos dos equipamentos cadastrados da loja. Toque no seu aparelho para ver voltagem 110V ou 220V, como encaixar o copo e como usar.",
+      solucaoTexto: "Selecione o equipamento que você está operando na bancada para ver o guia visual completo.",
+    };
+  }
+
+  // 4. HIGIENIZAÇÃO, LIMPEZA & QUÍMICA ANVISA (Chão, Panos, Mãos, Hortifrúti, Quantas ml)
+  const isPerguntaLimpeza =
+    q.includes("chao") ||
+    q.includes("pano") ||
+    q.includes("opano") ||
+    q.includes("lavar a mao") ||
+    q.includes("lavar as maos") ||
+    q.includes("lavar mao") ||
+    q.includes("quantas ml") ||
+    q.includes("quanto produto") ||
+    q.includes("qual produto") ||
+    q.includes("desengordurante") ||
+    q.includes("sanitiz") ||
+    q.includes("desinfet") ||
+    q.includes("cloro") ||
+    q.includes("balde");
+
+  if (isPerguntaLimpeza) {
+    const rotinaId =
+      q.includes("pano") || q.includes("opano")
+        ? "limpeza-panos"
+        : q.includes("mao")
+        ? "lavagem-maos"
+        : q.includes("fruta") || q.includes("salada") || q.includes("hortali")
+        ? "sanitizacao-hortifruti"
+        : "limpeza-chao";
+
+    return {
+      tipo: "guia-limpeza",
+      rotinaInicialId: rotinaId,
+      respostaVoz:
+        rotinaId === "limpeza-chao"
+          ? "Para o chão, use 50 ml de desengordurante para 5 litros de água morna e deixe agir 10 minutos."
+          : rotinaId === "limpeza-panos"
+          ? "Para panos, use 25 ml de cloro por litro de água fria por 20 a 30 minutos."
+          : "Para as mãos, use sabonete bactericida inodoro por 40 a 60 segundos e finalize com álcool 70%.",
+      solucaoTexto: "Guia oficial ANVISA e calculadora de diluição química em ml pronta para uso.",
+    };
+  }
+
+  // 5. CHECKLISTS DE PRAÇA (Abertura, Saída, Fechamento, Passar turno)
+  const isPerguntaChecklist =
+    q.includes("checklist") ||
+    q.includes("abertura") ||
+    q.includes("fechamento") ||
+    q.includes("saida") ||
+    q.includes("passar o turno") ||
+    q.includes("mise en place");
+
+  if (isPerguntaChecklist) {
+    const tipoCheck = q.includes("fechamento") || q.includes("saida") ? "fechamento" : "abertura";
+    return {
+      tipo: "checklist-turno",
+      tipoInicial: tipoCheck,
+      respostaVoz:
+        tipoCheck === "abertura"
+          ? "Aqui está o checklist de abertura da praça. Marque cada item antes do restaurante abrir."
+          : "Aqui está o checklist de saída e fechamento de turno com conferência obrigatória de gás e equipamentos.",
+      solucaoTexto: "Conferência digital da praça para não esquecer nenhum procedimento crítico.",
+    };
+  }
+
+  // 6. ETIQUETA DE VALIDADE / ANVISA COM RASTREIO OBRIGATÓRIO
+  const isPerguntaEtiqueta =
+    q.includes("etiqueta") ||
+    q.includes("rotulo") ||
+    q.includes("validade") ||
+    q.includes("etiquetar");
+
+  if (isPerguntaEtiqueta) {
+    return {
+      tipo: "etiqueta-rapida",
+      produtoInicial: ultimaReceitaAtiva?.nome || "Vatapá Tradicional da Casa",
+      respostaVoz: "Abri o gerador rápido de etiqueta térmica ANVISA com local de armazenamento obrigatório para rastreio em produção.",
+      solucaoTexto: "Gere a etiqueta 60x40mm informando onde o pote será guardado para rastrear no sistema.",
+    };
+  }
+
+  // 7. ESCALA DO DIA, HORÁRIOS E ORGANOGRAMA
+  const isPerguntaEscala =
+    q.includes("escala") ||
+    q.includes("organograma") ||
+    q.includes("quem trabalha") ||
+    q.includes("quem esta trabalhando") ||
+    q.includes("horario de trabalho") ||
+    q.includes("horarios");
+
+  if (isPerguntaEscala) {
+    return {
+      tipo: "escala-organograma",
+      respostaVoz: "Aqui está o organograma de hoje por área com as 5 praças, líderes e horários de trabalho.",
+      solucaoTexto: "Visualize a distribuição da equipe hoje e quem apoia cada praça no pico.",
+    };
+  }
+
+  // 8. RECEITAS ESPECÍFICAS PELO NOME OU PALAVRA-CHAVE
+  const receita = todasAsReceitas.find((r) => {
+    const nomeNorm = normalizarTexto(r.nome || "");
+    if (q.includes(nomeNorm)) return true;
+    if ((q.includes("vatapa") || q.includes("baiano")) && r.id.includes("vatapa")) return true;
+    if (q.includes("risoto") && r.id.includes("risoto")) return true;
+    if ((q.includes("mule") || q.includes("moscow")) && r.id.includes("moscow")) return true;
+    if (q.includes("parmegiana") && r.id.includes("parmegiana")) return true;
+    return false;
+  });
+
+  if (receita) {
+    return {
+      tipo: "receita-completa",
+      receita,
+      respostaVoz: `Aqui está a receita de ${receita.nome} com fotos, vídeo e ingredientes ligados ao estoque.`,
+      solucaoTexto: `Modo de preparo padronizado da casa pronto para consulta em bancada.`,
+    };
+  }
+
+  // 9. SITUAÇÕES DE APURO / RUSH / DÚVIDAS GENÉRICAS / COLABORADOR PERDIDO (SEMPRE TER RESPOSTA E SOLUÇÃO)
+  const isSituacaoEmergenciaOuDuvida =
+    q.includes("perdido") ||
+    q.includes("socorro") ||
+    q.includes("ajuda") ||
+    q.includes("deu ruim") ||
+    q.includes("o que eu faco") ||
+    q.includes("o que faco") ||
+    q.includes("atrasad") ||
+    q.includes("acumul") ||
+    q.includes("queim") ||
+    q.includes("estranho") ||
+    q.includes("cliente") ||
+    q.includes("rush");
+
+  if (isSituacaoEmergenciaOuDuvida) {
+    return {
+      tipo: "plano-solucao-imediato",
+      titulo: "🚨 Plano de Solução Operacional Imediato",
+      situacao: p,
+      passosSolucao: [
+        {
+          ordem: 1,
+          acao: "Respira e organiza a bancada (PVPS)",
+          detalhe: "Priorize as comandas por ordem de chegada (a mais antiga primeiro). Não tente fazer tudo de uma vez.",
+        },
+        {
+          ordem: 2,
+          acao: "Acione o Líder de Turno ou Apoio Extra",
+          detalhe: "Ingrid B. está na liderança geral no Pass. Bruno S. está disponível para apoio imediato em 6 minutos.",
+        },
+        {
+          ordem: 3,
+          acao: "Alinhe o tempo de saída com o Salão",
+          detalhe: "Avise Rita H. (Salão) sobre eventuais pratos com tempo estendido para acalmar a mesa com entrada ou couvert.",
+        },
+      ],
+      respostaVoz: "Fique calmo! Organizei um plano de ação em 3 passos para resolver o seu rush agora. Você também pode acionar o apoio do Bruno ou falar com a Ingrid no Pass.",
+      solucaoTexto: "Solução imediata para destravar o serviço da praça sem erros nem estresse.",
+    };
+  }
+
+  // 10. RESPOSTA PADRÃO RESOLUTIVA (NUNCA DIZ "NÃO SEI", SEMPRE APRESENTA SOLUÇÕES E ENCAMINHAMENTOS)
+  return {
+    tipo: "plano-solucao-imediato",
+    titulo: `💡 Assistência & Solução para: "${p}"`,
+    situacao: p,
+    passosSolucao: [
+      {
+        ordem: 1,
+        acao: "Localização & Rastreio de Insumos",
+        detalhe: "Verifique os pré-preparos e cubas etiquetadas na Câmara Fria 1 (Prateleira 2) ou no Estoque Seco.",
+      },
+      {
+        ordem: 2,
+        acao: "Fichas Técnicas & Recálculo",
+        detalhe: "Consulte o modo de preparo oficial com fotos e vídeos, ou recalcule as quantidades caso falte algum ingrediente.",
+      },
+      {
+        ordem: 3,
+        acao: "Manuais de Equipamentos & Procedimentos",
+        detalhe: "Confira a voltagem correta (110V/220V), modo de encaixe e higienização aprovada pela ANVISA.",
+      },
+    ],
+    respostaVoz: "Entendido! Aqui estão as soluções imediatas para a sua dúvida na bancada. Você pode rastrear produtos, abrir receitas ou checar equipamentos.",
+    solucaoTexto: "Selecione uma das opções abaixo para resolver sua dúvida com segurança.",
+  };
+}

@@ -322,11 +322,11 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
             <label htmlFor="qtd-estoque" className="text-xs font-bold text-hf-text-2">Quantidade</label>
             <div className="mt-1 flex gap-2">
               <input id="qtd-estoque" inputMode="decimal" autoFocus value={form.qtd} onChange={(e) => setForm({ ...form, qtd: e.target.value })} placeholder="0"
-                className="h-14 w-28 min-w-0 rounded-xl border border-hf-border bg-hf-surface px-3 text-2xl font-black outline-none focus:border-hf-accent" />
+                className="h-14 w-32 min-w-0 rounded-2xl border border-zinc-200/80 bg-hf-surface px-3 text-2xl font-black outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/30 shadow-xs" />
               <div className="flex min-w-0 flex-1 flex-wrap gap-1.5" role="radiogroup" aria-label="Unidade">
                 {unidades.map((u) => (
                   <button key={u} type="button" role="radio" aria-checked={unidadeSel === u} onClick={() => setForm({ ...form, unidade: u })}
-                    className={`h-14 min-w-[3.5rem] flex-1 rounded-xl border px-2 text-sm font-black ${unidadeSel === u ? "border-hf-text bg-hf-text text-hf-surface" : "border-hf-border text-hf-text-2"}`}>
+                    className={`h-14 min-w-[3.5rem] flex-1 rounded-2xl border px-2 text-sm font-black transition-all active:scale-[0.98] ${unidadeSel === u ? "border-hf-text bg-hf-text text-hf-surface shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
                     {u}
                   </button>
                 ))}
@@ -346,7 +346,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
             <div className="mt-1 flex flex-wrap gap-1.5">
               {MOTIVOS[tipo].filter((m) => !m.pelaCompra && (!m.admin || seg?.pode_autorizar) && (m.codigo !== "transferencia_enviada" || destinos.length)).map((m) => (
                 <button key={m.codigo} onClick={() => setForm({ ...form, motivo: m.codigo, destino: "" })} aria-pressed={form.motivo === m.codigo}
-                  className={`h-10 rounded-xl border px-3 text-sm font-bold ${form.motivo === m.codigo ? "border-hf-text bg-hf-text text-hf-surface" : "border-hf-border text-hf-text-2"}`}>
+                  className={`h-10 rounded-xl border px-3 text-xs sm:text-sm font-bold transition-all active:scale-[0.98] ${form.motivo === m.codigo ? "border-hf-text bg-hf-text text-hf-surface shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
                   {m.admin && <Lock size={12} className="mr-1 inline" />}{m.rotulo}
                 </button>
               ))}
@@ -359,7 +359,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {destinos.map((d) => (
                   <button key={d.id} onClick={() => setForm({ ...form, destino: d.id })} aria-pressed={form.destino === d.id}
-                    className={`h-10 rounded-xl border px-3 text-sm font-bold ${form.destino === d.id ? "border-hf-accent bg-hf-accent/10 text-hf-accent" : "border-hf-border text-hf-text-2"}`}>{d.nome}</button>
+                    className={`h-10 rounded-xl border px-3 text-sm font-bold transition-all active:scale-[0.98] ${form.destino === d.id ? "border-hf-accent bg-hf-accent/10 text-hf-accent shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>{d.nome}</button>
                 ))}
               </div>
               <p className="mt-1 text-xs text-hf-muted">Sai de {estoque?.nome} e entra no destino numa operação só.</p>
@@ -395,7 +395,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
 
           {semPermissao && <p className="text-sm font-bold text-hf-danger">Seu perfil não pode lançar {tipo === "entrada" ? "entrada" : "retirada"} neste estoque. Peça ao administrador.</p>}
           <button onClick={confirmar} disabled={!pronto || enviando || semPermissao || bancoAntigo}
-            className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-40 ${corTipo}`}>
+            className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition-all active:scale-[0.98] shadow-card disabled:opacity-40 ${corTipo}`}>
             {enviando ? <><Loader2 size={18} className="animate-spin" /> Gravando...</>
               : <><Check size={20} /> Confirmar {ehTransferencia ? "transferência" : tipo === "entrada" ? "entrada" : "retirada"}{lanc && !lanc.erro ? ` · ${saldoOperacional(produto, lanc.quantidadeSaldo)}` : ""}</>}
           </button>
@@ -405,7 +405,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
 
       {/* últimos deste local */}
       {estoque && (
-        <section className="overflow-hidden rounded-2xl border border-hf-border bg-hf-surface">
+        <section className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-hf-surface shadow-card">
           <div className="flex items-center justify-between px-3 pt-3">
             <p className="text-sm font-black">Últimos em {estoque.nome}</p>
             <Link href={`/dashboard/operacao/estoque/historico?estoque=${estoqueId}`} className="text-xs font-bold text-hf-accent">Histórico completo</Link>

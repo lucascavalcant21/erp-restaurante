@@ -19,25 +19,27 @@ export function HubHeader({
   className = "",
 }) {
   return (
-    <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 ${className}`}>
+    <div
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200/80 ${className}`}
+    >
       <div className="flex items-center gap-3.5">
         {Icon && (
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200 shadow-inner">
-            <Icon size={28} />
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200 shadow-xs">
+            <Icon size={26} />
           </div>
         )}
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] uppercase tracking-widest font-extrabold text-emerald-600">
+            <span className="text-[10px] uppercase tracking-widest font-extrabold text-emerald-800">
               {domainTag}
             </span>
-            <span className="text-slate-600">•</span>
-            <span className="text-[11px] text-slate-500 font-medium">{unitName}</span>
+            <span className="text-zinc-300">•</span>
+            <span className="text-[11px] text-hf-text-2 font-semibold">{unitName}</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-black text-hf-text tracking-tight">
             {title}
           </h1>
-          {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+          {subtitle && <p className="text-xs font-medium text-hf-text-2 mt-0.5">{subtitle}</p>}
         </div>
       </div>
 
@@ -47,10 +49,10 @@ export function HubHeader({
             type="button"
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-600 hover:text-white hover:border-slate-700 active:scale-[0.98] transition-all min-h-[44px] cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-hf-surface border border-zinc-200/80 text-xs font-bold text-hf-text hover:bg-zinc-50 active:scale-[0.98] transition-all min-h-[44px] cursor-pointer shadow-xs"
             title="Atualizar dados"
           >
-            <RefreshCw size={15} className={isRefreshing ? "animate-spin text-emerald-600" : ""} />
+            <RefreshCw size={14} className={isRefreshing ? "animate-spin text-emerald-700" : "text-hf-text-2"} />
             <span className="hidden xs:inline">Atualizar</span>
           </button>
         )}
@@ -62,7 +64,7 @@ export function HubHeader({
 }
 
 /**
- * Card de Atenção / Banners de Alertas com Cores Semânticas Padronizadas
+ * Card de Atenção / Banners de Alertas com Cores Semânticas Padronizadas (Fundo Claro)
  * Red = Crítico / Atrasado / Falta
  * Amber = Alerta / Atenção / Vence Hoje
  * Green = Normal / Concluído / Em dia
@@ -79,24 +81,24 @@ export function HubAttentionCard({
   className = "",
 }) {
   const variantStyles = {
-    red: "bg-rose-950/30 border-rose-900/60 text-rose-200",
-    amber: "bg-amber-950/30 border-amber-900/60 text-amber-200",
-    green: "bg-emerald-950/20 border-emerald-900/40 text-emerald-200",
-    indigo: "bg-zinc-950/30 border-zinc-900/60 text-zinc-200",
-    slate: "bg-white/80 border-slate-200 text-slate-600",
+    red: "bg-rose-50 border-rose-200 text-rose-900 shadow-xs",
+    amber: "bg-amber-50 border-amber-200 text-amber-900 shadow-xs",
+    green: "bg-emerald-50 border-emerald-200 text-emerald-900 shadow-xs",
+    indigo: "bg-blue-50 border-blue-200 text-blue-900 shadow-xs",
+    slate: "bg-hf-surface border-zinc-200/80 text-hf-text shadow-card",
   };
 
   const iconColors = {
-    red: "bg-rose-500/20 text-rose-400",
-    amber: "bg-amber-500/20 text-amber-600",
-    green: "bg-emerald-500/20 text-emerald-600",
-    indigo: "bg-zinc-500/20 text-zinc-400",
-    slate: "bg-slate-50 text-slate-600",
+    red: "bg-rose-100 text-rose-700",
+    amber: "bg-amber-100 text-amber-700",
+    green: "bg-emerald-100 text-emerald-700",
+    indigo: "bg-blue-100 text-blue-700",
+    slate: "bg-zinc-100 text-zinc-700",
   };
 
   return (
     <div
-      className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-sm ${
+      className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
         variantStyles[variant] || variantStyles.slate
       } ${className}`}
     >
@@ -108,15 +110,15 @@ export function HubAttentionCard({
         )}
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-bold text-white">{title}</p>
+            <p className="text-sm font-bold text-hf-text">{title}</p>
             {badge && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-white/10 text-white border border-white/20">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-white border border-zinc-200 text-zinc-800 shadow-2xs">
                 {badge}
               </span>
             )}
           </div>
-          {subtitle && <p className="text-xs opacity-80 mt-0.5">{subtitle}</p>}
-          {description && <div className="text-xs opacity-90 mt-1">{description}</div>}
+          {subtitle && <p className="text-xs font-medium text-hf-text-2 mt-0.5">{subtitle}</p>}
+          {description && <div className="text-xs font-normal text-hf-text-2 mt-1 leading-relaxed">{description}</div>}
         </div>
       </div>
 
@@ -137,17 +139,17 @@ export function HubSectionHeader({
   className = "",
 }) {
   const badgeColors = {
-    red: "bg-rose-500/20 text-rose-300 border-rose-500/30",
-    amber: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    green: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-    slate: "bg-slate-50 text-slate-600 border-slate-700",
+    red: "bg-rose-50 text-rose-800 border-rose-200",
+    amber: "bg-amber-50 text-amber-800 border-amber-200",
+    green: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    slate: "bg-zinc-100 text-zinc-800 border-zinc-200",
   };
 
   return (
     <div className={`flex items-center justify-between gap-2 pb-1 ${className}`}>
       <div className="flex items-center gap-2">
-        {Icon && <Icon size={16} className="text-slate-500 shrink-0" />}
-        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600">
+        {Icon && <Icon size={16} className="text-hf-text-2 shrink-0" />}
+        <h2 className="text-xs font-bold uppercase tracking-wider text-hf-text-2">
           {title}
         </h2>
         {badgeText && (
@@ -170,7 +172,7 @@ export function HubSectionHeader({
  */
 export function HubCardContainer({ children, className = "" }) {
   return (
-    <div className={`p-4 sm:p-5 rounded-2xl bg-white/60 border border-slate-200/80 shadow-sm text-slate-900 ${className}`}>
+    <div className={`p-4 sm:p-5 rounded-2xl bg-hf-surface border border-zinc-200/80 shadow-card text-hf-text ${className}`}>
       {children}
     </div>
   );
@@ -191,11 +193,11 @@ export function HubActionButton({
   ...props
 }) {
   const variantStyles = {
-    primary: "bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold shadow-md",
-    secondary: "bg-slate-50 hover:bg-slate-700 text-slate-900 font-bold border border-slate-700/80",
-    outline: "bg-transparent hover:bg-slate-50/60 text-slate-600 hover:text-white border border-slate-700",
-    danger: "bg-rose-600 hover:bg-rose-500 text-white font-extrabold shadow-md",
-    ghost: "bg-transparent hover:bg-slate-50/40 text-slate-500 hover:text-white",
+    primary: "bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold shadow-sm active:scale-[0.98]",
+    secondary: "bg-zinc-50 hover:bg-zinc-100 text-hf-text font-bold border border-zinc-200/80 active:scale-[0.98] shadow-2xs",
+    outline: "bg-transparent hover:bg-emerald-50 text-emerald-800 font-bold border border-emerald-600/40 active:scale-[0.98]",
+    danger: "bg-rose-600 hover:bg-rose-700 text-white font-extrabold shadow-sm active:scale-[0.98]",
+    ghost: "bg-transparent hover:bg-zinc-100 text-hf-text-2 hover:text-hf-text",
   };
 
   return (
@@ -203,7 +205,7 @@ export function HubActionButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`min-h-[44px] px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer ${
+      className={`min-h-[44px] px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
         fullWidth ? "w-full" : ""
       } ${disabled ? "opacity-50 cursor-not-allowed active:scale-100" : ""} ${
         variantStyles[variant] || variantStyles.secondary
@@ -225,10 +227,10 @@ export function HubSkeleton({ height = "h-20", lines = 1, className = "" }) {
       {Array.from({ length: lines }).map((_, idx) => (
         <div
           key={idx}
-          className={`w-full rounded-2xl bg-white/60 border border-slate-200/80 animate-pulse p-4 ${height}`}
+          className={`w-full rounded-2xl bg-zinc-100/70 border border-zinc-200/60 animate-pulse p-4 ${height}`}
         >
-          <div className="h-4 bg-slate-50 rounded w-1/3 mb-2" />
-          <div className="h-3 bg-slate-50/60 rounded w-2/3" />
+          <div className="h-4 bg-zinc-200/60 rounded w-1/3 mb-2" />
+          <div className="h-3 bg-zinc-200/40 rounded w-2/3" />
         </div>
       ))}
     </div>
@@ -244,16 +246,16 @@ export function HubErrorState({
   className = "",
 }) {
   return (
-    <div className={`p-4 rounded-2xl bg-rose-950/30 border border-rose-900/60 text-rose-300 text-xs flex items-center justify-between gap-3 ${className}`}>
+    <div className={`p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between gap-3 shadow-xs ${className}`}>
       <div className="flex items-center gap-2">
-        <AlertCircle size={18} className="text-rose-400 shrink-0" />
-        <span>{message}</span>
+        <AlertCircle size={18} className="text-rose-600 shrink-0" />
+        <span className="font-semibold">{message}</span>
       </div>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="min-h-[44px] px-3 py-1.5 rounded-xl bg-rose-900/40 hover:bg-rose-900/60 text-rose-100 text-xs font-bold underline transition-colors shrink-0 cursor-pointer"
+          className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors shrink-0 cursor-pointer shadow-xs"
         >
           Tentar novamente
         </button>
@@ -267,7 +269,7 @@ export function HubErrorState({
  */
 export function HubListContainer({ children, className = "" }) {
   return (
-    <div className={`divide-y divide-slate-800/60 overflow-hidden ${className}`}>
+    <div className={`divide-y divide-zinc-100 overflow-hidden ${className}`}>
       {children}
     </div>
   );
@@ -281,7 +283,7 @@ export function HubListItem({ children, onClick, className = "" }) {
     <div
       onClick={onClick}
       className={`py-3 px-2 flex items-center justify-between gap-3 transition-colors ${
-        onClick ? "hover:bg-slate-50/30 cursor-pointer rounded-xl" : ""
+        onClick ? "hover:bg-zinc-50 cursor-pointer rounded-xl" : ""
       } ${className}`}
     >
       {children}

@@ -673,6 +673,11 @@ export const ROTINAS_LIMPEZA_HIGIENIZACAO = {
       { cor: "Azul", uso: "Exclusivo para Salão, Bandejas de Garçom e Mesas de Clientes" },
       { cor: "Laranja / Vermelho", uso: "Exclusivo para Chão, Rodapés e Lixeiras (NUNCA sobe para bancada!)" },
     ],
+    codigoCores: [
+      { cor: "Verde / Branco", uso: "Exclusivo para Bancadas de Manipulação e Corte de Alimentos" },
+      { cor: "Azul", uso: "Exclusivo para Salão, Bandejas de Garçom e Mesas de Clientes" },
+      { cor: "Laranja / Vermelho", uso: "Exclusivo para Chão, Rodapés e Lixeiras (NUNCA sobe para bancada!)" },
+    ],
     passos: [
       {
         passo: 1,

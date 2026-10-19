@@ -4,6 +4,7 @@ import {
   validarItensPedido,
   validarChamadoGarcom,
   formatarCatalogoExperience,
+  lerCardapioExperience,
   lancarPedidoMesaExperience,
   lerComandaMesaExperience,
   criarChamadoGarcomExperience,
@@ -407,3 +408,43 @@ test("obterMetricasIntelligenceExperience - consolidação de kpis e chamados", 
   assert.equal(res.metricas.campanhas.totalCampanhas, 1);
 });
 
+
+// ─── B-028: nada de prato, pedido ou chamado de mentira ─────────────────────
+
+test("lerCardapioExperience - sem banco ou com erro não mostra pratos de demonstração", async () => {
+  assert.equal((await lerCardapioExperience({ db: null, unidadeId: "seldeestrela" })).status, 503);
+  const comErro = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: { message: "boom" } }) }) }) }) };
+  assert.equal((await lerCardapioExperience({ db: comErro, unidadeId: "seldeestrela" })).status, 503);
+  const semLoja = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) };
+  assert.equal((await lerCardapioExperience({ db: semLoja, unidadeId: "outra" })).status, 404, "loja desconhecida não vira Seldeestrela");
+});
+
+test("lancarPedidoMesaExperience - sem banco não diz que enviou; mesa desconhecida não é criada", async () => {
+  const semBanco = await lancarPedidoMesaExperience({ db: null, unidadeId: "seldeestrela", mesaNumero: "4", itens: [{ id: "p1", quantidade: 1 }] });
+  assert.equal(semBanco.ok, false);
+  let inseriuMesa = false;
+  const db = {
+    from: (t) => {
+      assert.equal(t, "mesas");
+      return {
+        select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
+        insert: () => { inseriuMesa = true; return { select: () => ({ single: async () => ({ data: { id: "x" }, error: null }) }) }; },
+      };
+    },
+  };
+  const r = await lancarPedidoMesaExperience({ db, unidadeId: "seldeestrela", mesaNumero: "999", itens: [{ id: "p1", quantidade: 1 }] });
+  assert.equal(r.status, 404);
+  assert.equal(inseriuMesa, false);
+});
+
+test("criarChamadoGarcomExperience - sem gravar, não diz que o garçom foi avisado", async () => {
+  assert.equal((await criarChamadoGarcomExperience({ db: null, unidadeId: "seldeestrela", mesaNumero: "4", tipo: "garcom" })).ok, false);
+  const db = {
+    from: (t) => (t === "mesas"
+      ? { select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) }) }
+      : { insert: () => ({ select: () => ({ single: async () => ({ data: null, error: { message: 'relation "experience_chamados" does not exist' } }) }) }) }),
+  };
+  const r = await criarChamadoGarcomExperience({ db, unidadeId: "seldeestrela", mesaNumero: "4", tipo: "garcom" });
+  assert.equal(r.ok, false);
+  assert.equal(r.status, 503);
+});

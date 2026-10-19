@@ -669,8 +669,12 @@ export async function fetchPedidosOnlinePendentes(unidadeId) {
     `)
     .eq("unidade_id", unidadeId)
     .in("tipo_pedido", ["delivery", "ifood", "qrcode"])
-    .in("status", ["novo_online", "aberto", "preparando", "pendente", "saiu", "entregue"])
-    .order("created_at", { ascending: false });
+    // novo_online = recém-chegado do cardápio digital; preparando_delivery =
+    // aceito (estava fora da lista: o pedido sumia ao aceitar); pronto = a
+    // cozinha entregou no KDS. Entregue/pago já saíram do painel.
+    .in("status", ["novo_online", "aberto", "pendente", "preparando", "preparando_delivery", "pronto", "saiu"])
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   return { data: data || [], error: error?.message };
 }

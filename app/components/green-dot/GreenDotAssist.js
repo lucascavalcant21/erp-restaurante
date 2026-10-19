@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { supabase, isSupabaseReady } from "../../lib/supabase";
+import { fetchComSessao } from "../../lib/api-sessao.js";
 import {
   vozDisponivel,
   audioDisponivel,
@@ -433,7 +434,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
     // 7. Consulta conversacional aberta na rota de IA (/api/ia-green-dot)
     setCarregandoIA(true);
     try {
-      const res = await fetch("/api/ia-green-dot", {
+      const res = await fetchComSessao("/api/ia-green-dot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

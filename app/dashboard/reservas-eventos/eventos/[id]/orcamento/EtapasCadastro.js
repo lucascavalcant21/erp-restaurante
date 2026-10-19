@@ -125,9 +125,10 @@ function BuscaCliente({ unidadeAtiva, onEscolher }) {
     let ativo = true;
     const id = setTimeout(async () => {
       const digitos = t.replace(/\D/g, "");
-      const filtro = digitos.length >= 4 ? `telefone.ilike.%${digitos.slice(-4)}%,nome.ilike.%${t}%` : `nome.ilike.%${t}%`;
-      const { data, error } = await supabase.from("clientes").select("id, nome, telefone").eq("unidade_id", unidadeAtiva).or(filtro).limit(8);
-      if (ativo) setLista(error ? [] : data || []);
+      // No banco a coluna do telefone do cliente é `tel` (com `telefone` a busca falhava e a lista vinha sempre vazia).
+      const filtro = digitos.length >= 4 ? `tel.ilike.%${digitos.slice(-4)}%,nome.ilike.%${t}%` : `nome.ilike.%${t}%`;
+      const { data, error } = await supabase.from("clientes").select("id, nome, tel").eq("unidade_id", unidadeAtiva).or(filtro).limit(8);
+      if (ativo) setLista(error ? [] : (data || []).map((c) => ({ ...c, telefone: c.tel || "" })));
     }, 300);
     return () => { ativo = false; clearTimeout(id); };
   }, [termo, unidadeAtiva]);

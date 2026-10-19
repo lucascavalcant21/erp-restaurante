@@ -35,12 +35,13 @@ create index if not exists idx_experience_campanhas_unidade_status
 
 alter table experience_campanhas enable row level security;
 
+-- NUNCA APLICADA (a tabela não existe no banco real, conferido em 18/10/2026).
+-- Antes: leitura aberta a qualquer um (até sem login) e escrita para
+-- qualquer usuário logado de qualquer empresa. Agora: isolamento por
+-- unidade da SEC-RLS-1. O cardápio público lê pelo servidor.
 drop policy if exists "experience_campanhas_select_all" on experience_campanhas;
-create policy "experience_campanhas_select_all" on experience_campanhas
-  for select using (true);
-
 drop policy if exists "experience_campanhas_all_auth" on experience_campanhas;
-create policy "experience_campanhas_all_auth" on experience_campanhas
-  for all to authenticated
-  using (true)
-  with check (true);
+drop policy if exists sec_unidade on experience_campanhas;
+create policy sec_unidade on experience_campanhas for all to authenticated
+  using ((select public.hefisto_ve_todas_unidades()) or unidade_id::text in (select unnest(public.hefisto_unidades_do_usuario())))
+  with check ((select public.hefisto_ve_todas_unidades()) or unidade_id::text in (select unnest(public.hefisto_unidades_do_usuario())));

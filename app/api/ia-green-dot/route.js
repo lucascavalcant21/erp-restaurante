@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 const SISTEMA = `Você é o Green Dot Assist, o assistente operacional inteligente de restaurante do sistema Héfisto ERP, utilizado em tablets/iPads pela equipe de cozinha, bar e salão em tempo real.
 Responda SEMPRE em português do Brasil, de forma prática, direta, acolhedora e estruturada para leitura rápida no chão de loja.
@@ -10,6 +11,9 @@ Classifique também a intenção do colaborador em um dos fluxos visuais quando 
 - "geral": qualquer outra dúvida operacional de restaurante.`;
 
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const body = await request.json();
     const pergunta = String(body?.pergunta || "").trim();

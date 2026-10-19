@@ -151,146 +151,15 @@ export function formatarCatalogoExperience(produtos = [], unidadeInfo = {}) {
   };
 }
 
-export const CARDAPIO_DEMO_SELDEESTRELA = Object.freeze({
-  unidade: {
-    id: "seldeestrela",
-    nome: "Seldeestrela Gastronomia & Brasa",
-    logo_url: null,
-    aberta: true
-  },
-  categorias: [
-    "Entradas",
-    "Peixes & Frutos do Mar",
-    "Carnes & Brasa",
-    "Pratos Principais",
-    "Drinks & Coquetéis",
-    "Bebidas",
-    "Sobremesas"
-  ],
-  produtos: [
-    {
-      id: "prod-pirarucu",
-      nome_produto: "Pirarucu Grelhado com Crosta de Castanha-do-Pará",
-      categoria: "Peixes & Frutos do Mar",
-      departamento: "cozinha",
-      preco_venda: 89.00,
-      imagem_url: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=800&q=80",
-      tempo_preparo_base: 22,
-      descricao: "Lombo nobre de Pirarucu amazônico grelhado na brasa de angico, crosta crocante de castanhas e mousseline de mandioquinha defumada.",
-      harmonizacao: "Vinho Branco Sauvignon Blanc ou Caipirinha de Cupuaçu",
-      alergenicos: "Castanha-do-Pará (oleaginosas), Lactose",
-      historia_gastronomica: "O Pirarucu é o gigante das águas amazônicas. Nossa preparação honra as tradições ribeirinhas com um toque contemporâneo da brasa viva.",
-      destaque: true
-    },
-    {
-      id: "prod-angus",
-      nome_produto: "Costela Angus Braseada com Redução de Tucupi",
-      categoria: "Carnes & Brasa",
-      departamento: "cozinha",
-      preco_venda: 114.00,
-      imagem_url: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
-      tempo_preparo_base: 25,
-      descricao: "Corte nobre Angus cozido lentamente por 12 horas em baixa temperatura, glaceado com redução aveludada de tucupi negro e purê de cará.",
-      harmonizacao: "Vinho Tinto Cabernet Sauvignon ou Cerveja Artesanal IPA",
-      alergenicos: "Não contém glúten",
-      historia_gastronomica: "Fusão da nobreza do gado Angus do Sul com os segredos ancestrais do tucupi fermentado da bacia amazônica.",
-      destaque: true
-    },
-    {
-      id: "prod-ceviche",
-      nome_produto: "Ceviche Amazônico de Tambaqui & Jambu",
-      categoria: "Entradas",
-      departamento: "cozinha",
-      preco_venda: 58.00,
-      imagem_url: "https://images.unsplash.com/photo-1535400255456-984241443b29?auto=format&fit=crop&w=800&q=80",
-      tempo_preparo_base: 12,
-      descricao: "Cubos frescos de lombo de Tambaqui marinados em leite de tigre de tucupi amarelo, lâminas de cebola roxa e folhas frescas de jambu.",
-      harmonizacao: "Espumante Brut ou Gin Tônica Cítrica",
-      alergenicos: "Peixe fresco",
-      historia_gastronomica: "O toque vibrante e elétrico do jambu desperta as papilas gustativas para uma experiência sensorial inesquecível.",
-      destaque: true
-    },
-    {
-      id: "prod-risoto",
-      nome_produto: "Risoto de Cogumelos Nativos & Queijo Canastra",
-      categoria: "Pratos Principais",
-      departamento: "cozinha",
-      preco_venda: 76.00,
-      imagem_url: "https://images.unsplash.com/photo-1633964913295-ceb43826e7c9?auto=format&fit=crop&w=800&q=80",
-      tempo_preparo_base: 20,
-      descricao: "Arroz arbóreo preparado com mix de cogumelos frescos da estação, manteiga de garrafa e lascas generosas de queijo Canastra curado.",
-      harmonizacao: "Vinho Tinto Pinot Noir",
-      alergenicos: "Lactose, Derivados de leite",
-      historia_gastronomica: "Conexão perfeita entre o terroir dos queijos artesanais brasileiros e o umami profundo dos cogumelos de cultivo regenerativo.",
-      destaque: false
-    },
-    {
-      id: "prod-caipirinha",
-      nome_produto: "Caipirinha Autoral de Cupuaçu & Cachaça Envelhecida",
-      categoria: "Drinks & Coquetéis",
-      departamento: "bar",
-      preco_venda: 36.00,
-      imagem_url: "https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80",
-      tempo_preparo_base: 6,
-      descricao: "Polpa fresca de cupuaçu macerada com açúcar demerara orgânico, cachaça artesanal envelhecida em barril de umburana e gelo translúcido.",
-      harmonizacao: "Perfeito com entradas leves e petiscos de brasa",
-      alergenicos: "Contém álcool (18+)",
-      historia_gastronomica: "O cupuaçu com sua acidez elegante equilibra com maestria as notas de baunilha da madeira umburana.",
-      destaque: true
-    },
-    {
-      id: "prod-suco",
-      nome_produto: "Suco Natural de Graviola com Hortelã",
-      categoria: "Bebidas",
-      departamento: "bar",
-      preco_venda: 18.00,
-      imagem_url: "https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=800&q=80",
-      tempo_preparo_base: 5,
-      descricao: "Graviola natural batida com folhas frescas de hortelã fresca e gelo de água mineral.",
-      harmonizacao: "Refrescante para qualquer momento da refeição",
-      alergenicos: "Sem alérgenos",
-      historia_gastronomica: "Fruta tropical aveludada, rica em antioxidantes e com frescor herbal instantâneo.",
-      destaque: false
-    },
-    {
-      id: "prod-pudim",
-      nome_produto: "Pudim de Tapioca com Calda de Cumaru",
-      categoria: "Sobremesas",
-      departamento: "cozinha",
-      preco_venda: 32.00,
-      imagem_url: "https://images.unsplash.com/photo-1541783245831-57d6fb0926d3?auto=format&fit=crop&w=800&q=80",
-      tempo_preparo_base: 5,
-      descricao: "Textura sedosa de pérolas de tapioca hidratadas em leite de coco artesanal, servido com calda morna perfumada com semente de cumaru.",
-      harmonizacao: "Café Especial coado ou Vinho de Sobremesa",
-      alergenicos: "Lactose, Coco",
-      historia_gastronomica: "O cumaru é conhecido como a baunilha brasileira da floresta, trazendo um aroma inconfundível a esta clássica sobremesa.",
-      destaque: true
-    }
-  ],
-  campanhas: [
-    {
-      id: "camp-01",
-      produto_id: "prod-pirarucu",
-      produto_nome: "Pirarucu Grelhado com Crosta de Castanha",
-      foto_url: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=800&q=80",
-      mensagem_ia: "Descubra o prato assinatura mais elogiado do Seldeestrela nesta noite!",
-      local_exibicao: "abertura",
-      prioridade: 10,
-      objetivo: "destaque"
-    }
-  ]
-});
-
 /**
  * Lê o cardápio e status da unidade para a tela do Experience.
  */
 export async function lerCardapioExperience({ db, unidadeId }) {
   if (!idValido(unidadeId)) return falha(404, "unidade_invalida", "Restaurante não encontrado.");
 
-  // Se o banco estiver indisponível ou em execução local sem credenciais
-  if (!db) {
-    return { ok: true, ...CARDAPIO_DEMO_SELDEESTRELA };
-  }
+  // Sem banco não há cardápio. Antes caía num cardápio de demonstração e o
+  // cliente via pratos e preços que o restaurante não tem (B-028).
+  if (!db) return falha(503, "indisponivel", "Cardápio indisponível no momento.");
 
   try {
     const { data: u, error: eU } = await db
@@ -299,26 +168,20 @@ export async function lerCardapioExperience({ db, unidadeId }) {
       .eq("id", unidadeId)
       .maybeSingle();
 
-    if (eU || !u) {
-      // Degradação graciosa: se o restaurante não constar no banco, carrega Seldeestrela
-      return { ok: true, ...CARDAPIO_DEMO_SELDEESTRELA };
-    }
+    if (eU) return falha(503, "indisponivel", "Cardápio indisponível no momento.");
+    if (!u) return falha(404, "unidade_invalida", "Restaurante não encontrado.");
 
+    // Só colunas que existem em produção (descricao, harmonizacao, alergenicos
+    // e afins não existem em `produtos`: pedir por elas derrubava a consulta).
     const { data: prods, error: eP } = await db
       .from("produtos")
-      .select(`
-        id, nome_produto, categoria, departamento, preco_venda, imagem_url, 
-        tempo_preparo_base, tempo_preparo_min, descricao, harmonizacao, 
-        alergenicos, historia_gastronomica, destaque_experience
-      `)
+      .select("id, nome_produto, categoria, departamento, preco_venda, imagem_url, tempo_preparo_base")
       .eq("unidade_id", unidadeId)
       .eq("ativo", true)
       .order("categoria")
       .order("nome_produto");
 
-    const listaProdutos = eP || !prods || prods.length === 0
-      ? CARDAPIO_DEMO_SELDEESTRELA.produtos
-      : prods;
+    if (eP) return falha(503, "indisponivel", "Cardápio indisponível no momento.");
 
     let campanhasAtivas = [];
     try {
@@ -336,17 +199,13 @@ export async function lerCardapioExperience({ db, unidadeId }) {
         campanhasAtivas = camps;
       }
     } catch {
-      campanhasAtivas = CARDAPIO_DEMO_SELDEESTRELA.campanhas;
+      campanhasAtivas = [];
     }
 
-    const catalogo = formatarCatalogoExperience(listaProdutos, u);
-    return {
-      ok: true,
-      ...catalogo,
-      campanhas: campanhasAtivas.length > 0 ? campanhasAtivas : CARDAPIO_DEMO_SELDEESTRELA.campanhas
-    };
+    const catalogo = formatarCatalogoExperience((prods || []).filter((p) => numeroSeguro(p.preco_venda) > 0), u);
+    return { ok: true, ...catalogo, campanhas: campanhasAtivas };
   } catch {
-    return { ok: true, ...CARDAPIO_DEMO_SELDEESTRELA };
+    return falha(503, "indisponivel", "Cardápio indisponível no momento.");
   }
 }
 
@@ -370,16 +229,8 @@ export async function lancarPedidoMesaExperience({
   const numMesa = textoSeguro(mesaNumero, 10);
   if (!numMesa) return falha(400, "mesa_obrigatoria", "Número da mesa não especificado.");
 
-  if (!db) {
-    return {
-      ok: true,
-      pedidoId: `demo-ped-${Date.now()}`,
-      mesaNumero: numMesa,
-      totalPedido: itensLimpos.reduce((acc, it) => acc + (Number(it.preco_venda || 50) * Number(it.quantidade || 1)), 0),
-      itensLancados: itensLimpos.length,
-      mensagem: "Pedido enviado com sucesso à cozinha e ao bar!"
-    };
-  }
+  // Sem banco o pedido não chega a ninguém: dizer "enviado" seria mentir.
+  if (!db) return falha(503, "indisponivel", "Não foi possível enviar agora. Chame a equipe, por favor.");
 
   try {
     // 1. Identificar ou obter a mesa
@@ -392,21 +243,9 @@ export async function lancarPedidoMesaExperience({
 
     if (eMesa) return falha(503, "indisponivel", "Falha ao consultar mesa.");
 
-    // Se a mesa ainda não existe no cadastro, cria automaticamente para não travar o cliente
-    if (!mesa) {
-      const { data: novaMesa, error: eCriaMesa } = await db
-        .from("mesas")
-        .insert([{
-          unidade_id: unidadeId,
-          numero: numMesa,
-          status: "ocupada"
-        }])
-        .select("id, numero, status")
-        .single();
-
-      if (eCriaMesa) return falha(503, "indisponivel", "Erro ao inicializar mesa.");
-      mesa = novaMesa;
-    }
+    // Mesa que não está cadastrada não é criada aqui: qualquer pessoa com o
+    // link poderia encher o salão de mesas falsas (rota pública, service role).
+    if (!mesa) return falha(404, "mesa_nao_encontrada", "Não achamos esta mesa. Chame a equipe, por favor.");
 
     // 2. Localizar comanda aberta da mesa ou criar uma nova
     let { data: pedidoAberto, error: ePed } = await db
@@ -648,14 +487,7 @@ export async function criarChamadoGarcomExperience({
   if (!validacao.ok) return validacao;
   const { chamado } = validacao;
 
-  if (!db) {
-    return {
-      ok: true,
-      chamadoId: `demo-ch-${Date.now()}`,
-      rotulo: chamado.rotulo,
-      mensagem: `Solicitação de "${chamado.rotulo}" enviada com sucesso! Um garçom já foi avisado.`
-    };
-  }
+  if (!db) return falha(503, "indisponivel", "Não conseguimos chamar pelo celular agora. Acene para a equipe, por favor.");
 
   try {
     // Busca a mesa se existir
@@ -681,15 +513,9 @@ export async function criarChamadoGarcomExperience({
       .select("id, tipo, mesa_numero, status, created_at")
       .single();
 
-    if (error) {
-      // Se a tabela experience_chamados ainda não existir no ambiente específico,
-      // não quebra a UX do cliente: devolve confirmação graciosa.
-      return {
-        ok: true,
-        chamadoId: `temp-${Date.now()}`,
-        mensagem: `Solicitação de "${chamado.rotulo}" enviada para a equipe da mesa ${chamado.mesaNumero}.`
-      };
-    }
+    // Sem gravar, ninguém da equipe vê o chamado: o cliente precisa saber
+    // (antes respondia "garçom avisado" mesmo sem a tabela existir — B-028).
+    if (error) return falha(503, "indisponivel", "Não conseguimos chamar pelo celular agora. Acene para a equipe, por favor.");
 
     return {
       ok: true,
@@ -740,8 +566,9 @@ export async function listarChamadosAtivosExperience({ db, unidadeId }) {
 /**
  * Atualiza status do chamado no ERP pelo garçom/gerente.
  */
-export async function atualizarStatusChamadoExperience({ db, chamadoId, novoStatus, atendidoPor = null }) {
+export async function atualizarStatusChamadoExperience({ db, unidadeId, chamadoId, novoStatus, atendidoPor = null }) {
   if (!idValido(chamadoId)) return falha(400, "id_invalido", "Chamado não identificado.");
+  if (!idValido(unidadeId)) return falha(400, "unidade_invalida", "Unidade não identificada.");
 
   const statusPermitidos = ["em_atendimento", "concluido", "cancelado"];
   if (!statusPermitidos.includes(novoStatus)) {
@@ -761,10 +588,12 @@ export async function atualizarStatusChamadoExperience({ db, chamadoId, novoStat
       payload.concluido_em = new Date().toISOString();
     }
 
+    // Só chamado desta unidade (a rota já conferiu que o usuário tem acesso a ela).
     const { error } = await db
       .from("experience_chamados")
       .update(payload)
-      .eq("id", chamadoId);
+      .eq("id", chamadoId)
+      .eq("unidade_id", unidadeId);
 
     if (error) return falha(503, "indisponivel", "Erro ao atualizar atendimento.");
 

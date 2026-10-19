@@ -216,6 +216,9 @@ export const PERMISSION_MODULES = [
       { id: "crm", label: "CRM", route: "/dashboard/clientes/crm", actions: CRUD },
       { id: "campaigns", label: "Campanhas", route: "/dashboard/clientes/campanhas", actions: CRUD },
       { id: "nps", label: "NPS", route: "/dashboard/clientes/nps", actions: ["view", "edit", "export"] },
+      // Fidelidade: ver saldos (view), lançar selo de balcão/ajuste (edit), entregar prêmio e usar cashback (confirm).
+      // As mesmas chaves (clientes.loyalty.*) são conferidas no banco pelas funções da FIDELIDADE-1.
+      { id: "loyalty", label: "Fidelidade e cadastro", route: "/dashboard/clientes/fidelidade", actions: ["view", "edit", "confirm"] },
       { id: "coupons", label: "Cupons", route: "/dashboard/marketing/cupons", actions: CRUD },
     ],
   },
@@ -254,6 +257,9 @@ export const PERMISSION_MODULES = [
       { id: "units", label: "Gestão de unidades", route: "/dashboard/rede/gestao", actions: [...CRUD, "settings"] },
       { id: "network", label: "Visão da rede", route: "/dashboard/rede", actions: ["view", "view_values", "export"] },
       { id: "ai", label: "Assistente Heitor", route: "/dashboard/ia/heitor", actions: ["view", "create"] },
+      // Green Dot Assist (tablet da loja): conversa, fichas, manutenção e escala.
+      { id: "store_assistant", label: "Green Dot Assist (assistente da loja)", route: "/dashboard/assistente", actions: ["view", "create"] },
+      { id: "maintenance_assist", label: "Manutenção de equipamentos (assistente)", route: "/dashboard/operacao/manutencao", actions: ["view", "create"] },
       // Cobre por prefixo processos, rankings, nao-conformidades e a TV.
       { id: "operational_center", label: "Central Operacional", route: "/dashboard/operacao/inteligente", actions: [...CRUD, "confirm", "approve", "export"] },
       { id: "cleaning_supplies", label: "Produtos de limpeza na despensa", route: "/dashboard/operacao/limpeza", actions: [...CRUD, "adjust_stock"] },

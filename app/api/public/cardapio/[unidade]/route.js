@@ -2,8 +2,10 @@ import { responder, recusar, bancoDoServidor, freioPorIp } from "../../../../lib
 import { lerCardapioPublico } from "../../../../lib/server/negocio-publico.mjs";
 
 // SEC-DADOS-2 — cardápio público (/cardapio/[unidade]) sem leitura anônima de
-// `produtos` e `unidades`: só produtos ativos, com id, nome, preço e
-// categoria; da loja, só nome, se está aberta e a taxa de entrega.
+// `produtos`, `fichas_tecnicas` e `unidades`. Sai o cardápio montado no
+// servidor (app/lib/cardapio-digital.mjs): pratos visíveis com o preço que
+// vale agora, a vitrine que o dono configurou e, da loja, só nome, se o
+// delivery está aberto e a taxa de entrega.
 export const dynamic = "force-dynamic";
 
 export async function GET(request, { params }) {
@@ -11,11 +13,8 @@ export async function GET(request, { params }) {
   if (freio) return freio;
   const { unidade } = await params;
   const banco = bancoDoServidor();
-  const db = banco?.db || null;
-  const r = await lerCardapioPublico({ db, unidade });
-  if (!r.ok) {
-    if (banco.resposta) return banco.resposta;
-    return recusar(r);
-  }
-  return responder({ unidade: r.unidade, produtos: r.produtos });
+  if (banco.resposta) return banco.resposta;
+  const r = await lerCardapioPublico({ db: banco.db, unidade });
+  if (!r.ok) return recusar(r);
+  return responder({ cardapio: r.cardapio });
 }

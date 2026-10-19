@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "../../lib/supabase";
 import { Calendar, Users, MessageSquare, Phone, User, CheckCircle, ChevronRight, Loader2 } from "lucide-react";
 import { use } from "react";
 import { mascaraTelefone } from "../../lib/mascaras.mjs";
@@ -23,6 +22,8 @@ export default function OrcamentoPublicoPage({ params }) {
   
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
+  const [erro, setErro] = useState("");
+  const [isca, setIsca] = useState(""); // campo invisível: só robô preenche
   const [unidadeInfo, setUnidadeInfo] = useState(null);
 
   useEffect(() => {
@@ -38,30 +39,29 @@ export default function OrcamentoPublicoPage({ params }) {
     loadConfig();
   }, [unidadeStr]);
 
+  // O anon não tem acesso a `eventos` (nem grant nem policy): o pedido vai
+  // para o servidor, que confere os campos e acha a unidade pelo link.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setEnviando(true);
-
-    const tituloEvento = `${form.tipo} de ${form.nome.split(" ")[0]}`;
-
-    const { error } = await supabase.from("eventos").insert([{
-      unidade_id: unidadeStr,
-      nome: tituloEvento,
-      cliente_nome: form.nome,
-      cliente_telefone: form.telefone,
-      tipo_evento: "buffet",
-      funil_status: "NOVO CONTATO",
-      data_evento: form.data || null,
-      capacidade: Number(form.convidados) || 0,
-      observacoes: form.obs
-    }]);
-
-    setEnviando(false);
-    if (!error) {
-      setSucesso(true);
-    } else {
-      alert("Ocorreu um erro ao enviar seu pedido. Tente novamente ou nos chame no WhatsApp.");
+    setErro("");
+    let mensagem = "";
+    try {
+      const r = await fetch(`/api/public/eventos/${encodeURIComponent(unidadeStr)}/orcamento`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ form, website: isca }),
+      });
+      if (!r.ok) {
+        const json = await r.json().catch(() => ({}));
+        mensagem = json.erro || "Não foi possível enviar agora.";
+      }
+    } catch {
+      mensagem = "Sem conexão.";
     }
+    setEnviando(false);
+    if (!mensagem) setSucesso(true);
+    else setErro(`${mensagem} Tente novamente ou nos chame no WhatsApp.`);
   };
 
   if (sucesso) {
@@ -71,7 +71,7 @@ export default function OrcamentoPublicoPage({ params }) {
           <CheckCircle className="text-emerald-500 w-20 h-20 mx-auto mb-6" />
           <h1 className="text-2xl font-black text-slate-900 mb-2">Pedido Recebido!</h1>
           <p className="text-slate-500 font-medium mb-8">Nossa equipe de eventos analisará as informações e entrará em contato pelo WhatsApp em breve.</p>
-          <button onClick={() => window.location.reload()} className="h-12 w-full rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors">
+          <button onClick={() => window.location.reload()} className="h-12 w-full rounded-xl bg-hf-accent text-hf-accent-fg font-bold hover:brightness-110 transition">
             Enviar Novo Pedido
           </button>
         </div>
@@ -87,7 +87,7 @@ export default function OrcamentoPublicoPage({ params }) {
           {unidadeInfo?.config?.logo_url ? (
             <img src={unidadeInfo.config.logo_url} alt="Logo" className="h-16 mx-auto mb-6 object-contain" />
           ) : (
-            <div className="w-16 h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 font-black text-xl">
+            <div className="w-16 h-16 bg-hf-accent text-hf-accent-fg rounded-2xl flex items-center justify-center mx-auto mb-6 font-black text-xl">
               EVT
             </div>
           )}
@@ -126,7 +126,7 @@ export default function OrcamentoPublicoPage({ params }) {
             <label className="text-sm font-bold text-slate-700">Tipo de Evento</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {["Casamento", "Aniversário", "Corporativo", "Outro"].map(tipo => (
-                <label key={tipo} className={`border rounded-xl p-3 text-center cursor-pointer font-bold transition-all ${form.tipo === tipo ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
+                <label key={tipo} className={`border rounded-xl p-3 text-center cursor-pointer font-bold transition-all ${form.tipo === tipo ? 'bg-hf-accent border-hf-accent text-hf-accent-fg' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
                   <input type="radio" name="tipo" className="hidden" checked={form.tipo === tipo} onChange={() => setForm({...form, tipo})} />
                   {tipo}
                 </label>
@@ -140,6 +140,7 @@ export default function OrcamentoPublicoPage({ params }) {
               <input 
                 type="date" 
                 required
+                min={new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date())}
                 value={form.data}
                 onChange={e => setForm({...form, data: e.target.value})}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium outline-none focus:border-emerald-600 focus:bg-white transition-colors" 
@@ -168,6 +169,13 @@ export default function OrcamentoPublicoPage({ params }) {
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium outline-none focus:border-emerald-600 focus:bg-white transition-colors min-h-[100px] resize-y" 
             />
           </div>
+
+          <input type="text" name="website" value={isca} onChange={e => setIsca(e.target.value)}
+            tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
+
+          {erro && (
+            <p role="alert" className="rounded-xl border border-hf-danger/30 bg-hf-danger/10 px-4 py-3 text-sm font-semibold text-hf-danger">{erro}</p>
+          )}
 
           <button disabled={enviando} className="w-full h-14 rounded-xl bg-emerald-600 text-white font-black text-lg flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors disabled:opacity-50">
             {enviando ? <Loader2 className="animate-spin" /> : "Solicitar Orçamento"}

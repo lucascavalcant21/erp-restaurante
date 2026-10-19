@@ -22,4 +22,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 18/10/2026 | Cartões de selo por produto (vários, nº de selos do dono) e cashback para a próxima visita; pontos de programas externos | Feito (código + migração FIDELIDADE-1 testada no PGlite, aguarda APR-014). Pontos externos: BLQ-018 |
 | 18/10/2026 | Cadastro pelo QR (CRM) com 10% de desconto nos pedidos pelo app | Feito: `/cadastro/[unidade]`, QR no editor, desconto aplicado pelo servidor (primeiro pedido ou todos, à escolha do dono); depende da APR-014 |
 | 18/10/2026 | "Já vai publicando tudo" | Merge do PR #187 e deploy; migração FIDELIDADE-1 só com o sim do dono para ela (APR-014) |
-
+| 19/10/2026 | "Continue de onde parou" (KDS e impressão automática do pedido de 18/10) | Feito: KDS recebe salão, mesa pelo QR, delivery e iFood; impressão automática da via (assistente QZ ou navegador). Junto: pedidos online voltaram a aparecer (B-033) e duas falhas de segurança fechadas (S-30, S-31) |

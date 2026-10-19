@@ -51,6 +51,17 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
 - **Rodada 2 (Estoque, Financeiro, painel):** Financeiro com barra de áreas (Visão geral, A pagar, A receber, Caixa, DRE, Pizza, CMV); `/fluxo`, `/documentos` e `/margem` redirecionam (gravavam/liam tabelas fora do financeiro novo, B-024); CMV sem 0% inventado (B-023); Contas a Pagar em cartões no celular; Pizza do Lucro visível no celular; paleta sem fundo preto no Estoque e no Financeiro; abas do Estoque à vista no celular; painel inicial com faturamento vazio compacto. Simulador com o **esquema e o volume reais** (369 produtos, 374 saldos, 350 movimentos; leitura só). Mesmo resultado de testes; build OK.
 
+## 19/10/2026 — Merge da main, pedidos chegando à cozinha e impressão automática
+
+Mesmo branch (PR #187):
+- **FIDELIDADE-1 aplicada no banco real em 18/10** (APR-014, sim do dono): selos, cashback e cadastro pelo QR valendo assim que o dono ligar a fidelidade no editor.
+- **Merge da `main`**: o cardápio deste branch ficou (o da `main` gravava pedido como anônimo com sucesso falso). Três travas que a `main` quebrou foram corrigidas: Green Dot sem login (**S-30**) e duas telas fora do catálogo de permissões.
+- **Pedidos online (B-033)**: o pedido do cardápio (`novo_online`) não aparecia em Novos, e o aceito sumia da tela. Corrigido; aba MESA (QR) com "Servido na mesa".
+- **KDS (B-034)**: a cozinha não via pedido nenhum (a tela lia uma coluna que não existe). Agora lê `pedidos_itens`: salão, mesa pelo QR, delivery e iFood, por setor (Cozinha, Bar, Tudo).
+- **Impressão automática** no KDS: cada item novo sai na impressora deste aparelho (assistente QZ ou navegador). Acréscimo marcado, sem reimprimir. O assistente QZ nunca tinha carregado no navegador (**B-035**, corrigido).
+- **S-31**: a via impressa do pedido online deixava rodar HTML digitado pelo cliente. Corrigido.
+- Evidência: TESTADO LOCAL (app/lib 626/626 com PGLITE, sec-api-1 27/27, catálogo, build), TESTADO EM MOCK (Playwright: fila do KDS, setor, outra unidade fora, aceitar, KDS, pronto, impressão automática, XSS). NÃO VALIDADO com impressora física.
+
 ## 18/10/2026 — Cardápio digital, idiomas e fidelidade (pedido do dono)
 
 Branch `claude/sharp-meitner-0i36gu` → PR #187:

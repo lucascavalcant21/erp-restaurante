@@ -458,6 +458,11 @@ const SERVICOS_BLE_TERMICA = [
   0xffe0,
   "000018f0-0000-1000-8000-00805f9b34fb",
   "49535343-fe7d-4ae5-8fa9-9fafd205e455",
+  "e7810a71-73ae-499d-8c15-faa9aef0c3f2", // etiquetadoras TSPL (Xprinter/Gprinter e similares)
+  0xfee7,
+  0xfff0,
+  0xae30,
+  0xffb0,
 ];
 
 let impressoraBluetooth = null;
@@ -498,7 +503,7 @@ export async function conectarImpressoraBluetooth() {
   }
   if (!escrita) {
     try { device.gatt.disconnect(); } catch {}
-    throw new Error("A impressora conectou ao celular, mas não oferece impressão BLE ao navegador. Ela provavelmente usa Bluetooth Clássico; nesse caso use o aplicativo/driver Android da Tomato ou um conector de impressão compatível.");
+    throw new Error("A impressora conectou ao celular, mas não oferece impressão BLE ao navegador. Ela provavelmente usa só Bluetooth Clássico, que navegador nenhum alcança; nesse caso imprima pelo cabo USB ou pelo computador.");
   }
   impressoraBluetooth = { device, escrita };
   device.addEventListener("gattserverdisconnected", () => {
@@ -510,6 +515,9 @@ export async function conectarImpressoraBluetooth() {
 export function impressoraBluetoothConectada() {
   return !!(impressoraBluetooth?.device?.gatt?.connected && impressoraBluetooth?.escrita);
 }
+
+// Exportado para a etiquetadora TSPL (MDK-022) usar a mesma conexão Bluetooth.
+export async function enviarBytesTermicaBluetooth(bytes) { return escreverBluetooth(bytes); }
 
 async function escreverBluetooth(bytes) {
   if (!impressoraBluetoothConectada()) throw new Error("Conecte a impressora Bluetooth dentro do sistema antes de imprimir.");

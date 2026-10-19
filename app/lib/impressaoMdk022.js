@@ -979,7 +979,10 @@ export async function imprimirFilaMdk022Usb({
   setor = "cozinha",
   momento = new Date(),
   onStatusChange,
-  perfilFisico = null
+  perfilFisico = null,
+  // Transporte opcional: sem ele vai pelo cabo (WebUSB); com ele, os MESMOS
+  // bytes TSPL vão por outro meio (ex.: Bluetooth do celular).
+  enviar = null,
 }) {
   if (!Array.isArray(fila) || fila.length === 0) {
     throw new Error("A fila de etiquetas está vazia.");
@@ -993,9 +996,9 @@ export async function imprimirFilaMdk022Usb({
     throw new Error("ERRO PRINCIPAL: gerarComandosTsplMdk022 is not defined ou não é uma função.");
   }
 
-  // Conecta uma ÚNICA vez via WebUSB
-  const device = await obterDispositivoMdk022();
-  const endpointOut = device._endpointOutNumber || 2;
+  // Conecta uma ÚNICA vez via WebUSB (pelo Bluetooth a conexão já está aberta)
+  const device = enviar ? null : await obterDispositivoMdk022();
+  const endpointOut = device?._endpointOutNumber || 2;
 
   let processadas = 0;
   const nomeResponsavel = (responsavel?.nome || responsavel || "").toUpperCase().trim();
@@ -1035,6 +1038,11 @@ export async function imprimirFilaMdk022Usb({
     }
 
     try {
+      if (enviar) {
+        await enviar(buffer);
+        processadas += copiasItem;
+        continue;
+      }
       const resultado = await device.transferOut(endpointOut, buffer);
       const bytesEnviados = resultado.bytesWritten ?? 0;
       const status = resultado.status;

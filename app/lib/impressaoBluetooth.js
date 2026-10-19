@@ -2,8 +2,10 @@
 
 // IMPRESSÃO BLUETOOTH DIRETA (Web Bluetooth)
 // O tablet/celular Android fala direto com a impressora térmica, sem PC, sem
-// driver e sem AirPrint. O iPhone NÃO suporta Web Bluetooth — nele a impressão
-// continua pelo computador.
+// driver e sem AirPrint. No iPhone/iPad os navegadores comuns (Safari, Chrome
+// do iOS) bloqueiam Bluetooth para sites; o navegador Bluefy (App Store) libera,
+// e este mesmo código funciona nele. Só impressoras BLE: o iOS não fala o
+// Bluetooth "clássico" (SPP) com apps comuns.
 //
 // Impressoras térmicas de bolso expõem um "serial sobre BLE". Os serviços
 // abaixo cobrem os controladores mais comuns no mercado brasileiro.
@@ -14,6 +16,10 @@ const SERVICOS_CONHECIDOS = [
   "0000ffe0-0000-1000-8000-00805f9b34fb", // módulos HM-10 / JDY
   "0000fee7-0000-1000-8000-00805f9b34fb",
   "49535343-fe7d-4ae5-8fa9-9fafd205e455", // Microchip / ISSC (BM70)
+  "e7810a71-73ae-499d-8c15-faa9aef0c3f2", // etiquetadoras TSPL chinesas (Xprinter/Gprinter e similares)
+  "0000fff0-0000-1000-8000-00805f9b34fb", // módulos genéricos (fff1/fff2)
+  "0000ae30-0000-1000-8000-00805f9b34fb", // térmicas de bolso (ae01/ae02)
+  "0000ffb0-0000-1000-8000-00805f9b34fb",
 ];
 
 // Pedaço enviado por vez. BLE tem MTU pequeno; blocos grandes travam a fila.
@@ -48,7 +54,7 @@ export function motivoBluetoothIndisponivel() {
   const ehApple = /iPhone|iPad|iPod/i.test(ua)
     || (/Macintosh/i.test(ua) && Number(navigator.maxTouchPoints) > 1);
   if (ehApple) {
-    return "O iPhone e o iPad não deixam sites usarem Bluetooth. Use o tablet Android ou imprima pelo computador.";
+    return "No iPhone e no iPad, o Safari não deixa sites usarem Bluetooth. Instale o navegador gratuito \"Bluefy\" na App Store, abra o ERP por ele e toque em Conectar.";
   }
   return "Este navegador não suporta Bluetooth. Use o Google Chrome no Android.";
 }
@@ -78,7 +84,10 @@ export async function conectarImpressoraBluetooth() {
     if (escrevivel) { caracteristica = escrevivel; break; }
   }
   if (!caracteristica) {
-    throw new Error("Conectei na impressora, mas ela não aceitou receber dados. Confira se é o modelo certo.");
+    // Lista o que a impressora ofereceu: com isso dá para incluir o serviço dela.
+    const achados = servicos.map((s) => s.uuid).join(", ") || "nenhum serviço liberado";
+    console.warn("[BLUETOOTH] sem característica de escrita. Serviços:", achados);
+    throw new Error(`Conectei na impressora, mas ela não aceitou receber dados (serviços: ${achados}). Mande este texto para o suporte.`);
   }
   return { nome: dispositivo.name || "Impressora Bluetooth" };
 }

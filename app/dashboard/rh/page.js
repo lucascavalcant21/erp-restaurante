@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 import { comFecharImpressao } from "../../lib/imprimir";
+import { imprimirReciboExtra } from "../../lib/recibo-extra";
 import { abrirArquivoRH } from "../../lib/rh-arquivos";
 import PlanoCargos, { imprimirCertificadoPromocao } from "./components/PlanoCargos";
 import CampoDecimal from "../../components/CampoDecimal";
@@ -188,6 +189,8 @@ export default function RHPage() {
       setModalEscolherExtra(true);
       return;
     }
+    router.push(`/dashboard/rh/extra/${f.id}/recibo`);
+    return;
     setFichaFunc(f);
     setFichaValor(f?.salario ? String(f.salario) : "");
     setFichaDias("1");
@@ -891,277 +894,43 @@ export default function RHPage() {
   };
 
   const imprimirFichaExtra = (funcionario, opcoes = {}) => {
-    const hoje = new Date().toLocaleDateString('pt-BR');
     const dados = opcoes.dados || {};
-    const esc = (valor) => String(valor ?? "").replace(/[&<>"]/g, caractere => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;",
-    }[caractere]));
-    const seguro = (valor, vazio = "—") => esc(String(valor || "").trim() || vazio);
-    const dataBR = (valor) => {
-      if (!valor) return "—";
-      const [ano, mes, dia] = String(valor).slice(0, 10).split("-");
-      return ano && mes && dia ? `${dia}/${mes}/${ano}` : valor;
-    };
-    const nome = seguro(dados.nome || funcionario?.nome);
-    const cpf = seguro(formatarCPF(dados.cpf || funcionario?.cpf));
-    const rg = seguro(dados.rg || funcionario?.rg);
-    const cargo = seguro(dados.funcao || funcionario?.cargo);
-
-    // Diária desmembrada (mesma regra do "Lançar Diária"): fixo + INSS 5% + FGTS 8% + taxa de serviço 10%
-    // O valor digitado na hora da impressão tem prioridade sobre o cadastro.
     const diariaTotal = parseFloat(String(opcoes.diaria ?? (funcionario?.salario || "")).replace(",", ".")) || 0;
-    // Nº de dias combinados (ex.: terça a domingo = 6). O total soma diária × dias.
     const dias = Math.max(1, Number(opcoes.dias) || 1);
     const totalGeral = diariaTotal * dias;
-    // Itens escolhidos na hora (ou o kit padrão)
-    const itensLista = Array.isArray(opcoes.itens) && opcoes.itens.length ? opcoes.itens : ITENS_FICHA_PADRAO;
-    const dInss = diariaTotal * 0.05;
-    const dFgts = diariaTotal * 0.08;
-    const dTaxa = diariaTotal * 0.10;
-    const dFixo = diariaTotal - dInss - dFgts - dTaxa;
-    const money = (v) => diariaTotal > 0 ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "";
-    const moedaOpcional = (valor) => {
-      const numero = parseFloat(String(valor || "").replace(",", ".")) || 0;
-      return numero ? `R$ ${numero.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "R$ 0,00";
-    };
-    const telefone = seguro(dados.telefone || funcionario?.telefone);
-    const pix = seguro(dados.chave_pix || funcionario?.chave_pix);
-    const endereco = seguro(formatarEnderecoComp(dados, funcionario));
-    const horaIni = seguro(dados.entrada || funcionario?.horario_entrada);
-    const horaFim = seguro(dados.saida_final || funcionario?.horario_saida);
-    const diariaAcordada = diariaTotal > 0 ? money(diariaTotal) : "R$ 0,00";
     const valeTransporte = parseFloat(String(dados.vale_transporte || "").replace(",", ".")) || 0;
     const adicional = parseFloat(String(dados.adicional || "").replace(",", ".")) || 0;
     const descontos = parseFloat(String(dados.descontos || "").replace(",", ".")) || 0;
-    const totalPagar = Math.max(0, totalGeral + valeTransporte + adicional - descontos);
-    const reciboNumero = opcoes.numero || `RPS-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${String(funcionario?.id || Date.now()).slice(-6).toUpperCase()}`;
-    const topicosFuncao = String(dados.topicos_funcao || "").split("\n").map(l => l.trim()).filter(Boolean);
-    
-    const html = `
-      <html>
-        <head>
-          <title>Recibo de Prestação de Serviço</title>
-          <style>
-            @page { size: A4 portrait; margin: 9mm; }
-            * { box-sizing: border-box; }
-            body { font-family: Inter, Arial, sans-serif; padding: 4px; color: #172033; line-height: 1.35; font-size: 11px; }
-            .document-header { display:flex; align-items:center; justify-content:space-between; gap:18px; background:linear-gradient(135deg,#064e3b,#047857); color:#fff; border-radius:12px; padding:15px 18px; margin-bottom:12px; }
-            .brand { font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; opacity:.9; }
-            h1 { margin: 3px 0 2px; font-size: 21px; line-height:1.05; letter-spacing:.02em; }
-            .subtitle { font-size:9px; opacity:.82; }
-            .receipt-id { text-align:right; font-size:9px; line-height:1.5; white-space:nowrap; }
-            .section { margin-bottom: 10px; break-inside: avoid; }
-            .section-title { font-size: 10px; font-weight: 900; color:#065f46; border-left:4px solid #10b981; background:#ecfdf5; padding: 5px 8px; border-radius: 0 6px 6px 0; margin-bottom: 6px; text-transform: uppercase; letter-spacing:.08em; }
-            .data-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; }
-            .field { border-bottom:1px solid #cbd5e1; padding:3px 2px 5px; min-height:24px; }
-            .field span { display:block; color:#64748b; font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
-            .field strong { display:block; margin-top:2px; font-size:11px; color:#172033; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-            th, td { border: 1px solid #cbd5e1; padding: 5px 7px; text-align: left; font-size: 10px; }
-            th { background: #f1f5f9; font-size: 8px; text-transform: uppercase; color: #475569; letter-spacing:.04em; }
-            .signature-box { height: 34px; }
-            .checkbox { width: 12px; height: 12px; border: 1px solid #64748b; display: inline-flex; align-items:center; justify-content:center; margin-right: 6px; vertical-align: middle; border-radius: 3px; font-size:9px; font-weight:900; }
-            .agreement { font-size:9px; color:#334155; border:1px solid #cbd5e1; border-radius:8px; padding:7px 9px; line-height:1.45; margin:0; background:#f8fafc; }
-            .signatures { display:flex; justify-content:space-between; gap:34px; margin-top:34px; }
-            .signature { flex:1; border-top:1px solid #172033; padding-top:4px; text-align:center; font-size:9px; }
-            .topics-box { background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:7px 10px; font-size:10px; line-height:1.5; color:#1e293b; }
-            .topic-item { margin-bottom:3px; display:flex; align-items:flex-start; gap:4px; }
-            @media print { body { padding: 0; } }
-          </style>
-        </head>
-        <body>
-          <header class="document-header">
-            <div>
-              <div class="brand">${seguro(unidadeInfo?.nome, "Seldeestrela")}</div>
-              <h1>RECIBO DE PRESTAÇÃO DE SERVIÇO</h1>
-              <div class="subtitle">Comprovante de diária, atribuições operacionais e acerto financeiro</div>
-            </div>
-            <div class="receipt-id"><strong>${reciboNumero}</strong><br/>Emitido em ${hoje}<br/>Via do Restaurante e do Prestador</div>
-          </header>
+    const totalPagar = opcoes.recibo?.valor_total ?? Math.max(0, totalGeral + valeTransporte + adicional - descontos);
+    const reciboNumero = opcoes.numero || opcoes.recibo?.numero || `RPS-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${String(funcionario?.id || Date.now()).slice(-6).toUpperCase()}`;
 
-          <div class="section">
-             <div class="section-title">Dados Pessoais do Prestador</div>
-             <div class="data-grid">
-                <div class="field"><span>Nome completo</span><strong>${nome}</strong></div>
-                <div class="field"><span>CPF / RG</span><strong>${cpf} · ${rg}</strong></div>
-                <div class="field" style="grid-column:1/-1"><span>Endereço (Rua/Av, Nº, Bairro)</span><strong>${endereco}</strong></div>
-                <div class="field"><span>Telefone</span><strong>${telefone}</strong></div>
-                <div class="field"><span>Chave PIX</span><strong>${pix}</strong></div>
-             </div>
-          </div>
+    const reciboMontado = opcoes.recibo || {
+      numero: reciboNumero,
+      data_trabalho: dados.data_trabalho || new Date().toISOString().slice(0, 10),
+      datas_contratadas: Array.isArray(dados.datas_contratadas) && dados.datas_contratadas.length
+        ? dados.datas_contratadas
+        : [dados.data_trabalho || new Date().toISOString().slice(0, 10)],
+      dias_contratados: dias,
+      valor_diaria: diariaTotal,
+      valor_total: totalPagar,
+      pagamento_realizado: dados.pagamento_realizado !== false,
+      data_pagamento: dados.data_pagamento || new Date().toISOString().slice(0, 10),
+      forma_pagamento: dados.forma_pagamento || "Pix",
+      hora_entrada: dados.entrada || funcionario?.horario_entrada || null,
+      hora_saida: dados.saida_final || dados.saida || funcionario?.horario_saida || null,
+      funcao: dados.funcao || funcionario?.cargo || "Colaborador",
+      itens: Array.isArray(opcoes.itens) ? opcoes.itens : [],
+      dados,
+    };
 
-          <div class="section">
-             <div class="section-title">Acordo de Trabalho e Função</div>
-             <div class="data-grid">
-                <div class="field"><span>Data do trabalho</span><strong>${dataBR(dados.data_trabalho)}</strong></div>
-                <div class="field"><span>Evento / ocasião</span><strong>${seguro(dados.evento)}</strong></div>
-                <div class="field"><span>Função exercida</span><strong>${cargo}</strong></div>
-                <div class="field"><span>Carga acordada</span><strong>${horaIni} às ${horaFim} · intervalo ${seguro(dados.intervalo)}</strong></div>
-                <div class="field" style="grid-column:1/-1"><span>Benefício durante o turno</span><strong>${dados.janta_ofertada ? "Janta ofertada pelo restaurante" : "Janta não incluída"}</strong></div>
-                <div style="grid-column: 1 / -1; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:6px 9px;">
-                   <strong>Diária acordada: ${diariaAcordada}</strong>
-                   ${dias > 1 ? `&nbsp;·&nbsp; <strong>Dias: ${dias}</strong> &nbsp;·&nbsp; <strong>Subtotal: ${money(totalGeral) || "R$ 0,00"}</strong>` : ""}
-                   <span style="color:#64748b; font-size:8px; display:block; margin-top:2px;">Valores e composição detalhados no acerto financeiro.</span>
-                </div>
-             </div>
-          </div>
-
-          ${topicosFuncao.length > 0 ? `
-          <div class="section">
-             <div class="section-title">Atribuições / O que fará no trabalho</div>
-             <div class="topics-box">
-                ${topicosFuncao.map(t => `<div class="topic-item"><span>•</span> <span>${esc(t.replace(/^[•\-\*]\s*/, ""))}</span></div>`).join("")}
-             </div>
-          </div>
-          ` : ""}
-
-          <div class="section">
-             <div class="section-title">Controle de Ponto (Turno)</div>
-             <table>
-               <thead>
-                 <tr>
-                   <th>Entrada</th>
-                   <th>Saída Intervalo</th>
-                   <th>Retorno Intervalo</th>
-                   <th>Saída Final</th>
-                 </tr>
-               </thead>
-               <tbody>
-                 <tr>
-                   <td class="signature-box"><strong>${horaIni}</strong></td>
-                   <td class="signature-box"><strong>${seguro(dados.saida_intervalo)}</strong></td>
-                   <td class="signature-box"><strong>${seguro(dados.retorno_intervalo)}</strong></td>
-                   <td class="signature-box"><strong>${horaFim}</strong></td>
-                 </tr>
-               </tbody>
-             </table>
-          </div>
-
-          <div class="section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start;">
-            <div>
-             <div class="section-title">Itens Disponibilizados pela Empresa</div>
-             <p style="font-size: 10px; color: #64748b; margin: 0 0 6px;"><strong>Declaro ter recebido os itens abaixo em perfeito estado</strong> para uso em serviço, e me comprometo a <strong>devolvê-los em perfeito estado, no CAIXA, ao término do turno</strong>. Em caso de perda ou dano, o valor poderá ser descontado do acerto da diária.</p>
-
-             <table>
-               <thead>
-                 <tr>
-                   <th style="width: 46%;">Item Emprestado</th>
-                   <th>Visto Receb.</th>
-                   <th>Visto Devol.</th>
-                 </tr>
-               </thead>
-               <tbody>
-                 ${itensLista.map(item => `
-                 <tr>
-                   <td><span class="checkbox">✓</span> ${esc(item)}</td>
-                   <td class="signature-box"></td>
-                   <td class="signature-box"></td>
-                 </tr>`).join("")}
-               </tbody>
-            </table>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; font-size: 10px;">
-               <div><strong>Entregue por:</strong><br/>${seguro(dados.responsavel_entrega)}</div>
-               <div><strong>Local / setor:</strong><br/>${seguro(dados.setor_entrega)}</div>
-               <div><strong>Devolução conferida por:</strong><br/>${seguro(dados.conferencia_devolucao)}</div>
-               <div><strong>Horário da devolução:</strong> ${seguro(dados.horario_devolucao)}<br/></div>
-            </div>
-            </div>
-
-            <div>
-               <div class="section-title">Acerto Financeiro (Desmembramento)</div>
-               <table>
-                 <thead>
-                   <tr>
-                     <th>Descrição</th>
-                     <th>Valor (R$)</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   <tr>
-                     <td>Valor Fixo</td>
-                     <td>${money(dFixo)}</td>
-                   </tr>
-                   <tr>
-                     <td>INSS (5%)</td>
-                     <td>${money(dInss)}</td>
-                   </tr>
-                   <tr>
-                     <td>FGTS (8%)</td>
-                     <td>${money(dFgts)}</td>
-                   </tr>
-                   <tr>
-                     <td>Taxa de Serviço (10%)</td>
-                     <td>${money(dTaxa)}</td>
-                   </tr>
-                   <tr style="background:#f8fafc;">
-                     <td><strong>Diária Base (soma)</strong></td>
-                     <td><strong>${money(diariaTotal)}</strong></td>
-                   </tr>
-                   ${dias > 1 ? `<tr style="background:#f1f5f9;">
-                     <td><strong>Total dos dias (${dias} × ${money(diariaTotal) || "diária"})</strong></td>
-                     <td><strong>${diariaTotal > 0 ? money(totalGeral) : ""}</strong></td>
-                   </tr>` : ""}
-                   <tr>
-                     <td>Vale Transporte / Passagem</td>
-                     <td>${moedaOpcional(dados.vale_transporte)}</td>
-                   </tr>
-                   <tr>
-                     <td>Adicional / Bônus</td>
-                     <td>${moedaOpcional(dados.adicional)}</td>
-                   </tr>
-                   <tr>
-                     <td>Descontos / Faltas / Quebras</td>
-                     <td>${moedaOpcional(dados.descontos)}</td>
-                   </tr>
-                   <tr>
-                     <td><strong>Total a Pagar${dias > 1 ? ` (${dias} dias)` : ""}</strong></td>
-                     <td><strong>${diariaTotal > 0 ? `R$ ${totalPagar.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "R$ 0,00"}</strong></td>
-                   </tr>
-                 </tbody>
-               </table>
-               
-               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; font-size: 10px;">
-                  <div>
-                    <strong>Forma de Pagamento:</strong><br/>
-                    <span class="checkbox" style="margin-top:3px;">${dados.forma_pagamento === "Pix" ? "✓" : ""}</span> Pix
-                    <span class="checkbox" style="margin-top:3px; margin-left: 10px;">${dados.forma_pagamento === "Dinheiro" ? "✓" : ""}</span> Dinheiro
-                    <span class="checkbox" style="margin-top:3px; margin-left: 10px;">${dados.forma_pagamento === "Transferência" ? "✓" : ""}</span> Transferência
-                  </div>
-                  <div>
-                    <strong>Assinatura de Recebimento:</strong><br/>
-                    <div style="border-bottom: 1px solid #000; width: 100%; height: 18px;"></div>
-                  </div>
-               </div>
-               <div style="margin-top:6px; padding:6px 8px; border-radius:6px; background:${dados.pagamento_realizado ? "#ecfdf5" : "#fff7ed"}; color:${dados.pagamento_realizado ? "#065f46" : "#9a3412"}; font-size:9px; font-weight:800;">
-                 ${dados.pagamento_realizado ? `Pagamento realizado em ${dataBR(dados.data_pagamento)}.` : "Pagamento pendente."}
-               </div>
-            </div>
-            </div>
-
-            <div class="section" style="margin-top: 14px;">
-               <p class="agreement">
-                  Declaro que <strong>li e estou de acordo</strong> com o valor da diária e seu desmembramento (valor fixo, INSS, FGTS e taxa de serviço), com a carga de trabalho acordada para o dia e com a responsabilidade pela devolução dos itens recebidos, em perfeito estado, no caixa, ao término do turno.
-               </p>
-               <div class="signatures">
-                  <div class="signature">
-                     Assinatura do profissional extra
-                  </div>
-                  <div class="signature">
-                     Assinatura do responsável da empresa
-                  </div>
-               </div>
-               <p style="font-size: 8px; color: #94a3b8; margin-top: 10px; text-align: center; margin-bottom: 0;">Documento ${reciboNumero} · Emitido pelo sistema em ${hoje} · Arquivar junto ao cadastro do profissional.</p>
-            </div>
-          </body>
-        </html>
-    `;
-
-    const win = window.open("", "_blank");
-    if (!win) return alert("Habilite pop-ups para gerar o recibo.");
-    win.document.write(comFecharImpressao(html));
-    win.document.close();
-    setTimeout(() => win.print(), 500);
+    return imprimirReciboExtra({
+      extra: funcionario,
+      funcionario,
+      recibo: reciboMontado,
+      unidade: unidadeInfo,
+      unidadeInfo,
+      unidadeNome: unidadeInfo?.nome,
+    });
   };
 
   const imprimirPerfilFuncionario = (f) => {
@@ -2133,9 +1902,7 @@ export default function RHPage() {
                      <Acao icon={Link2} cor="text-zinc-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => compartilharLinkAtualizacao(f))}>Link para atualizar dados</Acao>
                      <Acao icon={FileText} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => gerarContrato(f))}>Contrato de Trabalho</Acao>
                      <Acao icon={FileText} onClick={() => ir(() => router.push(`/dashboard/rh/contrato/${f.id}`))}>Regulamento</Acao>
-                     {f.tipo_contrato === "Freelancer" && (
-                        <Acao icon={Printer} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => abrirModalFicha(f))}>Recibo de Trabalho Extra</Acao>
-                     )}
+                     <Acao icon={Printer} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => abrirModalFicha(f))}>Recibo de Pagamento / Extra</Acao>
                      <Acao icon={Upload} onClick={() => ir(() => acionarUpload(f))}>Anexar Documento</Acao>
                      </div>
                      {(f.docs || []).length > 0 && <div className="mt-4 space-y-2 border-t border-line pt-4"><p className="text-3xs font-bold uppercase tracking-widest text-subtle">Arquivos anexados</p>{(f.docs || []).map(d => (
@@ -2726,42 +2493,48 @@ export default function RHPage() {
       )}
 
       {/* Modal Gerenciar Folgas */}
-      {/* O recibo só pode ser gerado para um extra já cadastrado */}
+      {/* O recibo pode ser gerado para qualquer funcionário (Extra ou Fixo) */}
       {modalEscolherExtra && (() => {
          const extrasCadastrados = funcionarios
-           .filter(f => f.tipo_contrato === "Freelancer" && !ehInativo(f))
+           .filter(f => !ehInativo(f))
            .filter(f => String(f.nome || "").toLocaleLowerCase("pt-BR").includes(buscaRecibo.toLocaleLowerCase("pt-BR")));
          return (
            <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => setModalEscolherExtra(false)}>
              <div className="w-full max-w-xl overflow-hidden rounded-3xl bg-card shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-start justify-between gap-3 border-b border-line p-5">
                  <div>
-                   <p className="text-3xs font-bold uppercase tracking-widest text-accent">Recibo de Trabalho Extra</p>
-                   <h2 className="mt-1 text-xl font-black text-fg">Escolha um extra cadastrado</h2>
-                   <p className="mt-1 text-xs font-bold text-fg">Por segurança, não é possível gerar recibo para uma pessoa sem cadastro.</p>
+                   <p className="text-3xs font-bold uppercase tracking-widest text-accent">Recibo de Pagamento (Extra ou Fixo)</p>
+                   <h2 className="mt-1 text-xl font-black text-fg">Escolha o funcionário</h2>
+                   <p className="mt-1 text-xs font-bold text-fg">Gere recibo com diferentes valores por dia, descontos de produtos e pagamento dividido (2 vias na mesma folha A4).</p>
                  </div>
                  <button onClick={() => setModalEscolherExtra(false)} className="rounded-full bg-card p-2.5 text-fg"><X size={18}/></button>
                </div>
                <div className="p-5">
                  <div className="flex items-center gap-2 rounded-xl border border-line px-3">
                    <Search size={17} className="text-subtle"/>
-                   <input autoFocus value={buscaRecibo} onChange={e => setBuscaRecibo(e.target.value)} placeholder="Buscar extra por nome..." className="w-full bg-transparent py-3 text-sm font-bold text-fg-soft outline-none"/>
+                   <input autoFocus value={buscaRecibo} onChange={e => setBuscaRecibo(e.target.value)} placeholder="Buscar funcionário (Extra ou Fixo) por nome..." className="w-full bg-transparent py-3 text-sm font-bold text-fg-soft outline-none"/>
                  </div>
                  <div className="mt-3 max-h-[50vh] space-y-2 overflow-y-auto">
-                   {extrasCadastrados.length ? extrasCadastrados.map(extra => (
-                     <button key={extra.id} onClick={() => { setModalEscolherExtra(false); abrirModalFicha(extra); }} className="flex w-full items-center gap-3 rounded-xl border border-line p-3 text-left hover:border-emerald-300 hover:bg-emerald-50">
-                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-black text-emerald-700">{String(extra.nome || "E").charAt(0).toUpperCase()}</div>
-                       <div className="min-w-0 flex-1">
-                         <p className="truncate text-sm font-black text-slate-800">{extra.nome}</p>
-                         <p className="truncate text-xs font-bold text-subtle">{extra.cargo || "Extra"} · {extra.cpf || "CPF não informado"} · {fmtBRL(extra.salario || 0)}/diária</p>
-                       </div>
-                       <Printer size={17} className="text-accent"/>
-                     </button>
-                   )) : (
+                   {extrasCadastrados.length ? extrasCadastrados.map(extra => {
+                     const ehFree = extra.tipo_contrato === "Freelancer";
+                     return (
+                       <button key={extra.id} onClick={() => { setModalEscolherExtra(false); abrirModalFicha(extra); }} className="flex w-full items-center gap-3 rounded-xl border border-line p-3 text-left hover:border-emerald-300 hover:bg-emerald-50">
+                         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-black ${ehFree ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>{String(extra.nome || "F").charAt(0).toUpperCase()}</div>
+                         <div className="min-w-0 flex-1">
+                           <div className="flex items-center gap-2">
+                             <p className="truncate text-sm font-black text-slate-800">{extra.nome}</p>
+                             <span className={`rounded-full px-2 py-0.5 text-3xs font-bold uppercase ${ehFree ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"}`}>{ehFree ? "Extra" : "Fixo"}</span>
+                           </div>
+                           <p className="truncate text-xs font-bold text-subtle">{extra.cargo || (ehFree ? "Extra" : "Fixo")} · {extra.cpf || "CPF não informado"} · {fmtBRL(extra.salario || 0)}{ehFree ? "/diária" : "/mês"}</p>
+                         </div>
+                         <Printer size={17} className="text-accent"/>
+                       </button>
+                     );
+                   }) : (
                      <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center">
-                       <p className="text-sm font-black text-fg-soft">Nenhum extra cadastrado encontrado</p>
-                       <p className="mt-1 text-xs font-bold text-subtle">Cadastre o profissional como “Freelancer / Extra” antes de gerar o recibo.</p>
-                       <button onClick={() => { setModalEscolherExtra(false); abrirModalNovo(); }} className="mt-4 rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-accent-fg">Cadastrar extra</button>
+                       <p className="text-sm font-black text-fg-soft">Nenhum funcionário encontrado</p>
+                       <p className="mt-1 text-xs font-bold text-subtle">Cadastre o colaborador antes de gerar o recibo.</p>
+                       <button onClick={() => { setModalEscolherExtra(false); abrirModalNovo(); }} className="mt-4 rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-accent-fg">Cadastrar funcionário</button>
                      </div>
                    )}
                  </div>
@@ -2964,7 +2737,7 @@ export default function RHPage() {
                     ))}
                     <label className="text-xs font-bold text-slate-900">Forma de pagamento
                       <select value={fichaDados.forma_pagamento} onChange={e => setFichaDados(d => ({...d, forma_pagamento: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 outline-none focus:border-emerald-500">
-                        <option>Pix</option><option>Dinheiro</option><option>Transferência</option>
+                        <option>Pix</option><option>Dinheiro</option><option>Híbrido (Pix + Dinheiro)</option><option>Transferência</option>
                       </select>
                     </label>
                   </div>
@@ -3063,8 +2836,13 @@ export default function RHPage() {
          liberacoes.forEach(item => Object.assign(linha(item.data), { liberacao: item, valor: Number(item.valor_diaria) || 0 }));
          pontos.forEach(item => Object.assign(linha(item.data_referencia), { ponto: item }));
          recibos.forEach(recibo => {
-            let datas = Array.isArray(recibo.datas_contratadas) && recibo.datas_contratadas.length ? recibo.datas_contratadas : [recibo.data_trabalho];
-            datas.forEach(data => Object.assign(linha(data), { recibo, valor: Number(recibo.valor_diaria) || 0 }));
+            const diasDet = Array.isArray(recibo.dados?.dias_detalhados) ? recibo.dados.dias_detalhados.filter(d => d && d.data) : [];
+            if (diasDet.length > 0) {
+               diasDet.forEach(d => Object.assign(linha(d.data), { recibo, valor: Number(d.valor) || Number(recibo.valor_diaria) || 0 }));
+            } else {
+               let datas = Array.isArray(recibo.datas_contratadas) && recibo.datas_contratadas.length ? recibo.datas_contratadas : [recibo.data_trabalho];
+               datas.forEach(data => Object.assign(linha(data), { recibo, valor: Number(recibo.valor_diaria) || 0 }));
+            }
          });
          const dias = [...porData.values()].filter(item => item.data).sort((a, b) => b.data.localeCompare(a.data));
          const diasContratados = dias.filter(item => item.liberacao || item.recibo).length;
@@ -3080,11 +2858,18 @@ export default function RHPage() {
          return (
          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => setModalDiarias(null)}>
             <div className="bg-card rounded-[28px] w-full max-w-5xl max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] overflow-y-auto p-4 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-               <div className="flex items-center justify-between mb-1">
-                  <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-success" /> Histórico completo do extra</h2>
-                  <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={17} /></button>
+               <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                  <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-success" /> Histórico de Diárias e Recibos</h2>
+                  <div className="flex items-center gap-2">
+                     {modalDiarias.func?.id && (
+                        <button type="button" onClick={() => { const id = modalDiarias.func.id; setModalDiarias(null); router.push(`/dashboard/rh/extra/${id}/recibo`); }} className="rounded-xl bg-accent px-3 py-1.5 text-xs font-black text-accent-fg hover:opacity-90">
+                           + Emitir Recibo (2 vias)
+                        </button>
+                     )}
+                     <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={17} /></button>
+                  </div>
                </div>
-               <p className="text-xs font-bold text-fg mb-4">{modalDiarias.func?.nome} — dias, horários, recibos, pagamentos e ocorrências reunidos no cadastro.</p>
+               <p className="text-xs font-bold text-fg mb-4">{modalDiarias.func?.nome} — dias, horários, recibos (2 vias A4), pagamentos e ocorrências reunidos no cadastro.</p>
                {modalDiarias.loading ? (
                   <p className="text-center font-bold text-subtle py-8">Carregando...</p>
                ) : (
@@ -3133,21 +2918,25 @@ export default function RHPage() {
 
                      <div className="mt-5 grid gap-5 lg:grid-cols-2">
                         <section>
-                          <h3 className="mb-2 text-sm font-black text-slate-800">Histórico de recibos de prestação</h3>
+                          <h3 className="mb-2 text-sm font-black text-slate-800">Histórico de recibos de pagamento</h3>
                           <div className="space-y-3">
                             {recibos.length === 0 ? <p className="rounded-xl bg-white p-4 text-sm text-subtle">Nenhum recibo emitido.</p> : recibos.map(recibo => {
-                              const funcNome = recibo.funcao || recibo.dados?.funcao || modalDiarias.func?.cargo || "Prestador Extra";
+                              const funcNome = recibo.funcao || recibo.dados?.funcao || modalDiarias.func?.cargo || "Prestador";
                               const hEntrada = recibo.hora_entrada || recibo.dados?.entrada || "—";
                               const hSaida = recibo.hora_saida || recibo.dados?.saida_final || "—";
                               const temFoto = !!recibo.dados?.foto_recibo_assinado;
                               const topicos = String(recibo.dados?.topicos_funcao || "").split("\n").map(t => t.trim()).filter(Boolean);
+                              const diasDet = Array.isArray(recibo.dados?.dias_detalhados) ? recibo.dados.dias_detalhados.filter(d => d && (d.data || Number(d.valor) > 0)) : [];
+                              const descItens = Array.isArray(recibo.dados?.descontos_itens) ? recibo.dados.descontos_itens.filter(d => d && (d.descricao || Number(d.valor) > 0)) : [];
+                              const vDin = Number(recibo.dados?.valor_dinheiro) || 0;
+                              const vPix = Number(recibo.dados?.valor_pix) || 0;
 
                               return (
                               <div key={recibo.id} className="rounded-2xl border border-line bg-card p-4 shadow-sm space-y-2">
                                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line-soft pb-2">
                                   <div>
                                     <p className="font-black text-fg text-sm">{recibo.numero}</p>
-                                    <p className="text-xs font-bold text-fg">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · <b className="text-accent">{fmtBRL(recibo.valor_total)}</b></p>
+                                    <p className="text-xs font-bold text-fg">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados || diasDet.length || 1} dia(s) · <b className="text-accent">{fmtBRL(recibo.valor_total)}</b></p>
                                   </div>
                                   <span className={`rounded-full px-2.5 py-1 text-3xs font-bold ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{recibo.pagamento_realizado ? `Pago em ${dataBR(recibo.data_pagamento)}` : "Pagamento Pendente"}</span>
                                 </div>
@@ -3155,6 +2944,34 @@ export default function RHPage() {
                                 <div className="text-xs space-y-1">
                                   <p className="font-bold text-slate-800">Função exercida: <span className="text-emerald-800">{funcNome}</span></p>
                                   <p className="font-medium text-slate-900">⏰ Horário de trabalho: <b>{hEntrada} às {hSaida}</b></p>
+                                  {(vDin > 0 || vPix > 0) && (
+                                    <p className="font-bold text-slate-800">
+                                      💵 Pagamento:{" "}
+                                      {vDin > 0 && vPix > 0
+                                        ? `${fmtBRL(vDin)} no Dinheiro + ${fmtBRL(vPix)} no Pix`
+                                        : vDin > 0
+                                        ? `${fmtBRL(vDin)} no Dinheiro`
+                                        : `${fmtBRL(vPix)} no Pix`}
+                                    </p>
+                                  )}
+                                  {diasDet.length > 0 && (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {diasDet.map((d, idx) => (
+                                        <span key={idx} className="rounded-md bg-white border border-line px-2 py-0.5 text-3xs font-bold text-slate-700">
+                                          {d.dia_semana ? `${d.dia_semana} ` : ""}{dataBR(d.data)}: {fmtBRL(d.valor)}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {descItens.length > 0 && (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {descItens.map((d, idx) => (
+                                        <span key={idx} className="rounded-md bg-rose-50 border border-rose-200 px-2 py-0.5 text-3xs font-bold text-rose-700">
+                                          - {d.descricao || "Item"}: {fmtBRL(d.valor)}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
                                   {topicos.length > 0 && (
                                     <div className="mt-1 bg-white border border-line rounded-xl p-2 text-2xs font-medium text-fg-soft">
                                       <p className="font-bold text-fg text-3xs uppercase mb-0.5">Atribuições do dia:</p>
@@ -3179,7 +2996,7 @@ export default function RHPage() {
                                 )}
 
                                 <div className="mt-2 flex flex-wrap items-center gap-2 pt-1 border-t border-line-soft">
-                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-bold text-fg-soft hover:bg-card"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
+                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-bold text-fg-soft hover:bg-card"><Printer size={13} className="mr-1 inline" />Reimprimir (2 vias A4)</button>
                                   <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-xl border border-emerald-200 bg-accent-soft px-3 py-2 text-xs font-bold text-accent-strong hover:bg-emerald-100">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
                                   <label className="cursor-pointer rounded-xl bg-accent px-3 py-2 text-xs font-bold text-accent-fg hover:bg-accent inline-flex items-center gap-1.5 shadow-sm">
                                     {anexandoFotoId === recibo.id ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}

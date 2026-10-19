@@ -90,7 +90,10 @@ async function obterQz() {
   if (!qzCarregado) {
     qzCarregado = (async () => {
       try {
-        const modulo = await import(/* webpackIgnore: true */ "qz-tray");
+        // Empacotado pelo Next: com webpackIgnore o navegador recebia
+        // import("qz-tray") cru, que ele não resolve, e o assistente nunca
+        // conectava. O qz-tray já declara "path": false para o navegador.
+        const modulo = await import("qz-tray");
         return modulo?.default || modulo;
       } catch (e) {
         console.warn("Módulo qz-tray não carregado:", e);
@@ -103,6 +106,7 @@ async function obterQz() {
 
 export async function conectarAssistenteImpressao(preferida = "") {
   const qz = await obterQz();
+  if (!qz) throw new Error("Assistente de impressão indisponível neste navegador");
   if (!qz.websocket.isActive()) {
     await qz.websocket.connect({ retries: 2, delay: 1 });
   }
@@ -137,7 +141,23 @@ export async function observarAssistenteImpressao({ aoFechar, aoErro } = {}) {
 
 export async function assistenteImpressaoAtivo() {
   const qz = await obterQz();
-  return qz.websocket.isActive();
+  return Boolean(qz?.websocket?.isActive());
+}
+
+// Via de texto (cozinha/bar) pelo assistente QZ: o HTML vai direto para a
+// impressora escolhida, sem a janela de impressão do navegador.
+export async function imprimirHtmlNoAssistente({ impressora, html, larguraMm = 80, titulo = "Via" }) {
+  const qz = await obterQz();
+  if (!qz?.websocket?.isActive()) throw new Error("Assistente de impressão desconectado");
+  if (!impressora) throw new Error("Escolha a impressora");
+  const config = qz.configs.create(impressora, {
+    units: "mm",
+    size: { width: larguraMm },
+    margins: 0,
+    scaleContent: true,
+    jobName: `Hefisto ${titulo}`,
+  });
+  await qz.print(config, [{ type: "pixel", format: "html", flavor: "plain", data: html }]);
 }
 
 function textoLimitado(ctx, texto, largura) {

@@ -188,3 +188,50 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Decidido por:** lucas (no chat da sessão: "arquivar")
 - **Nota:** Executado em 17/10/2026. Verificação: 28 arquivadas, 0 pendentes sem unidade, R$ 7.964,69; md5 de (id, valor, vencimento) antes = depois = fdd6c4cf0d7eddee75c20b680ff8a0f0; backup_documentos_doc_legado_1_20261017 com 28 linhas, RLS ligado, 0 grants para o app (TESTADO NO SUPABASE REAL)
 - **Chave:** dados:db/DOC_LEGADO_1_ARQUIVAR_DOCUMENTOS.sql
+
+### APR-014 · EXECUTADO
+
+- **Missão:** Pedido do dono 18/10: fidelidade com cartões de selo por produto, cashback e cadastro pelo QR (CRM) com desconto
+- **Ação:** Aplicar db/FIDELIDADE_1_SELOS_E_CASHBACK.sql no Supabase real
+  - tabela nova `fidelidade_movimentos` (livro só de inclusão; RLS: só lê quem tem `clientes.loyalty.view` na unidade; ninguém grava direto);
+  - trigger nova em `pedidos`: pedido pago/entregue dá selo e cashback; cancelado estorna;
+  - funções da equipe (resgatar prêmio, usar cashback, lançar selo de balcão/ajuste) com permissão conferida no banco;
+  - função só do servidor para o cliente usar o cashback num pedido do cardápio;
+  - cadastro pelo QR: colunas novas em `clientes` (email, aniversario, cadastro_em, aceite_lgpd_em, aceita_novidades, origem) e em `pedidos` (desconto, desconto_origem); funções só do servidor para cadastrar e calcular o desconto
+- **Ambiente:** supabase (produção)
+- **Risco:** HIGH (trigger nova em `pedidos`, colunas novas em `clientes` e `pedidos`, e valor em dinheiro: cashback e desconto de cadastro baixam o total do pedido)
+- **Motivo:** sem a tabela, o cardápio só mostra as regras do programa; o saldo dos clientes não existe. Quem dá selo é o banco, só em pedido concluído (pedido falso não ganha nada)
+- **Impacto:**
+  - nenhuma linha existente muda (só leitura de pedidos, itens e configuração);
+  - o programa só começa quando o dono ligar em Cardápio digital → Fidelidade;
+  - erro da fidelidade nunca trava o pedido (vira aviso no log)
+- **Rollback:** no cabeçalho do SQL (apaga o livro e os saldos: exportar antes)
+- **Evidências:** PGlite 16/16 (`app/lib/fidelidade-banco.test.mjs`):
+  - só aditiva;
+  - pedido enviado não ganha; concluído ganha uma vez; cancelado estorna;
+  - sem telefone ou programa desligado não ganha;
+  - configuração ruim não trava o pedido;
+  - livro imutável;
+  - resgate com permissão e saldo; lançamento com motivo;
+  - cashback só pelo servidor, com telefone conferido; validade;
+  - RLS por unidade;
+  - saldo do app = saldo do banco;
+  - cadastro: cria no CRM, não duplica, não troca nome de quem já existe; desconto só para cadastrado, primeiro pedido ou todos, validade; só o servidor chama.
+  - Regras puras: `app/lib/fidelidade.test.mjs` 12/12.
+  - TESTADO LOCAL. NÃO VALIDADO no Supabase real.
+- **Impressão digital esperada:** 407bcd9c6a4b80101073aecb68d07928
+- **Status:** EXECUTADO
+- **Criado em:** 2026-10-18
+- **Decidido em:** 2026-10-18
+- **Decidido por:** lucas (no chat da sessão: "Sim, aplicar agora", depois de "já vai publicando tudo")
+- **Nota:** Executado em 18/10/2026 (TESTADO NO SUPABASE REAL):
+  - impressão digital 407bcd9c6a4b80101073aecb68d07928 (igual à do PGlite);
+  - RLS ligado no livro, 1 policy, só SELECT para authenticated; reserva de cashback só para service_role;
+  - backups com as mesmas contagens (clientes 0, pedidos 10).
+  - Ensaio de escrita em transação desfeita:
+    - pedido enviado não ganha; pago dá 2 selos e R$ 5,00 (5% de R$ 100); repetir o status não duplica; cancelado zera;
+    - livro recusa alteração;
+    - cadastro entra no CRM (origem qr); desconto 10% → 0 depois do 1º pedido → 10% de novo com o 1º cancelado.
+  - Depois: 0 clientes, 0 lançamentos, 10 pedidos, config sem fidelidade (nada ficou).
+  - O programa só começa quando o dono ligar em Cardápio digital → Fidelidade.
+- **Chave:** banco:db/FIDELIDADE_1_SELOS_E_CASHBACK.sql

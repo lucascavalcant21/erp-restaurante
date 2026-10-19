@@ -42,22 +42,15 @@ alter table pedidos add column if not exists chave_idempotencia       text;
 -- 4. SEGURANÇA (RLS)
 alter table experience_chamados enable row level security;
 
--- Leitura autenticada para o painel de funcionários/gestores
+-- NUNCA APLICADA (as tabelas não existem no banco real, conferido em 18/10/2026).
+-- Antes as policies eram abertas (using true): qualquer usuário logado de
+-- qualquer empresa lia e alterava os chamados de todas as casas. Agora, se
+-- um dia for aplicada, segue o isolamento por unidade da SEC-RLS-1. O
+-- servidor (service_role) não precisa de policy: ignora o RLS.
 drop policy if exists "experience_chamados_select_autenticado" on experience_chamados;
-create policy "experience_chamados_select_autenticado" on experience_chamados
-  for select to authenticated
-  using (true);
-
--- Atualização autenticada para funcionários marcarem como atendido/concluído
 drop policy if exists "experience_chamados_update_autenticado" on experience_chamados;
-create policy "experience_chamados_update_autenticado" on experience_chamados
-  for update to authenticated
-  using (true)
-  with check (true);
-
--- Inserção via service_role ou anon controlado (SEC-DADOS-2)
 drop policy if exists "experience_chamados_service_role" on experience_chamados;
-create policy "experience_chamados_service_role" on experience_chamados
-  for all to service_role
-  using (true)
-  with check (true);
+drop policy if exists sec_unidade on experience_chamados;
+create policy sec_unidade on experience_chamados for all to authenticated
+  using ((select public.hefisto_ve_todas_unidades()) or unidade_id::text in (select unnest(public.hefisto_unidades_do_usuario())))
+  with check ((select public.hefisto_ve_todas_unidades()) or unidade_id::text in (select unnest(public.hefisto_unidades_do_usuario())));

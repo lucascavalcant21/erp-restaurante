@@ -1,16 +1,11 @@
-import ExperienceApp from "../../components/ExperienceApp";
+import { redirect } from "next/navigation";
+import { caminhoDoCardapio } from "../../../lib/cardapio-link.mjs";
 
+// Link antigo do Experience com a mesa no caminho: abre o cardápio digital
+// já com a mesa (B-028).
 export const dynamic = "force-dynamic";
-
-export async function generateMetadata({ params }) {
-  const { mesa } = await params;
-  return {
-    title: `Héfisto Experience — Mesa ${mesa}`,
-    description: "Cardápio inteligente, pedidos na mesa e atendimento exclusivo."
-  };
-}
 
 export default async function ExperienceMesaPage({ params }) {
   const { unidade, mesa } = await params;
-  return <ExperienceApp unidadeId={unidade} mesaInicial={mesa} />;
+  redirect(caminhoDoCardapio(unidade, { mesa: decodeURIComponent(mesa || "") }));
 }

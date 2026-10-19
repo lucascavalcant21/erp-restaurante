@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchResumoFolhaMensal, fecharFolhaMensal } from "../../../lib/rh";
-import { ArrowLeft, Save, Loader2, DollarSign, Calculator, AlertTriangle, Info } from "lucide-react";
+import { ArrowLeft, Save, Loader2, DollarSign, Calculator, AlertTriangle, Info, ReceiptText } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 export default function FechamentoFolhaPage() {
@@ -86,7 +86,7 @@ export default function FechamentoFolhaPage() {
   return (
     <div className="min-h-screen bg-hf-bg font-sans pb-24">
       {/* Header Escuro */}
-      <div className="bg-hf-bg pt-8 pb-12 px-6 relative text-hf-text border-b border-hf-border">
+      <div className="bg-hf-bg pt-8 pb-12 px-6 relative text-hf-text border-b border-hf-border" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 1rem)" }}>
          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
             <div>
                <button onClick={() => abrirMenu()} className="text-subtle hover:text-hf-text mb-4 flex items-center gap-2 font-bold transition-colors">
@@ -154,7 +154,8 @@ export default function FechamentoFolhaPage() {
                            <th className="pb-4 text-right whitespace-nowrap">Bônus (+)</th>
                            <th className="pb-4 text-right whitespace-nowrap">Vales/Adiant. (-)</th>
                            <th className="pb-4 text-right whitespace-nowrap">Faltas/Outros (-)</th>
-                           <th className="pb-4 pr-4 text-right whitespace-nowrap">Líquido Final</th>
+                           <th className="pb-4 text-right whitespace-nowrap">Líquido Final</th>
+                           <th className="pb-4 pr-4 text-right whitespace-nowrap">Recibo A4</th>
                         </tr>
                      </thead>
                      <tbody className="text-sm font-bold">
@@ -217,10 +218,20 @@ export default function FechamentoFolhaPage() {
                                  />
                               </td>
 
-                              <td className="py-4 pr-4 text-right whitespace-nowrap">
+                              <td className="py-4 text-right whitespace-nowrap">
                                  <p className="text-lg font-black text-fg bg-card px-3 py-1.5 rounded-xl inline-block whitespace-nowrap shadow-inner">
                                     {fmtBRL(p.valor_liquido)}
                                  </p>
+                              </td>
+
+                              <td className="py-4 pr-4 text-right whitespace-nowrap">
+                                 <button
+                                    type="button"
+                                    onClick={() => router.push(`/dashboard/rh/extra/${p.colaborador_id}/recibo`)}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-accent-soft px-3 py-2 text-xs font-black text-accent-strong hover:bg-emerald-100"
+                                 >
+                                    <ReceiptText size={14} /> Recibo (2 vias)
+                                 </button>
                               </td>
                            </tr>
                         ))}

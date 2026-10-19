@@ -22,6 +22,7 @@ import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../lib/ponto-stat
 import { faseContratoCalculada, prazoExperiencia, aniversario } from "../../lib/contrato-experiencia.mjs";
 import { fetchHolerites, confirmarRecebimentoHolerite } from "../../lib/pessoas";
 import { abrirArquivoRH } from "../../lib/rh-arquivos";
+import { imprimirReciboExtra } from "../../lib/recibo-extra";
 import { supabase } from "../../lib/supabase";
 import { fetchConvencaoAtiva } from "../../lib/trabalhista/convencoes-dados";
 import { regrasDaCompetencia } from "../../lib/trabalhista/regras-competencia.mjs";
@@ -670,28 +671,66 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
                 )}
               </Bloco>
 
-              {/* Recibos (Adiantamentos e Vales) */}
-              <Bloco icon={FileText} titulo="Recibos Avulsos (Vales / Extras)"
-                extra={vida.recibos?.length > 0 && <span className="erp-badge erp-badge-info bg-zinc-100 text-zinc-800">{vida.recibos.length}</span>}>
+              {/* Recibos (Adiantamentos, Pagamentos Semanais e Extras) */}
+              <Bloco icon={FileText} titulo="Recibos de Pagamento (2 vias A4)"
+                extra={
+                  <div className="flex items-center gap-2">
+                    {vida.recibos?.length > 0 && <span className="erp-badge erp-badge-info bg-zinc-100 text-zinc-800">{vida.recibos.length}</span>}
+                    <button onClick={() => router.push(`/dashboard/rh/extra/${sel.id}/recibo`)} className="erp-btn erp-btn-primary !h-7 !px-2.5 text-3xs">
+                      + Emitir Recibo
+                    </button>
+                  </div>
+                }>
                 {!vida.recibos || vida.recibos.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum recibo gerado ainda.</p> : (
                   <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                    {vida.recibos.map(r => (
-                      <div key={r.id} className="p-3 rounded-xl" style={{ background: "var(--elevated)" }}>
-                        <div className="flex justify-between items-center gap-3">
-                          <div>
-                            <p className="text-sm font-black text-slate-800">{r.dados?.tipo || "Recibo"} <span className="text-2xs bg-slate-200 text-slate-600 px-1.5 rounded">{r.dados?.referencia}</span></p>
-                            <p className="text-3xs font-bold" style={{ color: "var(--dim)" }}>{new Date(r.created_at).toLocaleDateString("pt-BR")} às {new Date(r.created_at).toLocaleTimeString("pt-BR", {hour: '2-digit', minute: '2-digit'})}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-black text-emerald-700">{fmtBRL(r.valor_total)}</p>
+                    {vida.recibos.map(r => {
+                      const diasDet = Array.isArray(r.dados?.dias_detalhados) ? r.dados.dias_detalhados : [];
+                      const descItens = Array.isArray(r.dados?.descontos_itens) ? r.dados.descontos_itens : [];
+                      const vDin = Number(r.dados?.valor_dinheiro || 0);
+                      const vPix = Number(r.dados?.valor_pix || 0);
+                      const dataTrab = r.data_trabalho ? new Date(`${String(r.data_trabalho).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : new Date(r.created_at).toLocaleDateString("pt-BR");
+                      return (
+                        <div key={r.id} className="p-3 rounded-xl" style={{ background: "var(--elevated)" }}>
+                          <div className="flex justify-between items-start gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-black text-slate-800">
+                                {r.numero || r.dados?.tipo || "Recibo"} · {dataTrab}
+                                {Number(r.dias_contratados) > 1 && <span className="ml-1.5 text-2xs bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded">{r.dias_contratados} dias</span>}
+                              </p>
+                              {diasDet.length > 0 && (
+                                <p className="text-3xs font-semibold text-slate-600 mt-0.5">
+                                  Dias: {diasDet.map(d => `${d.dia_semana ? d.dia_semana.split("-")[0] + " " : ""}${String(d.data || "").slice(0, 10).split("-").reverse().join("/")} (${fmtBRL(d.valor)})`).join(" · ")}
+                                </p>
+                              )}
+                              {descItens.length > 0 && (
+                                <p className="text-3xs font-bold text-rose-700 mt-0.5">
+                                  Descontos: {descItens.map(it => `${it.descricao} (-${fmtBRL(it.valor)})`).join(" · ")}
+                                </p>
+                              )}
+                              <p className="text-3xs font-bold mt-0.5" style={{ color: "var(--dim)" }}>
+                                {r.forma_pagamento || "Pix"}
+                                {(vDin > 0 && vPix > 0) ? ` (${fmtBRL(vDin)} Dinheiro + ${fmtBRL(vPix)} Pix)` : ""}
+                                {" · "}
+                                {r.pagamento_realizado ? "Pago" : "Pendente"}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-black text-emerald-700">{fmtBRL(r.valor_total)}</p>
+                              <button
+                                onClick={() => imprimirReciboExtra({ extra: sel, recibo: r, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos: {} })}
+                                className="erp-btn erp-btn-ghost !h-7 !px-2.5 text-3xs mt-1"
+                              >
+                                <Printer size={12} /> Imprimir (2 vias)
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 <p className="text-3xs font-medium mt-2 text-slate-400 leading-snug">
-                  Estes valores avulsos <b>não vão automaticamente para o holerite</b> nem somam na folha do painel. São comprovantes rápidos de vales ou adiantamentos em dinheiro/pix.
+                  Gere recibos detalhados por dia/data, com descontos de produtos e pagamento dividido (Dinheiro + Pix), impressos em 2 vias na mesma folha A4.
                 </p>
               </Bloco>
 
@@ -717,12 +756,14 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
     const isFree = c.tipo_contrato === "Freelancer";
     const inativo = (c.status || "ativo") === "inativo";
     
-    // Filtro 1: Apenas fixos (não mistura com extras)
-    if (isFree) return false;
-    
-    // Filtro 2: Ativos vs Inativos
-    if (statusFiltro === "Inativos" && !inativo) return false;
-    if (statusFiltro === "Ativos" && inativo) return false;
+    if (statusFiltro === "Extras") {
+      if (!isFree || inativo) return false;
+    } else if (statusFiltro === "Inativos") {
+      if (!inativo) return false;
+    } else {
+      // Ativos (fixos)
+      if (isFree || inativo) return false;
+    }
     
     // Filtro 3: Busca e Área
     return (c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cargo || "").toLowerCase().includes(busca.toLowerCase())) &&
@@ -743,7 +784,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
 
   return (
     <div className="pb-24">
-      <PageHeader title="Quadro de Funcionários" subtitle={`Gerencie os colaboradores fixos e ex-funcionários · ${unidadeInfo?.nome || ""}`} icon={Users}
+      <PageHeader title="Quadro de Funcionários" subtitle={`Gerencie os colaboradores fixos, extras e ex-funcionários · ${unidadeInfo?.nome || ""}`} icon={Users}
         onAction={() => { if (onNovo) onNovo(); else router.push("/dashboard/rh"); }} actionLabel="Cadastrar Funcionário" />
       <PageBody>
         <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por nome ou cargo..." />
@@ -751,7 +792,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
         <div className="flex flex-wrap gap-x-4 gap-y-2 mb-4 mt-2">
           {/* Filtro de Status */}
           <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-            {["Ativos", "Inativos"].map(st => (
+            {["Ativos", "Extras", "Inativos"].map(st => (
               <button key={st} onClick={() => setStatusFiltro(st)}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFiltro === st ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
                 {st}

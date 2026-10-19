@@ -401,6 +401,11 @@ export default function CRMPage() {
               {tab.label}
             </button>
           ))}
+          <button onClick={() => router.push("/dashboard/clientes/fidelidade")}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 bg-transparent text-fg hover:bg-card hover:text-slate-800">
+            <Gift size={16} />
+            Fidelidade e cadastro
+          </button>
         </div>
       </div>
 

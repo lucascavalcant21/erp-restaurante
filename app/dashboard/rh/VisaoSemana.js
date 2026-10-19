@@ -49,12 +49,6 @@ function entradaDoDia(c, diaSemana) {
   return String(e).slice(0, 5);
 }
 
-// Datas de trabalho de um recibo: a lista contratada ou, nos antigos, o dia único.
-function datasDoRecibo(r) {
-  const lista = Array.isArray(r?.datas_contratadas) ? r.datas_contratadas.map(d => String(d).slice(0, 10)) : [];
-  return lista.length ? lista : [String(r?.data_trabalho || "").slice(0, 10)];
-}
-
 export default function SemanaPage() {
   const router = useRouter();
   const { unidadeAtiva } = useERP();
@@ -96,24 +90,36 @@ export default function SemanaPage() {
   const semana = useMemo(() => {
     const inicio = inicioDaSemana(referencia);
     const contratados = equipe.filter(ativo).filter(c => !ehExtra(c));
-    const extrasIds = new Set(equipe.filter(ehExtra).map(c => c.id));
+    const mapaEquipe = new Map(equipe.map(c => [c.id, c]));
 
     return Array.from({ length: 7 }, (_, i) => {
       const data = new Date(inicio);
       data.setDate(inicio.getDate() + i);
       const iso = isoData(data);
 
-      // Folga marcada e atestado tiram a pessoa do dia: antes a escala mostrava
-      // escalado quem estava de folga.
+      // Folga marcada tira a pessoa do dia: antes a escala mostrava escalado
+      // quem estava de folga.
       const fora = new Set(folgas.filter(f => String(f.data_folga || "").slice(0, 10) === iso).map(f => f.colaborador_id));
-      const escalados = contratados.filter(c => trabalhaNoDia(c, data.getDay()) && !fora.has(c.id));
       const deFolga = contratados.filter(c => fora.has(c.id));
-      // Recibo de vários dias vale em cada um deles (datas_contratadas), pela
-      // diária — antes caía inteiro no primeiro dia e sumia dos outros.
-      const diarias = recibos
-        .filter(r => extrasIds.has(r.colaborador_id) && datasDoRecibo(r).includes(iso))
-        .map(r => ({ ...r, valorDoDia: datasDoRecibo(r).length > 1 ? Number(r.valor_diaria) || 0 : Number(r.valor_total) || 0 }));
-      const custoDiarias = diarias.reduce((s, r) => s + r.valorDoDia, 0);
+      const escalados = contratados.filter(c => trabalhaNoDia(c, data.getDay()) && !fora.has(c.id));
+      const diarias = [];
+      for (const r of recibos) {
+        const diasDet = Array.isArray(r.dados?.dias_detalhados) ? r.dados.dias_detalhados : [];
+        const diaEsp = diasDet.find(d => String(d.data || "").slice(0, 10) === iso);
+        const datasContr = Array.isArray(r.datas_contratadas) ? r.datas_contratadas.map(d => String(d || "").slice(0, 10)) : [];
+        const bateuData = Boolean(diaEsp) || datasContr.includes(iso) || String(r.data_trabalho || "").slice(0, 10) === iso;
+        if (!bateuData) continue;
+        const colab = mapaEquipe.get(r.colaborador_id);
+        const valorDia = diaEsp && Number(diaEsp.valor) > 0
+          ? Number(diaEsp.valor)
+          : (Number(r.valor_diaria) > 0 ? Number(r.valor_diaria) : Number(r.valor_total) || 0);
+        diarias.push({
+          ...r,
+          valor_dia_exibido: valorDia,
+          nome_exibido: colab?.nome || r.nome_prestador || r.dados?.nome || r.funcao || "Profissional",
+        });
+      }
+      const custoDiarias = diarias.reduce((s, r) => s + (Number(r.valor_dia_exibido) || 0), 0);
       // slice(0,10) nos dois lados: a data vem "2026-08-30" do feriado e
       // "2026-08-30T00:00:00+00" do evento. Comparar cru nunca casaria.
       const feriadosDoDia = feriados.filter(f => String(f.data || "").slice(0, 10) === iso);
@@ -122,8 +128,6 @@ export default function SemanaPage() {
       return { data, iso, diaSemana: data.getDay(), escalados, deFolga, diarias, custoDiarias, feriadosDoDia, eventosDoDia };
     });
   }, [equipe, recibos, feriados, eventos, folgas, referencia]);
-
-  const nomeDoExtra = (r) => String(equipe.find(c => c.id === r.colaborador_id)?.nome || r.funcao || "Extra").split(" ")[0];
 
   const totalSemana = semana.reduce((s, d) => s + d.custoDiarias, 0);
   const hoje = isoData(new Date());
@@ -234,19 +238,24 @@ export default function SemanaPage() {
                     {mostrarExtras && (
                       <>
                         <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-fg">
-                          <UserRound size={13} /> Extras · {dia.diarias.length}
+                          <UserRound size={13} /> Diárias / Recibos · {dia.diarias.length}
                         </p>
                         {dia.diarias.length === 0 ? (
-                          <p className="mt-1 text-[13px] font-bold text-subtle">Sem extras neste dia.</p>
+                          <p className="mt-1 text-[13px] font-bold text-subtle">Sem diárias neste dia.</p>
                         ) : (
                           <div className="mt-1.5 space-y-1">
-                            {dia.diarias.map(r => (
-                              <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg bg-amber-50 px-2 py-1">
+                            {dia.diarias.map((r, idx) => (
+                              <button
+                                key={`${r.id}-${idx}`}
+                                type="button"
+                                onClick={() => r.colaborador_id && router.push(`/dashboard/rh/extra/${r.colaborador_id}/recibo`)}
+                                className="flex w-full items-center justify-between gap-2 rounded-lg bg-amber-50 px-2 py-1 text-left hover:bg-amber-100"
+                              >
                                 <span className="min-w-0 flex-1 truncate text-xs font-bold text-amber-900">
-                                  {nomeDoExtra(r)}
+                                  {r.nome_exibido}
                                 </span>
-                                <span className="shrink-0 text-xs font-bold text-amber-800">{brl(r.valorDoDia)}</span>
-                              </div>
+                                <span className="shrink-0 text-xs font-bold text-amber-800">{brl(r.valor_dia_exibido)}</span>
+                              </button>
                             ))}
                             <p className="pt-1 text-right text-2xs font-bold text-fg">Dia: {brl(dia.custoDiarias)}</p>
                           </div>

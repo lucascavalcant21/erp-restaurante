@@ -107,3 +107,14 @@ test("cron de automações: sem CRON_SECRET ninguém entra; o segredo padrão an
   assert.equal((await cron.GET(new Request("http://app.teste/api/hefisto/automation/cron?secret=segredo-do-teste"))).status, 401, "segredo na URL não vale");
   delete process.env.CRON_SECRET;
 });
+
+test("chamados do salão (S-29): GET e PATCH sem sessão → 401; antes liam e alteravam qualquer unidade", async () => {
+  const mod = await import(pathToFileURL(path.join(api, "public/experience/[unidade]/chamados", "route.js")).href);
+  const params = { params: Promise.resolve({ unidade: "seldeestrela" }) };
+  assert.equal((await mod.GET(new Request("http://app.teste/api/public/experience/seldeestrela/chamados"), params)).status, 401);
+  const patch = new Request("http://app.teste/api/public/experience/seldeestrela/chamados", {
+    method: "PATCH", headers: { "content-type": "application/json", authorization: "Bearer token-falso" },
+    body: JSON.stringify({ chamadoId: "x", novoStatus: "concluido" }),
+  });
+  assert.equal((await mod.PATCH(patch, params)).status, 401);
+});

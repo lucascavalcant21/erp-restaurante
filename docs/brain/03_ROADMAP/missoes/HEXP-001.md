@@ -2,7 +2,7 @@
 id: HEXP-001
 titulo: Héfisto Experience — O Restaurante na Palma da Mão
 fase: produto
-status: DOING
+status: IN_PROGRESS
 prioridade: 1
 dependencias: []
 bloqueadores: []

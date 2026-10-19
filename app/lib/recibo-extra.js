@@ -1,5 +1,5 @@
-import { imprimirHtml } from "./imprimir";
-import { supabase, isSupabaseReady } from "./supabase";
+import { imprimirHtml } from "./imprimir.js";
+import { supabase, isSupabaseReady } from "./supabase.js";
 
 const esc = (valor) => String(valor ?? "").replace(/[&<>\"]/g, (caractere) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;",
@@ -277,15 +277,23 @@ export function montarHtmlRecibo({ extra, funcionario, recibo, unidade, unidadeI
 
   const partes = [];
   if (diasDetalhados.length > 0) {
-    const descDias = diasDetalhados.map((d) => {
-      const dtCurta = d.data ? d.data.split("-").reverse().slice(0, 2).join("/") : "—";
-      const obsStr = d.obs ? ` - ${d.obs}` : "";
-      return `${diaSemana(d.data)} dia ${dtCurta}${obsStr} (${moeda(d.valor)})`;
-    });
-    partes.push(
-      `Os pagamentos por dia trabalhado neste período foram: ${b(listarComE(descDias))}${horarioTexto}, ` +
-      `perfazendo o subtotal bruto de ${b(moeda(subtotalBruto))}.`
-    );
+    if (diasDetalhados.length > 3) {
+      // Muitos dias: a tabela já discrimina cada data/valor; repetir no texto estoura a folha.
+      partes.push(
+        `Foram ${b(`${diasDetalhados.length} dias trabalhados`)}${horarioTexto}, com os pagamentos de cada dia discriminados na tabela abaixo, ` +
+        `perfazendo o subtotal bruto de ${b(moeda(subtotalBruto))}.`
+      );
+    } else {
+      const descDias = diasDetalhados.map((d) => {
+        const dtCurta = d.data ? d.data.split("-").reverse().slice(0, 2).join("/") : "—";
+        const obsStr = d.obs ? ` - ${d.obs}` : "";
+        return `${diaSemana(d.data)} dia ${dtCurta}${obsStr} (${moeda(d.valor)})`;
+      });
+      partes.push(
+        `Os pagamentos por dia trabalhado neste período foram: ${b(listarComE(descDias))}${horarioTexto}, ` +
+        `perfazendo o subtotal bruto de ${b(moeda(subtotalBruto))}.`
+      );
+    }
   } else {
     partes.push(
       `A prestação de serviços teve início na ${b(`${diaSemana(inicio)}, dia ${porExtenso(inicio)}`)}${horarioTexto}.`
@@ -343,23 +351,66 @@ export function montarHtmlRecibo({ extra, funcionario, recibo, unidade, unidadeI
   const emissao = `${hoje.getDate()} de ${MESES[hoje.getMonth()]} de ${hoje.getFullYear()}`;
 
   // Linhas da tabela: cada dia detalhado + subtotal + encargos + cada item de desconto + divisão do pagamento
+  const rotuloDia = (d) => {
+    const dtBr = d.data ? d.data.split("-").reverse().join("/") : "—";
+    const diaSem = diaSemana(d.data);
+    return diaSem ? `${diaSem.charAt(0).toUpperCase() + diaSem.slice(1)} (${dtBr})` : dtBr;
+  };
+
+  // 4+ dias: duas datas por linha numa grade compacta, economizando 50% da altura vertical
+  const diasEmDuasColunas = diasDetalhados.length >= 4;
+  const tabelaDiasCompacta = diasEmDuasColunas
+    ? `<table class="dias"><tbody>${Array.from({ length: Math.ceil(diasDetalhados.length / 2) }, (_, i) => {
+        const celula = (d) => d
+          ? `<td><strong>${esc(rotuloDia(d))}</strong>${d.obs ? ` · ${esc(d.obs)}` : ""}</td><td class="v">${moeda(d.valor)}</td>`
+          : `<td></td><td class="v"></td>`;
+        return `<tr>${celula(diasDetalhados[i * 2])}${celula(diasDetalhados[i * 2 + 1])}</tr>`;
+      }).join("")}</tbody></table>`
+    : "";
+
   const linhasDiasTabela = diasDetalhados.length > 0
-    ? diasDetalhados.map((d) => {
-        const dtBr = d.data ? d.data.split("-").reverse().join("/") : "—";
-        const diaSem = diaSemana(d.data);
-        const diaLabel = diaSem ? `${diaSem.charAt(0).toUpperCase() + diaSem.slice(1)} (${dtBr})` : dtBr;
-        return `<tr><td>Pagamento do dia — <strong>${esc(diaLabel)}</strong>${d.obs ? ` · ${esc(d.obs)}` : ""}</td><td>${moeda(d.valor)}</td></tr>`;
-      }).join("")
+    ? (diasEmDuasColunas ? "" : diasDetalhados.map((d) =>
+        `<tr><td>Pagamento do dia — <strong>${esc(rotuloDia(d))}</strong>${d.obs ? ` · ${esc(d.obs)}` : ""}</td><td>${moeda(d.valor)}</td></tr>`
+      ).join(""))
     : `<tr><td>Diária / Valor base (${diasFormatado} ${diasNum === 1 ? "dia" : "dias"} × ${moeda(diaria)})</td><td>${moeda(subtotalBruto)}</td></tr>`;
 
-  const linhasDescontosTabela = [
-    ...descontosItens.map((it) => `<tr class="desconto-row"><td>Desconto: <strong>${esc(it.descricao)}</strong></td><td>− ${moeda(it.valor)}</td></tr>`),
-    ...(descontoExtraManual > 0 ? [`<tr class="desconto-row"><td>Outros descontos</td><td>− ${moeda(descontoExtraManual)}</td></tr>`] : []),
-  ].join("");
+  // Descontos: se houver 4+ itens, também compacta em 2 colunas
+  const descontosEmDuasColunas = descontosItens.length >= 4;
+  const tabelaDescontosCompacta = descontosEmDuasColunas
+    ? `<table class="descontos-grid"><tbody>${Array.from({ length: Math.ceil(descontosItens.length / 2) }, (_, i) => {
+        const cel = (it) => it
+          ? `<td>Desconto: <strong>${esc(it.descricao)}</strong></td><td class="vd">− ${moeda(it.valor)}</td>`
+          : `<td></td><td class="vd"></td>`;
+        return `<tr>${cel(descontosItens[i * 2])}${cel(descontosItens[i * 2 + 1])}</tr>`;
+      }).join("")}</tbody></table>`
+    : "";
+
+  const linhasDescontosTabela = descontosEmDuasColunas
+    ? `<tr class="desconto-row"><td>Total de descontos (${descontosItens.length} itens discriminados acima)</td><td>− ${moeda(totalDescontos)}</td></tr>`
+    : [
+        ...descontosItens.map((it) => `<tr class="desconto-row"><td>Desconto: <strong>${esc(it.descricao)}</strong></td><td>− ${moeda(it.valor)}</td></tr>`),
+        ...(descontoExtraManual > 0 ? [`<tr class="desconto-row"><td>Outros descontos</td><td>− ${moeda(descontoExtraManual)}</td></tr>`] : []),
+      ].join("");
 
   const linhaDivisaoPagamento = (valPix > 0 && valDinheiro > 0)
     ? `<tr class="pagto-split"><td>Forma de pagamento (Dividido)</td><td>Dinheiro: ${moeda(valDinheiro)} &nbsp;|&nbsp; Pix: ${moeda(valPix)}</td></tr>`
     : `<tr class="pagto-split"><td>Forma de pagamento</td><td>${esc(forma || "Pix")}</td></tr>`;
+
+  // Cálculo de densidade inteligente (linhas ocupadas + complexidade)
+  const linhasEstimadas = (diasEmDuasColunas ? Math.ceil(diasDetalhados.length / 2) : diasDetalhados.length)
+    + (descontosEmDuasColunas ? Math.ceil(descontosItens.length / 2) : descontosItens.length)
+    + [taxaServico, inss, fgts, transporte, adicional].filter((x) => Number(x)).length
+    + (t.observacao_horario ? 1 : 0)
+    + (t.encerramento ? 1 : 0)
+    + 6;
+
+  const nivelDensidade = linhasEstimadas <= 10
+    ? "d0"
+    : linhasEstimadas <= 13
+      ? "d1"
+      : linhasEstimadas <= 16
+        ? "d2"
+        : "d3";
 
   const renderVia = (identificacaoVia) => `
     <div class="folha">
@@ -374,6 +425,9 @@ export function montarHtmlRecibo({ extra, funcionario, recibo, unidade, unidadeI
         <p>${partes.join(" ")}</p>
         ${t.observacao_horario ? `<p>${esc(t.observacao_horario)}</p>` : ""}
         <p>${pagamento}</p>
+
+        ${tabelaDiasCompacta}
+        ${tabelaDescontosCompacta}
 
         <table><tbody>
           ${linhasDiasTabela}
@@ -416,34 +470,78 @@ export function montarHtmlRecibo({ extra, funcionario, recibo, unidade, unidadeI
   const html = `<!doctype html>
   <html lang="pt-BR"><head><meta charset="utf-8"/><title>${esc(recibo?.numero || `Recibo - ${nome}`)}</title>
   <style>
-    @page{size:A4 portrait;margin:6mm 9mm}
+    @page{size:A4 portrait;margin:4mm 8mm}
     *{box-sizing:border-box}
-    body{font-family:Arial,Helvetica,sans-serif;color:#000;margin:0;font-size:9.8px;line-height:1.36;background:#fff}
-    .pagina-a4{display:flex;flex-direction:column;justify-content:space-between;min-height:282mm;max-height:284mm}
-    .folha{border:1px solid #000;padding:10px 14px;display:flex;flex-direction:column;justify-content:space-between;min-height:135mm;max-height:137mm;page-break-inside:avoid;break-inside:avoid}
-    .topo-via{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #000;padding-bottom:5px;margin-bottom:7px}
-    .topo-via h1{font-size:12px;text-align:center;margin:0;letter-spacing:.02em;flex:1}
-    .badge-via,.badge-tipo{font-size:8px;font-weight:bold;border:1px solid #000;padding:2px 6px;white-space:nowrap;text-transform:uppercase;background:#f8fafc}
-    p{margin:0 0 5px;text-align:justify}
-    .encerramento{font-size:9px;color:#111;margin-top:3px}
-    table{width:100%;border-collapse:collapse;margin:4px 0 5px}
-    th,td{border:1px solid #000;padding:2.5px 7px;text-align:left;font-size:9.3px}
-    td:last-child{text-align:right;white-space:nowrap;width:36%}
+    html,body{height:100%;margin:0;padding:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .pagina-a4{display:flex;flex-direction:column;justify-content:space-between;height:288mm;max-height:288mm;overflow:hidden;box-sizing:border-box}
+    .folha{border:1px solid #000;padding:8px 12px;display:flex;flex-direction:column;justify-content:space-between;height:calc(50% - 2.5mm);max-height:calc(50% - 2.5mm);overflow:hidden;page-break-inside:avoid;break-inside:avoid;box-sizing:border-box}
+    .topo-via{display:flex;align-items:center;justify-content:space-between;gap:6px;border-bottom:1px solid #000;padding-bottom:4px;margin-bottom:5px}
+    .topo-via h1{font-size:11.5px;text-align:center;margin:0;letter-spacing:.02em;flex:1}
+    .badge-via,.badge-tipo{font-size:7.5px;font-weight:bold;border:1px solid #000;padding:1.5px 5px;white-space:nowrap;text-transform:uppercase;background:#f8fafc}
+    p{margin:0 0 3.5px;text-align:justify}
+    .encerramento{font-size:8.5px;color:#111;margin-top:2px}
+    table{width:100%;border-collapse:collapse;margin:3px 0 4px}
+    th,td{border:1px solid #000;padding:2px 6px;text-align:left;font-size:8.8px}
+    td:last-child{text-align:right;white-space:nowrap;width:32%}
+    table.dias{margin:2px 0 3px}
+    table.dias td{font-size:8.2px;padding:1.5px 5px;width:34%}
+    table.dias td.v{width:16%;text-align:right;font-weight:bold;background:#fafafa}
+    table.descontos-grid{margin:2px 0 3px}
+    table.descontos-grid td{font-size:8.0px;padding:1.5px 5px;width:34%;color:#7f1d1d;background:#fff5f5}
+    table.descontos-grid td.vd{width:16%;text-align:right;font-weight:bold}
     .subtotal-row td{font-weight:bold;background:#f8fafc}
     .desconto-row td{color:#7f1d1d;background:#fff5f5}
-    .total td{font-weight:bold;font-size:10.5px;background:#ecfdf5;border-top:1.5px solid #000}
-    .pagto-split td{font-size:8.8px;background:#f8fafc;font-weight:bold}
-    .rodape-bloco{margin-top:4px}
-    .local{margin:2px 0 0;font-weight:bold;text-align:right;font-size:9.2px}
-    .assinaturas{margin-top:18px;display:flex;justify-content:space-between;gap:24px;text-align:center}
+    .total td{font-weight:bold;font-size:9.8px;background:#ecfdf5;border-top:1.5px solid #000}
+    .pagto-split td{font-size:8.2px;background:#f8fafc;font-weight:bold}
+    .rodape-bloco{margin-top:2px}
+    .local{margin:1px 0 0;font-weight:bold;text-align:right;font-size:8.5px}
+    .assinaturas{margin-top:12px;display:flex;justify-content:space-between;gap:20px;text-align:center}
     .bloco-assinatura{flex:1;min-width:0}
-    .linha{border-top:1px solid #000;width:85%;margin:0 auto 3px}
-    .bloco-assinatura strong{display:block;font-size:9.8px;margin-top:2px}
-    .bloco-assinatura span{display:block;font-size:8.4px;color:#222}
-    .divisor-pontilhado{position:relative;border-top:1.5px dashed #000;margin:2.5mm 0;text-align:center;height:0}
-    .divisor-pontilhado span{position:relative;top:-6px;background:#fff;padding:0 10px;font-size:8px;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;color:#333}
+    .linha{border-top:1px solid #000;width:85%;margin:0 auto 2px}
+    .bloco-assinatura strong{display:block;font-size:9px;margin-top:1px}
+    .bloco-assinatura span{display:block;font-size:7.8px;color:#222}
+    .divisor-pontilhado{height:4mm;position:relative;border-top:1.5px dashed #000;text-align:center;margin:0}
+    .divisor-pontilhado span{position:relative;top:-6px;background:#fff;padding:0 8px;font-size:7.5px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:#333}
+
+    body.d0{font-size:9.5px;line-height:1.34}
+    body.d0 .folha{padding:9px 13px}
+    body.d0 p{margin:0 0 3.8px}
+    body.d0 table th,body.d0 table td{padding:2.2px 6px;font-size:9.0px}
+    body.d0 .assinaturas{margin-top:14px}
+
+    body.d1{font-size:8.7px;line-height:1.25}
+    body.d1 .folha{padding:7px 11px}
+    body.d1 p{margin:0 0 2.8px}
+    body.d1 table th,body.d1 table td{padding:1.8px 5px;font-size:8.3px}
+    body.d1 table.dias td{font-size:7.8px;padding:1.4px 4px}
+    body.d1 .assinaturas{margin-top:10px}
+    body.d1 .topo-via h1{font-size:11px}
+
+    body.d2{font-size:7.8px;line-height:1.18}
+    body.d2 .folha{padding:5px 9px}
+    body.d2 p{margin:0 0 2.0px}
+    body.d2 table th,body.d2 table td{padding:1.3px 4px;font-size:7.6px}
+    body.d2 table.dias td{font-size:7.2px;padding:1.1px 3px}
+    body.d2 .assinaturas{margin-top:6px}
+    body.d2 .topo-via{margin-bottom:3px;padding-bottom:2px}
+    body.d2 .topo-via h1{font-size:10px}
+    body.d2 .bloco-assinatura strong{font-size:8.2px}
+    body.d2 .bloco-assinatura span{font-size:7.2px}
+
+    body.d3{font-size:7.1px;line-height:1.12}
+    body.d3 .folha{padding:3px 6px}
+    body.d3 p{margin:0 0 1.5px}
+    body.d3 table th,body.d3 table td{padding:0.8px 3px;font-size:6.9px}
+    body.d3 table.dias td{font-size:6.6px;padding:0.8px 2.5px}
+    body.d3 .assinaturas{margin-top:4px}
+    body.d3 .topo-via{margin-bottom:2px;padding-bottom:2px}
+    body.d3 .topo-via h1{font-size:9.2px}
+    body.d3 .badge-via,body.d3 .badge-tipo{font-size:6.8px;padding:1px 3px}
+    body.d3 .bloco-assinatura strong{font-size:7.6px}
+    body.d3 .bloco-assinatura span{font-size:6.6px}
+
     @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-  </style></head><body>
+  </style></head><body class="${nivelDensidade}">
     <div class="pagina-a4">
       ${renderVia("1ª VIA — FUNCIONÁRIO")}
       <div class="divisor-pontilhado"><span>✂ Linha pontilhada para recorte · 1ª Via Funcionário / 2ª Via Empresa</span></div>

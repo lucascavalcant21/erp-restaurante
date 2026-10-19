@@ -29,12 +29,14 @@ export function iniciarTempoReal() {
 // Hook: chama onMudou quando alguma das tabelas mudar (debounce de 300ms para
 // rajadas — ex.: salvar a escala grava várias linhas de uma vez).
 // tabelas = null/[] escuta TUDO.
-// Além do aviso do Supabase, recarrega sozinho a cada 15s com a aba visível e
-// na hora em que o usuário volta para o app — assim uma batida de ponto aparece
-// no RH mesmo se o realtime do banco não estiver habilitado.
+// Usa Set O(1) via ref para evitar JSON.stringify a cada render e re-subscrições.
 export function useTempoReal(tabelas, onMudou) {
   const cb = useRef(onMudou);
   cb.current = onMudou;
+
+  const tabelasSetRef = useRef(null);
+  tabelasSetRef.current = Array.isArray(tabelas) && tabelas.length > 0 ? new Set(tabelas) : null;
+
   const timer = useRef(null);
 
   useEffect(() => {
@@ -44,7 +46,8 @@ export function useTempoReal(tabelas, onMudou) {
     };
     const h = (e) => {
       const t = e.detail && e.detail.tabela;
-      if (tabelas && tabelas.length && !tabelas.includes(t)) return;
+      const filtro = tabelasSetRef.current;
+      if (filtro && !filtro.has(t)) return;
       disparar(t);
     };
     window.addEventListener("hefisto:mudou", h);
@@ -52,6 +55,5 @@ export function useTempoReal(tabelas, onMudou) {
       clearTimeout(timer.current);
       window.removeEventListener("hefisto:mudou", h);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(tabelas || [])]);
+  }, []);
 }

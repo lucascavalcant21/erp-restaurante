@@ -23,7 +23,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ALargeSmall, Clock, Globe, Home, MessageCircle, Menu, Minus, Plus, Receipt, RotateCcw, Search, Share2,
-  ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin, Gift,
+  ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin, Gift, BellRing,
 } from "lucide-react";
 import {
   aplicarNome, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, primeiroNome, saudacao, totalDoCarrinho,
@@ -33,6 +33,7 @@ import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, 
 import Conversa from "./Conversa";
 import Pedido from "./Pedido";
 import { CartaoFidelidade, DetalheFidelidade, cartoesDoPrato } from "./Fidelidade";
+import { BotoesAtendimento } from "./Atendimento";
 import { cashbackUsavel, descontoDoCadastro } from "../../lib/fidelidade.mjs";
 import s from "./cardapio.module.css";
 
@@ -105,7 +106,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const [prato, setPrato] = useState(null);
   const [qtdPrato, setQtdPrato] = useState(1);
   const [obsPrato, setObsPrato] = useState("");
-  const [folha, setFolha] = useState(""); // "", "secoes", "pedido", "idiomas", "pedidos", "info", "fidelidade"
+  const [folha, setFolha] = useState(""); // "", "secoes", "pedido", "idiomas", "pedidos", "info", "fidelidade", "atendimento"
+  const [chamados, setChamados] = useState({}); // tipo → { estado: "enviando" | "ok", ate }
   const [conversaAberta, setConversaAberta] = useState(false);
   const [consultaConversa, setConsultaConversa] = useState("");
   const [mensagens, setMensagens] = useState([]);
@@ -227,6 +229,35 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   useEffect(() => { if (lateral && folha === "secoes") setFolha(""); }, [lateral]); // eslint-disable-line react-hooks/exhaustive-deps
   // Abriu uma folha: o aviso de antes ("no pedido · ver pedido") já não serve e cobriria o conteúdo.
   useEffect(() => { if (folha) setAviso(null); }, [folha]);
+
+  // Atendimento da mesa: o chamado vai para o Salão. "Avisado" fica 1 minuto
+  // no botão; o servidor também não abre dois chamados iguais da mesma mesa.
+  const chamar = useCallback(async (tipo) => {
+    if (!mesa) return;
+    if (previa) { setAviso({ texto: T("chamado_previa") }); return; }
+    setChamados((c) => ({ ...c, [tipo]: { estado: "enviando" } }));
+    try {
+      const r = await fetch(`/api/public/experience/${encodeURIComponent(unidadeId)}/chamado`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mesa, tipo, solicitanteNome: form.nome.trim() || null }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.codigo || "falhou");
+      setChamados((c) => ({ ...c, [tipo]: { estado: "ok", ate: Date.now() + 60000 } }));
+      setAviso({ texto: j.jaAberto ? T("chamado_ja") : T(tipo === "conta" ? "chamado_conta_ok" : "chamado_ok", { mesa }) });
+    } catch {
+      setChamados((c) => { const n = { ...c }; delete n[tipo]; return n; });
+      setAviso({ texto: T("chamado_erro") });
+    }
+  }, [mesa, previa, unidadeId, form.nome, T]);
+  useEffect(() => {
+    const ates = Object.values(chamados).map((c) => c.ate).filter(Boolean);
+    if (!ates.length) return undefined;
+    const espera = Math.max(0, Math.min(...ates) - Date.now());
+    const id = setTimeout(() => setChamados((c) => Object.fromEntries(Object.entries(c).filter(([, v]) => !v.ate || v.ate > Date.now()))), espera + 50);
+    return () => clearTimeout(id);
+  }, [chamados]);
 
   // Andamento dos pedidos deste aparelho, enquanto a lista está aberta.
   const atualizarPedidos = useCallback(async () => {
@@ -573,6 +604,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
               </>
             )}
             {mesa && lateral ? <span className={s.chipMesa}>{T("mesa", { mesa })}</span> : null}
+            {mesa ? <button type="button" className={s.icone} onClick={() => setFolha("atendimento")} aria-haspopup="dialog" aria-label={T("atendimento")}><BellRing size={20} aria-hidden="true" /></button> : null}
             {botaoIdioma}
             {conversaLigada && lateral ? <button type="button" className={s.icone} onClick={() => abrirConversa()} aria-label={T("conversar")}><MessageCircle size={20} aria-hidden="true" /></button> : null}
             {meusPedidos.length ? (
@@ -626,6 +658,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
                 <h1 className={s.nomeLoja}>{unidade.nome}</h1>
                 {textos.apresentacao ? <p className={s.apresentacao}>{textos.apresentacao}</p> : null}
                 <span className={s.marcas}><span className={s.chipMesa}>{T("mesa", { mesa })}</span></span>
+                <BotoesAtendimento T={T} chamados={chamados} onChamar={chamar} />
               </header>
               <CartaoFidelidade cardapio={cardapio} status={fidStatus} onAbrir={() => setFolha("fidelidade")} unidadeId={unidadeId} cadastroLocal={cadastroLocal} />
             </>
@@ -827,6 +860,15 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         <Folha titulo={T("fid_titulo")} onFechar={() => setFolha("")} idioma={lingua}>
           <div className={s.folhaCorpo}>
             <DetalheFidelidade cardapio={cardapio} status={fidStatus} onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }} unidadeId={unidadeId} cadastroLocal={cadastroLocal} />
+          </div>
+        </Folha>
+      ) : null}
+
+      {folha === "atendimento" ? (
+        <Folha titulo={T("atendimento")} onFechar={() => setFolha("")} idioma={lingua}>
+          <div className={s.folhaCorpo}>
+            <p className={s.apresentacao} style={{ margin: "0 0 12px" }}>{T("mesa", { mesa })}</p>
+            <BotoesAtendimento T={T} chamados={chamados} grade tipos={["garcom", "conta", "agua", "talheres"]} onChamar={(tipo) => { setFolha(""); chamar(tipo); }} />
           </div>
         </Folha>
       ) : null}

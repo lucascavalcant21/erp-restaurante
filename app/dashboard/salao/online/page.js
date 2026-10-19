@@ -3,7 +3,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, despacharPedidoOnline, fecharPedidoOnline } from "../../../lib/vendas";
+import { fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, despacharPedidoOnline, fecharPedidoOnline, atualizarStatusPedido } from "../../../lib/vendas";
+
+// A tabela pedidos não tem coluna "origem": a aba sai do tipo do pedido.
+const origemDe = (p) => (p.tipo_pedido === "ifood" ? "ifood" : p.tipo_pedido === "qrcode" ? "mesa" : "delivery");
+const ROTULO_ORIGEM = { ifood: "iFood", mesa: "Mesa (QR)", delivery: "Delivery" };
+// Novo pedido do cardápio digital chega como novo_online.
+const ehNovo = (p) => !p.status || ["novo_online", "aberto", "pendente", "aguardando_aceite"].includes(p.status);
 import { Bike, Check, X, ArrowLeft, Clock, MapPin, Phone, AlertCircle, Maximize, Printer } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
@@ -61,8 +67,9 @@ export default function GestorOnlinePage() {
   const handleAceitar = async (id) => {
      if(confirm("Confirmar e enviar para a Cozinha?")) {
         // Optimistic Update
-        setPedidos(atual => atual.filter(p => p.id !== id));
+        setPedidos(atual => atual.map(p => p.id === id ? { ...p, status: 'preparando_delivery' } : p));
         await aceitarPedidoOnline(id);
+        carregar();
      }
   };
 
@@ -70,6 +77,7 @@ export default function GestorOnlinePage() {
      if(confirm("Tem certeza que deseja recusar/cancelar este pedido? O cliente não será cobrado.")) {
         setPedidos(atual => atual.filter(p => p.id !== id));
         await recusarPedidoOnline(id);
+        carregar();
      }
   };
 
@@ -89,6 +97,15 @@ export default function GestorOnlinePage() {
      if(confirm("Confirmar entrega? Isso dará baixa no estoque e no financeiro.")) {
         setPedidos(atual => atual.filter(p => p.id !== id));
         await fecharPedidoOnline(id, unidadeAtiva);
+     }
+  };
+
+  // Pedido da mesa (QR) não chama motoboy: é servido no salão.
+  const handleServido = async (id) => {
+     if(confirm("Pedido servido na mesa?")) {
+        setPedidos(atual => atual.filter(p => p.id !== id));
+        await atualizarStatusPedido(id, 'entregue');
+        carregar();
      }
   };
 
@@ -120,7 +137,7 @@ export default function GestorOnlinePage() {
             <div className="flex items-center self-stretch min-w-0 overflow-x-auto">
                <button onClick={() => setAba('DELIVERY')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors ${aba === 'DELIVERY' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-subtle hover:text-white'}`}>DELIVERY</button>
                <button onClick={() => setAba('IFOOD')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors ${aba === 'IFOOD' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-subtle hover:text-white'}`}>IFOOD</button>
-               <button onClick={() => setAba('CARDAPIO')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors flex items-center gap-2 ${aba === 'CARDAPIO' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-subtle hover:text-white'}`}>CARDÁPIO DIGITAL</button>
+               <button onClick={() => setAba('CARDAPIO')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors flex items-center gap-2 ${aba === 'CARDAPIO' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-subtle hover:text-white'}`}>MESA (QR)</button>
             </div>
             
             <div className="hidden lg:flex items-center gap-6">
@@ -150,10 +167,10 @@ export default function GestorOnlinePage() {
             
             {(() => {
                const pedidosFiltrados = pedidos.filter(p => {
-                  if (aba === 'IFOOD') return p.origem === 'ifood';
-                  if (aba === 'CARDAPIO') return p.origem === 'cardapio';
-                  // DEFAULT: DELIVERY (whatsapp, telefone, manual, etc)
-                  return !p.origem || p.origem === 'whatsapp' || p.origem === 'telefone' || p.origem === 'delivery' || p.origem === 'manual';
+                  if (aba === 'IFOOD') return origemDe(p) === 'ifood';
+                  if (aba === 'CARDAPIO') return origemDe(p) === 'mesa';
+                  // DEFAULT: DELIVERY (cardápio digital, whatsapp, telefone, manual)
+                  return origemDe(p) === 'delivery';
                });
 
                return (
@@ -164,17 +181,17 @@ export default function GestorOnlinePage() {
                   Novos
                </div>
                <div className="flex-1 overflow-y-auto p-2">
-                  {pedidosFiltrados.filter(p => !p.status || p.status === 'aberto' || p.status === 'pendente' || p.status === 'aguardando_aceite').length === 0 ? (
+                  {pedidosFiltrados.filter(ehNovo).length === 0 ? (
                      <div className="h-full flex items-center justify-center text-subtle font-bold text-sm uppercase">Nenhum pedido</div>
                   ) : (
-                     pedidosFiltrados.filter(p => !p.status || p.status === 'aberto' || p.status === 'pendente' || p.status === 'aguardando_aceite').map(p => (
+                     pedidosFiltrados.filter(ehNovo).map(p => (
                         <div key={p.id} onClick={() => setDetalhe(p)} className="bg-card p-3 rounded-xl shadow-sm border-l-4 border-l-red-500 mb-2 cursor-pointer hover:shadow-md transition-shadow">
                            <div className="flex justify-between items-start mb-2">
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
                               <span className="text-xs font-bold text-red-500 flex items-center gap-1"><Clock size={12}/> {calcTempo(p.created_at)} min</span>
                            </div>
                            <p className="font-bold text-slate-900 text-xs">{p.cliente_nome || "Cliente Não Informado"}</p>
-                           <p className="text-xs text-fg mt-1 truncate"><MapPin size={10} className="inline mr-1"/>{p.bairro || p.endereco_entrega || "Balcão / Retirada"}</p>
+                           <p className="text-xs text-fg mt-1 truncate"><MapPin size={10} className="inline mr-1"/>{origemDe(p) === 'mesa' ? "Mesa (QR)" : (p.bairro || p.endereco_entrega || "Balcão / Retirada")}</p>
                            <div className="mt-3 flex gap-2">
                               <button onClick={(e) => { e.stopPropagation(); handleRecusar(p.id); }} className="py-1.5 px-3 bg-[#E0E0E0] text-slate-900 font-bold text-xs rounded hover:bg-slate-300"><X size={14}/></button>
                               <button onClick={(e) => { e.stopPropagation(); handleAceitar(p.id); }} className="flex-1 py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Check size={14}/> ACEITAR</button>
@@ -224,7 +241,11 @@ export default function GestorOnlinePage() {
                            </div>
                            <p className="font-bold text-slate-900 text-xs">{p.cliente_nome || "Cliente"}</p>
                            <div className="mt-3">
-                              <button onClick={(e) => { e.stopPropagation(); handleDespachar(p.id); }} className="w-full py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Bike size={14}/> CHAMAR MOTOBOY</button>
+                              {origemDe(p) === 'mesa' ? (
+                                 <button onClick={(e) => { e.stopPropagation(); handleServido(p.id); }} className="w-full py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Check size={14}/> SERVIDO NA MESA</button>
+                              ) : (
+                                 <button onClick={(e) => { e.stopPropagation(); handleDespachar(p.id); }} className="w-full py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Bike size={14}/> CHAMAR MOTOBOY</button>
+                              )}
                            </div>
                         </div>
                      ))
@@ -272,7 +293,7 @@ export default function GestorOnlinePage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-black text-fg text-xl">#{detalhe.id.substring(0, 4).toUpperCase()}</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-100 text-red-700">{detalhe.origem || 'Delivery'}</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-100 text-red-700">{ROTULO_ORIGEM[origemDe(detalhe)]}</span>
                 </div>
                 <p className="text-sm font-bold text-fg-soft mt-1">{detalhe.cliente_nome || 'Cliente não informado'}</p>
                 <p className="text-xs font-bold text-subtle">Feito às {new Date(detalhe.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>

@@ -5,7 +5,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTempoReal } from "../../../lib/realtime";
 import { Clock, CheckCircle, ChefHat, Check, Flame, LayoutGrid, Volume2, VolumeX, ArrowLeft, TriangleAlert } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchPedidosAtivos, atualizarStatusItem, finalizarPedidoTodo } from "../../../lib/kds";
+import { fetchFilaKDS, atualizarItemKDS, entregarTicketKDS } from "../../../lib/kds";
+import { proximoStatusKDS } from "../../../lib/kds-fila.mjs";
 import { useRouter } from "next/navigation";
 
 // SLA de 20 minutos por padrão
@@ -30,13 +31,24 @@ export default function KDSPage() {
   const [toast, setToast] = useState("");
   const [agora, setAgora] = useState(Date.now());
   const [somAtivo, setSomAtivo] = useState(true);
+  const [erro, setErro] = useState("");
+  // Setor da tela (cozinha, bar ou tudo); lembrado neste aparelho.
+  const [setor, setSetor] = useState("cozinha");
+  useEffect(() => {
+    try { const s = localStorage.getItem("kds-setor"); if (["cozinha", "bar", "todos"].includes(s)) setSetor(s); } catch { /* segue */ }
+  }, []);
+  const escolherSetor = (s) => {
+    setSetor(s);
+    try { localStorage.setItem("kds-setor", s); } catch { /* segue */ }
+  };
 
   const audioRef = useRef(null);
   const lastPedidoDate = useRef(null);
 
   const carregar = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
-    const { data } = await fetchPedidosAtivos(unidadeAtiva);
+    const { data, error } = await fetchFilaKDS(unidadeAtiva, setor);
+    setErro(error || "");
     
     if (data && data.length > 0) {
       const maisRecente = new Date(Math.max(...data.map(p => new Date(p.created_at))));
@@ -53,7 +65,7 @@ export default function KDSPage() {
 
     setPedidos(data || []);
     if (!isSilent) setLoading(false);
-  }, [unidadeAtiva, somAtivo]);
+  }, [unidadeAtiva, somAtivo, setor]);
 
   useEffect(() => {
     carregar();
@@ -66,25 +78,28 @@ export default function KDSPage() {
   useTempoReal(null, () => carregar(true)); // pedido novo aparece na hora
 
   async function handleClickStatus(item) {
-    let novoStatus = "pendente";
-    if (item.status_preparo === "pendente" || !item.status_preparo) novoStatus = "preparando";
-    else if (item.status_preparo === "preparando") novoStatus = "pronto";
-    else if (item.status_preparo === "pronto") novoStatus = "pendente";
+    const novoStatus = proximoStatusKDS(item.status);
 
     // Otimista
     setPedidos(prev => prev.map(ped => ({
       ...ped,
-      venda_itens: ped.venda_itens.map(i => i.id === item.id ? { ...i, status_preparo: novoStatus } : i)
+      itens: ped.itens.map(i => i.id === item.id ? { ...i, status: novoStatus } : i)
     })));
 
-    await atualizarStatusItem(item.id, novoStatus);
+    const { error } = await atualizarItemKDS(item.id, novoStatus);
+    if (error) {
+      setToast("Não foi possível salvar. Tente de novo.");
+      setTimeout(() => setToast(""), 2500);
+      carregar(true);
+    }
   }
 
   async function handleFinalizarPedido(pedido) {
     setPedidos(prev => prev.filter(p => p.id !== pedido.id));
-    setToast(`Pedido entregue!`);
+    const { error } = await entregarTicketKDS(pedido, pedido.itens.map(i => i.id));
+    setToast(error ? "Não foi possível entregar. Tente de novo." : "Pedido entregue!");
     setTimeout(() => setToast(""), 2500);
-    await finalizarPedidoTodo(pedido.id);
+    if (error) carregar(true);
   }
 
   return (
@@ -119,6 +134,18 @@ export default function KDSPage() {
          </div>
 
          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-4">
+            <div className="col-span-2 sm:col-span-1 flex rounded-xl border border-hf-border bg-hf-elevated p-1" role="group" aria-label="Setor">
+               {[["cozinha", "Cozinha"], ["bar", "Bar"], ["todos", "Tudo"]].map(([id, rotulo]) => (
+                  <button
+                     key={id}
+                     onClick={() => escolherSetor(id)}
+                     aria-pressed={setor === id}
+                     className={`flex-1 px-3 sm:px-4 py-2 rounded-lg font-bold text-xs sm:text-sm uppercase tracking-wide transition-colors ${setor === id ? "bg-emerald-500 text-white" : "text-fg hover:text-hf-text"}`}
+                  >
+                     {rotulo}
+                  </button>
+               ))}
+            </div>
             <button 
               onClick={() => setSomAtivo(!somAtivo)}
               className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-widest transition-colors ${
@@ -142,11 +169,17 @@ export default function KDSPage() {
 
       {/* ÁREA DOS TICKETS */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 hide-scrollbar">
+         {erro && (
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+               Não foi possível ler a fila agora ({erro}). A tela tenta de novo sozinha.
+            </div>
+         )}
          {pedidos.length === 0 && !loading ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-900 px-4 text-center">
                <LayoutGrid size={100} className="mb-6 opacity-20" />
                <h2 className="text-2xl sm:text-4xl font-black text-fg tracking-tight">Cozinha Limpa</h2>
                <p className="text-base sm:text-xl font-bold mt-3 text-slate-900">Nenhum pedido na fila de preparo.</p>
+               <p className="text-sm font-bold mt-2 text-fg">Aqui chegam os pedidos do salão, das mesas pelo QR, do delivery e do iFood depois de aceitos.</p>
             </div>
          ) : (
             <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3 sm:gap-6 items-start pb-24">
@@ -160,7 +193,7 @@ export default function KDSPage() {
                   if (pct > 50 && pct < 80) { corSLA = "bg-emerald-500"; corSlaGlow = "shadow-[0_0_15px_rgba(245,158,11,0.5)]"; }
                   if (pct >= 80) { corSLA = "bg-emerald-500"; corSlaGlow = "shadow-[0_0_15px_rgba(239,68,68,0.6)]"; }
 
-                  const todosProntos = pedido.venda_itens.length > 0 && pedido.venda_itens.every(i => i.status_preparo === "pronto");
+                  const todosProntos = pedido.itens.length > 0 && pedido.itens.every(i => i.status === "pronto");
 
                   return (
                      <div key={pedido.id} className={`flex flex-col bg-hf-surface rounded-[28px] border-2 overflow-hidden shadow-xl transition-all ${
@@ -178,9 +211,12 @@ export default function KDSPage() {
                               <p className={`text-xl font-black tracking-tight ${isAtrasado ? 'text-fg' : 'text-hf-text'}`}>
                                  #{pedido.id.slice(0, 4).toUpperCase()}
                               </p>
-                              <p className="text-sm font-bold text-fg mt-1 uppercase tracking-widest">
-                                 {pedido.cliente ? `👤 ${pedido.cliente}` : "BALCÃO"}
+                              <p className="text-xs font-black text-emerald-700 mt-1 uppercase tracking-widest">
+                                 {pedido.origem}{pedido.identificacao ? ` · ${pedido.identificacao}` : ""}
                               </p>
+                              {pedido.cliente && (
+                                 <p className="text-sm font-bold text-fg mt-0.5 truncate max-w-[14rem]">{pedido.cliente}</p>
+                              )}
                            </div>
                            <div className={`px-4 py-2 rounded-xl flex flex-col items-end border ${
                               isAtrasado ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-hf-elevated border-hf-border'
@@ -194,8 +230,8 @@ export default function KDSPage() {
 
                         {/* Corpo dos Itens */}
                         <div className="p-3 sm:p-4 flex flex-col gap-3">
-                           {pedido.venda_itens.map(item => {
-                              const st = item.status_preparo || "pendente";
+                           {pedido.itens.map(item => {
+                              const st = item.status || "pendente";
                               
                               // Configs Visuais por Status
                               let stBg = "bg-hf-elevated";
@@ -225,6 +261,10 @@ export default function KDSPage() {
                                     <div className={`flex-1 text-base sm:text-lg font-bold leading-tight ${stText}`}>
                                        <span className="font-black bg-black/30 px-2 py-1 rounded-lg text-sm mr-2">{item.quantidade}x</span>
                                        {item.nome}
+                                       {setor === "todos" && <span className="ml-2 text-3xs font-black uppercase tracking-widest text-fg">{item.setor}</span>}
+                                       {item.observacao && (
+                                          <span className="mt-1 flex items-center gap-1 text-sm font-bold text-amber-700"><TriangleAlert size={14} /> {item.observacao}</span>
+                                       )}
                                     </div>
                                  </button>
                               )

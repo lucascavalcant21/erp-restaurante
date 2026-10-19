@@ -152,3 +152,79 @@ test("Green Dot Assist — Escala Gantt, Extras disponíveis e Mapa de Praças (
   assert.ok(ROTINAS_OPERACIONAIS["organizacao-camara"]);
   assert.ok(TOPICOS_INICIAIS.producao.length >= 4);
 });
+
+test("Green Dot Assist — Rotinas de Limpeza, Dosagem em mL por Balde e Regras ANVISA", () => {
+  // 1. Limpeza de chão: 50ml para 5L (10ml/L), tempo de ação 10min, EPIs
+  const chao = ROTINAS_LIMPEZA_HIGIENIZACAO["limpeza-chao"];
+  assert.ok(chao, "Rotina de chão deve existir");
+  assert.equal(chao.mlPorLitro, 10);
+  assert.ok(chao.diluicaoPadrao.includes("50 ml"));
+  assert.ok(chao.tempoAcaoQuimica.includes("10 minutos"));
+  assert.ok(chao.episObrigatorios.length >= 3);
+  assert.ok(chao.passos.length >= 4);
+
+  // Calculadora de diluição para chão
+  const dilChao5L = calcularDiluicaoLimpeza("limpeza-chao", 5);
+  assert.equal(dilChao5L.litrosAgua, 5);
+  assert.equal(dilChao5L.mlCalculado, 50);
+
+  const dilChao10L = calcularDiluicaoLimpeza("limpeza-chao", 10);
+  assert.equal(dilChao10L.mlCalculado, 100);
+
+  // 2. Limpeza de panos: 25ml de cloro por Litro, molho de 20-30min, código de cores
+  const panos = ROTINAS_LIMPEZA_HIGIENIZACAO["limpeza-panos"];
+  assert.ok(panos, "Rotina de panos deve existir");
+  assert.equal(panos.mlPorLitro, 25);
+  assert.ok(panos.tempoAcaoQuimica.includes("20 a 30 minutos"));
+  assert.ok(panos.codigoCores?.length >= 3);
+  assert.ok(panos.passos.length >= 4);
+
+  const dilPanos4L = calcularDiluicaoLimpeza("limpeza-panos", 4);
+  assert.equal(dilPanos4L.mlCalculado, 100);
+
+  // 3. Lavagem de mãos: sabonete bactericida, 40 a 60 segundos, álcool 70%
+  const maos = ROTINAS_LIMPEZA_HIGIENIZACAO["lavagem-maos"];
+  assert.ok(maos, "Rotina de lavagem de mãos deve existir");
+  assert.ok(maos.passos.length >= 5);
+  assert.ok(maos.momentosObrigatorios?.length >= 5);
+  assert.ok(maos.tempoMinimo.includes("40 a 60"));
+
+  // 4. Hortifrúti: 10ml por Litro, 15 min
+  const horti = ROTINAS_LIMPEZA_HIGIENIZACAO["sanitizacao-hortifruti"];
+  assert.ok(horti);
+  assert.equal(horti.mlPorLitro, 10);
+});
+
+test("Green Dot Assist — Checklists de Abertura & Saída/Fechamento por Praça com Alertas Críticos", () => {
+  assert.ok(CHECKLISTS_PRACA.abertura.length >= 4, "Abertura deve ter ao menos 4 praças");
+  assert.ok(CHECKLISTS_PRACA.fechamento.length >= 4, "Fechamento deve ter ao menos 4 praças");
+
+  // Abertura - Cozinha Quente
+  const abCQ = CHECKLISTS_PRACA.abertura.find((s) => s.id === "chk-ab-cq");
+  assert.ok(abCQ);
+  assert.ok(abCQ.itens.length >= 4);
+  const abCriticos = abCQ.itens.filter((i) => i.critico);
+  assert.ok(abCriticos.length >= 1, "Abertura CQ deve ter itens críticos");
+
+  // Fechamento - Cozinha Quente (gás, desligamento de equipamentos, choque térmico)
+  const fcCQ = CHECKLISTS_PRACA.fechamento.find((s) => s.id === "chk-fc-cq");
+  assert.ok(fcCQ);
+  assert.ok(fcCQ.itens.length >= 5);
+
+  const gasItem = fcCQ.itens.find((i) => i.texto.toLowerCase().includes("gás") || i.texto.toLowerCase().includes("gas"));
+  assert.ok(gasItem, "Fechamento deve conferir registro de gás");
+  assert.equal(gasItem.critico, true, "Registro de gás deve ser crítico");
+
+  const equipItem = fcCQ.itens.find((i) => i.texto.toLowerCase().includes("desligados"));
+  assert.ok(equipItem, "Fechamento deve conferir equipamentos desligados");
+  assert.equal(equipItem.critico, true);
+
+  const choqueItem = fcCQ.itens.find((i) => i.texto.toLowerCase().includes("choque térmico") || i.texto.toLowerCase().includes("resfriadas"));
+  assert.ok(choqueItem, "Fechamento deve conferir choque térmico");
+  assert.equal(choqueItem.critico, true);
+
+  // Tópicos iniciais
+  assert.ok(TOPICOS_INICIAIS.limpeza.length >= 3);
+  assert.ok(TOPICOS_INICIAIS.checklists.length >= 3);
+});
+

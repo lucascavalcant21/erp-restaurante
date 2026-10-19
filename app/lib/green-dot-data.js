@@ -789,6 +789,7 @@ export function calcularDiluicaoLimpeza(rotinaId, litrosAgua = 5) {
     rotina,
     litrosAgua: litros,
     mlNecessaria: mlCalculada,
+    mlCalculado: mlCalculada,
     colheresSopaAprox: Math.round(mlCalculada / 15),
     coposCafeAprox: Math.round((mlCalculada / 50) * 10) / 10,
   };

@@ -23,7 +23,7 @@ Ele não espera um prompt novo se existe missão READY e não há bloqueio crít
 **Para liberar uma missão do backlog:** `npm run hefisto:missoes -- pronta HDEV-00X`.
 
 <!-- hefisto-agent:indice:inicio -->
-_Gerado por `npm run hefisto:missoes` em 2026-10-19 14:55 UTC. Edite as missões em `missoes/`, não esta tabela._
+_Gerado por `npm run hefisto:missoes` em 2026-10-19 15:15 UTC. Edite as missões em `missoes/`, não esta tabela._
 
 **Próxima automática:** nenhuma missão READY sem bloqueio
 

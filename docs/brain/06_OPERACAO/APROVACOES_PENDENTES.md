@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 1** (APR-011; APR-007: falta só o merge do PR #171)
+**Pendentes agora: 2** (APR-011, APR-015; APR-007: falta só o merge do PR #171)
 
 ### APR-001 · EXECUTADO
 
@@ -235,3 +235,23 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
   - Depois: 0 clientes, 0 lançamentos, 10 pedidos, config sem fidelidade (nada ficou).
   - O programa só começa quando o dono ligar em Cardápio digital → Fidelidade.
 - **Chave:** banco:db/FIDELIDADE_1_SELOS_E_CASHBACK.sql
+
+### APR-015 · PENDENTE
+
+- **Missão:** HEXP-001 (atendimento da mesa pelo QR: "Chamar garçom" e "Pedir a conta" no cardápio digital)
+- **Ação:** Aplicar db/CHAMADOS_1_MESA.sql no Supabase real: tabela nova `experience_chamados` (o nome que o servidor e a tela do Salão já usam)
+  - um chamado aberto por mesa e tipo (tocar várias vezes não vira fila);
+  - limites de tamanho e de valores (tipo, status);
+  - RLS por unidade (`sec_unidade`, como `pedidos`); anônimo sem acesso; a equipe lê e atualiza, não insere direto; o cliente chama pelo servidor
+- **Ambiente:** supabase (produção)
+- **Risco:** MEDIUM (só uma tabela nova; nenhuma tabela existente muda)
+- **Motivo:** os botões já estão no cardápio da mesa; sem a tabela, o cliente vê "acene para a equipe" e nada chega ao Salão (conferido em 19/10: a tabela não existe no banco real)
+- **Impacto:** nenhuma linha existente muda; depois de aplicada, o chamado aparece no Salão (faixa amarela e botão de chamados, também no celular do garçom)
+- **Rollback:** `drop table if exists public.experience_chamados;` (apaga só os chamados)
+- **Evidências:** PGlite 5/5 (`app/lib/chamados-banco.test.mjs`): só aditiva; preflight aborta na segunda vez; um aberto por mesa e tipo; limites; RLS por unidade, anônimo e equipe sem insert direto. Servidor 13/13 (`app/lib/experience.test.mjs`). Navegador (mock, Playwright): sem a tabela, o cliente é avisado para acenar; com a tabela simulada, chamar garçom, pedir a conta, outro celular da mesma mesa não duplica, japonês, Salão no computador e no celular. TESTADO LOCAL e EM MOCK. NÃO VALIDADO no Supabase real.
+- **Impressão digital esperada:** 479c60f3e90fae069d1b785189a8ce22
+- **Comando/alteração:** `Rodar o arquivo inteiro (SQL Editor ou apply_migration). O select do fim deve devolver 479c60f3e90fae069d1b785189a8ce22.`
+- **Status:** PENDENTE
+- **Criado em:** 2026-10-19
+- **Chave:** banco:db/CHAMADOS_1_MESA.sql
+

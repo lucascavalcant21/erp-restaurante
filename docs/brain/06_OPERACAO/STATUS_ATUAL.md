@@ -55,9 +55,9 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 
 Branch `claude/sharp-meitner-0i36gu` (PR novo, rascunho):
 - Botões "Chamar garçom" e "Pedir a conta" no cardápio da mesa (8 idiomas), sino com água e talheres; o Salão vê os chamados (faixa amarela, botão também no celular, B-036).
-- Migração **CHAMADOS-1** (`db/CHAMADOS_1_MESA.sql`, só a tabela `experience_chamados`): **aguarda APR-015**. Sem ela o cliente é avisado para acenar à equipe.
+- Migração **CHAMADOS-1** (`db/CHAMADOS_1_MESA.sql`, só a tabela `experience_chamados`): **aplicada no banco real em 19/10** (APR-015), impressão digital conferida, ensaio de escrita desfeito OK.
 - Missões com status fora do padrão corrigidas (HDEV-EST-001 → VALIDATING, HEXP-001 → IN_PROGRESS); o índice voltou a gerar.
-- Evidência: TESTADO LOCAL (PGlite 5/5, servidor 13/13, app/lib 632/632, build), TESTADO EM MOCK (Playwright). NÃO VALIDADO no Supabase real.
+- Evidência: TESTADO LOCAL (PGlite 5/5, servidor 13/13, app/lib 632/632, build), TESTADO EM MOCK (Playwright), TESTADO NO SUPABASE REAL (migração e ensaio desfeito).
 
 ## 19/10/2026 — Merge da main, pedidos chegando à cozinha e impressão automática
 

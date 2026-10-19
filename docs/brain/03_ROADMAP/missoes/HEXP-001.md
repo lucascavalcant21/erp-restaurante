@@ -53,12 +53,12 @@ Transformar o Héfisto em uma plataforma de atendimento gastronômico inteligent
 - **Chamar garçom e pedir a conta** no modo mesa: botões no topo e sino na barra (folha com garçom, conta, água e talheres), nos 8 idiomas; "Avisado" por 1 minuto; outro celular da mesma mesa não abre chamado repetido.
 - **Salão (Frente de Loja):** faixa amarela quando uma mesa chama; botão de chamados também no celular e no tablet (antes só em tela de computador); hora do chamado no fuso do aparelho (antes UTC).
 - Servidor: mesa "Mesa 5" = "5" e liga ao cadastro do Salão; chamado repetido = "equipe já avisada"; unidade inexistente = 404.
-- **Falta:** aplicar `db/CHAMADOS_1_MESA.sql` (APR-015, decisão do dono). Até lá o cliente vê "acene para a equipe" (nada de aviso falso).
+- **CHAMADOS-1 aplicada no banco real em 19/10** (APR-015, sim do dono): impressão digital 479c60f3e90fae069d1b785189a8ce22; ensaio desfeito (repetido bloqueado, equipe vê e atende, anônimo bloqueado). TESTADO NO SUPABASE REAL.
 
 **Evidências:**
 - TESTADO LOCAL: migração no PGlite 5/5 (`app/lib/chamados-banco.test.mjs`); servidor 13/13 (`app/lib/experience.test.mjs`); idiomas 17/17; app/lib 632/632 com PGLITE; build OK.
 - TESTADO EM MOCK (Playwright): sem a tabela (aviso para acenar; delivery sem botão) e com a tabela simulada (garçom, conta, repetido, japonês, Salão no computador e no celular). Sem erros no console.
-- TESTADO NO SUPABASE REAL (só leitura): a tabela não existe; mesas com `numero` "Mesa 1…21" e `numero_mesa` "Mesa Antiga".
+- TESTADO NO SUPABASE REAL: mesas com `numero` "Mesa 1…21"; CHAMADOS-1 aplicada (impressão digital igual à do PGlite) e ensaio de escrita desfeito.
 - NÃO VALIDADO: preview autenticado e produção.
 
 **Fases seguintes:** Concierge IA e Campanhas (fases 2 e 3) ficam para depois; a conversa do cardápio ("me ajuda a escolher") já cobre a recomendação sem IA, com dado real.

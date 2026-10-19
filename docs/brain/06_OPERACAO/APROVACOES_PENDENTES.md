@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 2** (APR-011, APR-015; APR-007: falta só o merge do PR #171)
+**Pendentes agora: 1** (APR-011; APR-007: falta só o merge do PR #171)
 
 ### APR-001 · EXECUTADO
 
@@ -236,7 +236,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
   - O programa só começa quando o dono ligar em Cardápio digital → Fidelidade.
 - **Chave:** banco:db/FIDELIDADE_1_SELOS_E_CASHBACK.sql
 
-### APR-015 · PENDENTE
+### APR-015 · EXECUTADO
 
 - **Missão:** HEXP-001 (atendimento da mesa pelo QR: "Chamar garçom" e "Pedir a conta" no cardápio digital)
 - **Ação:** Aplicar db/CHAMADOS_1_MESA.sql no Supabase real: tabela nova `experience_chamados` (o nome que o servidor e a tela do Salão já usam)
@@ -251,7 +251,14 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Evidências:** PGlite 5/5 (`app/lib/chamados-banco.test.mjs`): só aditiva; preflight aborta na segunda vez; um aberto por mesa e tipo; limites; RLS por unidade, anônimo e equipe sem insert direto. Servidor 13/13 (`app/lib/experience.test.mjs`). Navegador (mock, Playwright): sem a tabela, o cliente é avisado para acenar; com a tabela simulada, chamar garçom, pedir a conta, outro celular da mesma mesa não duplica, japonês, Salão no computador e no celular. TESTADO LOCAL e EM MOCK. NÃO VALIDADO no Supabase real.
 - **Impressão digital esperada:** 479c60f3e90fae069d1b785189a8ce22
 - **Comando/alteração:** `Rodar o arquivo inteiro (SQL Editor ou apply_migration). O select do fim deve devolver 479c60f3e90fae069d1b785189a8ce22.`
-- **Status:** PENDENTE
+- **Status:** EXECUTADO
 - **Criado em:** 2026-10-19
+- **Decidido em:** 2026-10-19
+- **Decidido por:** lucas (no chat da sessão: "Aplicar e publicar")
+- **Nota:** Executado em 19/10/2026 (TESTADO NO SUPABASE REAL):
+  - impressão digital 479c60f3e90fae069d1b785189a8ce22 (igual à do PGlite);
+  - RLS ligado, policy sec_unidade; grants: authenticated só SELECT e UPDATE; anon nada.
+  - Ensaio de escrita em transação desfeita: segundo chamado igual da mesma mesa bloqueado; unidade inexistente recusada; equipe da unidade vê e atende (1/1); equipe não insere direto; anônimo bloqueado.
+  - Depois: 0 linhas na tabela (nada ficou).
 - **Chave:** banco:db/CHAMADOS_1_MESA.sql
 

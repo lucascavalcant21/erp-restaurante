@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    CHAMADOS-1 · CHAMAR GARÇOM E PEDIR A CONTA PELO QR DA MESA
 
-   STATUS: NÃO APLICADA. Aguarda o dono (APR-015 em
-   docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md). Testada no PGlite
-   (app/lib/chamados-banco.test.mjs).
+   STATUS: APLICADA em 19/10/2026 com aprovação do dono (APR-015 em
+   docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md). Impressão digital
+   conferida no banco real: 479c60f3e90fae069d1b785189a8ce22. Testada no
+   PGlite (app/lib/chamados-banco.test.mjs).
 
    POR QUÊ: o cardápio digital no modo mesa (QR da mesa, pedido do dono de
    18/10, estudo do Goomer) ganhou os botões "Chamar garçom" e "Pedir a

@@ -68,6 +68,9 @@ import {
   ShiftScheduleGanttCard,
   AvailablePartnersOutreachCard,
   PlayCallerStationMapCard,
+  CleaningSanitizationGuideCard,
+  ShiftChecklistCard,
+  EtiquetaQuickGeneratorCard,
 } from "./GreenDotCards";
 import GreenDotAdminModal from "./GreenDotAdminModal";
 
@@ -723,7 +726,121 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
       return;
     }
 
-    // 8. Verifica se é Play Caller / Mapa de Praças
+    // 8. Verifica se é pergunta sobre LIMPEZA, PRODUTO NO CHÃO, QUANTAS ML, COMO LIMPAR PANO, COMO LAVAR AS MÃOS
+    const isPerguntaLimpeza =
+      metaTopico?.id?.startsWith("limpeza-") ||
+      metaTopico?.id === "lavagem-maos" ||
+      metaTopico?.id === "sanitizacao-hortifruti" ||
+      q.includes("chao") ||
+      q.includes("chão") ||
+      q.includes("pano") ||
+      q.includes("opano") ||
+      q.includes("lavar as maos") ||
+      q.includes("lavar as mãos") ||
+      q.includes("lavar mao") ||
+      q.includes("lavar mão") ||
+      q.includes("quantas ml") ||
+      q.includes("quanto de produto") ||
+      q.includes("qual produto") ||
+      (q.includes("como limpar") && !q.includes("liquidificador") && !q.includes("forno") && !q.includes("chopeira")) ||
+      q.includes("dilui") ||
+      q.includes("sanitiz") ||
+      q.includes("desinfet");
+
+    if (isPerguntaLimpeza) {
+      const rotinaId =
+        metaTopico?.id ||
+        (q.includes("pano") || q.includes("opano")
+          ? "limpeza-panos"
+          : q.includes("mao") || q.includes("mão")
+          ? "lavagem-maos"
+          : q.includes("fruta") || q.includes("hortali") || q.includes("salada")
+          ? "sanitizacao-hortifruti"
+          : "limpeza-chao");
+
+      setItensConversa((prev) => [
+        ...prev,
+        { id: `limp-${Date.now()}`, tipo: "guia-limpeza", rotinaInicialId: rotinaId },
+      ]);
+      if (vozAtiva && audioDisponivel()) {
+        if (rotinaId === "limpeza-chao") {
+          falar(
+            "Para o chão, use 50 ml de desengordurante clorado para cada 5 litros de água morna e deixe agir por 10 minutos antes de esfregar e puxar com rodo."
+          );
+        } else if (rotinaId === "limpeza-panos") {
+          falar(
+            "Para panos, use 25 ml de cloro por litro de água fria e deixe de molho por 20 a 30 minutos. Nunca use o pano do chão na bancada de alimentos!"
+          );
+        } else if (rotinaId === "lavagem-maos") {
+          falar(
+            "Para lavar as mãos, use sabonete bactericida inodoro por 40 a 60 segundos, seque com papel toalha e finalize com álcool 70%."
+          );
+        } else {
+          falar(
+            "Aqui está o guia oficial de higienização, dosagem química em mililitros e regras da ANVISA."
+          );
+        }
+      }
+      return;
+    }
+
+    // 9. Verifica se é CHECKLIST DE ABERTURA OU SAÍDA / FECHAMENTO DE PRAÇA
+    const isPerguntaChecklist =
+      metaTopico?.id === "checklist-abertura" ||
+      metaTopico?.id === "checklist-fechamento" ||
+      q.includes("checklist") ||
+      (q.includes("abertura") && (q.includes("praca") || q.includes("praça") || q.includes("cozinha") || q.includes("bar") || q.includes("turno"))) ||
+      q.includes("fechamento") ||
+      ((q.includes("saida") || q.includes("saída")) && (q.includes("turno") || q.includes("cozinha") || q.includes("bar") || q.includes("checklist")));
+
+    if (isPerguntaChecklist) {
+      const tipoCheck =
+        metaTopico?.id === "checklist-fechamento" ||
+        q.includes("fechamento") ||
+        q.includes("saida") ||
+        q.includes("saída")
+          ? "fechamento"
+          : "abertura";
+
+      setItensConversa((prev) => [
+        ...prev,
+        { id: `chk-${Date.now()}`, tipo: "checklist-turno", tipoInicial: tipoCheck },
+      ]);
+      if (vozAtiva && audioDisponivel()) {
+        falar(
+          tipoCheck === "abertura"
+            ? "Aqui está o checklist de abertura e mise en place da praça. Marque cada item antes do salão abrir."
+            : "Aqui está o checklist de saída e fechamento de turno. Certifique-se de travar o gás e desligar equipamentos."
+        );
+      }
+      return;
+    }
+
+    // 10. Verifica se é ETIQUETA DE VALIDADE / ANVISA NO APP
+    const isPerguntaEtiqueta =
+      metaTopico?.id === "etiqueta-validade" ||
+      q.includes("etiqueta") ||
+      q.includes("rotul") ||
+      q.includes("validade de pote");
+
+    if (isPerguntaEtiqueta) {
+      setItensConversa((prev) => [
+        ...prev,
+        {
+          id: `etq-${Date.now()}`,
+          tipo: "etiqueta-rapida",
+          produtoInicial: ultimaReceitaAtiva?.nome || "Vatapá Tradicional da Casa",
+        },
+      ]);
+      if (vozAtiva && audioDisponivel()) {
+        falar(
+          "Abri o gerador de etiqueta de validade ANVISA integrado ao seu app com cálculo automático de data de manipulação e conservação."
+        );
+      }
+      return;
+    }
+
+    // 11. Verifica se é Play Caller / Mapa de Praças
     if (
       metaTopico?.id === "mapa-pracas" ||
       q.includes("praça") ||

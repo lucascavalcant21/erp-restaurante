@@ -387,21 +387,45 @@ body {
   padding-top: var(--erp-safe-top, max(2.75rem, env(safe-area-inset-top, 0px))) !important;
 }
 
-/* Telas de tablet (estoque, etiquetas): toque longo não abre seleção de texto;
-   campos de digitação continuam selecionáveis. */
+/* Bloqueio global de seleção e cópia de textos e números em todo o ERP (comportamento nativo/kiosk).
+   Campos de digitação (input, textarea, select, contenteditable) continuam normalmente editáveis e selecionáveis. */
+html,
+body,
+body *:not(input):not(textarea):not(select):not([contenteditable="true"]) {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"],
+input *,
+textarea *,
+[contenteditable="true"] * {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
 .erp-sem-selecao {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
 }
 .erp-sem-selecao input,
 .erp-sem-selecao textarea,
 .erp-sem-selecao [contenteditable="true"] {
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  user-select: text;
-  -webkit-touch-callout: default;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
 }
 
 /* ═══ IDENTIDADE HÉFISTO (clara) — tokens hf-* ════════════════════════════

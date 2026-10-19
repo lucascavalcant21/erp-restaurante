@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Sparkles,
   Calendar,
@@ -14,14 +14,25 @@ import {
   Clock,
   Users,
   UserPlus,
-  Maximize2,
   Lightbulb,
   Check,
   UtensilsCrossed,
   Flame,
   GlassWater,
+  Scale,
+  Zap,
+  PlayCircle,
+  ShieldAlert,
+  Sparkle,
+  PackageCheck,
+  AlertTriangle,
+  Layers,
+  Droplets,
 } from "lucide-react";
-import { TOPICOS_INICIAIS } from "../../lib/green-dot-data";
+import {
+  TOPICOS_INICIAIS,
+  recalcularReceitaPorIngrediente,
+} from "../../lib/green-dot-data";
 
 // ── AVATARES OFICIAIS ────────────────────────────────────────────────────────
 export function GreenDotAvatar() {
@@ -35,7 +46,6 @@ export function GreenDotAvatar() {
 export function PartnerBubbleAvatar() {
   return (
     <div className="w-10 h-10 rounded-full bg-[#2A322E] flex items-center justify-center text-white shadow-md shrink-0 ring-2 ring-white/80">
-      {/* Ícone de avental de chef/barista inspirado nas telas */}
       <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="1.8">
         <path d="M9 4c0 1.5 1.3 2.5 3 2.5S15 5.5 15 4" />
         <path d="M7 8l2-3h6l2 3v11a2 2 0 01-2 2H9a2 2 0 01-2-2V8z" />
@@ -45,7 +55,43 @@ export function PartnerBubbleAvatar() {
   );
 }
 
-// ── TELA 20: BANNER DE PROPÓSITO (STREAMLINE WORKFLOWS / CONSISTENCY) ────────
+// Helper para embedar YouTube ou vídeo MP4
+export function PlayerVideoEmbutido({ url, titulo, poster }) {
+  if (!url) return null;
+  const isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
+  let embedUrl = url;
+  if (url.includes("watch?v=")) {
+    const id = url.split("watch?v=")[1]?.split("&")[0];
+    if (id) embedUrl = `https://www.youtube.com/embed/${id}`;
+  } else if (url.includes("youtu.be/")) {
+    const id = url.split("youtu.be/")[1]?.split("?")[0];
+    if (id) embedUrl = `https://www.youtube.com/embed/${id}`;
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden bg-black aspect-video w-full shadow-md border border-[#2E6F4E]/30">
+      {isYoutube ? (
+        <iframe
+          src={embedUrl}
+          title={titulo || "Vídeo demonstrativo"}
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      ) : (
+        <video
+          src={url}
+          poster={poster}
+          controls
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      )}
+    </div>
+  );
+}
+
+// ── TELA 20: BANNER DE PROPÓSITO ─────────────────────────────────────────────
 export function BrandValueBanner() {
   return (
     <div className="rounded-2xl bg-[#F2EFE9] border border-[#DFDBD2] p-6 sm:p-8 shadow-sm overflow-hidden relative">
@@ -82,90 +128,133 @@ export function BrandValueBanner() {
   );
 }
 
-// ── TELA 2 & 14: CARD DE BOAS-VINDAS, GOVERNANÇA E PÍLULAS DE TÓPICOS ─────────
-export function WelcomeGovernanceCard({ onSelectTopic, onOpenTips, fichasReais = [] }) {
+// ── TELA 2 & 14: CARD DE BOAS-VINDAS COM ATALHOS DE COZINHA, BAR E EQUIPAMENTOS ─
+export function WelcomeGovernanceCard({
+  onSelectTopic,
+  onOpenAdminStudio,
+  fichasReais = [],
+  receitasCustom = [],
+  equipamentosCustom = [],
+}) {
   const [mostrarDicas, setMostrarDicas] = useState(false);
 
   return (
     <div className="bg-white rounded-2xl border border-[#E2E0D8] shadow-sm p-5 sm:p-7 text-[#2B332E] space-y-4">
-      <div className="text-xs sm:text-sm text-[#4F5853] space-y-2.5 leading-relaxed">
-        <p>
-          Evite inserir dados pessoais sensíveis na aplicação. Caso identifique alguma inconsistência em uma ficha técnica ou manual operacional, reporte na{" "}
-          <strong className="text-[#1E392A] font-bold">Central Operacional Héfisto</strong> ou acione o Líder de Cozinha/Salão.
-        </p>
-        <p>
-          As perguntas e respostas são registradas pela gestão de qualidade do restaurante para aprimorar continuamente as fichas técnicas, manuais de equipamentos e escalas de turno.
-        </p>
-        <p className="italic text-xs text-[#646E68]">
-          <strong>Instruções de Acesso às Fichas Oficiais:</strong> Para abrir a ficha de custo completa ou imprimir etiquetas térmicas, acesse o menu superior em{" "}
-          <strong>Cardápio &rarr; Fichas Técnicas</strong> ou toque em qualquer receita abaixo.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#EFF7F2] border border-[#B8D8C5] rounded-xl p-3.5">
+        <div className="text-xs sm:text-sm text-[#1E3F2D] font-semibold">
+          <strong>Integrado em Tempo Real:</strong> Fichas Técnicas, Ingredientes, Estoque e Equipamentos de{" "}
+          <span className="underline font-black">Cozinha &amp; Bar</span>.
+        </div>
+        {onOpenAdminStudio && (
+          <button
+            onClick={onOpenAdminStudio}
+            className="px-3.5 py-2 rounded-lg bg-[#1E4D3B] hover:bg-[#163B2C] text-white text-xs font-extrabold transition shadow-2xs"
+          >
+            + Alimentar Receitas, Fotos, Vídeos &amp; Equipamentos
+          </button>
+        )}
       </div>
-
-      <hr className="border-[#E6E4DC]" />
 
       <div className="space-y-4">
         <h3 className="font-bold text-sm sm:text-base text-[#1C2826]">
-          Até agora, fui treinado para ajudar com Produção Gastronômica, Bar, Gestão de Estoque, Manutenção de Equipamentos e Escala de Turno.
+          Pergunte por voz ou toque em um item abaixo (Receitas, Recálculo de Ingredientes, Voltagem 110V/220V, Encaixe e Limpeza):
         </h3>
 
-        {/* Produção de Pratos & Bebidas */}
+        {/* Produção de Pratos, Drinks & Recálculo Proporcional */}
         <div>
-          <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-medium">Produção de Pratos &amp; Coquetelaria</p>
+          <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-bold">
+            🍲 Fichas Técnicas (Cozinha &amp; Bar) + Recálculo por Ingrediente
+          </p>
           <div className="flex flex-wrap gap-2">
             {TOPICOS_INICIAIS.producao.map((t) => (
               <button
                 key={t.id}
                 onClick={() => onSelectTopic(t)}
-                className="px-4 py-2 rounded-lg border border-[#76847D] bg-[#F9F9F7] hover:bg-[#EBF3EE] hover:border-[#1E4D3B] text-[#1E4D3B] font-bold text-xs sm:text-sm transition shadow-2xs active:scale-[0.98]"
+                className="px-3.5 py-2 rounded-lg border border-[#76847D] bg-[#F9F9F7] hover:bg-[#EBF3EE] hover:border-[#1E4D3B] text-[#1E4D3B] font-bold text-xs sm:text-sm transition active:scale-[0.98]"
               >
                 {t.label}
               </button>
             ))}
-            {fichasReais.slice(0, 3).map((f) => (
+            {receitasCustom.map((rc) => (
+              <button
+                key={rc.id}
+                onClick={() =>
+                  onSelectTopic({
+                    id: rc.id,
+                    label: rc.nome,
+                    prompt: `Como se faz ${rc.nome}?`,
+                    receitaCustom: rc,
+                  })
+                }
+                className="px-3.5 py-2 rounded-lg border border-[#2E6F4E] bg-[#E8F5EE] hover:bg-[#D5EDE0] text-[#1E4D3B] font-extrabold text-xs sm:text-sm transition"
+              >
+                ⭐ {rc.nome}
+              </button>
+            ))}
+            {fichasReais.slice(0, 6).map((f) => (
               <button
                 key={f.id}
                 onClick={() =>
                   onSelectTopic({
                     id: `ficha-real-${f.id}`,
                     label: f.nome,
-                    prompt: `Quero ver a ficha técnica e preparo de ${f.nome}`,
+                    prompt: `Como se faz ${f.nome}?`,
                     fichaReal: f,
                   })
                 }
-                className="px-4 py-2 rounded-lg border border-[#2E6F4E]/50 bg-[#EFF7F2] hover:bg-[#E0F0E6] text-[#1E4D3B] font-bold text-xs sm:text-sm transition"
+                className="px-3.5 py-2 rounded-lg border border-[#2E6F4E]/50 bg-[#EFF7F2] hover:bg-[#E0F0E6] text-[#1E4D3B] font-bold text-xs sm:text-sm transition"
               >
-                {f.nome}
+                📋 {f.nome} ({f.departamento || "ERP"})
               </button>
             ))}
           </div>
         </div>
 
-        {/* Gestão de Estoque & Segurança Alimentar */}
+        {/* Equipamentos em Geral: 110V vs 220V, Encaixe de Copo/Tampa, Uso e Limpeza */}
         <div>
-          <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-medium">Gestão de Estoque &amp; Segurança Alimentar</p>
+          <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-bold">
+            ⚡ Equipamentos em Geral (110V ou 220V, Como Encaixar, Usar, Limpar e Consertar)
+          </p>
           <div className="flex flex-wrap gap-2">
-            {TOPICOS_INICIAIS.estoque.map((t) => (
+            {(TOPICOS_INICIAIS.equipamentosDuvidas || []).map((t) => (
               <button
                 key={t.id}
                 onClick={() => onSelectTopic(t)}
-                className="px-4 py-2 rounded-lg border border-[#76847D] bg-[#F9F9F7] hover:bg-[#EBF3EE] hover:border-[#1E4D3B] text-[#1E4D3B] font-bold text-xs sm:text-sm transition shadow-2xs active:scale-[0.98]"
+                className="px-3.5 py-2 rounded-lg border border-[#76847D] bg-[#F9F9F7] hover:bg-[#EBF3EE] hover:border-[#1E4D3B] text-[#1E4D3B] font-bold text-xs sm:text-sm transition active:scale-[0.98]"
               >
                 {t.label}
               </button>
             ))}
+            {equipamentosCustom.map((eq) => (
+              <button
+                key={eq.id}
+                onClick={() =>
+                  onSelectTopic({
+                    id: eq.id,
+                    label: eq.nomeCurto || eq.nome,
+                    prompt: `Esse ${eq.nomeCurto || eq.nome} é 110V ou 220V e como encaixar, usar e limpar?`,
+                    equipamentoCustom: eq,
+                  })
+                }
+                className="px-3.5 py-2 rounded-lg border border-[#2E6F4E] bg-[#E8F5EE] hover:bg-[#D5EDE0] text-[#1E4D3B] font-extrabold text-xs sm:text-sm transition"
+              >
+                🔌 {eq.nomeCurto || eq.nome} ({eq.voltagem})
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Manutenção de Equipamentos & Escala */}
+        {/* Estoque & Escala */}
         <div>
-          <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-medium">Equipamentos da Cozinha/Bar &amp; Posicionamento de Turno</p>
+          <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-bold">
+            📦 Estoque (Cozinha/Bar), Câmara Fria &amp; Escala de Turno
+          </p>
           <div className="flex flex-wrap gap-2">
-            {[...TOPICOS_INICIAIS.manutencao, ...TOPICOS_INICIAIS.escala].map((t) => (
+            {[...TOPICOS_INICIAIS.estoque, ...TOPICOS_INICIAIS.escala].map((t) => (
               <button
                 key={t.id}
                 onClick={() => onSelectTopic(t)}
-                className="px-4 py-2 rounded-lg border border-[#76847D] bg-[#F9F9F7] hover:bg-[#EBF3EE] hover:border-[#1E4D3B] text-[#1E4D3B] font-bold text-xs sm:text-sm transition shadow-2xs active:scale-[0.98]"
+                className="px-3.5 py-2 rounded-lg border border-[#76847D] bg-[#F9F9F7] hover:bg-[#EBF3EE] hover:border-[#1E4D3B] text-[#1E4D3B] font-bold text-xs sm:text-sm transition active:scale-[0.98]"
               >
                 {t.label}
               </button>
@@ -176,32 +265,22 @@ export function WelcomeGovernanceCard({ onSelectTopic, onOpenTips, fichasReais =
 
       <hr className="border-[#E6E4DC]" />
 
-      {/* Dicas de uso */}
-      <div className="space-y-2.5">
-        <p className="font-bold text-xs sm:text-sm text-[#1C2826]">Aqui estão algumas dicas para trabalhar comigo:</p>
+      <div className="space-y-2">
         <div className="flex items-start gap-2.5 text-xs sm:text-sm font-semibold text-[#2B332E]">
           <Lightbulb size={16} className="text-amber-500 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p>1. Seja claro e específico sobre o prato, bebida ou equipamento</p>
-            <p>
-              2. Faça perguntas de acompanhamento, ou toque em <strong>Reiniciar</strong> quando mudar de assunto{mostrarDicas ? "." : "..."}
-            </p>
+            <p>1. Pergunte <strong>&ldquo;como se faz um vatapá&rdquo;</strong> e depois diga <strong>&ldquo;só tenho 2L de leite de coco&rdquo;</strong> para recalcular toda a ficha!</p>
+            <p>2. Pergunte <strong>&ldquo;esse liquidificador é 110V ou 220V?&rdquo;</strong> para ver as fotos dos aparelhos da loja, clicar no seu e ver como encaixar o copo, usar e limpar.</p>
             {mostrarDicas && (
-              <>
-                <p>3. Use o microfone na barra inferior se estiver com as mãos ocupadas na bancada.</p>
-                <p>4. Para falhas em máquinas, você pode abrir um chamado técnico em 4 cliques direto por aqui.</p>
-              </>
+              <p>3. Clique em <strong>+ Alimentar Receitas, Fotos, Vídeos &amp; Equipamentos</strong> para cadastrar novos pratos, drinks e máquinas com fotos e vídeos.</p>
             )}
           </div>
         </div>
         <button
-          onClick={() => {
-            setMostrarDicas((v) => !v);
-            onOpenTips?.();
-          }}
+          onClick={() => setMostrarDicas((v) => !v)}
           className="px-3.5 py-1.5 rounded-lg border border-[#76847D] bg-white hover:bg-[#F3F2EE] text-[#1E4D3B] font-bold text-xs transition"
         >
-          {mostrarDicas ? "Ocultar dicas" : "Ver dicas"}
+          {mostrarDicas ? "Ocultar dicas" : "Ver mais dicas"}
         </button>
       </div>
     </div>
@@ -234,9 +313,26 @@ export function DemandSpikeAlertCard({ onViewDetails }) {
   );
 }
 
-// ── TELA 3: CARD RICO DE FICHA TÉCNICA / RECEITA (COM MAJOR STEPS P/M/G/FAM) ──
-export function RecipeDetailCard({ receita }) {
+// ── TELA 3 + INGREDIENTES + ESTOQUE + BOTÃO DE RECÁLCULO: CARD DE RECEITA ─────
+export function RecipeDetailCard({ receita, estoqueReal = [], onRecalcularClick }) {
+  const [abrirSimuladorInline, setAbrirSimuladorInline] = useState(false);
+  const [ingSelecionadoId, setIngSelecionadoId] = useState(
+    receita?.ingredientesBase?.[0]?.id || ""
+  );
+  const [qtdTenho, setQtdTenho] = useState("");
+
   if (!receita) return null;
+
+  const cruzarComEstoque = (nomeIng) => {
+    if (!Array.isArray(estoqueReal) || !estoqueReal.length) return null;
+    const n = String(nomeIng || "").toLowerCase();
+    return estoqueReal.find(
+      (item) =>
+        item?.nome &&
+        (String(item.nome).toLowerCase().includes(n) ||
+          n.includes(String(item.nome).toLowerCase()))
+    );
+  };
 
   return (
     <div className="flex items-start gap-3">
@@ -245,8 +341,15 @@ export function RecipeDetailCard({ receita }) {
         {/* Hero Escuro com Título e Imagem */}
         <div className="bg-[#233329] p-5 sm:p-6 text-white">
           <div className="flex items-center justify-between gap-2 mb-3">
-            <h3 className="text-lg sm:text-xl font-bold tracking-tight">{receita.nome}</h3>
-            <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/15 text-emerald-200">
+            <div>
+              <h3 className="text-lg sm:text-xl font-bold tracking-tight">{receita.nome}</h3>
+              {receita.rendimentoPeso && (
+                <p className="text-xs text-emerald-200/90 font-semibold mt-0.5">
+                  Rendimento base: {receita.rendimentoPorcoes || 10} porções ({receita.rendimentoPeso}) · Tempo: {receita.tempoPreparo || "15 min"}
+                </p>
+              )}
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/15 text-emerald-200 shrink-0">
               {receita.setor}
             </span>
           </div>
@@ -293,32 +396,112 @@ export function RecipeDetailCard({ receita }) {
             </div>
           </div>
 
-          {/* Base e Código da Ficha */}
-          <div className="space-y-3 pt-1">
-            <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#3A4A40]">
-                BASE / INSUMO PRINCIPAL
-              </p>
-              <p className="text-sm font-semibold text-[#2B332E] mt-0.5">{receita.basePrincipal}</p>
-            </div>
-
-            <div className="flex items-end justify-between gap-2">
-              <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#3A4A40]">
-                  CÓDIGO FICHA (ID)
-                </p>
-                <p className="text-base font-black text-[#1C2826] mt-0.5">{receita.codigo}</p>
+          {/* LISTA DE INGREDIENTES DA FICHA TÉCNICA + SALDO DO ESTOQUE + BOTÃO DE RECÁLCULO */}
+          {Array.isArray(receita.ingredientesBase) && receita.ingredientesBase.length > 0 && (
+            <div className="rounded-xl border border-[#DCE6DF] bg-[#F8FAF9] p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-[#1E4D3B] flex items-center gap-1.5">
+                    <Scale size={15} /> Ingredientes da Ficha Técnica (Base Padrão)
+                  </p>
+                  <p className="text-[11px] text-[#55605A] font-medium">
+                    Tem menos de algum ingrediente na bancada? Recalcule a receita inteira com 1 toque ou falando no microfone!
+                  </p>
+                </div>
+                <button
+                  onClick={() => setAbrirSimuladorInline((v) => !v)}
+                  className="px-3.5 py-1.5 rounded-lg bg-[#2E6F4E] hover:bg-[#23563C] text-white text-xs font-extrabold transition shadow-2xs"
+                >
+                  ⚖️ Recalcular por Ingrediente que Tenho
+                </button>
               </div>
-              {receita.subtituloNota && (
-                <p className="text-[11px] text-[#66706B] italic">{receita.subtituloNota}</p>
+
+              {/* Simulador rápido inline */}
+              {abrirSimuladorInline && (
+                <div className="p-3.5 rounded-xl bg-white border border-[#2E6F4E] space-y-3 shadow-xs">
+                  <p className="text-xs font-extrabold text-[#1C2826]">
+                    Qual ingrediente está limitando sua produção hoje?
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                    <div className="sm:col-span-6">
+                      <label className="block text-[11px] font-bold text-[#4F5853] mb-1">
+                        Ingrediente da Ficha
+                      </label>
+                      <select
+                        value={ingSelecionadoId}
+                        onChange={(e) => setIngSelecionadoId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-[#C8C6BC] text-xs font-bold text-[#1C2826] bg-white"
+                      >
+                        {receita.ingredientesBase.map((ing) => (
+                          <option key={ing.id} value={ing.id}>
+                            {ing.nome} (Padrão: {ing.quantidade} {ing.unidade})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="sm:col-span-3">
+                      <label className="block text-[11px] font-bold text-[#4F5853] mb-1">
+                        Quanto você tem?
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="Ex: 2"
+                        value={qtdTenho}
+                        onChange={(e) => setQtdTenho(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-[#C8C6BC] text-xs font-bold text-[#1C2826]"
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <button
+                        onClick={() => {
+                          const ing =
+                            receita.ingredientesBase.find((i) => i.id === ingSelecionadoId) ||
+                            receita.ingredientesBase[0];
+                          const valor = Number(String(qtdTenho).replace(",", "."));
+                          if (valor > 0 && onRecalcularClick) {
+                            onRecalcularClick(receita, ing, valor);
+                          }
+                        }}
+                        className="w-full py-2 px-3 rounded-lg bg-[#1E4D3B] hover:bg-[#143628] text-white text-xs font-extrabold transition"
+                      >
+                        Calcular Nova Receita
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {receita.ingredientesBase.map((ing) => {
+                  const itemEst = cruzarComEstoque(ing.nome);
+                  return (
+                    <div
+                      key={ing.id}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg bg-white border border-[#E5E4DC] text-xs"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <p className="font-bold text-[#1C2826] truncate">{ing.nome}</p>
+                        {itemEst && (
+                          <p className="text-[10px] font-semibold text-[#2E6F4E]">
+                            Estoque atual: {itemEst.quantidade_atual} {itemEst.unidade_medida}
+                          </p>
+                        )}
+                      </div>
+                      <span className="font-black text-sm text-[#1E4D3B] shrink-0">
+                        {ing.quantidade} {ing.unidade}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Tabela MAJOR STEPS (ETAPAS PRINCIPAIS) com cabeçalho verde-floresta */}
-          <div className="pt-2">
+          <div className="pt-1">
             <div className="grid grid-cols-12 bg-[#3B624C] text-white px-3.5 py-2 rounded-t-lg text-xs font-extrabold uppercase tracking-wider items-center">
-              <div className="col-span-6">ETAPAS PRINCIPAIS</div>
+              <div className="col-span-6">ETAPAS PRINCIPAIS &amp; PORCIONAMENTO</div>
               {(receita.colunasTamanho || ["P", "M", "G", "FAM"]).map((col, idx) => (
                 <div key={idx} className="col-span-1.5 text-center">
                   {col}
@@ -354,7 +537,154 @@ export function RecipeDetailCard({ receita }) {
   );
 }
 
-// ── TELA 4: CONVITE PARA VÍDEO PASSO A PASSO + PLAYER + SMART TWEAKS ─────────
+// ── NOVO CARD: RECEITA RECALCULADA PROPORCIONALMENTE PELO INGREDIENTE LIMITANTE ─
+export function RecipeRecalculatedCard({ calculoInicial }) {
+  const [calculo, setCalculo] = useState(calculoInicial);
+  const [ingId, setIngId] = useState(calculoInicial?.ingredienteLimitante?.id || "");
+  const [novaQtdInput, setNovaQtdInput] = useState(
+    String(calculoInicial?.quantidadeDisponivelLimitante || "")
+  );
+
+  if (!calculo || !calculo.receita) return null;
+
+  const atualizarCalculoAoVivo = (idIngrediente, valorNum) => {
+    const num = Number(String(valorNum).replace(",", "."));
+    if (!num || num <= 0) return;
+    const novo = recalcularReceitaPorIngrediente(calculo.receita, idIngrediente, num);
+    if (novo) setCalculo(novo);
+  };
+
+  return (
+    <div className="flex items-start gap-3">
+      <GreenDotAvatar />
+      <div className="flex-1 bg-white rounded-2xl border-2 border-[#2E6F4E] shadow-lg overflow-hidden text-[#1C2826]">
+        {/* Cabeçalho Verde de Recálculo Inteligente */}
+        <div className="bg-[#1E4D3B] text-white p-5 sm:p-6 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <Scale size={14} /> Ficha Técnica Recalculada Automaticamente
+            </span>
+            <span className="text-xs font-extrabold bg-white/15 px-3 py-1 rounded-full">
+              Proporção: {calculo.percentual}% da receita original
+            </span>
+          </div>
+          <h3 className="text-lg sm:text-xl font-black">
+            {calculo.receita.nome} — Ajuste para {calculo.quantidadeDisponivelLimitante}{" "}
+            {calculo.ingredienteLimitante.unidade} de {calculo.ingredienteLimitante.nome}
+          </h3>
+          <p className="text-xs sm:text-sm text-emerald-100 font-medium">
+            Como você tem{" "}
+            <strong>
+              {calculo.quantidadeDisponivelLimitante} {calculo.ingredienteLimitante.unidade}
+            </strong>{" "}
+            de <strong>{calculo.ingredienteLimitante.nome}</strong> (em vez de{" "}
+            {calculo.quantidadeOriginalLimitante} {calculo.ingredienteLimitante.unidade}), todos os demais ingredientes foram reduzidos/ajustados na mesma proporção exata para não alterar o sabor nem o ponto!
+          </p>
+        </div>
+
+        <div className="p-5 sm:p-6 space-y-5">
+          {/* Resumo de Rendimento Ajustado */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3.5 rounded-xl bg-[#F4F3EF] border border-[#E2E0D8]">
+              <p className="text-[10px] font-black uppercase text-[#5A655F]">Ingrediente Limitante</p>
+              <p className="text-sm font-black text-[#1E4D3B] mt-0.5">
+                {calculo.ingredienteLimitante.nome}
+              </p>
+              <p className="text-xs text-[#4F5853] font-bold">
+                De {calculo.quantidadeOriginalLimitante} {calculo.ingredienteLimitante.unidade} &rarr;{" "}
+                <strong className="text-[#1E4D3B]">
+                  {calculo.quantidadeDisponivelLimitante} {calculo.ingredienteLimitante.unidade}
+                </strong>
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-[#F4F3EF] border border-[#E2E0D8]">
+              <p className="text-[10px] font-black uppercase text-[#5A655F]">Novo Rendimento</p>
+              <p className="text-base font-black text-[#1C2826] mt-0.5">
+                {calculo.porcoesNovas} porções
+              </p>
+              <p className="text-xs text-[#4F5853] font-bold">
+                (Receita padrão: {calculo.porcoesOriginais} porções)
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-[#EFF7F2] border border-[#B8D8C5]">
+              <p className="text-[10px] font-black uppercase text-[#1E4D3B]">
+                Testar Outra Quantidade
+              </p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <select
+                  value={ingId}
+                  onChange={(e) => {
+                    setIngId(e.target.value);
+                    atualizarCalculoAoVivo(e.target.value, novaQtdInput);
+                  }}
+                  className="w-full px-2 py-1 rounded border border-[#9EB5A8] bg-white text-[11px] font-bold"
+                >
+                  {calculo.receita.ingredientesBase.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.nome} ({i.unidade})
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  step="any"
+                  value={novaQtdInput}
+                  onChange={(e) => {
+                    setNovaQtdInput(e.target.value);
+                    atualizarCalculoAoVivo(ingId, e.target.value);
+                  }}
+                  className="w-20 px-2 py-1 rounded border border-[#2E6F4E] bg-white text-xs font-black text-center"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Tabela Comparativa: Ingrediente | Original | NOVA QUANTIDADE */}
+          <div className="overflow-x-auto rounded-xl border border-[#DCE0DC]">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#3B624C] text-white text-[11px] font-extrabold uppercase">
+                  <th className="p-3">Ingrediente da Ficha</th>
+                  <th className="p-3 text-center">Receita Padrão</th>
+                  <th className="p-3 text-center bg-[#244B37]">Nova Quantidade a Pesar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E6E4DC] text-xs sm:text-sm">
+                {calculo.ingredientesRecalculados.map((item) => (
+                  <tr
+                    key={item.id}
+                    className={
+                      item.isLimitante ? "bg-[#E8F5EE] font-extrabold" : "bg-white hover:bg-[#FAF9F6]"
+                    }
+                  >
+                    <td className="p-3 font-bold text-[#1C2826] flex items-center gap-2">
+                      <span>{item.nome}</span>
+                      {item.isLimitante && (
+                        <span className="px-2 py-0.5 rounded-full bg-[#2E6F4E] text-white text-[10px] font-black uppercase">
+                          Seu limite atual
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 text-center text-[#68726D] line-through font-semibold">
+                      {item.quantidadeOriginal} {item.unidade}
+                    </td>
+                    <td className="p-3 text-center text-base font-black text-[#1E4D3B] bg-[#EFF7F2]/60">
+                      {item.quantidadeNova} {item.unidade}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── TELA 4: PASSO A PASSO COM FOTO + VÍDEO COMPLETO + DICAS ──────────────────
 export function RecipeInteractiveFollowUp({
   receita,
   mostrarVideo,
@@ -363,103 +693,143 @@ export function RecipeInteractiveFollowUp({
   categoriaAtiva,
 }) {
   const [stepAtivo, setStepAtivo] = useState(0);
+  const [abaMidia, setAbaMidia] = useState("passos"); // "passos" | "video"
   const steps = receita?.videoSteps || [];
   const stepAtual = steps[stepAtivo] || steps[0];
 
   return (
     <div className="space-y-4">
-      {/* Pergunta: Quer ver como é feito? */}
       <div className="flex items-start gap-3">
         <GreenDotAvatar />
         <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-sm p-4 sm:p-5 space-y-3">
           <p className="text-sm sm:text-base font-bold text-[#1C2826]">
-            Quer ver como é feito na prática? Tenho um guia visual rápido do passo a passo para você assistir na bancada.
+            Quer ver o passo a passo com fotos e vídeo de preparo do{" "}
+            <strong>{receita?.nome?.replace("*", "")}</strong>?
           </p>
           <div className="flex flex-wrap gap-2.5">
             <button
-              onClick={() => onToggleVideo(true)}
+              onClick={() => {
+                onToggleVideo(true);
+                setAbaMidia("passos");
+              }}
               className={`px-4 py-2 rounded-lg font-bold text-xs sm:text-sm transition ${
-                mostrarVideo
+                mostrarVideo && abaMidia === "passos"
                   ? "bg-[#24593F] text-white shadow-xs"
                   : "bg-[#2E6F4E] hover:bg-[#24593F] text-white"
               }`}
             >
-              Sim, mostrar agora!
+              📸 Ver Passo a Passo com Fotos
             </button>
+            {receita?.videoUrl && (
+              <button
+                onClick={() => {
+                  onToggleVideo(true);
+                  setAbaMidia("video");
+                }}
+                className={`px-4 py-2 rounded-lg font-bold text-xs sm:text-sm transition flex items-center gap-1.5 ${
+                  mostrarVideo && abaMidia === "video"
+                    ? "bg-[#1E4D3B] text-white"
+                    : "border border-[#2E6F4E] bg-[#EFF7F2] text-[#1E4D3B] hover:bg-[#DCECE3]"
+                }`}
+              >
+                <PlayCircle size={16} /> Assistir Vídeo da Receita
+              </button>
+            )}
             <button
               onClick={() => onToggleVideo(false)}
               className="px-4 py-2 rounded-lg border border-[#76847D] bg-white hover:bg-[#F4F3EF] text-[#1E4D3B] font-bold text-xs sm:text-sm transition"
             >
-              Talvez depois
+              Ocultar guia visual
             </button>
           </div>
         </div>
       </div>
 
-      {/* Player Visual com Badge Verde Sobreposto (Tela 4) */}
-      {mostrarVideo && stepAtual && (
+      {/* Player de Fotos Passo a Passo OU Vídeo Completo */}
+      {mostrarVideo && (
         <div className="flex items-start gap-3">
           <GreenDotAvatar />
           <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-sm overflow-hidden">
-            <div className="relative aspect-16/10 max-h-72 bg-[#1A241E]">
-              <img
-                src={stepAtual.imagem}
-                alt={stepAtual.titulo}
-                className="w-full h-full object-cover opacity-90"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-
-              {/* Etiqueta verde igual ao "Queue espresso shots" da Tela 4 */}
-              <div className="absolute bottom-5 left-5 right-5 flex flex-col gap-2">
-                <span className="inline-block w-fit bg-[#2E6F4E]/95 text-white font-bold text-sm sm:text-base px-4 py-1.5 rounded-lg shadow-md">
-                  {stepAtual.ordem}. {stepAtual.titulo}
-                </span>
-                <p className="text-xs sm:text-sm text-white/95 font-medium bg-black/45 backdrop-blur-xs p-2.5 rounded-lg">
-                  {stepAtual.detalhe}
-                </p>
-              </div>
-            </div>
-
-            {/* Seletor de etapas do vídeo */}
-            <div className="px-4 py-3 bg-[#F8F7F3] border-t border-[#E5E4DC] flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                {steps.map((s, idx) => (
+            {abaMidia === "video" && receita?.videoUrl ? (
+              <div className="p-4 sm:p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm sm:text-base font-extrabold text-[#1C2826] flex items-center gap-2">
+                    <PlayCircle size={18} className="text-[#2E6F4E]" />
+                    Vídeo Oficial de Preparo — {receita.nome}
+                  </h4>
                   <button
-                    key={s.ordem}
-                    onClick={() => setStepAtivo(idx)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition ${
-                      stepAtivo === idx
-                        ? "bg-[#2E6F4E] text-white"
-                        : "bg-white border border-[#D0CEC4] text-[#3B4740] hover:bg-[#EBF3EE]"
-                    }`}
+                    onClick={() => setAbaMidia("passos")}
+                    className="text-xs font-bold text-[#2E6F4E] underline"
                   >
-                    Passo {s.ordem}
+                    Ver etapas em fotos
                   </button>
-                ))}
+                </div>
+                <PlayerVideoEmbutido
+                  url={receita.videoUrl}
+                  titulo={receita.nome}
+                  poster={receita.imagem}
+                />
               </div>
-              <span className="text-xs font-bold text-[#5A655F]">
-                Etapa {stepAtivo + 1} de {steps.length}
-              </span>
-            </div>
+            ) : (
+              stepAtual && (
+                <>
+                  <div className="relative aspect-16/10 max-h-72 bg-[#1A241E]">
+                    <img
+                      src={stepAtual.imagem}
+                      alt={stepAtual.titulo}
+                      className="w-full h-full object-cover opacity-90"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+
+                    <div className="absolute bottom-5 left-5 right-5 flex flex-col gap-2">
+                      <span className="inline-block w-fit bg-[#2E6F4E]/95 text-white font-bold text-sm sm:text-base px-4 py-1.5 rounded-lg shadow-md">
+                        {stepAtual.ordem}. {stepAtual.titulo}
+                      </span>
+                      <p className="text-xs sm:text-sm text-white/95 font-medium bg-black/50 backdrop-blur-xs p-2.5 rounded-lg">
+                        {stepAtual.detalhe}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-3 bg-[#F8F7F3] border-t border-[#E5E4DC] flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {steps.map((s, idx) => (
+                        <button
+                          key={s.ordem || idx}
+                          onClick={() => setStepAtivo(idx)}
+                          className={`px-3 py-1 rounded-full text-xs font-bold transition ${
+                            stepAtivo === idx
+                              ? "bg-[#2E6F4E] text-white"
+                              : "bg-white border border-[#D0CEC4] text-[#3B4740] hover:bg-[#EBF3EE]"
+                          }`}
+                        >
+                          Passo {s.ordem || idx + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-[#5A655F]">
+                      Etapa {stepAtivo + 1} de {steps.length}
+                    </span>
+                  </div>
+                </>
+              )
+            )}
           </div>
         </div>
       )}
 
-      {/* Card: Dicas para adaptações inteligentes (Tela 4 inferior) */}
+      {/* Card: Dicas para adaptações inteligentes */}
       <div className="flex items-start gap-3">
         <GreenDotAvatar />
         <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-sm p-4 sm:p-5 space-y-3">
           <p className="text-sm sm:text-base font-bold text-[#1C2826]">
-            Também tenho dicas para adaptações inteligentes! Escolha uma categoria abaixo para consultar:
-          </p>
-          <p className="text-xs sm:text-sm font-semibold text-[#3C4741] flex items-center gap-2">
-            <span>🍽️</span> Quer escolher uma para começar?
+            Dicas rápidas de bancada para {receita?.nome?.replace("*", "")}:
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             {[
-              { id: "customizacao", label: "Dicas de customização" },
-              { id: "sabor", label: "Realce de sabor" },
-              { id: "substituicoes", label: "Troca de ingredientes" },
+              { id: "customizacao", label: "Dicas de execução & ponto" },
+              { id: "sabor", label: "Segredo de sabor" },
+              { id: "substituicoes", label: "Substituições & Recálculo" },
             ].map((cat) => (
               <button
                 key={cat.id}
@@ -501,7 +871,6 @@ export function CustomizationAndPairingCard({ receita }) {
 
   return (
     <div className="space-y-4">
-      {/* Checklist aninhado igual à Tela 6 ("Here are a few ways you can customize it:") */}
       <div className="flex items-start gap-3">
         <GreenDotAvatar />
         <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-sm p-5 space-y-3">
@@ -546,7 +915,6 @@ export function CustomizationAndPairingCard({ receita }) {
         </div>
       </div>
 
-      {/* Card PAIRING RECOMMENDATION (Telas 5 & 6) */}
       {parAtual && (
         <div className="flex items-start gap-3">
           <GreenDotAvatar />
@@ -596,6 +964,302 @@ export function CustomizationAndPairingCard({ receita }) {
                     >
                       <ChevronRight size={16} />
                     </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── NOVO FLUXO VISUAL DE EQUIPAMENTOS: 110V vs 220V + ENCAIXE DO COPO/TAMPA + USO + LIMPEZA ──
+export function EquipmentVisualSelectorAndGuidesCard({
+  equipamentos,
+  categoriaFiltro = null,
+  equipamentoInicialId = null,
+  abaInicial = "voltagem",
+  onAbrirManutencao,
+}) {
+  const listaFiltrada = categoriaFiltro
+    ? equipamentos.filter(
+        (e) =>
+          e.categoriaTipo === categoriaFiltro ||
+          e.nome.toLowerCase().includes(categoriaFiltro.toLowerCase())
+      )
+    : equipamentos;
+
+  const listaExibida = listaFiltrada.length > 0 ? listaFiltrada : equipamentos;
+
+  const [selecionadoId, setSelecionadoId] = useState(
+    equipamentoInicialId || (listaExibida.length === 1 ? listaExibida[0].id : null)
+  );
+  const [abaAtiva, setAbaAtiva] = useState(abaInicial || "voltagem"); // "voltagem" | "encaixe" | "uso" | "limpeza"
+  const [mostrarVideoGuia, setMostrarVideoGuia] = useState(false);
+
+  const equip =
+    equipamentos.find((e) => e.id === selecionadoId) ||
+    listaExibida.find((e) => e.id === selecionadoId) ||
+    null;
+
+  const guiaAtual =
+    abaAtiva === "encaixe"
+      ? equip?.guiaEncaixe
+      : abaAtiva === "uso"
+      ? equip?.guiaUso
+      : abaAtiva === "limpeza"
+      ? equip?.guiaLimpeza
+      : null;
+
+  return (
+    <div className="space-y-4">
+      {/* PASSO 1: MOSTRAR AS FOTOS DOS EQUIPAMENTOS CADASTRADOS PARA O COLABORADOR CLICAR */}
+      <div className="flex items-start gap-3">
+        <GreenDotAvatar />
+        <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-md p-5 sm:p-6 space-y-4">
+          <div>
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#2E6F4E]">
+              Identificação Visual de Equipamento (Cozinha &amp; Bar)
+            </span>
+            <h3 className="text-base sm:text-lg font-black text-[#1C2826] mt-0.5">
+              Encontrei {listaExibida.length} equipamento(s) cadastrado(s). Toque na foto de qual você está usando agora:
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+            {listaExibida.map((item) => {
+              const ativo = selecionadoId === item.id;
+              const is220 = String(item.voltagem || "").includes("220") || String(item.voltagem || "").includes("380");
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setSelecionadoId(item.id);
+                    setMostrarVideoGuia(false);
+                  }}
+                  className={`text-left rounded-2xl border-2 overflow-hidden transition flex flex-col justify-between shadow-xs ${
+                    ativo
+                      ? "border-[#1E4D3B] ring-2 ring-[#2E6F4E]/40 bg-[#EFF7F2]"
+                      : "border-[#E2E0D8] bg-[#FAF9F6] hover:border-[#2E6F4E]"
+                  }`}
+                >
+                  <div>
+                    <div className="relative h-36 bg-[#232A26] overflow-hidden">
+                      <img
+                        src={item.imagem}
+                        alt={item.nome}
+                        className="w-full h-full object-cover"
+                      />
+                      <span
+                        className={`absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-xs font-black shadow-md ${
+                          is220
+                            ? "bg-red-600 text-white"
+                            : "bg-amber-400 text-slate-950"
+                        }`}
+                      >
+                        ⚡ {item.voltagem || "220V"}
+                      </span>
+                    </div>
+                    <div className="p-3.5 space-y-1">
+                      <p className="text-xs sm:text-sm font-black text-[#1C2826] leading-snug">
+                        {item.nomeCurto || item.nome}
+                      </p>
+                      <p className="text-[11px] font-semibold text-[#55605A]">{item.setor}</p>
+                    </div>
+                  </div>
+                  <div className="px-3.5 pb-3.5">
+                    <span
+                      className={`block w-full text-center py-1.5 rounded-lg text-xs font-extrabold ${
+                        ativo
+                          ? "bg-[#1E4D3B] text-white"
+                          : "bg-white border border-[#76847D] text-[#1E4D3B]"
+                      }`}
+                    >
+                      {ativo ? "✓ Equipamento Selecionado" : "Este é o meu equipamento"}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* PASSO 2: QUANDO ELE CLICA NO EQUIPAMENTO, MOSTRA A RESPOSTA DE VOLTAGEM + COMO ENCAIXAR COPO/TAMPA + COMO USAR + COMO LIMPAR */}
+      {equip && (
+        <div className="flex items-start gap-3">
+          <GreenDotAvatar />
+          <div className="flex-1 bg-white rounded-2xl border-2 border-[#2E6F4E] shadow-lg overflow-hidden text-[#1C2826]">
+            {/* Banner de Voltagem 110V vs 220V em Destaque */}
+            <div
+              className={`p-5 text-white flex flex-wrap items-center justify-between gap-4 ${
+                String(equip.voltagem || "").includes("110")
+                  ? "bg-gradient-to-r from-[#233329] to-[#4A3B12]"
+                  : "bg-gradient-to-r from-[#1E4D3B] to-[#6B1D1D]"
+              }`}
+            >
+              <div className="space-y-1">
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-200">
+                  {equip.setor} · {equip.codigoSerie}
+                </span>
+                <h4 className="text-lg sm:text-xl font-black">{equip.nome}</h4>
+                <p className="text-xs sm:text-sm text-white/90 font-semibold">
+                  🔌 {equip.corTomada || `Ligar somente em tomada compatível com ${equip.voltagem}`}
+                </p>
+              </div>
+              <div className="bg-white text-[#1C2826] px-5 py-3 rounded-2xl text-center shadow-lg shrink-0">
+                <p className="text-[10px] font-black uppercase text-[#5A655F]">TENSÃO ELÉTRICA</p>
+                <p className="text-2xl sm:text-3xl font-black text-[#1E4D3B] flex items-center gap-1">
+                  <Zap size={24} className="text-amber-500 fill-amber-500" />
+                  {equip.voltagem || "220V"}
+                </p>
+              </div>
+            </div>
+
+            {/* Navegação de Abas: Voltagem | Como Encaixar Copo e Tampa | Como Usar | Como Limpar | Manutenção */}
+            <div className="px-4 pt-3 bg-[#F4F3EF] border-b border-[#E2E0D8] flex flex-wrap gap-1.5">
+              {[
+                { id: "voltagem", label: "⚡ 110V ou 220V (Tomada)" },
+                { id: "encaixe", label: "🧩 Como Encaixar Copo e Tampa" },
+                { id: "uso", label: "▶️ Como Usar / Operar" },
+                { id: "limpeza", label: "🧼 Como Limpar e Higienizar" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setAbaAtiva(tab.id);
+                    setMostrarVideoGuia(false);
+                  }}
+                  className={`px-3.5 py-2 rounded-t-xl text-xs sm:text-sm font-extrabold transition ${
+                    abaAtiva === tab.id
+                      ? "bg-white text-[#1E4D3B] border-t-2 border-x border-[#2E6F4E]"
+                      : "text-[#4F5853] hover:bg-white/60"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+              {onAbrirManutencao && (
+                <button
+                  onClick={() => onAbrirManutencao(equip.id)}
+                  className="ml-auto px-3 py-1.5 mb-1.5 rounded-lg bg-[#E7B5AC] hover:bg-[#DDA399] text-[#6E261E] text-xs font-extrabold transition"
+                >
+                  🛠️ Resolver Falha / Abrir Chamado
+                </button>
+              )}
+            </div>
+
+            {/* Conteúdo da Aba Selecionada */}
+            <div className="p-5 sm:p-6 space-y-4">
+              {abaAtiva === "voltagem" && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex items-start gap-3">
+                    <ShieldAlert size={22} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1 text-xs sm:text-sm">
+                      <p className="font-black">
+                        Resposta Direta: O {equip.nomeCurto || equip.nome} é{" "}
+                        <span className="underline">{equip.voltagem}</span>!
+                      </p>
+                      <p className="font-medium leading-relaxed">
+                        {equip.alertaVoltagem ||
+                          `Conecte exclusivamente na ${equip.corTomada || "tomada indicada na bancada"}.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button
+                      onClick={() => setAbaAtiva("encaixe")}
+                      className="p-4 rounded-xl border border-[#DCE6DF] bg-[#F8FAF9] hover:bg-[#EFF7F2] text-left transition space-y-1"
+                    >
+                      <p className="text-xs font-black text-[#1E4D3B]">
+                        🧩 1. Como Encaixar Copo e Tampa &rarr;
+                      </p>
+                      <p className="text-[11px] text-[#55605A]">
+                        Veja foto e vídeo de como alinhar o pino de arraste e vedar a tampa.
+                      </p>
+                    </button>
+                    <button
+                      onClick={() => setAbaAtiva("uso")}
+                      className="p-4 rounded-xl border border-[#DCE6DF] bg-[#F8FAF9] hover:bg-[#EFF7F2] text-left transition space-y-1"
+                    >
+                      <p className="text-xs font-black text-[#1E4D3B]">
+                        ▶️ 2. Como Usar com Segurança &rarr;
+                      </p>
+                      <p className="text-[11px] text-[#55605A]">
+                        Ordem dos ingredientes, botão Pulsar e limite de líquidos quentes.
+                      </p>
+                    </button>
+                    <button
+                      onClick={() => setAbaAtiva("limpeza")}
+                      className="p-4 rounded-xl border border-[#DCE6DF] bg-[#F8FAF9] hover:bg-[#EFF7F2] text-left transition space-y-1"
+                    >
+                      <p className="text-xs font-black text-[#1E4D3B]">
+                        🧼 3. Como Limpar sem Acidentes &rarr;
+                      </p>
+                      <p className="text-[11px] text-[#55605A]">
+                        Higienização das lâminas, borracha de vedação e sanitização ANVISA.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {guiaAtual && (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h4 className="text-base sm:text-lg font-black text-[#1C2826]">
+                        {guiaAtual.titulo}
+                      </h4>
+                      <p className="text-xs sm:text-sm text-[#4F5853] font-medium">
+                        {guiaAtual.resumo}
+                      </p>
+                    </div>
+                    {(guiaAtual.videoUrl || equip.videoUrl) && (
+                      <button
+                        onClick={() => setMostrarVideoGuia((v) => !v)}
+                        className="px-4 py-2 rounded-lg bg-[#2E6F4E] hover:bg-[#23563C] text-white text-xs font-extrabold flex items-center gap-1.5 transition"
+                      >
+                        <PlayCircle size={16} />
+                        {mostrarVideoGuia ? "Ver Foto Ilustrativa" : "Assistir Vídeo deste Passo"}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Foto ou Vídeo do Guia (Encaixe / Uso / Limpeza) */}
+                  {mostrarVideoGuia && (guiaAtual.videoUrl || equip.videoUrl) ? (
+                    <PlayerVideoEmbutido
+                      url={guiaAtual.videoUrl || equip.videoUrl}
+                      titulo={guiaAtual.titulo}
+                      poster={guiaAtual.foto || equip.imagem}
+                    />
+                  ) : (
+                    <div className="rounded-xl overflow-hidden bg-[#1D2621] aspect-16/9 max-h-64 relative">
+                      <img
+                        src={guiaAtual.foto || equip.imagem}
+                        alt={guiaAtual.titulo}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-3 left-3 bg-[#1E4D3B]/95 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold shadow">
+                        {equip.nomeCurto} · {guiaAtual.titulo}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lista numerada de instruções */}
+                  <div className="space-y-2">
+                    {(guiaAtual.passos || []).map((p, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-xl bg-[#F8F7F3] border border-[#E5E3DA] text-xs sm:text-sm font-bold text-[#1C2826] leading-relaxed"
+                      >
+                        {p}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -666,7 +1330,7 @@ export function OperationalRoutineCard({ rotina }) {
   );
 }
 
-// ── TELA 7: CENTRAL DE MANUTENÇÃO DE EQUIPAMENTOS (EQUIPMENT MAINTENANCE TOOL) ─
+// ── TELA 7 A 13: CENTRAL DE MANUTENÇÃO DE EQUIPAMENTOS & CHAMADOS ────────────
 export function EquipmentMaintenanceFlowCard({
   equipamentos,
   equipamentoInicialId,
@@ -675,7 +1339,6 @@ export function EquipmentMaintenanceFlowCard({
   unidadeInfo,
   sessao,
 }) {
-  // Modos internos do fluxo das Telas 7 -> 8 -> 9/12 -> 10 -> 11 -> 12/13
   const [modo, setModo] = useState(equipamentoInicialId ? "anatomia" : "hub");
   const [equipSelecionadoId, setEquipSelecionadoId] = useState(
     equipamentoInicialId || equipamentos[0]?.id
@@ -721,12 +1384,10 @@ export function EquipmentMaintenanceFlowCard({
 
   return (
     <div className="space-y-4">
-      {/* TELA 7: HUB DE EQUIPAMENTOS */}
       {modo === "hub" && (
         <div className="flex items-start gap-3">
           <GreenDotAvatar />
           <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-sm overflow-hidden">
-            {/* Banner Mint-Green igual à Tela 7 */}
             <div className="bg-[#DCECE3] p-5 sm:p-6 relative">
               <div className="flex items-center justify-between gap-4">
                 <div className="space-y-1.5 max-w-md">
@@ -753,7 +1414,6 @@ export function EquipmentMaintenanceFlowCard({
                 </div>
               </div>
 
-              {/* Barra de busca de erro */}
               <div className="mt-4 flex items-center bg-white rounded-full p-1.5 pl-4 shadow-xs border border-[#C5DDD0]">
                 <input
                   type="text"
@@ -778,18 +1438,22 @@ export function EquipmentMaintenanceFlowCard({
               </div>
             </div>
 
-            {/* Carrossel "Seus equipamentos" (Your equipment) */}
             <div className="p-5 sm:p-6 space-y-5">
               <div>
                 <h4 className="text-sm font-extrabold text-[#1C2826] mb-3">Seus equipamentos</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   {equipamentos.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-xl bg-[#4A4C4E] text-white p-4 flex flex-col justify-between min-h-[210px] shadow-xs"
+                      className="rounded-xl bg-[#4A4C4E] text-white p-4 flex flex-col justify-between min-h-[215px] shadow-xs relative"
                     >
-                      <p className="text-center font-bold text-sm leading-snug">{item.nomeCurto}</p>
-                      <div className="my-3 h-24 rounded-lg overflow-hidden bg-black/30 flex items-center justify-center">
+                      <span className="self-end text-[10px] font-black px-2 py-0.5 rounded bg-amber-400 text-slate-950">
+                        {item.voltagem || "220V"}
+                      </span>
+                      <p className="text-center font-bold text-xs sm:text-sm leading-snug mt-1">
+                        {item.nomeCurto}
+                      </p>
+                      <div className="my-2.5 h-24 rounded-lg overflow-hidden bg-black/30 flex items-center justify-center">
                         <img
                           src={item.imagem}
                           alt={item.nomeCurto}
@@ -807,13 +1471,12 @@ export function EquipmentMaintenanceFlowCard({
                 </div>
               </div>
 
-              {/* Top Equipment Issues for your Store */}
               <div>
                 <h4 className="text-sm font-extrabold text-[#1C2826] mb-2.5">
                   Principais Ocorrências na sua Unidade
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {equipamentos.map((item, idx) => (
+                  {equipamentos.slice(0, 3).map((item, idx) => (
                     <button
                       key={item.id}
                       onClick={() => selecionarEquipamento(item.id)}
@@ -840,7 +1503,6 @@ export function EquipmentMaintenanceFlowCard({
         <div className="flex items-start gap-3">
           <GreenDotAvatar />
           <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-sm overflow-hidden p-4 sm:p-5 space-y-4">
-            {/* Diagrama escuro com etiquetas apontando */}
             <div className="relative rounded-xl overflow-hidden bg-[#484A4C] min-h-[260px] sm:min-h-[300px] flex items-center justify-center p-4">
               <img
                 src={equip.imagem}
@@ -848,7 +1510,6 @@ export function EquipmentMaintenanceFlowCard({
                 className="w-64 h-48 object-cover rounded-xl shadow-2xl opacity-85"
               />
 
-              {/* Botão <- Voltar */}
               <button
                 onClick={() => setModo("hub")}
                 className="absolute top-3.5 left-3.5 px-3.5 py-1.5 rounded-full bg-[#2E6F4E] hover:bg-[#23563C] text-white text-xs font-bold flex items-center gap-1 shadow-md"
@@ -856,7 +1517,10 @@ export function EquipmentMaintenanceFlowCard({
                 &larr; Voltar
               </button>
 
-              {/* Callout pills igual à Tela 8 */}
+              <span className="absolute top-3.5 right-3.5 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black shadow-md">
+                ⚡ {equip.voltagem || "220V"}
+              </span>
+
               {(equip.hotspots || []).map((spot) => (
                 <div
                   key={spot.id}
@@ -868,9 +1532,13 @@ export function EquipmentMaintenanceFlowCard({
               ))}
             </div>
 
-            <h3 className="text-base sm:text-lg font-extrabold text-[#1C2826]">{equip.nome}</h3>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-base sm:text-lg font-extrabold text-[#1C2826]">{equip.nome}</h3>
+              <span className="text-xs font-extrabold text-[#2E6F4E]">
+                {equip.corTomada}
+              </span>
+            </div>
 
-            {/* Card 1: Está enfrentando problemas? */}
             <div className="rounded-xl border border-[#E2E0D8] p-4 space-y-2.5">
               <h4 className="text-sm sm:text-base font-extrabold text-[#1C2826]">
                 Está enfrentando problemas?
@@ -889,13 +1557,12 @@ export function EquipmentMaintenanceFlowCard({
               </button>
             </div>
 
-            {/* Card 2: Precisa pedir uma peça de reposição? */}
             <div className="rounded-xl border border-[#E2E0D8] p-4 space-y-2.5">
               <h4 className="text-sm sm:text-base font-extrabold text-[#1C2826]">
                 Precisa solicitar uma peça de reposição para este equipamento?
               </h4>
               <p className="text-xs sm:text-sm text-[#4F5853] font-medium">
-                Se você procura o código SKU de vedação, sonda ou válvula, temos tudo catalogado!
+                Se você procura o código SKU de pino de arraste, tampa, vedação ou lâmina, temos tudo catalogado!
               </p>
               <button
                 onClick={() => setMostrarPecas((v) => !v)}
@@ -942,7 +1609,6 @@ export function EquipmentMaintenanceFlowCard({
               >
                 &larr; Voltar
               </button>
-              {/* Barra de progresso verde na base da imagem */}
               <div className="absolute bottom-0 left-0 right-0 h-2 bg-black/30">
                 <div
                   className="h-full bg-[#3A6B4E] transition-all duration-300"
@@ -960,7 +1626,6 @@ export function EquipmentMaintenanceFlowCard({
               </span>
             </div>
 
-            {/* Botões <- Anterior | Próximo -> (Tela 12) */}
             <div className="flex items-center gap-2">
               <button
                 disabled={passoIdx === 0}
@@ -987,7 +1652,6 @@ export function EquipmentMaintenanceFlowCard({
 
             <hr className="border-[#E6E4DC]" />
 
-            {/* Pergunta de Verificação (Tela 9: Check to see if your problem has been solved) */}
             <div className="space-y-3">
               <h4 className="text-base sm:text-lg font-extrabold text-[#2B332E]">
                 Verifique se o problema foi resolvido.
@@ -1193,7 +1857,6 @@ export function EquipmentMaintenanceFlowCard({
           <GreenDotAvatar />
           <div className="flex-1 bg-[#F2F1EC] rounded-2xl border border-[#DCDAD0] shadow-md p-4 sm:p-5">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              {/* Coluna Esquerda: Lista de Chamados */}
               <div className="lg:col-span-6 space-y-3">
                 <div className="flex items-center justify-between text-xs font-extrabold text-[#2B332E] px-1">
                   <span>Atualizados recentemente</span>
@@ -1238,7 +1901,6 @@ export function EquipmentMaintenanceFlowCard({
                 })}
               </div>
 
-              {/* Coluna Direita: Detalhe da Ordem de Serviço (Service Request) */}
               {chamadoDetalhe && (
                 <div className="lg:col-span-6 bg-white rounded-xl border border-[#E2E0D8] overflow-hidden shadow-xs flex flex-col justify-between">
                   <div>
@@ -1256,7 +1918,6 @@ export function EquipmentMaintenanceFlowCard({
                         {chamadoDetalhe.equipamento}
                       </h4>
 
-                      {/* Timeline Item 1: Ticket Logged */}
                       <div className="relative pl-7 space-y-2 border-l-2 border-[#2E6F4E] ml-2">
                         <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#2E6F4E] text-white flex items-center justify-center">
                           <Check size={10} />
@@ -1271,7 +1932,6 @@ export function EquipmentMaintenanceFlowCard({
                         </div>
                       </div>
 
-                      {/* Timeline Item 2: Supplier Assigned */}
                       <div className="relative pl-7 space-y-2 ml-2">
                         <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#2E6F4E] text-white flex items-center justify-center">
                           <Check size={10} />
@@ -1310,7 +1970,6 @@ export function EquipmentMaintenanceFlowCard({
         </div>
       )}
 
-      {/* Caso resolvido */}
       {modo === "resolvido" && (
         <div className="flex items-start gap-3">
           <GreenDotAvatar />
@@ -1347,7 +2006,6 @@ export function ShiftScheduleGanttCard({ escala, onAddPartnerClick }) {
     <div className="flex items-start gap-3">
       <GreenDotAvatar />
       <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-md overflow-hidden text-[#1C2826]">
-        {/* Header da Escala */}
         <div className="p-4 border-b border-[#E5E4DC] flex flex-wrap items-center justify-between gap-2 bg-[#FAF9F5]">
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 rounded-lg bg-[#E4E2DA] text-xs font-bold">Hoje</span>
@@ -1359,7 +2017,7 @@ export function ShiftScheduleGanttCard({ escala, onAddPartnerClick }) {
             </button>
             <span className="flex items-center gap-1.5 text-sm sm:text-base font-extrabold ml-1">
               <Calendar size={16} className="text-[#2E6F4E]" />
-              Segunda, 18 de Outubro
+              Segunda, 19 de Outubro
             </span>
           </div>
 
@@ -1371,9 +2029,7 @@ export function ShiftScheduleGanttCard({ escala, onAddPartnerClick }) {
           </button>
         </div>
 
-        {/* Corpo do Gantt */}
         <div className="relative overflow-x-auto">
-          {/* Cabeçalho de Horas */}
           <div className="grid grid-cols-12 min-w-[680px] border-b border-[#E5E4DC] bg-[#F7F6F2] text-[11px] font-bold text-[#5A655F]">
             <div className="col-span-3 p-2.5 pl-4 font-extrabold text-[#1E4D3B]">
               Colaborador / Escala
@@ -1395,7 +2051,6 @@ export function ShiftScheduleGanttCard({ escala, onAddPartnerClick }) {
             </div>
           </div>
 
-          {/* Linhas dos Colaboradores */}
           <div className="divide-y divide-[#ECEAE2] min-w-[680px] relative">
             {escala.map((colab) => {
               const leftPct = Math.max(0, ((colab.inicio - 8) / 16) * 100);
@@ -1403,7 +2058,6 @@ export function ShiftScheduleGanttCard({ escala, onAddPartnerClick }) {
 
               return (
                 <div key={colab.id} className="grid grid-cols-12 items-center hover:bg-[#FAF9F5]">
-                  {/* Coluna Nome */}
                   <div className="col-span-3 p-2.5 pl-4 flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full bg-[#24302B] text-white text-xs font-extrabold flex items-center justify-center shrink-0">
                       {colab.iniciais}
@@ -1417,20 +2071,16 @@ export function ShiftScheduleGanttCard({ escala, onAddPartnerClick }) {
                     </div>
                   </div>
 
-                  {/* Barra Horizontal de Turno */}
                   <div className="col-span-9 relative h-12 flex items-center">
-                    {/* Faixa Amarela de Pico de Almoço (12h-15h) */}
                     <div
                       className="absolute top-0 bottom-0 bg-[#EFE6B8]/45 pointer-events-none"
                       style={{ left: `${((12 - 8) / 16) * 100}%`, width: `${(3 / 16) * 100}%` }}
                     />
-                    {/* Linha Vertical Verde AGORA (11h30) */}
                     <div
                       className="absolute top-0 bottom-0 w-0.5 bg-[#2E6F4E] z-10 pointer-events-none"
                       style={{ left: `${((11.5 - 8) / 16) * 100}%` }}
                     />
 
-                    {/* Barra Verde do Turno */}
                     <div
                       className="relative h-7 rounded-md bg-[#3D5245] text-white flex items-center justify-around px-2 shadow-2xs"
                       style={{ marginLeft: `${leftPct}%`, width: `${widthPct}%` }}
@@ -1454,7 +2104,6 @@ export function ShiftScheduleGanttCard({ escala, onAddPartnerClick }) {
             })}
           </div>
 
-          {/* Botão Flutuante "+ Adicionar colaborador" (Tela 15 inferior direita) */}
           <div className="p-3 bg-[#FAF9F5] border-t border-[#E5E4DC] flex items-center justify-between">
             <div className="flex items-center gap-2 text-[11px] font-bold text-[#4F5853]">
               <span className="w-2 h-2 rounded-full bg-[#2E6F4E]" />
@@ -1485,7 +2134,6 @@ export function AvailablePartnersOutreachCard({
 
   return (
     <div className="space-y-4">
-      {/* Tela 16: Grid 2x2 de Colaboradores/Extras Disponíveis */}
       <div className="flex items-start gap-3">
         <GreenDotAvatar />
         <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-sm p-5 sm:p-6 space-y-4">
@@ -1538,7 +2186,6 @@ export function AvailablePartnersOutreachCard({
         </div>
       </div>
 
-      {/* Telas 17 & 18: "Entrando em contato com Bruno S..." (40% -> 100% Confirmado) */}
       {convidado && (
         <div className="flex items-start gap-3">
           <GreenDotAvatar />
@@ -1562,7 +2209,6 @@ export function AvailablePartnersOutreachCard({
                 className="w-9 h-9 rounded-full object-cover ring-2 ring-white"
               />
 
-              {/* Barra de Progresso (40% Notification Opened -> 100% Arriving in 6 mins) */}
               <div className="space-y-1.5">
                 <div className="h-2 w-full rounded-full bg-[#DCE0DC] overflow-hidden">
                   <div
@@ -1615,7 +2261,6 @@ export function PlayCallerStationMapCard({ formacao, extraConfirmado }) {
         },
       ];
 
-  // Bonequinho de avental verde igual às Telas 1 e 19
   const PartnerPin = ({ sigla }) => (
     <div className="flex flex-col items-center">
       <div className="w-3.5 h-3.5 rounded-full border-2 border-[#4A5550] bg-white" />
@@ -1629,12 +2274,11 @@ export function PlayCallerStationMapCard({ formacao, extraConfirmado }) {
     <div className="flex items-start gap-3">
       <GreenDotAvatar />
       <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-md overflow-hidden text-[#1C2826] p-4 sm:p-6 space-y-5">
-        {/* Topo: Data + Previsão de Transações */}
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 text-[#1C2826]">
               <Calendar size={15} className="text-[#2E6F4E]" />
-              Hoje, 18 de Out
+              Hoje, 19 de Out
             </span>
             <span className="text-[#2E6F4E] underline font-extrabold">Agora</span>
           </div>
@@ -1644,7 +2288,6 @@ export function PlayCallerStationMapCard({ formacao, extraConfirmado }) {
           </span>
         </div>
 
-        {/* Barra de Horários com Destaque Verde e PICO */}
         <div>
           <div className="grid grid-cols-8 rounded-xl border border-[#D5D3C9] bg-[#E8E6DF] overflow-hidden text-[11px] font-bold text-[#4A5550]">
             <div className="col-span-2 bg-[#E6F2EC] border-2 border-[#2E6F4E] rounded-l-xl p-2 text-center text-[#1E4D3B] font-extrabold">
@@ -1663,7 +2306,6 @@ export function PlayCallerStationMapCard({ formacao, extraConfirmado }) {
           </div>
         </div>
 
-        {/* Subheader: Janela do Turno + Pílulas [5 Colaboradores] [Alocar] [Flex] */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
           <div className="flex items-center gap-2">
             <span className="text-sm sm:text-base font-black text-[#1C2826]">
@@ -1685,10 +2327,8 @@ export function PlayCallerStationMapCard({ formacao, extraConfirmado }) {
           </div>
         </div>
 
-        {/* DIAGRAMA ESQUEMÁTICO DAS PRAÇAS DO RESTAURANTE (Inspirado 1:1 na Tela 1/19) */}
         <div className="rounded-2xl bg-[#FAF9F6] border border-[#E5E3DA] p-4 sm:p-6 relative">
           <div className="grid grid-cols-12 gap-3 items-center">
-            {/* Linha Superior da Cozinha: Bar Frio/Chopeira | Cocção/Caldos | Fornos Combinados */}
             <div className="col-span-4 flex flex-col items-center gap-2">
               <div className="w-full py-2.5 px-3 rounded border border-[#9DA5A0] bg-[#ECEBE6] text-center text-xs font-extrabold text-[#1C2826]">
                 BAR &amp; CHOPEIRA
@@ -1714,7 +2354,6 @@ export function PlayCallerStationMapCard({ formacao, extraConfirmado }) {
               <PartnerPin sigla="BS" />
             </div>
 
-            {/* Linha Inferior: Pass/Delivery (MO&P) | Fogão & Grelha | Caixa/PDV | Vitrine */}
             <div className="col-span-2 flex flex-col items-center gap-2 mt-4">
               <div className="w-16 h-20 rounded border border-[#9DA5A0] bg-[#ECEBE6] flex items-center justify-center text-[10px] font-black text-[#1C2826] text-center p-1">
                 DELIVERY &amp; PASS
@@ -1757,7 +2396,6 @@ export function PlayCallerStationMapCard({ formacao, extraConfirmado }) {
           </div>
         </div>
 
-        {/* Link "Why this play?" (Por que essa formação?) */}
         <div className="flex items-center justify-between border-t border-[#E5E4DC] pt-3">
           <span className="text-xs text-[#5A655F] font-medium">
             Formação otimizada para absorver pico de salão + delivery simultâneo
@@ -1779,7 +2417,6 @@ export function PlayCallerStationMapCard({ formacao, extraConfirmado }) {
           </div>
         )}
 
-        {/* Roster de Colaboradores e Funções na Base do Card */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           {equipeCompleta.map((p) => (
             <div key={p.id} className="flex items-start gap-2.5">

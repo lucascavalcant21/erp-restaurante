@@ -553,9 +553,14 @@ export function detectarIntencaoRecalculo(frase, receitaEmContexto, todasReceita
     }
   }
 
-  if (!qtdAlvo || qtdAlvo <= 0) return null;
+  const calculo = recalcularReceitaPorIngrediente(receitaAlvo, ingMencionado.id, qtdAlvo, unAlvo);
+  if (!calculo) return null;
 
-  return recalcularReceitaPorIngrediente(receitaAlvo, ingMencionado.id, qtdAlvo, unAlvo);
+  return {
+    receita: receitaAlvo,
+    calculo,
+    ...calculo,
+  };
 }
 
 export const ROTINAS_OPERACIONAIS = {

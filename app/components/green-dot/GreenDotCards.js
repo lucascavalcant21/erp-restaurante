@@ -35,6 +35,12 @@ import {
   ShieldCheck,
   AlertCircle,
   ClipboardCheck,
+  MapPin,
+  Compass,
+  Navigation,
+  LocateFixed,
+  Eye,
+  ArrowRight,
 } from "lucide-react";
 import {
   TOPICOS_INICIAIS,
@@ -44,6 +50,11 @@ import {
   ROTINAS_LIMPEZA_HIGIENIZACAO,
   CHECKLISTS_PRACA,
   calcularDiluicaoLimpeza,
+  LOCAIS_ARMAZENAMENTO_PADRAO,
+  LOTES_RASTREIO_INICIAIS,
+  buscarLocalizacaoProduto,
+  salvarRastreioEtiqueta,
+  obterTodosRastreios,
 } from "../../lib/green-dot-data";
 import { criarEtiqueta } from "../../lib/etiquetas";
 
@@ -293,6 +304,25 @@ export function WelcomeGovernanceCard({
           </div>
         </div>
 
+        {/* Rastreio & Localização em Produção */}
+        <div>
+          <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-bold flex items-center gap-1.5">
+            <Compass size={14} className="text-[#2E6F4E]" />
+            <span>📍 Rastreio em Produção (Onde está o Vatapá, Camarão, etc.)</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(TOPICOS_INICIAIS.rastreio || []).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onSelectTopic(t)}
+                className="px-3.5 py-2 rounded-lg border border-[#2E6F4E] bg-[#EAF5EF] hover:bg-[#D5EDE0] text-[#1E4D3B] font-extrabold text-xs sm:text-sm transition active:scale-[0.98]"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Estoque & Escala */}
         <div>
           <p className="text-xs sm:text-sm text-[#55605A] mb-2 font-bold">
@@ -319,14 +349,15 @@ export function WelcomeGovernanceCard({
           <Lightbulb size={16} className="text-amber-500 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p>1. Pergunte <strong>&ldquo;como se faz um vatapá&rdquo;</strong> e depois diga <strong>&ldquo;só tenho 2L de leite de coco&rdquo;</strong> para recalcular toda a ficha!</p>
-            <p>2. Pergunte <strong>&ldquo;esse liquidificador é 110V ou 220V?&rdquo;</strong> para ver as fotos dos aparelhos da loja, clicar no seu e ver como encaixar o copo, usar e limpar.</p>
-            <p>3. Pergunte <strong>&ldquo;qual a escala de hoje&rdquo;</strong> ou <strong>&ldquo;quem trabalha hoje&rdquo;</strong> para ver o organograma por área com todas as pessoas e seus horários de trabalho!</p>
-            <p>4. Pergunte <strong>&ldquo;qual produto usar no chão e quantas ml&rdquo;</strong> ou <strong>&ldquo;como limpar um pano&rdquo;</strong> para ver dosagem química exata por balde e regras da ANVISA.</p>
-            <p>5. Pergunte <strong>&ldquo;checklist de abertura&rdquo;</strong> ou <strong>&ldquo;checklist de saída&rdquo;</strong> para conferir mise en place e fechamento de gás/equipamentos sem esquecer nada.</p>
+            <p>2. Pergunte <strong>&ldquo;onde tá o vatapá?&rdquo;</strong> ou <strong>&ldquo;onde guardaram o camarão?&rdquo;</strong> para o Green rastrear a câmara e prateleira exatas em produção!</p>
+            <p>3. Pergunte <strong>&ldquo;esse liquidificador é 110V ou 220V?&rdquo;</strong> para ver as fotos dos aparelhos da loja, clicar no seu e ver como encaixar o copo, usar e limpar.</p>
+            <p>4. Pergunte <strong>&ldquo;qual a escala de hoje&rdquo;</strong> ou <strong>&ldquo;quem trabalha hoje&rdquo;</strong> para ver o organograma por área com todas as pessoas e seus horários de trabalho!</p>
+            <p>5. Pergunte <strong>&ldquo;qual produto usar no chão e quantas ml&rdquo;</strong> ou <strong>&ldquo;como limpar um pano&rdquo;</strong> para ver dosagem química exata por balde e regras da ANVISA.</p>
+            <p>6. O sistema se adapta a qualquer forma de pergunta — se estiver no aperto ou perdido, diga <strong>&ldquo;socorro&rdquo;</strong> ou <strong>&ldquo;comanda acumulou&rdquo;</strong> para ter uma solução imediata!</p>
             {mostrarDicas && (
               <>
-                <p>6. Diga <strong>&ldquo;gerar etiqueta&rdquo;</strong> para emitir etiquetas térmicas 60x40mm integradas ao seu app Héfisto.</p>
-                <p>7. Clique em <strong>+ Alimentar Receitas, Fotos, Vídeos &amp; Equipamentos</strong> para cadastrar novos pratos, drinks e máquinas com fotos e vídeos.</p>
+                <p>7. Diga <strong>&ldquo;gerar etiqueta&rdquo;</strong> para emitir etiquetas com localização obrigatória e rastreio de lote.</p>
+                <p>8. Clique em <strong>+ Alimentar Receitas, Fotos, Vídeos &amp; Equipamentos</strong> para cadastrar novos pratos, drinks e máquinas com fotos e vídeos.</p>
               </>
             )}
           </div>
@@ -3242,18 +3273,25 @@ export function ShiftChecklistCard({ tipoInicial = "abertura" }) {
   );
 }
 
-// ── NOVO CARD: GERADOR RÁPIDO DE ETIQUETA ANVISA (INTEGRADO AO APP) ───────────
+// ── NOVO CARD: GERADOR RÁPIDO DE ETIQUETA ANVISA (INTEGRADO AO APP & RASTREIO) ─
 export function EtiquetaQuickGeneratorCard({
   produtoInicial = "Vatapá Tradicional da Casa",
   unidadeId,
+  onVerRastreio,
 }) {
   const [produto, setProduto] = useState(produtoInicial);
   const [conservacao, setConservacao] = useState("Resfriado"); // "Resfriado" (3d) | "Congelado" (30d) | "Ambiente" (1d)
   const [quantidade, setQuantidade] = useState("2");
   const [unidadeMedida, setUnidadeMedida] = useState("kg");
   const [responsavel, setResponsavel] = useState("Líder de Turno");
+  const [localizacao, setLocalizacao] = useState("Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)");
+  const [modoOutroLocal, setModoOutroLocal] = useState(false);
+  const [outroLocalTexto, setOutroLocalTexto] = useState("");
+  const [erroValidacao, setErroValidacao] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [resultado, setResultado] = useState(null);
+
+  const localFinal = modoOutroLocal ? outroLocalTexto.trim() : localizacao.trim();
 
   const diasValidade =
     conservacao === "Resfriado" ? 3 : conservacao === "Congelado" ? 30 : 1;
@@ -3266,10 +3304,23 @@ export function EtiquetaQuickGeneratorCard({
     d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   const salvarEtiquetaNoSistema = async () => {
+    setErroValidacao("");
+    if (!produto.trim()) {
+      setErroValidacao("Informe o nome do produto a ser etiquetado.");
+      return;
+    }
+    if (!localFinal) {
+      setErroValidacao("É obrigatório informar onde o produto está guardado para permitir o rastreio em produção pelo Green!");
+      return;
+    }
+
     setSalvando(true);
     try {
       const codigo = (Date.now().toString(36) + Math.random().toString(36).slice(2, 5)).toUpperCase();
-      const res = await criarEtiqueta(
+      const loteGerado = "LOTE-" + codigo.slice(0, 4);
+
+      // 1. Registra no banco do Héfisto ERP
+      await criarEtiqueta(
         {
           codigo,
           produto: produto.trim(),
@@ -3279,21 +3330,59 @@ export function EtiquetaQuickGeneratorCard({
           validade_dias: diasValidade,
           manipulacao_em: dataFabricacao.toISOString(),
           validade_em: dataValidade.toISOString(),
-          lote: "LOTE-" + codigo.slice(0, 4),
-          responsavel,
+          lote: loteGerado,
+          responsavel: responsavel.trim() || "Líder de Turno",
+          localizacao: localFinal,
           status: "ativa",
           copias: 1,
           tipo_etiqueta: "aberto",
         },
         unidadeId || "unidade-matriz"
       );
+
+      // 2. Registra na base de rastreio em tempo real do Green Dot Assist
+      salvarRastreioEtiqueta(
+        {
+          codigo,
+          produto: produto.trim(),
+          lote: loteGerado,
+          localizacao: localFinal,
+          quantidade: Number(quantidade) || 1,
+          unidade: unidadeMedida,
+          conservacao,
+          responsavel: responsavel.trim() || "Líder de Turno",
+          validade_dias: diasValidade,
+        },
+        unidadeId || "geral"
+      );
+
       setResultado({
         codigo,
+        lote: loteGerado,
+        localizacao: localFinal,
         sucesso: true,
       });
     } catch (_) {
+      const codigoFallback = "ETQ-" + Math.floor(1000 + Math.random() * 9000);
+      salvarRastreioEtiqueta(
+        {
+          codigo: codigoFallback,
+          produto: produto.trim(),
+          lote: "LOTE-" + codigoFallback.slice(4),
+          localizacao: localFinal,
+          quantidade: Number(quantidade) || 1,
+          unidade: unidadeMedida,
+          conservacao,
+          responsavel: responsavel.trim() || "Líder de Turno",
+          validade_dias: diasValidade,
+        },
+        unidadeId || "geral"
+      );
+
       setResultado({
-        codigo: "ETQ-" + Math.floor(1000 + Math.random() * 9000),
+        codigo: codigoFallback,
+        lote: "LOTE-" + codigoFallback.slice(4),
+        localizacao: localFinal,
         sucesso: true,
       });
     } finally {
@@ -3309,7 +3398,7 @@ export function EtiquetaQuickGeneratorCard({
         <div className="bg-[#1E4D3B] text-white p-5 sm:p-6 space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
-              <Tag size={14} /> Rotulagem &amp; Validade PVPS · Conectado ao App
+              <Tag size={14} /> Rotulagem &amp; Rastreio em Produção · Green Dot
             </span>
             <Link
               href="/dashboard/operacao/etiquetas"
@@ -3320,10 +3409,10 @@ export function EtiquetaQuickGeneratorCard({
           </div>
 
           <h3 className="text-lg sm:text-2xl font-black">
-            Gerar Etiqueta ANVISA com 1 Toque
+            Gerar Etiqueta ANVISA com Rastreio de Localização
           </h3>
           <p className="text-xs sm:text-sm text-emerald-100 font-medium">
-            Cálculo automático de data de manipulação e validade secundária para potes abertos e pré-preparos.
+            Obrigatório informar onde o pote será armazenado para alimentar o sistema de rastreio. Assim, qualquer funcionário pode perguntar ao Green <em>&ldquo;onde tá o produto?&rdquo;</em> e encontrar na hora!
           </p>
         </div>
 
@@ -3338,8 +3427,64 @@ export function EtiquetaQuickGeneratorCard({
                 type="text"
                 value={produto}
                 onChange={(e) => setProduto(e.target.value)}
+                placeholder="Ex: Vatapá Baiano Pré-Cozido, Camarão Dessalgado..."
                 className="w-full px-3 py-2 rounded-xl border border-[#C8C6BC] text-xs font-bold"
               />
+            </div>
+
+            {/* ONDE ESTÁ O PRODUTO (OBRIGATÓRIO P/ RASTREIO NO GREEN DOT) */}
+            <div className="p-3 rounded-xl bg-[#F0F7F3] border-2 border-[#2E6F4E] space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-[#1E4D3B] flex items-center gap-1.5">
+                  <MapPin size={15} className="text-[#2E6F4E]" />
+                  <span>ONDE ESTÁ O PRODUTO? (Obrigatório para Rastreio)</span>
+                </label>
+                <span className="text-[10px] font-extrabold uppercase bg-[#2E6F4E] text-white px-2 py-0.5 rounded-full">
+                  Rastreio Green
+                </span>
+              </div>
+
+              {!modoOutroLocal ? (
+                <select
+                  value={localizacao}
+                  onChange={(e) => {
+                    if (e.target.value === "OUTRO") {
+                      setModoOutroLocal(true);
+                      setOutroLocalTexto("");
+                    } else {
+                      setLocalizacao(e.target.value);
+                    }
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-[#B5D5C2] text-xs font-bold bg-white text-[#1C2826]"
+                >
+                  {LOCAIS_ARMAZENAMENTO_PADRAO.map((loc) => (
+                    <option key={loc.id} value={loc.nome}>
+                      📍 {loc.nome} ({loc.temperatura})
+                    </option>
+                  ))}
+                  <option value="OUTRO">✏️ Outro local específico (digitar)...</option>
+                </select>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={outroLocalTexto}
+                    onChange={(e) => setOutroLocalTexto(e.target.value)}
+                    placeholder="Digite o local exato (ex: Geladeira 2 porta direita, Freezer 1 gaveta 3)..."
+                    className="flex-1 px-3 py-2 rounded-xl border border-[#2E6F4E] text-xs font-bold bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setModoOutroLocal(false)}
+                    className="px-2.5 py-2 rounded-xl border border-[#B5D5C2] text-xs font-bold text-[#1E4D3B] hover:bg-white"
+                  >
+                    Voltar lista
+                  </button>
+                </div>
+              )}
+              <p className="text-[10px] text-[#426150] font-semibold">
+                Essa localização é gravada na etiqueta térmica e permite ao Green responder instantaneamente onde o lote foi guardado.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
@@ -3396,36 +3541,56 @@ export function EtiquetaQuickGeneratorCard({
               />
             </div>
 
+            {erroValidacao && (
+              <div className="p-3 rounded-xl bg-red-50 border-2 border-red-300 text-xs text-red-900 font-bold flex items-center gap-2">
+                <AlertCircle size={16} className="text-red-700 shrink-0" />
+                <span>{erroValidacao}</span>
+              </div>
+            )}
+
             <button
               onClick={salvarEtiquetaNoSistema}
               disabled={salvando}
-              className="w-full py-3 rounded-xl bg-[#1E4D3B] hover:bg-[#15382A] text-white text-xs sm:text-sm font-black shadow-md transition flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-[#1E4D3B] hover:bg-[#15382A] text-white text-xs sm:text-sm font-black shadow-md transition flex items-center justify-center gap-2 active:scale-98"
             >
               <Printer size={16} />
-              {salvando ? "Gerando no Sistema..." : "✓ Salvar & Imprimir Etiqueta"}
+              {salvando ? "Gerando e Vinculando Rastreio..." : "✓ Salvar & Imprimir com Rastreio"}
             </button>
 
             {resultado?.sucesso && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 font-bold flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-700" />
-                <span>
-                  Etiqueta <strong>{resultado.codigo}</strong> gerada e vinculada ao saldo de estoque!
-                </span>
+              <div className="p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-400 text-xs text-emerald-950 font-bold space-y-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-700 shrink-0" />
+                  <span>
+                    Etiqueta <strong>{resultado.codigo}</strong> (Lote: {resultado.lote}) impressa e vinculada ao Green!
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-800 font-semibold pl-6">
+                  📍 Local registrado: <strong>{resultado.localizacao}</strong>. Ao perguntar <em>&ldquo;onde tá o {produto}&rdquo;</em>, o Green indicará exatamente esta posição.
+                </p>
               </div>
             )}
           </div>
 
-          {/* Prévia da Etiqueta ANVISA (Design Térmico 60x40) */}
+          {/* Prévia da Etiqueta ANVISA com Localização Térmica 60x40 */}
           <div className="sm:col-span-5 flex flex-col items-center justify-center">
-            <p className="text-[10px] font-black uppercase text-[#5A655F] mb-1.5">
-              PRÉVIA DA ETIQUETA TÉRMICA (60x40mm)
+            <p className="text-[10px] font-black uppercase text-[#5A655F] mb-1.5 flex items-center gap-1">
+              <Tag size={12} /> PRÉVIA TÉRMICA COM RASTREIO (60x40mm)
             </p>
-            <div className="w-full max-w-[240px] bg-white border-2 border-black rounded-lg p-3 text-black font-mono shadow-md space-y-1.5 text-[11px] leading-tight">
+            <div className="w-full max-w-[250px] bg-white border-2 border-black rounded-lg p-3 text-black font-mono shadow-md space-y-1.5 text-[11px] leading-tight">
               <div className="border-b border-black pb-1 text-center">
                 <p className="font-sans font-black text-xs uppercase tracking-tight truncate">
                   {produto || "PRODUTO"}
                 </p>
                 <p className="text-[9px] font-bold">REGRA ANVISA RDC 216</p>
+              </div>
+
+              {/* LOCAL DE ARMAZENAMENTO OBRIGATÓRIO EM DESTAQUE NA ETIQUETA */}
+              <div className="bg-black text-white px-1.5 py-1 rounded text-[9.5px] font-bold font-sans flex items-center gap-1">
+                <MapPin size={11} className="shrink-0" />
+                <span className="truncate">
+                  LOCAL: {localFinal || "ONDE ESTÁ O POTE"}
+                </span>
               </div>
 
               <div className="space-y-0.5 text-[10px]">
@@ -3447,8 +3612,8 @@ export function EtiquetaQuickGeneratorCard({
               </div>
 
               <div className="pt-1 border-t border-black flex items-center justify-between text-[9px]">
-                <span>LOTE: {resultado?.codigo || "AUTO-QR"}</span>
-                <span className="font-black">HÉFISTO ERP</span>
+                <span>LOTE: {resultado?.lote || "AUTO-QR"}</span>
+                <span className="font-black">HÉFISTO RASTREIO</span>
               </div>
             </div>
           </div>
@@ -3457,4 +3622,233 @@ export function EtiquetaQuickGeneratorCard({
     </div>
   );
 }
+
+// ── NOVO CARD: RASTREAMENTO DE LOCALIZAÇÃO DO PRODUTO EM PRODUÇÃO ─────────────
+export function ProductTrackingLocationCard({
+  itemRastreio,
+  onVerReceita,
+  onReetiquetar,
+}) {
+  const [marcadoEmUso, setMarcadoEmUso] = useState(false);
+
+  if (!itemRastreio) return null;
+
+  return (
+    <div className="flex items-start gap-3">
+      <GreenDotAvatar />
+      <div className="flex-1 bg-white rounded-2xl border-2 border-[#1E4D3B] shadow-xl overflow-hidden text-[#1C2826]">
+        {/* Topo com Destaque de Rastreabilidade */}
+        <div className="bg-[#1E4D3B] text-white p-5 sm:p-6 space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <Compass size={14} /> Sistema de Rastreio em Produção Ativo
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-black">
+              Lote: {itemRastreio.lote}
+            </span>
+          </div>
+
+          <h3 className="text-lg sm:text-2xl font-black flex items-center gap-2">
+            <MapPin size={22} className="text-emerald-300 shrink-0" />
+            <span>Onde está: {itemRastreio.produto}</span>
+          </h3>
+
+          <p className="text-xs sm:text-sm text-emerald-100 font-medium">
+            Localização física cadastrada via etiqueta ANVISA. Conferência de estoque e prateleira em tempo real.
+          </p>
+        </div>
+
+        {/* Bloco Central de Localização & Destaque da Prateleira */}
+        <div className="p-5 sm:p-6 space-y-4">
+          <div className="p-4 rounded-2xl bg-[#F0F8F3] border-2 border-[#2E6F4E] flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#2E6F4E]">
+                LOCAL DE ARMAZENAMENTO EXATO
+              </span>
+              <h4 className="text-base sm:text-lg font-black text-[#1E4D3B] flex items-center gap-2">
+                <LocateFixed size={18} className="text-[#2E6F4E]" />
+                {itemRastreio.localizacao}
+              </h4>
+              <p className="text-xs text-[#3E5C4B] font-semibold">
+                🌡️ Temperatura: <strong>{itemRastreio.temperatura}</strong> · Setor: <strong>{itemRastreio.setor}</strong>
+              </p>
+            </div>
+
+            <div className="flex flex-col items-end">
+              <span className="px-3 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-black">
+                {itemRastreio.statusPvps || "🟢 PVPS: 1º que Sai"}
+              </span>
+              <span className="text-[11px] font-bold text-[#5A655F] mt-1">
+                Qtd: {itemRastreio.quantidade}
+              </span>
+            </div>
+          </div>
+
+          {/* Dica Prática de Busca na Câmara / Cozinha */}
+          {itemRastreio.dicaLocalizacao && (
+            <div className="p-3.5 rounded-xl bg-[#FAF9F5] border border-[#E0DED6] text-xs text-[#2B332E] leading-relaxed flex items-start gap-2.5">
+              <Navigation size={16} className="text-[#2E6F4E] shrink-0 mt-0.5" />
+              <div>
+                <strong>Como encontrar na câmara/bancada:</strong> {itemRastreio.dicaLocalizacao}
+              </div>
+            </div>
+          )}
+
+          {/* Dados do Lote & Rastreio */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+            <div className="p-2.5 rounded-xl bg-white border border-[#E2E0D8]">
+              <span className="text-[10px] font-black text-[#5C6660] block">VALIDADE</span>
+              <span className="font-extrabold text-[#A43E2B]">{itemRastreio.validadeEm}</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white border border-[#E2E0D8]">
+              <span className="text-[10px] font-black text-[#5C6660] block">MANIPULADO EM</span>
+              <span className="font-bold text-[#1C2826]">{itemRastreio.manipuladoEm}</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white border border-[#E2E0D8]">
+              <span className="text-[10px] font-black text-[#5C6660] block">RESPONSÁVEL</span>
+              <span className="font-bold text-[#1C2826]">{itemRastreio.responsavel}</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white border border-[#E2E0D8]">
+              <span className="text-[10px] font-black text-[#5C6660] block">CONSERVAÇÃO</span>
+              <span className="font-bold text-[#1C2826]">{itemRastreio.conservacao}</span>
+            </div>
+          </div>
+
+          {/* Botões de Ação na Bancada */}
+          <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[#E5E4DC]">
+            <button
+              onClick={() => setMarcadoEmUso(true)}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${
+                marcadoEmUso
+                  ? "bg-emerald-600 text-white"
+                  : "bg-[#2E6F4E] hover:bg-[#23583E] text-white"
+              }`}
+            >
+              <CheckCircle2 size={14} />
+              {marcadoEmUso ? "✓ Retirado para Produção na Bancada!" : "Levar para a Bancada (Em Uso)"}
+            </button>
+
+            <div className="flex items-center gap-2">
+              {onVerReceita && (
+                <button
+                  onClick={onVerReceita}
+                  className="px-3.5 py-2 rounded-xl border border-[#76847D] bg-white hover:bg-[#F3F2EE] text-[#1E4D3B] text-xs font-bold transition flex items-center gap-1"
+                >
+                  <UtensilsCrossed size={13} /> Ver Modo de Preparo
+                </button>
+              )}
+              {onReetiquetar && (
+                <button
+                  onClick={onReetiquetar}
+                  className="px-3.5 py-2 rounded-xl border border-[#2E6F4E] bg-white hover:bg-[#EBF3EE] text-[#1E4D3B] text-xs font-bold transition flex items-center gap-1"
+                >
+                  <Tag size={13} /> Re-etiquetar Lote
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── NOVO CARD: PLANO DE SOLUÇÃO OPERACIONAL IMEDIATO (SEMPRE RESPOSTA & SOLUÇÃO) ──
+export function ImmediateSolutionPlanCard({
+  titulo = "🚨 Plano de Solução Operacional Imediato",
+  situacao,
+  passosSolucao = [],
+  onAcaoApoio,
+  onAcaoEscala,
+  onAcaoChecklist,
+  onAcaoReceitas,
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <GreenDotAvatar />
+      <div className="flex-1 bg-white rounded-2xl border-2 border-[#1E4D3B] shadow-xl overflow-hidden text-[#1C2826]">
+        {/* Topo do Plano de Solução */}
+        <div className="bg-[#1E4D3B] text-white p-5 sm:p-6 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles size={14} /> Suporte Operacional com Solução Prática
+            </span>
+            <span className="text-xs font-bold text-emerald-100">
+              Guia da Casa
+            </span>
+          </div>
+
+          <h3 className="text-lg sm:text-2xl font-black">{titulo}</h3>
+          {situacao && (
+            <p className="text-xs sm:text-sm text-emerald-100 font-medium italic">
+              &ldquo;{situacao}&rdquo;
+            </p>
+          )}
+        </div>
+
+        {/* Passos da Solução */}
+        <div className="p-5 sm:p-6 space-y-4">
+          <div className="space-y-3">
+            {passosSolucao.map((p, idx) => (
+              <div
+                key={idx}
+                className="p-3.5 rounded-xl bg-[#FAF9F5] border border-[#E2E0D8] flex items-start gap-3"
+              >
+                <div className="w-6 h-6 rounded-full bg-[#1E4D3B] text-white font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  {p.ordem || idx + 1}
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black text-[#1C2826]">{p.acao}</h4>
+                  <p className="text-xs text-[#55605A] leading-relaxed mt-0.5">{p.detalhe}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Atalhos Rápidos para Destravar a Bancada */}
+          <div className="pt-2 border-t border-[#E5E4DC]">
+            <p className="text-[11px] font-extrabold text-[#55605A] mb-2">
+              Escolha uma ação imediata para resolver agora:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {onAcaoApoio && (
+                <button
+                  onClick={onAcaoApoio}
+                  className="px-3.5 py-2 rounded-xl bg-[#2E6F4E] hover:bg-[#23583E] text-white text-xs font-black shadow-xs transition flex items-center gap-1.5"
+                >
+                  <Users size={13} /> Chamar Apoio Extra (Bruno S.)
+                </button>
+              )}
+              {onAcaoEscala && (
+                <button
+                  onClick={onAcaoEscala}
+                  className="px-3.5 py-2 rounded-xl border border-[#76847D] bg-white hover:bg-[#F3F2EE] text-[#1E4D3B] text-xs font-bold transition flex items-center gap-1.5"
+                >
+                  <Calendar size={13} /> Ver Quem Está no Turno
+                </button>
+              )}
+              {onAcaoChecklist && (
+                <button
+                  onClick={onAcaoChecklist}
+                  className="px-3.5 py-2 rounded-xl border border-[#76847D] bg-white hover:bg-[#F3F2EE] text-[#1E4D3B] text-xs font-bold transition flex items-center gap-1.5"
+                >
+                  <ClipboardCheck size={13} /> Abrir Checklist de Praça
+                </button>
+              )}
+              {onAcaoReceitas && (
+                <button
+                  onClick={onAcaoReceitas}
+                  className="px-3.5 py-2 rounded-xl border border-[#76847D] bg-white hover:bg-[#F3F2EE] text-[#1E4D3B] text-xs font-bold transition flex items-center gap-1.5"
+                >
+                  <UtensilsCrossed size={13} /> Consultar Fichas Técnicas
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 

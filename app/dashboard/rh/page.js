@@ -2184,7 +2184,7 @@ export default function RHPage() {
 
       {/* Modal de Detalhe do KPI */}
       {detalheKpi && (
-         <div className="fixed inset-0 z-[100] flex justify-center items-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setDetalheKpi(null)}>
+         <div className="fixed inset-0 z-[120] flex justify-center items-center p-4 bg-slate-900/60 backdrop-blur-sm" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => setDetalheKpi(null)}>
             <div className="bg-card w-full max-w-lg rounded-[32px] p-6 shadow-2xl relative animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
                <button onClick={() => setDetalheKpi(null)} className="absolute right-6 top-6 p-2 bg-slate-100 rounded-full hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition-colors"><X size={18}/></button>
                <h3 className="font-black text-2xl mb-1 text-slate-800">{detalheKpi.rot}</h3>
@@ -2317,8 +2317,8 @@ export default function RHPage() {
             ["gestao", "Gestão", ClipboardList],
          ];
          return (
-         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/65 p-0 backdrop-blur-sm sm:items-center sm:p-3" onClick={fechar}>
-            <div className="flex max-h-[100dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[24px] bg-white shadow-2xl sm:max-h-[calc(100dvh-1.5rem)] sm:rounded-[28px]" onClick={e => e.stopPropagation()}>
+         <div className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-950/65 px-0 pb-0 backdrop-blur-sm sm:items-center sm:p-3" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={fechar}>
+            <div className="flex max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-0.75rem)] w-full max-w-xl flex-col overflow-hidden rounded-t-[24px] bg-white shadow-2xl sm:max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] sm:rounded-[28px]" onClick={e => e.stopPropagation()}>
                <div className="flex shrink-0 items-center gap-2.5 bg-gradient-to-br from-hf-surface to-hf-elevated px-4 py-3 text-white sm:gap-3 sm:px-5 sm:py-4">
                   {f.foto
                      ? <img src={`data:image/jpeg;base64,${f.foto}`} alt="" className="h-10 w-10 shrink-0 rounded-xl border-2 border-hf-border object-cover sm:h-12 sm:w-12 sm:rounded-2xl"/>
@@ -2403,12 +2403,12 @@ export default function RHPage() {
 
       {/* Modal Adicionar/Editar Funcionário */}
       {modalNovo && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4">
-            <div className="erp-editor-funcionario bg-card sm:rounded-[32px] w-full max-w-5xl shadow-2xl animate-in zoom-in-95 flex flex-col h-[100dvh] sm:h-auto sm:max-h-[calc(100dvh-2rem)] overflow-hidden">
+         <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm px-0 pb-0 sm:px-4 sm:pb-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
+            <div className="erp-editor-funcionario bg-card rounded-t-[28px] sm:rounded-[32px] w-full max-w-5xl shadow-2xl animate-in zoom-in-95 flex flex-col h-[calc(100dvh-var(--erp-safe-top,2.75rem)-0.75rem)] sm:h-auto sm:max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-2rem)] overflow-hidden">
                <style>{`
                  .erp-editor-funcionario label { font-size: 12px !important; line-height: 1.35; }
-                 .erp-editor-funcionario input:not([type="checkbox"]):not([type="file"]), .erp-editor-funcionario select { min-height: 48px; font-size: 15px; }
-                 .erp-editor-funcionario textarea { font-size: 15px; line-height: 1.6; }
+                 .erp-editor-funcionario input:not([type="checkbox"]):not([type="file"]), .erp-editor-funcionario select { min-height: 48px; font-size: 16px; }
+                 .erp-editor-funcionario textarea { font-size: 16px; line-height: 1.6; }
                  .erp-editor-funcionario section[id], .erp-editor-funcionario div[id^="func-"] { scroll-margin-top: 88px; }
                `}</style>
                <div className="flex justify-between items-center gap-4 shrink-0 border-b border-line-soft p-4 sm:px-6 sm:py-5">
@@ -2969,7 +2969,7 @@ export default function RHPage() {
            .filter(f => f.tipo_contrato === "Freelancer" && !ehInativo(f))
            .filter(f => String(f.nome || "").toLocaleLowerCase("pt-BR").includes(buscaRecibo.toLocaleLowerCase("pt-BR")));
          return (
-           <div className="fixed inset-0 z-[55] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm" onClick={() => setModalEscolherExtra(false)}>
+           <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => setModalEscolherExtra(false)}>
              <div className="w-full max-w-xl overflow-hidden rounded-3xl bg-card shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-start justify-between gap-3 border-b border-line p-5">
                  <div>
@@ -3017,8 +3017,8 @@ export default function RHPage() {
          const fixo = total - inss - fgts - taxa;
          const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
          return (
-<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-3xl my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto">
+<div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-3xl my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] overflow-y-auto">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Preparar Recibo de Trabalho Extra</h2>
@@ -3315,8 +3315,8 @@ export default function RHPage() {
          };
          const dataBR = valor => String(valor || "").slice(0, 10).split("-").reverse().join("/");
          return (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalDiarias(null)}>
-            <div className="bg-card rounded-[28px] w-full max-w-5xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => setModalDiarias(null)}>
+            <div className="bg-card rounded-[28px] w-full max-w-5xl max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] overflow-y-auto p-4 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-center justify-between mb-1">
                   <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-success" /> Histórico completo do extra</h2>
                   <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={17} /></button>
@@ -3472,8 +3472,8 @@ export default function RHPage() {
 
       {/* MODAL: FERIADOS da unidade (dias que pagam +100% p/ quem trabalhar) */}
       {modalFeriados && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-md my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[85vh] flex flex-col">
+         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-md my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] flex flex-col">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Feriados</h2>
@@ -3512,8 +3512,8 @@ export default function RHPage() {
 
       {/* MODAL: DESLIGAMENTO & AVISO PRÉVIO */}
       {modalDeslig && funcDeslig && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-lg p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4">
+         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-lg p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4 max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] overflow-y-auto">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Desligamento / Aviso Prévio</h2>
@@ -3624,8 +3624,8 @@ export default function RHPage() {
 
       {/* MODAL: CENTRAL EXCLUSIVA DE OCORRÊNCIAS & DOCUMENTOS */}
       {modalOcorrencias && funcOcorrencias && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-3xl p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4 flex flex-col max-h-[92vh]">
+         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-3xl p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4 flex flex-col max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)]">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-4 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Central de Ocorrências & Documentos</h2>
@@ -3856,8 +3856,8 @@ export default function RHPage() {
 
       {/* MODAL: ADVERTÊNCIAS do colaborador */}
       {modalAdv && funcAdv && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] flex flex-col">
+         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] flex flex-col">
                <div className="flex justify-between items-center mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Advertências</h2>
@@ -3908,8 +3908,8 @@ export default function RHPage() {
          const critico = total >= BANCO_LIMITE_MIN;
          const alerta = total >= BANCO_ALERTA_MIN;
          return (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] flex flex-col">
+         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] flex flex-col">
                <div className="flex justify-between items-center mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Banco de Horas</h2>
@@ -3986,8 +3986,8 @@ export default function RHPage() {
       })()}
 
       {modalFolgas && funcParaFolgas && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-[800px] p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-[800px] p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] overflow-hidden flex flex-col">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5 sm:mb-6 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Gerenciar Folgas</h2>
@@ -4096,8 +4096,8 @@ export default function RHPage() {
 
       {/* Modal Consumo de Funcionários (Vales / Lanches / etc) */}
       {modalConsumo && funcionarioConsumo && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-[900px] p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-[900px] p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] overflow-hidden flex flex-col">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5 sm:mb-6 shrink-0 border-b border-line-soft pb-4">
                   <div className="flex items-center gap-3">
                      <div className="w-12 h-12 bg-teal-100 text-teal-600 rounded-2xl flex items-center justify-center">
@@ -4287,8 +4287,8 @@ export default function RHPage() {
       )}
       {/* Modal Lancamento Financeiro (Desmembramento) */}
       {modalLancamento && funcParaLancamento && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-card rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95">
+         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
+            <div className="bg-card rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] overflow-y-auto">
                <div className="flex items-center justify-between mb-6">
                   <div>
                      <h2 className="text-2xl font-black tracking-tight text-slate-800">Lançar Diária</h2>

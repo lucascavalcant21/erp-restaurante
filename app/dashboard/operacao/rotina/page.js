@@ -97,7 +97,8 @@ function VisualizadorFoto({ foto, onClose }) {
   return (
     <div className="fixed inset-0 z-[80] bg-slate-950/90 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center" onClick={onClose}>
       <button type="button" onClick={onClose} aria-label="Fechar foto"
-        className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 focus-visible:ring-2 focus-visible:ring-white">
+        style={{ top: "calc(var(--erp-safe-top, 0px) + 1rem)" }}
+        className="absolute right-4 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 focus-visible:ring-2 focus-visible:ring-white">
         <X size={22} />
       </button>
       <img src={`data:image/jpeg;base64,${foto}`} alt="Foto de comprovação ampliada"

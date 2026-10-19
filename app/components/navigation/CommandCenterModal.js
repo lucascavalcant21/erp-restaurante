@@ -140,7 +140,7 @@ export default function CommandCenterModal({ isOpen, onClose, sessao }) {
       <div className="fixed inset-0" onClick={onClose} />
       <div className="relative z-10 flex h-full w-full flex-col overflow-hidden border-hf-border bg-hf-surface shadow-2xl shadow-black/15 sm:h-auto sm:max-h-[78vh] sm:max-w-[640px] sm:rounded-2xl sm:border">
         {/* Cabeçalho + busca */}
-        <div className="border-b border-hf-border px-3 pb-3 pt-3 sm:px-4">
+        <div className="border-b border-hf-border px-3 pb-3 pt-[calc(var(--erp-safe-top,0px)+0.75rem)] sm:px-4 sm:pt-3">
           <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
             <div className="min-w-0">
               <p className="text-sm font-bold text-hf-text">Central de Comando</p>

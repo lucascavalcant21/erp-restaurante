@@ -190,7 +190,7 @@ function AreaRunner() {
   const AIcon = area.Icon;
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-y-auto font-sans" style={{ background: "rgb(var(--hf-bg))" }}>
+    <div className="erp-safe-top fixed inset-0 z-[9999] overflow-y-auto font-sans" style={{ background: "rgb(var(--hf-bg))" }}>
       {pedindoSenha && (
         <TecladoSenha cor={area.cor} senha={senhaArea} onSuccess={destravar} onClose={() => setPedindoSenha(false)} />
       )}

@@ -37,59 +37,60 @@ export default function PullToRefresh() {
   const noTopo = (c) => (c ? c.scrollTop <= 0 : window.scrollY <= 0);
 
   useEffect(() => {
-    const ehStandalone =
-      (typeof window !== "undefined" &&
-        (window.matchMedia?.("(display-mode: standalone)").matches ||
-          window.navigator.standalone === true));
-    if (!ehStandalone) return; // só dentro do app instalado
+    if (typeof window === "undefined" || typeof document === "undefined") return;
 
-    const onStart = (e) => {
-      // Um dedo só; se estiver recarregando, ignora
-      if (refreshing || e.touches.length !== 1) { ativo.current = false; return; }
-      const c = acharContainer(e.target);
-      container.current = c;
-      // Só arma o gesto se o conteúdo já está encostado no topo
-      if (!noTopo(c)) { ativo.current = false; return; }
-      startY.current = e.touches[0].clientY;
-      ativo.current = true;
+    const bloquearGesto = (e) => {
+      e.preventDefault();
     };
-    const onMove = (e) => {
-      if (!ativo.current || startY.current == null) return;
-      // Se durante o movimento o conteúdo saiu do topo (o usuário está rolando
-      // a página, não puxando), cancela na hora — nada de recarregar.
-      if (!noTopo(container.current)) { ativo.current = false; distRef.current = 0; setDist(0); return; }
-      const dy = e.touches[0].clientY - startY.current;
-      if (dy <= 0) { distRef.current = 0; setDist(0); return; }
-      const d = Math.min(MAX, dy * 0.5); // resistência
-      distRef.current = d;
-      setDist(d);
-    };
-    const onEnd = () => {
-      if (!ativo.current) return;
-      ativo.current = false;
-      startY.current = null;
-      if (distRef.current >= THRESHOLD) {
-        setRefreshing(true);
-        setDist(THRESHOLD);
-        setTimeout(() => window.location.reload(), 150);
-      } else {
-        distRef.current = 0;
-        setDist(0);
+
+    const bloquearPinchTouch = (e) => {
+      if ((e.touches && e.touches.length > 1) || (typeof e.scale === "number" && e.scale !== 1)) {
+        e.preventDefault();
       }
     };
 
-    window.addEventListener("touchstart", onStart, { passive: true });
-    window.addEventListener("touchmove", onMove, { passive: true });
-    window.addEventListener("touchend", onEnd);
-    window.addEventListener("touchcancel", onEnd);
-    return () => {
-      window.removeEventListener("touchstart", onStart);
-      window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("touchend", onEnd);
-      window.removeEventListener("touchcancel", onEnd);
+    let ultimoToque = 0;
+    const bloquearDoubleTapZoom = (e) => {
+      const agora = Date.now();
+      if (agora - ultimoToque <= 300 && (!e.touches || e.touches.length === 0)) {
+        e.preventDefault();
+      }
+      ultimoToque = agora;
     };
-  }, [refreshing]);
 
+    const bloquearWheelZoom = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+      }
+    };
+
+    const bloquearTecladoZoom = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "-" || e.key === "=" || e.key === "_")) {
+        e.preventDefault();
+      }
+    };
+
+    const opts = { passive: false };
+    document.addEventListener("gesturestart", bloquearGesto, opts);
+    document.addEventListener("gesturechange", bloquearGesto, opts);
+    document.addEventListener("gestureend", bloquearGesto, opts);
+    document.addEventListener("touchmove", bloquearPinchTouch, opts);
+    document.addEventListener("touchend", bloquearDoubleTapZoom, opts);
+    window.addEventListener("wheel", bloquearWheelZoom, opts);
+    window.addEventListener("keydown", bloquearTecladoZoom, opts);
+
+    return () => {
+      document.removeEventListener("gesturestart", bloquearGesto, opts);
+      document.removeEventListener("gesturechange", bloquearGesto, opts);
+      document.removeEventListener("gestureend", bloquearGesto, opts);
+      document.removeEventListener("touchmove", bloquearPinchTouch, opts);
+      document.removeEventListener("touchend", bloquearDoubleTapZoom, opts);
+      window.removeEventListener("wheel", bloquearWheelZoom, opts);
+      window.removeEventListener("keydown", bloquearTecladoZoom, opts);
+    };
+  }, []);
+
+  return null;
   if (dist <= 0 && !refreshing) return null;
 
   const progresso = Math.min(1, dist / THRESHOLD);

@@ -970,7 +970,7 @@ const ESTILOS = `
   
   .ux-btn-pequeno { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
   /* HEADER SIMPLES */
-  .ux-header-simples { height: 60px; padding: 0 16px; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+  .ux-header-simples { min-height: calc(60px + var(--erp-safe-top, 0px)); padding: var(--erp-safe-top, 0px) 16px 0; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
   .ux-header-simples button { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #475569; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; }
   
   /* MAIN AREA (TELA 1) */
@@ -999,7 +999,7 @@ const ESTILOS = `
   .ux-pessoa-info small { display: block; font-size: 13px; color: #64748b; margin-top: 2px; }
 
   /* HEADER OP (TELA 3) */
-  .ux-header-op { position: sticky; top: 0; z-index: 40; height: 64px; background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+  .ux-header-op { position: sticky; top: 0; z-index: 40; min-height: calc(64px + var(--erp-safe-top, 0px)); background: #fff; border-bottom: 1px solid #e2e8f0; padding: var(--erp-safe-top, 0px) 16px 0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
   .ux-header-left { display: flex; align-items: center; gap: 16px; }
   .ux-header-left > button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; color: #475569; }
   .ux-header-title strong { display: block; font-size: 16px; font-weight: 800; color: #0f172a; }
@@ -1048,7 +1048,7 @@ const ESTILOS = `
   .ux-lista-item .excluir { width: 44px; background: #fff1f2; color: #e11d48; border-radius: 10px; font-weight: 800; font-size: 12px; }
 
   /* MODAL CONFIGURAÇÃO */
-  .ux-modal-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(15,23,42,0.7); display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+  .ux-modal-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(15,23,42,0.7); display: flex; align-items: center; justify-content: center; padding: calc(16px + var(--erp-safe-top, 0px)) 16px 16px; backdrop-filter: blur(4px); }
   .ux-confirma-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(15,23,42,0.75); display: flex; align-items: flex-end; justify-content: center; }
   .ux-confirma { width: 100%; max-width: 560px; background: #fff; border-radius: 24px 24px 0 0; display: flex; flex-direction: column; max-height: 92vh; overflow: hidden; }
   .ux-confirma-corpo { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 18px; background: #f1f5f9; }
@@ -1059,7 +1059,7 @@ const ESTILOS = `
   .ux-confirma-rodape > div { display: flex; gap: 8px; }
   .ux-confirma-rodape button { flex: 1; justify-content: center; }
   @media (min-width: 640px) { .ux-confirma-overlay { align-items: center; padding: 16px; } .ux-confirma { border-radius: 24px; } }
-  .ux-modal-largo { width: 100%; max-width: 900px; background: #fff; border-radius: 24px; display: flex; flex-direction: column; max-height: calc(100vh - 32px); box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+  .ux-modal-largo { width: 100%; max-width: 900px; background: #fff; border-radius: 24px; display: flex; flex-direction: column; max-height: calc(100vh - 32px - var(--erp-safe-top, 0px)); box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
   .ux-modal-header { height: 64px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: #f8fafc; }
   .ux-modal-header h2 { font-size: 20px; font-weight: 800; margin: 0; color: #0f172a; }
   .ux-modal-header button { width: 36px; height: 36px; border-radius: 10px; background: #e2e8f0; color: #475569; display: flex; align-items: center; justify-content: center; }
@@ -1104,7 +1104,7 @@ const ESTILOS = `
   .ux-fila-overlay { position: fixed; inset: 0; z-index: 120; background: rgba(0,0,0,0.4); display: flex; justify-content: flex-end; }
   .ux-fila-panel { width: 100%; max-width: 400px; background: #fff; height: 100%; display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.1); animation: slideIn 0.2s; }
   @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-  .ux-fila-header { height: 64px; padding: 0 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+  .ux-fila-header { min-height: calc(64px + var(--erp-safe-top, 0px)); padding: var(--erp-safe-top, 0px) 20px 0; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
   .ux-fila-header h3 { margin: 0; font-size: 18px; font-weight: 800; }
   .ux-fila-header button { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: #e2e8f0; border-radius: 10px; }
   .ux-fila-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }

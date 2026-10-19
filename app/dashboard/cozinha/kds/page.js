@@ -94,13 +94,13 @@ export default function KDSPage() {
       <audio ref={audioRef} src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=service-bell-ring-14610.mp3" preload="auto" />
 
       {toast && (
-        <div className="absolute top-3 sm:top-6 left-1/2 -translate-x-1/2 z-[10000] max-w-[calc(100%-2rem)] bg-emerald-500 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-full shadow-[0_10px_40px_rgba(16,185,129,0.3)] font-black text-sm sm:text-lg text-center animate-in slide-in-from-top-4 duration-300">
+        <div className="absolute left-1/2 -translate-x-1/2 z-[10000] max-w-[calc(100%-2rem)] bg-emerald-500 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-full shadow-[0_10px_40px_rgba(16,185,129,0.3)] font-black text-sm sm:text-lg text-center animate-in slide-in-from-top-4 duration-300" style={{ top: "calc(var(--erp-safe-top, 0px) + 0.75rem)" }}>
           {toast}
         </div>
       )}
 
       {/* HEADER DO KDS */}
-      <div className="px-3 sm:px-6 py-3 sm:py-4 bg-hf-surface border-b border-hf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm z-50">
+      <div className="px-3 sm:px-6 pb-3 sm:pb-4 bg-hf-surface border-b border-hf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm z-50" style={{ paddingTop: "calc(var(--erp-safe-top, 0px) + 0.75rem)" }}>
          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
             <button onClick={() => router.push("/dashboard")} className="p-2.5 sm:p-3 shrink-0 bg-hf-elevated hover:bg-hf-border text-fg hover:text-hf-text rounded-xl transition-colors active:scale-95">
                <ArrowLeft size={24} />

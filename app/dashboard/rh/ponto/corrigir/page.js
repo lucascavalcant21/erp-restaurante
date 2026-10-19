@@ -325,11 +325,11 @@ export default function CorrigirPontoPage() {
 
   return (
     <div className="min-h-screen bg-hf-bg pb-16 text-fg font-sans">
-      <header className="border-b border-line bg-card px-4 py-4 sm:px-7">
+      <header className="border-b border-line bg-card px-4 pt-4 pb-4 sm:px-7 sm:py-5">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="grid h-11 w-11 place-items-center rounded-xl border border-line text-slate-900 hover:bg-slate-100 transition-colors"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-slate-900 hover:bg-slate-100 transition-colors"
             aria-label="Voltar"
           >
             <ArrowLeft size={20} />

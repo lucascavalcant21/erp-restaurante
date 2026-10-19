@@ -784,7 +784,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
       
       {/* ALERTA DE SUCESSO TOAST */}
       {alertaSucesso && (
-        <div className="fixed top-4 inset-x-4 z-50 flex items-center justify-center animate-bounce">
+        <div className="fixed inset-x-4 z-50 flex items-center justify-center animate-bounce" style={{ top: "calc(var(--erp-safe-top, 0px) + 0.75rem)" }}>
           <div className="bg-emerald-600/95 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400/30 max-w-md w-full">
             <CheckCircle2 size={24} className="shrink-0 text-emerald-200" />
             <span className="text-sm font-semibold flex-1">{alertaSucesso}</span>
@@ -796,7 +796,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
       )}
 
       {/* HEADER SOFISTICADO */}
-      <header className="sticky top-0 z-30 bg-[#1c1613]/90 backdrop-blur-md border-b border-amber-900/20 px-4 py-3">
+      <header className="sticky top-0 z-30 bg-[#1c1613]/90 backdrop-blur-md border-b border-amber-900/20 px-4 pb-3" style={{ paddingTop: "calc(var(--erp-safe-top, 0px) + 0.75rem)" }}>
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center shadow-md shadow-amber-950/40 text-amber-100 font-black text-lg overflow-hidden border border-amber-500/20">

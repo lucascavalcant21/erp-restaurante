@@ -38,11 +38,17 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       href: "/dashboard/inteligencia"
     }] : []),
     {
+      id: "green-dot",
+      label: "Green Dot Assist",
+      href: "/dashboard/assistente"
+    },
+    {
       id: "operacao",
       label: "PDV",
       href: "/dashboard/operacao/inteligente",
       submodules: [
         // é a Central Operacional (checklists/processos), não a inteligência do Héfisto
+        { label: "Green Dot Assist (Tablet IA)", href: "/dashboard/assistente" },
         { label: "Central operacional", href: "/dashboard/operacao/inteligente" },
         { label: "Controles & Checklists", href: "/dashboard/operacao/controles" },
         { label: "Limpeza", href: "/dashboard/operacao/limpeza" },
@@ -112,7 +118,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
   return (
     <>
-      <header className="bg-hf-menu border-b border-hf-menu-border text-hf-menu-text sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <header className="bg-hf-menu border-b border-hf-menu-border text-hf-menu-text sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "var(--erp-safe-top)" }}>
         <div className="h-16 flex items-center justify-between px-4 lg:px-8 w-full">
         <div className="flex items-center gap-4 lg:gap-6 h-full">
           {/* HAMBURGER MOBILE */}
@@ -236,7 +242,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         <div className="fixed inset-0 z-[100] flex xl:hidden print:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileDrawerOpen(false)}></div>
           <div className="relative w-80 max-w-[80vw] h-full bg-hf-menu border-r border-hf-menu-border flex flex-col shadow-2xl animate-in slide-in-from-left">
-            <div className="flex items-center justify-between p-4 border-b border-hf-menu-border" style={{ marginTop: "env(safe-area-inset-top, 0px)" }}>
+            <div className="flex items-center justify-between px-4 pb-4 border-b border-hf-menu-border" style={{ paddingTop: "calc(var(--erp-safe-top) + 0.75rem)" }}>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-hf-accent rounded-lg flex items-center justify-center">
                   <span className="text-hf-accent-fg font-black text-lg">H</span>

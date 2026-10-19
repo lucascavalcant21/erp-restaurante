@@ -314,8 +314,8 @@ export default function CadastroExtrasPage() {
         const funcoesTexto = Array.from(funcoesExercidasSet).join(", ");
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setHistoricoModal(null)}>
-            <div className="bg-card rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => setHistoricoModal(null)}>
+            <div className="bg-card rounded-3xl w-full max-w-2xl max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between border-b border-line-soft p-5">
                 <div className="flex items-center gap-3">
                   <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-800 font-black text-xl uppercase">
@@ -402,7 +402,7 @@ export default function CadastroExtrasPage() {
         const nomeExtra = extraDoRecibo?.nome || recibo.dados?.nome || nomes[recibo.colaborador_id] || "Profissional Extra";
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setReciboAcaoModal(null)}>
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => setReciboAcaoModal(null)}>
             <div className="bg-card rounded-3xl w-full max-w-md shadow-2xl p-6 overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
               <div className="flex items-start justify-between gap-3 mb-4 border-b border-line-soft pb-3">
                 <div>

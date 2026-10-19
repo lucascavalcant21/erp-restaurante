@@ -699,7 +699,7 @@ export default function PontoPage() {
   if (sucesso) {
     const alerta = sucesso.tone === "alerta";
     return (
-      <div className={`fixed inset-0 z-[9999] ${alerta ? "bg-amber-500" : "bg-emerald-600"} flex flex-col items-center justify-center p-4 sm:p-8 text-center animate-in fade-in duration-300`}>
+      <div className={`erp-safe-top fixed inset-0 z-[9999] ${alerta ? "bg-amber-500" : "bg-emerald-600"} flex flex-col items-center justify-center p-4 sm:p-8 text-center animate-in fade-in duration-300`}>
         <div className="w-20 h-20 sm:w-28 sm:h-28 bg-card rounded-2xl sm:rounded-[32px] flex items-center justify-center mb-5 sm:mb-8 shadow-2xl">
           {alerta ? <AlertTriangle size={64} className="text-amber-500" /> : <CheckCircle2 size={64} className="text-success" />}
         </div>
@@ -1066,7 +1066,7 @@ export default function PontoPage() {
   const saudacao = hNow >= 5 && hNow < 12 ? "Bom dia" : hNow >= 12 && hNow < 18 ? "Boa tarde" : "Boa noite";
 
   return (
-    <div ref={containerRef} onClick={reforcarFullscreen} className="fixed inset-0 z-[9999] bg-hf-bg overflow-y-auto font-sans">
+    <div ref={containerRef} onClick={reforcarFullscreen} className="erp-safe-top fixed inset-0 z-[9999] bg-hf-bg overflow-y-auto font-sans">
       {pinSair && (
         <ModalPinGerente senha={pinGerente}
           titulo="Sair do Modo Ponto"

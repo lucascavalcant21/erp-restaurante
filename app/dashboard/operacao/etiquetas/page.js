@@ -1345,10 +1345,9 @@ export default function EtiquetasPage() {
 function EtiquetasUnificadas() {
   const searchParams = useSearchParams();
   if (searchParams.get("gestao") === "1") return <EtiquetasRunner />;
-  // Tela cheia por cima da barra do app: sem este respiro o "voltar" encosta na
-  // barra de status do celular. Mesmo tratamento das rotas /tablet no layout.
-  return <div className="fixed inset-0 z-[200] overflow-auto bg-white"
-    style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}><EtiquetasRapidas /></div>;
+  // Tela cheia por cima da barra do app; o próprio cabeçalho de EtiquetasRapidas
+  // aplica var(--erp-safe-top) para afastar os botões do topo no celular e tablet.
+  return <div className="fixed inset-0 z-[200] overflow-auto bg-white"><EtiquetasRapidas /></div>;
 }
 
 function fmtCNPJ(s) {

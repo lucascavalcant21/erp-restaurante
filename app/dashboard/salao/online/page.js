@@ -24,11 +24,14 @@ export default function GestorOnlinePage() {
   const [detalhe, setDetalhe] = useState(null); // pedido aberto no painel de detalhe
 
   const imprimirVia = (p) => {
+    // Nome, endereço e observação vêm do cliente (cardápio público): escapados,
+    // senão um nome com HTML rodaria script na janela, com a sessão da equipe.
+    const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const win = window.open('', '_blank', 'width=320,height=600');
     if (!win) return alert("Habilite os popups para imprimir.");
     const agora = new Date().toLocaleString('pt-BR');
     const itensHtml = (p.pedidos_itens || []).map(it => `
-       <div class="item"><span class="q">${it.quantidade}x</span> ${it.produtos?.nome_produto || 'Item'}${it.observacao ? `<div class="obs">OBS: ${it.observacao}</div>` : ''}</div>`).join('');
+       <div class="item"><span class="q">${esc(it.quantidade)}x</span> ${esc(it.produtos?.nome_produto || 'Item')}${it.observacao ? `<div class="obs">OBS: ${esc(it.observacao)}</div>` : ''}</div>`).join('');
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Via</title><style>
        *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;width:80mm;padding:4mm;color:#000}
        .center{text-align:center}.big{font-size:18px;font-weight:bold}.sep{border-top:1px dashed #000;margin:8px 0}
@@ -36,10 +39,11 @@ export default function GestorOnlinePage() {
        .l{font-size:12px;margin:2px 0}
        @media print{@page{margin:0;size:80mm auto}}
     </style></head><body>
-       <div class="center big">PEDIDO #${p.id.substring(0,4).toUpperCase()}</div>
-       <div class="center l">${p.cliente_nome || 'Cliente'}</div>
-       ${p.cliente_telefone ? `<div class="center l">${p.cliente_telefone}</div>` : ''}
-       ${p.endereco_entrega ? `<div class="l">${p.endereco_entrega}</div>` : ''}
+       <div class="center big">PEDIDO #${esc(p.id.substring(0,4).toUpperCase())}</div>
+       <div class="center l">${esc(p.cliente_nome || 'Cliente')}</div>
+       ${p.cliente_telefone ? `<div class="center l">${esc(p.cliente_telefone)}</div>` : ''}
+       ${p.endereco_entrega ? `<div class="l">${esc(p.endereco_entrega)}</div>` : ''}
+       ${p.troco_para ? `<div class="l">Troco para: ${esc(p.troco_para)}</div>` : ''}
        <div class="center l">${agora}</div><div class="sep"></div>${itensHtml}<div class="sep"></div>
        <div class="l" style="text-align:right;font-weight:bold">TOTAL: R$ ${Number(p.valor_total||0).toFixed(2)}</div>
     </body></html>`);

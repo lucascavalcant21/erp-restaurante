@@ -10,6 +10,9 @@ import {
   ESCALA_ORGANOGRAMA_DO_DIA,
   EXTRAS_DISPONIVEIS,
   FORMACAO_PRACAS_BASE,
+  ROTINAS_LIMPEZA_HIGIENIZACAO,
+  CHECKLISTS_PRACA,
+  calcularDiluicaoLimpeza,
   recalcularReceitaPorIngrediente,
   detectarIntencaoRecalculo,
 } from "./green-dot-data.js";

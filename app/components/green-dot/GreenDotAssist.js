@@ -1040,6 +1040,24 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
               <Zap size={12} /> 110V/220V &amp; Encaixe
             </button>
             <button
+              onClick={() => abrirFluxoDireto("limpeza")}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#1E4D3B] hover:bg-white transition flex items-center gap-1"
+            >
+              <Droplets size={12} /> Limpeza (mL)
+            </button>
+            <button
+              onClick={() => abrirFluxoDireto("checklist")}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#8C6D23] hover:bg-white transition flex items-center gap-1"
+            >
+              <ClipboardCheck size={12} /> Checklists
+            </button>
+            <button
+              onClick={() => abrirFluxoDireto("etiqueta")}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#1E4D3B] hover:bg-white transition flex items-center gap-1"
+            >
+              <Tag size={12} /> Etiqueta ANVISA
+            </button>
+            <button
               onClick={() => abrirFluxoDireto("admin")}
               className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-[#1E4D3B] text-white hover:bg-[#163B2D] transition flex items-center gap-1"
             >
@@ -1121,6 +1139,24 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
                 Testar 110V/220V &amp; Encaixe
               </button>
               <button
+                onClick={() => abrirFluxoDireto("limpeza")}
+                className="px-2.5 py-1 rounded bg-white border border-[#2E6F4E] text-[#1E4D3B] font-bold"
+              >
+                Testar Limpeza (mL)
+              </button>
+              <button
+                onClick={() => abrirFluxoDireto("checklist")}
+                className="px-2.5 py-1 rounded bg-white border border-[#8C6D23] text-[#694E0E] font-bold"
+              >
+                Testar Checklist
+              </button>
+              <button
+                onClick={() => abrirFluxoDireto("etiqueta")}
+                className="px-2.5 py-1 rounded bg-white border border-[#2E6F4E] text-[#1E4D3B] font-bold"
+              >
+                Testar Etiqueta
+              </button>
+              <button
                 onClick={() => abrirFluxoDireto("admin")}
                 className="px-2.5 py-1 rounded bg-[#1E4D3B] text-white font-bold"
               >
@@ -1138,8 +1174,10 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
           {/* Card de Boas-Vindas e Pílulas de Acesso Rápido + Botão para Alimentar Conhecimento */}
           <WelcomeGovernanceCard
             fichasReais={fichasReais}
+            receitasCustom={receitasCustom}
+            equipamentosCustom={equipamentosCustom}
             onSelectTopic={(topico) => processarPergunta(topico.prompt, topico)}
-            onOpenAdmin={() => {
+            onOpenAdminStudio={() => {
               setAbaAdminInicial("receitas");
               setModalAdminAberto(true);
             }}
@@ -1304,6 +1342,37 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
                   key={bloco.id}
                   formacao={FORMACAO_PRACAS_BASE}
                   extraConfirmado={extraConfirmado}
+                />
+              );
+            }
+
+            // Guia Oficial de Limpeza, Dosagem em mL e Higienização ANVISA
+            if (bloco.tipo === "guia-limpeza") {
+              return (
+                <CleaningSanitizationGuideCard
+                  key={bloco.id}
+                  rotinaInicialId={bloco.rotinaInicialId}
+                />
+              );
+            }
+
+            // Checklist de Abertura & Fechamento/Saída de Turno por Praça
+            if (bloco.tipo === "checklist-turno") {
+              return (
+                <ShiftChecklistCard
+                  key={bloco.id}
+                  tipoInicial={bloco.tipoInicial}
+                />
+              );
+            }
+
+            // Gerador Rápido de Etiqueta de Validade ANVISA integrado ao App
+            if (bloco.tipo === "etiqueta-rapida") {
+              return (
+                <EtiquetaQuickGeneratorCard
+                  key={bloco.id}
+                  produtoInicial={bloco.produtoInicial}
+                  unidadeId={unidadeAtiva}
                 />
               );
             }

@@ -3,10 +3,11 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTempoReal } from "../../../lib/realtime";
-import { Clock, CheckCircle, ChefHat, Check, Flame, LayoutGrid, Volume2, VolumeX, ArrowLeft, TriangleAlert } from "lucide-react";
+import { Clock, CheckCircle, ChefHat, Check, Flame, LayoutGrid, Volume2, VolumeX, ArrowLeft, TriangleAlert, Printer } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFilaKDS, atualizarItemKDS, entregarTicketKDS } from "../../../lib/kds";
 import { proximoStatusKDS } from "../../../lib/kds-fila.mjs";
+import { useImpressaoKds, PainelImpressaoKds } from "../../../components/kds/ImpressaoKds";
 import { useRouter } from "next/navigation";
 
 // SLA de 20 minutos por padrão
@@ -37,6 +38,9 @@ export default function KDSPage() {
   useEffect(() => {
     try { const s = localStorage.getItem("kds-setor"); if (["cozinha", "bar", "todos"].includes(s)) setSetor(s); } catch { /* segue */ }
   }, []);
+  const [painelImpressao, setPainelImpressao] = useState(false);
+  const impressao = useImpressaoKds({ unidadeId: unidadeAtiva, setor, unidadeNome: unidadeInfo?.nome || "" });
+  const { processarFila } = impressao;
   const escolherSetor = (s) => {
     setSetor(s);
     try { localStorage.setItem("kds-setor", s); } catch { /* segue */ }
@@ -65,7 +69,8 @@ export default function KDSPage() {
 
     setPedidos(data || []);
     if (!isSilent) setLoading(false);
-  }, [unidadeAtiva, somAtivo, setor]);
+    if (!error) processarFila(data || []);
+  }, [unidadeAtiva, somAtivo, setor, processarFila]);
 
   useEffect(() => {
     carregar();
@@ -114,6 +119,15 @@ export default function KDSPage() {
         </div>
       )}
 
+      <PainelImpressaoKds
+        aberto={painelImpressao}
+        fechar={() => setPainelImpressao(false)}
+        cfg={impressao.cfg}
+        mudar={impressao.mudar}
+        aviso={impressao.aviso}
+        imprimirTeste={() => impressao.imprimir([{ id: "teste", origem: "Teste de impressão", identificacao: null, cliente: null, itens: [{ id: "teste-1", nome: "Via de teste", quantidade: 1, observacao: "Se saiu, está tudo certo." }] }], { marcar: false })}
+      />
+
       {/* HEADER DO KDS */}
       <div className="px-3 sm:px-6 pb-3 sm:pb-4 bg-hf-surface border-b border-hf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm z-50" style={{ paddingTop: "calc(var(--erp-safe-top, 0px) + 0.75rem)" }}>
          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
@@ -157,10 +171,16 @@ export default function KDSPage() {
                {somAtivo ? <Volume2 size={20} /> : <VolumeX size={20} />}
                {somAtivo ? "Som On" : "Som Off"}
             </button>
+            <button
+               onClick={() => setPainelImpressao(true)}
+               className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-widest transition-colors border ${impressao.cfg.auto ? "bg-emerald-500/20 text-emerald-700 border-emerald-500/30" : "bg-hf-elevated text-fg border-hf-border"}`}
+            >
+               <Printer size={20} /> {impressao.cfg.auto ? "Impressão on" : "Impressão"}
+            </button>
             <button 
                onClick={() => carregar(false)} 
                disabled={loading}
-               className="px-3 sm:px-6 py-2.5 sm:py-3 bg-hf-elevated hover:bg-hf-border text-hf-text font-bold text-xs sm:text-sm uppercase tracking-wide sm:tracking-widest rounded-xl transition-colors shadow-md active:scale-95 disabled:opacity-50"
+               className="col-span-2 sm:col-span-1 px-3 sm:px-6 py-2.5 sm:py-3 bg-hf-elevated hover:bg-hf-border text-hf-text font-bold text-xs sm:text-sm uppercase tracking-wide sm:tracking-widest rounded-xl transition-colors shadow-md active:scale-95 disabled:opacity-50"
             >
                {loading ? "Sincronizando..." : "Forçar Sync"}
             </button>
@@ -169,6 +189,11 @@ export default function KDSPage() {
 
       {/* ÁREA DOS TICKETS */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 hide-scrollbar">
+         {impressao.cfg.auto && impressao.aviso?.tipo === "erro" && (
+            <button onClick={() => setPainelImpressao(true)} className="mb-4 w-full text-left rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 flex items-center gap-2">
+               <Printer size={16} /> A via não saiu: {impressao.aviso.texto} Toque para ver a impressão.
+            </button>
+         )}
          {erro && (
             <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
                Não foi possível ler a fila agora ({erro}). A tela tenta de novo sozinha.
@@ -207,7 +232,7 @@ export default function KDSPage() {
 
                         {/* Cabeçalho Ticket */}
                          <div className={`p-3 sm:p-5 flex items-center justify-between gap-3 border-b ${isAtrasado ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-hf-surface border-hf-border'}`}>
-                           <div>
+                           <div className="min-w-0 flex-1">
                               <p className={`text-xl font-black tracking-tight ${isAtrasado ? 'text-fg' : 'text-hf-text'}`}>
                                  #{pedido.id.slice(0, 4).toUpperCase()}
                               </p>
@@ -226,6 +251,13 @@ export default function KDSPage() {
                               </p>
                               <p className="text-3xs font-bold text-fg uppercase tracking-widest mt-0.5">{horaStr(pedido.created_at)}</p>
                            </div>
+                           <button
+                              onClick={() => impressao.imprimir([pedido])}
+                              aria-label={`Imprimir via do pedido ${pedido.id.slice(0, 4).toUpperCase()}`}
+                              className="p-3 rounded-xl bg-hf-elevated border border-hf-border text-fg hover:text-hf-text active:scale-95"
+                           >
+                              <Printer size={20} />
+                           </button>
                         </div>
 
                         {/* Corpo dos Itens */}

@@ -1,133 +1,45 @@
 import { imprimirHtml } from "./imprimir";
-
-const esc = (valor) => String(valor ?? "").replace(/[&<>"]/g, (caractere) => ({
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;",
-}[caractere]));
-
-const moeda = (valor) => Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+import { montarHtmlRecibo } from "./recibo-extra";
 
 export function imprimirReciboFuncionario(recibo, unidadeInfo, infoFuncionario) {
-  const empresa = unidadeInfo?.nome || "A Empresa";
-  const cnpj = unidadeInfo?.cnpj || "";
-  const enderecoEmpresa = unidadeInfo?.endereco || unidadeInfo?.cidade_estado || "";
+  const recNormalizado = recibo?.dados
+    ? recibo
+    : {
+        numero: recibo?.numero || `REC-${Date.now()}`,
+        data_trabalho: recibo?.data_trabalho || new Date().toISOString().slice(0, 10),
+        datas_contratadas: recibo?.datas_contratadas || [recibo?.data_trabalho || new Date().toISOString().slice(0, 10)],
+        dias_contratados: recibo?.dias_contratados || (Array.isArray(recibo?.dias_detalhados) && recibo.dias_detalhados.length ? recibo.dias_detalhados.length : 1),
+        valor_diaria: recibo?.valor_diaria || recibo?.valor || 0,
+        valor_total: recibo?.valor_total ?? recibo?.valor ?? 0,
+        pagamento_realizado: recibo?.pagamento_realizado !== false,
+        forma_pagamento: recibo?.forma_pagamento || recibo?.formaPagamento || "Pix",
+        funcao: infoFuncionario?.cargo || "Colaborador",
+        dados: {
+          ...(recibo || {}),
+          forma_pagamento: recibo?.forma_pagamento || recibo?.formaPagamento || "Pix",
+          nome: infoFuncionario?.nome || recibo?.nome || "",
+          cpf: infoFuncionario?.cpf || recibo?.cpf || "",
+          rg: infoFuncionario?.rg || recibo?.rg || "",
+          telefone: infoFuncionario?.telefone || recibo?.telefone || "",
+          chave_pix: infoFuncionario?.chave_pix || recibo?.chave_pix || "",
+          endereco: infoFuncionario?.endereco || infoFuncionario?.rua_av || recibo?.endereco || "",
+          rua_av: infoFuncionario?.rua_av || "",
+          numero_casa: infoFuncionario?.numero_casa || "",
+          bairro: infoFuncionario?.bairro || "",
+          cidade_uf: infoFuncionario?.cidade_uf || "",
+          tipo_contrato: infoFuncionario?.tipo_contrato || "Fixo",
+        },
+      };
 
-  const nome = infoFuncionario?.nome || "";
-  const cpf = infoFuncionario?.cpf || "";
-  const cargo = infoFuncionario?.cargo || "";
+  const html = montarHtmlRecibo({
+    extra: infoFuncionario,
+    funcionario: infoFuncionario,
+    recibo: recNormalizado,
+    unidade: unidadeInfo,
+    unidadeInfo,
+    unidadeNome: unidadeInfo?.nome,
+  });
 
-  const dataAtual = new Date().toLocaleDateString("pt-BR");
-
-  const html = `
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Recibo de Pagamento - ${esc(nome)}</title>
-    <style>
-      body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #000; max-width: 800px; margin: 0 auto; line-height: 1.6; }
-      .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
-      .title-box { display: flex; flex-direction: column; gap: 4px; }
-      .title { font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; }
-      .subtitle { font-size: 16px; font-weight: bold; color: #475569; text-transform: uppercase; }
-      .empresa-info { text-align: right; font-size: 14px; color: #334155; }
-      .valor-box { background: #f8fafc; border: 2px solid #000; padding: 15px 20px; font-size: 24px; font-weight: 900; text-align: center; margin-bottom: 30px; border-radius: 8px; }
-      .content { font-size: 16px; text-align: justify; margin-bottom: 40px; }
-      .assinatura-area { display: flex; justify-content: space-between; margin-top: 100px; gap: 40px; }
-      .assinatura-box { flex: 1; text-align: center; border-top: 1px solid #000; padding-top: 10px; font-size: 14px; }
-    </style>
-  </head>
-  <body>
-    <!-- PRIMEIRA VIA (EMPREGADOR) -->
-    <div style="min-height: 48vh;">
-      <div class="header">
-        <div class="title-box">
-          <div class="title">Recibo de Pagamento</div>
-          <div class="subtitle">${esc(recibo.tipo)}</div>
-        </div>
-        <div class="empresa-info">
-          <strong>${esc(empresa)}</strong><br>
-          ${cnpj ? `CNPJ: ${esc(cnpj)}<br>` : ""}
-          ${enderecoEmpresa ? `${esc(enderecoEmpresa)}` : ""}
-        </div>
-      </div>
-
-      <div class="valor-box">
-        VALOR: ${moeda(recibo.valor)}
-      </div>
-
-      <div class="content">
-        Recebi(emos) de <strong>${esc(empresa)}</strong> a importância de <strong>${moeda(recibo.valor)}</strong> 
-        referente ao pagamento de <strong>${esc(recibo.tipo)}</strong> 
-        do período de referência <strong>${esc(recibo.referencia)}</strong>.<br><br>
-        
-        <strong>Beneficiário:</strong> ${esc(nome)} ${cpf ? `(CPF: ${esc(cpf)})` : ""}<br>
-        <strong>Cargo/Função:</strong> ${esc(cargo || "Não informado")}<br>
-        <strong>Forma de pagamento:</strong> ${esc(recibo.formaPagamento)}<br>
-        ${recibo.observacao ? `<strong>Observações:</strong> ${esc(recibo.observacao)}<br>` : ""}
-      </div>
-
-      <p style="text-align:right; font-size:14px;">Emitido em ${dataAtual} via Héfisto</p>
-
-      <div class="assinatura-area">
-        <div class="assinatura-box">
-          <strong>${esc(nome)}</strong><br>
-          Assinatura do Beneficiário
-        </div>
-        <div class="assinatura-box">
-          <strong>${esc(empresa)}</strong><br>
-          Assinatura da Empresa
-        </div>
-      </div>
-    </div>
-    
-    <div style="border-bottom: 1px dashed #94a3b8; margin: 40px 0;"></div>
-
-    <!-- SEGUNDA VIA (FUNCIONÁRIO) -->
-    <div style="min-height: 48vh;">
-      <div class="header">
-        <div class="title-box">
-          <div class="title">Recibo de Pagamento <span style="font-size:14px; font-weight:normal;">(Via do Funcionário)</span></div>
-          <div class="subtitle">${esc(recibo.tipo)}</div>
-        </div>
-        <div class="empresa-info">
-          <strong>${esc(empresa)}</strong><br>
-          ${cnpj ? `CNPJ: ${esc(cnpj)}<br>` : ""}
-          ${enderecoEmpresa ? `${esc(enderecoEmpresa)}` : ""}
-        </div>
-      </div>
-
-      <div class="valor-box">
-        VALOR: ${moeda(recibo.valor)}
-      </div>
-
-      <div class="content">
-        Recebi(emos) de <strong>${esc(empresa)}</strong> a importância de <strong>${moeda(recibo.valor)}</strong> 
-        referente ao pagamento de <strong>${esc(recibo.tipo)}</strong> 
-        do período de referência <strong>${esc(recibo.referencia)}</strong>.<br><br>
-        
-        <strong>Beneficiário:</strong> ${esc(nome)} ${cpf ? `(CPF: ${esc(cpf)})` : ""}<br>
-        <strong>Cargo/Função:</strong> ${esc(cargo || "Não informado")}<br>
-        <strong>Forma de pagamento:</strong> ${esc(recibo.formaPagamento)}<br>
-        ${recibo.observacao ? `<strong>Observações:</strong> ${esc(recibo.observacao)}<br>` : ""}
-      </div>
-
-      <p style="text-align:right; font-size:14px;">Emitido em ${dataAtual} via Héfisto</p>
-
-      <div class="assinatura-area">
-        <div class="assinatura-box">
-          <strong>${esc(nome)}</strong><br>
-          Assinatura do Beneficiário
-        </div>
-        <div class="assinatura-box">
-          <strong>${esc(empresa)}</strong><br>
-          Assinatura da Empresa
-        </div>
-      </div>
-    </div>
-
-  </body>
-  </html>
-  `;
-
-  imprimirHtml(html);
+  return imprimirHtml(html);
 }
+

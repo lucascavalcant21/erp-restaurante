@@ -26,6 +26,7 @@ export default function CadastroExtrasPage() {
   const [extras, setExtras] = useState([]);
   const [recibos, setRecibos] = useState([]);
   const [busca, setBusca] = useState("");
+  const [filtroContrato, setFiltroContrato] = useState("todos"); // todos | extras | fixos
   const [periodo, setPeriodo] = useState("mes");   // dia | semana | mes
   const [refPagamento, setRefPagamento] = useState(() => new Date());
   const [carregando, setCarregando] = useState(true);
@@ -46,7 +47,7 @@ export default function CadastroExtrasPage() {
     setCarregando(true);
     Promise.all([fetchColaboradores(unidadeAtiva), fetchRecibosPrestacaoUnidade(unidadeAtiva)]).then(([cadastros, historico]) => {
       if (!ativo) return;
-      setExtras((cadastros.data || []).filter((item) => item.tipo_contrato === "Freelancer"));
+      setExtras((cadastros.data || []).filter((item) => (item.status || "ativo") !== "inativo"));
       setRecibos(historico.data || []);
       setCarregando(false);
     });
@@ -67,8 +68,13 @@ export default function CadastroExtrasPage() {
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase("pt-BR");
-    return extras.filter((extra) => !termo || `${extra.nome || ""} ${extra.cargo || ""} ${extra.telefone || ""}`.toLocaleLowerCase("pt-BR").includes(termo));
-  }, [busca, extras]);
+    return extras.filter((extra) => {
+      const ehFree = extra.tipo_contrato === "Freelancer";
+      if (filtroContrato === "extras" && !ehFree) return false;
+      if (filtroContrato === "fixos" && ehFree) return false;
+      return !termo || `${extra.nome || ""} ${extra.cargo || ""} ${extra.telefone || ""}`.toLocaleLowerCase("pt-BR").includes(termo);
+    });
+  }, [busca, extras, filtroContrato]);
 
   const nomes = useMemo(() => Object.fromEntries(extras.map((extra) => [extra.id, extra.nome])), [extras]);
   const pendentes = recibos.filter((recibo) => !recibo.pagamento_realizado);
@@ -100,8 +106,8 @@ export default function CadastroExtrasPage() {
           <div className="flex items-center gap-3">
             <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl border border-line text-slate-900 hover:bg-white" aria-label="Voltar"><ArrowLeft size={18} /></button>
             <div>
-              <h1 className="text-xl font-black text-fg">Extras</h1>
-              <p className="text-xs font-semibold text-fg">Cadastro e recibos · {unidadeInfo?.nome || "unidade ativa"}</p>
+              <h1 className="text-xl font-black text-fg">Recibos e Extras</h1>
+              <p className="text-xs font-semibold text-fg">Recibos para funcionários extras e fixos · {unidadeInfo?.nome || "unidade ativa"}</p>
             </div>
           </div>
 
@@ -135,7 +141,7 @@ export default function CadastroExtrasPage() {
         <section className="grid gap-2.5 grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-line bg-card p-2.5 sm:p-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-3xs font-bold uppercase tracking-wider text-fg">Cadastrados</span>
+              <span className="text-3xs font-bold uppercase tracking-wider text-fg">Funcionários</span>
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent-soft text-accent-strong"><UsersRound size={15} /></span>
             </div>
             <p className="mt-1 text-xl font-black text-fg">{extras.length}</p>
@@ -177,26 +183,45 @@ export default function CadastroExtrasPage() {
           </div>
         </section>
 
-        {/* CONTEÚDO PRINCIPAL: EXTRAS + SIDEBAR DE RECIBOS MAIS COMPACTA */}
+        {/* CONTEÚDO PRINCIPAL: EXTRAS E FIXOS + SIDEBAR DE RECIBOS MAIS COMPACTA */}
         <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
           <section className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3.5 top-3 text-subtle" size={18} />
-              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome, função ou telefone..." className="h-10 w-full rounded-xl border border-line bg-card pl-10 pr-4 text-sm font-semibold outline-none focus:border-emerald-500 shadow-sm" />
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-3 text-subtle" size={18} />
+                <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar funcionário (Extra ou Fixo) por nome, função ou telefone..." className="h-10 w-full rounded-xl border border-line bg-card pl-10 pr-4 text-sm font-semibold outline-none focus:border-emerald-500 shadow-sm" />
+              </div>
+              <div className="flex rounded-xl border border-line bg-card p-1 gap-1 shrink-0">
+                {[
+                  ["todos", "Todos"],
+                  ["extras", "Só Extras"],
+                  ["fixos", "Só Fixos"],
+                ].map(([val, label]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setFiltroContrato(val)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-black transition-all ${filtroContrato === val ? "bg-accent text-accent-fg shadow-2xs" : "text-fg-soft hover:bg-slate-100"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {!unidadeAtiva || unidadeAtiva === "todas" ? (
-              <div className="rounded-2xl border border-line bg-card p-8 text-center font-bold text-fg">Selecione uma unidade específica para acessar os extras.</div>
+              <div className="rounded-2xl border border-line bg-card p-8 text-center font-bold text-fg">Selecione uma unidade específica para acessar os recibos.</div>
             ) : carregando ? (
               <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-success" size={28} /></div>
             ) : filtrados.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-8 text-center">
                 <UsersRound className="mx-auto text-dim" size={36} />
-                <p className="mt-2 font-black text-fg-soft">Nenhum extra encontrado</p>
+                <p className="mt-2 font-black text-fg-soft">Nenhum funcionário encontrado</p>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 {filtrados.map((extra) => {
+                  const ehFree = extra.tipo_contrato === "Freelancer";
                   const recibosPessoa = recibos.filter(r => String(r.colaborador_id) === String(extra.id));
                   const totalGastoPessoa = recibosPessoa.filter(r => r.pagamento_realizado).reduce((s, r) => s + Number(r.valor_total || 0), 0);
                   const diasTrabalhadosCount = recibosPessoa.length;
@@ -210,35 +235,35 @@ export default function CadastroExtrasPage() {
                         {/* CABEÇALHO DO CARD */}
                         <div className="flex items-start justify-between gap-2 mb-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-800 font-black text-base uppercase">
-                              {extra.nome ? extra.nome[0] : "E"}
+                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl font-black text-base uppercase ${ehFree ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"}`}>
+                              {extra.nome ? extra.nome[0] : "F"}
                             </div>
                             <div className="min-w-0">
                               <h3 className="truncate text-base font-black text-fg leading-tight" title={extra.nome}>{extra.nome}</h3>
-                              <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-fg truncate"><Briefcase size={12} className="shrink-0 text-subtle" /> {extra.cargo || "Extra"}</p>
+                              <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-fg truncate"><Briefcase size={12} className="shrink-0 text-subtle" /> {extra.cargo || (ehFree ? "Extra" : "Fixo")}</p>
                             </div>
                           </div>
-                          <span className="rounded-full bg-accent-soft border border-emerald-200 px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider text-accent-strong shrink-0">
-                            Cadastrado
+                          <span className={`rounded-full border px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider shrink-0 ${ehFree ? "bg-accent-soft border-emerald-200 text-accent-strong" : "bg-blue-50 border-blue-200 text-blue-800"}`}>
+                            {ehFree ? "Extra" : "Fixo"}
                           </span>
                         </div>
 
-                        {/* DETALHES DE CONTATO E DIÁRIA */}
+                        {/* DETALHES DE CONTATO E DIÁRIA/SALÁRIO */}
                         <div className="space-y-1.5 border-t border-line-soft pt-2.5 text-xs font-semibold text-slate-900">
                           <div className="flex items-center justify-between">
                             <span className="flex items-center gap-1.5 text-fg font-medium"><Phone size={13} className="text-success shrink-0" /> {fmtTel(extra.telefone)}</span>
-                            <span className="font-black text-fg">Diária: <strong className="text-accent font-black">{fmtBRL(extra.salario)}</strong></span>
+                            <span className="font-black text-fg">{ehFree ? "Diária:" : "Salário:"} <strong className="text-accent font-black">{fmtBRL(extra.salario)}</strong></span>
                           </div>
 
                           {/* RESUMO HISTÓRICO VISÍVEL NO CARD */}
                           <div className="mt-2.5 rounded-2xl bg-white/80 p-2.5 text-xs border border-line-soft grid grid-cols-3 gap-2 text-center">
                             <div>
-                              <span className="text-3xs font-bold text-subtle block uppercase tracking-wider">Total Gasto</span>
+                              <span className="text-3xs font-bold text-subtle block uppercase tracking-wider">Total Recibos</span>
                               <strong className="text-accent font-black text-sm">{fmtBRL(totalGastoPessoa)}</strong>
                             </div>
                             <div>
-                              <span className="text-3xs font-bold text-subtle block uppercase tracking-wider">Trabalhos</span>
-                              <strong className="text-slate-800 font-black text-sm">{diasTrabalhadosCount} {diasTrabalhadosCount === 1 ? "dia" : "dias"}</strong>
+                              <span className="text-3xs font-bold text-subtle block uppercase tracking-wider">Recibos</span>
+                              <strong className="text-slate-800 font-black text-sm">{diasTrabalhadosCount}</strong>
                             </div>
                             <div className="min-w-0">
                               <span className="text-3xs font-bold text-subtle block uppercase tracking-wider">Função</span>
@@ -250,8 +275,8 @@ export default function CadastroExtrasPage() {
 
                       {/* AÇÕES NO CARD */}
                       <div className="mt-3.5 grid grid-cols-3 gap-2">
-                        <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-card text-xs font-bold text-fg-soft hover:bg-slate-200 transition-colors">
-                          <Pencil size={13} /> Editar
+                        <button onClick={() => router.push(ehFree ? `/dashboard/rh/extra/${extra.id}` : `/dashboard/rh/funcionario/${extra.id}`)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-card text-xs font-bold text-fg-soft hover:bg-slate-200 transition-colors">
+                          <Pencil size={13} /> {ehFree ? "Editar" : "Perfil"}
                         </button>
                         <button onClick={() => setHistoricoModal(extra)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-amber-50 text-xs font-bold text-amber-800 hover:bg-amber-100 border border-amber-200/80 transition-colors">
                           <History size={13} /> Histórico

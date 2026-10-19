@@ -310,6 +310,7 @@ export default function ProntuarioColaboradorPage() {
           </div>
           <div className="mt-4 flex flex-wrap gap-2 no-print">
             {podeEditar && <Btn variant="primary" onClick={() => router.push(`/dashboard/rh?aba=quadro&editar=${func.id}`)}><Edit3 size={15} /> Editar</Btn>}
+            <Btn variant="ghost" onClick={() => router.push(`/dashboard/rh/extra/${func.id}/recibo`)}><FileText size={15} /> Recibo</Btn>
             <Btn variant="ghost" onClick={() => window.print()}><Printer size={15} /> Imprimir</Btn>
             {!extra && <Btn variant="ghost" onClick={() => router.push(`/dashboard/rh/contrato/${func.id}`)}><FileText size={15} /> Contrato</Btn>}
             {podeDesligar && !desligado && <Btn variant="ghost" className="!text-red-700" onClick={() => router.push(`/dashboard/rh?aba=quadro&desligar=${func.id}`)}><UserX size={15} /> Desligar</Btn>}

@@ -24,6 +24,16 @@ export const TOPICOS_INICIAIS = {
     { id: "mapa-pracas", label: "Mapa de Praças (Play Caller)", prompt: "Mostre o posicionamento da equipe nas praças para o horário de pico." },
     { id: "escala-turno", label: "Escala do Dia & Picos (Gantt)", prompt: "Abrir a escala horária do turno e previsão de pico." },
   ],
+  limpeza: [
+    { id: "limpeza-chao", label: "Limpar Chão (ml & Produto)", prompt: "Qual produto usar no chão, quantas ml e como limpar?" },
+    { id: "limpeza-panos", label: "Higienizar Panos (Cloro & Cores)", prompt: "Como limpar e desinfetar um pano de cozinha, qual produto e quantas ml?" },
+    { id: "lavagem-maos", label: "Lavar as Mãos (ANVISA)", prompt: "Qual o procedimento correto para lavar as mãos e qual produto usar?" },
+  ],
+  checklists: [
+    { id: "checklist-abertura", label: "☀️ Checklist de Abertura da Praça", prompt: "Abrir o checklist de abertura e mise en place da cozinha e bar." },
+    { id: "checklist-fechamento", label: "🌙 Checklist de Saída / Fechamento", prompt: "Abrir o checklist de saída e fechamento de turno da cozinha e bar." },
+    { id: "etiqueta-validade", label: "🏷️ Gerar Etiqueta ANVISA", prompt: "Quero gerar uma etiqueta de validade para um produto manipulado." },
+  ],
 };
 
 export const RECEITAS_GREEN_DOT = [
@@ -605,7 +615,293 @@ export const ROTINAS_OPERACIONAIS = {
   },
 };
 
-// ── EQUIPAMENTOS CADASTRADOS (INCLUINDO LIQUIDIFICADORES 110V/220V + GUIAS DE ENCAIXE, USO E LIMPEZA) ──
+// ── ROTINAS DE LIMPEZA, HIGIENIZAÇÃO, PRODUTOS QUÍMICOS E DILUIÇÃO EM ML (ANVISA) ──
+export const ROTINAS_LIMPEZA_HIGIENIZACAO = {
+  "limpeza-chao": {
+    id: "limpeza-chao",
+    titulo: "Limpeza & Desengorduramento do Chão (Cozinha e Bar)",
+    categoria: "Higienização de Pisos & Prevenção de Quedas",
+    produtoPrincipal: "Desengordurante Alcalino / Clorado Industrial para Pisos",
+    mlPorLitro: 10,
+    diluicaoPadrao: "50 ml para cada 5 Litros de água morna (1:100)",
+    diluicaoPesada: "150 ml a 200 ml para cada 5 Litros de água quente (1:25)",
+    tempoAcaoQuimica: "10 minutos de ação antes de esfregar e puxar",
+    episObrigatorios: ["Bota de borracha antiderrapante", "Luva nitrílica de cano longo", "Avental impermeável"],
+    passos: [
+      {
+        passo: 1,
+        titulo: "Varrição a Seco e Remoção de Sólidos",
+        desc: "Nunca jogue água direto com restos de comida no chão. Varrer a seco e recolher restos de alimentos, farinhas e plásticos com a pá.",
+        foto: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 2,
+        titulo: "Diluição Correta do Desengordurante no Balde",
+        desc: "Coloque 5 Litros de água morna no balde e adicione 50 ml de Desengordurante (10 ml por Litro). Para áreas de fritadeira muito engorduradas, use 150 ml a 200 ml em água bem quente.",
+        foto: "https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 3,
+        titulo: "Espalhamento e Ação Química de 10 Minutos",
+        desc: "Espalhe a solução de desengordurante com o escovão. REGRA DE OURO: Deixe o produto agir por 10 minutos sem enxaguar. A química precisa desse tempo para quebrar as moléculas de gordura incrustadas no piso e rejuntes.",
+        foto: "https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 4,
+        titulo: "Esfregação Focada nas Áreas Críticas",
+        desc: "Esfregue com vigor embaixo de fogões, fritadeiras, coifas, calhas e ao redor de todos os ralos com vassoura de cerdas duras.",
+        foto: "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 5,
+        titulo: "Enxágue e Secagem Imediata com Rodo",
+        desc: "Puxe toda a água em direção aos ralos usando o rodo exclusivo de chão. Finalize passando pano embebido em solução clorada (20 ml de cloro por Litro) e deixe secar com boa ventilação.",
+        foto: "https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=600&q=80",
+      },
+    ],
+  },
+  "limpeza-panos": {
+    id: "limpeza-panos",
+    titulo: "Higienização & Desinfecção de Panos de Cozinha (Cloro & Cores)",
+    categoria: "Segurança Microbiológica ANVISA RDC 216",
+    produtoPrincipal: "Hipoclorito de Sódio / Água Sanitária (Cloro ativo 2,0% a 2,5%)",
+    mlPorLitro: 25,
+    diluicaoPadrao: "25 ml de Cloro para cada 1 Litro de água limpa (100 ml para balde de 4L)",
+    tempoAcaoQuimica: "20 a 30 minutos de molho imerso (não exceder 1h)",
+    coresPadrao: [
+      { cor: "Verde / Branco", uso: "Exclusivo para Bancadas de Manipulação e Corte de Alimentos" },
+      { cor: "Azul", uso: "Exclusivo para Salão, Bandejas de Garçom e Mesas de Clientes" },
+      { cor: "Laranja / Vermelho", uso: "Exclusivo para Chão, Rodapés e Lixeiras (NUNCA sobe para bancada!)" },
+    ],
+    passos: [
+      {
+        passo: 1,
+        titulo: "Pré-lavagem com Detergente Neutro",
+        desc: "Lave os panos primeiro com água corrente e detergente neutro para remover a gordura grossa e restos de alimentos. O cloro não tem poder desengordurante e perde efeito se o pano estiver engordurado.",
+        foto: "https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 2,
+        titulo: "Preparo da Solução Clorada",
+        desc: "Em bacia higienizada, coloque 4 Litros de água fria e adicione 100 ml de cloro (25 ml por Litro). NUNCA use água quente no cloro, pois evapora o gás ativo e anula a desinfecção.",
+        foto: "https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 3,
+        titulo: "Molho Imerso de 20 a 30 Minutos",
+        desc: "Mergulhe os panos de forma que fiquem 100% cobertos pela solução. Deixe agir por 20 a 30 minutos cronometrados.",
+        foto: "https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 4,
+        titulo: "Enxágue Abundante e Secagem em Local Arejado",
+        desc: "Enxágue em água corrente até eliminar qualquer odor forte de cloro. Torça bem e estenda em varal ventilado exclusivo. É terminantemente proibido estender panos sobre fornos ou caldeirões.",
+        foto: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=600&q=80",
+      },
+    ],
+  },
+  "lavagem-maos": {
+    id: "lavagem-maos",
+    titulo: "Protocolo Oficial ANVISA de Lavagem e Antissepsia das Mãos",
+    categoria: "Controle de Contaminação Cruzada & Boas Práticas",
+    produtoPrincipal: "Sabonete Líquido Bactericida Inodoro + Álcool em Gel 70%",
+    mlPorLitro: 3,
+    diluicaoPadrao: "Uso puro direto da saboneteira (2 a 3 ml de sabonete líquido)",
+    tempoAcaoQuimica: "40 a 60 segundos cronometrados de fricção mecânica",
+    passos: [
+      {
+        passo: 1,
+        titulo: "Molhar Mãos e Aplicar Sabonete Inodoro",
+        desc: "Abra a torneira com o cotovelo ou sensor. Molhe mãos e punhos com água corrente e aplique 2 a 3 ml de sabonete bactericida inodoro (sem fragrância, para não contaminar alimentos).",
+        foto: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 2,
+        titulo: "Fricção de Palmas e Dorso com Dedos Entrelaçados",
+        desc: "Esfregue as palmas uma na outra. Depois, esfregue o dorso da mão esquerda com a palma direita entrelaçando os dedos, e repita do outro lado.",
+        foto: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 3,
+        titulo: "Polegares, Unhas e Pontas dos Dedos",
+        desc: "Esfregue o polegar esquerdo com a mão direita em rotação, e vice-versa. Friccione as pontas dos dedos e unhas contra a palma da mão oposta com movimentos circulares.",
+        foto: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 4,
+        titulo: "Punhos e Enxágue sem Tocar na Pia",
+        desc: "Friccione os punhos. Enxágue completamente em água corrente das pontas dos dedos em direção aos punhos.",
+        foto: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 5,
+        titulo: "Secagem com Papel Toalha Descartável e Álcool 70%",
+        desc: "Seque as mãos com 2 folhas de papel toalha não reciclado. USE O PAPEL TOALHA PARA FECHAR A TORNEIRA! Finalize aplicando 2 ml de álcool 70% e deixe secar naturalmente ao ar.",
+        foto: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
+      },
+    ],
+    momentosObrigatorios: [
+      "Ao chegar ao restaurante e entrar na cozinha ou bar",
+      "Antes de manipular qualquer alimento cru ou cozido",
+      "Depois de tocar em carnes cruas, peixes, frutos do mar ou ovos",
+      "Depois de manusear lixo, vassouras, panos de chão ou caixas de papelão",
+      "Depois de tocar no celular, dinheiro, comandas ou maçanetas",
+      "Depois de espirrar, tossir, assoar o nariz ou usar o sanitário",
+      "Sempre que trocar de função na praça ou vestir luvas novas",
+    ],
+  },
+  "sanitizacao-hortifruti": {
+    id: "sanitizacao-hortifruti",
+    titulo: "Sanitização de Frutas, Folhas e Legumes (Bar & Cozinha)",
+    categoria: "Segurança de Alimentos Crus",
+    produtoPrincipal: "Sanitizante Clorado para Alimentos (Pastilha ou Hipoclorito)",
+    mlPorLitro: 10,
+    diluicaoPadrao: "10 ml (1 colher de sopa) para cada 1 Litro de água potável",
+    tempoAcaoQuimica: "15 minutos de imersão total",
+    passos: [
+      {
+        passo: 1,
+        titulo: "Lavagem em Água Corrente Folha a Folha",
+        desc: "Lave folhas e frutas em água corrente potável retirando sujidades e terra visíveis.",
+        foto: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 2,
+        titulo: "Molho na Solução Clorada por 15 Minutos",
+        desc: "Mergulhe os vegetais em 10 ml de sanitizante por litro de água por 15 minutos.",
+        foto: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 3,
+        titulo: "Enxágue Final e Secagem na Centrífuga",
+        desc: "Enxágue em água corrente para eliminar o cloro e seque na centrífuga de folhas.",
+        foto: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80",
+      },
+    ],
+  },
+};
+
+export function calcularDiluicaoLimpeza(rotinaId, litrosAgua = 5) {
+  const rotina = ROTINAS_LIMPEZA_HIGIENIZACAO[rotinaId] || ROTINAS_LIMPEZA_HIGIENIZACAO["limpeza-chao"];
+  const litros = Number(litrosAgua) || 5;
+  const mlCalculada = Math.round(rotina.mlPorLitro * litros);
+  return {
+    rotina,
+    litrosAgua: litros,
+    mlNecessaria: mlCalculada,
+    colheresSopaAprox: Math.round(mlCalculada / 15),
+    coposCafeAprox: Math.round((mlCalculada / 50) * 10) / 10,
+  };
+}
+
+// ── CHECKLISTS DE ABERTURA (MISE EN PLACE) & SAÍDA (FECHAMENTO SEGURO) ──
+export const CHECKLISTS_PRACA = {
+  abertura: [
+    {
+      id: "chk-ab-cq",
+      setor: "Cozinha Quente",
+      icone: "Flame",
+      cor: "#A43E2B",
+      itens: [
+        { id: "ab-cq-1", texto: "Registro geral de gás aberto e sem cheiro de vazamento", critico: true },
+        { id: "ab-cq-2", texto: "Fritadeiras abastecidas com óleo novo/filtrado no nível e ligadas a 180°C", critico: true },
+        { id: "ab-cq-3", texto: "Banho-maria ligado e água atingindo 65°C a 75°C", critico: true },
+        { id: "ab-cq-4", texto: "Mise en place de bases, caldos e proteínas pesadas conferido", critico: false },
+        { id: "ab-cq-5", texto: "Potes etiquetados com data e validade PVPS", critico: false },
+        { id: "ab-cq-6", texto: "Termômetro digital de espeto higienizado com álcool 70%", critico: false },
+      ],
+    },
+    {
+      id: "chk-ab-cf",
+      setor: "Cozinha Fria / Garde Manger",
+      icone: "Salad",
+      cor: "#2E6F4E",
+      itens: [
+        { id: "ab-cf-1", texto: "Temperatura da câmara fria e geladeiras conferida (0°C a 4°C)", critico: true },
+        { id: "ab-cf-2", texto: "Folhas, hortaliças e frutas sanitizadas em solução clorada", critico: true },
+        { id: "ab-cf-3", texto: "Molhos frios, queijos e ceviches porcionados nas GNs", critico: false },
+        { id: "ab-cf-4", texto: "Tábuas de corte coloridas limpas e secas na bancada", critico: false },
+      ],
+    },
+    {
+      id: "chk-ab-bar",
+      setor: "Bar & Coquetelaria",
+      icone: "GlassWater",
+      cor: "#9E6412",
+      itens: [
+        { id: "ab-bar-1", texto: "Máquina de gelo filtrado cheia e pá higienizada", critico: true },
+        { id: "ab-bar-2", texto: "Chopeira ligada, pressão do CO2 ajustada (2.0 a 2.2 bar) e bicos purgados", critico: true },
+        { id: "ab-bar-3", texto: "Frutas de corte (limão taiti, siciliano, laranja) fatiadas e guardadas em pote", critico: false },
+        { id: "ab-bar-4", texto: "Xaropes, bitters e garrafas do Speed Rail abastecidas", critico: false },
+        { id: "ab-bar-5", texto: "Copos e taças limpos, polidos e sem cheiro de pano", critico: false },
+      ],
+    },
+    {
+      id: "chk-ab-pass",
+      setor: "Expedição, Pass & Salão",
+      icone: "BellRing",
+      cor: "#69387D",
+      itens: [
+        { id: "ab-pass-1", texto: "Lâmpada térmica do Pass ligada e bancada de inox sanitizada com álcool 70%", critico: true },
+        { id: "ab-pass-2", texto: "Bobinas de impressoras de comanda cheias e testadas", critico: true },
+        { id: "ab-pass-3", texto: "Embalagens de delivery montadas e sacolas organizadas", critico: false },
+        { id: "ab-pass-4", texto: "Galheteiros, cardápios e mesas do salão alinhadas", critico: false },
+      ],
+    },
+  ],
+  fechamento: [
+    {
+      id: "chk-fc-cq",
+      setor: "Cozinha Quente",
+      icone: "Flame",
+      cor: "#A43E2B",
+      itens: [
+        { id: "fc-cq-1", texto: "Registro geral de gás FECHADO e travado com chave", critico: true },
+        { id: "fc-cq-2", texto: "Fritadeiras, chapa e fornos DESLIGADOS da tomada", critico: true },
+        { id: "fc-cq-3", texto: "Sobras quentes resfriadas em banho de gelo (choque térmico) e guardadas na câmara", critico: true },
+        { id: "fc-cq-4", texto: "Chapa raspada e higienizada; coifa limpa", critico: false },
+        { id: "fc-cq-5", texto: "Chão lavado com desengordurante e clorado, sem acúmulo de água", critico: false },
+        { id: "fc-cq-6", texto: "Lixo orgânico retirado e lixeira lavada com saco novo", critico: false },
+      ],
+    },
+    {
+      id: "chk-fc-cf",
+      setor: "Cozinha Fria / Garde Manger",
+      icone: "Salad",
+      cor: "#2E6F4E",
+      itens: [
+        { id: "fc-cf-1", texto: "Todos os potes e GNs tampados e com etiqueta ANVISA / PVPS", critico: true },
+        { id: "fc-cf-2", texto: "Portas de câmaras e geladeiras travadas e vedadas", critico: true },
+        { id: "fc-cf-3", texto: "Bancadas de inox e pias lavadas e sanitizadas com álcool 70%", critico: false },
+        { id: "fc-cf-4", texto: "Panos colocados de molho no cloro e lixo recolhido", critico: false },
+      ],
+    },
+    {
+      id: "chk-fc-bar",
+      setor: "Bar & Coquetelaria",
+      icone: "GlassWater",
+      cor: "#9E6412",
+      itens: [
+        { id: "fc-bar-1", texto: "Válvulas de CO2 e chopp fechadas; bicos escovados e vedados com tampa de silicone", critico: true },
+        { id: "fc-bar-2", texto: "Perecíveis (frutas abertas, sucos) etiquetados na geladeira", critico: true },
+        { id: "fc-bar-3", texto: "Tapetes de borracha (bar mats) lavados com água quente e sabão", critico: false },
+        { id: "fc-bar-4", texto: "Pia, cubas e ralo do bar desinfetados com cloro", critico: false },
+      ],
+    },
+    {
+      id: "chk-fc-pass",
+      setor: "Expedição, Pass & Salão",
+      icone: "BellRing",
+      cor: "#69387D",
+      itens: [
+        { id: "fc-pass-1", texto: "Lâmpadas do Pass e aquecedores DESLIGADOS", critico: true },
+        { id: "fc-pass-2", texto: "Comandas do dia conferidas e arquivadas no sistema", critico: false },
+        { id: "fc-pass-3", texto: "Salão varrido, mesas higienizadas e cadeiras empilhadas/alinhadas", critico: false },
+        { id: "fc-pass-4", texto: "Luzes apagadas, ar-condicionado desligado e portas trancadas", critico: true },
+      ],
+    },
+  ],
+};
 export const EQUIPAMENTOS_MANUTENCAO = [
   {
     id: "liq-skymsen-4l",

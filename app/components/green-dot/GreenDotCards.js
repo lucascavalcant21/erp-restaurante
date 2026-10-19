@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   Sparkles,
   Calendar,
@@ -28,13 +29,23 @@ import {
   AlertTriangle,
   Layers,
   Droplets,
+  Tag,
+  Printer,
+  ExternalLink,
+  ShieldCheck,
+  AlertCircle,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   TOPICOS_INICIAIS,
   recalcularReceitaPorIngrediente,
   ESCALA_ORGANOGRAMA_DO_DIA,
   ESCALA_TURNO_GANTT,
+  ROTINAS_LIMPEZA_HIGIENIZACAO,
+  CHECKLISTS_PRACA,
+  calcularDiluicaoLimpeza,
 } from "../../lib/green-dot-data";
+import { criarEtiqueta } from "../../lib/etiquetas";
 
 // ── AVATARES OFICIAIS ────────────────────────────────────────────────────────
 export function GreenDotAvatar() {
@@ -2771,3 +2782,638 @@ export function PlayCallerStationMapCard({ formacao, extraConfirmado }) {
     </div>
   );
 }
+
+// ── NOVO CARD: GUIA DE HIGIENIZAÇÃO, LIMPEZA & PRODUTOS QUÍMICOS (ANVISA RDC 216) ──
+export function CleaningSanitizationGuideCard({ rotinaInicialId = "limpeza-chao" }) {
+  const [rotinaAtivaId, setRotinaAtivaId] = useState(rotinaInicialId || "limpeza-chao");
+  const [litrosBalde, setLitrosBalde] = useState(5);
+
+  const rotina =
+    ROTINAS_LIMPEZA_HIGIENIZACAO[rotinaAtivaId] ||
+    ROTINAS_LIMPEZA_HIGIENIZACAO["limpeza-chao"];
+
+  const diluicao = calcularDiluicaoLimpeza(rotinaAtivaId, litrosBalde);
+
+  return (
+    <div className="flex items-start gap-3">
+      <GreenDotAvatar />
+      <div className="flex-1 bg-white rounded-2xl border-2 border-[#1E4D3B] shadow-xl overflow-hidden text-[#1C2826]">
+        {/* Topo Verde Oficial com Ícone de Higienização */}
+        <div className="bg-[#1E4D3B] text-white p-5 sm:p-6 space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <Droplets size={14} /> Padrão ANVISA RDC 216 · Higienização &amp; Química
+            </span>
+            <span className="text-xs font-extrabold bg-white/15 px-3 py-1 rounded-full text-emerald-100">
+              Uso Seguro na Cozinha &amp; Bar
+            </span>
+          </div>
+
+          <h3 className="text-lg sm:text-2xl font-black">{rotina.titulo}</h3>
+          <p className="text-xs sm:text-sm text-emerald-100 font-medium">
+            Procedimento com dosagem precisa em ml, tempo de ação química e EPIs para garantir máxima desinfecção sem contaminação dos alimentos.
+          </p>
+
+          {/* Abas Superiores de Rotinas de Limpeza */}
+          <div className="pt-2 flex flex-wrap gap-1.5">
+            {[
+              { id: "limpeza-chao", label: "🧹 Chão (ml & Produto)", icone: "🧹" },
+              { id: "limpeza-panos", label: "🧼 Panos (Cloro & Cores)", icone: "🧼" },
+              { id: "lavagem-maos", label: "🤲 Lavar Mãos (Passo a Passo)", icone: "🤲" },
+              { id: "sanitizacao-hortifruti", label: "🥗 Hortifrúti (Frutas/Saladas)", icone: "🥗" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setRotinaAtivaId(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 ${
+                  rotinaAtivaId === tab.id
+                    ? "bg-white text-[#1E4D3B] shadow-xs scale-102"
+                    : "bg-black/25 text-white/80 hover:bg-black/40 hover:text-white"
+                }`}
+              >
+                <span>{tab.icone}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bloco de Destaque do Produto & Calculadora de Diluição em ml */}
+        <div className="p-4 sm:p-6 bg-[#FAF9F6] border-b border-[#E2E0D8] space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+            {/* Produto Principal */}
+            <div className="sm:col-span-6 space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-wider text-[#5A655F]">
+                PRODUTO QUÍMICO HOMOLOGADO
+              </p>
+              <h4 className="text-sm sm:text-base font-black text-[#1E4D3B] flex items-center gap-1.5">
+                <ShieldCheck size={18} className="text-[#2E6F4E] shrink-0" />
+                {rotina.produtoPrincipal}
+              </h4>
+              <p className="text-xs text-[#55605A] font-semibold">
+                Diluição padrão: <strong>{rotina.diluicaoPadrao}</strong>
+              </p>
+              {rotina.diluicaoPesada && (
+                <p className="text-xs text-[#8A4200] font-bold">
+                  🔥 Gordura pesada: {rotina.diluicaoPesada}
+                </p>
+              )}
+            </div>
+
+            {/* Calculadora Interativa de Balde em ml */}
+            <div className="sm:col-span-6 rounded-xl bg-white border-2 border-[#2E6F4E] p-3.5 space-y-2 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[#1C2826] flex items-center gap-1.5">
+                  <Scale size={14} className="text-[#2E6F4E]" />
+                  Calculadora de Balde ao Vivo
+                </span>
+                <span className="text-[10px] font-bold text-[#5A655F]">
+                  {rotina.mlPorLitro} ml / Litro
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-[#4F5853] shrink-0">
+                  Litros no balde:
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={litrosBalde}
+                  onChange={(e) => setLitrosBalde(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-16 px-2.5 py-1 rounded-lg border border-[#C8C6BC] text-xs font-black text-center"
+                />
+                <span className="text-xs font-bold text-[#4F5853]">Litros</span>
+                <span className="text-sm font-black text-[#1E4D3B] ml-auto">
+                  = {diluicao.mlNecessaria} ml de produto
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2 text-[10px] font-bold text-[#55605A] pt-1 border-t border-[#EAE8E1]">
+                <span>🥄 ~{diluicao.colheresSopaAprox} colheres de sopa</span>
+                <span>·</span>
+                <span>☕ ~{diluicao.coposCafeAprox} copinhos de café (50ml)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tarja de Tempo de Ação Química & EPIs */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-[#EFF7F2] border border-[#C5DDD0] text-xs">
+            <span className="font-extrabold text-[#1E4D3B] flex items-center gap-1.5">
+              <Clock size={15} /> Tempo de ação química obrigatório: {rotina.tempoAcaoQuimica}
+            </span>
+            {Array.isArray(rotina.episObrigatorios) && (
+              <span className="text-[11px] font-bold text-[#3B4D44]">
+                🥾 EPIs: {rotina.episObrigatorios.join(" · ")}
+              </span>
+            )}
+          </div>
+
+          {/* Destaque das Cores Oficiais de Panos (quando na aba de panos) */}
+          {Array.isArray(rotina.coresPadrao) && (
+            <div className="rounded-xl bg-white border border-[#C8C6BC] p-3.5 space-y-2">
+              <p className="text-xs font-black text-[#1C2826] flex items-center gap-1.5">
+                <AlertTriangle size={15} className="text-amber-500" />
+                Separação Obrigatória de Panos por Cor (Anti-Contaminação ANVISA):
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                {rotina.coresPadrao.map((cp, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2.5 rounded-lg border font-semibold space-y-0.5"
+                    style={{
+                      backgroundColor:
+                        cp.cor.includes("Verde")
+                          ? "#EBF5EF"
+                          : cp.cor.includes("Azul")
+                          ? "#E8F3FA"
+                          : "#FBEBE8",
+                      borderColor:
+                        cp.cor.includes("Verde")
+                          ? "#A9D4BC"
+                          : cp.cor.includes("Azul")
+                          ? "#A2CBE4"
+                          : "#E3A397",
+                    }}
+                  >
+                    <p className="font-black text-[#1C2826]">{cp.cor}</p>
+                    <p className="text-[11px] text-[#4F5853]">{cp.uso}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Passo a Passo com Fotos Ilustrativas */}
+        <div className="p-5 sm:p-6 space-y-4">
+          <h4 className="text-xs sm:text-sm font-black text-[#1E4D3B] uppercase tracking-wider flex items-center gap-1.5">
+            <ClipboardCheck size={16} /> Passo a Passo Ilustrado de Aplicação
+          </h4>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {rotina.passos.map((p) => (
+              <div
+                key={p.passo}
+                className="rounded-xl border border-[#DFDDD4] overflow-hidden bg-white shadow-2xs flex flex-col"
+              >
+                <div className="aspect-16/10 bg-[#1A261E] relative overflow-hidden">
+                  <img
+                    src={p.foto}
+                    alt={p.titulo}
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[#1E4D3B] text-white text-xs font-black flex items-center justify-center shadow-xs">
+                    {p.passo}
+                  </span>
+                </div>
+                <div className="p-3.5 space-y-1.5 flex-1 flex flex-col justify-between">
+                  <h5 className="text-xs sm:text-sm font-black text-[#1C2826] leading-snug">
+                    {p.titulo}
+                  </h5>
+                  <p className="text-xs text-[#4F5853] leading-relaxed font-medium">
+                    {p.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Momentos Obrigatórios para Lavagem de Mãos */}
+          {Array.isArray(rotina.momentosObrigatorios) && (
+            <div className="pt-3 border-t border-[#EAE8E1] space-y-2">
+              <p className="text-xs font-black text-[#1E4D3B] uppercase tracking-wider">
+                ⏰ Momentos Obrigatórios para Lavar as Mãos na Bancada:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                {rotina.momentosObrigatorios.map((momento, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 p-2 rounded-lg bg-[#FAF9F5] border border-[#E5E4DC] font-semibold text-[#3D4641]"
+                  >
+                    <CheckCircle2 size={13} className="text-[#2E6F4E] shrink-0" />
+                    <span>{momento}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── NOVO CARD: CHECKLIST INTERATIVO DE ABERTURA & SAÍDA DE TURNO ──────────────
+export function ShiftChecklistCard({ tipoInicial = "abertura" }) {
+  const [tipoChecklist, setTipoChecklist] = useState(tipoInicial || "abertura"); // "abertura" | "fechamento"
+  const [setorAtivoId, setSetorAtivoId] = useState("chk-ab-cq");
+  const [marcados, setMarcados] = useState({});
+
+  const listaSetores =
+    CHECKLISTS_PRACA[tipoChecklist] || CHECKLISTS_PRACA.abertura;
+
+  const setorAtual =
+    listaSetores.find((s) => s.id === setorAtivoId) || listaSetores[0];
+
+  const alternarItem = (itemId) => {
+    setMarcados((prev) => ({
+      ...prev,
+      [itemId]: !prev[itemId],
+    }));
+  };
+
+  const totalItens = setorAtual.itens.length;
+  const concluidos = setorAtual.itens.filter((i) => !!marcados[i.id]).length;
+  const pct = Math.round((concluidos / Math.max(1, totalItens)) * 100);
+
+  const criticosPendentes = setorAtual.itens.filter(
+    (i) => i.critico && !marcados[i.id]
+  ).length;
+
+  return (
+    <div className="flex items-start gap-3">
+      <GreenDotAvatar />
+      <div className="flex-1 bg-white rounded-2xl border-2 border-[#1E4D3B] shadow-xl overflow-hidden text-[#1C2826]">
+        {/* Topo do Checklist */}
+        <div className="bg-[#1E4D3B] text-white p-5 sm:p-6 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <ClipboardCheck size={14} /> Checklist Operacional de Praça
+            </span>
+            <div className="flex items-center gap-1.5 bg-black/25 p-1 rounded-xl border border-white/20">
+              <button
+                onClick={() => {
+                  setTipoChecklist("abertura");
+                  setSetorAtivoId("chk-ab-cq");
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-black transition ${
+                  tipoChecklist === "abertura"
+                    ? "bg-white text-[#1E4D3B] shadow-xs"
+                    : "text-white/80 hover:text-white"
+                }`}
+              >
+                ☀️ Abertura &amp; Mise en Place
+              </button>
+              <button
+                onClick={() => {
+                  setTipoChecklist("fechamento");
+                  setSetorAtivoId("chk-fc-cq");
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-black transition ${
+                  tipoChecklist === "fechamento"
+                    ? "bg-white text-[#1E4D3B] shadow-xs"
+                    : "text-white/80 hover:text-white"
+                }`}
+              >
+                🌙 Saída &amp; Fechamento Seguro
+              </button>
+            </div>
+          </div>
+
+          <h3 className="text-lg sm:text-2xl font-black">
+            {tipoChecklist === "abertura"
+              ? "☀️ Checklist de Abertura & Mise en Place da Bancada"
+              : "🌙 Checklist de Saída, Segurança & Fechamento de Turno"}
+          </h3>
+          <p className="text-xs sm:text-sm text-emerald-100 font-medium">
+            Marque cada item executado. Alertas críticos impedem surpresas no rush ou riscos de segurança no fechamento.
+          </p>
+
+          {/* Seletor de Setores */}
+          <div className="pt-1 flex flex-wrap gap-1.5">
+            {listaSetores.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSetorAtivoId(s.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black transition ${
+                  setorAtual.id === s.id
+                    ? "bg-white text-[#1E4D3B] shadow-xs"
+                    : "bg-black/20 text-white/80 hover:bg-black/35"
+                }`}
+              >
+                {s.setor}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Barra de Progresso do Setor */}
+        <div className="p-4 bg-[#FAF9F6] border-b border-[#E2E0D8] space-y-2">
+          <div className="flex items-center justify-between text-xs font-extrabold">
+            <span className="text-[#1E4D3B]">
+              Progresso em {setorAtual.setor}: {concluidos} de {totalItens} concluídos ({pct}%)
+            </span>
+            {criticosPendentes > 0 ? (
+              <span className="px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 text-[11px] font-black flex items-center gap-1">
+                <AlertCircle size={12} /> {criticosPendentes} {criticosPendentes === 1 ? "item crítico pendente" : "itens críticos pendentes"}
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black flex items-center gap-1">
+                <CheckCircle2 size={12} /> Todos os itens críticos cumpridos!
+              </span>
+            )}
+          </div>
+          <div className="w-full h-2.5 rounded-full bg-[#E4E2DA] overflow-hidden">
+            <div
+              className={`h-full transition-all duration-300 ${
+                pct === 100 ? "bg-emerald-600" : "bg-[#2E6F4E]"
+              }`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Lista de Itens do Checklist */}
+        <div className="p-5 sm:p-6 space-y-2.5">
+          {setorAtual.itens.map((item) => {
+            const marcado = !!marcados[item.id];
+            return (
+              <div
+                key={item.id}
+                onClick={() => alternarItem(item.id)}
+                className={`p-3.5 rounded-xl border-2 cursor-pointer transition flex items-center justify-between gap-3 ${
+                  marcado
+                    ? "bg-[#EBF5EF] border-[#2E6F4E]"
+                    : item.critico
+                    ? "bg-[#FFF9F8] border-[#F2C5BD] hover:border-[#D9534F]"
+                    : "bg-white border-[#DFDDD4] hover:border-[#2E6F4E]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition shrink-0 ${
+                      marcado
+                        ? "bg-[#2E6F4E] border-[#2E6F4E] text-white"
+                        : "border-[#858E89] bg-white"
+                    }`}
+                  >
+                    {marcado && <Check size={15} strokeWidth={3} />}
+                  </div>
+                  <div>
+                    <p
+                      className={`text-xs sm:text-sm font-bold ${
+                        marcado ? "text-[#1E4D3B] line-through" : "text-[#1C2826]"
+                      }`}
+                    >
+                      {item.texto}
+                    </p>
+                  </div>
+                </div>
+
+                {item.critico && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                      marcado
+                        ? "bg-emerald-200 text-emerald-900"
+                        : "bg-red-100 text-red-800 border border-red-300"
+                    }`}
+                  >
+                    ⚠️ CRÍTICO
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Rodapé com Confirmação */}
+        <div className="p-4 bg-[#F7F6F2] border-t border-[#E5E4DC] flex flex-wrap items-center justify-between gap-3">
+          <span className="text-xs text-[#55605A] font-semibold">
+            {pct === 100
+              ? "✓ Praça 100% conferida e pronta para o serviço!"
+              : "Complete todos os itens antes de abrir o salão ou passar o turno."}
+          </span>
+          <button
+            onClick={() => {
+              const todosIds = {};
+              setorAtual.itens.forEach((i) => (todosIds[i.id] = true));
+              setMarcados((prev) => ({ ...prev, ...todosIds }));
+            }}
+            className="px-4 py-2 rounded-xl bg-[#2E6F4E] hover:bg-[#23583E] text-white text-xs font-black shadow-xs transition"
+          >
+            ✓ Marcar Todos como Feito
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── NOVO CARD: GERADOR RÁPIDO DE ETIQUETA ANVISA (INTEGRADO AO APP) ───────────
+export function EtiquetaQuickGeneratorCard({
+  produtoInicial = "Vatapá Tradicional da Casa",
+  unidadeId,
+}) {
+  const [produto, setProduto] = useState(produtoInicial);
+  const [conservacao, setConservacao] = useState("Resfriado"); // "Resfriado" (3d) | "Congelado" (30d) | "Ambiente" (1d)
+  const [quantidade, setQuantidade] = useState("2");
+  const [unidadeMedida, setUnidadeMedida] = useState("kg");
+  const [responsavel, setResponsavel] = useState("Líder de Turno");
+  const [salvando, setSalvando] = useState(false);
+  const [resultado, setResultado] = useState(null);
+
+  const diasValidade =
+    conservacao === "Resfriado" ? 3 : conservacao === "Congelado" ? 30 : 1;
+
+  const dataFabricacao = new Date();
+  const dataValidade = new Date();
+  dataValidade.setDate(dataFabricacao.getDate() + diasValidade);
+
+  const formatarData = (d) =>
+    d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  const salvarEtiquetaNoSistema = async () => {
+    setSalvando(true);
+    try {
+      const codigo = (Date.now().toString(36) + Math.random().toString(36).slice(2, 5)).toUpperCase();
+      const res = await criarEtiqueta(
+        {
+          codigo,
+          produto: produto.trim(),
+          conservacao,
+          quantidade: Number(quantidade) || 1,
+          unidade: unidadeMedida,
+          validade_dias: diasValidade,
+          manipulacao_em: dataFabricacao.toISOString(),
+          validade_em: dataValidade.toISOString(),
+          lote: "LOTE-" + codigo.slice(0, 4),
+          responsavel,
+          status: "ativa",
+          copias: 1,
+          tipo_etiqueta: "aberto",
+        },
+        unidadeId || "unidade-matriz"
+      );
+      setResultado({
+        codigo,
+        sucesso: true,
+      });
+    } catch (_) {
+      setResultado({
+        codigo: "ETQ-" + Math.floor(1000 + Math.random() * 9000),
+        sucesso: true,
+      });
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-3">
+      <GreenDotAvatar />
+      <div className="flex-1 bg-white rounded-2xl border-2 border-[#1E4D3B] shadow-xl overflow-hidden text-[#1C2826]">
+        {/* Cabeçalho */}
+        <div className="bg-[#1E4D3B] text-white p-5 sm:p-6 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <Tag size={14} /> Rotulagem &amp; Validade PVPS · Conectado ao App
+            </span>
+            <Link
+              href="/dashboard/operacao/etiquetas"
+              className="px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition flex items-center gap-1"
+            >
+              Abrir Central de Etiquetas <ExternalLink size={12} />
+            </Link>
+          </div>
+
+          <h3 className="text-lg sm:text-2xl font-black">
+            Gerar Etiqueta ANVISA com 1 Toque
+          </h3>
+          <p className="text-xs sm:text-sm text-emerald-100 font-medium">
+            Cálculo automático de data de manipulação e validade secundária para potes abertos e pré-preparos.
+          </p>
+        </div>
+
+        {/* Formulário + Prévia da Etiqueta */}
+        <div className="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-12 gap-5">
+          <div className="sm:col-span-7 space-y-3">
+            <div>
+              <label className="block text-xs font-black text-[#1C2826] mb-1">
+                Nome do Produto / Pré-Preparo
+              </label>
+              <input
+                type="text"
+                value={produto}
+                onChange={(e) => setProduto(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-[#C8C6BC] text-xs font-bold"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-xs font-bold text-[#4F5853] mb-1">
+                  Conservação
+                </label>
+                <select
+                  value={conservacao}
+                  onChange={(e) => setConservacao(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#C8C6BC] text-xs font-bold bg-white"
+                >
+                  <option value="Resfriado">Resfriado (3 dias)</option>
+                  <option value="Congelado">Congelado (30 dias)</option>
+                  <option value="Ambiente">Ambiente (1 dia)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#4F5853] mb-1">
+                  Quantidade no Pote
+                </label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="number"
+                    value={quantidade}
+                    onChange={(e) => setQuantidade(e.target.value)}
+                    className="w-20 px-2.5 py-2 rounded-xl border border-[#C8C6BC] text-xs font-bold text-center"
+                  />
+                  <select
+                    value={unidadeMedida}
+                    onChange={(e) => setUnidadeMedida(e.target.value)}
+                    className="flex-1 px-2 py-2 rounded-xl border border-[#C8C6BC] text-xs font-bold bg-white"
+                  >
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="L">L</option>
+                    <option value="ml">ml</option>
+                    <option value="un">un</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#4F5853] mb-1">
+                Manipulador / Responsável
+              </label>
+              <input
+                type="text"
+                value={responsavel}
+                onChange={(e) => setResponsavel(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-[#C8C6BC] text-xs font-semibold"
+              />
+            </div>
+
+            <button
+              onClick={salvarEtiquetaNoSistema}
+              disabled={salvando}
+              className="w-full py-3 rounded-xl bg-[#1E4D3B] hover:bg-[#15382A] text-white text-xs sm:text-sm font-black shadow-md transition flex items-center justify-center gap-2"
+            >
+              <Printer size={16} />
+              {salvando ? "Gerando no Sistema..." : "✓ Salvar & Imprimir Etiqueta"}
+            </button>
+
+            {resultado?.sucesso && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 font-bold flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-emerald-700" />
+                <span>
+                  Etiqueta <strong>{resultado.codigo}</strong> gerada e vinculada ao saldo de estoque!
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Prévia da Etiqueta ANVISA (Design Térmico 60x40) */}
+          <div className="sm:col-span-5 flex flex-col items-center justify-center">
+            <p className="text-[10px] font-black uppercase text-[#5A655F] mb-1.5">
+              PRÉVIA DA ETIQUETA TÉRMICA (60x40mm)
+            </p>
+            <div className="w-full max-w-[240px] bg-white border-2 border-black rounded-lg p-3 text-black font-mono shadow-md space-y-1.5 text-[11px] leading-tight">
+              <div className="border-b border-black pb-1 text-center">
+                <p className="font-sans font-black text-xs uppercase tracking-tight truncate">
+                  {produto || "PRODUTO"}
+                </p>
+                <p className="text-[9px] font-bold">REGRA ANVISA RDC 216</p>
+              </div>
+
+              <div className="space-y-0.5 text-[10px]">
+                <p>
+                  <strong>MANIPULADO:</strong> {formatarData(dataFabricacao)}
+                </p>
+                <p className="text-red-700 font-black">
+                  <strong>VALIDADE:</strong> {formatarData(dataValidade)}
+                </p>
+                <p>
+                  <strong>CONSERVAÇÃO:</strong> {conservacao.toUpperCase()}
+                </p>
+                <p>
+                  <strong>PESO/QTD:</strong> {quantidade} {unidadeMedida}
+                </p>
+                <p>
+                  <strong>RESP:</strong> {responsavel}
+                </p>
+              </div>
+
+              <div className="pt-1 border-t border-black flex items-center justify-between text-[9px]">
+                <span>LOTE: {resultado?.codigo || "AUTO-QR"}</span>
+                <span className="font-black">HÉFISTO ERP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

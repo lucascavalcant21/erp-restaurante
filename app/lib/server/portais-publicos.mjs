@@ -1,13 +1,15 @@
 import { createHash, randomBytes } from "node:crypto";
 import { normalizarTreinamento } from "../treinamento-normalizar.mjs";
+import { mascaraTelefone } from "../mascaras.mjs";
 
-// PORTAIS PÚBLICOS DO RH — o que antes o navegador anônimo fazia direto na
-// tabela agora passa por aqui, com service_role só no servidor.
+// PORTAIS PÚBLICOS (RH e eventos) — o que antes o navegador anônimo fazia
+// direto na tabela agora passa por aqui, com service_role só no servidor.
 //
 //   /extras/[unidade]   → registrarCadastroExtra   (INSERT em extras_cadastros)
 //   /vagas/[unidade]    → registrarCandidatura     (INSERT em candidatos)
 //                       → lerConviteExtra          (pré-preenchimento, por token)
 //   /treinamento/[tok]  → lerTreinamentoPublico    (SELECT em treinamentos)
+//   /eventos/[unidade]  → registrarPedidoEvento    (INSERT em eventos)
 //
 // Regras comuns:
 //   - lista fechada de campos (allowlist); campo desconhecido é descartado;
@@ -65,7 +67,9 @@ async function unidadeExiste(db, unidade) {
 
 // Coluna ainda não migrada? Tira do envio e tenta de novo — mesmo critério do
 // portal antigo: o candidato não pode ver erro por ALTER TABLE pendente.
-async function inserirTolerante(db, tabela, payload, { tentativas = 6 } = {}) {
+// `essenciais`: sem elas não vale gravar. `realocar[coluna](campos)`: antes de
+// a coluna sair do envio, guarda o valor em outro campo (nada se perde).
+async function inserirTolerante(db, tabela, payload, { tentativas = 6, essenciais = ["unidade_id"], realocar = {} } = {}) {
   const campos = { ...payload };
   for (let n = 0; n <= tentativas; n += 1) {
     const { data, error } = await db.from(tabela).insert([campos]).select("id").single();
@@ -73,8 +77,10 @@ async function inserirTolerante(db, tabela, payload, { tentativas = 6 } = {}) {
     const m = error.message || "";
     const achou = m.match(/column "?([a-z_]+)"? (?:of relation "[a-z_]+" )?does not exist/i)
       || (m.includes("Could not find") && m.match(/'([a-z_]+)' column/i));
-    if (!achou || !(achou[1] in campos) || achou[1] === "unidade_id") return { erro: true };
-    delete campos[achou[1]];
+    const coluna = achou?.[1];
+    if (!coluna || !(coluna in campos) || essenciais.includes(coluna)) return { erro: true };
+    if (Object.hasOwn(realocar, coluna)) realocar[coluna](campos);
+    delete campos[coluna];
   }
   return { erro: true };
 }
@@ -279,6 +285,108 @@ export async function registrarCandidatura({ db, payload, agora = Date.now(), li
       return falha(429, "limite", "Recebemos várias inscrições seguidas. Tente de novo em alguns minutos.");
     }
     const r = await inserirTolerante(db, "candidatos", payload);
+    if (r.erro) return falha(503, "indisponivel", "Não foi possível enviar agora.");
+    return { ok: true };
+  } catch {
+    return falha(503, "indisponivel", "Não foi possível enviar agora.");
+  }
+}
+
+// ─── PEDIDO DE ORÇAMENTO DE EVENTO (/eventos/[unidade]) ─────────────────────
+
+const TIPOS_DE_EVENTO = ["Casamento", "Aniversário", "Corporativo", "Outro"];
+const hojeEmSaoPaulo = (agora) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(agora));
+
+/** Telefone no formato que o painel de eventos grava, (00) 00000-0000; inválido = null. */
+function telefoneDoCliente(v) {
+  let d = soDigitos(v);
+  if ((d.length === 12 || d.length === 13) && d.startsWith("55")) d = d.slice(2);
+  return d.length === 10 || d.length === 11 ? mascaraTelefone(d) : null;
+}
+
+/**
+ * Valida o pedido do formulário público de eventos. Tipo do evento no funil,
+ * etapa, valores e unidade NUNCA vêm do navegador: o lead entra sempre como
+ * buffet em "NOVO CONTATO", e a unidade sai do banco em registrarPedidoEvento.
+ */
+export function validarPedidoEvento(slug, form, { agora = Date.now() } = {}) {
+  if (!unidadeValida(slug)) return falha(400, "unidade_invalida", "Link inválido.");
+  const f = form && typeof form === "object" ? form : {};
+
+  const nome = texto(f.nome, 120);
+  if (!nome || nome.length < 3) return falha(400, "parametro_invalido", "Informe seu nome completo.");
+  const telefone = telefoneDoCliente(f.telefone);
+  if (!telefone) return falha(400, "parametro_invalido", "Informe um WhatsApp com DDD.");
+
+  // data_evento é NOT NULL no banco: sem data não há pedido.
+  const data = String(f.data ?? "");
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(data) ? new Date(`${data}T12:00:00Z`) : null;
+  if (!d || Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== data) {
+    return falha(400, "parametro_invalido", "Informe a data do evento.");
+  }
+  const hoje = hojeEmSaoPaulo(agora);
+  if (data < hoje) return falha(400, "parametro_invalido", "Escolha uma data a partir de hoje.");
+  if (Number(data.slice(0, 4)) > Number(hoje.slice(0, 4)) + 5) {
+    return falha(400, "parametro_invalido", "Data muito distante. Fale com a gente pelo WhatsApp.");
+  }
+  const convidados = Number(f.convidados);
+  if (!Number.isInteger(convidados) || convidados < 1 || convidados > 5000) {
+    return falha(400, "parametro_invalido", "Informe quantos convidados (de 1 a 5.000).");
+  }
+
+  const tipo = TIPOS_DE_EVENTO.includes(f.tipo) ? f.tipo : "Outro";
+  return {
+    ok: true,
+    slug,
+    payload: {
+      nome: `${tipo === "Outro" ? "Evento" : tipo} de ${nome.split(/\s+/)[0]}`.slice(0, 120),
+      cliente_nome: nome,
+      cliente_telefone: telefone,
+      tipo_evento: "buffet",
+      funil_status: "NOVO CONTATO",
+      data_evento: data,
+      capacidade: convidados,
+      observacoes: texto(f.obs, 2000),
+    },
+  };
+}
+
+/** Unidade do link, lida do banco. Inexistente ou inativa = null. */
+async function unidadeDoLink(db, slug) {
+  const { data, error } = await db.from("unidades").select("id, ativo").eq("id", slug).maybeSingle();
+  if (error) throw new Error("leitura_unidade");
+  return data?.id && data.ativo !== false ? data.id : null;
+}
+
+// Banco sem a coluna `observacoes` (EVENTOS-ORC-1 não aplicada): o texto do
+// cliente vai para operacao_detalhes.pedido_publico em vez de se perder.
+const OBSERVACOES_SEM_COLUNA = {
+  observacoes(campos) {
+    if (!campos.observacoes) return;
+    const det = campos.operacao_detalhes && typeof campos.operacao_detalhes === "object" ? campos.operacao_detalhes : {};
+    campos.operacao_detalhes = { ...det, pedido_publico: { ...(det.pedido_publico || {}), observacoes: campos.observacoes } };
+  },
+};
+
+/** Grava o lead. Devolve só { ok }: nem o id do evento volta ao navegador. */
+export async function registrarPedidoEvento({ db, slug, payload, agora = Date.now(), limitePorTelefone = 3 }) {
+  try {
+    const unidadeId = await unidadeDoLink(db, slug);
+    if (!unidadeId) return falha(404, "unidade_invalida", "Link inválido.");
+
+    // Mesmo WhatsApp repetindo em sequência: freio que vale entre instâncias.
+    const desde = new Date(agora - 10 * 60 * 1000).toISOString();
+    const { count, error: eConta } = await db.from("eventos")
+      .select("id", { count: "exact", head: true })
+      .eq("unidade_id", unidadeId).eq("cliente_telefone", payload.cliente_telefone).gte("created_at", desde);
+    if (!eConta && (count || 0) >= limitePorTelefone) {
+      return falha(429, "limite", "Recebemos vários pedidos seguidos deste número. Tente de novo em alguns minutos.");
+    }
+
+    const r = await inserirTolerante(db, "eventos", { ...payload, unidade_id: unidadeId }, {
+      essenciais: ["unidade_id", "nome", "data_evento", "cliente_nome", "cliente_telefone"],
+      realocar: OBSERVACOES_SEM_COLUNA,
+    });
     if (r.erro) return falha(503, "indisponivel", "Não foi possível enviar agora.");
     return { ok: true };
   } catch {

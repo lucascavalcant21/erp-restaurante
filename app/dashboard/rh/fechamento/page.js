@@ -201,7 +201,7 @@ export default function FechamentoFolhaPage() {
                                        {p.vales_detalhes.map(v => (
                                           <div key={v.id} className="flex justify-between border-b border-slate-700 pb-1 mb-1 last:border-0 last:mb-0">
                                              <span className="truncate pr-2">{v.descricao}</span>
-                                             <span>{fmtBRL(v.valor_final)}</span>
+                                             <span>{fmtBRL(v.valor_desconto ?? v.valor_original)}</span>
                                           </div>
                                        ))}
                                     </div>

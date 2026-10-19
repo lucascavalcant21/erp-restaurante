@@ -24,7 +24,8 @@ export default function FechamentoFolhaPage() {
     
     // Inicializar os campos editáveis
     const pags = data.map(c => {
-      const acrescimos = 0;
+      // Noturno e feriado vêm do ponto; o RH pode mudar o valor no campo.
+      const acrescimos = Number(c.acrescimos_sugeridos) || 0;
       const vales = Number(c.total_vales_pendentes) || 0;
       const descontos_manuais = 0;
       const liquido = c.base_calculada + acrescimos - vales - descontos_manuais;
@@ -130,7 +131,7 @@ export default function FechamentoFolhaPage() {
             <div className="bg-zinc-100 border border-zinc-200 p-4 rounded-xl flex gap-3 text-zinc-800 text-sm mb-6 font-medium">
                <Info size={20} className="shrink-0"/>
                <p>
-                  <strong>Regras aplicadas:</strong> Entram os contratados que estavam na casa no mês, com o salário fixo; os vales com desconto em folha saem do líquido. Extras ficam fora: são pagos pelo recibo de cada diária. Quem foi desligado no mês aparece marcado para você ajustar o proporcional. Horas extras, noturno e feriado ainda não entram aqui: lance em Acréscimos. O vencimento no financeiro será gerado automaticamente para o 5º dia útil do mês seguinte.
+                  <strong>Regras aplicadas:</strong> Entram os contratados que estavam na casa no mês, com o salário fixo; os vales com desconto em folha saem do líquido. Extras ficam fora: são pagos pelo recibo de cada diária. Quem foi desligado no mês aparece marcado para você ajustar o proporcional. Adicional noturno e feriado trabalhado vêm do ponto em Acréscimos (dá para mudar o valor). A hora extra aparece mas não é somada: o relógio já a manda para o banco de horas. O vencimento no financeiro será gerado automaticamente para o 5º dia útil do mês seguinte.
                </p>
             </div>
 
@@ -189,6 +190,14 @@ export default function FechamentoFolhaPage() {
                                     placeholder="0,00"
                                     className="w-24 text-right p-2 bg-card border border-line rounded-lg outline-none focus:border-emerald-600 text-success font-bold"
                                  />
+                                 {p.adicionais && (p.adicionais.min_noturno > 0 || p.adicionais.min_feriado > 0 || p.adicionais.min_extra > 0) && (
+                                    <div className="mt-1 text-3xs font-semibold text-subtle leading-snug">
+                                       {p.adicionais.min_noturno > 0 && <div>Noturno {p.adicionais.noturno_pct}%: {fmtBRL(p.adicionais.noturno)}</div>}
+                                       {p.adicionais.min_feriado > 0 && <div>Feriado +{p.adicionais.feriado_pct}%: {fmtBRL(p.adicionais.feriado)}</div>}
+                                       {p.adicionais.min_extra > 0 && <div className="text-amber-800">Hora extra {Math.round(p.adicionais.min_extra / 6) / 10}h ({fmtBRL(p.adicionais.extra)}) fora da soma: já foi para o banco de horas</div>}
+                                       <div>Regra: {p.adicionais.regra}</div>
+                                    </div>
+                                 )}
                               </td>
 
                               <td className="py-4 text-right relative group/vale cursor-help">

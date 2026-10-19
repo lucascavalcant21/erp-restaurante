@@ -15,14 +15,15 @@ import {
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
   fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
-  fetchFeriados, inserirFeriado, removerFeriado,
+  fetchFeriados, inserirFeriado, removerFeriado, fetchAtestadosUnidade,
   fetchLiberacoesColab, removerLiberacao,
   salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo, anexarFotoReciboAssinado,
   desligarColaborador, registrarAvisoPrevio, cancelarAvisoPrevio
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMesUnidade, fetchHistoricoPontoCompleto, fetchPontoDoDia } from "../../lib/ponto";
 import { domingosParaFolga, folgasDeDomingoNoMes, avisosDaFolga, dataCurta } from "../../lib/folgas-domingo.mjs";
-import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
+import { situacaoDoPonto, atestadoNaData } from "../../lib/ponto-status.mjs";
+import { TOLERANCIA_MARCACAO_MIN } from "../../lib/jornada-calculo.mjs";
 import { situacaoExperiencia, emExperiencia, faseContratoCalculada, situacaoAvisoPrevio, tempoDeCasa, aniversario, aniversariantesDoMes, fraseAniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
@@ -87,6 +88,7 @@ export default function RHPage() {
   const [convencao, setConvencao] = useState(null);
   useEffect(() => { fetchConvencaoAtiva(unidadeAtiva).then(setConvencao); }, [unidadeAtiva]);
   const [folgasUnidade, setFolgasUnidade] = useState([]);       // p/ relatório de faltas
+  const [atestadosMes, setAtestadosMes] = useState([]);         // atestado não é falta
   const [paramsSis, setParamsSis] = useState(PARAMS_PADRAO);     // parâmetros ajustáveis
   useEffect(() => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchParams(unidadeAtiva).then(r => setParamsSis(r.data)); }, [unidadeAtiva]);
   const [lancamentos, setLancamentos] = useState([]);             // p/ faturamento do mês (CMO %)
@@ -422,8 +424,9 @@ export default function RHPage() {
 
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
-    const mesAtual = new Date().toISOString().slice(0, 7);
-    const [resRh, resPonto, resCargos, resBanco, resVales, resPontosMes, resFeriadosMes, resFolgas] = await Promise.all([
+    const _hj = new Date();
+    const mesAtual = `${_hj.getFullYear()}-${String(_hj.getMonth() + 1).padStart(2, "0")}`;
+    const [resRh, resPonto, resCargos, resBanco, resVales, resPontosMes, resFeriadosMes, resFolgas, resAtestados] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
       fetchCargos(unidadeAtiva),
@@ -432,7 +435,9 @@ export default function RHPage() {
       fetchPontosMesUnidade(unidadeAtiva, mesAtual),
       fetchFeriados(unidadeAtiva, mesAtual),
       fetchAllFolgasDaUnidade(unidadeAtiva),
+      fetchAtestadosUnidade(unidadeAtiva, { desde: `${mesAtual}-01` }),
     ]);
+    setAtestadosMes(resAtestados.data || []);
     const resLanc = await fetchLancamentos(unidadeAtiva);
     setLancamentos(resLanc.data || []);
 
@@ -455,55 +460,48 @@ export default function RHPage() {
   // ── Relatório do mês: faltas e atrasos dos fixos + extras por dia ──────────
   const imprimirFaltasAtrasos = () => {
     const hoje = new Date();
-    const mesAtual = hoje.toISOString().slice(0, 7);
+    const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
     const diaHoje = hoje.getDate();
+    const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
     const ativos = funcionarios.filter(f => (f.status || "ativo") !== "inativo");
     const fixos = ativos.filter(f => f.tipo_contrato !== "Freelancer");
-    const extras = ativos.filter(f => f.tipo_contrato === "Freelancer");
 
     const dataStr = (d) => `${mesAtual}-${String(d).padStart(2, "0")}`;
     const pontoDe = (fid, dStr) => pontosMesUnidade.find(p => p.colaborador_id === fid && p.data_referencia === dStr);
     const temFolga = (fid, dStr) => folgasUnidade.some(fl => fl.colaborador_id === fid && String(fl.data_folga).slice(0, 10) === dStr);
+    const emMin = (hhmm) => { const [h, m] = String(hhmm).split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 
+    // Regras (RH-B2): dia antes da admissão não é falta; atestado não é falta;
+    // hoje só vira falta depois da entrada + tolerância; horário por dia da
+    // semana vale; atraso usa a mesma tolerância do relógio (CLT art. 58 §1º).
     const linhasFixos = fixos.map(f => {
       const dias = String(f.dias_trabalho || "").split(",").map(s => s.trim()).filter(Boolean);
-      let previstos = 0, presencas = 0, faltas = [], atrasos = 0, minAtraso = 0;
+      const admissao = String(f.data_admissao || "").slice(0, 10);
+      const atestadosDele = atestadosMes.filter(a => a.colaborador_id === f.id);
+      let previstos = 0, presencas = 0, faltas = [], atrasos = 0, minAtraso = 0, atestados = 0;
       for (let d = 1; d <= diaHoje; d++) {
         const dt = new Date(hoje.getFullYear(), hoje.getMonth(), d);
-        if (dias.length && !dias.includes(String(dt.getDay()))) continue; // folga semanal
         const dStr = dataStr(d);
+        if (admissao && dStr < admissao) continue;
+        if (dias.length && !dias.includes(String(dt.getDay()))) continue; // folga semanal
         if (temFolga(f.id, dStr)) continue; // folga programada
-        previstos++;
+        const prevStr = horarioDoDia(f, dt.getDay()).entrada;
         const p = pontoDe(f.id, dStr);
-        if (!p || !p.hora_entrada) { faltas.push(d); continue; }
+        if (d === diaHoje && !p?.hora_entrada && (!prevStr || minAgora <= emMin(prevStr) + TOLERANCIA_MARCACAO_MIN)) continue; // turno ainda não começou
+        previstos++;
+        if (!p || !p.hora_entrada) {
+          if (atestadoNaData(atestadosDele, dStr)) { atestados++; continue; }
+          faltas.push(d); continue;
+        }
         presencas++;
-        // Atraso: entrada gravada depois da prevista (a tolerância já ajusta por dentro)
-        const prevStr = dt.getDay() === 0 ? (f.horario_dom_entrada || f.horario_entrada) : f.horario_entrada;
         if (prevStr) {
-          const [hh, mm] = prevStr.split(":").map(Number);
-          const prev = new Date(dt); prev.setHours(hh || 0, mm || 0, 0, 0);
+          const prev = new Date(dt); prev.setHours(0, emMin(prevStr), 0, 0);
           const atrasoMin = Math.round((new Date(p.hora_entrada).getTime() - prev.getTime()) / 60000);
-          if (atrasoMin >= 1) { atrasos++; minAtraso += atrasoMin; }
+          if (atrasoMin > TOLERANCIA_MARCACAO_MIN) { atrasos++; minAtraso += atrasoMin; }
         }
       }
-      return { f, previstos, presencas, faltas, atrasos, minAtraso };
+      return { f, previstos, presencas, faltas, atrasos, minAtraso, atestados };
     }).sort((a, b) => (b.faltas.length - a.faltas.length) || (b.minAtraso - a.minAtraso));
-
-    // Extras por dia: quem bateu ponto em cada dia × diária
-    const linhasExtras = [];
-    for (let d = 1; d <= diaHoje; d++) {
-      const dStr = dataStr(d);
-      const doDia = extras.filter(f => pontoDe(f.id, dStr));
-      if (!doDia.length) continue;
-      linhasExtras.push({
-        dia: `${String(d).padStart(2, "0")}/${String(hoje.getMonth() + 1).padStart(2, "0")}`,
-        qtd: doDia.length,
-        nomes: doDia.map(f => f.nome.split(" ")[0]).join(", "),
-        custo: doDia.reduce((s, f) => s + (Number(f.salario) || 0), 0),
-      });
-    }
-    const totalDiarias = linhasExtras.reduce((s, l) => s + l.qtd, 0);
-    const totalCustoExtras = linhasExtras.reduce((s, l) => s + l.custo, 0);
 
     const mesNome = hoje.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Faltas e Atrasos — ${mesNome}</title>
@@ -527,32 +525,25 @@ export default function RHPage() {
       </style></head><body>
       <div class="head">
         <div><div class="tag">Relatório de Presença — RH</div><h1>${mesNome}</h1></div>
-        <div class="meta">${unidadeAtiva ? "" : ""}até ${hoje.toLocaleDateString("pt-BR")}<br/>${fixos.length} fixo(s) · ${extras.length} extra(s)</div>
+        <div class="meta">${unidadeAtiva ? "" : ""}até ${hoje.toLocaleDateString("pt-BR")}<br/>${fixos.length} fixo(s)</div>
       </div>
 
       <h2>Faltas e Atrasos — Equipe Fixa</h2>
       <table>
-        <thead><tr><th>Colaborador</th><th>Função</th><th>Dias previstos</th><th>Presenças</th><th>Faltas</th><th>Dias das faltas</th><th>Atrasos</th><th>Min. de atraso</th></tr></thead>
+        <thead><tr><th>Colaborador</th><th>Função</th><th>Dias previstos</th><th>Presenças</th><th>Faltas</th><th>Dias das faltas</th><th>Atestados</th><th>Atrasos</th><th>Min. de atraso</th></tr></thead>
         <tbody>
           ${linhasFixos.map(l => `<tr>
             <td><b>${l.f.nome}</b></td><td>${l.f.cargo || ""}</td>
             <td class="c">${l.previstos}</td><td class="c">${l.presencas}</td>
             <td class="c ${l.faltas.length ? "falta" : ""}">${l.faltas.length}</td>
             <td>${l.faltas.map(d => String(d).padStart(2, "0")).join(", ") || "—"}</td>
+            <td class="c">${l.atestados || "—"}</td>
             <td class="c">${l.atrasos}</td><td class="c">${l.minAtraso > 0 ? l.minAtraso + " min" : "—"}</td>
-          </tr>`).join("") || '<tr><td colspan="8">Nenhum fixo ativo.</td></tr>'}
+          </tr>`).join("") || '<tr><td colspan="9">Nenhum fixo ativo.</td></tr>'}
         </tbody>
       </table>
 
-      <h2>Extras por Dia (diárias pelo ponto)</h2>
-      <table>
-        <thead><tr><th>Dia</th><th>Qtd extras</th><th>Quem</th><th>Custo (diárias)</th></tr></thead>
-        <tbody>
-          ${linhasExtras.map(l => `<tr><td class="c">${l.dia}</td><td class="c">${l.qtd}</td><td>${l.nomes}</td><td class="r">${fmtBRL(l.custo)}</td></tr>`).join("") || '<tr><td colspan="4">Nenhum extra bateu ponto no mês.</td></tr>'}
-          ${linhasExtras.length ? `<tr class="tot"><td>TOTAL</td><td class="c">${totalDiarias} diária(s)</td><td></td><td class="r">${fmtBRL(totalCustoExtras)}</td></tr>` : ""}
-        </tbody>
-      </table>
-      <p style="font-size:9px;color:#94a3b8;margin-top:8px">Falta = dia de trabalho previsto sem batida de ponto (desconta folgas semanais e programadas). Atraso = entrada gravada após o horário; a tolerância legal já é aplicada na marcação. Gerado em ${new Date().toLocaleString("pt-BR")}.</p>
+      <p style="font-size:9px;color:#94a3b8;margin-top:8px">Falta = dia de trabalho previsto, a partir da admissão, sem batida de entrada e sem atestado (desconta folgas semanais e marcadas; hoje só conta depois do horário de entrada). Atraso = entrada mais de ${TOLERANCIA_MARCACAO_MIN} min depois do horário do dia (CLT art. 58 §1º). Extras ficam fora: são pagos por recibo. Gerado em ${new Date().toLocaleString("pt-BR")}.</p>
       </body></html>`;
     const win = window.open("", "_blank", "width=980,height=1000");
     if (win) { win.document.write(comFecharImpressao(html)); win.document.close(); setTimeout(() => win.print(), 400); }
@@ -2289,33 +2280,30 @@ export default function RHPage() {
                         </div>
                         <div>
                            <label className="text-xs font-bold text-emerald-700 uppercase tracking-widest block mb-1">Fase do Contrato</label>
+                           {/* Mudança de fase de quem já está cadastrado passa pelo vínculo, com
+                               aprovação e histórico (prontuário > Contratos). Antes este campo e os
+                               botões gravavam direto no cadastro: o contrato ficava diferente do
+                               vínculo, e "Não renovar" nem chegava a ser salvo (RH-B2). */}
+                           {editandoId ? (
+                              <div className="flex min-h-12 items-center rounded-xl border border-line bg-card px-4 font-bold text-fg-soft">{novoFunc.status_contrato || "não informado"}</div>
+                           ) : (
                            <select value={novoFunc.status_contrato} onChange={e=>setNovoFunc({...novoFunc, status_contrato: e.target.value})} className="w-full p-4 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-600 text-fg-soft appearance-none">
                               <option value="Experiência 45">Experiência (45 + 45 dias)</option>
                               <option value="Experiência 30">Experiência (30 + 60 dias)</option>
                               <option value="Definitivo">Contrato Definitivo</option>
                            </select>
+                           )}
                            {(() => {
                               const info = faseContratoCalculada(novoFunc);
-                              const decisao = !info.ehDefinitivo && info.diasRestantesPeriodo !== null && info.diasRestantesPeriodo <= 5;
                               return (
                                  <div className="mt-2 flex flex-col gap-2">
                                     <p className="text-xs font-bold text-zinc-700 bg-zinc-100/80 p-2.5 rounded-xl border border-zinc-200">
-                                       ℹ️ {info.fase}: {info.detalhe}
+                                       {info.fase}: {info.detalhe}
                                     </p>
-                                    {decisao && (
-                                       <div className="flex flex-wrap gap-2 mt-1">
-                                          {info.periodo === 1 && (
-                                             <button type="button" onClick={() => alert("O contrato já passa automaticamente para o 2º período amanhã caso você não encerre hoje.")} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-3xs rounded-lg border border-zinc-200 transition-colors">
-                                                Renovar para 2º Período
-                                             </button>
-                                          )}
-                                          <button type="button" onClick={() => setNovoFunc({...novoFunc, status_contrato: "Definitivo"})} className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-3xs rounded-lg border border-emerald-200 transition-colors">
-                                             Transformar em Fixo
-                                          </button>
-                                          <button type="button" onClick={() => { if(confirm("Deseja realmente marcar o funcionário como Inativo (desligado)?")) setNovoFunc({...novoFunc, status: "inativo"}) }} className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-3xs rounded-lg border border-rose-200 transition-colors">
-                                             Não Renovar (Desligar)
-                                          </button>
-                                       </div>
+                                    {editandoId && (
+                                       <button type="button" onClick={() => { setModalNovo(false); router.push(`/dashboard/rh/funcionario/${editandoId}?aba=contratos`); }} className="self-start px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-3xs rounded-lg border border-emerald-200 transition-colors">
+                                          Prorrogar, efetivar ou mudar contrato no prontuário
+                                       </button>
                                     )}
                                  </div>
                               );

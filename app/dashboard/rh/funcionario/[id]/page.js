@@ -10,7 +10,7 @@
 // só aparecem para quem tem a permissão, e o banco recusa o resto.
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Bell, ClipboardList, DollarSign, GraduationCap, Trash2, Upload, Download, User, Users, Clock, Edit3, Printer, FileText, UserX, AlertTriangle, Eye, EyeOff,
 } from "lucide-react";
@@ -209,7 +209,10 @@ export default function ProntuarioColaboradorPage() {
   const [vinculoReg, setVinculoReg] = useState(null); // vínculo aberto em rh_vinculos (RH-4)
   const [versaoVinculo, setVersaoVinculo] = useState(0);
   const [sessao, setSessao] = useState(null);
-  const [aba, setAba] = useState("resumo");
+  // ?aba=contratos (e as outras) abre direto na aba: o Quadro e o cadastro
+  // mandam prorrogar/efetivar para cá.
+  const abaDaUrl = useSearchParams().get("aba");
+  const [aba, setAba] = useState(() => (ABAS_PRONTUARIO.some((a) => a.id === abaDaUrl) ? abaDaUrl : "resumo"));
   const [extras, setExtras] = useState({}); // dados carregados por aba
   const [tiposB, setTiposB] = useState([]);
   const [mostrarCpf, setMostrarCpf] = useState(false);

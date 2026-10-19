@@ -25,6 +25,7 @@ import { abrirArquivoRH } from "../../lib/rh-arquivos";
 import { imprimirReciboExtra } from "../../lib/recibo-extra";
 import { supabase } from "../../lib/supabase";
 import { fetchConvencaoAtiva } from "../../lib/trabalhista/convencoes-dados";
+import { TOLERANCIA_MARCACAO_MIN } from "../../lib/jornada-calculo.mjs";
 import { regrasDaCompetencia } from "../../lib/trabalhista/regras-competencia.mjs";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -80,13 +81,6 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
   const [formAtestado, setFormAtestado] = useState(null);
   const [salvandoAtestado, setSalvandoAtestado] = useState(false);
 
-  const atualizarStatusContrato = async (novoStatus) => {
-    if (!confirm(`Deseja alterar o status do contrato para "${novoStatus}"?`)) return;
-    const { error } = await supabase.from("colaboradores").update({ status_contrato: novoStatus }).eq("id", sel.id);
-    if (error) return alert("Erro ao atualizar contrato: " + error.message);
-    setSel({ ...sel, status_contrato: novoStatus });
-    setColaboradores(colaboradores.map(c => c.id === sel.id ? { ...c, status_contrato: novoStatus } : c));
-  };
 
   const salvarAtestadoDoColaborador = async () => {
     if (!formAtestado?.data_inicio) return alert("Informe a data de início do atestado.");
@@ -234,7 +228,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
         if (folgaEsporadica || folgaFixa) return <div className={cls("text-zinc-800 bg-zinc-100 border-zinc-200")}><Clock size={14} /> {diaSemana === 0 ? "Folga (domingo)" : "Folga hoje"}</div>;
         if (entradaEsperada) {
            const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
-           if (minAgora > strToMin(entradaEsperada)) return <div className={cls("text-rose-800 bg-rose-50 border-rose-200")}><AlertTriangle size={14} /> Atrasado (esperado às {entradaEsperada})</div>;
+           if (minAgora > strToMin(entradaEsperada) + TOLERANCIA_MARCACAO_MIN) return <div className={cls("text-rose-800 bg-rose-50 border-rose-200")}><AlertTriangle size={14} /> Atrasado (esperado às {entradaEsperada})</div>;
         }
         return <div className={cls("text-slate-700 bg-slate-50 border-slate-200")}><Clock size={14} /> {situacaoDoPonto(null).texto}</div>;
       }
@@ -242,7 +236,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
       const situacao = situacaoDoPonto(pt);
       if (pt.status_jornada === 1) {
          let atrasado = false;
-         if (entradaEsperada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(entradaEsperada); atrasado = mPt > mAg + 5; }
+         if (entradaEsperada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(entradaEsperada); atrasado = mPt > mAg + TOLERANCIA_MARCACAO_MIN; }
          return <div className={cls(atrasado ? "text-rose-800 bg-rose-50 border-rose-200" : "text-emerald-800 bg-emerald-50 border-emerald-200")}><Clock size={14} /> {situacao.texto}{atrasado ? ` (era p/ ${entradaEsperada})` : ""}</div>;
       }
       if (pt.status_jornada === 2) return <div className={cls("text-amber-800 bg-amber-50 border-amber-200")}><Clock size={14} /> {situacao.texto}</div>;
@@ -314,15 +308,11 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
                   <p className={`text-xs font-bold mb-3 ${critico ? "text-amber-800" : "text-zinc-800"}`}>{f.detalhe}</p>
                   {critico && (
                     <div className="flex flex-wrap gap-2">
-                      {f.periodo === 1 && (
-                        <button type="button" onClick={() => atualizarStatusContrato(`Experiência (${prazoExperiencia(sel) + (90 - prazoExperiencia(sel))}d)`)}
-                          className="bg-white border border-amber-300 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-100 transition-colors">
-                          Renovar para 2º Período
-                        </button>
-                      )}
-                      <button type="button" onClick={() => atualizarStatusContrato("Definitivo")}
+                      {/* Prorrogar e efetivar passam pelo vínculo (aprovação e histórico).
+                          Antes gravavam direto no cadastro e o contrato divergia do vínculo. */}
+                      <button type="button" onClick={() => router.push(`/dashboard/rh/funcionario/${sel.id}?aba=contratos`)}
                         className="bg-emerald-600 border border-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors">
-                        Transformar em Fixo
+                        {f.periodo === 1 ? "Prorrogar ou efetivar" : "Efetivar"}
                       </button>
                       <button type="button" onClick={() => (onDesligar ? onDesligar(sel) : router.push(`/dashboard/rh?aba=quadro`))}
                         className="bg-rose-100 border border-rose-300 text-rose-800 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-200 transition-colors">
@@ -377,7 +367,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
                     <Linha rotulo="Adicional noturno" valor={ad.valorNoturno} dica={`${fmtMin(ad.minNoturno)} · ${rg.noturnoPct}% das ${rg.noturnoInicioH}h às ${rg.noturnoFimH}h · ${fonteRg}`} />
                     <Linha rotulo="Horas extras" valor={ad.valorExtra} dica={`${fmtMin(ad.minExtra)} · +${rg.extraPct}% · ${fonteRg}`} />
                     <Linha rotulo="Trabalho em feriado" valor={ad.valorFeriado} dica={`${fmtMin(ad.minFeriado)} em feriados · +${rg.feriadoPct}% · ${fonteRg}`} />
-                    <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O Fechar folha ainda não soma estes adicionais: lance-os em Acréscimos.</p>
+                    <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O Fechar folha soma o noturno e o feriado; a hora extra vai para o banco de horas.</p>
                   </Bloco>
                 );
               })()}

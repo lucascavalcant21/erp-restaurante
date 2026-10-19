@@ -3,6 +3,8 @@ import { criarContasPagarEmLote } from "./contas-pagar.mjs";
 import { enviarArquivoRH, removerArquivoRH } from "./rh-arquivos.js";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
 import { buscarColaboradores } from "./colaboradores-acesso.mjs";
+import { fetchConvencaoAtiva } from "./trabalhista/convencoes-dados.js";
+import { regrasDaCompetencia } from "./trabalhista/regras-competencia.mjs";
 export { horarioDoDia } from "./jornada-semana.mjs";
 
 // Equipe da unidade: nome/cargo/horários para todos; CPF, salário etc. só para
@@ -801,7 +803,7 @@ export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
   const dataFinal = `${mesAno}-${ultimoDia.toString().padStart(2, '0')}`;
 
   let queryPonto = supabase.from("registro_ponto")
-    .select("colaborador_id, data_referencia")
+    .select("colaborador_id, data_referencia, hora_entrada, hora_saida, hora_saida_intervalo, hora_retorno_intervalo")
     .gte("data_referencia", dataInicial)
     .lte("data_referencia", dataFinal);
     
@@ -823,6 +825,16 @@ export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
   const { data: vales } = await queryVales;
   const valesSeguros = vales || [];
 
+  // 4. Adicionais do ponto, pela regra da competência (CLT ou convenção ativa).
+  // Noturno e feriado entram como acréscimo sugerido; a hora extra só aparece:
+  // o relógio também a credita no banco de horas, e somar aqui pagaria duas
+  // vezes a mesma hora até a casa decidir a regra (RH-B2).
+  const [{ data: feriadosMes }, convencao] = await Promise.all([
+    fetchFeriados(unidadeId, mesAno),
+    fetchConvencaoAtiva(unidadeId).catch(() => null),
+  ]);
+  const { regras } = regrasDaCompetencia(mesAno, { convencao });
+
   // Na folha entram só os contratados que estavam na casa no mês. Antes vinham
   // todos: desligado com salário cheio, e extra (que não bate ponto, é pago
   // pelo recibo) com R$ 0 — e um valor zerado barra o lote inteiro em Contas a
@@ -839,6 +851,9 @@ export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
     // valor_desconto é o que o funcionário paga (cardápio menos o desconto da casa).
     // A coluna valor_final não existe: a soma dava NaN e zerava o líquido.
     const totalVales = meusVales.reduce((acc, v) => acc + (Number(v.valor_desconto ?? v.valor_original) || 0), 0);
+    const ad = calcularAdicionaisMes(pontosSeguros.filter(p => p.colaborador_id === c.id), c.salario, feriadosMes || [], {
+      regras, contratadaDoDia: (d) => jornadaContratadaMin(c, d),
+    });
     const desligadoNoMes = (c.status || "ativo") === "inativo" ? String(c.data_desligamento).slice(0, 10) : null;
 
     const isFreelancer = c.tipo_contrato === "Freelancer";
@@ -864,6 +879,13 @@ export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
       // Desligado durante o mês: entra com o salário cheio para o RH ajustar o
       // proporcional à mão (a rescisão não é calculada aqui).
       desligado_em: desligadoNoMes,
+      adicionais: {
+        regra: regras.id === "clt" ? "CLT" : "Convenção coletiva",
+        noturno: ad.valorNoturno, min_noturno: ad.minNoturno, noturno_pct: regras.noturnoPct,
+        feriado: ad.valorFeriado, min_feriado: ad.minFeriado, feriado_pct: regras.feriadoPct,
+        extra: ad.valorExtra, min_extra: ad.minExtra, extra_pct: regras.extraPct,
+      },
+      acrescimos_sugeridos: Math.round(((ad.valorNoturno || 0) + (ad.valorFeriado || 0)) * 100) / 100,
     };
   });
 

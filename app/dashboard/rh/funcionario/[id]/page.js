@@ -10,7 +10,7 @@
 // só aparecem para quem tem a permissão, e o banco recusa o resto.
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Bell, ClipboardList, DollarSign, GraduationCap, Trash2, Upload, Download, User, Users, Clock, Edit3, Printer, FileText, UserX, AlertTriangle, Eye, EyeOff,
 } from "lucide-react";
@@ -32,7 +32,7 @@ import {
 } from "../../../../lib/pessoas";
 import {
   fetchColaboradores, fetchDocumentos, fetchAtestados, fetchAdvertenciasColab, fetchBancoHorasColaborador, somaMinutosBanco,
-  fetchFolgasEsporadicas, calcularAdicionaisMes, jornadaContratadaMin, fetchFeriados,
+  fetchFolgasEsporadicas, calcularAdicionaisMes, jornadaContratadaMin, opcoesDaCasa, fetchFeriados,
 } from "../../../../lib/rh";
 import { fetchPontosMes } from "../../../../lib/ponto";
 import { enviarArquivoRH, abrirArquivoRH } from "../../../../lib/rh-arquivos";
@@ -209,7 +209,10 @@ export default function ProntuarioColaboradorPage() {
   const [vinculoReg, setVinculoReg] = useState(null); // vínculo aberto em rh_vinculos (RH-4)
   const [versaoVinculo, setVersaoVinculo] = useState(0);
   const [sessao, setSessao] = useState(null);
-  const [aba, setAba] = useState("resumo");
+  // ?aba=contratos (e as outras) abre direto na aba: o Quadro e o cadastro
+  // mandam prorrogar/efetivar para cá.
+  const abaDaUrl = useSearchParams().get("aba");
+  const [aba, setAba] = useState(() => (ABAS_PRONTUARIO.some((a) => a.id === abaDaUrl) ? abaDaUrl : "resumo"));
   const [extras, setExtras] = useState({}); // dados carregados por aba
   const [tiposB, setTiposB] = useState([]);
   const [mostrarCpf, setMostrarCpf] = useState(false);
@@ -272,7 +275,7 @@ export default function ProntuarioColaboradorPage() {
   const adicionais = useMemo(() => {
     if (!func || !extras.ponto || func.tipo_contrato === "Freelancer") return null;
     const rg = regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao }).regras;
-    return { rg, ad: calcularAdicionaisMes(extras.ponto.pontos, func.salario, extras.ponto.feriados, { regras: rg, contratadaDoDia: (d) => jornadaContratadaMin(func, d) }) };
+    return { rg, ad: calcularAdicionaisMes(extras.ponto.pontos, func.salario, extras.ponto.feriados, opcoesDaCasa(func, { folgas: extras.ponto.folgas, regras: rg })) };
   }, [func, extras.ponto, convencao]);
 
   if (erro) return <div className="min-h-screen"><PageHeader title="Prontuário" icon={User} /><PageBody><EmptyState icon={AlertTriangle} title={erro} /></PageBody></div>;
@@ -300,11 +303,11 @@ export default function ProntuarioColaboradorPage() {
               </div>
               <p className="text-sm font-semibold text-hf-text-2 mt-0.5">{func.cargo || "Função não informada"}{func.area_escala ? ` · ${func.area_escala}` : ""} · {unidadeInfo?.nome}</p>
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-1 text-xs">
-                <p><span className="text-hf-muted">Vínculo: </span><b className="text-hf-text">{vinculo.categoria}</b> · {vinculo.fase}{vinculo.fonte === "deduzido" && <span className="text-hf-muted" title="Sem vínculo registrado: deduzido do cadastro antigo"> (do cadastro)</span>}{vinculo.alerta && <span className="text-amber-700" title={vinculo.alerta}> ⚠</span>}</p>
+                <p><span className="text-hf-muted">Vínculo: </span><b className="text-hf-text">{vinculo.categoria}</b> · {vinculo.fase}{vinculo.fonte === "deduzido" && <span className="text-hf-muted" title="Sem vínculo registrado: deduzido do cadastro antigo"> (do cadastro)</span>}{vinculo.alerta && <span className="text-amber-700" title={vinculo.alerta}> (atenção)</span>}</p>
                 <p><span className="text-hf-muted">Supervisão: </span><b className="text-hf-text">{supervisores.length ? supervisores.join(", ") : "não definida"}</b></p>
                 <p><span className="text-hf-muted">Na casa: </span><b className="text-hf-text">{tempoDeCasa(func, hoje) || "início não informado"}</b></p>
                 {(() => { const a = aniversario(func, hoje); return (
-                  <p><span className="text-hf-muted">Idade: </span>{a ? <><b className="text-hf-text">{a.idade} anos</b> · {a.ehHoje ? <b className="text-accent">🎂 aniversário hoje</b> : a.faltam <= 31 ? <span className="text-accent font-semibold">aniversário {a.diaMes}, faz {a.idade + 1} em {a.faltam} dia(s)</span> : <span className="text-hf-muted">aniversário {a.diaMes}</span>}</> : <span className="text-hf-muted">data de nascimento não informada</span>}</p>
+                  <p><span className="text-hf-muted">Idade: </span>{a ? <><b className="text-hf-text">{a.idade} anos</b> · {a.ehHoje ? <b className="text-accent">aniversário hoje</b> : a.faltam <= 31 ? <span className="text-accent font-semibold">aniversário {a.diaMes}, faz {a.idade + 1} em {a.faltam} dia(s)</span> : <span className="text-hf-muted">aniversário {a.diaMes}</span>}</> : <span className="text-hf-muted">data de nascimento não informada</span>}</p>
                 ); })()}
               </div>
             </div>

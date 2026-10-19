@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
-import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, fetchLiberacoesDia, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
+import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, registrarBatida } from "../../../lib/ponto";
 import { linhasJornadaSemana } from "../../../lib/jornada-semana.mjs";
 import { fetchPins } from "../../../lib/seguranca";
@@ -26,6 +26,11 @@ const isoLocalDeHoje = () => {
 const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
 const strToMin = (hhmm) => { const [h, m] = String(hhmm || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// Dia em que o lançamento do banco de horas entra: o da JORNADA. Era o dia em
+// UTC, e quem saía depois das 21h de Brasília ganhava a hora extra no dia
+// seguinte (14 lançamentos assim até 18/10/2026; no último dia do mês, caía no
+// mês seguinte). Saída depois da meia-noite pertence à jornada de ontem.
+const diaDaJornada = (reg) => reg?.data_referencia ? String(reg.data_referencia).slice(0, 10) : isoLocal(new Date());
 
 // Sigla do dia da semana a partir da data do registro. O meio-dia na conversão
 // evita o clássico "sábado virou sexta" por causa de fuso.
@@ -237,7 +242,6 @@ export default function PontoPage() {
   const [colaboradores, setColaboradores] = useState([]);
   const [pontosHoje, setPontosHoje] = useState([]);
   const [folgas, setFolgas] = useState([]);
-  const [liberadosHoje, setLiberadosHoje] = useState([]); // ids de freelancers liberados hoje
   const [loading, setLoading] = useState(true);
   const [letra, setLetra] = useState(""); // filtro A-Z (toque rapido no tablet)
   const [horaLocal, setHoraLocal] = useState(new Date());
@@ -320,13 +324,10 @@ export default function PontoPage() {
 
   const carregar = useCallback(async (silencioso = false) => {
     if (!silencioso) setLoading(true);
-    const d = new Date();
-    const hojeISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const [rColab, rPontos, rFolgas, rLib] = await Promise.all([
+    const [rColab, rPontos, rFolgas] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
       fetchAllFolgasDaUnidade(unidadeAtiva),
-      fetchLiberacoesDia(unidadeAtiva, hojeISO),
     ]);
     // Extras têm recibo próprio e não participam do relógio de ponto.
     setColaboradores((rColab.data || []).filter(c =>
@@ -334,12 +335,12 @@ export default function PontoPage() {
     ));
     setPontosHoje(rPontos.data || []);
     setFolgas(rFolgas.data || []);
-    setLiberadosHoje((rLib.data || []).map(l => l.colaborador_id));
     setLoading(false);
   }, [unidadeAtiva]);
 
-  // Extra/freelancer só bate ponto no dia em que o gerente liberou.
-  const bloqueadoFreela = (c) => c?.tipo_contrato === "Freelancer" && !liberadosHoje.includes(c.id);
+  // A "liberação do dia" do extra saiu (RH-B1): a tabela não existe e extras
+  // já ficam fora da lista acima. Nenhum contratado é bloqueado aqui.
+  const bloqueadoFreela = () => false;
 
   // Tempo real: batida em QUALQUER aparelho aparece aqui na hora, sem atualizar
   useTempoReal(["registro_ponto", "colaboradores", "rh_folgas_esporadicas", "rh_banco_horas"], () => carregar(true));
@@ -380,10 +381,6 @@ export default function PontoPage() {
 
   // Abre a tela do funcionário INSTANTANEAMENTE; histórico/banco carregam em segundo plano
   const abrirFuncionario = (c) => {
-    if (bloqueadoFreela(c)) {
-      alert(`${c.nome} é extra/freelancer e o ponto de hoje ainda não foi liberado.\n\nPeça ao gerente para liberar em RH → Ações → "Liberar ponto de hoje".`);
-      return;
-    }
     setSelecionado(c);
     setLetra("");
     setHistorico([]);
@@ -415,19 +412,13 @@ export default function PontoPage() {
   const totalBancoMes = somaMinutosBanco(bancoMes);
   const intervaloPadrao = selecionado ? (Number(selecionado.tempo_intervalo) || 60) : 60;
 
-  const creditarBanco = async (minutos, motivo) => {
-    const restante = BANCO_LIMITE_MIN - totalBancoMes;
-    if (restante <= 0) {
-      return { creditado: 0, aviso: `Banco de horas já está no limite de 8h — os ${fmtMin(minutos)} NÃO foram creditados. Avise o gestor!` };
-    }
-    const credito = Math.min(minutos, restante);
-    const hoje = new Date().toISOString().split("T")[0];
-    const { error } = await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, credito, motivo);
-    if (error) return { creditado: 0, aviso: "Falha ao creditar no banco de horas: " + error };
-    let aviso = "";
-    if (credito < minutos) aviso = `Só ${fmtMin(credito)} creditados — o banco atingiu o limite de 8h no mês.`;
-    else if (totalBancoMes + credito >= BANCO_ALERTA_MIN) aviso = `Banco de horas chegou a ${fmtMin(totalBancoMes + credito)} — perto do limite de 8h. Programe a folga!`;
-    return { creditado: credito, aviso };
+  // Regra da casa (dono, 19/10/2026): hora extra é paga na folha, calculada
+  // do ponto; o relógio não credita mais nada no banco de horas. O que precisa
+  // ficar anotado (motivo do intervalo curto) entra como ocorrência, sem valor.
+  const registrarOcorrencia = async (minutos, motivo, tipo) => {
+    const hoje = diaDaJornada(registroDe(selecionado.id));
+    const { error } = await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, minutos, motivo, tipo);
+    return error ? `Não consegui anotar a ocorrência: ${error}` : "";
   };
 
   // Comprovante em papel: janela isolada, largura de bobina térmica (58mm) para
@@ -533,7 +524,7 @@ export default function PontoPage() {
         // A tolerância entra aqui, não no registro: voltar 2 min depois não é
         // excesso de intervalo, mas o horário gravado continua sendo o real.
         if (passou > cfgP.tolerancia_retorno) {
-          const hoje = new Date().toISOString().split("T")[0];
+          const hoje = diaDaJornada(reg);
           await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, passou,
             `Passou ${passou}min do intervalo (tirou ${tirou}min de ${intervaloPadrao}min)`, "excesso");
           mostrarSucesso("Atenção ao horário de intervalo!",
@@ -551,9 +542,8 @@ export default function PontoPage() {
 
       // Saída DEPOIS do horário → vira hora extra no banco, automaticamente
       if (etapa === "saida_trabalho" && extrasSaida.extraMin > 0) {
-        const { creditado, aviso } = await creditarBanco(extrasSaida.extraMin, `Hora extra: saiu às ${agoraStr} (previsto ${extrasSaida.prevStr})`);
         mostrarSucesso(`Saída às ${agoraStr}`,
-          `${primeiro}, você passou ${extrasSaida.extraMin} min do horário (${extrasSaida.prevStr}). ${creditado > 0 ? `${fmtMin(creditado)} viraram hora extra no seu banco de horas.` : ""} ${aviso}`,
+          `${primeiro}, você passou ${extrasSaida.extraMin} min do horário (${extrasSaida.prevStr}). Entra como hora extra na folha do mês.`,
           "alerta", comprovante);
         return;
       }
@@ -650,12 +640,11 @@ export default function PontoPage() {
       if (error) { alert(error); return; }
       const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const primeiro = selecionado.nome.split(" ")[0];
-      const hoje = new Date().toISOString().split("T")[0];
+      const hoje = isoLocal(new Date());
       setEscolhaAntecipada(null);
       if (modo === "extra") {
-        const { creditado, aviso } = await creditarBanco(min, `Entrada antecipada (reunião/serviço): ${min}min antes do horário — autorizada pelo gerente`);
         mostrarSucesso(`Entrada às ${agoraStr}`,
-          `${primeiro}, entrada ${min} min antes do horário. ${creditado > 0 ? `${fmtMin(creditado)} viraram hora extra no banco.` : ""} ${aviso}`);
+          `${primeiro}, entrada ${min} min antes do horário, autorizada. Entra como hora extra na folha do mês.`);
       } else {
         await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, min,
           `Entrou ${min}min mais cedo (reunião/serviço) — combinado ser liberado mais cedo hoje`, "excesso");
@@ -678,11 +667,11 @@ export default function PontoPage() {
       if (j.tipo === "retorno_cedo") {
         const { error } = await registrarBatida(selecionado.id, unidadeAtiva, "retorno_intervalo");
         if (error) { alert(error); return; }
-        const { creditado, aviso } = await creditarBanco(j.faltou, `Voltou ${j.tirou}min de intervalo (de ${intervaloPadrao}min). Motivo: ${motivo}`);
+        const aviso = await registrarOcorrencia(j.faltou, `Voltou ${j.tirou}min de intervalo (de ${intervaloPadrao}min). Motivo: ${motivo}`, "intervalo_curto");
         const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
         setJustif(null);
         mostrarSucesso(`Volta registrada às ${agoraStr}`,
-          `${primeiro}, ${j.tirou} min de intervalo. ${creditado > 0 ? `${fmtMin(creditado)} foram pro seu banco de horas.` : ""} ${aviso}`);
+          `${primeiro}, ${j.tirou} min de intervalo. Motivo anotado; o salário não muda. ${aviso}`);
       }
     } finally {
       setBatendo(false);

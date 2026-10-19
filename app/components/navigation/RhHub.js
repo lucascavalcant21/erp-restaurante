@@ -10,8 +10,9 @@ import {
 import { useERP } from "../../context/ERPContext";
 import {
   fetchColaboradores, fetchBancoHoras, somaMinutosBanco, BANCO_ALERTA_MIN,
-  fetchAtestadosUnidade, horarioDoDia
+  fetchAtestadosUnidade, horarioDoDia, fetchAllFolgasDaUnidade
 } from "../../lib/rh";
+import { TOLERANCIA_MARCACAO_MIN } from "../../lib/jornada-calculo.mjs";
 import { fetchPontoHoje } from "../../lib/ponto";
 import { situacaoDoPonto, atestadoNaData } from "../../lib/ponto-status.mjs";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
@@ -38,6 +39,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
   const [pontosHoje, setPontosHoje] = useState([]);
   const [bancoHoras, setBancoHoras] = useState([]);
   const [atestados, setAtestados] = useState([]);
+  const [folgasHoje, setFolgasHoje] = useState(new Set());
 
   const [expandirEquipe, setExpandirEquipe] = useState(false);
 
@@ -48,8 +50,9 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
   const podeVerRecrutamento = !sessao?.gerenciado || hasPermission(sessao, "rh.recruiting.view");
 
   const agora = new Date();
-  const mesAnoAtual = agora.toISOString().slice(0, 7);
-  const dataHojeISO = agora.toISOString().slice(0, 10);
+  // Dia e mês de Brasília (toISOString é UTC: depois das 21h já era amanhã).
+  const dataHojeISO = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
+  const mesAnoAtual = dataHojeISO.slice(0, 7);
   const diaDaSemana = agora.getDay(); // 0=Dom..6=Sáb
 
   const dataFormatada = agora.toLocaleDateString("pt-BR", {
@@ -65,11 +68,12 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
     setLoading(true);
     setError(null);
     try {
-      const [resColabs, resPontos, resBanco, resAtestados] = await Promise.all([
+      const [resColabs, resPontos, resBanco, resAtestados, resFolgas] = await Promise.all([
         fetchColaboradores(unidadeAtiva),
         fetchPontoHoje(unidadeAtiva),
         fetchBancoHoras(unidadeAtiva, mesAnoAtual),
-        fetchAtestadosUnidade(unidadeAtiva, { desde: dataHojeISO })
+        fetchAtestadosUnidade(unidadeAtiva, { desde: dataHojeISO }),
+        fetchAllFolgasDaUnidade(unidadeAtiva),
       ]);
 
       if (resColabs.error) setError(resColabs.error);
@@ -78,6 +82,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
       setPontosHoje(resPontos.data || []);
       setBancoHoras(resBanco.data || []);
       setAtestados(resAtestados.data || []);
+      setFolgasHoje(new Set((resFolgas.data || []).filter(f => String(f.data_folga).slice(0, 10) === dataHojeISO).map(f => f.colaborador_id)));
     } catch (e) {
       setError(e.message || "Falha ao carregar dados do RH");
     } finally {
@@ -96,15 +101,21 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
   const mapaPontos = new Map(pontosHoje.map(p => [p.colaborador_id, p]));
 
   // Calcula a situação da equipe hoje
-  const horaMinAtualStr = `${String(agora.getHours()).padStart(2, "0")}:${String(agora.getMinutes()).padStart(2, "0")}`;
+  const minAgora = agora.getHours() * 60 + agora.getMinutes();
+  const emMin = (hhmm) => { const [h, m] = String(hhmm).split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 
   const equipeProcessada = colabsAtivos.map(c => {
     const regPonto = mapaPontos.get(c.id);
-    const atest = atestadoNaData(atestados, dataHojeISO);
+    // Atestado é DA PESSOA: antes um atestado de qualquer um marcava a equipe toda.
+    const atest = atestadoNaData(atestados.filter(a => a.colaborador_id === c.id), dataHojeISO);
     const sit = situacaoDoPonto(regPonto, { atestado: atest });
     const horario = horarioDoDia(c, diaDaSemana);
     const entradaEsperada = horario?.entrada || "";
-    const estaPrevistoHoje = Boolean(entradaEsperada || (c.dias_trabalho && c.dias_trabalho.includes(String(diaDaSemana))));
+    // Previsto é quem trabalha neste dia da semana e não tem folga marcada.
+    // Antes bastava ter horário de entrada no cadastro: no dia de folga a
+    // pessoa aparecia como atrasada.
+    const diasTrab = String(c.dias_trabalho || "").split(",").map(d => d.trim()).filter(Boolean);
+    const estaPrevistoHoje = !folgasHoje.has(c.id) && (diasTrab.length ? diasTrab.includes(String(diaDaSemana)) : Boolean(entradaEsperada));
 
     let statusOperacional = "fora_turno";
     let prioridadeOrdenacao = 99;
@@ -122,7 +133,8 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
       statusOperacional = "trabalhando";
       prioridadeOrdenacao = 3;
     } else if (estaPrevistoHoje) {
-      if (entradaEsperada && horaMinAtualStr > entradaEsperada) {
+      // Mesma tolerância do relógio e do cálculo (CLT art. 58 §1º).
+      if (entradaEsperada && minAgora > emMin(entradaEsperada) + TOLERANCIA_MARCACAO_MIN) {
         statusOperacional = "atrasado";
         prioridadeOrdenacao = 1;
       } else {
@@ -271,7 +283,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   variant="green"
                   icon={CheckCircle2}
                   title="Nenhuma pendência crítica ou inconsistência de ponto no momento."
-                  subtitle="Todos os registros de ponto e horas estão em conformity."
+                  subtitle="Todos os registros de ponto e horas estão em conformidade."
                 />
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -283,7 +295,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                       subtitle={`${pontosIncompletos.length} funcionário(s) finalizaram sem intervalo`}
                       actionButton={
                         <HubActionButton
-                          onClick={() => router.push("/dashboard/rh/ponto")}
+                          onClick={() => router.push("/dashboard/rh/ponto/corrigir")}
                           variant="danger"
                         >
                           Resolver
@@ -300,7 +312,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                       subtitle={`${equipeBancoAtencao.length} colaborador(es) com acúmulo em limite`}
                       actionButton={
                         <HubActionButton
-                          onClick={() => router.push("/dashboard/rh")}
+                          onClick={() => router.push("/dashboard/rh?aba=quadro")}
                           variant="secondary"
                         >
                           Analisar
@@ -362,9 +374,9 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                             statusOperacional === "encerrado" ? "bg-zinc-950/60 text-zinc-400 border border-zinc-800/50" : "bg-slate-50 text-slate-500"
                           }`}>
                             {statusOperacional === "trabalhando" ? "Trabalhando" :
-                             statusOperacional === "intervalo" ? "☕ Intervalo" :
-                             statusOperacional === "atrasado" ? "🟠 Atrasado" :
-                             statusOperacional === "pendente" ? "🔴 Registro Pendente" :
+                             statusOperacional === "intervalo" ? "Intervalo" :
+                             statusOperacional === "atrasado" ? "Atrasado" :
+                             statusOperacional === "pendente" ? "Registro pendente" :
                              statusOperacional === "encerrado" ? "Encerrado" : "Fora do Turno"}
                           </span>
                           {horario?.entrada && (
@@ -408,7 +420,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   </div>
 
                   <HubActionButton
-                    onClick={() => router.push("/dashboard/rh")}
+                    onClick={() => router.push("/dashboard/rh?aba=quadro")}
                     variant="secondary"
                     icon={ArrowRight}
                     fullWidth
@@ -430,7 +442,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/rh/gestao")}
+                  onClick={() => router.push("/dashboard/rh?aba=quadro")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Users size={18} className="text-emerald-600 shrink-0" />
@@ -439,7 +451,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
 
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/rh/ponto")}
+                  onClick={() => router.push("/dashboard/rh?aba=quadro")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Clock size={18} className="text-zinc-400 shrink-0" />
@@ -448,7 +460,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
 
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/rh/ponto")}
+                  onClick={() => router.push("/dashboard/rh?aba=escala")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <CalendarDays size={18} className="text-zinc-400 shrink-0" />
@@ -457,7 +469,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
 
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/rh")}
+                  onClick={() => router.push("/dashboard/rh?aba=quadro")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Clock size={18} className="text-amber-600 shrink-0" />

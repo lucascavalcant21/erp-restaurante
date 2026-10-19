@@ -226,16 +226,10 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
 
   // Incorpora coordenadas e validação por GPS se disponíveis
   if (dadosGPS) {
-    if (dadosGPS.latitude != null) updates.latitude = dadosGPS.latitude;
-    if (dadosGPS.longitude != null) updates.longitude = dadosGPS.longitude;
-    if (dadosGPS.distanciaMetros != null) updates.distancia_metros = dadosGPS.distanciaMetros;
-    if (dadosGPS.valido != null) updates.validado_gps = dadosGPS.valido;
-    if (dadosGPS.mensagem) updates.localizacao_texto = dadosGPS.mensagem;
-
-    // As colunas acima guardam UMA localização por dia, sobrescrita a cada
-    // batida: no fim do expediente só sobrava a última. Para o RH conferir onde
-    // a pessoa estava em cada marcação, toda batida vira uma linha nova no
-    // histórico do próprio registro do dia.
+    // registro_ponto não tem latitude/longitude/distancia_metros/validado_gps/
+    // localizacao_texto: mandá-las fazia o PostgREST recusar a batida inteira
+    // no relógio com GPS (/dashboard/ponto). A localização de cada batida fica
+    // em `localizacoes` (e lat/long também no livro, ponto_marcacao).
     const marca = {
       tipo: tipoBatida,
       em: agora,
@@ -556,6 +550,11 @@ export async function salvarAjusteDiaCompleto({
         registradoPor,
         motivo: String(motivo || "").trim() || null,
       });
+      // Mesma regra de corrigirBatida: sem o livro, o resumo não muda. Antes o
+      // erro era ignorado e a tela passava a mostrar uma hora que o AFD não tem.
+      if (marcacao?.erro) {
+        return { error: `Não consegui gravar o ajuste no livro de marcações: ${marcacao.erro}. Nada foi alterado no resumo do dia.` };
+      }
       ultimasAlteracoes.push({ tipo: item.tipo, nsr: marcacao?.nsr });
     }
   }

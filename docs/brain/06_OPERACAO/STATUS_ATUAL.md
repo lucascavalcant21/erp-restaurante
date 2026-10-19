@@ -53,6 +53,8 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 
 ## 19/10/2026 — Merge da main, pedidos chegando à cozinha e impressão automática
 
+**Publicado em produção (19/10, 02:13 UTC):** PR #187 mergeado na `main` (`d3fe804`, inclui o `9cea691` de RH que entrou na `main` antes); deploy `dpl_4pLK5se77SSrdghskx5R8phdbK4f` READY com o alias `app.hefisto.com.br` (conferido pela API da Vercel). O commit mergeado passou app/lib 626/626 com PGLITE e build (TESTADO LOCAL). Teste de fumaça na produção: NÃO VALIDADO (o container não alcança o domínio e os logs da Vercel dão 403, BLQ-002/BLQ-004).
+
 Mesmo branch (PR #187):
 - **FIDELIDADE-1 aplicada no banco real em 18/10** (APR-014, sim do dono): selos, cashback e cadastro pelo QR valendo assim que o dono ligar a fidelidade no editor.
 - **Merge da `main`**: o cardápio deste branch ficou (o da `main` gravava pedido como anônimo com sucesso falso). Três travas que a `main` quebrou foram corrigidas: Green Dot sem login (**S-30**) e duas telas fora do catálogo de permissões.

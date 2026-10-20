@@ -364,6 +364,12 @@ function maisEspecificas(candidatas) {
 export function canAccessRoute(session, pathname, search = "") {
   if (!session) return false;
   if (session.papel === "admin" || session.super_admin || session.permissions === "*") return true;
+  if (session.is_app && Array.isArray(session.allowed_routes)) {
+    return session.allowed_routes.some((r) => {
+      const [path] = r.split("?");
+      return pathname === path || pathname.startsWith(`${path}/`);
+    });
+  }
   const found = maisEspecificas(pagesForRoute(pathname, search));
   if (!found.length) return false;
   return found.some(({ module, page }) => hasPermission(session, permissionKey(module.id, page.id, "view")));
@@ -371,6 +377,9 @@ export function canAccessRoute(session, pathname, search = "") {
 
 export function permittedRoutes(session) {
   if (!session || session.permissions === "*" || session.papel === "admin" || session.super_admin) return null;
+  if (session.is_app && Array.isArray(session.allowed_routes)) {
+    return session.allowed_routes;
+  }
   return PERMISSION_MODULES.flatMap((module) =>
     module.pages
       .filter((page) => hasPermission(session, permissionKey(module.id, page.id, "view")))

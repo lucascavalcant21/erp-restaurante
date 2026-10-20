@@ -15,6 +15,7 @@ import {
   Wrench,
   CalendarClock,
   MapPin,
+  Compass,
   Maximize2,
   Minimize2,
   PlusCircle,
@@ -53,6 +54,11 @@ import {
   carregarEquipamentosCustom,
   salvarEquipamentoCustom,
   removerEquipamentoCustom,
+  LOCAIS_ARMAZENAMENTO_PADRAO,
+  LOTES_RASTREIO_INICIAIS,
+  buscarLocalizacaoProduto,
+  interpretarPerguntaColaborador,
+  obterTodosRastreios,
 } from "../../lib/green-dot-data";
 import {
   GreenDotAvatar,
@@ -74,6 +80,8 @@ import {
   CleaningSanitizationGuideCard,
   ShiftChecklistCard,
   EtiquetaQuickGeneratorCard,
+  ProductTrackingLocationCard,
+  ImmediateSolutionPlanCard,
 } from "./GreenDotCards";
 import GreenDotAdminModal from "./GreenDotAdminModal";
 

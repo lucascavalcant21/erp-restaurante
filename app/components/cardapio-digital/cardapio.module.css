@@ -793,3 +793,27 @@ textarea.campo { height: auto; min-height: 76px; padding: 10px 14px; resize: ver
 .fidFeito { display: inline-flex; align-items: center; gap: 6px; color: #1f7a3f; font-weight: 650; font-size: 0.88rem; }
 .fidAbrir { display: grid; gap: 6px; padding: 0; border: 0; background: none; text-align: left; width: 100%; }
 .fidAbrir > strong { font-size: 0.98rem; }
+
+/* ── atendimento da mesa (chamar garçom, pedir a conta) ───────────── */
+.atendimento { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.atendimentoGrade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.botaoAtendimento {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--c-primaria);
+  border-radius: 999px;
+  background: var(--c-cartao);
+  color: var(--c-destaque);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 650;
+  font-size: 0.92rem;
+  text-align: center;
+}
+.atendimentoGrade .botaoAtendimento { min-height: 64px; border-radius: 16px; flex-direction: column; gap: 4px; padding: 8px 10px; }
+.botaoAtendimento:disabled { cursor: default; }
+.atendimentoFeito { background: var(--c-primaria-suave); border-color: var(--c-primaria-suave); }
+.atendimentoMarca { font-size: 0.74rem; font-weight: 700; opacity: 0.8; }
+

@@ -915,6 +915,23 @@ export default function SaloesMesasPage() {
         </div>
       )}
 
+      {/* BANNER — CLIENTE CHAMOU PELO QR DA MESA (garçom, conta, água…) */}
+      {chamadosMesas.some(c => c.status === 'pendente') && !painelChamados && (
+        <button
+          onClick={() => setPainelChamados(true)}
+          className="bg-amber-500 text-amber-950 px-3 sm:px-4 py-2.5 flex items-center justify-between gap-3 shrink-0 shadow-md z-40 text-left"
+        >
+          <span className="flex items-center gap-2 font-black text-sm min-w-0">
+            <Bell size={18} className="animate-bounce shrink-0" />
+            <span className="truncate">
+              {(() => { const c = chamadosMesas.find(x => x.status === 'pendente'); return `Mesa ${c.mesa_numero}: ${c.rotulo}`; })()}
+              {chamadosMesas.filter(c => c.status === 'pendente').length > 1 ? ` e mais ${chamadosMesas.filter(c => c.status === 'pendente').length - 1}` : ''}
+            </span>
+          </span>
+          <span className="shrink-0 bg-amber-950 text-amber-50 text-xs font-black px-3 py-1.5 rounded-lg">Ver chamados</span>
+        </button>
+      )}
+
       {/* HEADER DE COMANDO */}
       <header className="bg-hf-elevated text-hf-text px-3 sm:px-4 py-3 flex items-center justify-between gap-3 overflow-x-auto shrink-0 shadow-lg z-20">
          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
@@ -945,6 +962,13 @@ export default function SaloesMesasPage() {
             </div>
          </div>
 
+         {/* Celular e tablet: o botão de chamados não pode sumir (o garçom usa o celular). */}
+         <button onClick={() => setPainelChamados(true)} aria-label="Chamados das mesas" className="lg:hidden relative shrink-0 p-2.5 bg-amber-600/20 border border-amber-500/40 text-amber-700 rounded-lg">
+            <Bell size={18} className={chamadosMesas.length > 0 ? "animate-bounce" : ""} />
+            {chamadosMesas.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-amber-950 text-3xs font-black w-5 h-5 flex items-center justify-center rounded-full">{chamadosMesas.length}</span>
+            )}
+         </button>
          <div className="hidden lg:flex gap-2 shrink-0">
             <button onClick={() => setPainelChamados(true)} className="relative flex items-center gap-1.5 px-3 py-2 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-amber-200 font-bold text-xs rounded-lg transition-colors">
                <Bell size={16} className={chamadosMesas.length > 0 ? "animate-bounce text-amber-400" : ""} />
@@ -2049,7 +2073,8 @@ export default function SaloesMesasPage() {
                                  <p className="text-xs text-dim italic mt-0.5">Obs: {c.observacao}</p>
                               )}
                            </div>
-                           <span className="text-3xs font-mono text-subtle">{c.hora}</span>
+                           {/* Hora no fuso do aparelho (a do servidor saía em UTC na Vercel). */}
+                           <span className="text-3xs font-mono text-subtle">{c.criado_em ? new Date(c.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : c.hora}</span>
                         </div>
 
                         <div className="flex gap-2 pt-2 border-t border-line">

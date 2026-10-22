@@ -51,7 +51,17 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
 - **Rodada 2 (Estoque, Financeiro, painel):** Financeiro com barra de áreas (Visão geral, A pagar, A receber, Caixa, DRE, Pizza, CMV); `/fluxo`, `/documentos` e `/margem` redirecionam (gravavam/liam tabelas fora do financeiro novo, B-024); CMV sem 0% inventado (B-023); Contas a Pagar em cartões no celular; Pizza do Lucro visível no celular; paleta sem fundo preto no Estoque e no Financeiro; abas do Estoque à vista no celular; painel inicial com faturamento vazio compacto. Simulador com o **esquema e o volume reais** (369 produtos, 374 saldos, 350 movimentos; leitura só). Mesmo resultado de testes; build OK.
 
+## 19/10/2026 (tarde) — Chamar garçom e pedir a conta pelo QR da mesa (HEXP-001)
+
+Branch `claude/sharp-meitner-0i36gu` (PR novo, rascunho):
+- Botões "Chamar garçom" e "Pedir a conta" no cardápio da mesa (8 idiomas), sino com água e talheres; o Salão vê os chamados (faixa amarela, botão também no celular, B-036).
+- Migração **CHAMADOS-1** (`db/CHAMADOS_1_MESA.sql`, só a tabela `experience_chamados`): **aplicada no banco real em 19/10** (APR-015), impressão digital conferida, ensaio de escrita desfeito OK.
+- Missões com status fora do padrão corrigidas (HDEV-EST-001 → VALIDATING, HEXP-001 → IN_PROGRESS); o índice voltou a gerar.
+- Evidência: TESTADO LOCAL (PGlite 5/5, servidor 13/13, app/lib 632/632, build), TESTADO EM MOCK (Playwright), TESTADO NO SUPABASE REAL (migração e ensaio desfeito).
+
 ## 19/10/2026 — Merge da main, pedidos chegando à cozinha e impressão automática
+
+**Publicado em produção (19/10, 02:13 UTC):** PR #187 mergeado na `main` (`d3fe804`, inclui o `9cea691` de RH que entrou na `main` antes); deploy `dpl_4pLK5se77SSrdghskx5R8phdbK4f` READY com o alias `app.hefisto.com.br` (conferido pela API da Vercel). O commit mergeado passou app/lib 626/626 com PGLITE e build (TESTADO LOCAL). Teste de fumaça na produção: NÃO VALIDADO (o container não alcança o domínio e os logs da Vercel dão 403, BLQ-002/BLQ-004).
 
 Mesmo branch (PR #187):
 - **FIDELIDADE-1 aplicada no banco real em 18/10** (APR-014, sim do dono): selos, cashback e cadastro pelo QR valendo assim que o dono ligar a fidelidade no editor.

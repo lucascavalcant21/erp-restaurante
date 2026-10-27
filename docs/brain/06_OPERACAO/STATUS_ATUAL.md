@@ -51,6 +51,13 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
 - **Rodada 2 (Estoque, Financeiro, painel):** Financeiro com barra de áreas (Visão geral, A pagar, A receber, Caixa, DRE, Pizza, CMV); `/fluxo`, `/documentos` e `/margem` redirecionam (gravavam/liam tabelas fora do financeiro novo, B-024); CMV sem 0% inventado (B-023); Contas a Pagar em cartões no celular; Pizza do Lucro visível no celular; paleta sem fundo preto no Estoque e no Financeiro; abas do Estoque à vista no celular; painel inicial com faturamento vazio compacto. Simulador com o **esquema e o volume reais** (369 produtos, 374 saldos, 350 movimentos; leitura só). Mesmo resultado de testes; build OK.
 
+## 27/10/2026 (noite) — Estoque organizado, fundo cinza
+
+- **Todos os produtos** (aba nova do Estoque): saldo por local, ritmo REAL de saída/entrada (dia/semana/mês), cobertura e mínimo/máximo sugerido (ESTIMATIVA) pelo prazo de reposição + folga + intervalo de compra; grava só `estoque_minimo/estoque_maximo`. TESTADO LOCAL (6 testes) + TESTADO EM MOCK (cópia do estoque real, Playwright 11/11).
+- **Movimentar:** Retirar/Adicionar escolhidos no produto (não mais no topo). TESTADO EM MOCK (7/7).
+- **Estoque desligado do inventário:** sem "não conferido" na movimentação e no painel.
+- **Visual:** fundo cinza claro #E8EAEE, sombras mais fundas, botões com relevo.
+
 ## 27/10/2026 — Delivery com movimento, letras novas e materiais da casa
 
 Branch `claude/sharp-meitner-0i36gu` (PR #189, com a `main` de 27/10):

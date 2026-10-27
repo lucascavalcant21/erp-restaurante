@@ -59,6 +59,8 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - **Visual:** fundo cinza claro #E8EAEE, sombras mais fundas, botões com relevo.
 - PR #189 mesclado na `main` (50b903e) com o sim do dono. Produção: NÃO VALIDADO daqui (Vercel 403, BLQ-002).
 - **Eventos — Orçamento rápido por pessoa** (`/dashboard/reservas-eventos/rapido`): todas as fichas da cozinha e do bar, um toque inclui, custo REAL por pessoa, preço sugerido (ESTIMATIVA), "Criar evento" grava o orçamento e abre o evento. TESTADO EM MOCK.
+- **PR #192 mesclado na `main` (ef5d888)**; deploy de produção READY em app.hefisto.com.br, sem erros de runtime nas 2 h seguintes (TESTADO EM PRODUÇÃO: deploy e logs; telas NÃO VALIDADO com login). Acesso do Vercel liberado pelo dono (BLQ-002 resolvido).
+- **Financeiro — Resultado do mês** (`/dashboard/financeiro/resultado`) no lugar da Pizza do Lucro.
 - **Funil de eventos em 5 fases** (antes 14 colunas). **Estoque em uma tela** (Mais: histórico, inventário, locais, valor). **Cardápio**: combos (servidor cobra o combo e grava cada prato) e posição dos produtos. **Marmita**: lista de pré-preparos com um toque. Tudo TESTADO EM MOCK; produção NÃO VALIDADO.
 
 ## 27/10/2026 — Delivery com movimento, letras novas e materiais da casa

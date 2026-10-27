@@ -163,6 +163,8 @@ export const PERMISSION_MODULES = [
       { id: "breakeven", label: "Ponto de equilíbrio (redireciona)", route: "/dashboard/financeiro/equilibrio", actions: VIEW_EXPORT },
       { id: "dre", label: "Resultado (DRE)", route: "/dashboard/financeiro/dre", actions: [...VIEW_EXPORT, "confirm", "view_values", "view_margin"] },
       { id: "cmv", label: "CMV", route: "/dashboard/financeiro/cmv", actions: [...VIEW_EXPORT, "view_costs", "view_margin"] },
+      // Resultado do mês: faturamento, custos um por um, CMO do RH, CMV das contagens, equilíbrio (27/10/2026).
+      { id: "monthly_result", label: "Resultado do mês (lucro e ponto de equilíbrio)", route: "/dashboard/financeiro/resultado", actions: [...VIEW_EXPORT, "edit", "view_costs", "view_margin"] },
       { id: "pizza_lucro", label: "Pizza do Lucro", route: "/dashboard/financeiro/pizza", actions: [...VIEW_EXPORT, "view_costs", "view_margin"] },
       { id: "fiscal", label: "Dados fiscais", route: "/dashboard/gestao/fiscal", actions: [...CRUD, "view_values", "settings"] },
     ],

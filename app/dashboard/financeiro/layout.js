@@ -19,7 +19,8 @@ const AREAS = [
   { href: `${BASE}/receber`, rotulo: "Contas a receber", curto: "A receber" },
   { href: `${BASE}/caixa`, rotulo: "Caixa e contas", curto: "Caixa" },
   { href: `${BASE}/dre`, rotulo: "DRE" },
-  { href: `${BASE}/pizza`, rotulo: "Pizza do Lucro", curto: "Pizza" },
+  // No lugar da Pizza do Lucro (pedido do dono, 27/10/2026); a pizza do prato segue em /pizza, ligada daqui.
+  { href: `${BASE}/resultado`, rotulo: "Resultado do mês", curto: "Resultado" },
   { href: `${BASE}/cmv`, rotulo: "CMV" },
 ];
 

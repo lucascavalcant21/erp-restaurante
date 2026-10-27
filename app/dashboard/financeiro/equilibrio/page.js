@@ -18,15 +18,15 @@ export default function EquilibrioRedirecionaPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/dashboard/financeiro/pizza");
+    router.replace("/dashboard/financeiro/resultado");
   }, [router]);
 
   return (
     <div className="grid min-h-[60vh] place-items-center px-6 text-center">
       <div>
         <Loader2 className="mx-auto animate-spin text-success" size={28} />
-        <p className="mt-3 text-sm font-black text-slate-800">O Ponto de Equilíbrio agora fica na Pizza do Lucro.</p>
-        <p className="mt-1 text-xs font-bold text-fg">Levando você para lá — o equilíbrio está na aba “Custo por dia”.</p>
+        <p className="mt-3 text-sm font-black text-slate-800">O Ponto de Equilíbrio agora fica no Resultado do mês.</p>
+        <p className="mt-1 text-xs font-bold text-fg">Levando você para lá.</p>
       </div>
     </div>
   );

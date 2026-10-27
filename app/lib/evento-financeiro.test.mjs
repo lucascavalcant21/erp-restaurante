@@ -68,3 +68,12 @@ test("lista de compras: bruto com perda, abre o pré-preparo, soma e custeia", (
   assert.ok(Math.abs(l.total - (por["Carne de sol"].custo + 72 + 50)) < 0.02);
   assert.deepEqual(l.avisos, []);
 });
+
+test("fases do quadro: as 14 etapas em 5 colunas; soltar numa fase vai para a primeira etapa dela", async () => {
+  const { FASES_FUNIL, FUNIL_ETAPAS, faseDaEtapa, etapaAoMoverPara } = await import("./evento-financeiro.mjs");
+  assert.deepEqual(FASES_FUNIL.flatMap((f) => f.etapas), FUNIL_ETAPAS);
+  assert.equal(faseDaEtapa("Negociação").id, "proposta");
+  assert.equal(faseDaEtapa("").id, "contato");
+  assert.equal(etapaAoMoverPara("NOVO CONTATO", "fechamento"), "APROVADO");
+  assert.equal(etapaAoMoverPara("SINAL PAGO", "fechamento"), "SINAL PAGO");
+});

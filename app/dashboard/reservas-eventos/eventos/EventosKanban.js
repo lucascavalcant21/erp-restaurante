@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Plus, Search, Calendar, Users, Building2, ChevronRight, LayoutGrid, List, X, Check, AlertTriangle } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
-import { FUNIL_ETAPAS, normalizarEtapa, rotuloEtapa } from "../../../lib/evento-financeiro.mjs";
+import { FASES_FUNIL, normalizarEtapa, rotuloEtapa, faseDaEtapa, etapaAoMoverPara } from "../../../lib/evento-financeiro.mjs";
 import { fmtReais, fmtPct } from "../../../lib/valor-percentual.mjs";
 import { indicadoresDoFunil } from "../../../lib/evento-orcamento.mjs";
 import { mascaraTelefone } from "../../../lib/mascaras.mjs";
@@ -14,9 +14,9 @@ import { mascaraTelefone } from "../../../lib/mascaras.mjs";
 // As etapas do funil vêm de evento-financeiro.mjs (a mesma lista do seletor
 // dentro do evento): antes eram duas listas e o evento sumia do funil.
 //
-// São 14 etapas. No quadro, etapa vazia vira uma coluna estreita (continua
-// recebendo o card arrastado); na lista, só aparecem as etapas com evento.
-// No celular a lista é o padrão: 14 colunas lado a lado não cabem.
+// São 14 etapas, agrupadas em 5 fases (FASES_FUNIL): o quadro tem 5 colunas
+// que cabem na tela e cada card mostra a etapa exata. Arrastar para outra
+// fase põe o evento na primeira etapa dela. No celular a lista é o padrão.
 
 const VISAO_KEY = "hefisto_funil_visao";
 const ENCERRADAS = ["EVENTO", "FINALIZADO", "CANCELADO"];
@@ -92,17 +92,22 @@ export default function EventosKanbanPage() {
     const data = dataTxt(e.data_evento);
     return [e.nome, e.cliente_nome, e.cliente_telefone, data].some(v => String(v || "").toLowerCase().includes(termo));
   });
-  const porEtapa = (etapa) => visiveis.filter(e => normalizarEtapa(e.funil_status) === etapa);
+  const porFase = (faseId) => visiveis.filter(e => faseDaEtapa(e.funil_status).id === faseId)
+    .sort((a, b) => FASES_FUNIL.find(f => f.id === faseId).etapas.indexOf(normalizarEtapa(a.funil_status)) - FASES_FUNIL.find(f => f.id === faseId).etapas.indexOf(normalizarEtapa(b.funil_status)) || String(a.data_evento || "").localeCompare(String(b.data_evento || "")));
   const hoje = hojeIso();
   const cartao = (evt, arrastavel) => (
     <CartaoEvento key={evt.id} evt={evt} hoje={hoje} arrastavel={arrastavel} esmaecido={arrastando === evt.id}
       onInicio={(e) => { e.dataTransfer.setData("text/plain", evt.id); e.dataTransfer.effectAllowed = "move"; setArrastando(evt.id); }}
       onFim={() => { setArrastando(null); setAlvo(null); }} />
   );
-  const soltar = (etapa) => ({
-    onDragOver: (e) => { if (arrastando) { e.preventDefault(); setAlvo(etapa); } },
-    onDragLeave: () => setAlvo(a => (a === etapa ? null : a)),
-    onDrop: (e) => { e.preventDefault(); const idEv = e.dataTransfer.getData("text/plain") || arrastando; setAlvo(null); setArrastando(null); if (idEv) moverPara(idEv, etapa); },
+  const soltar = (faseId) => ({
+    onDragOver: (e) => { if (arrastando) { e.preventDefault(); setAlvo(faseId); } },
+    onDragLeave: () => setAlvo(a => (a === faseId ? null : a)),
+    onDrop: (e) => {
+      e.preventDefault(); const idEv = e.dataTransfer.getData("text/plain") || arrastando; setAlvo(null); setArrastando(null);
+      const ev = eventos.find(x => x.id === idEv);
+      if (ev) moverPara(idEv, etapaAoMoverPara(ev.funil_status, faseId));
+    },
   });
 
   const kpis = [
@@ -166,28 +171,23 @@ export default function EventosKanbanPage() {
       ) : !visiveis.length ? (
         <div className="rounded-2xl border border-dashed border-hf-border-strong bg-hf-surface/60 p-6 text-sm text-hf-muted">Nenhum evento com esse filtro.</div>
       ) : modoVisao === "kanban" ? (
-        <div className="-mx-4 flex items-start gap-3 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6">
-          {FUNIL_ETAPAS.map((etapa) => {
-            const cards = porEtapa(etapa);
-            const marcado = alvo === etapa;
-            if (!cards.length) {
-              return (
-                <div key={etapa} {...soltar(etapa)} title={`${rotuloEtapa(etapa)}: nenhum evento`}
-                  className={`flex min-h-[220px] w-11 shrink-0 flex-col items-center gap-2 rounded-2xl border py-3 transition-colors ${marcado ? "border-hf-accent bg-hf-accent/10" : "border-dashed border-hf-border-strong bg-hf-surface/50"}`}>
-                  <span className="text-[11px] font-bold text-hf-muted">0</span>
-                  <span className="text-xs font-semibold text-hf-text-2 [writing-mode:vertical-rl]">{rotuloEtapa(etapa)}</span>
-                </div>
-              );
-            }
+        <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-3 xl:grid-cols-5">
+          {FASES_FUNIL.map((fase) => {
+            const cards = porFase(fase.id);
+            const marcado = alvo === fase.id;
             return (
-              <section key={etapa} {...soltar(etapa)} aria-label={rotuloEtapa(etapa)}
-                className={`flex w-72 shrink-0 flex-col rounded-2xl border bg-hf-elevated/60 transition-colors ${marcado ? "border-hf-accent ring-2 ring-hf-accent/20" : "border-hf-border"}`}>
+              <section key={fase.id} {...soltar(fase.id)} aria-label={fase.rotulo}
+                className={`flex min-w-0 flex-col rounded-2xl border bg-hf-surface/70 transition-colors ${marcado ? "border-hf-accent ring-2 ring-hf-accent/20" : "border-hf-border"}`}>
                 <header className="flex items-center justify-between gap-2 px-3 pb-2 pt-3">
-                  <h3 className="text-sm font-bold text-hf-text">{rotuloEtapa(etapa)}</h3>
-                  <span className="rounded-full bg-hf-surface px-2 py-0.5 text-xs font-bold text-hf-text-2">{cards.length}</span>
+                  <h3 className="text-sm font-black text-hf-text">{fase.rotulo}</h3>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${cards.length ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-elevated text-hf-muted"}`}>{cards.length}</span>
                 </header>
-                <div className="max-h-[65vh] space-y-2 overflow-y-auto px-2 pb-2">
-                  {cards.map((evt) => cartao(evt, true))}
+                <div className="max-h-[65vh] min-h-[120px] space-y-2 overflow-y-auto px-2 pb-2">
+                  {cards.length ? cards.map((evt) => cartao(evt, true)) : (
+                    <p className="grid min-h-[100px] place-items-center rounded-xl border border-dashed border-hf-border px-3 text-center text-xs font-semibold text-hf-muted">
+                      {marcado ? "Solte aqui" : fase.etapas.map(rotuloEtapa).join(" · ")}
+                    </p>
+                  )}
                 </div>
               </section>
             );
@@ -195,13 +195,13 @@ export default function EventosKanbanPage() {
         </div>
       ) : (
         <div className="space-y-5">
-          {FUNIL_ETAPAS.map((etapa) => {
-            const cards = porEtapa(etapa);
+          {FASES_FUNIL.map((fase) => {
+            const cards = porFase(fase.id);
             if (!cards.length) return null;
             return (
-              <section key={etapa} aria-label={rotuloEtapa(etapa)}>
+              <section key={fase.id} aria-label={fase.rotulo}>
                 <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-hf-text-2">
-                  {rotuloEtapa(etapa)} <span className="rounded-full bg-hf-surface px-2 py-0.5 text-[11px] text-hf-muted">{cards.length}</span>
+                  {fase.rotulo} <span className="rounded-full bg-hf-surface px-2 py-0.5 text-[11px] text-hf-muted">{cards.length}</span>
                 </h3>
                 <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                   {cards.map((evt) => cartao(evt, false))}
@@ -252,6 +252,7 @@ function CartaoEvento({ evt, hoje, arrastavel, esmaecido, onInicio, onFim }) {
         <ChevronRight size={16} className="mt-0.5 shrink-0 text-hf-muted" />
       </div>
       {evt.cliente_nome && evt.nome && <p className="mt-0.5 truncate text-xs text-hf-text-2">{evt.cliente_nome}</p>}
+      <span className={`mt-1.5 inline-block rounded-md px-1.5 py-0.5 text-[11px] font-bold ${etapa === "CANCELADO" ? "bg-hf-danger/10 text-hf-danger" : "bg-hf-accent/10 text-hf-accent"}`}>{rotuloEtapa(etapa)}</span>
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-hf-text-2">
         <span className="inline-flex items-center gap-1 rounded-md bg-hf-elevated px-1.5 py-0.5"><Calendar size={12} /> {dataTxt(evt.data_evento)}</span>
         {Number(evt.capacidade) > 0 && <span className="inline-flex items-center gap-1 rounded-md bg-hf-elevated px-1.5 py-0.5"><Users size={12} /> {evt.capacidade}</span>}

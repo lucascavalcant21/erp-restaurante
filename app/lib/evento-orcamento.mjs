@@ -677,3 +677,23 @@ export function mensagemErroEvento(msg) {
 }
 
 export { novoId };
+
+/* O que está incluso, para a proposta do cliente (sem valores): a equipe por
+ * função/área com a quantidade e os serviços extras (decoração, música,
+ * aluguel…) pela descrição. Pedido do dono, 27/10/2026: "orçamento bem
+ * profissional, com as informações necessárias". */
+export function incluidoNaProposta(orc = {}) {
+  const porFuncao = new Map();
+  for (const p of orc.equipe || []) {
+    const nome = String(p.funcao || p.area || "Equipe").trim() || "Equipe";
+    const q = p.quantidade === "" || p.quantidade === undefined || p.quantidade === null ? 1 : pos(p.quantidade);
+    if (!(q > 0)) continue;
+    porFuncao.set(nome, (porFuncao.get(nome) || 0) + q);
+  }
+  // "Garçom × 4" (sem plural inventado para cada função).
+  const equipe = [...porFuncao.entries()].map(([nome, q]) => `${nome} × ${q.toLocaleString("pt-BR")}`);
+  const servicos = (orc.extras || [])
+    .map((x) => String(x.descricao || CATEGORIAS_EXTRAS.find((c) => c.id === x.categoria)?.rotulo || "").trim())
+    .filter(Boolean);
+  return { equipe, servicos: [...new Set(servicos)] };
+}

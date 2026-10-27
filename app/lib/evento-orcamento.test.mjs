@@ -264,3 +264,13 @@ test("banco sem a EVENTOS-ORC-1: detecta pela linha lida e traduz o erro do Post
   assert.equal(mensagemErroEvento("column eventos.hora_inicio does not exist"), MSG_BANCO_EVENTOS);
   assert.equal(mensagemErroEvento("Failed to fetch"), "Failed to fetch");
 });
+
+test("o que está incluso na proposta: equipe por função e serviços, sem valores", async () => {
+  const { incluidoNaProposta } = await import("./evento-orcamento.mjs");
+  const o = orcBase();
+  o.equipe = [{ funcao: "Garçom", quantidade: 3, valor: 150 }, { funcao: "Garçom", quantidade: 1, valor: 150 }, { area: "Cozinha", quantidade: "", valor: 200 }];
+  const r = incluidoNaProposta(o);
+  assert.deepEqual(r.equipe, ["Garçom × 4", "Cozinha × 1"]);
+  assert.deepEqual(r.servicos, ["Flores", "DJ"]);
+  assert.ok(!JSON.stringify(r).includes("150"));
+});

@@ -330,9 +330,9 @@ export default function EventoPage() {
           {etapa === "cliente" && <EtapaCliente {...props} unidadeAtiva={unidadeAtiva} historico={historico} />}
           {etapa === "financeiro" && <EtapaFinanceiro {...props} />}
           {etapa === "dre" && <EtapaDRE {...props} recebido={recebido} />}
-          {etapa === "proposta" && <EtapaProposta {...props} casa={unidadeInfo?.nome || ""} />}
+          {etapa === "proposta" && <EtapaProposta {...props} casa={unidadeInfo?.nome || ""} eventoId={id} telefoneCasa={unidadeInfo?.telefone || ""} />}
           {etapa === "pagamentos" && <EtapaPagamentos pagamentos={pagamentos} salvarPagamentos={salvarPagamentos} resumo={resumo} salvando={salvandoPag} />}
-          {etapa === "compras" && compras && <ComprasTab lista={compras} valor={resumo.receita} nItens={resumo.itens.length} />}
+          {etapa === "compras" && compras && <ComprasTab lista={compras} valor={resumo.receita} nItens={resumo.itens.length} cmvCardapio={resumo.cmv} />}
 
           <div className="mt-6 flex items-center justify-between gap-3 print:hidden">
             {idx > 0 ? (

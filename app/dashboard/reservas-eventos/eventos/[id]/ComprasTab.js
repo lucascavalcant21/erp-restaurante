@@ -23,8 +23,21 @@ function fmtQtd(q, unidade) {
   return `${num(n, 3)} ${u === "l" ? "L" : u}`;
 }
 
-export default function ComprasTab({ lista, valor = 0, nItens = 0 }) {
+// Preço de compra por unidade de compra (R$/kg, R$/L, R$/un) a partir do custo e da quantidade.
+function precoUnitario(item) {
+  const u = String(item.unidade || "").toLowerCase();
+  const q = Number(item.quantidade) || 0;
+  if (!(q > 0) || !(item.custo > 0)) return null;
+  if (u === "g") return { valor: item.custo / (q / 1000), un: "kg" };
+  if (u === "ml") return { valor: item.custo / (q / 1000), un: "L" };
+  return { valor: item.custo / q, un: u === "l" ? "L" : u || "un" };
+}
+
+export default function ComprasTab({ lista, valor = 0, nItens = 0, cmvCardapio = null }) {
   const [marcados, setMarcados] = useState(() => new Set());
+  // Por categoria do insumo (como na prateleira do fornecedor); sem categoria = "Outros".
+  const porCategoria = Object.entries(lista.itens.reduce((m, x) => { const c = x.categoria || "Outros"; (m[c] ||= []).push(x); return m; }, {}))
+    .sort(([a], [b]) => (a === "Outros") - (b === "Outros") || a.localeCompare(b, "pt-BR"));
   const alternar = (k) => setMarcados((m) => { const n = new Set(m); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   return (
@@ -56,27 +69,36 @@ export default function ComprasTab({ lista, valor = 0, nItens = 0 }) {
         </div>
       ) : (
         <>
-          <ul className="divide-y divide-slate-100">
-            {lista.itens.map((item) => {
-              const k = item.insumo_id || item.nome;
-              return (
-                <li key={k} className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-6 py-3 ${marcados.has(k) ? "opacity-50" : ""}`}>
-                  <input type="checkbox" checked={marcados.has(k)} onChange={() => alternar(k)} aria-label={`Comprado: ${item.nome}`}
-                    className="h-5 w-5 rounded border-slate-300 accent-emerald-600 print:hidden" />
-                  <span className="min-w-0 flex-1 basis-40 font-bold text-slate-800">{item.nome}{item.exclusivo && <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-zinc-800">exclusivo</span>}</span>
-                  <span className="whitespace-nowrap rounded-lg bg-slate-100 px-3 py-1 font-black tabular-nums text-slate-800">{fmtQtd(item.quantidade, item.unidade)}</span>
-                  <span className="w-40 whitespace-nowrap text-right text-sm font-bold tabular-nums text-slate-800 print:hidden">
-                    {fmtReais(item.custo)}{valor > 0 ? <span className="font-semibold text-slate-500"> · {fmtPct(percentualDe(item.custo, valor))}</span> : null}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          <footer className="flex flex-wrap items-baseline justify-between gap-x-3 border-t border-slate-200 bg-slate-50 px-6 py-3 print:hidden">
-            <span className="text-sm font-black uppercase tracking-wide text-slate-700">Custo estimado das compras</span>
-            <span className="ml-auto whitespace-nowrap text-lg font-black tabular-nums text-slate-900">
-              {fmtReais(lista.total)}{valor > 0 ? <span className="text-sm font-bold text-slate-500"> · {fmtPct(percentualDe(lista.total, valor))} do valor do evento</span> : null}
-            </span>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                <tr><th className="w-10 px-3 py-2 print:hidden" /><th className="px-3 py-2 text-left">Produto</th><th className="px-3 py-2 text-right">Quantidade</th><th className="px-3 py-2 text-right">Preço de compra</th><th className="px-3 py-2 text-right">Total</th><th className="px-3 py-2 text-right">% do evento</th></tr>
+              </thead>
+              {porCategoria.map(([cat, itens]) => (
+                <tbody key={cat} className="break-inside-avoid">
+                  <tr className="bg-white"><td colSpan={6} className="px-3 pb-1 pt-3 text-[11px] font-black uppercase tracking-wide text-emerald-700">{cat} · {fmtReais(itens.reduce((t, x) => t + x.custo, 0))}</td></tr>
+                  {itens.map((item) => {
+                    const k = item.insumo_id || item.nome;
+                    const pu = precoUnitario(item);
+                    return (
+                      <tr key={k} className={`border-t border-slate-100 ${marcados.has(k) ? "opacity-50" : ""}`}>
+                        <td className="px-3 py-2 print:hidden"><input type="checkbox" checked={marcados.has(k)} onChange={() => alternar(k)} aria-label={`Comprado: ${item.nome}`} className="h-5 w-5 rounded border-slate-300 accent-emerald-600" /></td>
+                        <td className="px-3 py-2 font-bold text-slate-800">{item.nome}{item.exclusivo && <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-zinc-800">exclusivo</span>}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right font-black tabular-nums text-slate-800">{fmtQtd(item.quantidade, item.unidade)}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-slate-600">{pu ? `${fmtReais(pu.valor)}/${pu.un}` : <span className="font-bold text-amber-700">sem preço</span>}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right font-bold tabular-nums text-slate-900">{fmtReais(item.custo)}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-slate-500">{valor > 0 ? fmtPct(percentualDe(item.custo, valor)) : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              ))}
+            </table>
+          </div>
+          <footer className="grid gap-2 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:grid-cols-3">
+            <div><p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Total das compras</p><p className="text-xl font-black tabular-nums text-slate-900">{fmtReais(lista.total)}</p></div>
+            <div><p className="text-[11px] font-black uppercase tracking-wide text-slate-500">CMV do cardápio (fichas)</p><p className="text-xl font-black tabular-nums text-slate-900">{cmvCardapio != null ? fmtReais(cmvCardapio) : "—"}</p></div>
+            <div><p className="text-[11px] font-black uppercase tracking-wide text-slate-500">CMV sobre o valor do evento</p><p className="text-xl font-black tabular-nums text-slate-900">{valor > 0 ? fmtPct(percentualDe(lista.total, valor)) : "defina o preço"}</p></div>
           </footer>
           <p className="px-6 pb-4 pt-2 text-xs font-medium text-slate-500 print:hidden">Custo pelo preço de compra atual de cada ingrediente. Pode diferir do CMV do cardápio quando a embalagem do produto entra à parte.</p>
         </>

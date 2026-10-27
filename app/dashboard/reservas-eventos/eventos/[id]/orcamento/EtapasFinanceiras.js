@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { Download, Send, Wand2, Info, CalendarDays, Clock, Users, MapPin } from "lucide-react";
-import { SECOES, tipoDoEvento, cardapioParaCliente, textoDoOrcamento, linkWhatsApp, novoId, linhasDeValor, realizadoDoEvento } from "../../../../../lib/evento-orcamento.mjs";
+import { SECOES, tipoDoEvento, cardapioParaCliente, textoDoOrcamento, linkWhatsApp, novoId, linhasDeValor, realizadoDoEvento, incluidoNaProposta } from "../../../../../lib/evento-orcamento.mjs";
 import { parseNumero } from "../../../../../lib/ficha-calculos.mjs";
 import { fmtReais, fmtPct } from "../../../../../lib/valor-percentual.mjs";
 import { Cartao, Campo, Texto, Numero, ModoValor, BotaoRemover, BotaoAdicionar, LinhaValor, vp } from "./ui";
@@ -208,7 +208,7 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
 const fmtData = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }) : "A definir");
 
 // Orçamento para o cliente: produtos e valor por pessoa. Nenhum custo aparece.
-export function EtapaProposta({ orc, setOrc, resumo: r, casa }) {
+export function EtapaProposta({ orc, setOrc, resumo: r, casa, eventoId = "", telefoneCasa = "" }) {
   const prop = orc.proposta || {};
   const mudarProp = (m) => setOrc((o) => ({ ...o, proposta: { ...(o.proposta || {}), ...m } }));
   const validoAte = (() => {
@@ -219,6 +219,10 @@ export function EtapaProposta({ orc, setOrc, resumo: r, casa }) {
   })();
   const c = orc.cliente;
   const grupos = cardapioParaCliente(orc);
+  const incluso = incluidoNaProposta(orc);
+  const emitida = new Date().toLocaleDateString("pt-BR");
+  // Número da proposta: ano + início do id do evento (estável para o mesmo evento).
+  const numero = `${new Date().getFullYear()}-${String(eventoId || "").replace(/-/g, "").slice(0, 6).toUpperCase() || "000000"}`;
   const enviar = () => window.open(linkWhatsApp(c.cliente_telefone, textoDoOrcamento(orc, r, { casa })), "_blank", "noopener");
   return (
     <div className="space-y-5">
@@ -235,51 +239,108 @@ export function EtapaProposta({ orc, setOrc, resumo: r, casa }) {
         <p className="basis-full text-xs font-medium text-slate-500">No PDF, escolha “Salvar como PDF” na janela de impressão. O WhatsApp abre com o texto pronto{c.cliente_telefone ? "" : " (sem número: escolha o contato)"}; quem envia é você.</p>
       </div>
 
-      <article id="orcamento-cliente" className="mx-auto w-full max-w-[800px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm print:max-w-none print:rounded-none print:border-0 print:shadow-none">
-        <header className="bg-hf-surface px-6 py-8 text-hf-text sm:px-10 print:bg-hf-surface" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{casa || "Orçamento"}</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight">{c.nome_evento || "Orçamento do evento"}</h1>
-          {c.cliente_nome && <p className="mt-1 text-lg font-semibold text-hf-text">Para {c.cliente_nome}</p>}
-          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-hf-border pt-5 text-sm sm:grid-cols-4">
-            {[[CalendarDays, "Data", fmtData(c.data_evento)], [Clock, "Horário", c.hora_inicio ? `${c.hora_inicio}${c.hora_fim ? ` às ${c.hora_fim}` : ""}` : "A definir"],
-              [Users, "Pessoas", r.convidados || "A definir"], [MapPin, "Local", c.local_evento || "A definir"]].map(([Icone, rot, val]) => (
-              <div key={rot} className="min-w-0">
-                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-hf-text-2"><Icone size={12} /> {rot}</p>
-                <p className="mt-0.5 break-words font-bold text-hf-text">{val}</p>
-              </div>
-            ))}
+      {/* Proposta comercial (o que o cliente recebe): só preço, nunca custo nem margem. */}
+      <article id="orcamento-cliente" className="mx-auto w-full max-w-[820px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm print:max-w-none print:rounded-none print:border-0 print:shadow-none">
+        <header className="border-b-4 border-emerald-700 px-6 pb-6 pt-8 sm:px-10" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xl font-black tracking-tight text-slate-900">{casa || "Proposta"}</p>
+              {telefoneCasa ? <p className="text-xs font-semibold text-slate-500">{telefoneCasa}</p> : null}
+            </div>
+            <div className="text-right text-xs font-semibold text-slate-500">
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">Proposta comercial</p>
+              <p>Nº {numero}</p>
+              <p>Emitida em {emitida}</p>
+              {validoAte && <p>Válida até {validoAte}</p>}
+            </div>
           </div>
+          <h1 className="mt-6 text-3xl font-black tracking-tight text-slate-900">{c.nome_evento || "Seu evento"}</h1>
+          {c.cliente_nome && <p className="mt-1 text-base font-semibold text-slate-700">Preparada para {c.cliente_nome}{c.cliente_telefone ? ` · ${c.cliente_telefone}` : ""}</p>}
         </header>
+
         <div className="space-y-8 px-6 py-8 sm:px-10">
-          <p className="text-sm font-semibold uppercase tracking-widest text-slate-500">Serviço: {tipoDoEvento(orc.tipo).rotulo}</p>
-          {grupos.length === 0 && <p className="text-sm font-medium text-slate-500">O cardápio ainda não foi montado.</p>}
-          {grupos.map((g) => (
-            <section key={g.secao} className="break-inside-avoid">
-              <h2 className="border-b border-slate-200 pb-2 text-lg font-black uppercase tracking-tight text-slate-900">{g.rotulo}</h2>
-              <ul className="mt-3 space-y-2">
-                {g.itens.map((i, k) => (
-                  <li key={k}>
-                    <p className="font-bold text-slate-900">{i.nome}</p>
-                    {i.descricao && <p className="text-sm font-medium text-slate-600">{i.descricao}</p>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-          <section className="break-inside-avoid rounded-2xl bg-emerald-50 p-5" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
-            <p className="text-xs font-bold uppercase tracking-widest text-emerald-800">Valor por pessoa</p>
-            <p className="text-3xl font-black tabular-nums text-emerald-900">{r.precoPorPessoa > 0 ? fmtReais(r.precoPorPessoa) : "A definir"}</p>
-            {r.precoPorPessoa > 0 && linhasDeValor(r).slice(1).map((l) => <p key={l} className="mt-1 text-sm font-bold text-emerald-900">{l}</p>)}
-            {c.forma_pagamento && <p className="mt-3 text-sm font-semibold text-slate-700">Forma de pagamento: {c.forma_pagamento}</p>}
+          <section className="break-inside-avoid">
+            <h2 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">O evento</h2>
+            <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+              {[[CalendarDays, "Data", fmtData(c.data_evento)],
+                [Clock, "Horário", c.hora_inicio ? `${c.hora_inicio}${c.hora_fim ? ` às ${c.hora_fim}` : ""}` : "A definir"],
+                [Users, "Convidados", r.convidados ? `${r.convidados}${r.criancas ? ` (${r.criancas} crianças)` : ""}` : "A definir"],
+                [MapPin, "Local", c.local_evento || "A definir"],
+                [Info, "Serviço", tipoDoEvento(orc.tipo).rotulo]].map(([Icone, rot, val]) => (
+                <div key={rot} className="min-w-0">
+                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500"><Icone size={12} /> {rot}</p>
+                  <p className="mt-0.5 break-words font-bold text-slate-900">{val}</p>
+                </div>
+              ))}
+            </div>
           </section>
+
+          <section>
+            <h2 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Cardápio</h2>
+            {grupos.length === 0 && <p className="mt-2 text-sm font-medium text-slate-500">O cardápio ainda não foi montado.</p>}
+            <div className="mt-3 space-y-6">
+              {grupos.map((g) => (
+                <div key={g.secao} className="break-inside-avoid">
+                  <h3 className="border-b border-slate-200 pb-1.5 text-base font-black text-emerald-800">{g.rotulo}</h3>
+                  <ul className="mt-2 space-y-1.5">
+                    {g.itens.map((i, k) => (
+                      <li key={k} className="flex gap-2">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" aria-hidden />
+                        <span><span className="font-bold text-slate-900">{i.nome}</span>{i.descricao && <span className="block text-sm font-medium text-slate-600">{i.descricao}</span>}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {(incluso.equipe.length > 0 || incluso.servicos.length > 0) && (
+            <section className="break-inside-avoid">
+              <h2 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Está incluso</h2>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                {incluso.equipe.length > 0 && <div><p className="text-sm font-black text-slate-900">Equipe</p><ul className="mt-1 space-y-0.5 text-sm font-medium text-slate-700">{incluso.equipe.map((e) => <li key={e}>{e}</li>)}</ul></div>}
+                {incluso.servicos.length > 0 && <div><p className="text-sm font-black text-slate-900">Serviços</p><ul className="mt-1 space-y-0.5 text-sm font-medium text-slate-700">{incluso.servicos.map((e) => <li key={e}>{e}</li>)}</ul></div>}
+              </div>
+            </section>
+          )}
+
+          <section className="break-inside-avoid overflow-hidden rounded-2xl border border-emerald-200" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
+            <h2 className="bg-emerald-700 px-5 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">Investimento</h2>
+            {r.precoPorPessoa > 0 ? (
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr className="border-b border-emerald-100"><td className="px-5 py-2 font-semibold text-slate-700">Valor por pessoa</td><td className="px-5 py-2 text-right font-black tabular-nums text-slate-900">{fmtReais(r.precoPorPessoa)}</td></tr>
+                  {r.adultos > 0 && <tr className="border-b border-emerald-100"><td className="px-5 py-2 font-semibold text-slate-700">{r.adultos} adulto(s) × {fmtReais(r.precoPorPessoa)}</td><td className="px-5 py-2 text-right tabular-nums text-slate-900">{fmtReais(r.adultos * r.precoPorPessoa)}</td></tr>}
+                  {r.criancas > 0 && <tr className="border-b border-emerald-100"><td className="px-5 py-2 font-semibold text-slate-700">{r.criancas} criança(s) × {fmtReais(r.precoCrianca)}</td><td className="px-5 py-2 text-right tabular-nums text-slate-900">{fmtReais(r.criancas * r.precoCrianca)}</td></tr>}
+                  {r.desconto > 0 && <tr className="border-b border-emerald-100"><td className="px-5 py-2 font-semibold text-slate-700">Desconto</td><td className="px-5 py-2 text-right tabular-nums text-emerald-700">−{fmtReais(r.desconto)}</td></tr>}
+                  <tr className="bg-emerald-50"><td className="px-5 py-3 text-base font-black text-emerald-900">Total{r.convidados ? ` para ${r.convidados} pessoas` : ""}</td><td className="px-5 py-3 text-right text-2xl font-black tabular-nums text-emerald-900">{fmtReais(r.receita)}</td></tr>
+                </tbody>
+              </table>
+            ) : <p className="px-5 py-4 text-sm font-bold text-slate-600">Valor a definir.</p>}
+            {c.forma_pagamento && <p className="border-t border-emerald-100 px-5 py-2 text-sm font-semibold text-slate-700">Forma de pagamento: {c.forma_pagamento}</p>}
+          </section>
+
           {prop.condicoes && (
             <section className="break-inside-avoid">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500">Condições</h2>
+              <h2 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Condições</h2>
               <p className="mt-1 whitespace-pre-line text-sm font-medium text-slate-700">{prop.condicoes}</p>
             </section>
           )}
-          {c.observacoes && <p className="whitespace-pre-line text-sm font-medium text-slate-700">{c.observacoes}</p>}
-          {validoAte && <p className="text-xs font-semibold text-slate-500">Orçamento válido até {validoAte}.</p>}
+          {c.observacoes && (
+            <section className="break-inside-avoid">
+              <h2 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Observações</h2>
+              <p className="mt-1 whitespace-pre-line text-sm font-medium text-slate-700">{c.observacoes}</p>
+            </section>
+          )}
+
+          <section className="break-inside-avoid pt-6">
+            <div className="grid gap-8 sm:grid-cols-2">
+              <div className="border-t border-slate-400 pt-1.5 text-center text-xs font-semibold text-slate-500">{casa || "Responsável"}</div>
+              <div className="border-t border-slate-400 pt-1.5 text-center text-xs font-semibold text-slate-500">De acordo: {c.cliente_nome || "Cliente"}</div>
+            </div>
+            {validoAte && <p className="mt-6 text-center text-xs font-semibold text-slate-500">Proposta válida até {validoAte}. Valores sujeitos a confirmação do número final de convidados.</p>}
+          </section>
         </div>
       </article>
     </div>

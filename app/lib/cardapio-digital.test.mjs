@@ -155,6 +155,17 @@ test("cardápio sai das fichas: nome comercial, descrição, alergênicos e cate
   assert.deepEqual(c.categorias[0].produto_ids, ["p1", "p2"], "destaque primeiro");
 });
 
+test("adicionais vão para o fim da seção, depois dos pratos; destaque continua primeiro", () => {
+  const produtos = [
+    { id: "a1", nome_produto: "Adicional - Arroz branco", preco_venda: 12, categoria: "Pratos Principais", ficha: null },
+    { id: "a2", nome_produto: "Adicionais de molho", preco_venda: 5, categoria: "Pratos Principais", ficha: null },
+    { id: "b1", nome_produto: "Moqueca", preco_venda: 90, categoria: "Pratos Principais", ficha: null },
+    { id: "b2", nome_produto: "Arroz paraense", preco_venda: 55, categoria: "Pratos Principais", ficha: null },
+  ];
+  const c = montarCardapioPublico({ produtos, config: { itens: { a1: { destaque: true } } }, agora: SAB_1830 });
+  assert.deepEqual(c.categorias[0].produto_ids, ["a1", "b2", "b1", "a2"]);
+});
+
 test("fora do cardápio: preço zero, ficha desativada e oculto pelo dono", () => {
   const c = montarCardapioPublico({ produtos: PRODUTOS, config: CONFIG, agora: SAB_1830 });
   const ids = c.produtos.map((p) => p.id);

@@ -314,7 +314,11 @@ body {
 html,
 body {
   overscroll-behavior: none !important;
+  /* clip corta a rolagem lateral como hidden, mas sem virar "caixa de rolagem":
+     com hidden em html e body, o position: sticky parou de grudar (barra do
+     cardápio, trilho de seções). hidden fica para navegador antigo. */
   overflow-x: hidden !important;
+  overflow-x: clip !important;
   touch-action: pan-x pan-y !important;
   -ms-touch-action: pan-x pan-y !important;
   -webkit-text-size-adjust: 100% !important;

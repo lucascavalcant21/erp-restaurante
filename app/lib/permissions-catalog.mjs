@@ -67,6 +67,9 @@ export const PERMISSION_MODULES = [
       // Contagem física (inventário, F2.4A): quem conta não precisa ver custo;
       // finalizar (valorizar e congelar) é ação separada.
       { id: "counts", label: "Contagem de estoque (inventário)", route: "/dashboard/operacao/estoque/contagens", actions: ["view", "inventory", "close_inventory"] },
+      // Todos os produtos (27/10/2026): saldo por local, ritmo de saída/entrada
+      // e mínimo/máximo sugerido. Sem custo; "edit" = gravar mínimo e máximo.
+      { id: "all_products", label: "Todos os produtos e mínimo/máximo", route: "/dashboard/operacao/estoque/produtos", actions: ["view", "edit"] },
       // Compras (F2.4B): registro oficial, custo médio e conta a pagar. Vê custo.
       { id: "purchases", label: "Compras e custo médio", route: "/dashboard/operacao/estoque/compras", actions: ["view", "create", "confirm", "cancel", "view_costs"] },
       // CMV real (F2.4C): leitura; "edit" = lançar o faturamento diário (se habilitado).

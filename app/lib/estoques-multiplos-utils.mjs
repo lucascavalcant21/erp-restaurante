@@ -31,6 +31,11 @@ export const ESTOQUES_PADRAO = [
   { nome: "Materiais variados", slug: "materiais-variados", tipo: "materiais", cor: "#d97706", controla_validade: false, controla_minimo: true },
   { nome: "Embalagens da Cozinha", slug: "embalagens-cozinha", tipo: "embalagens", cor: "#db2777", controla_validade: false, controla_minimo: true },
   { nome: "Embalagens do Bar", slug: "embalagens-bar", tipo: "embalagens", cor: "#9333ea", controla_validade: false, controla_minimo: true },
+  // Produtos da lava-louças (detergente, secante, sanitizante): estoque próprio
+  // de cada máquina, fora da limpeza geral (pedido do dono, 27/10/2026).
+  { nome: "Máquina de lavar da Cozinha", slug: "maquina-cozinha", tipo: "limpeza", cor: "#0891b2", controla_validade: false, controla_minimo: true },
+  { nome: "Máquina de lavar do Bar", slug: "maquina-bar", tipo: "limpeza", cor: "#0e7490", controla_validade: false, controla_minimo: true },
+  { nome: "Embalagens da Marmitaria", slug: "embalagens-marmitaria", tipo: "embalagens", cor: "#be185d", controla_validade: false, controla_minimo: true },
   // Depósito: estoque geral da casa — aceita ingredientes E materiais juntos,
   // sem o filtro por setor dos demais. Mesma auditoria dos outros estoques.
   { nome: "Depósito", slug: "deposito", tipo: "materiais", cor: "#047857", controla_validade: true, controla_minimo: true },

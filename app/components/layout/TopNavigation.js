@@ -51,6 +51,9 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         { label: "Green Dot Assist (Tablet IA)", href: "/dashboard/assistente" },
         { label: "Central operacional", href: "/dashboard/operacao/inteligente" },
         { label: "Controles & Checklists", href: "/dashboard/operacao/controles" },
+        { label: "Produtos de limpeza", href: "/dashboard/operacao/materiais/limpeza" },
+        { label: "Produtos da máquina de lavar", href: "/dashboard/operacao/materiais/maquina" },
+        { label: "Embalagens (estoque)", href: "/dashboard/operacao/materiais/embalagens" },
         { label: "Limpeza", href: "/dashboard/operacao/limpeza" },
         { label: "Manutenção", href: "/dashboard/operacao/manutencao" }
       ]

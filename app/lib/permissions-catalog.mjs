@@ -263,6 +263,11 @@ export const PERMISSION_MODULES = [
       // Cobre por prefixo processos, rankings, nao-conformidades e a TV.
       { id: "operational_center", label: "Central Operacional", route: "/dashboard/operacao/inteligente", actions: [...CRUD, "confirm", "approve", "export"] },
       { id: "cleaning_supplies", label: "Produtos de limpeza na despensa", route: "/dashboard/operacao/limpeza", actions: [...CRUD, "adjust_stock"] },
+      // Cadastro e estoque de limpeza, produtos da máquina de lavar (cozinha e bar) e embalagens (27/10).
+      { id: "home_materials", label: "Limpeza, máquina de lavar e embalagens (entrada)", route: "/dashboard/operacao/materiais", actions: ["view"] },
+      { id: "cleaning_products", label: "Produtos de limpeza (cadastro e estoque)", route: "/dashboard/operacao/materiais/limpeza", actions: [...CRUD, "adjust_stock"] },
+      { id: "dishwasher_products", label: "Produtos da máquina de lavar (cadastro e estoque)", route: "/dashboard/operacao/materiais/maquina", actions: [...CRUD, "adjust_stock"] },
+      { id: "packaging_stock", label: "Embalagens (cadastro e estoque)", route: "/dashboard/operacao/materiais/embalagens", actions: [...CRUD, "adjust_stock"] },
       { id: "areas", label: "Áreas de trabalho", route: "/dashboard/area", actions: ["view"] },
     ],
   },

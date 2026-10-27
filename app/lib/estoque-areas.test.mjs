@@ -56,3 +56,9 @@ test("categorias por área", () => {
   assert.equal(categoriaNaArea({ nome: "Guardanapo" }, "salao"), "Papéis");
   assert.equal(categoriaNaArea({ nome: "Coisa estranha" }, "cozinha"), null);
 });
+
+test("máquina de lavar da cozinha e do bar ficam na área Limpeza", () => {
+  assert.equal(areaDoLocal({ nome: "Máquina de lavar da Cozinha", slug: "maquina-cozinha", tipo: "limpeza" }), "limpeza");
+  assert.equal(areaDoLocal({ nome: "Máquina de lavar do Bar", slug: "maquina-bar", tipo: "limpeza" }), "limpeza");
+});
+

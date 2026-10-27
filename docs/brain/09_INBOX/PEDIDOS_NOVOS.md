@@ -30,3 +30,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 27/10/2026 | "Mudar a cor amarela por um fundo cinza claro que dê destaque aos cards; cards e botões com mais sombra" | Feito: `--hf-bg` #E8EAEE, sombras neutras mais fundas, botões com relevo |
 | 27/10/2026 | "Pare de ligar o estoque ao inventário" | Feito: sem "não conferido" na movimentação e no painel; o inventário segue na própria aba |
 | 27/10/2026 | "Mergeie e publique tudo; depois a página de eventos: puxar os produtos das fichas da cozinha e do bar e orçamento por pessoa o mais rápido possível" | Merge do PR #189 autorizado; eventos em seguida |
+| 27/10/2026 | (continuação) Eventos: orçamento por pessoa rápido com as fichas da cozinha e do bar | Feito: **Orçamento rápido** (`/dashboard/reservas-eventos/rapido`), primeira área de Eventos. TESTADO LOCAL (4 testes) + TESTADO EM MOCK (Playwright 11/11: custo 20,85/pessoa conferido à mão, evento criado e aberto) |

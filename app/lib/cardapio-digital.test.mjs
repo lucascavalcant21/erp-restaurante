@@ -313,3 +313,45 @@ test("link do cardápio: mesa limpa e links antigos do Experience", async () => 
   assert.equal(caminhoDoCardapio("seldeestrela"), "/cardapio/seldeestrela");
   assert.equal(caminhoDoCardapio("seldeestrela", { mesa: "Mesa 4" }), "/cardapio/seldeestrela?mesa=4");
 });
+
+// ─── combos e posição (27/10/2026) ──────────────────────────────────────────
+
+test("combo: vira item da seção Combos (primeira), com de/por; prato fora do ar tira o combo", async () => {
+  const { errosDoCombo, normalizarCombos } = await import("./cardapio-digital.mjs");
+  const config = { ...CONFIG, combos: [
+    { id: "duo", nome: "Maniçoba + caipirinha", itens: [{ produto_id: "p1", quantidade: 1 }, { produto_id: "p3", quantidade: 1 }], preco: "99,90" },
+    { id: "morto", nome: "Com prato escondido", itens: [{ produto_id: "p1" }, { produto_id: "p8" }], preco: 50 },
+    { id: "sem-preco", nome: "Sem preço", itens: [{ produto_id: "p1" }, { produto_id: "p3" }] },
+  ] };
+  assert.deepEqual(errosDoCombo({ nome: "", itens: [{ produto_id: "p1" }] }), ["Dê um nome ao combo.", "Um combo tem pelo menos 2 itens.", "Informe o preço do combo."]);
+  assert.equal(normalizarCombos(config.combos).length, 2);
+  const c = montarCardapioPublico({ produtos: PRODUTOS, config, agora: SAB_1830 });
+  assert.equal(c.categorias[0].id, "combos");
+  assert.deepEqual(c.categorias[0].produto_ids, ["combo-duo"]);
+  const duo = c.produtos.find((p) => p.id === "combo-duo");
+  assert.equal(duo.preco, 99.9);
+  // sábado 18:30: caipirinha no happy hour (28 → 22,40); separado = 89 + 22,40
+  assert.equal(duo.preco_original, 111.4);
+  assert.deepEqual(duo.combo.itens.map((i) => [i.produto_id, i.quantidade]), [["p1", 1], ["p3", 1]]);
+  assert.match(duo.descricao, /1× Maniçoba paraense \+ 1× Caipirinha de cupuaçu/);
+  assert.ok(!c.produtos.some((p) => p.id === "combo-morto"));
+  assert.ok(!c.produtos.some((p) => "ordem" in p));
+});
+
+test("combo no pedido: uma linha por prato, valor repartido, soma exata", async () => {
+  const { linhasDoCombo } = await import("./cardapio-digital.mjs");
+  const combo = { preco: 50, combo: { itens: [{ produto_id: "a", quantidade: 1, preco: 30 }, { produto_id: "b", quantidade: 2, preco: 10 }] } };
+  const l = linhasDoCombo(combo, 3);
+  assert.equal(l.length, 9);
+  assert.ok(l.every((x) => x.quantidade === 1));
+  assert.equal(Math.round(l.reduce((t, x) => t + x.valor_unitario, 0) * 100), 15000);
+  assert.equal(l[0].valor_unitario, 30);
+  assert.equal(l[1].valor_unitario, 10);
+});
+
+test("posição: o dono manda na ordem da seção; sem posição, a regra de antes (destaque primeiro)", () => {
+  const config = { itens: { p1: { destaque: true }, p2: { ordem: 1 } } };
+  const c = montarCardapioPublico({ produtos: PRODUTOS, config, agora: SEG_2330 });
+  const pratos = c.categorias.find((x) => x.produto_ids.includes("p1"));
+  assert.deepEqual(pratos.produto_ids.slice(0, 2), ["p2", "p1"]);
+});

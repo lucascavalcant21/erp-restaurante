@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, ExternalLink, Search, Star } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, ExternalLink, Search, Star } from "lucide-react";
 import { SELOS, categoriaDoProduto, centavos, formatarPreco, normalizarBusca } from "../../../lib/cardapio-digital.mjs";
 import { Alternar, Aviso, Botao, Campo, Chip, Envio, Secao, inputCls } from "./ui";
 
@@ -58,6 +58,33 @@ export default function Pratos({ config, mudar, unidadeId, juntos, categorias, p
     const b = normalizarBusca(busca);
     return !b || normalizarBusca(`${l.nome} ${l.p.nome_produto}`).includes(b);
   });
+  // Posição na seção (pedido do dono, 27/10/2026): com uma seção escolhida, a
+  // lista fica na ordem do cardápio e as setas mudam a posição. A mesma regra
+  // de montarCardapioPublico: posição do dono, depois destaque, depois nome.
+  const naSecao = Boolean(secao) && secao !== "_fora" && !busca.trim();
+  const adicional = (n) => /^adiciona(l|is)\b/.test(normalizarBusca(n));
+  const chave = (l) => [l.it.ordem > 0 ? l.it.ordem : Infinity, l.it.destaque ? 0 : 1, adicional(l.nome) ? 1 : 0];
+  if (naSecao) filtradas.sort((a, b) => { const x = chave(a); const y = chave(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2] || a.nome.localeCompare(b.nome, "pt-BR"); });
+  const moverNaSecao = (i, delta) => {
+    const ids = filtradas.map((l) => l.p.id);
+    const j = i + delta;
+    if (j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    mudar((c) => {
+      const itens = { ...c.itens };
+      ids.forEach((id, k) => { itens[id] = { ...(itens[id] || {}), ordem: k + 1 }; });
+      return { ...c, itens };
+    });
+  };
+  const ordemAutomatica = () => mudar((c) => {
+    const itens = { ...c.itens };
+    for (const l of filtradas) {
+      const { ordem, ...resto } = itens[l.p.id] || {};
+      if (Object.keys(resto).length) itens[l.p.id] = resto; else delete itens[l.p.id];
+    }
+    return { ...c, itens };
+  });
+  const temOrdem = naSecao && filtradas.some((l) => l.it.ordem > 0);
   const fora = linhas.filter((l) => l.motivos.length).length;
   const tudoMarcado = filtradas.length > 0 && filtradas.every((l) => marcados.includes(l.p.id));
 
@@ -97,8 +124,12 @@ export default function Pratos({ config, mudar, unidadeId, juntos, categorias, p
           ) : null}
         </div>
 
-        <ul className="mt-3 divide-y divide-hf-border rounded-xl border border-hf-border">
-          {filtradas.map(({ p, it, catId, cat, motivos, nome }) => {
+        <p className="mt-3 text-xs text-hf-text-2">
+          {naSecao ? "Use as setas para mudar a posição na seção: é a ordem que o cliente vê." : "Para mudar a posição dos pratos, escolha uma seção acima."}
+          {temOrdem ? <> · <button type="button" onClick={ordemAutomatica} className="font-semibold text-hf-accent">voltar à ordem automática</button></> : null}
+        </p>
+        <ul className="mt-2 divide-y divide-hf-border rounded-xl border border-hf-border">
+          {filtradas.map(({ p, it, catId, cat, motivos, nome }, idx) => {
             const pend = pendentes.produtos[p.id];
             const foto = pend && "imagem_url" in pend ? pend.imagem_url : p.imagem_url;
             const fotoFicha = p.ficha?.imagem_url;
@@ -126,6 +157,13 @@ export default function Pratos({ config, mudar, unidadeId, juntos, categorias, p
                     </span>
                     {abertoAgora ? <ChevronUp size={18} className="text-hf-muted" /> : <ChevronDown size={18} className="text-hf-muted" />}
                   </button>
+                  {naSecao ? (
+                    <span className="flex flex-shrink-0 items-center gap-1">
+                      <span className="w-6 text-center text-xs font-black tabular-nums text-hf-muted">{idx + 1}</span>
+                      <Botao variante="secundario" className="!min-h-[40px] !px-2.5" onClick={() => moverNaSecao(idx, -1)} disabled={idx === 0} aria-label={`Subir ${nome}`}><ArrowUp size={16} /></Botao>
+                      <Botao variante="secundario" className="!min-h-[40px] !px-2.5" onClick={() => moverNaSecao(idx, 1)} disabled={idx === filtradas.length - 1} aria-label={`Descer ${nome}`}><ArrowDown size={16} /></Botao>
+                    </span>
+                  ) : null}
                 </div>
                 {abertoAgora ? (
                   <div className="grid gap-3 border-t border-hf-border bg-hf-bg/40 p-3 sm:grid-cols-2">

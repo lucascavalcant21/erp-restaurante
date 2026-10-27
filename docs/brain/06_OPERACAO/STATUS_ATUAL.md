@@ -57,6 +57,9 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - **Movimentar:** Retirar/Adicionar escolhidos no produto (não mais no topo). TESTADO EM MOCK (7/7).
 - **Estoque desligado do inventário:** sem "não conferido" na movimentação e no painel.
 - **Visual:** fundo cinza claro #E8EAEE, sombras mais fundas, botões com relevo.
+- PR #189 mesclado na `main` (50b903e) com o sim do dono. Produção: NÃO VALIDADO daqui (Vercel 403, BLQ-002).
+- **Eventos — Orçamento rápido por pessoa** (`/dashboard/reservas-eventos/rapido`): todas as fichas da cozinha e do bar, um toque inclui, custo REAL por pessoa, preço sugerido (ESTIMATIVA), "Criar evento" grava o orçamento e abre o evento. TESTADO EM MOCK.
+- **Funil de eventos em 5 fases** (antes 14 colunas). **Estoque em uma tela** (Mais: histórico, inventário, locais, valor). **Cardápio**: combos (servidor cobra o combo e grava cada prato) e posição dos produtos. **Marmita**: lista de pré-preparos com um toque. Tudo TESTADO EM MOCK; produção NÃO VALIDADO.
 
 ## 27/10/2026 — Delivery com movimento, letras novas e materiais da casa
 

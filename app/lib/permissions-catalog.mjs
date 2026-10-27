@@ -163,6 +163,8 @@ export const PERMISSION_MODULES = [
       { id: "breakeven", label: "Ponto de equilíbrio (redireciona)", route: "/dashboard/financeiro/equilibrio", actions: VIEW_EXPORT },
       { id: "dre", label: "Resultado (DRE)", route: "/dashboard/financeiro/dre", actions: [...VIEW_EXPORT, "confirm", "view_values", "view_margin"] },
       { id: "cmv", label: "CMV", route: "/dashboard/financeiro/cmv", actions: [...VIEW_EXPORT, "view_costs", "view_margin"] },
+      // Resultado do mês: faturamento, custos um por um, CMO do RH, CMV das contagens, equilíbrio (27/10/2026).
+      { id: "monthly_result", label: "Resultado do mês (lucro e ponto de equilíbrio)", route: "/dashboard/financeiro/resultado", actions: [...VIEW_EXPORT, "edit", "view_costs", "view_margin"] },
       { id: "pizza_lucro", label: "Pizza do Lucro", route: "/dashboard/financeiro/pizza", actions: [...VIEW_EXPORT, "view_costs", "view_margin"] },
       { id: "fiscal", label: "Dados fiscais", route: "/dashboard/gestao/fiscal", actions: [...CRUD, "view_values", "settings"] },
     ],
@@ -229,6 +231,8 @@ export const PERMISSION_MODULES = [
     id: "eventos", label: "Eventos",
     pages: [
       { id: "events", label: "Eventos", route: "/dashboard/eventos", actions: [...CRUD, "approve", "cancel", "view_values", "view_costs", "print", "export"] },
+      // Orçamento rápido por pessoa: vê custo das fichas e cria o evento (27/10/2026).
+      { id: "quick_budget", label: "Orçamento rápido por pessoa", route: "/dashboard/reservas-eventos/rapido", actions: ["view", "create", "view_costs"] },
       { id: "budget", label: "Eventos e Reservas", route: "/dashboard/reservas-eventos/eventos", actions: [...CRUD, "approve", "reject", "view_values", "view_costs", "print"] },
       { id: "operation", label: "Eventos na operação", route: "/dashboard/operacao/eventos", actions: [...CRUD, "confirm", "cancel"] },
       // Cobre por prefixo /dashboard/reservas-eventos/agenda, /reservas e

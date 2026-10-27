@@ -100,3 +100,35 @@ export function payloadDoForm(form, ctx, unidadeId) {
     },
   };
 }
+
+/* Catálogo de pré-preparos para montar a marmita com um toque (pedido do
+ * dono, 27/10/2026: "a mesma coisa com as marmitas" do orçamento rápido de
+ * eventos). Todos os pré-preparos da cozinha e do bar, por setor e categoria,
+ * com o custo por kg/L/un da própria ficha (custoDeProduzirFicha ÷
+ * rendimento). Sem custo ou rendimento: custo null (a tela mostra "sem custo").
+ */
+export function catalogoDePrePreparos(prePreparos = [], todasFichas = [], custoDeProduzir) {
+  const grupos = new Map();
+  for (const f of prePreparos || []) {
+    if (!f || f.ativo === false) continue;
+    const setor = String(f.departamento || "").toLowerCase() === "bar" ? "Bar" : "Cozinha";
+    const categoria = String(f.categoria || "").trim() || "Outros";
+    const chave = `${setor} · ${categoria}`;
+    const rend = parseNumero(f.rendimento_porcoes);
+    const custo = typeof custoDeProduzir === "function" ? custoDeProduzir(f, todasFichas) : 0;
+    const un = String(f.rendimento_unidade || "un").toLowerCase();
+    if (!grupos.has(chave)) grupos.set(chave, { grupo: chave, setor, itens: [] });
+    grupos.get(chave).itens.push({ id: f.id, nome: f.nome_receita || "Pré-preparo", unidade: un, custoPorUnidade: rend > 0 && custo > 0 ? custo / rend : null });
+  }
+  return [...grupos.values()]
+    .sort((a, b) => (a.setor === b.setor ? 0 : a.setor === "Cozinha" ? -1 : 1) || (a.grupo.endsWith("Outros") - b.grupo.endsWith("Outros")) || a.grupo.localeCompare(b.grupo, "pt-BR"))
+    .map((g) => ({ ...g, itens: g.itens.sort((x, y) => x.nome.localeCompare(y.nome, "pt-BR")) }));
+}
+
+/** Atalhos de quantidade por unidade (g e ml em gramas/mililitros; un em unidades). */
+export function atalhosDeQuantidade(un) {
+  const u = String(un || "").toLowerCase();
+  if (u === "g" || u === "ml") return [50, 100, 150, 200];
+  if (u === "kg" || u === "l") return [0.05, 0.1, 0.15, 0.2];
+  return [1, 2];
+}

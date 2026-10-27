@@ -125,6 +125,17 @@ export async function fetchParams(unidadeId) {
   }
 }
 
+/* Resultado do mês (financeiro/resultado): { "AAAA-MM": modelo }. Leitura
+ * própria porque fetchParams só devolve os campos numéricos conhecidos — sem
+ * isto o mês salvo não voltava e a próxima gravação apagava os outros meses. */
+export async function fetchResultadoMensal(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: {}, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: {}, error: error.message };
+  const v = data?.[0]?.params?.resultado_mensal;
+  return { data: v && typeof v === "object" && !Array.isArray(v) ? v : {}, error: null };
+}
+
 export async function salvarParams(unidadeId, paramsEntrada) {
   if (!isSupabaseReady()) return { error: "Offline" };
   // O pró-labore é lista: vai normalizado; os demais seguem como vieram.

@@ -384,17 +384,24 @@ function CardControleAcessos() {
   return (
     <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
       <div className="flex items-center gap-2 border-b border-line-soft bg-white p-4">
-        <ShieldCheck size={18} className="text-emerald-700" />
+        <Smartphone size={18} className="text-emerald-700" />
         <div>
-          <h2 className="font-bold text-slate-800">Usuários, perfis e permissões</h2>
-          <p className="text-2xs font-medium text-fg">Controle acessos por empresa, unidade, setor, página e ação.</p>
+          <h2 className="font-bold text-slate-800">Apps, Estações e Controle de Acessos</h2>
+          <p className="text-2xs font-medium text-fg">Crie logins para cada tablet/app, escolha o que cada estação vê e acompanhe acessos em tempo real.</p>
         </div>
       </div>
-      <div className="grid gap-3 p-5 sm:grid-cols-2">
+      <div className="grid gap-3 p-5 sm:grid-cols-3">
+        <a href="/dashboard/configuracoes/apps" className="group rounded-xl border-2 border-emerald-500 bg-emerald-50/50 p-4 transition hover:bg-emerald-100/60 shadow-xs">
+          <Smartphone size={22} className="mb-2 text-emerald-700" />
+          <p className="font-black text-slate-800 flex items-center gap-1.5">
+            Apps &amp; Terminais <span className="text-3xs bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold uppercase">Novo</span>
+          </p>
+          <p className="mt-1 text-xs text-slate-700 font-semibold">Crie logins e senhas para Cozinha, Bar, Salão, Estoque e veja quem acessou, que horas e local.</p>
+        </a>
         <a href="/dashboard/configuracoes/usuarios" className="group rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
           <Users size={20} className="mb-3 text-success" />
           <p className="font-black text-slate-800">Usuários e acessos</p>
-          <p className="mt-1 text-xs text-fg">Criar logins, redefinir senhas, limitar escopos e consultar históricos.</p>
+          <p className="mt-1 text-xs text-fg">Criar logins individuais, redefinir senhas, limitar escopos e consultar históricos.</p>
         </a>
         <a href="/dashboard/configuracoes/perfis" className="group rounded-xl border border-line p-4 transition hover:border-zinc-200 hover:bg-zinc-100">
           <ShieldCheck size={20} className="mb-3 text-emerald-700" />

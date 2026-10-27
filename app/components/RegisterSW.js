@@ -25,6 +25,46 @@ export default function RegisterSW() {
     window.addEventListener("error", autoRecarregarNoChunkError);
     window.addEventListener("unhandledrejection", autoRecarregarNoChunkError);
 
+    // Bloqueia cópia e seleção de textos e números fora de campos editáveis (inputs/textareas)
+    const ehElementoEditavel = (el) => {
+      if (!el) return false;
+      const tag = (el.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return true;
+      if (el.isContentEditable) return true;
+      if (typeof el.closest === "function" && el.closest("input, textarea, select, [contenteditable='true']")) return true;
+      return false;
+    };
+
+    const bloquearCopia = (e) => {
+      const active = typeof document !== "undefined" ? document.activeElement : null;
+      if (!ehElementoEditavel(e.target) && !ehElementoEditavel(active)) {
+        e.preventDefault();
+        if (e.clipboardData) {
+          e.clipboardData.clearData();
+        }
+      }
+    };
+
+    const bloquearAtalhoCopia = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C" || e.key === "x" || e.key === "X")) {
+        const active = typeof document !== "undefined" ? document.activeElement : null;
+        if (!ehElementoEditavel(e.target) && !ehElementoEditavel(active)) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const bloquearDrag = (e) => {
+      if (!ehElementoEditavel(e.target)) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("copy", bloquearCopia, true);
+    document.addEventListener("cut", bloquearCopia, true);
+    document.addEventListener("keydown", bloquearAtalhoCopia, true);
+    document.addEventListener("dragstart", bloquearDrag, true);
+
     if (!("serviceWorker" in navigator)) return;
 
     let refreshing = false;
@@ -48,6 +88,16 @@ export default function RegisterSW() {
     } else {
       window.addEventListener("load", onLoad);
     }
+
+    return () => {
+      window.removeEventListener("error", autoRecarregarNoChunkError);
+      window.removeEventListener("unhandledrejection", autoRecarregarNoChunkError);
+      document.removeEventListener("copy", bloquearCopia, true);
+      document.removeEventListener("cut", bloquearCopia, true);
+      document.removeEventListener("keydown", bloquearAtalhoCopia, true);
+      document.removeEventListener("dragstart", bloquearDrag, true);
+      window.removeEventListener("load", onLoad);
+    };
   }, []);
   return null;
 }

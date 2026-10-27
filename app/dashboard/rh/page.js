@@ -2170,8 +2170,8 @@ export default function RHPage() {
 
       {/* Modal Adicionar/Editar Funcionário */}
       {modalNovo && (
-         <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm px-0 pb-0 sm:px-4 sm:pb-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
-            <div className="erp-editor-funcionario bg-card rounded-t-[28px] sm:rounded-[32px] w-full max-w-5xl shadow-2xl animate-in zoom-in-95 flex flex-col h-[calc(100dvh-var(--erp-safe-top,2.75rem)-0.75rem)] sm:h-auto sm:max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-2rem)] overflow-hidden">
+         <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm px-0 pb-0 sm:px-4 sm:pb-4" style={{ paddingTop: "calc(var(--erp-safe-top, 3.5rem) + 1rem)" }}>
+            <div className="erp-editor-funcionario bg-card rounded-t-[28px] sm:rounded-[32px] w-full max-w-5xl shadow-2xl animate-in zoom-in-95 flex flex-col h-[calc(100dvh-var(--erp-safe-top,3.5rem)-1.5rem)] sm:h-auto sm:max-h-[calc(100dvh-var(--erp-safe-top,3.5rem)-2rem)] overflow-hidden">
                <style>{`
                  .erp-editor-funcionario label { font-size: 12px !important; line-height: 1.35; }
                  .erp-editor-funcionario input:not([type="checkbox"]):not([type="file"]), .erp-editor-funcionario select { min-height: 48px; font-size: 16px; }
@@ -2974,7 +2974,7 @@ export default function RHPage() {
                     ))}
                     <label className="text-xs font-bold text-slate-900">Forma de pagamento
                       <select value={fichaDados.forma_pagamento} onChange={e => setFichaDados(d => ({...d, forma_pagamento: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 outline-none focus:border-emerald-500">
-                        <option>Pix</option><option>Dinheiro</option><option>Transferência</option>
+                        <option>Pix</option><option>Dinheiro</option><option>Híbrido (Pix + Dinheiro)</option><option>Transferência</option>
                       </select>
                     </label>
                   </div>
@@ -3073,8 +3073,13 @@ export default function RHPage() {
          liberacoes.forEach(item => Object.assign(linha(item.data), { liberacao: item, valor: Number(item.valor_diaria) || 0 }));
          pontos.forEach(item => Object.assign(linha(item.data_referencia), { ponto: item }));
          recibos.forEach(recibo => {
-            let datas = Array.isArray(recibo.datas_contratadas) && recibo.datas_contratadas.length ? recibo.datas_contratadas : [recibo.data_trabalho];
-            datas.forEach(data => Object.assign(linha(data), { recibo, valor: Number(recibo.valor_diaria) || 0 }));
+            const diasDet = Array.isArray(recibo.dados?.dias_detalhados) ? recibo.dados.dias_detalhados.filter(d => d && d.data) : [];
+            if (diasDet.length > 0) {
+               diasDet.forEach(d => Object.assign(linha(d.data), { recibo, valor: Number(d.valor) || Number(recibo.valor_diaria) || 0 }));
+            } else {
+               let datas = Array.isArray(recibo.datas_contratadas) && recibo.datas_contratadas.length ? recibo.datas_contratadas : [recibo.data_trabalho];
+               datas.forEach(data => Object.assign(linha(data), { recibo, valor: Number(recibo.valor_diaria) || 0 }));
+            }
          });
          const dias = [...porData.values()].filter(item => item.data).sort((a, b) => b.data.localeCompare(a.data));
          const diasContratados = dias.filter(item => item.liberacao || item.recibo).length;
@@ -3090,11 +3095,18 @@ export default function RHPage() {
          return (
          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => setModalDiarias(null)}>
             <div className="bg-card rounded-[28px] w-full max-w-5xl max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)] overflow-y-auto p-4 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-               <div className="flex items-center justify-between mb-1">
-                  <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-success" /> Histórico completo do extra</h2>
-                  <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={17} /></button>
+               <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                  <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-success" /> Histórico de Diárias e Recibos</h2>
+                  <div className="flex items-center gap-2">
+                     {modalDiarias.func?.id && (
+                        <button type="button" onClick={() => { const id = modalDiarias.func.id; setModalDiarias(null); router.push(`/dashboard/rh/extra/${id}/recibo`); }} className="rounded-xl bg-accent px-3 py-1.5 text-xs font-black text-accent-fg hover:opacity-90">
+                           + Emitir Recibo (2 vias)
+                        </button>
+                     )}
+                     <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={17} /></button>
+                  </div>
                </div>
-               <p className="text-xs font-bold text-fg mb-4">{modalDiarias.func?.nome} — dias, horários, recibos, pagamentos e ocorrências reunidos no cadastro.</p>
+               <p className="text-xs font-bold text-fg mb-4">{modalDiarias.func?.nome} — dias, horários, recibos (2 vias A4), pagamentos e ocorrências reunidos no cadastro.</p>
                {modalDiarias.loading ? (
                   <p className="text-center font-bold text-subtle py-8">Carregando...</p>
                ) : (
@@ -3143,21 +3155,25 @@ export default function RHPage() {
 
                      <div className="mt-5 grid gap-5 lg:grid-cols-2">
                         <section>
-                          <h3 className="mb-2 text-sm font-black text-slate-800">Histórico de recibos de prestação</h3>
+                          <h3 className="mb-2 text-sm font-black text-slate-800">Histórico de recibos de pagamento</h3>
                           <div className="space-y-3">
                             {recibos.length === 0 ? <p className="rounded-xl bg-white p-4 text-sm text-subtle">Nenhum recibo emitido.</p> : recibos.map(recibo => {
-                              const funcNome = recibo.funcao || recibo.dados?.funcao || modalDiarias.func?.cargo || "Prestador Extra";
+                              const funcNome = recibo.funcao || recibo.dados?.funcao || modalDiarias.func?.cargo || "Prestador";
                               const hEntrada = recibo.hora_entrada || recibo.dados?.entrada || "—";
                               const hSaida = recibo.hora_saida || recibo.dados?.saida_final || "—";
                               const temFoto = !!recibo.dados?.foto_recibo_assinado;
                               const topicos = String(recibo.dados?.topicos_funcao || "").split("\n").map(t => t.trim()).filter(Boolean);
+                              const diasDet = Array.isArray(recibo.dados?.dias_detalhados) ? recibo.dados.dias_detalhados.filter(d => d && (d.data || Number(d.valor) > 0)) : [];
+                              const descItens = Array.isArray(recibo.dados?.descontos_itens) ? recibo.dados.descontos_itens.filter(d => d && (d.descricao || Number(d.valor) > 0)) : [];
+                              const vDin = Number(recibo.dados?.valor_dinheiro) || 0;
+                              const vPix = Number(recibo.dados?.valor_pix) || 0;
 
                               return (
                               <div key={recibo.id} className="rounded-2xl border border-line bg-card p-4 shadow-sm space-y-2">
                                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line-soft pb-2">
                                   <div>
                                     <p className="font-black text-fg text-sm">{recibo.numero}</p>
-                                    <p className="text-xs font-bold text-fg">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · <b className="text-accent">{fmtBRL(recibo.valor_total)}</b></p>
+                                    <p className="text-xs font-bold text-fg">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados || diasDet.length || 1} dia(s) · <b className="text-accent">{fmtBRL(recibo.valor_total)}</b></p>
                                   </div>
                                   <span className={`rounded-full px-2.5 py-1 text-3xs font-bold ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{recibo.pagamento_realizado ? `Pago em ${dataBR(recibo.data_pagamento)}` : "Pagamento Pendente"}</span>
                                 </div>
@@ -3165,6 +3181,34 @@ export default function RHPage() {
                                 <div className="text-xs space-y-1">
                                   <p className="font-bold text-slate-800">🛠️ Função exercida: <span className="text-emerald-800">{funcNome}</span></p>
                                   <p className="font-medium text-slate-900">⏰ Horário de trabalho: <b>{hEntrada} às {hSaida}</b></p>
+                                  {(vDin > 0 || vPix > 0) && (
+                                    <p className="font-bold text-slate-800">
+                                      💵 Pagamento:{" "}
+                                      {vDin > 0 && vPix > 0
+                                        ? `${fmtBRL(vDin)} no Dinheiro + ${fmtBRL(vPix)} no Pix`
+                                        : vDin > 0
+                                        ? `${fmtBRL(vDin)} no Dinheiro`
+                                        : `${fmtBRL(vPix)} no Pix`}
+                                    </p>
+                                  )}
+                                  {diasDet.length > 0 && (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {diasDet.map((d, idx) => (
+                                        <span key={idx} className="rounded-md bg-white border border-line px-2 py-0.5 text-3xs font-bold text-slate-700">
+                                          {d.dia_semana ? `${d.dia_semana} ` : ""}{dataBR(d.data)}: {fmtBRL(d.valor)}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {descItens.length > 0 && (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {descItens.map((d, idx) => (
+                                        <span key={idx} className="rounded-md bg-rose-50 border border-rose-200 px-2 py-0.5 text-3xs font-bold text-rose-700">
+                                          - {d.descricao || "Item"}: {fmtBRL(d.valor)}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
                                   {topicos.length > 0 && (
                                     <div className="mt-1 bg-white border border-line rounded-xl p-2 text-2xs font-medium text-fg-soft">
                                       <p className="font-bold text-fg text-3xs uppercase mb-0.5">Atribuições do dia:</p>
@@ -3189,7 +3233,7 @@ export default function RHPage() {
                                 )}
 
                                 <div className="mt-2 flex flex-wrap items-center gap-2 pt-1 border-t border-line-soft">
-                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-bold text-fg-soft hover:bg-card"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
+                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-bold text-fg-soft hover:bg-card"><Printer size={13} className="mr-1 inline" />Reimprimir (2 vias A4)</button>
                                   <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-xl border border-emerald-200 bg-accent-soft px-3 py-2 text-xs font-bold text-accent-strong hover:bg-emerald-100">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
                                   <label className="cursor-pointer rounded-xl bg-accent px-3 py-2 text-xs font-bold text-accent-fg hover:bg-accent inline-flex items-center gap-1.5 shadow-sm">
                                     {anexandoFotoId === recibo.id ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}

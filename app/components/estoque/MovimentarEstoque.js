@@ -184,20 +184,36 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
     await Promise.all([carregarBase(), carregarUltimos()]);
   };
 
-  if (!base && !erro) return <p className="p-8 text-center font-bold text-hf-text-2">Carregando...</p>;
+  if (!base && !erro) {
+    return (
+      <div className="mx-auto max-w-xl space-y-4 px-3 pb-28 pt-4 sm:px-4">
+        <div className="h-14 animate-pulse rounded-2xl bg-zinc-200/60" />
+        <div className="h-10 animate-pulse rounded-xl bg-zinc-200/50" />
+        <div className="h-48 animate-pulse rounded-2xl bg-zinc-200/40" />
+      </div>
+    );
+  }
 
-  const corTipo = tipo === "entrada" ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-text text-hf-surface";
+  const corTipo = tipo === "entrada" ? "bg-hf-accent text-hf-accent-fg shadow-sm" : "bg-hf-text text-hf-surface shadow-sm";
 
   return (
-    <div className="mx-auto max-w-xl space-y-3 px-3 pb-28 pt-3 text-hf-text sm:px-4">
-      {erro && <p className="text-sm font-bold text-hf-danger">Não foi possível carregar: {erro}</p>}
-      {bancoAntigo && <p className="rounded-2xl border border-hf-warning/30 bg-hf-warning/10 p-3 text-sm font-bold text-hf-warning">{MSG_BANCO_DESATUALIZADO}</p>}
+    <div className="mx-auto max-w-xl space-y-4 px-3 pb-28 pt-4 text-hf-text sm:px-4">
+      {erro && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs sm:text-sm font-bold text-rose-800 shadow-xs">
+          Não foi possível sincronizar: {erro}
+        </div>
+      )}
+      {bancoAntigo && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-xs sm:text-sm font-bold text-amber-800 shadow-xs">
+          {MSG_BANCO_DESATUALIZADO}
+        </div>
+      )}
 
       {/* 1. Entrada ou Retirada */}
-      <div role="radiogroup" aria-label="Tipo de movimentação" className="grid grid-cols-2 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1">
+      <div role="radiogroup" aria-label="Tipo de movimentação" className="grid grid-cols-2 gap-1.5 rounded-2xl border border-zinc-200/80 bg-hf-surface p-1.5 shadow-card">
         {[["entrada", "Entrada", Plus], ["saida", "Retirada", Minus]].map(([t, rot, Icone]) => (
           <button key={t} role="radio" aria-checked={tipo === t} onClick={() => trocarTipo(t)}
-            className={`flex h-12 items-center justify-center gap-2 rounded-xl text-base font-black transition-colors ${tipo === t ? (t === "entrada" ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-text text-hf-surface") : "text-hf-text-2 hover:bg-hf-elevated"}`}>
+            className={`flex h-12 items-center justify-center gap-2 rounded-xl text-sm sm:text-base font-black transition-all active:scale-[0.98] ${tipo === t ? (t === "entrada" ? "bg-hf-accent text-hf-accent-fg shadow-sm" : "bg-hf-text text-hf-surface shadow-sm") : "text-hf-text-2 hover:bg-zinc-100/70"}`}>
             <Icone size={18} /> {rot}
           </button>
         ))}
@@ -239,27 +255,27 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
 
       {/* 3. Busca */}
       {!produto && estoque && (
-        <div className="overflow-hidden rounded-2xl border border-hf-border bg-hf-surface">
-          <div className="flex items-center gap-2 border-b border-hf-border px-3">
-            <Search size={18} className="shrink-0 text-hf-muted" />
+        <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-hf-surface shadow-card">
+          <div className="flex items-center gap-2 border-b border-zinc-200/80 px-3.5">
+            <Search size={18} className="shrink-0 text-zinc-400" />
             <input ref={buscaRef} value={busca} onChange={(e) => setBusca(e.target.value)} autoFocus
               placeholder={tipo === "entrada" ? "Buscar produto (nome, código, marca)" : `Buscar em ${estoque.nome}`}
-              aria-label="Buscar produto" className="h-12 min-w-0 flex-1 bg-transparent text-base font-bold outline-none placeholder:font-medium placeholder:text-hf-muted" />
-            {busca && <button onClick={() => setBusca("")} aria-label="Limpar busca" className="grid h-10 w-10 place-items-center text-hf-muted"><X size={18} /></button>}
+              aria-label="Buscar produto" className="h-12 min-w-0 flex-1 bg-transparent text-base font-bold outline-none placeholder:font-medium placeholder:text-zinc-400 text-hf-text" />
+            {busca && <button onClick={() => setBusca("")} aria-label="Limpar busca" className="grid h-10 w-10 place-items-center text-zinc-400 hover:text-zinc-600"><X size={18} /></button>}
           </div>
           {categoriasPresentes.length > 1 && (
-            <div className="flex gap-1.5 overflow-x-auto border-b border-hf-border px-3 py-2 [scrollbar-width:none]">
+            <div className="flex gap-1.5 overflow-x-auto border-b border-zinc-200/80 px-3 py-2 [scrollbar-width:none]">
               {["", ...categoriasPresentes].map((c) => (
                 <button key={c || "todas"} onClick={() => setCategoria(c)} aria-pressed={categoria === c}
-                  className={`h-8 shrink-0 rounded-full px-3 text-xs font-bold ${categoria === c ? "bg-hf-text text-hf-surface" : "bg-hf-elevated text-hf-text-2"}`}>
+                  className={`h-8 shrink-0 rounded-full px-3 text-xs font-bold transition-all ${categoria === c ? "bg-hf-text text-hf-surface shadow-xs" : "bg-zinc-100 text-hf-text-2 hover:bg-zinc-200/70"}`}>
                   {c || "Todas"}
                 </button>
               ))}
             </div>
           )}
-          <ul className="max-h-[60vh] divide-y divide-hf-border overflow-y-auto">
+          <ul className="max-h-[60vh] divide-y divide-zinc-100 overflow-y-auto">
             {!resultados.length && (
-              <li className="p-4 text-center text-sm text-hf-text-2">
+              <li className="p-5 text-center text-xs sm:text-sm font-medium text-hf-text-2">
                 {busca ? (tipo === "saida" ? `Nada com esse nome em ${estoque.nome}.` : "Nenhum produto no cadastro com esse nome.")
                   : (tipo === "saida" ? "Nenhum produto com saldo neste local." : "Nenhum produto neste local ainda. Busque no cadastro.")}
               </li>
@@ -268,14 +284,14 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
               const conferido = conferidos.has(`${estoqueId}|${p.insumo.id}`);
               return (
                 <li key={p.insumo.id}>
-                  <button onClick={() => escolher(p.insumo)} className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-hf-elevated">
+                  <button onClick={() => escolher(p.insumo)} className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-emerald-50/40">
                     <span className="min-w-0">
-                      <span className="block truncate font-bold leading-tight">{p.insumo.nome}</span>
-                      <span className="block truncate text-xs text-hf-text-2">
+                      <span className="block truncate font-bold text-hf-text leading-tight">{p.insumo.nome}</span>
+                      <span className="block truncate text-xs text-hf-text-2 mt-0.5">
                         {[p.insumo.marca, !p.vinculado && "novo neste local", p.vinculado && !conferido && "não conferido"].filter(Boolean).join(" · ") || " "}
                       </span>
                     </span>
-                    <span className={`shrink-0 text-right text-sm font-black ${p.saldo > 0 ? "" : "text-hf-muted"}`}>{saldoOperacional(p.insumo, p.saldo)}</span>
+                    <span className={`shrink-0 text-right text-sm font-black ${p.saldo > 0 ? "text-hf-text" : "text-zinc-400"}`}>{saldoOperacional(p.insumo, p.saldo)}</span>
                   </button>
                 </li>);
             })}
@@ -285,7 +301,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
 
       {/* 4. Saldo + 5. registro */}
       {produto && (
-        <div className="space-y-3 rounded-2xl border border-hf-border bg-hf-surface p-4">
+        <div className="space-y-4 rounded-2xl border border-zinc-200/80 bg-hf-surface p-4 sm:p-5 shadow-card">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-black ${corTipo}`}>
@@ -306,11 +322,11 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
             <label htmlFor="qtd-estoque" className="text-xs font-bold text-hf-text-2">Quantidade</label>
             <div className="mt-1 flex gap-2">
               <input id="qtd-estoque" inputMode="decimal" autoFocus value={form.qtd} onChange={(e) => setForm({ ...form, qtd: e.target.value })} placeholder="0"
-                className="h-14 w-28 min-w-0 rounded-xl border border-hf-border bg-hf-surface px-3 text-2xl font-black outline-none focus:border-hf-accent" />
+                className="h-14 w-32 min-w-0 rounded-2xl border border-zinc-200/80 bg-hf-surface px-3 text-2xl font-black outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/30 shadow-xs" />
               <div className="flex min-w-0 flex-1 flex-wrap gap-1.5" role="radiogroup" aria-label="Unidade">
                 {unidades.map((u) => (
                   <button key={u} type="button" role="radio" aria-checked={unidadeSel === u} onClick={() => setForm({ ...form, unidade: u })}
-                    className={`h-14 min-w-[3.5rem] flex-1 rounded-xl border px-2 text-sm font-black ${unidadeSel === u ? "border-hf-text bg-hf-text text-hf-surface" : "border-hf-border text-hf-text-2"}`}>
+                    className={`h-14 min-w-[3.5rem] flex-1 rounded-2xl border px-2 text-sm font-black transition-all active:scale-[0.98] ${unidadeSel === u ? "border-hf-text bg-hf-text text-hf-surface shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
                     {u}
                   </button>
                 ))}
@@ -330,7 +346,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
             <div className="mt-1 flex flex-wrap gap-1.5">
               {MOTIVOS[tipo].filter((m) => !m.pelaCompra && (!m.admin || seg?.pode_autorizar) && (m.codigo !== "transferencia_enviada" || destinos.length)).map((m) => (
                 <button key={m.codigo} onClick={() => setForm({ ...form, motivo: m.codigo, destino: "" })} aria-pressed={form.motivo === m.codigo}
-                  className={`h-10 rounded-xl border px-3 text-sm font-bold ${form.motivo === m.codigo ? "border-hf-text bg-hf-text text-hf-surface" : "border-hf-border text-hf-text-2"}`}>
+                  className={`h-10 rounded-xl border px-3 text-xs sm:text-sm font-bold transition-all active:scale-[0.98] ${form.motivo === m.codigo ? "border-hf-text bg-hf-text text-hf-surface shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
                   {m.admin && <Lock size={12} className="mr-1 inline" />}{m.rotulo}
                 </button>
               ))}
@@ -343,7 +359,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {destinos.map((d) => (
                   <button key={d.id} onClick={() => setForm({ ...form, destino: d.id })} aria-pressed={form.destino === d.id}
-                    className={`h-10 rounded-xl border px-3 text-sm font-bold ${form.destino === d.id ? "border-hf-accent bg-hf-accent/10 text-hf-accent" : "border-hf-border text-hf-text-2"}`}>{d.nome}</button>
+                    className={`h-10 rounded-xl border px-3 text-sm font-bold transition-all active:scale-[0.98] ${form.destino === d.id ? "border-hf-accent bg-hf-accent/10 text-hf-accent shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>{d.nome}</button>
                 ))}
               </div>
               <p className="mt-1 text-xs text-hf-muted">Sai de {estoque?.nome} e entra no destino numa operação só.</p>
@@ -379,7 +395,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
 
           {semPermissao && <p className="text-sm font-bold text-hf-danger">Seu perfil não pode lançar {tipo === "entrada" ? "entrada" : "retirada"} neste estoque. Peça ao administrador.</p>}
           <button onClick={confirmar} disabled={!pronto || enviando || semPermissao || bancoAntigo}
-            className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-40 ${corTipo}`}>
+            className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition-all active:scale-[0.98] shadow-card disabled:opacity-40 ${corTipo}`}>
             {enviando ? <><Loader2 size={18} className="animate-spin" /> Gravando...</>
               : <><Check size={20} /> Confirmar {ehTransferencia ? "transferência" : tipo === "entrada" ? "entrada" : "retirada"}{lanc && !lanc.erro ? ` · ${saldoOperacional(produto, lanc.quantidadeSaldo)}` : ""}</>}
           </button>
@@ -389,7 +405,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
 
       {/* últimos deste local */}
       {estoque && (
-        <section className="overflow-hidden rounded-2xl border border-hf-border bg-hf-surface">
+        <section className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-hf-surface shadow-card">
           <div className="flex items-center justify-between px-3 pt-3">
             <p className="text-sm font-black">Últimos em {estoque.nome}</p>
             <Link href={`/dashboard/operacao/estoque/historico?estoque=${estoqueId}`} className="text-xs font-bold text-hf-accent">Histórico completo</Link>

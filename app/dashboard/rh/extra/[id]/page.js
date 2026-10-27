@@ -13,10 +13,11 @@ import { supabase } from "../../../../lib/supabase";
 import { inserirColaborador, atualizarColaborador, fetchRecibosPrestacao } from "../../../../lib/rh";
 import { ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../../../lib/contrato-experiencia.mjs";
 import { baixarPdfDeHtml } from "../../../../lib/pdf";
+import { imprimirReciboExtra } from "../../../../lib/recibo-extra";
 import CampoDecimal from "../../../../components/CampoDecimal";
 import { mascaraRG } from "../../../../lib/mascaras.mjs";
 
-const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Transferência"];
+const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Híbrido (Pix + Dinheiro)", "Transferência"];
 
 const moeda = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (v) => v ? new Date(`${String(v).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—";
@@ -40,7 +41,7 @@ const fmtTel = (v) => soDigitos(v).slice(0, 11)
 export default function CadastroExtraPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidadeInfo } = useERP();
   const novo = id === "novo";
 
   const [form, setForm] = useState(vazio);
@@ -214,7 +215,8 @@ export default function CadastroExtraPage() {
             </h1>
             <p className="text-xs font-bold text-fg">Freelancer / diarista · dados do recibo inclusos</p>
           </div>
-          {!novo && <div className="flex gap-2">
+          {!novo && <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => router.push(`/dashboard/rh/extra/${id}/recibo`)} className="flex h-11 items-center gap-2 rounded-xl bg-accent px-3.5 text-xs font-black text-accent-fg hover:bg-accent shadow-sm"><ReceiptText size={17}/> Emitir Recibo</button>
             <button type="button" onClick={baixarPreAdmissaoESocial} className="flex h-11 items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-100 px-3 text-xs font-bold text-zinc-700 hover:bg-zinc-100"><FileDown size={17}/> Pré-admissão eSocial</button>
             <button type="button" onClick={baixarCadastroPdf} className="flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-white"><FileDown size={17}/> PDF</button>
             <button type="button" onClick={imprimirCadastro} className="flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-white"><Printer size={17}/> Imprimir</button>
@@ -413,9 +415,14 @@ export default function CadastroExtraPage() {
         {/* Histórico de recibos desta pessoa */}
         {!novo && (
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent"><ReceiptText size={14} /> Recibos desta pessoa</p>
-            <p className="text-sm font-black text-fg-soft">{recibos.length} recibo(s) · {moeda(recibos.reduce((s, r) => s + (Number(r.valor_total) || 0), 0))}</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent"><ReceiptText size={14} /> Recibos desta pessoa</p>
+              <p className="text-sm font-black text-fg-soft mt-0.5">{recibos.length} recibo(s) · {moeda(recibos.reduce((s, r) => s + (Number(r.valor_total) || 0), 0))}</p>
+            </div>
+            <button type="button" onClick={() => router.push(`/dashboard/rh/extra/${id}/recibo`)} className="flex h-9 items-center gap-1.5 rounded-xl bg-accent px-3.5 text-xs font-black text-accent-fg hover:bg-accent shadow-sm">
+              <ReceiptText size={14} /> + Novo Recibo
+            </button>
           </div>
           {emAberto > 0 && (
             <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[13px] font-bold text-amber-800">Em aberto: {moeda(emAberto)}</p>
@@ -423,19 +430,48 @@ export default function CadastroExtraPage() {
           <div className="mt-3 space-y-2">
             {recibos.length === 0 ? (
               <p className="rounded-xl bg-white p-4 text-sm font-bold text-fg">Nenhum recibo emitido para esta pessoa ainda.</p>
-            ) : recibos.map(r => (
-              <div key={r.id}
-                className="flex w-full items-center gap-3 rounded-xl border border-line p-3 text-left">
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-black text-fg">{dataBR(r.data_trabalho)}</span>
-                  <span className="block text-xs font-bold text-fg">
-                    {r.funcao_exercida || form.cargo || "Extra"}
-                    {r.pagamento_realizado ? ` · pago${r.data_pagamento ? ` em ${dataBR(r.data_pagamento)}` : ""}` : " · em aberto"}
+            ) : recibos.map(r => {
+              const diasDet = Array.isArray(r.dados?.dias_detalhados) ? r.dados.dias_detalhados : [];
+              const descItens = Array.isArray(r.dados?.descontos_itens) ? r.dados.descontos_itens : [];
+              const vDin = Number(r.dados?.valor_dinheiro || 0);
+              const vPix = Number(r.dados?.valor_pix || 0);
+              return (
+                <div key={r.id}
+                  className="flex flex-wrap w-full items-center justify-between gap-3 rounded-xl border border-line p-3 text-left">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-black text-fg">
+                      {dataBR(r.data_trabalho)}{Number(r.dias_contratados) > 1 ? ` (${r.dias_contratados} dias)` : ""}
+                    </span>
+                    <span className="block text-xs font-bold text-fg">
+                      {r.funcao || r.funcao_exercida || form.cargo || "Extra"}
+                      {r.pagamento_realizado ? ` · pago${r.data_pagamento ? ` em ${dataBR(r.data_pagamento)}` : ""}` : " · em aberto"}
+                      {r.forma_pagamento ? ` · ${r.forma_pagamento}` : ""}
+                      {(vDin > 0 && vPix > 0) ? ` (${moeda(vDin)} Dinheiro + ${moeda(vPix)} Pix)` : ""}
+                    </span>
+                    {diasDet.length > 0 && (
+                      <span className="block text-2xs font-semibold text-slate-600 mt-0.5">
+                        Dias: {diasDet.map(d => `${d.dia_semana ? d.dia_semana.split("-")[0] + " " : ""}${dataBR(d.data)} (${moeda(d.valor)})`).join(" · ")}
+                      </span>
+                    )}
+                    {descItens.length > 0 && (
+                      <span className="block text-2xs font-bold text-rose-700 mt-0.5">
+                        Descontos: {descItens.map(it => `${it.descricao} (-${moeda(it.valor)})`).join(" · ")}
+                      </span>
+                    )}
                   </span>
-                </span>
-                <span className={`shrink-0 text-base font-black ${r.pagamento_realizado ? "text-accent" : "text-amber-700"}`}>{moeda(r.valor_total)}</span>
-              </div>
-            ))}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-base font-black ${r.pagamento_realizado ? "text-accent" : "text-amber-700"}`}>{moeda(r.valor_total)}</span>
+                    <button
+                      type="button"
+                      onClick={() => imprimirReciboExtra({ extra: { ...form, id }, recibo: r, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos: {} })}
+                      className="flex h-9 items-center gap-1 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-slate-200"
+                    >
+                      <Printer size={14} /> Imprimir (2 vias)
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
         )}

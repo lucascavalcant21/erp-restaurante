@@ -6,10 +6,10 @@
 // reordenar as hipóteses da unidade. Não executa nada: se foi perda, o
 // Héfisto oferece registrar a perda — com prévia e confirmação, como sempre.
 
-import { useState } from "react";
-import { Check, HelpCircle } from "lucide-react";
+import { memo, useState } from "react";
+import { Check, HelpCircle, Loader2, AlertTriangle } from "lucide-react";
 
-export default function PerguntaCartao({ pergunta, onResponder, onComando }) {
+const PerguntaCartao = memo(function PerguntaCartao({ pergunta, onResponder, onComando }) {
   const [respondido, setRespondido] = useState(null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState(null);
@@ -17,43 +17,77 @@ export default function PerguntaCartao({ pergunta, onResponder, onComando }) {
 
   async function responder(o) {
     if (enviando) return;
-    setEnviando(true); setErro(null);
-    const ok = await onResponder(pergunta, o.id);
-    setEnviando(false);
-    if (ok) setRespondido(o); else setErro("Não consegui registrar agora. Tente de novo.");
+    setEnviando(true);
+    setErro(null);
+    try {
+      const ok = await onResponder(pergunta, o.id);
+      if (ok) {
+        setRespondido(o);
+      } else {
+        setErro("Não consegui registrar agora. Verifique a conexão e tente de novo.");
+      }
+    } catch {
+      setErro("Falha de rede ao enviar resposta. Tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-4">
-      <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-zinc-700"><HelpCircle size={14} /> Pergunta do Héfisto</p>
-      {pergunta.situacao && <p className="mt-2 text-[14px] leading-snug text-slate-700">{pergunta.situacao}</p>}
+    <article className="hf-animate-in rounded-2xl border border-hf-border bg-hf-surface p-4 sm:p-5 transition-all duration-200 hover:border-hf-border-strong">
+      <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-hf-accent">
+        <HelpCircle size={14} /> Pergunta do Héfisto
+      </p>
+      {pergunta.situacao && <p className="mt-2 text-[14px] leading-relaxed text-hf-text-2">{pergunta.situacao}</p>}
       {evid.length > 0 && (
-        <ul className="mt-2 space-y-0.5 text-[12px] text-slate-600">
-          {evid.map((e, i) => <li key={i}><span className="font-semibold">{e.rotulo}:</span> {e.valor}</li>)}
+        <ul className="mt-2.5 space-y-1 rounded-xl bg-hf-elevated/60 p-3 text-[12px] text-hf-text-2">
+          {evid.map((e, i) => (
+            <li key={i} className="flex justify-between gap-2">
+              <span className="font-semibold">{e.rotulo}:</span>
+              <span className="font-bold tabular-nums text-hf-text">{e.valor}</span>
+            </li>
+          ))}
         </ul>
       )}
-      <p className="mt-3 text-[15px] font-bold text-slate-900">{pergunta.texto}</p>
+      <p className="mt-3 text-[15px] font-extrabold text-hf-text">{pergunta.texto}</p>
       {respondido ? (
-        <div className="mt-2 space-y-2">
-          <p className="inline-flex items-center gap-1 text-[13px] font-semibold text-emerald-700"><Check size={15} /> Registrado: {respondido.rotulo}. Vou usar isso nas próximas análises.</p>
+        <div className="hf-animate-in mt-2.5 space-y-2.5">
+          <p className="inline-flex items-center gap-1.5 text-[13px] font-bold text-hf-accent">
+            <Check size={15} /> Registrado: {respondido.rotulo}. Vou usar isso nas próximas análises.
+          </p>
           {respondido.id === "perda" && pergunta.entidade?.nome && onComando && (
-            <button type="button" onClick={() => onComando(`Registrar perda de ${pergunta.entidade.nome}`)}
-              className="block min-h-[44px] rounded-xl bg-slate-900 px-4 text-[13px] font-bold text-white hover:bg-slate-800">
+            <button
+              type="button"
+              onClick={() => onComando(`Registrar perda de ${pergunta.entidade.nome}`)}
+              className="block min-h-[44px] rounded-xl bg-hf-accent px-4 text-[13px] font-bold text-hf-accent-fg shadow-xs transition hover:bg-emerald-800"
+            >
               Registrar a perda de {pergunta.entidade.nome}
             </button>
           )}
         </div>
       ) : (
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {(pergunta.opcoes || []).map((o) => (
-            <button key={o.id} type="button" disabled={enviando} onClick={() => responder(o)}
-              className="min-h-[44px] rounded-full border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-700 hover:border-slate-500 disabled:opacity-50">
+            <button
+              key={o.id}
+              type="button"
+              disabled={enviando}
+              onClick={() => responder(o)}
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-hf-border-strong bg-hf-surface px-4 text-[13px] font-semibold text-hf-text shadow-xs transition hover:border-hf-accent hover:text-hf-accent disabled:opacity-50"
+            >
+              {enviando && <Loader2 size={13} className="animate-spin" />}
               {o.rotulo}
             </button>
           ))}
         </div>
       )}
-      {erro && <p className="mt-2 text-[12px] text-amber-700">{erro}</p>}
+      {erro && (
+        <p role="alert" className="mt-2.5 flex items-center gap-1.5 text-[12px] font-bold text-hf-warning">
+          <AlertTriangle size={14} className="shrink-0" /> {erro}
+        </p>
+      )}
     </article>
   );
-}
+});
+
+export default PerguntaCartao;

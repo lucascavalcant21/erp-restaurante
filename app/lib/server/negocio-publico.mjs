@@ -15,7 +15,7 @@
 // banco; nenhuma mensagem interna do banco na resposta. Módulo sem Next: o
 // banco entra por parâmetro, para dar para testar.
 
-import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega } from "../cardapio-digital.mjs";
+import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega, linhasDoCombo } from "../cardapio-digital.mjs";
 import {
   cashbackUsavel, descontoDoCadastro, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO, validarCadastro,
 } from "../fidelidade.mjs";
@@ -329,12 +329,23 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
     }]).select("id").single();
     if (eI || !criado?.id) return falha(503, "indisponivel", "Não foi possível enviar agora.");
 
-    const { error: eItens } = await db.from("pedidos_itens").insert(pedido.itens.map((i) => ({
+    // Combo: cobra o preço do combo e manda cada prato para a cozinha/bar
+    // (uma linha por prato, o valor repartido; soma = preço do combo).
+    const porIdCardapio = new Map(cardapio.produtos.map((p) => [p.id, p]));
+    const linhas = pedido.itens.flatMap((i) => {
+      const prod = porIdCardapio.get(i.id);
+      if (prod?.combo) {
+        const obs = [`Combo: ${prod.nome}`, i.observacao].filter(Boolean).join(" · ").slice(0, 200);
+        return linhasDoCombo(prod, i.quantidade).map((l) => ({ ...l, observacao: obs }));
+      }
+      return [{ produto_id: i.id, quantidade: i.quantidade, valor_unitario: preco.get(i.id), observacao: i.observacao }];
+    });
+    const { error: eItens } = await db.from("pedidos_itens").insert(linhas.map((l) => ({
       pedido_id: criado.id,
-      produto_id: i.id,
-      quantidade: i.quantidade,
-      valor_unitario: preco.get(i.id),
-      observacao: i.observacao,
+      produto_id: l.produto_id,
+      quantidade: l.quantidade,
+      valor_unitario: l.valor_unitario,
+      observacao: l.observacao,
       status_kds: "aguardando_aceite",
     })));
     if (eItens) {

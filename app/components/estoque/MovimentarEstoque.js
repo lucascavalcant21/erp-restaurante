@@ -57,7 +57,10 @@ function unidadesDoProduto(produto) {
   return lista;
 }
 
-export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
+// fixo: aberto por cima da tela do estoque, já no produto (?estoque&insumo):
+// sem escolher área, sem busca, sem "Trocar" (a janela de fora fecha) e sem a
+// lista dos últimos; onFeito depois de gravar (a tela de fora recarrega o saldo).
+export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo = false, onFeito }) {
   const [base, setBase] = useState(null);
   const [seg, setSeg] = useState(null);
   const [segErro, setSegErro] = useState("");
@@ -183,6 +186,13 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
     setAviso({ tipo: "ok", texto: ehTransferencia
       ? `Transferência de ${lanc.texto} de ${produto.nome}: ${estoque?.nome} → ${destinoNome}. Saldo em ${estoque?.nome}: ${saldoOperacional(produto, saldoNovo)}.`
       : `${tipo === "entrada" ? "Entrada" : "Retirada"} de ${lanc.texto} de ${produto.nome} registrada. Saldo em ${estoque?.nome}: ${saldoOperacional(produto, saldoNovo)}.` });
+    if (fixo) {
+      // Continua no produto, pronto para outro lançamento.
+      setForm(FORM_VAZIO); setTipo(""); chave.current = novaChave();
+      await carregarBase();
+      onFeito?.();
+      return;
+    }
     limpar();
     await Promise.all([carregarBase(), carregarUltimos()]);
   };
@@ -198,7 +208,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-4 px-3 pb-28 pt-4 text-hf-text sm:px-4">
+    <div className={`mx-auto max-w-xl space-y-4 px-3 text-hf-text sm:px-4 ${fixo ? "pb-4 pt-1" : "pb-28 pt-4"}`}>
       {erro && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs sm:text-sm font-bold text-rose-800 shadow-xs">
           Não foi possível sincronizar: {erro}
@@ -211,7 +221,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
       )}
 
       {/* 2. Área e local */}
-      <div className="space-y-2">
+      {!fixo && <div className="space-y-2">
         <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">
           {areas.map((a) => (
             <button key={a.id} onClick={() => trocarArea(a.id)} aria-pressed={area === a.id}
@@ -235,7 +245,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
             {areaAtual.rotulo} ainda não tem local de estoque. Crie em <Link href="/dashboard/operacao/estoque/painel/produtos" className="font-bold text-hf-accent underline">Produtos e locais</Link>.
           </p>
         )}
-      </div>
+      </div>}
 
       {aviso && (
         <div role="status" className={`flex gap-2 rounded-2xl border p-3 text-sm font-bold ${aviso.tipo === "ok" ? "border-hf-success/30 bg-hf-success/10 text-hf-success" : "border-hf-danger/30 bg-hf-danger/10 text-hf-danger"}`}>
@@ -245,7 +255,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
       )}
 
       {/* 3. Busca */}
-      {!produto && estoque && (
+      {!fixo && !produto && estoque && (
         <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-hf-surface shadow-card">
           <div className="flex items-center gap-2 border-b border-zinc-200/80 px-3.5">
             <Search size={18} className="shrink-0 text-zinc-400" />
@@ -300,7 +310,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
               </p>
               {perfilUnidades(produto).fatores.length > 0 && <p className="text-xs text-hf-muted">{perfilUnidades(produto).fatores.join(" · ")}</p>}
             </div>
-            <button onClick={limpar} className="h-9 shrink-0 rounded-lg bg-hf-elevated px-3 text-xs font-bold text-hf-text-2">Trocar</button>
+            {!fixo && <button onClick={limpar} className="h-9 shrink-0 rounded-lg bg-hf-elevated px-3 text-xs font-bold text-hf-text-2">Trocar</button>}
           </div>
 
           {/* Retirar ou adicionar: escolhido no produto */}
@@ -402,7 +412,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
       )}
 
       {/* últimos deste local */}
-      {estoque && (
+      {!fixo && estoque && (
         <section className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-hf-surface shadow-card">
           <div className="flex items-center justify-between px-3 pt-3">
             <p className="text-sm font-black">Últimos em {estoque.nome}</p>

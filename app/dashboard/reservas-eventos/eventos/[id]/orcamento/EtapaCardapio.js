@@ -61,37 +61,84 @@ export function EtapaTipo({ orc, setOrc, modelos = [], onAplicarModelo, onRemove
 }
 
 // Busca de ficha técnica para a seção (bar → fichas do bar; comida → cozinha).
+// Antes listava só as 30 primeiras em ordem alfabética, sem pré-preparos: no
+// cardápio real só apareciam os "Adicional - …" (pedido do dono, 27/10/2026).
+// Agora mostra todas, separadas em Pratos prontos e Pré-preparos, por
+// categoria, com os adicionais no fim.
+const ehAdicionalFicha = (f) => /^adiciona(l|is)\b/i.test(String(f?.nome_receita || "").normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+const semAcento = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 function BuscaFicha({ fichas, setor, onEscolher, onFechar }) {
   const [busca, setBusca] = useState("");
-  const opcoes = useMemo(() => {
-    const t = busca.trim().toLowerCase();
-    return (fichas || [])
-      .filter((f) => tipoFichaDe(f) !== "pre_preparo")
-      .filter((f) => !setor || setorId(f.departamento) === setor)
-      .filter((f) => !t || String(f.nome_receita || "").toLowerCase().includes(t))
-      .slice(0, 30);
-  }, [fichas, setor, busca]);
+  const [tipo, setTipo] = useState("prontos");
+  const [categoria, setCategoria] = useState("");
+  const doSetor = useMemo(() => (fichas || []).filter((f) => f.ativo !== false && (!setor || setorId(f.departamento) === setor)), [fichas, setor]);
+  const porTipo = useMemo(() => ({
+    prontos: doSetor.filter((f) => tipoFichaDe(f) !== "pre_preparo"),
+    preparos: doSetor.filter((f) => tipoFichaDe(f) === "pre_preparo"),
+  }), [doSetor]);
+  const grupos = useMemo(() => {
+    const t = semAcento(busca.trim());
+    const m = new Map();
+    for (const f of porTipo[tipo]) {
+      if (t && !semAcento(f.nome_receita).includes(t)) continue;
+      const cat = ehAdicionalFicha(f) ? "Adicionais" : String(f.categoria || "").trim() || "Outros";
+      if (categoria && cat !== categoria) continue;
+      if (!m.has(cat)) m.set(cat, []);
+      m.get(cat).push(f);
+    }
+    const peso = (c) => (c === "Adicionais" ? 2 : c === "Outros" ? 1 : 0);
+    return [...m.entries()].sort(([a], [b]) => peso(a) - peso(b) || a.localeCompare(b, "pt-BR"))
+      .map(([cat, lista]) => [cat, lista.sort((x, y) => String(x.nome_receita).localeCompare(String(y.nome_receita), "pt-BR"))]);
+  }, [porTipo, tipo, busca, categoria]);
+  const categorias = useMemo(() => {
+    const set = new Set(porTipo[tipo].map((f) => (ehAdicionalFicha(f) ? "Adicionais" : String(f.categoria || "").trim() || "Outros")));
+    return [...set].sort((a, b) => (a === "Adicionais") - (b === "Adicionais") || a.localeCompare(b, "pt-BR"));
+  }, [porTipo, tipo]);
+  const total = grupos.reduce((t, [, l]) => t + l.length, 0);
   return (
     <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl bg-white p-1 ring-1 ring-slate-200" role="tablist" aria-label="Tipo de ficha">
+        {[["prontos", "Pratos prontos"], ["preparos", "Pré-preparos"]].map(([id, rot]) => (
+          <button key={id} type="button" role="tab" aria-selected={tipo === id} onClick={() => { setTipo(id); setCategoria(""); }}
+            className={`h-9 rounded-lg text-sm font-bold ${tipo === id ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}>
+            {rot} <span className="text-xs font-semibold opacity-70">{porTipo[id].length}</span>
+          </button>
+        ))}
+      </div>
       <div className="relative">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={`Buscar ficha ${setor === "bar" ? "do bar" : setor === "cozinha" ? "da cozinha" : ""}...`}
+        <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={`Buscar ${tipo === "preparos" ? "pré-preparo" : "prato"} ${setor === "bar" ? "do bar" : setor === "cozinha" ? "da cozinha" : ""}...`}
           className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500" />
       </div>
-      <ul className="mt-2 max-h-64 divide-y divide-slate-100 overflow-y-auto rounded-xl bg-white">
-        {opcoes.length === 0 && <li className="p-4 text-center text-sm font-semibold text-slate-500">Nenhuma ficha encontrada.</li>}
-        {opcoes.map((f) => {
-          const c = custoPorcaoDaFicha(f, fichas);
-          return (
-            <li key={f.id}>
-              <button type="button" onClick={() => onEscolher(f)} className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-emerald-50">
-                <span className="min-w-0 truncate text-sm font-bold text-slate-900">{f.nome_receita}</span>
-                <span className="shrink-0 text-xs font-bold tabular-nums text-slate-600">{c > 0 ? `${fmtReais(c)} / porção` : "sem custo"}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      {categorias.length > 1 && (
+        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+          {["", ...categorias].map((c) => (
+            <button key={c || "todas"} type="button" onClick={() => setCategoria(c)} aria-pressed={categoria === c}
+              className={`h-8 shrink-0 rounded-full border px-3 text-xs font-bold ${categoria === c ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-white text-slate-600"}`}>{c || "Todas"}</button>
+          ))}
+        </div>
+      )}
+      <div className="mt-2 max-h-80 overflow-y-auto rounded-xl bg-white">
+        {total === 0 && <p className="p-4 text-center text-sm font-semibold text-slate-500">Nenhuma ficha encontrada.</p>}
+        {grupos.map(([cat, lista]) => (
+          <div key={cat}>
+            <p className="sticky top-0 bg-slate-100 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-500">{cat} · {lista.length}</p>
+            <ul className="divide-y divide-slate-100">
+              {lista.map((f) => {
+                const c = custoPorcaoDaFicha(f, fichas);
+                return (
+                  <li key={f.id}>
+                    <button type="button" onClick={() => onEscolher(f)} className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-emerald-50">
+                      <span className="min-w-0 truncate text-sm font-bold text-slate-900">{f.nome_receita}</span>
+                      <span className={`shrink-0 text-xs font-bold tabular-nums ${c > 0 ? "text-slate-600" : "text-amber-700"}`}>{c > 0 ? `${fmtReais(c)} / porção` : "sem custo"}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
       <button type="button" onClick={onFechar} className="mt-2 text-sm font-bold text-slate-600 hover:text-slate-900">Fechar</button>
     </div>
   );
@@ -155,44 +202,54 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
   const exclusiva = item.origem === "exclusiva";
   return (
     <li className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-12 sm:items-end">
-        <div className="col-span-2 sm:col-span-4">
+      {/* Linha 1: o que é + nome + excluir */}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
           <span className={`mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${exclusiva ? "bg-zinc-100 text-zinc-800" : "bg-slate-100 text-slate-700"}`}>
             {exclusiva ? <><FlaskConical size={11} /> Exclusiva do evento</> : <><ChefHat size={11} /> Ficha técnica</>}
           </span>
           <Texto valor={item.nome} onChange={(v) => alterarItem({ nome: v })} aria-label="Nome do produto" readOnly={!exclusiva && !!item.ficha}
             className={!exclusiva && item.ficha ? "bg-slate-50" : ""} />
         </div>
-        <div className="sm:col-span-2">
-          <span className="mb-1 flex items-center justify-between gap-1 text-xs font-bold uppercase tracking-wide text-slate-600">
-            {ehBar ? "Doses/pessoa" : item.emGramas ? "Gramas/pessoa" : "Porções/pessoa"}
+        <div className="pt-6"><BotaoRemover rotulo={`Remover ${item.nome}`} onClick={remover} /></div>
+      </div>
+
+      {/* Linha 2: quantidade, custos e ingredientes — cada caixa com o título em cima do valor */}
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-stretch">
+        <div className="col-span-2 rounded-xl bg-slate-50 p-2.5 sm:col-span-1">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : "Porções por pessoa"}</span>
             {!ehBar && (
-              <button type="button" onClick={() => alterarItem({ medida: item.emGramas ? "porcao" : "g" })} className="rounded bg-slate-100 px-1.5 text-[10px] font-black text-slate-700 hover:bg-slate-200"
-                title="Alternar entre porções e gramas por pessoa">{item.emGramas ? "usar porções" : "usar gramas"}</button>
+              <span className="inline-flex rounded-lg bg-white p-0.5 ring-1 ring-slate-200" role="radiogroup" aria-label="Medir por">
+                {[["porcao", "porções"], ["g", "gramas"]].map(([m, rot]) => {
+                  const ativo = (m === "g") === !!item.emGramas;
+                  return (
+                    <button key={m} type="button" role="radio" aria-checked={ativo} onClick={() => alterarItem({ medida: m })}
+                      className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${ativo ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}>{rot}</button>
+                  );
+                })}
+              </span>
             )}
-          </span>
+          </div>
           {item.emGramas
             ? <Numero valor={item.gramas_por_pessoa} onChange={(v) => alterarItem({ gramas_por_pessoa: v })} sufixo="g" aria-label="Gramas por pessoa" />
             : <Numero valor={item.por_pessoa} onChange={(v) => alterarItem({ por_pessoa: v })} aria-label={ehBar ? "Doses por pessoa" : "Porções por pessoa"} />}
           {item.emGramas && item.pesoPorcao > 0 && <span className="mt-1 block text-[11px] font-medium text-slate-500">= {item.porPessoa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} porção de {item.pesoPorcao} g</span>}
         </div>
-        <div className="sm:col-span-2">
-          <span className="block text-xs font-bold uppercase tracking-wide text-slate-600">Custo da porção</span>
-          <span className={`block h-11 pt-2.5 text-sm font-bold tabular-nums ${item.semCusto ? "text-amber-700" : "text-slate-900"}`}>{item.semCusto ? "sem custo" : fmtReais(item.custoPorcao)}</span>
+        <div className="rounded-xl bg-slate-50 p-2.5">
+          <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-600">Custo da porção</span>
+          <span className={`mt-2 block text-base font-black tabular-nums ${item.semCusto ? "text-amber-700" : "text-slate-900"}`}>{item.semCusto ? "sem custo" : fmtReais(item.custoPorcao)}</span>
         </div>
-        <div className="sm:col-span-2">
-          <span className="block text-xs font-bold uppercase tracking-wide text-slate-600">Por pessoa</span>
-          <span className="block h-11 pt-2.5 text-sm font-black tabular-nums text-slate-900">{fmtReais(item.custoPorPessoa)}</span>
+        <div className="rounded-xl bg-slate-50 p-2.5">
+          <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-600">Custo por pessoa</span>
+          <span className="mt-2 block text-base font-black tabular-nums text-slate-900">{fmtReais(item.custoPorPessoa)}</span>
         </div>
-        <div className="col-span-2 flex items-end justify-end gap-2 sm:col-span-2">
-          {exclusiva && (
-            <button type="button" onClick={alternar} aria-expanded={aberto}
-              className="flex h-11 items-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-bold text-zinc-800 hover:bg-zinc-100">
-              Ingredientes {aberto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-          )}
-          <BotaoRemover rotulo={`Remover ${item.nome}`} onClick={remover} />
-        </div>
+        {exclusiva && (
+          <button type="button" onClick={alternar} aria-expanded={aberto}
+            className="col-span-2 flex min-h-[44px] items-center justify-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-bold text-zinc-800 hover:bg-zinc-100 sm:col-span-1">
+            Ingredientes {aberto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        )}
       </div>
       <div className="mt-2">
         <Texto valor={item.descricao} onChange={(v) => alterarItem({ descricao: v })} placeholder="Descrição para o cliente (opcional) — ex.: com farofa de manteiga e vinagrete"

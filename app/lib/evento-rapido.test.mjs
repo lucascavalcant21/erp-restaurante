@@ -61,3 +61,8 @@ test("sem equipe e extras: não cria linha vazia; crianças nunca passam dos con
   assert.deepEqual(orc.extras, []);
   assert.equal(orc.cliente.criancas, 10);
 });
+
+test("adicionais em categoria própria, depois das outras", () => {
+  const c = catalogoDeFichas([...FICHAS, { id: "ad", nome_receita: "Adicional - Arroz", departamento: "cozinha", categoria: "Prato principal" }]);
+  assert.deepEqual(c.cozinha.map((g) => g.categoria), ["Prato principal", "Outros", "Adicionais"]);
+});

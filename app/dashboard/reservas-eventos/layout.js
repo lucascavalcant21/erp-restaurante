@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, UtensilsCrossed } from "lucide-react";
+import { BookOpen, CalendarDays, Calculator, UtensilsCrossed } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
 
@@ -16,6 +16,8 @@ const BASE = "/dashboard/reservas-eventos";
 const FUNIL = `${BASE}/eventos`;
 
 const AREAS = [
+  // Orçamento por pessoa em um minuto: fichas da cozinha e do bar (27/10/2026).
+  { href: `${BASE}/rapido`, rotulo: "Orçamento rápido", curto: "Orçar", icone: Calculator },
   { href: FUNIL, rotulo: "Funil de eventos", curto: "Funil", icone: BookOpen, ativo: (p) => p === BASE || p === FUNIL },
   { href: `${BASE}/agenda`, rotulo: "Agenda", curto: "Agenda", icone: CalendarDays },
   { href: `${BASE}/reservas`, rotulo: "Reservas de mesa", curto: "Reservas", icone: UtensilsCrossed },
@@ -42,7 +44,7 @@ export default function ReservasEventosLayout({ children }) {
           {unidadeInfo?.nome && <p className="text-sm text-hf-text-2">{unidadeInfo.nome}</p>}
         </header>
         {areas.length > 1 && (
-          <nav aria-label="Áreas de eventos e reservas" className="mb-5 grid grid-cols-3 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:max-w-xl">
+          <nav aria-label="Áreas de eventos e reservas" className={`mb-5 grid gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:max-w-3xl ${areas.length > 3 ? "grid-cols-4" : "grid-cols-3"}`}>
             {areas.map((a) => {
               const ativo = a.ativo ? a.ativo(pathname) : pathname === a.href || pathname.startsWith(`${a.href}/`);
               const Icone = a.icone;
@@ -50,7 +52,7 @@ export default function ReservasEventosLayout({ children }) {
                 <Link key={a.href} href={a.href} aria-current={ativo ? "page" : undefined}
                   className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-2 text-center text-sm font-semibold transition ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
                   <Icone size={16} className="hidden shrink-0 sm:block" />
-                  <span className="sm:hidden">{a.curto}</span><span className="hidden sm:inline">{a.rotulo}</span>
+                  <span className="sm:hidden">{a.curto}</span><span className="hidden whitespace-nowrap sm:inline">{a.rotulo}</span>
                 </Link>
               );
             })}

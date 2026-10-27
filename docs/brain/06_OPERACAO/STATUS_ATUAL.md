@@ -51,6 +51,14 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
 - **Rodada 2 (Estoque, Financeiro, painel):** Financeiro com barra de áreas (Visão geral, A pagar, A receber, Caixa, DRE, Pizza, CMV); `/fluxo`, `/documentos` e `/margem` redirecionam (gravavam/liam tabelas fora do financeiro novo, B-024); CMV sem 0% inventado (B-023); Contas a Pagar em cartões no celular; Pizza do Lucro visível no celular; paleta sem fundo preto no Estoque e no Financeiro; abas do Estoque à vista no celular; painel inicial com faturamento vazio compacto. Simulador com o **esquema e o volume reais** (369 produtos, 374 saldos, 350 movimentos; leitura só). Mesmo resultado de testes; build OK.
 
+## 27/10/2026 — Delivery com movimento, letras novas e materiais da casa
+
+Branch `claude/sharp-meitner-0i36gu` (PR #189, com a `main` de 27/10):
+- **Delivery do cardápio** com movimento e tipografia nova (pedido do dono). 1 em 167 pratos tem foto: a vitrine usa ícones por prato, nunca foto inventada. Quem pede menos movimento vê tudo parado.
+- **Sticky do app de volta:** `overflow-x: hidden` em html e body (main, 18/10) quebrava `position: sticky`; agora `clip`.
+- **Limpeza, máquina de lavar e embalagens:** três telas separadas, cada uma com cadastro e estoque próprios (locais novos: Máquina de lavar da Cozinha e do Bar; tipo `limpeza`, aceito pelo banco). Sem tabela nova: produto em `insumos`, saldo em `estoque_itens`, movimento por `estoque_movimentar`. Os locais novos são criados pelo app (`garantirEstoquesPadrao`) na primeira abertura.
+- Evidência: TESTADO LOCAL (app/lib 647/647 com PGLITE, build), TESTADO EM MOCK (Playwright: cardápio em 3 aparelhos e com menos movimento; materiais: cadastro, entrada, saída, mínimo, mesma peça em duas máquinas, celular). Supabase real: só leitura (restrições de `estoques.tipo` e do motor conferidas). NÃO VALIDADO no preview autenticado.
+
 ## 19/10/2026 (tarde) — Chamar garçom e pedir a conta pelo QR da mesa (HEXP-001)
 
 Branch `claude/sharp-meitner-0i36gu` (PR novo, rascunho):

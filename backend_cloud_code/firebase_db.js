@@ -35,9 +35,20 @@ try {
 
 let _db = null;
 
+// firebase-admin 14 tirou a API antiga (admin.apps, admin.credential,
+// admin.firestore): com ela este arquivo quebrava em "reading 'length'" no cron
+// das 9h. O Héfisto usa o Supabase; o Firestore deste backend legado fica em
+// modo memória até o dono decidir religá-lo (aí, migrar para firebase-admin/app).
+const apiAntiga = !!(admin && Array.isArray(admin.apps) && admin.credential && typeof admin.firestore === 'function');
+let _avisou = false;
+
 function getDb() {
   if (_db) return _db;
   if (!admin) return null;
+  if (!apiAntiga) {
+    if (!_avisou) { console.warn('[Firebase] firebase-admin sem a API antiga: backend legado em modo memória.'); _avisou = true; }
+    return null;
+  }
 
   if (!admin.apps.length) {
     const projectId    = process.env.FIREBASE_PROJECT_ID;
@@ -132,7 +143,7 @@ function novoId(prefixo = 'doc') {
  * Verificar se Firebase está configurado
  */
 function firebaseAtivo() {
-  return !!(
+  return apiAntiga && !!(
     process.env.FIREBASE_PROJECT_ID &&
     process.env.FIREBASE_CLIENT_EMAIL &&
     process.env.FIREBASE_PRIVATE_KEY

@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  fetchBaseMovimento, fetchUltimosMovimentos, fetchConferidos, lancarMovimento, transferirLancamento, lerSeguranca, MSG_BANCO_DESATUALIZADO,
+  fetchBaseMovimento, fetchUltimosMovimentos, lancarMovimento, transferirLancamento, lerSeguranca, MSG_BANCO_DESATUALIZADO,
 } from "../../lib/estoque-movimento-dados";
 import { MOTIVOS, rotuloMotivo, unidadesDaFracao, produtosParaLancar, saldoDepois, podeEstornar, novaChave, unidadeDoSaldo } from "../../lib/estoque-movimento.mjs";
 import { quantidadeDoMovimento, unidadeOperacional, unidadeDeCompra, saldoOperacional, perfilUnidades } from "../../lib/estoque-unidades.mjs";
@@ -59,7 +59,6 @@ function unidadesDoProduto(produto) {
 
 export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
   const [base, setBase] = useState(null);
-  const [conferidos, setConferidos] = useState(new Set());
   const [seg, setSeg] = useState(null);
   const [segErro, setSegErro] = useState("");
   const [erro, setErro] = useState("");
@@ -81,8 +80,8 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
   useContextoInteligencia(produto ? { modulo: "estoque", tipo: "produto", id: produto.id, nome: produto.nome } : null);
 
   const carregarBase = useCallback(async () => {
-    const [b, c] = await Promise.all([fetchBaseMovimento(unidade), fetchConferidos(unidade)]);
-    setBase(b.data); setErro(b.error || ""); setConferidos(c.data);
+    const b = await fetchBaseMovimento(unidade);
+    setBase(b.data); setErro(b.error || "");
     const estoques = b.data?.estoques || [];
     if (!estoques.length) return;
     setEstoqueId((atual) => {
@@ -272,14 +271,13 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
               </li>
             )}
             {resultados.map((p) => {
-              const conferido = conferidos.has(`${estoqueId}|${p.insumo.id}`);
               return (
                 <li key={p.insumo.id}>
                   <button onClick={() => escolher(p.insumo)} className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-emerald-50/40">
                     <span className="min-w-0">
                       <span className="block truncate font-bold text-hf-text leading-tight">{p.insumo.nome}</span>
                       <span className="block truncate text-xs text-hf-text-2 mt-0.5">
-                        {[p.insumo.marca, !p.vinculado && "novo neste local", p.vinculado && !conferido && "não conferido"].filter(Boolean).join(" · ") || " "}
+                        {[p.insumo.marca, !p.vinculado && "novo neste local"].filter(Boolean).join(" · ") || " "}
                       </span>
                     </span>
                     <span className={`shrink-0 text-right text-sm font-black ${p.saldo > 0 ? "text-hf-text" : "text-zinc-400"}`}>{saldoOperacional(p.insumo, p.saldo)}</span>
@@ -300,7 +298,6 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
               <p className="mt-1 text-sm">Saldo aqui: <b>{saldoOperacional(produto, saldoAtual)}</b>
                 {unidadeOperacional(produto).embalagem && <span className="text-hf-muted"> ({fmtQ(saldoAtual)} {unidadeDoSaldo(produto)})</span>}
               </p>
-              {itemAtual && !conferidos.has(`${estoqueId}|${produto.id}`) && <p className="text-xs font-bold text-hf-warning">Saldo ainda não conferido em inventário.</p>}
               {perfilUnidades(produto).fatores.length > 0 && <p className="text-xs text-hf-muted">{perfilUnidades(produto).fatores.join(" · ")}</p>}
             </div>
             <button onClick={limpar} className="h-9 shrink-0 rounded-lg bg-hf-elevated px-3 text-xs font-bold text-hf-text-2">Trocar</button>

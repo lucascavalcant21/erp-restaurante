@@ -2,6 +2,8 @@
 // Padrão SEC-DADOS-2: Preços, validações e integridade de pedidos e chamados são 
 // executados estritamente no servidor com banco de dados escopado por unidade.
 
+import { limparMesa } from "../cardapio-link.mjs";
+
 const TIPOS_CHAMADO_PERMITIDOS = Object.freeze([
   "garcom",
   "agua",
@@ -85,7 +87,8 @@ export function validarChamadoGarcom({ tipo, mesaNumero, solicitanteNome, observ
     return falha(400, "tipo_invalido", "Tipo de solicitação inválido.");
   }
 
-  const mesa = textoSeguro(mesaNumero, 10);
+  // "Mesa 5", "mesa-5" e "5" são a mesma mesa (o QR do cardápio manda "5").
+  const mesa = limparMesa(textoSeguro(mesaNumero, 20));
   if (!mesa) {
     return falha(400, "mesa_obrigatoria", "Número da mesa não informado.");
   }
@@ -490,15 +493,14 @@ export async function criarChamadoGarcomExperience({
   if (!db) return falha(503, "indisponivel", "Não conseguimos chamar pelo celular agora. Acene para a equipe, por favor.");
 
   try {
-    // Busca a mesa se existir
-    const { data: mesa } = await db
+    // Mesa cadastrada no Salão ("Mesa 5") ligada ao chamado, quando houver.
+    const { data: mesas } = await db
       .from("mesas")
       .select("id, numero")
       .eq("unidade_id", unidadeId)
-      .eq("numero", chamado.mesaNumero)
-      .maybeSingle();
+      .limit(300);
+    const mesa = (mesas || []).find((m) => limparMesa(m.numero) === chamado.mesaNumero) || null;
 
-    // Insere o chamado
     const { data: novoChamado, error } = await db
       .from("experience_chamados")
       .insert([{
@@ -513,6 +515,12 @@ export async function criarChamadoGarcomExperience({
       .select("id, tipo, mesa_numero, status, created_at")
       .single();
 
+    // Já existe um chamado aberto desta mesa para isso (índice único da
+    // CHAMADOS-1): a equipe já foi avisada, não abre outro.
+    if (error?.code === "23505") {
+      return { ok: true, jaAberto: true, tipo: chamado.tipo, rotulo: chamado.rotulo, mensagem: "A equipe já foi avisada. Já estamos indo." };
+    }
+    if (error?.code === "23503") return falha(404, "unidade_invalida", "Restaurante não encontrado.");
     // Sem gravar, ninguém da equipe vê o chamado: o cliente precisa saber
     // (antes respondia "garçom avisado" mesmo sem a tabela existir — B-028).
     if (error) return falha(503, "indisponivel", "Não conseguimos chamar pelo celular agora. Acene para a equipe, por favor.");
@@ -520,6 +528,7 @@ export async function criarChamadoGarcomExperience({
     return {
       ok: true,
       chamadoId: novoChamado.id,
+      tipo: chamado.tipo,
       rotulo: chamado.rotulo,
       mensagem: `Solicitação de "${chamado.rotulo}" enviada com sucesso! Um garçom já foi avisado.`
     };

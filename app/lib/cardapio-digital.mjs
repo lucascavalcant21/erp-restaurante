@@ -823,7 +823,10 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
   }
   if (semCategoria.length) categorias = [...categorias, { id: "outros", nome: "Outros", descricao: "", imagem_url: "", visivel: true, papel: "outro" }];
 
-  const porNome = (a, b) => Number(b.destaque) - Number(a.destaque) || a.nome.localeCompare(b.nome, "pt-BR");
+  // Destaque do dono primeiro; "Adicional - …" depois dos pratos (a ordem
+  // alfabética punha 20 adicionais no topo dos Pratos Principais).
+  const ehAdicional = (p) => /^adiciona(l|is)\b/.test(normalizarBusca(p.nome));
+  const porNome = (a, b) => Number(b.destaque) - Number(a.destaque) || Number(ehAdicional(a)) - Number(ehAdicional(b)) || a.nome.localeCompare(b.nome, "pt-BR");
   const saidaCategorias = categorias
     .filter((c) => c.visivel)
     .map((c) => ({

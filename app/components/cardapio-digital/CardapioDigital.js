@@ -23,7 +23,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ALargeSmall, Clock, Globe, Home, MessageCircle, Menu, Minus, Plus, Receipt, RotateCcw, Search, Share2,
-  ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin, Gift,
+  ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin, Gift, BellRing, Megaphone,
 } from "lucide-react";
 import {
   aplicarNome, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, primeiroNome, saudacao, totalDoCarrinho,
@@ -33,6 +33,9 @@ import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, 
 import Conversa from "./Conversa";
 import Pedido from "./Pedido";
 import { CartaoFidelidade, DetalheFidelidade, cartoesDoPrato } from "./Fidelidade";
+import { BotoesAtendimento } from "./Atendimento";
+import { CapaViva, IconeTema, TrilhoSecoes, useVooParaSacola } from "./Vitrine";
+import { iniciais, temaDoIcone, temaDoPrato } from "../../lib/cardapio-icones.mjs";
 import { cashbackUsavel, descontoDoCadastro } from "../../lib/fidelidade.mjs";
 import s from "./cardapio.module.css";
 
@@ -105,7 +108,9 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const [prato, setPrato] = useState(null);
   const [qtdPrato, setQtdPrato] = useState(1);
   const [obsPrato, setObsPrato] = useState("");
-  const [folha, setFolha] = useState(""); // "", "secoes", "pedido", "idiomas", "pedidos", "info", "fidelidade"
+  const [folha, setFolha] = useState(""); // "", "secoes", "pedido", "idiomas", "pedidos", "info", "fidelidade", "atendimento"
+  const [chamados, setChamados] = useState({}); // tipo → { estado: "enviando" | "ok", ate }
+  const voarParaSacola = useVooParaSacola();
   const [conversaAberta, setConversaAberta] = useState(false);
   const [consultaConversa, setConsultaConversa] = useState("");
   const [mensagens, setMensagens] = useState([]);
@@ -228,6 +233,35 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   // Abriu uma folha: o aviso de antes ("no pedido · ver pedido") já não serve e cobriria o conteúdo.
   useEffect(() => { if (folha) setAviso(null); }, [folha]);
 
+  // Atendimento da mesa: o chamado vai para o Salão. "Avisado" fica 1 minuto
+  // no botão; o servidor também não abre dois chamados iguais da mesma mesa.
+  const chamar = useCallback(async (tipo) => {
+    if (!mesa) return;
+    if (previa) { setAviso({ texto: T("chamado_previa") }); return; }
+    setChamados((c) => ({ ...c, [tipo]: { estado: "enviando" } }));
+    try {
+      const r = await fetch(`/api/public/experience/${encodeURIComponent(unidadeId)}/chamado`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mesa, tipo, solicitanteNome: form.nome.trim() || null }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.codigo || "falhou");
+      setChamados((c) => ({ ...c, [tipo]: { estado: "ok", ate: Date.now() + 60000 } }));
+      setAviso({ texto: j.jaAberto ? T("chamado_ja") : T(tipo === "conta" ? "chamado_conta_ok" : "chamado_ok", { mesa }) });
+    } catch {
+      setChamados((c) => { const n = { ...c }; delete n[tipo]; return n; });
+      setAviso({ texto: T("chamado_erro") });
+    }
+  }, [mesa, previa, unidadeId, form.nome, T]);
+  useEffect(() => {
+    const ates = Object.values(chamados).map((c) => c.ate).filter(Boolean);
+    if (!ates.length) return undefined;
+    const espera = Math.max(0, Math.min(...ates) - Date.now());
+    const id = setTimeout(() => setChamados((c) => Object.fromEntries(Object.entries(c).filter(([, v]) => !v.ate || v.ate > Date.now()))), espera + 50);
+    return () => clearTimeout(id);
+  }, [chamados]);
+
   // Andamento dos pedidos deste aparelho, enquanto a lista está aberta.
   const atualizarPedidos = useCallback(async () => {
     if (previa || !meusPedidos.length) { setAndamento({ carregando: false, pedidos: [] }); return; }
@@ -305,7 +339,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     const l = [];
     if (cardapio.promocoes.length) l.push({ id: "promocoes", nome: T("promocoes"), total: cardapio.promocoes.length });
     if (destaques.length) l.push({ id: "destaques", nome: T("casa_indica"), total: destaques.length });
-    for (const c of cardapio.categorias) l.push({ id: c.id, nome: c.nome, total: c.produto_ids.length });
+    for (const c of cardapio.categorias) l.push({ id: c.id, nome: c.nome, total: c.produto_ids.length, tema: temaDoIcone(c.nome, c.papel) });
     return l;
   }, [cardapio, destaques, T]);
 
@@ -530,16 +564,18 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       <Globe size={18} aria-hidden="true" /> {lingua.toUpperCase()}
     </button>
   ) : null;
+  const catPorId = new Map(cardapio.categorias.map((c) => [c.id, c]));
+  const adicionarComVoo = (id) => { adicionar(id); voarParaSacola(); };
   const linhaItem = (p) => (
     <Item key={p.id} produto={p} promocao={p.promocao_id ? promoPorId.get(p.promocao_id) : null} qtd={qtdNoCarrinho.get(p.id)}
-      onAbrir={abrirPrato} onAdicionar={adicionar} podePedir={podePedir} idioma={lingua} comTexto={modo === "mesa"} cartoes={cartoesDoPrato(cardapio, p.id)} />
+      onAbrir={abrirPrato} onAdicionar={adicionarComVoo} podePedir={podePedir} idioma={lingua} comTexto={modo === "mesa"} cartoes={cartoesDoPrato(cardapio, p.id)} />
   );
   const rotuloEtapa = (p) => (p.etapa === "recebido" ? T("st_recebido") : p.etapa === "preparo" ? T("st_preparo")
     : p.etapa === "pronto" ? T(p.tipo === "mesa" ? "st_pronto_mesa" : "st_pronto_delivery") : p.etapa === "saiu" ? T("st_saiu")
       : p.etapa === "entregue" ? T("st_entregue") : p.etapa === "cancelado" ? T("st_cancelado") : T("st_andamento"));
 
   return (
-    <div className={`${s.raiz} ${modo === "mesa" ? s.modoMesa : s.modoDelivery} ${celular ? s.comNav : ""}`} style={estilo} data-fonte={tema.fonte} lang={infoIdioma(lingua).lang}>
+    <div className={`${s.raiz} ${modo === "mesa" ? s.modoMesa : s.modoDelivery} ${celular ? s.comNav : ""}`} style={estilo} data-fonte={tema.fonte} lang={infoIdioma(lingua).lang} data-cardapio="">
       {tema.fundo_imagem_url ? <div className={s.fundoImagem} style={{ backgroundImage: `url("${tema.fundo_imagem_url}")`, opacity: tema.fundo_opacidade }} aria-hidden="true" /> : null}
       <div className={s.casca}>
         {/* lateral: celular deitado, tablet e computador */}
@@ -573,13 +609,14 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
               </>
             )}
             {mesa && lateral ? <span className={s.chipMesa}>{T("mesa", { mesa })}</span> : null}
+            {mesa ? <button type="button" className={s.icone} onClick={() => setFolha("atendimento")} aria-haspopup="dialog" aria-label={T("atendimento")}><BellRing size={20} aria-hidden="true" /></button> : null}
             {botaoIdioma}
             {conversaLigada && lateral ? <button type="button" className={s.icone} onClick={() => abrirConversa()} aria-label={T("conversar")}><MessageCircle size={20} aria-hidden="true" /></button> : null}
             {meusPedidos.length ? (
               <button type="button" className={s.acaoTopo} onClick={() => setFolha("pedidos")}><Receipt size={18} aria-hidden="true" /> {T("meus_pedidos")}</button>
             ) : null}
             {podePedir ? (
-              <button type="button" className={`${s.acaoTopo} ${s.acaoSacola}`} onClick={() => setFolha("pedido")}>
+              <button type="button" className={`${s.acaoTopo} ${s.acaoSacola}`} onClick={() => setFolha("pedido")} data-sacola="">
                 <ShoppingBag size={18} aria-hidden="true" /> {T("sacola")} {qtdTotal ? <span className={s.contagem}>{qtdTotal}</span> : null}
               </button>
             ) : null}
@@ -595,27 +632,26 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           {modo === "delivery" ? (
             <>
               <div className={s.capa}>
-                {slides.length ? <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} /> : null}
+                {slides.length ? <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} /> : <CapaViva temas={secoesMenu.map((x) => x.tema).filter(Boolean)} />}
               </div>
               <section className={s.loja} aria-label={unidade.nome}>
-                <Foto src={tema.logo_url} className={s.lojaLogo} alt="" />
+                <Foto src={tema.logo_url} className={s.lojaLogo} alt="" fallback={<span className={s.lojaMonograma} aria-hidden="true">{iniciais(unidade.nome)}</span>} />
                 <h1 className={s.lojaNome}>{unidade.nome}</h1>
-                <p className={s.lojaLinha}>
-                  {cidade ? <span><MapPin size={14} aria-hidden="true" style={{ verticalAlign: "-2px" }} /> {cidade}</span> : null}
-                  {temInfo ? <button type="button" onClick={() => setFolha("info")}>{T("mais_info")}</button> : null}
-                </p>
                 <p className={`${s.status} ${unidade.delivery_aberto ? s.statusAberto : s.statusFechado}`}>
+                  <span className={s.statusPonto} aria-hidden="true" />
                   {unidade.delivery_aberto ? T("delivery_aberto") : T("delivery_fechado")}
-                  {unidade.horario ? <span style={{ color: "var(--c-suave)", fontWeight: 500 }}> · {unidade.horario}</span> : null}
+                  {unidade.horario ? <span className={s.statusHorario}> · {unidade.horario}</span> : null}
                 </p>
                 {textos.apresentacao ? <p className={s.apresentacao} style={{ margin: "6px 0 0" }}>{textos.apresentacao}</p> : null}
+                <ul className={s.infoChips}>
+                  <li className={s.infoChip}><Truck size={16} aria-hidden="true" />{unidade.taxa_entrega > 0 ? T("entrega_valor", { valor: formatarPreco(unidade.taxa_entrega, lingua) }) : <strong>{T("entrega_gratis")}</strong>}</li>
+                  {ent.tempo_min && ent.tempo_max ? <li className={s.infoChip}><Clock size={16} aria-hidden="true" />{T("tempo_entrega", { min: ent.tempo_min, max: ent.tempo_max })}</li> : null}
+                  {ent.pedido_minimo > 0 ? <li className={s.infoChip}><Receipt size={16} aria-hidden="true" />{T("pedido_minimo", { valor: formatarPreco(ent.pedido_minimo, lingua) })}</li> : null}
+                  {ent.gratis_acima > 0 && unidade.taxa_entrega > 0 ? <li className={`${s.infoChip} ${s.infoChipForte}`}><Tag size={16} aria-hidden="true" />{T("gratis_acima", { valor: formatarPreco(ent.gratis_acima, lingua) })}</li> : null}
+                  {cidade ? <li className={s.infoChip}><MapPin size={16} aria-hidden="true" />{cidade}</li> : null}
+                  {temInfo ? <li><button type="button" className={`${s.infoChip} ${s.infoChipBotao}`} onClick={() => setFolha("info")}>{T("mais_info")}</button></li> : null}
+                </ul>
               </section>
-              <div className={s.entregaCard}>
-                <div className={s.entregaLinha}><Truck size={20} aria-hidden="true" /><span>{unidade.taxa_entrega > 0 ? T("entrega_valor", { valor: formatarPreco(unidade.taxa_entrega, lingua) }) : <strong>{T("entrega_gratis")}</strong>}</span></div>
-                {ent.tempo_min && ent.tempo_max ? <div className={s.entregaLinha}><Clock size={20} aria-hidden="true" /><span>{T("tempo_entrega", { min: ent.tempo_min, max: ent.tempo_max })}</span></div> : null}
-                {ent.pedido_minimo > 0 ? <div className={s.entregaLinha}><Receipt size={20} aria-hidden="true" /><span>{T("pedido_minimo", { valor: formatarPreco(ent.pedido_minimo, lingua) })}</span></div> : null}
-                {ent.gratis_acima > 0 && unidade.taxa_entrega > 0 ? <div className={s.entregaLinha}><Tag size={20} aria-hidden="true" /><strong>{T("gratis_acima", { valor: formatarPreco(ent.gratis_acima, lingua) })}</strong></div> : null}
-              </div>
               <CartaoFidelidade cardapio={cardapio} status={fidStatus} onAbrir={() => setFolha("fidelidade")} unidadeId={unidadeId} cadastroLocal={cadastroLocal} />
             </>
           ) : (
@@ -626,6 +662,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
                 <h1 className={s.nomeLoja}>{unidade.nome}</h1>
                 {textos.apresentacao ? <p className={s.apresentacao}>{textos.apresentacao}</p> : null}
                 <span className={s.marcas}><span className={s.chipMesa}>{T("mesa", { mesa })}</span></span>
+                <BotoesAtendimento T={T} chamados={chamados} onChamar={chamar} />
               </header>
               <CartaoFidelidade cardapio={cardapio} status={fidStatus} onAbrir={() => setFolha("fidelidade")} unidadeId={unidadeId} cadastroLocal={cadastroLocal} />
             </>
@@ -667,6 +704,10 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             </div>
           ) : null}
 
+          {modo === "delivery" && !lateral && !filtrando ? (
+            <TrilhoSecoes secoes={secoesMenu} ativa={secaoAtiva} onIr={irParaSecao} rotulo={T("secoes")} />
+          ) : null}
+
           {filtrando ? (
             <section id="resultado">
               <div className={s.voltarFiltro}>
@@ -696,9 +737,14 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
                   <div className={s.trilho}>
                     {cardapio.promocoes.map((p) => (
                       <button key={p.id} type="button" className={s.promo} onClick={() => (p.produto_ids.length ? acaoBanner({ tipo: "promocao", id: p.id }) : null)} disabled={!p.produto_ids.length} style={!p.produto_ids.length ? { cursor: "default" } : undefined}>
-                        <Foto src={p.imagem_url} loading="lazy" />
+                        <Foto src={p.imagem_url} loading="lazy" fallback={
+                          <span className={`${s.promoArte} ${p.tipo === "aviso" ? s.promoArteAviso : ""}`} aria-hidden="true">
+                            {p.tipo === "aviso" ? <Megaphone size={30} /> : <Tag size={26} />}
+                            {p.rotulo ? <strong>{p.rotulo}</strong> : null}
+                          </span>
+                        } />
                         <span className={s.promoCorpo}>
-                          {p.rotulo ? <span className={s.promoRotulo}>{p.rotulo}</span> : null}
+                          {p.rotulo && p.imagem_url ? <span className={s.promoRotulo}>{p.rotulo}</span> : null}
                           <span className={s.promoTitulo}>{p.titulo}</span>
                           {p.quando ? <span className={s.promoQuando}>{p.quando}</span> : null}
                           {p.texto ? <span className={s.promoTexto}>{p.texto}</span> : null}
@@ -712,7 +758,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
               {destaques.length ? (
                 <section className={s.faixa} id="secao-destaques" data-secao="destaques" style={{ scrollMarginTop: 68 }}>
                   <h2 className={s.faixaTitulo}>{T("casa_indica")}</h2>
-                  <div className={s.trilho}>{destaques.map((p) => <Miniatura key={p.id} produto={p} onAbrir={abrirPrato} idioma={lingua} />)}</div>
+                  <div className={s.trilho}>{destaques.map((p) => <Miniatura key={p.id} produto={p} onAbrir={abrirPrato} idioma={lingua} icone={<IconeTema tema={temaDoPrato(p, catPorId.get(p.categoria_id))} size={30} />} />)}</div>
                 </section>
               ) : null}
 
@@ -729,8 +775,13 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
                   ) : (
                     <>
                       <Foto src={c.imagem_url} className={s.secaoCapa} loading="lazy" />
-                      <h2 className={s.secaoTitulo} id={`titulo-${c.id}`}>{c.nome}</h2>
-                      {c.descricao ? <p className={s.secaoDescricao}>{c.descricao}</p> : null}
+                      <div className={s.secaoTopo}>
+                        {modo === "delivery" ? <span className={s.secaoIcone} aria-hidden="true"><IconeTema tema={temaDoIcone(c.nome, c.papel)} size={22} /></span> : null}
+                        <div>
+                          <h2 className={s.secaoTitulo} id={`titulo-${c.id}`}>{c.nome}</h2>
+                          {c.descricao ? <p className={s.secaoDescricao}>{c.descricao}</p> : null}
+                        </div>
+                      </div>
                     </>
                   )}
                   <ul className={listaClasse}>{c.produto_ids.map((id) => (porId.get(id) ? linhaItem(porId.get(id)) : null))}</ul>
@@ -747,7 +798,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           </footer>
         </main>
 
-        <aside className={s.painelPedido} aria-label={T("seu_pedido")}>
+        <aside className={s.painelPedido} aria-label={T("seu_pedido")} data-sacola="">
           {largo ? (
             <Pedido cardapio={cardapio} carrinho={carrinho} etapa={etapa} setEtapa={setEtapa} mesa={mesa} form={form} setForm={setForm}
               erros={erros} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} resultado={resultado} nome={nome}
@@ -757,8 +808,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       </div>
 
       {!largo && podePedir && qtdTotal > 0 && folha !== "pedido" ? (
-        <button type="button" className={s.barraPedido} onClick={() => setFolha("pedido")}>
-          <span style={{ display: "flex", alignItems: "center", gap: 10 }}><span className={s.barraPedidoQtd}>{qtdTotal}</span>{T("ver_pedido")}</span>
+        <button type="button" className={s.barraPedido} onClick={() => setFolha("pedido")} data-sacola="">
+          <span style={{ display: "flex", alignItems: "center", gap: 10 }}><span key={qtdTotal} className={s.barraPedidoQtd}>{qtdTotal}</span>{T("ver_pedido")}</span>
           <span>{formatarPreco(totalCarrinho.total, lingua)}</span>
         </button>
       ) : null}
@@ -769,7 +820,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           <button type="button" className={s.navBotao} onClick={() => irParaSecao("promocoes")} disabled={!cardapio.promocoes.length} style={!cardapio.promocoes.length ? { opacity: 0.4 } : undefined}><Tag size={22} aria-hidden="true" />{T("promocoes")}</button>
           <button type="button" className={s.navBotao} onClick={() => abrirConversa()} disabled={!conversaLigada} style={!conversaLigada ? { opacity: 0.4 } : undefined}><MessageCircle size={22} aria-hidden="true" />{T("conversa")}</button>
           <button type="button" className={s.navBotao} onClick={() => setFolha("pedidos")}><Receipt size={22} aria-hidden="true" />{T("meus_pedidos")}{meusPedidos.length ? <span className={s.contagem}>{meusPedidos.length}</span> : null}</button>
-          <button type="button" className={s.navBotao} onClick={() => setFolha("pedido")} disabled={!podePedir}><ShoppingBag size={22} aria-hidden="true" />{T("sacola")}{qtdTotal ? <span className={s.contagem}>{qtdTotal}</span> : null}</button>
+          <button type="button" className={s.navBotao} onClick={() => setFolha("pedido")} disabled={!podePedir} data-sacola=""><ShoppingBag size={22} aria-hidden="true" />{T("sacola")}{qtdTotal ? <span key={qtdTotal} className={`${s.contagem} ${s.contagemPula}`}>{qtdTotal}</span> : null}</button>
         </nav>
       ) : null}
 
@@ -827,6 +878,15 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         <Folha titulo={T("fid_titulo")} onFechar={() => setFolha("")} idioma={lingua}>
           <div className={s.folhaCorpo}>
             <DetalheFidelidade cardapio={cardapio} status={fidStatus} onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }} unidadeId={unidadeId} cadastroLocal={cadastroLocal} />
+          </div>
+        </Folha>
+      ) : null}
+
+      {folha === "atendimento" ? (
+        <Folha titulo={T("atendimento")} onFechar={() => setFolha("")} idioma={lingua}>
+          <div className={s.folhaCorpo}>
+            <p className={s.apresentacao} style={{ margin: "0 0 12px" }}>{T("mesa", { mesa })}</p>
+            <BotoesAtendimento T={T} chamados={chamados} grade tipos={["garcom", "conta", "agua", "talheres"]} onChamar={(tipo) => { setFolha(""); chamar(tipo); }} />
           </div>
         </Folha>
       ) : null}

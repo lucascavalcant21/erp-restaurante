@@ -2,7 +2,7 @@
 id: HDEV-EST-001
 titulo: Estoque — reconstrução e unificação (tela única, unidades, painel)
 fase: EST
-status: EM_VALIDACAO
+status: VALIDATING
 prioridade: 1
 dependencias: []
 bloqueadores: [aprovacao-merge, aprovacao-EST_UNI_1]

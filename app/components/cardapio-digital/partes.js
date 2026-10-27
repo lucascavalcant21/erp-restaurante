@@ -56,7 +56,7 @@ function BotaoMais({ produto, qtd, onAdicionar, idioma, comTexto }) {
   return (
     <button type="button" className={`${s.mais} ${comTexto ? s.maisTexto : ""}`} data-qtd={qtd || 0} onClick={() => onAdicionar(produto.id)}
       aria-label={qtd ? t(idioma, "mais_prato", { prato: produto.nome, n: qtd }) : t(idioma, "adicionar_prato", { prato: produto.nome })}>
-      {qtd ? <span className={s.maisQtd}>{qtd}</span> : <Plus size={20} strokeWidth={2.2} aria-hidden="true" />}
+      {qtd ? <span key={qtd} className={s.maisQtd}>{qtd}</span> : <Plus size={20} strokeWidth={2.2} aria-hidden="true" />}
       {comTexto ? <span className={s.maisRotulo}>{t(idioma, "adicionar")}</span> : null}
     </button>
   );
@@ -99,10 +99,10 @@ export function ItemCartao({ produto, promocao, qtd, onAbrir, onAdicionar, podeP
   );
 }
 
-export function Miniatura({ produto, onAbrir, idioma }) {
+export function Miniatura({ produto, onAbrir, idioma, icone = null }) {
   return (
     <button type="button" className={s.miniatura} onClick={() => onAbrir(produto.id)}>
-      <Foto src={produto.imagem_url} className={s.miniaturaFoto} loading="lazy" fallback={<span className={s.miniaturaSemFoto}>{produto.nome}</span>} />
+      <Foto src={produto.imagem_url} className={s.miniaturaFoto} loading="lazy" fallback={<span className={s.miniaturaSemFoto}>{icone ? <span className={s.miniaturaIcone}>{icone}</span> : null}<span>{produto.nome}</span></span>} />
       {produto.imagem_url ? <span className={s.miniaturaNome}>{produto.nome}</span> : null}
       <span className={s.itemRodape} style={{ marginTop: 0 }}><Preco produto={produto} idioma={idioma} /></span>
     </button>
@@ -197,11 +197,11 @@ export function Abertura({ slides, onAcao, previa, idioma, classe = "" }) {
             </>
           );
           return sl.acao && !previa ? (
-            <button key={sl.id} type="button" className={s.slide} onClick={() => onAcao(sl.acao)} aria-label={sl.titulo || rotuloAcao(sl.acao)}>
+            <button key={sl.id} type="button" className={s.slide} data-ativo={i === atual ? "true" : undefined} onClick={() => onAcao(sl.acao)} aria-label={sl.titulo || rotuloAcao(sl.acao)}>
               {conteudo}
             </button>
           ) : (
-            <div key={sl.id} className={s.slide}>{conteudo}</div>
+            <div key={sl.id} className={s.slide} data-ativo={i === atual ? "true" : undefined}>{conteudo}</div>
           );
         })}
       </div>

@@ -1,8 +1,9 @@
 "use client";
 
 // TELA ÚNICA DO ESTOQUE (HDEV-EST-001): é o que abre em Operacional → Estoque.
-// Ordem: 1. Entrada ou Retirada · 2. Área (e local) · 3. Busca · 4. Saldo ·
-// 5. Quantidade + motivo + confirmar. Local e unidade vêm preenchidos; o resto
+// Ordem: 1. Área (e local) · 2. Busca · 3. toca no produto e escolhe Retirar
+// ou Adicionar (pedido do dono, 27/10/2026: a escolha saiu do topo e foi para
+// o produto) · 4. Quantidade + motivo + confirmar. Local e unidade vêm preenchidos; o resto
 // (validade, observação, quem lançou) fica em "Mais opções".
 //
 // Unidade: o produto é contado como na prateleira (garrafa, pacote) e a tela
@@ -16,7 +17,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  fetchBaseMovimento, fetchUltimosMovimentos, fetchConferidos, lancarMovimento, transferirLancamento, lerSeguranca, MSG_BANCO_DESATUALIZADO,
+  fetchBaseMovimento, fetchUltimosMovimentos, lancarMovimento, transferirLancamento, lerSeguranca, MSG_BANCO_DESATUALIZADO,
 } from "../../lib/estoque-movimento-dados";
 import { MOTIVOS, rotuloMotivo, unidadesDaFracao, produtosParaLancar, saldoDepois, podeEstornar, novaChave, unidadeDoSaldo } from "../../lib/estoque-movimento.mjs";
 import { quantidadeDoMovimento, unidadeOperacional, unidadeDeCompra, saldoOperacional, perfilUnidades } from "../../lib/estoque-unidades.mjs";
@@ -58,11 +59,11 @@ function unidadesDoProduto(produto) {
 
 export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
   const [base, setBase] = useState(null);
-  const [conferidos, setConferidos] = useState(new Set());
   const [seg, setSeg] = useState(null);
   const [segErro, setSegErro] = useState("");
   const [erro, setErro] = useState("");
-  const [tipo, setTipo] = useState(inicial.tipo === "saida" || inicial.tipo === "transferencia" ? "saida" : "entrada");
+  // "" = produto escolhido, mas ainda sem dizer se retira ou adiciona.
+  const [tipo, setTipo] = useState(inicial.tipo === "saida" || inicial.tipo === "transferencia" ? "saida" : inicial.tipo === "entrada" ? "entrada" : "");
   const [area, setArea] = useState("");
   const [estoqueId, setEstoqueId] = useState("");
   const [busca, setBusca] = useState("");
@@ -79,8 +80,8 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
   useContextoInteligencia(produto ? { modulo: "estoque", tipo: "produto", id: produto.id, nome: produto.nome } : null);
 
   const carregarBase = useCallback(async () => {
-    const [b, c] = await Promise.all([fetchBaseMovimento(unidade), fetchConferidos(unidade)]);
-    setBase(b.data); setErro(b.error || ""); setConferidos(c.data);
+    const b = await fetchBaseMovimento(unidade);
+    setBase(b.data); setErro(b.error || "");
     const estoques = b.data?.estoques || [];
     if (!estoques.length) return;
     setEstoqueId((atual) => {
@@ -109,7 +110,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
     if (inicialAplicado.current || !base?.insumos) return;
     inicialAplicado.current = true;
     const ins = inicial.insumo && base.insumos.find((i) => i.id === inicial.insumo);
-    if (ins) escolher(ins, inicial.tipo === "transferencia" ? "transferencia_enviada" : "");
+    if (ins) escolher(ins, inicial.tipo === "transferencia" ? "transferencia_enviada" : "", tipo);
   }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const areas = useMemo(() => areasComLocais(base?.estoques), [base]);
@@ -120,9 +121,10 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
 
   const resultados = useMemo(() => {
     if (!base || !estoqueId || produto) return [];
-    const lista = produtosParaLancar({ insumos: base.insumos, itens: base.itens, estoqueId, tipo, termo: busca, limite: 80 });
+    // Lista de entrada: o que está no local e, buscando, o cadastro todo (o tipo vem depois).
+    const lista = produtosParaLancar({ insumos: base.insumos, itens: base.itens, estoqueId, tipo: "entrada", termo: busca, limite: 80 });
     return categoria ? lista.filter((p) => categoriaNaArea(p.insumo, area) === categoria) : lista;
-  }, [base, estoqueId, busca, produto, tipo, categoria, area]);
+  }, [base, estoqueId, busca, produto, categoria, area]);
   const categoriasPresentes = useMemo(() => {
     if (!base || !estoqueId || !areaAtual) return [];
     const doLocal = produtosParaLancar({ insumos: base.insumos, itens: base.itens, estoqueId, tipo: "saida", termo: "", limite: 2000 });
@@ -134,24 +136,25 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
   const unidadeSel = form.unidade || unidades[0] || "";
   const lanc = montarLancamento(produto, form.qtd, unidadeSel);
   const depois = lanc && !lanc.erro ? saldoDepois(saldoAtual, tipo, lanc.quantidadeSaldo) : null;
-  const motivoSel = MOTIVOS[tipo].find((m) => m.codigo === form.motivo);
+  const motivoSel = tipo ? MOTIVOS[tipo].find((m) => m.codigo === form.motivo) : null;
   const ehTransferencia = tipo === "saida" && form.motivo === "transferencia_enviada";
   const destinos = (base?.estoques || []).filter((e) => e.id !== estoqueId && tiposCompativeis(estoque?.tipo, e.tipo));
-  const semPermissao = seg && (tipo === "entrada" ? !seg.pode_entrada : !seg.pode_retirada) && !motivoSel?.admin;
+  const semPermissao = seg && tipo && (tipo === "entrada" ? !seg.pode_entrada : !seg.pode_retirada) && !motivoSel?.admin;
   const bancoAntigo = /EST-MOV/.test(segErro);
   const pronto = produto && lanc && !lanc.erro && motivoSel && !(depois < 0)
     && (!ehTransferencia || form.destino)
     && (!motivoSel.admin || (form.justificativa.trim().length >= 3 && /^\d{4,8}$/.test(form.pin)));
 
-  function escolher(ins, motivo = "") {
+  function escolher(ins, motivo = "", tipoInicial = "") {
     setProduto(ins);
+    setTipo(tipoInicial);
     setForm({ ...FORM_VAZIO, motivo, unidade: unidadesDoProduto(ins)[unidadeDeCompra(ins) ? 1 : 0] || "" });
     if (motivo === "transferencia_enviada") setTipo("saida");
     setMaisOpcoes(false);
     chave.current = novaChave();
     setAviso(null);
   }
-  const limpar = () => { setProduto(null); setForm(FORM_VAZIO); setBusca(""); chave.current = novaChave(); setTimeout(() => buscaRef.current?.focus(), 50); };
+  const limpar = () => { setProduto(null); setTipo(""); setForm(FORM_VAZIO); setBusca(""); chave.current = novaChave(); setTimeout(() => buscaRef.current?.focus(), 50); };
   const trocarTipo = (t) => { setTipo(t); setForm((f) => ({ ...f, motivo: "", destino: "" })); setAviso(null); };
   const trocarLocal = (id) => { setEstoqueId(id); setProduto(null); setCategoria(""); setAviso(null); };
   const trocarArea = (a) => {
@@ -194,8 +197,6 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
     );
   }
 
-  const corTipo = tipo === "entrada" ? "bg-hf-accent text-hf-accent-fg shadow-sm" : "bg-hf-text text-hf-surface shadow-sm";
-
   return (
     <div className="mx-auto max-w-xl space-y-4 px-3 pb-28 pt-4 text-hf-text sm:px-4">
       {erro && (
@@ -208,16 +209,6 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
           {MSG_BANCO_DESATUALIZADO}
         </div>
       )}
-
-      {/* 1. Entrada ou Retirada */}
-      <div role="radiogroup" aria-label="Tipo de movimentação" className="grid grid-cols-2 gap-1.5 rounded-2xl border border-zinc-200/80 bg-hf-surface p-1.5 shadow-card">
-        {[["entrada", "Entrada", Plus], ["saida", "Retirada", Minus]].map(([t, rot, Icone]) => (
-          <button key={t} role="radio" aria-checked={tipo === t} onClick={() => trocarTipo(t)}
-            className={`flex h-12 items-center justify-center gap-2 rounded-xl text-sm sm:text-base font-black transition-all active:scale-[0.98] ${tipo === t ? (t === "entrada" ? "bg-hf-accent text-hf-accent-fg shadow-sm" : "bg-hf-text text-hf-surface shadow-sm") : "text-hf-text-2 hover:bg-zinc-100/70"}`}>
-            <Icone size={18} /> {rot}
-          </button>
-        ))}
-      </div>
 
       {/* 2. Área e local */}
       <div className="space-y-2">
@@ -259,7 +250,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
           <div className="flex items-center gap-2 border-b border-zinc-200/80 px-3.5">
             <Search size={18} className="shrink-0 text-zinc-400" />
             <input ref={buscaRef} value={busca} onChange={(e) => setBusca(e.target.value)} autoFocus
-              placeholder={tipo === "entrada" ? "Buscar produto (nome, código, marca)" : `Buscar em ${estoque.nome}`}
+              placeholder="Buscar produto (nome, código, marca)"
               aria-label="Buscar produto" className="h-12 min-w-0 flex-1 bg-transparent text-base font-bold outline-none placeholder:font-medium placeholder:text-zinc-400 text-hf-text" />
             {busca && <button onClick={() => setBusca("")} aria-label="Limpar busca" className="grid h-10 w-10 place-items-center text-zinc-400 hover:text-zinc-600"><X size={18} /></button>}
           </div>
@@ -276,19 +267,17 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
           <ul className="max-h-[60vh] divide-y divide-zinc-100 overflow-y-auto">
             {!resultados.length && (
               <li className="p-5 text-center text-xs sm:text-sm font-medium text-hf-text-2">
-                {busca ? (tipo === "saida" ? `Nada com esse nome em ${estoque.nome}.` : "Nenhum produto no cadastro com esse nome.")
-                  : (tipo === "saida" ? "Nenhum produto com saldo neste local." : "Nenhum produto neste local ainda. Busque no cadastro.")}
+                {busca ? "Nenhum produto no cadastro com esse nome." : "Nenhum produto neste local ainda. Busque no cadastro."}
               </li>
             )}
             {resultados.map((p) => {
-              const conferido = conferidos.has(`${estoqueId}|${p.insumo.id}`);
               return (
                 <li key={p.insumo.id}>
                   <button onClick={() => escolher(p.insumo)} className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-emerald-50/40">
                     <span className="min-w-0">
                       <span className="block truncate font-bold text-hf-text leading-tight">{p.insumo.nome}</span>
                       <span className="block truncate text-xs text-hf-text-2 mt-0.5">
-                        {[p.insumo.marca, !p.vinculado && "novo neste local", p.vinculado && !conferido && "não conferido"].filter(Boolean).join(" · ") || " "}
+                        {[p.insumo.marca, !p.vinculado && "novo neste local"].filter(Boolean).join(" · ") || " "}
                       </span>
                     </span>
                     <span className={`shrink-0 text-right text-sm font-black ${p.saldo > 0 ? "text-hf-text" : "text-zinc-400"}`}>{saldoOperacional(p.insumo, p.saldo)}</span>
@@ -304,20 +293,28 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
         <div className="space-y-4 rounded-2xl border border-zinc-200/80 bg-hf-surface p-4 sm:p-5 shadow-card">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-black ${corTipo}`}>
-                {tipo === "entrada" ? <Plus size={13} /> : ehTransferencia ? <ArrowLeftRight size={13} /> : <Minus size={13} />}
-                {tipo === "entrada" ? "Entrada" : ehTransferencia ? "Transferência" : "Retirada"} · {estoque?.nome}
-              </span>
+              <span className="text-xs font-bold uppercase tracking-wide text-hf-text-2">{estoque?.nome}</span>
               <p className="mt-1.5 text-lg font-black leading-tight">{produto.nome}</p>
               <p className="mt-1 text-sm">Saldo aqui: <b>{saldoOperacional(produto, saldoAtual)}</b>
                 {unidadeOperacional(produto).embalagem && <span className="text-hf-muted"> ({fmtQ(saldoAtual)} {unidadeDoSaldo(produto)})</span>}
               </p>
-              {itemAtual && !conferidos.has(`${estoqueId}|${produto.id}`) && <p className="text-xs font-bold text-hf-warning">Saldo ainda não conferido em inventário.</p>}
               {perfilUnidades(produto).fatores.length > 0 && <p className="text-xs text-hf-muted">{perfilUnidades(produto).fatores.join(" · ")}</p>}
             </div>
             <button onClick={limpar} className="h-9 shrink-0 rounded-lg bg-hf-elevated px-3 text-xs font-bold text-hf-text-2">Trocar</button>
           </div>
 
+          {/* Retirar ou adicionar: escolhido no produto */}
+          <div role="radiogroup" aria-label="Retirar ou adicionar" className="grid grid-cols-2 gap-2">
+            {[["saida", ehTransferencia ? "Transferir" : "Retirar", ehTransferencia ? ArrowLeftRight : Minus], ["entrada", "Adicionar", Plus]].map(([t, rot, Icone]) => (
+              <button key={t} role="radio" aria-checked={tipo === t} onClick={() => trocarTipo(t)}
+                className={`flex h-14 items-center justify-center gap-2 rounded-2xl border text-base font-black transition-all active:scale-[0.98] ${tipo === t ? (t === "entrada" ? "border-hf-accent bg-hf-accent text-hf-accent-fg shadow-sm" : "border-hf-text bg-hf-text text-hf-surface shadow-sm") : "border-hf-border bg-hf-surface text-hf-text hover:bg-hf-elevated"}`}>
+                <Icone size={20} /> {rot}
+              </button>
+            ))}
+          </div>
+          {!tipo && <p className="text-center text-sm font-bold text-hf-text-2">Vai retirar ou adicionar?</p>}
+
+          {tipo && <>
           <div>
             <label htmlFor="qtd-estoque" className="text-xs font-bold text-hf-text-2">Quantidade</label>
             <div className="mt-1 flex gap-2">
@@ -395,11 +392,12 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
 
           {semPermissao && <p className="text-sm font-bold text-hf-danger">Seu perfil não pode lançar {tipo === "entrada" ? "entrada" : "retirada"} neste estoque. Peça ao administrador.</p>}
           <button onClick={confirmar} disabled={!pronto || enviando || semPermissao || bancoAntigo}
-            className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition-all active:scale-[0.98] shadow-card disabled:opacity-40 ${corTipo}`}>
+            className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition-all active:scale-[0.98] shadow-card disabled:opacity-40 ${tipo === "entrada" ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-text text-hf-surface"}`}>
             {enviando ? <><Loader2 size={18} className="animate-spin" /> Gravando...</>
               : <><Check size={20} /> Confirmar {ehTransferencia ? "transferência" : tipo === "entrada" ? "entrada" : "retirada"}{lanc && !lanc.erro ? ` · ${saldoOperacional(produto, lanc.quantidadeSaldo)}` : ""}</>}
           </button>
           {!motivoSel && lanc && !lanc.erro && <p className="text-center text-xs text-hf-text-2">Escolha o motivo para confirmar.</p>}
+          </>}
         </div>
       )}
 

@@ -12,10 +12,11 @@ import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
 
 const ABAS = [
   { href: "/dashboard/operacao/estoque", rotulo: "Movimentar", ativa: (p) => p === "/dashboard/operacao/estoque" || p.startsWith("/dashboard/operacao/estoque/movimentar") },
+  { href: "/dashboard/operacao/estoque/produtos", rotulo: "Todos os produtos", curto: "Produtos", ativa: (p) => p.startsWith("/dashboard/operacao/estoque/produtos") },
   { href: "/dashboard/operacao/estoque/contagens", rotulo: "Inventário", ativa: (p) => p.startsWith("/dashboard/operacao/estoque/contagens") },
   { href: "/dashboard/operacao/estoque/historico", rotulo: "Histórico", ativa: (p) => p.startsWith("/dashboard/operacao/estoque/historico") },
   { href: "/dashboard/operacao/estoque/painel", rotulo: "Painel", ativa: (p) => p === "/dashboard/operacao/estoque/painel" },
-  { href: "/dashboard/operacao/estoque/painel/produtos", rotulo: "Produtos e locais", curto: "Produtos", ativa: (p) => p.startsWith("/dashboard/operacao/estoque/painel/produtos") },
+  { href: "/dashboard/operacao/estoque/painel/produtos", rotulo: "Produtos e locais", curto: "Locais", ativa: (p) => p.startsWith("/dashboard/operacao/estoque/painel/produtos") },
 ];
 
 export default function EstoqueAbas() {

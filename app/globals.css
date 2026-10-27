@@ -145,10 +145,14 @@ body {
 
   --shadow-xs:    0 1px 2px rgba(24, 24, 27, 0.03);
   --shadow-sm:    0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
-  /* Profundidade dos cards (pedido do dono, 2026-10-13; reforçada a pedido): três camadas, sombra quente
-     para combinar com o fundo amarelo. Usada também pela regra de cards no fim do arquivo. */
-  --shadow-card:  0 2px 4px rgba(50, 40, 0, 0.08), 0 10px 20px -6px rgba(50, 40, 0, 0.16), 0 24px 42px -16px rgba(50, 40, 0, 0.28);
-  --shadow-hover: 0 4px 8px rgba(50, 40, 0, 0.10), 0 18px 32px -8px rgba(50, 40, 0, 0.22), 0 36px 56px -20px rgba(50, 40, 0, 0.36);
+  /* Profundidade dos cards (pedido do dono, 2026-10-13; reforçada em 2026-10-27 com o fundo
+     cinza): três camadas de sombra neutra, o card "sai" do fundo. Usada também pela regra de
+     cards no fim do arquivo e pelo shadow-card do Tailwind. */
+  --shadow-card:  0 1px 2px rgba(15, 23, 42, 0.10), 0 8px 18px -6px rgba(15, 23, 42, 0.18), 0 22px 40px -14px rgba(15, 23, 42, 0.26);
+  --shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.12), 0 16px 30px -8px rgba(15, 23, 42, 0.24), 0 34px 56px -18px rgba(15, 23, 42, 0.32);
+  /* Botões com relevo: sombra embaixo + brilho de 1 px em cima. */
+  --shadow-btn:   0 1px 1px rgba(15, 23, 42, 0.10), 0 3px 8px -2px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --shadow-btn-claro: 0 1px 1px rgba(15, 23, 42, 0.06), 0 3px 8px -3px rgba(15, 23, 42, 0.16);
   --shadow-float: 0 24px 48px -12px rgba(15, 23, 42, 0.14), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
 }
 
@@ -363,7 +367,11 @@ body {
 html,
 body {
   overscroll-behavior: none !important;
+  /* clip corta a rolagem lateral como hidden, mas sem virar "caixa de rolagem":
+     com hidden em html e body, o position: sticky parou de grudar (barra do
+     cardápio, trilho de seções). hidden fica para navegador antigo. */
   overflow-x: hidden !important;
+  overflow-x: clip !important;
   touch-action: pan-x pan-y !important;
   -ms-touch-action: pan-x pan-y !important;
   -webkit-text-size-adjust: 100% !important;
@@ -429,7 +437,7 @@ textarea *,
 }
 
 /* ═══ IDENTIDADE HÉFISTO (clara) — tokens hf-* ════════════════════════════
-   Fundo amarelo claro + cards brancos + grafite + verde Héfisto. Sem fundo preto (pedido do
+   Fundo cinza claro + cards brancos com sombra + grafite + verde Héfisto. Sem fundo preto (pedido do
    dono, 2026-10-11). Vermelho e âmbar SÓ para estado real (vencido, crítico,
    negativo / atenção). Sem azul de identidade.
    Canais RGB para o Tailwind aceitar opacidade: bg-hf-danger/10.
@@ -438,7 +446,7 @@ textarea *,
    Contraste (WCAG) sobre hf-surface: text 17:1 · text-2 7,7:1 · muted 4,8:1
    (muted só para informação terciária). */
 :root {
-  --hf-bg:            254 247 220;/* #FEF7DC página: amarelo claro (pedido do dono, 2026-10-12) */
+  --hf-bg:            232 234 238;/* #E8EAEE página: cinza claro que destaca os cards (pedido do dono, 2026-10-27; antes amarelo #FEF7DC) */
   --hf-surface:       255 255 255;/* #FFFFFF card */
   --hf-elevated:      244 244 245;/* #F4F4F5 menu, hover, bloco interno */
   --hf-border:        228 228 231;/* #E4E4E7 borda padrão */
@@ -473,4 +481,22 @@ textarea *,
 }
 @media print {
   :is([class*="rounded-2xl"], [class*="rounded-3xl"], .erp-card) { box-shadow: none !important; }
+}
+
+/* ═══ BOTÕES COM RELEVO (pedido do dono, 2026-10-27) ════════════════════
+   Botão cheio (verde, grafite) e botão branco com borda ganham sombra para
+   saltar do fundo cinza; ao apertar, afunda. Fora: o que pediu shadow-none,
+   botões do menu preto e na impressão. */
+:is(button, a):is([class~="bg-hf-accent"], [class~="bg-hf-text"], [class~="bg-emerald-600"], [class~="bg-emerald-700"]):not([class*="shadow-none"]):not(:disabled) {
+  box-shadow: var(--shadow-btn);
+}
+:is(button, a)[class~="bg-hf-surface"][class~="border"]:not([class*="shadow-none"]):not(:disabled),
+:is(button, a)[class~="bg-white"][class~="border"]:not([class*="shadow-none"]):not(:disabled) {
+  box-shadow: var(--shadow-btn-claro);
+}
+:is(button, a):is([class~="bg-hf-accent"], [class~="bg-hf-text"], [class~="bg-hf-surface"], [class~="bg-white"]):not(:disabled):active {
+  box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.18);
+}
+@media print {
+  :is(button, a) { box-shadow: none !important; }
 }

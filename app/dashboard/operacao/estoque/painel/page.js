@@ -2,44 +2,40 @@
 
 // PAINEL DO ESTOQUE (HDEV-EST-001) — secundário: não abre sozinho.
 // Só indicadores que o dado sustenta. Cada produto num local cai numa
-// situação: Não conferido · Zerado · Abaixo do mínimo · Normal · Inativo.
-// "Estoque conferido" só aparece quando não há não conferido, zerado nem
-// abaixo do mínimo — saldo que ninguém contou não é saldo seguro.
+// situação: Zerado · Abaixo do mínimo · Normal · Inativo. O estoque não
+// depende mais do inventário (pedido do dono, 27/10/2026): o saldo lançado é
+// o saldo; "não conferido" saiu da tela. O inventário segue na sua aba.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useERP } from "../../../../context/ERPContext";
 import { unidadeValida } from "../../../../lib/contas-pagar.mjs";
-import { fetchBaseMovimento, fetchConferidos } from "../../../../lib/estoque-movimento-dados";
+import { fetchBaseMovimento } from "../../../../lib/estoque-movimento-dados";
 import { situacaoDoItem, resumoSituacoes, itemInativo, saldoOperacional, minimoNoSaldo, SITUACOES } from "../../../../lib/estoque-unidades.mjs";
 import { areasComLocais, areaDoLocal } from "../../../../lib/estoque-areas.mjs";
 import { hasPermission } from "../../../../lib/permissions-catalog.mjs";
 import { fmtBRL } from "../../../../components/ui";
 import EstoqueAbas from "../../../../components/navigation/EstoqueAbas";
 
-const COR = { nao_conferido: "bg-hf-warning", zerado: "bg-hf-danger", abaixo: "bg-hf-danger/60", normal: "bg-hf-success", inativo: "bg-hf-muted" };
+const COR = { zerado: "bg-hf-danger", abaixo: "bg-hf-danger/60", normal: "bg-hf-success", inativo: "bg-hf-muted" };
 const DICA = {
-  nao_conferido: "Nunca entrou num inventário fechado. Conte para confirmar o saldo.",
-  zerado: "Conferido e sem saldo.",
+  zerado: "Sem saldo neste local.",
   abaixo: "Saldo menor que o mínimo deste local.",
-  normal: "Conferido e acima do mínimo.",
+  normal: "Acima do mínimo.",
   inativo: "Sem saldo e sem movimento há 90 dias.",
 };
 
 export default function PainelEstoque() {
   const { unidadeAtiva, sessao } = useERP();
   const [base, setBase] = useState(null);
-  const [conferidos, setConferidos] = useState(new Set());
   const [erro, setErro] = useState("");
   const [area, setArea] = useState("todas");
-  const [sel, setSel] = useState("nao_conferido");
+  const [sel, setSel] = useState("zerado");
   const podeVerCusto = !sessao?.gerenciado || hasPermission(sessao, "estoque.overview.view_costs") || hasPermission(sessao, "estoque.overview.view_values");
 
   useEffect(() => {
     if (!unidadeValida(unidadeAtiva)) return;
-    Promise.all([fetchBaseMovimento(unidadeAtiva), fetchConferidos(unidadeAtiva)]).then(([b, c]) => {
-      setBase(b.data); setErro(b.error || c.error || ""); setConferidos(c.data);
-    });
+    fetchBaseMovimento(unidadeAtiva).then((b) => { setBase(b.data); setErro(b.error || ""); });
   }, [unidadeAtiva]);
 
   const linhas = useMemo(() => {
@@ -49,12 +45,12 @@ export default function PainelEstoque() {
     return base.itens.filter((i) => local.has(i.estoque_id) && insumo.has(i.insumo_id)).map((i) => {
       const saldo = Number(i.quantidade_atual) || 0;
       const l = local.get(i.estoque_id);
-      const dado = { saldo, minimo: minimoNoSaldo(insumo.get(i.insumo_id), i.estoque_minimo), conferido: conferidos.has(`${i.estoque_id}|${i.insumo_id}`), ativo: !itemInativo({ saldo, ultimaMovimentacao: i.ultima_movimentacao_em }) };
+      const dado = { saldo, minimo: minimoNoSaldo(insumo.get(i.insumo_id), i.estoque_minimo), conferido: true, ativo: !itemInativo({ saldo, ultimaMovimentacao: i.ultima_movimentacao_em }) };
       const custo = base.custosMedios[i.insumo_id];
       return { id: i.id, insumo: insumo.get(i.insumo_id), local: l, area: areaDoLocal(l), ...dado, situacao: situacaoDoItem(dado),
         valor: Number.isFinite(custo) ? custo * saldo : null };
     });
-  }, [base, conferidos]);
+  }, [base]);
 
   const areas = useMemo(() => areasComLocais(base?.estoques).filter((a) => a.locais.length), [base]);
   const daArea = area === "todas" ? linhas : linhas.filter((l) => l.area === area);
@@ -82,14 +78,12 @@ export default function PainelEstoque() {
           </div>
 
           <p className={`rounded-xl border p-3 text-sm font-bold ${resumo.seguro ? "border-hf-success/30 bg-hf-success/10 text-hf-success" : "border-hf-border bg-hf-surface text-hf-text"}`}>
-            {resumo.seguro ? "Estoque conferido: nada zerado nem abaixo do mínimo."
-              : resumo.nao_conferido
-                ? <>{resumo.nao_conferido} de {resumo.total} produtos ainda não foram conferidos. <Link href="/dashboard/operacao/estoque/contagens" className="text-hf-accent underline">Fazer inventário</Link></>
-                : `${resumo.zerado + resumo.abaixo} produto(s) zerado(s) ou abaixo do mínimo.`}
+            {resumo.seguro ? "Nada zerado nem abaixo do mínimo."
+              : `${resumo.zerado + resumo.abaixo} produto(s) zerado(s) ou abaixo do mínimo.`}
           </p>
 
-          <div className="grid grid-cols-5 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1" role="tablist" aria-label="Situação">
-            {SITUACOES.map((s) => (
+          <div className="grid grid-cols-4 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1" role="tablist" aria-label="Situação">
+            {SITUACOES.filter((s) => s.id !== "nao_conferido").map((s) => (
               <button key={s.id} role="tab" aria-selected={sel === s.id} onClick={() => setSel(s.id)}
                 className={`flex min-w-0 flex-col items-center rounded-xl px-1 py-2 ${sel === s.id ? "bg-hf-elevated" : ""}`}>
                 <span className="text-lg font-black leading-none">{resumo[s.id]}</span>

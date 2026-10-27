@@ -67,6 +67,9 @@ export const PERMISSION_MODULES = [
       // Contagem física (inventário, F2.4A): quem conta não precisa ver custo;
       // finalizar (valorizar e congelar) é ação separada.
       { id: "counts", label: "Contagem de estoque (inventário)", route: "/dashboard/operacao/estoque/contagens", actions: ["view", "inventory", "close_inventory"] },
+      // Todos os produtos (27/10/2026): saldo por local, ritmo de saída/entrada
+      // e mínimo/máximo sugerido. Sem custo; "edit" = gravar mínimo e máximo.
+      { id: "all_products", label: "Todos os produtos e mínimo/máximo", route: "/dashboard/operacao/estoque/produtos", actions: ["view", "edit"] },
       // Compras (F2.4B): registro oficial, custo médio e conta a pagar. Vê custo.
       { id: "purchases", label: "Compras e custo médio", route: "/dashboard/operacao/estoque/compras", actions: ["view", "create", "confirm", "cancel", "view_costs"] },
       // CMV real (F2.4C): leitura; "edit" = lançar o faturamento diário (se habilitado).
@@ -263,6 +266,11 @@ export const PERMISSION_MODULES = [
       // Cobre por prefixo processos, rankings, nao-conformidades e a TV.
       { id: "operational_center", label: "Central Operacional", route: "/dashboard/operacao/inteligente", actions: [...CRUD, "confirm", "approve", "export"] },
       { id: "cleaning_supplies", label: "Produtos de limpeza na despensa", route: "/dashboard/operacao/limpeza", actions: [...CRUD, "adjust_stock"] },
+      // Cadastro e estoque de limpeza, produtos da máquina de lavar (cozinha e bar) e embalagens (27/10).
+      { id: "home_materials", label: "Limpeza, máquina de lavar e embalagens (entrada)", route: "/dashboard/operacao/materiais", actions: ["view"] },
+      { id: "cleaning_products", label: "Produtos de limpeza (cadastro e estoque)", route: "/dashboard/operacao/materiais/limpeza", actions: [...CRUD, "adjust_stock"] },
+      { id: "dishwasher_products", label: "Produtos da máquina de lavar (cadastro e estoque)", route: "/dashboard/operacao/materiais/maquina", actions: [...CRUD, "adjust_stock"] },
+      { id: "packaging_stock", label: "Embalagens (cadastro e estoque)", route: "/dashboard/operacao/materiais/embalagens", actions: [...CRUD, "adjust_stock"] },
       { id: "areas", label: "Áreas de trabalho", route: "/dashboard/area", actions: ["view"] },
     ],
   },

@@ -793,3 +793,182 @@ textarea.campo { height: auto; min-height: 76px; padding: 10px 14px; resize: ver
 .fidFeito { display: inline-flex; align-items: center; gap: 6px; color: #1f7a3f; font-weight: 650; font-size: 0.88rem; }
 .fidAbrir { display: grid; gap: 6px; padding: 0; border: 0; background: none; text-align: left; width: 100%; }
 .fidAbrir > strong { font-size: 0.98rem; }
+
+/* ── atendimento da mesa (chamar garçom, pedir a conta) ───────────── */
+.atendimento { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.atendimentoGrade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.botaoAtendimento {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--c-primaria);
+  border-radius: 999px;
+  background: var(--c-cartao);
+  color: var(--c-destaque);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 650;
+  font-size: 0.92rem;
+  text-align: center;
+}
+.atendimentoGrade .botaoAtendimento { min-height: 64px; border-radius: 16px; flex-direction: column; gap: 4px; padding: 8px 10px; }
+.botaoAtendimento:disabled { cursor: default; }
+.atendimentoFeito { background: var(--c-primaria-suave); border-color: var(--c-primaria-suave); }
+.atendimentoMarca { font-size: 0.74rem; font-weight: 700; opacity: 0.8; }
+
+
+/* ══ DELIVERY COM MOVIMENTO (pedido do dono, 19/10) ═══════════════════════
+   1 em 167 pratos tem foto: a vitrine não depende de foto. Capa viva com as
+   cores da casa, cartão da loja com chips, trilho de seções que acompanha a
+   rolagem, ícone em cada seção, pratos em cartão que entram ao rolar, voo até
+   a sacola. Quem pede menos movimento no aparelho vê tudo parado (a regra
+   prefers-reduced-motion lá em cima desliga animação e transição). */
+
+/* banner: a foto da vez aproxima devagar e o texto sobe */
+.slide[data-ativo="true"] img { animation: kenBurns 9s ease-out both; }
+.slide[data-ativo="true"] .slideTexto > * { animation: sobeTexto 0.7s cubic-bezier(.2, .8, .2, 1) both; }
+.slide[data-ativo="true"] .slideTexto > *:nth-child(2) { animation-delay: 0.08s; }
+.slide[data-ativo="true"] .slideTexto > *:nth-child(3) { animation-delay: 0.16s; }
+@keyframes kenBurns { from { transform: scale(1.12); } to { transform: scale(1); } }
+@keyframes sobeTexto { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* capa viva (sem banner do dono) */
+.capaViva { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(135deg, var(--c-primaria), color-mix(in srgb, var(--c-primaria) 62%, #000)); }
+.aurora { position: absolute; width: 70%; aspect-ratio: 1; border-radius: 50%; left: -10%; top: -45%; background: radial-gradient(circle, color-mix(in srgb, var(--c-primaria) 45%, #fff) 0%, transparent 65%); opacity: 0.55; animation: deriva 14s ease-in-out infinite alternate; }
+.aurora2 { left: auto; right: -20%; top: 10%; width: 60%; opacity: 0.35; animation-duration: 18s; animation-direction: alternate-reverse; background: radial-gradient(circle, color-mix(in srgb, var(--c-sobre) 60%, transparent) 0%, transparent 62%); }
+.flutua { position: absolute; top: 18%; left: calc(8% + (84% / var(--n)) * var(--i)); color: var(--c-sobre); opacity: 0.28; animation: flutua 7s ease-in-out infinite; animation-delay: calc(var(--i) * -1.4s); }
+.flutua:nth-child(even) { top: 46%; }
+@keyframes deriva { from { transform: translate(0, 0) scale(1); } to { transform: translate(18%, 22%) scale(1.15); } }
+@keyframes flutua { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-12px) rotate(6deg); } }
+
+/* cartão da loja */
+.modoDelivery .loja { animation: entraCartao 0.7s cubic-bezier(.2, .9, .3, 1.15) both; box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.04); border-color: transparent; }
+@keyframes entraCartao { from { transform: translateY(28px) scale(0.97); opacity: 0; } to { transform: none; opacity: 1; } }
+.lojaMonograma { width: 84px; height: 84px; border-radius: 999px; margin: -60px auto 10px; border: 4px solid var(--c-cartao); display: grid; place-items: center; font-family: var(--fonte-titulo); font-size: 2rem; font-weight: 700; color: var(--c-sobre); background: linear-gradient(135deg, var(--c-primaria), color-mix(in srgb, var(--c-primaria) 55%, #000)); box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--c-primaria) 70%, transparent); animation: entraLogo 0.8s 0.15s cubic-bezier(.2, .9, .3, 1.3) both; }
+.modoDelivery .lojaLogo { animation: entraLogo 0.8s 0.15s cubic-bezier(.2, .9, .3, 1.3) both; box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.3); }
+@keyframes entraLogo { from { transform: scale(0.4) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.status { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 10px; border-radius: 999px; background: color-mix(in srgb, currentColor 10%, transparent); width: fit-content; justify-self: start; }
+.statusHorario { color: var(--c-suave); font-weight: 500; }
+.statusPonto { width: 8px; height: 8px; border-radius: 999px; background: currentColor; flex: none; }
+.statusAberto .statusPonto { animation: pulsa 1.8s ease-out infinite; }
+@keyframes pulsa { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); } 100% { box-shadow: 0 0 0 9px transparent; } }
+.infoChips { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.infoChips > li { animation: sobeTexto 0.5s cubic-bezier(.2, .8, .2, 1) both; }
+.infoChips > li:nth-child(1) { animation-delay: 0.25s; }
+.infoChips > li:nth-child(2) { animation-delay: 0.32s; }
+.infoChips > li:nth-child(3) { animation-delay: 0.39s; }
+.infoChips > li:nth-child(4) { animation-delay: 0.46s; }
+.infoChips > li:nth-child(5) { animation-delay: 0.53s; }
+.infoChips > li:nth-child(6) { animation-delay: 0.6s; }
+.infoChip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 4px 12px; border-radius: 999px; background: var(--c-fundo); border: 1px solid var(--c-linha); font-size: 0.84rem; font-weight: 550; }
+.infoChip svg { color: var(--c-destaque); flex: none; }
+.infoChip strong { font-weight: 700; }
+.infoChipForte { background: var(--c-primaria-suave); border-color: transparent; color: var(--c-destaque); font-weight: 700; }
+.infoChipBotao { color: var(--c-destaque); font-weight: 700; }
+@media (min-width: 768px) { .infoChips { justify-content: flex-start; grid-column: 2; } }
+
+/* trilho de seções (celular e tablet em pé) */
+.trilhoSecoes { position: sticky; top: calc(var(--barra) + env(safe-area-inset-top)); z-index: 15; margin-top: 14px; background: color-mix(in srgb, var(--c-fundo) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--c-linha); }
+.trilhoRolo { position: relative; display: flex; gap: 6px; overflow-x: auto; padding: 10px 14px; scrollbar-width: none; }
+.trilhoRolo::-webkit-scrollbar { display: none; }
+.trilhoPilula { position: absolute; left: 0; top: 10px; height: 40px; border-radius: 999px; background: var(--c-primaria); box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--c-primaria) 80%, transparent); transition: transform 0.45s cubic-bezier(.3, 1.2, .4, 1), width 0.45s cubic-bezier(.3, 1.2, .4, 1), opacity 0.2s; pointer-events: none; opacity: 0; }
+.trilhoBotao { position: relative; z-index: 1; flex: none; height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; display: inline-flex; align-items: center; gap: 7px; font-weight: 650; font-size: 0.9rem; white-space: nowrap; transition: color 0.3s; }
+.trilhoBotao[aria-current="true"] { color: var(--c-sobre); }
+.trilhoBotao:active { transform: scale(0.95); }
+
+/* seções com ícone */
+.secaoTopo { display: flex; align-items: center; gap: 12px; }
+.secaoIcone { flex: none; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: var(--c-sobre); background: linear-gradient(135deg, var(--c-primaria), color-mix(in srgb, var(--c-primaria) 60%, #000)); box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--c-primaria) 85%, transparent); }
+
+/* pratos em cartão */
+.modoDelivery .lista { display: grid; gap: 10px; }
+.modoDelivery .item { padding: 14px; border: 0; border-radius: 18px; background: var(--c-cartao); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 24px -18px rgba(0, 0, 0, 0.35); transition: transform 0.25s cubic-bezier(.2, .9, .3, 1.2), box-shadow 0.25s; }
+.modoDelivery .item:active { transform: scale(0.985); }
+@media (hover: hover) {
+  .modoDelivery .item:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 18px 34px -20px rgba(0, 0, 0, 0.4); }
+  .modoDelivery .cartao:hover { transform: translateY(-3px); }
+}
+.modoDelivery .cartao { transition: transform 0.25s cubic-bezier(.2, .9, .3, 1.2); }
+.modoDelivery .itemFoto { border-radius: 14px; }
+.modoDelivery .mais { background: var(--c-primaria); color: var(--c-sobre); border-color: var(--c-primaria); box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--c-primaria) 85%, transparent); transition: transform 0.2s cubic-bezier(.2, .9, .3, 1.4); }
+.modoDelivery .mais:active { transform: scale(0.86); }
+.maisQtd { animation: pop 0.35s cubic-bezier(.2, .9, .3, 1.6) both; }
+@keyframes pop { from { transform: scale(0.3); } to { transform: none; } }
+/* entram ao rolar (navegador que sabe; nos outros ficam parados, à vista) */
+@supports (animation-timeline: view()) {
+  .modoDelivery .item, .modoDelivery .cartao, .modoDelivery .secaoTopo, .modoDelivery .faixaTitulo {
+    animation: revela linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 55%;
+  }
+  .modoDelivery .barra { animation: sombraBarra linear both; animation-timeline: scroll(root); animation-range: 0 140px; }
+}
+@keyframes revela { from { opacity: 0; transform: translateY(22px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes sombraBarra { from { box-shadow: none; } to { box-shadow: 0 8px 24px -14px rgba(0, 0, 0, 0.35); } }
+
+/* "a casa indica" sem foto: ícone do prato num degradê da casa */
+.modoDelivery .miniatura { flex-basis: 176px; transition: transform 0.25s cubic-bezier(.2, .9, .3, 1.2); }
+.modoDelivery .miniatura:active { transform: scale(0.97); }
+@media (hover: hover) { .modoDelivery .miniatura:hover { transform: translateY(-3px); } }
+.modoDelivery .miniaturaFoto { width: 176px; height: 132px; border-radius: 16px; }
+.modoDelivery .miniaturaSemFoto { width: 176px; height: 132px; border: 0; border-radius: 16px; position: relative; overflow: hidden; flex-direction: column; align-items: flex-start; justify-content: space-between; color: var(--c-sobre); background: linear-gradient(150deg, var(--c-primaria), color-mix(in srgb, var(--c-primaria) 55%, #000)); box-shadow: 0 12px 24px -16px color-mix(in srgb, var(--c-primaria) 90%, transparent); }
+.modoDelivery .miniaturaSemFoto::after { content: ""; position: absolute; width: 120px; height: 120px; right: -40px; top: -40px; border-radius: 50%; background: color-mix(in srgb, var(--c-sobre) 14%, transparent); }
+.miniaturaIcone { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: color-mix(in srgb, var(--c-sobre) 18%, transparent); }
+.miniaturaSemFoto > span:last-child { position: relative; z-index: 1; }
+
+/* promoções sem foto: arte com o desconto e um brilho que passa */
+.modoDelivery .promo { border: 0; box-shadow: 0 12px 26px -18px rgba(0, 0, 0, 0.4); transition: transform 0.25s cubic-bezier(.2, .9, .3, 1.2); }
+.modoDelivery .promo:active { transform: scale(0.98); }
+.promoArte { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 18px 16px; min-height: 92px; color: var(--c-sobre); background: linear-gradient(120deg, var(--c-primaria), color-mix(in srgb, var(--c-primaria) 50%, #000)); }
+.promoArte strong { font-family: var(--fonte-titulo); font-size: 1.7rem; line-height: 1; letter-spacing: -0.01em; }
+.promoArteAviso { background: linear-gradient(120deg, color-mix(in srgb, var(--c-primaria) 70%, var(--c-texto)), var(--c-texto)); }
+.promoArte::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, #fff 35%, transparent) 50%, transparent 70%); transform: translateX(-100%); animation: brilho 3.6s ease-in-out infinite; }
+@keyframes brilho { 0%, 55% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+/* sacola: a barra sobe, o número pula, a bolinha voa até ela */
+.barraPedido { animation: sobeBarra 0.5s cubic-bezier(.2, .9, .3, 1.25) both; }
+@keyframes sobeBarra { from { transform: translateY(140%); } to { transform: none; } }
+.barraPedidoQtd, .contagemPula { animation: pop 0.4s cubic-bezier(.2, .9, .3, 1.6) both; }
+.voo { position: fixed; z-index: 90; width: 18px; height: 18px; border-radius: 999px; background: var(--c-primaria); box-shadow: 0 4px 12px color-mix(in srgb, var(--c-primaria) 60%, transparent); pointer-events: none; }
+
+/* boas-vindas e fidelidade entram com o cartão */
+.modoDelivery .boasVindas, .modoDelivery .fidCartao { animation: sobeTexto 0.6s 0.3s cubic-bezier(.2, .8, .2, 1) both; border-color: transparent; box-shadow: 0 10px 24px -20px rgba(0, 0, 0, 0.4); }
+.modoDelivery .capa { height: 190px; }
+.modoDelivery .capa:has(.capaViva) { height: 170px; }
+@media (min-width: 768px) {
+  .modoDelivery .capa:has(.capaViva) { height: 230px; }
+  .lojaMonograma { margin: 0; grid-row: span 3; width: 96px; height: 96px; }
+}
+
+/* ── tipografia (pedido do dono, 19/10: "melhore essas letras e fontes") ──
+   Títulos: serifa ótica, macia e justa (Fraunces com opsz/SOFT; Playfair no
+   tema editorial). Lista, preço, chips e botões: a sem serifa do app, mais
+   firme e legível — serifa em negrito numa lista longa pesava. */
+.raiz { text-rendering: optimizeLegibility; font-optical-sizing: auto; font-kerning: normal; }
+.lojaNome, .nomeLoja, .secaoTitulo, .faixaTitulo, .saudacao, .slideTitulo, .promoTitulo, .lateralNome, .detalheNome {
+  font-variation-settings: "SOFT" 100;
+  letter-spacing: -0.022em;
+  font-feature-settings: "kern", "liga", "lnum";
+}
+.modoDelivery .lojaNome { font-size: 1.9rem; font-weight: 640; line-height: 1.05; }
+.modoDelivery .secaoTitulo { font-size: 1.55rem; font-weight: 600; line-height: 1.1; }
+.modoDelivery .faixaTitulo { font-size: 1.32rem; font-weight: 600; }
+.modoDelivery .saudacao { font-size: 1.22rem; font-weight: 560; line-height: 1.25; }
+.modoDelivery .apresentacao { font-size: 0.95rem; line-height: 1.5; }
+.modoDelivery .itemNome {
+  font-family: var(--fonte-texto);
+  font-size: 1.02rem;
+  font-weight: 680;
+  letter-spacing: -0.012em;
+  line-height: 1.3;
+}
+.modoDelivery .itemDescricao { font-size: 0.875rem; line-height: 1.45; }
+.modoDelivery .preco { font-size: 1rem; font-weight: 760; letter-spacing: -0.01em; }
+.modoDelivery .precoAntigo { font-size: 0.84rem; }
+.modoDelivery .miniaturaNome { font-weight: 680; letter-spacing: -0.01em; }
+.modoDelivery .miniaturaSemFoto > span:last-child { font-family: var(--fonte-texto); font-size: 0.98rem; font-weight: 720; letter-spacing: -0.012em; line-height: 1.2; }
+.modoDelivery .promoTitulo { font-size: 1.15rem; }
+.modoDelivery .infoChip, .modoDelivery .status { letter-spacing: -0.005em; }
+.trilhoBotao { letter-spacing: -0.008em; }
+.modoDelivery .botaoSecoes, .modoDelivery .navBotao { letter-spacing: -0.005em; }

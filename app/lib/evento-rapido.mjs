@@ -36,6 +36,8 @@ export function catalogoDeFichas(fichas = []) {
       id: f.id, nome: f.nome_comercial || f.nome_receita || "Ficha", setor, categoria,
       custoPorcao: custo > 0 ? custo : null, // null = ficha sem custo (DADOS INSUFICIENTES)
       precoVenda: Number(f.preco_venda) > 0 ? Number(f.preco_venda) : null,
+      // Para pesquisar pelo insumo ("camarão" acha as fichas que levam camarão).
+      insumos: (f.fichas_ingredientes || []).map((i) => i?.insumos?.nome || i?.nome || "").filter(Boolean),
     };
     const m = porSetor[setor];
     if (!m.has(categoria)) m.set(categoria, []);
@@ -48,12 +50,23 @@ export function catalogoDeFichas(fichas = []) {
   return { cozinha: ordenar(porSetor.cozinha), bar: ordenar(porSetor.bar), total };
 }
 
-/** Filtra o catálogo de um setor pela busca (sem acento) e pela categoria. */
+/**
+ * Filtra o catálogo de um setor pela busca (sem acento) e pela categoria. A
+ * busca acha pelo nome, pela categoria ou por um insumo da ficha; quando foi
+ * pelo insumo, o item leva `peloInsumo` (o nome que casou) para a tela mostrar.
+ */
 export function filtrarCatalogo(grupos = [], { busca = "", categoria = "" } = {}) {
   const t = normal(busca);
   return grupos
     .filter((g) => !categoria || g.categoria === categoria)
-    .map((g) => ({ ...g, itens: g.itens.filter((i) => !t || normal(`${i.nome} ${i.categoria}`).includes(t)) }))
+    .map((g) => ({
+      ...g,
+      itens: g.itens.flatMap((i) => {
+        if (!t || normal(`${i.nome} ${i.categoria}`).includes(t)) return [i];
+        const ins = (i.insumos || []).find((n) => normal(n).includes(t));
+        return ins ? [{ ...i, peloInsumo: ins }] : [];
+      }),
+    }))
     .filter((g) => g.itens.length);
 }
 

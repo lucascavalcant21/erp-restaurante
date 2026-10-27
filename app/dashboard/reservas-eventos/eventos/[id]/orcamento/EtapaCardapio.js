@@ -67,6 +67,10 @@ export function EtapaTipo({ orc, setOrc, modelos = [], onAplicarModelo, onRemove
 // categoria, com os adicionais no fim.
 const ehAdicionalFicha = (f) => /^adiciona(l|is)\b/i.test(String(f?.nome_receita || "").normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
 const semAcento = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+// Pesquisar também pelo insumo (pedido do dono, 27/10/2026): "camarão" acha as
+// fichas que levam camarão. Devolve o nome do insumo que casou (ou null).
+const insumosDaFicha = (f) => (f.fichas_ingredientes || []).map((i) => i?.insumos?.nome || i?.nome || "").filter(Boolean);
+const insumoQueCasa = (f, t) => (t ? insumosDaFicha(f).find((n) => semAcento(n).includes(t)) || null : null);
 function BuscaFicha({ fichas, setor, onEscolher, onFechar }) {
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState("prontos");
@@ -80,7 +84,7 @@ function BuscaFicha({ fichas, setor, onEscolher, onFechar }) {
     const t = semAcento(busca.trim());
     const m = new Map();
     for (const f of porTipo[tipo]) {
-      if (t && !semAcento(f.nome_receita).includes(t)) continue;
+      if (t && !semAcento(f.nome_receita).includes(t) && !insumoQueCasa(f, t)) continue;
       const cat = ehAdicionalFicha(f) ? "Adicionais" : String(f.categoria || "").trim() || "Outros";
       if (categoria && cat !== categoria) continue;
       if (!m.has(cat)) m.set(cat, []);
@@ -107,7 +111,7 @@ function BuscaFicha({ fichas, setor, onEscolher, onFechar }) {
       </div>
       <div className="relative">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={`Buscar ${tipo === "preparos" ? "pré-preparo" : "prato"} ${setor === "bar" ? "do bar" : setor === "cozinha" ? "da cozinha" : ""}...`}
+        <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={`Buscar ${tipo === "preparos" ? "pré-preparo" : "prato"} ou insumo (ex.: camarão)…`}
           className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500" />
       </div>
       {categorias.length > 1 && (
@@ -126,10 +130,15 @@ function BuscaFicha({ fichas, setor, onEscolher, onFechar }) {
             <ul className="divide-y divide-slate-100">
               {lista.map((f) => {
                 const c = custoPorcaoDaFicha(f, fichas);
+                const t = semAcento(busca.trim());
+                const peloInsumo = t && !semAcento(f.nome_receita).includes(t) ? insumoQueCasa(f, t) : null;
                 return (
                   <li key={f.id}>
                     <button type="button" onClick={() => onEscolher(f)} className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-emerald-50">
-                      <span className="min-w-0 truncate text-sm font-bold text-slate-900">{f.nome_receita}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-bold text-slate-900">{f.nome_receita}</span>
+                        {peloInsumo ? <span className="block truncate text-[11px] font-semibold text-emerald-700">leva {peloInsumo}</span> : null}
+                      </span>
                       <span className={`shrink-0 text-xs font-bold tabular-nums ${c > 0 ? "text-slate-600" : "text-amber-700"}`}>{c > 0 ? `${fmtReais(c)} / porção` : "sem custo"}</span>
                     </button>
                   </li>

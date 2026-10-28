@@ -1,0 +1,332 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "TabletEntrar.dc.html": {
+   "h": 800,
+   "title": "Tablet — entrar com CPF (abre ao tocar no convite 10%)",
+   "w": 1280,
+   "x": 0,
+   "y": -1400,
+   "is_interactive": true
+  },
+  "TabletCadastro.dc.html": {
+   "h": 800,
+   "title": "Tablet — cadastre-se",
+   "w": 1280,
+   "x": 1360,
+   "y": -1400,
+   "is_interactive": true
+  },
+  "TabletIdioma.dc.html": {
+   "h": 800,
+   "title": "Tablet — idioma",
+   "w": 1280,
+   "x": 2720,
+   "y": -1400,
+   "is_interactive": true
+  },
+  "TabletEnviado.dc.html": {
+   "h": 800,
+   "title": "Tablet 4 — pedido enviado, sessão encerra",
+   "w": 1280,
+   "x": 4080,
+   "y": -1400,
+   "is_interactive": true
+  },
+  "Main.dc.html": {
+   "h": 800,
+   "title": "Tablet 1 — tela inicial: cardápio + convite 10%",
+   "w": 1280,
+   "x": 0,
+   "y": 0,
+   "is_interactive": true
+  },
+  "TabletDetalhe.dc.html": {
+   "h": 800,
+   "title": "Tablet 2 — detalhe do prato",
+   "w": 1280,
+   "x": 1360,
+   "y": 0,
+   "is_interactive": true
+  },
+  "TabletCarrinho.dc.html": {
+   "h": 800,
+   "title": "Tablet 3 — carrinho aberto (com sugestão)",
+   "w": 1280,
+   "x": 2720,
+   "y": 0,
+   "is_interactive": true
+  },
+  "TabletDegustacao.dc.html": {
+   "h": 800,
+   "title": "Tablet — menu degustação (mapa da mesa + passo a passo)",
+   "w": 1280,
+   "x": 4080,
+   "y": 0,
+   "is_interactive": true
+  },
+  "TabletHistoria.dc.html": {
+   "h": 800,
+   "title": "Tablet — nossa história (folhagem animada + modo apresentação)",
+   "w": 1280,
+   "x": 5440,
+   "y": 0,
+   "is_interactive": true
+  },
+  "KDS.dc.html": {
+   "h": 900,
+   "title": "KDS — cozinha e bar",
+   "w": 1440,
+   "x": 0,
+   "y": 1300
+  },
+  "DeliveryInicio.dc.html": {
+   "h": 844,
+   "title": "Delivery — início (Tweaks: visitante x cadastrado)",
+   "w": 390,
+   "x": 0,
+   "y": 2600
+  },
+  "DeliveryCheckout.dc.html": {
+   "h": 844,
+   "title": "Delivery — checkout",
+   "w": 390,
+   "x": 470,
+   "y": 2600
+  },
+  "QREntrar.dc.html": {
+   "h": 844,
+   "title": "QR da mesa — entrar com CPF",
+   "w": 390,
+   "x": 0,
+   "y": 3900
+  },
+  "PainelCardapio.dc.html": {
+   "h": 900,
+   "title": "Painel — cardápio (produtos, canais, esgotado hoje)",
+   "w": 1440,
+   "x": 0,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "PainelProduto.dc.html": {
+   "h": 1500,
+   "title": "Painel — editar produto",
+   "w": 1440,
+   "x": 1520,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "PainelPromocoes.dc.html": {
+   "h": 1000,
+   "title": "Painel — promoções e descontos",
+   "w": 1440,
+   "x": 3040,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "TabletRecomenda.dc.html": {
+   "h": 800,
+   "title": "Tablet — me ajuda a escolher (experiência → restrições → pessoas → sugestão)",
+   "w": 1280,
+   "x": 6800,
+   "y": 0,
+   "is_interactive": true
+  },
+  "TabletWifi.dc.html": {
+   "h": 800,
+   "title": "Tablet — Wi-Fi (QR grande)",
+   "w": 1280,
+   "x": 5440,
+   "y": -1400
+  },
+  "PainelDashboard.dc.html": {
+   "h": 1100,
+   "title": "Painel — dashboard (Mesa, Delivery, Balcão)",
+   "w": 1440,
+   "x": 4560,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "PainelClientes.dc.html": {
+   "h": 1100,
+   "title": "Painel — CRM: perfil do cliente",
+   "w": 1440,
+   "x": 6080,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "PainelCampanhas.dc.html": {
+   "h": 1000,
+   "title": "Painel — campanhas automáticas no WhatsApp",
+   "w": 1440,
+   "x": 7600,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "PainelRecomendacoes.dc.html": {
+   "h": 1000,
+   "title": "Painel — configurar recomendações",
+   "w": 1440,
+   "x": 9120,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "PainelDisparos.dc.html": {
+   "h": 1100,
+   "title": "Painel — disparos no WhatsApp (selecionar clientes)",
+   "w": 1440,
+   "x": 10640,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "PainelDisparosResultado.dc.html": {
+   "h": 1000,
+   "title": "Painel — resultado dos disparos (custo x faturamento)",
+   "w": 1440,
+   "x": 12160,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "PainelHistoria.dc.html": {
+   "h": 1100,
+   "title": "Painel — nossa história (temas e sugestões)",
+   "w": 1440,
+   "x": 13680,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "PainelFidelidade.dc.html": {
+   "h": 1100,
+   "title": "Painel — fidelidade: pontos, cashback, selos e validar código",
+   "w": 1440,
+   "x": 15200,
+   "y": 5200,
+   "expand": "fill"
+  },
+  "DeliveryFidelidade.dc.html": {
+   "h": 844,
+   "title": "Cliente — meus pontos e cartão de selos",
+   "w": 390,
+   "x": 940,
+   "y": 2600,
+   "is_interactive": true
+  },
+  "ClienteArea.dc.html": {
+   "h": 1560,
+   "title": "Cliente cadastrado — minha área (economia, lembretes, pedidos)",
+   "w": 390,
+   "x": 1410,
+   "y": 2600
+  },
+  "DeliveryCarrinho.dc.html": {
+   "h": 844,
+   "title": "Delivery — sacola com sugestões (+R$5 sobremesa, bebida, +1 prato)",
+   "w": 390,
+   "x": 1880,
+   "y": 2600,
+   "is_interactive": true
+  },
+  "DeliveryRecomenda.dc.html": {
+   "h": 844,
+   "title": "Delivery e retirada — me ajuda a escolher (Tweaks: Entrega x Retirada)",
+   "w": 390,
+   "x": 2350,
+   "y": 2600,
+   "is_interactive": true
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-10-20T13:45:00Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "tituloEntrada": {
+   "kind": "title1",
+   "maxW": 6720,
+   "text": "Tablet de mesa — entrada, cadastro, idioma e Wi-Fi",
+   "w": 240,
+   "x": 0,
+   "y": -1700
+  },
+  "tituloTablet": {
+   "kind": "title1",
+   "maxW": 8080,
+   "text": "Tablet de mesa — pedido, degustação, história e recomendações",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "tituloKds": {
+   "kind": "title1",
+   "maxW": 1440,
+   "text": "KDS da cozinha",
+   "w": 240,
+   "x": 0,
+   "y": 1000
+  },
+  "tituloDelivery": {
+   "kind": "title1",
+   "maxW": 2270,
+   "text": "Delivery e fidelidade (celular)",
+   "w": 240,
+   "x": 0,
+   "y": 2300
+  },
+  "tituloQR": {
+   "kind": "title1",
+   "maxW": 1440,
+   "text": "QR Code da mesa (celular)",
+   "w": 240,
+   "x": 0,
+   "y": 3600
+  },
+  "tituloPainel": {
+   "kind": "title1",
+   "maxW": 16640,
+   "text": "Painel do restaurante — cardápio, CRM, WhatsApp e dashboard",
+   "w": 240,
+   "x": 0,
+   "y": 4900
+  }
+ },
+ "order": [
+  "TabletEntrar.dc.html",
+  "TabletCadastro.dc.html",
+  "TabletIdioma.dc.html",
+  "TabletEnviado.dc.html",
+  "TabletWifi.dc.html",
+  "Main.dc.html",
+  "TabletDetalhe.dc.html",
+  "TabletCarrinho.dc.html",
+  "TabletDegustacao.dc.html",
+  "TabletHistoria.dc.html",
+  "TabletRecomenda.dc.html",
+  "KDS.dc.html",
+  "DeliveryInicio.dc.html",
+  "DeliveryCarrinho.dc.html",
+  "DeliveryCheckout.dc.html",
+  "QREntrar.dc.html",
+  "PainelCardapio.dc.html",
+  "PainelProduto.dc.html",
+  "PainelPromocoes.dc.html",
+  "PainelDashboard.dc.html",
+  "PainelClientes.dc.html",
+  "PainelCampanhas.dc.html",
+  "PainelRecomendacoes.dc.html",
+  "PainelDisparos.dc.html",
+  "PainelDisparosResultado.dc.html",
+  "PainelHistoria.dc.html",
+  "PainelFidelidade.dc.html",
+  "DeliveryFidelidade.dc.html",
+  "ClienteArea.dc.html",
+  "DeliveryRecomenda.dc.html"
+ ],
+ "pages": [],
+ "title": "Cardápio Digital — Tablet, KDS e Delivery"
+}

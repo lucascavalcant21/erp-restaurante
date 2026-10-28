@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel — editar produto</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-wrap: wrap">
+
+  <nav aria-label="Painel" style="flex: 1 1 220px; max-width: 240px; min-width: 200px; background: #F7F7F7; border-right: 1px solid #E3E3E3; padding: 20px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 16px">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-weight: 700; font-size: 14px">CB</div>
+      <span style="font-family: Outfit, sans-serif; font-weight: 600; font-size: 16px">Painel</span>
+    </div>
+    <sc-for list="{{menu}}" as="m" hint-placeholder-count="13">
+      <a href="{{m.href}}" style="height: 42px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; text-decoration: none; font-size: 14px; font-weight: {{m.peso}}; background: {{m.fundo}}; color: {{m.cor}}">{{m.nome}}</a>
+    </sc-for>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+      <a href="PainelCardapio.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none">← Cardápio</a>
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; font-weight: 600; flex-grow: 1">Picanha na brasa</h1>
+      <a href="PainelCardapio.dc.html" style="height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid #E3E3E3; display: flex; align-items: center; text-decoration: none; color: #1A1A1A; font-size: 14px; font-weight: 600; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">Cancelar</a>
+      <a href="PainelCardapio.dc.html" style="height: 44px; padding: 0 20px; border-radius: 12px; background: {{accent}}; display: flex; align-items: center; text-decoration: none; color: #FFFFFF; font-size: 14px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">Salvar</a>
+    </div>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start">
+      <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+        <section aria-labelledby="s-fotos" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px">
+            <h2 id="s-fotos" style="margin: 0; font-size: 16px; font-weight: 700">Fotos e vídeo</h2>
+            <span style="font-size: 12px; color: #5C5C5C">A primeira é a capa · arraste para ordenar · vídeo até 10 s, sem som</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+            <div style="position: relative; aspect-ratio: 1; border-radius: 12px; background: #4D4D4D; border: 2px solid {{accent}}">
+              <span style="position: absolute; left: 8px; top: 8px; padding: 2px 8px; border-radius: 999px; background: {{accent}}; color: #FFFFFF; font-size: 11px; font-weight: 700">Capa</span>
+            </div>
+            <div style="position: relative; aspect-ratio: 1; border-radius: 12px; background: #454545; display: flex; align-items: center; justify-content: center; color: #FFFFFF">
+              <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"></path></svg>
+              <span style="position: absolute; left: 8px; top: 8px; padding: 2px 8px; border-radius: 999px; background: rgba(50,50,50,.8); font-size: 11px; font-weight: 700">Vídeo · 8 s</span>
+            </div>
+            <div style="aspect-ratio: 1; border-radius: 12px; background: #484848"></div>
+            <button type="button" style="aspect-ratio: 1; border-radius: 12px; border: 2px dashed #CFCFCF; background: #F7F7F7; color: #5C5C5C; font-size: 13px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+              <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+              Adicionar foto ou vídeo
+            </button>
+          </div>
+        </section>
+
+        <section aria-labelledby="s-info" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <h2 id="s-info" style="grid-column: span 2; margin: 0; font-size: 16px; font-weight: 700">Informações</h2>
+          <label style="grid-column: span 2; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Nome
+            <input type="text" value="Picanha na brasa" style="height: 44px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+          </label>
+          <label style="grid-column: span 2; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Descrição
+            <textarea rows="3" style="border-radius: 10px; border: 1px solid #DADADA; padding: 10px 12px; font-size: 14px; font-weight: 400; resize: vertical">300 g de picanha grelhada na brasa, servida com farofa da casa, vinagrete e mandioca frita. Serve 1 pessoa.</textarea>
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Categoria
+            <select style="height: 44px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 10px; font-size: 14px; font-weight: 400; background: #FFFFFF"><option>Grelhados</option></select>
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Preço
+            <input type="text" value="R$ 89,90" style="height: 44px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Estação no KDS
+            <select style="height: 44px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 10px; font-size: 14px; font-weight: 400; background: #FFFFFF"><option>Cozinha</option></select>
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Tempo de preparo (min)
+            <input type="text" value="25" style="height: 44px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+          </label>
+        </section>
+
+        <section aria-labelledby="s-alerg" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <h2 id="s-alerg" style="margin: 0; font-size: 16px; font-weight: 700">Alergênicos, pimenta e etiquetas</h2>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <sc-for list="{{alergenos}}" as="a" hint-placeholder-count="10">
+              <button type="button" aria-pressed="{{a.on}}" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid {{a.borda}}; background: {{a.fundo}}; color: {{a.cor}}; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">{{a.nome}}</button>
+            </sc-for>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+            <span style="font-size: 13px; font-weight: 600">Pimenta</span>
+            <div role="radiogroup" aria-label="Nível de pimenta" style="display: flex; padding: 3px; border-radius: 10px; background: #EFEFEF">
+              <sc-for list="{{pimenta}}" as="p" hint-placeholder-count="4">
+                <button type="button" role="radio" aria-checked="{{p.on}}" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: {{p.fundo}}; color: #1A1A1A; font-size: 13px; font-weight: 600; box-shadow: {{p.sombra}}">{{p.nome}}</button>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="s-comp" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px">
+            <h2 id="s-comp" style="margin: 0; font-size: 16px; font-weight: 700">Adicionais e complementos</h2>
+            <div style="display: flex; gap: 8px">
+              <button type="button" style="height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid #E3E3E3; background: #FFFFFF; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">Usar grupo existente</button>
+              <button type="button" style="height: 38px; padding: 0 12px; border-radius: 10px; border: 0; background: #4A4A4A; color: #FFFFFF; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.2), 0 6px 14px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.12)">+ Novo grupo</button>
+            </div>
+          </div>
+          <sc-for list="{{grupos}}" as="g" hint-placeholder-count="3">
+            <div style="border: 1px solid #EEEEEE; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #F7F7F7; flex-wrap: wrap">
+                <span aria-hidden="true" style="color: #9E9E9E">⋮⋮</span>
+                <span style="font-weight: 700; font-size: 14px; flex-grow: 1">{{g.nome}}</span>
+                <span style="padding: 3px 9px; border-radius: 999px; background: {{g.tagFundo}}; color: {{g.tagCor}}; font-size: 12px; font-weight: 700">{{g.regra}}</span>
+                <span style="font-size: 12px; color: #5C5C5C">usado em {{g.usos}} produtos</span>
+              </div>
+              <sc-for list="{{g.itens}}" as="i" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid #EDEDED; font-size: 14px">
+                  <span style="flex-grow: 1">{{i.nome}}</span>
+                  <span style="color: #444444">{{i.preco}}</span>
+                  <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #5C5C5C"><input type="checkbox" checked="{{i.esg}}" style="width: 16px; height: 16px; accent-color: #C8262B">Esgotado</label>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </section>
+
+        <section aria-labelledby="s-canais" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <h2 id="s-canais" style="margin: 0; font-size: 16px; font-weight: 700">Onde aparece e quando</h2>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap">
+            <sc-for list="{{canais}}" as="c" hint-placeholder-count="5">
+              <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px"><input type="checkbox" checked="{{c.on}}" style="width: 18px; height: 18px; accent-color: {{accent}}">{{c.nome}}</label>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center">
+            <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px"><input type="radio" name="disp" checked style="width: 18px; height: 18px; accent-color: {{accent}}">Sempre que a loja estiver aberta</label>
+            <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px"><input type="radio" name="disp" style="width: 18px; height: 18px; accent-color: {{accent}}">Só em dias e horários</label>
+          </div>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: #FDE7E8; color: #8A1A1E; font-size: 14px; font-weight: 600">
+            <input type="checkbox" style="width: 20px; height: 20px; accent-color: #C8262B">Esgotado hoje: tirar de todos os canais até amanhã
+          </label>
+        </section>
+
+        <section aria-labelledby="s-trad" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px">
+            <h2 id="s-trad" style="margin: 0; font-size: 16px; font-weight: 700">Traduções</h2>
+            <button type="button" style="height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid #E3E3E3; background: #FFFFFF; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">Traduzir automaticamente</button>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+            <sc-for list="{{traducoes}}" as="t" hint-placeholder-count="7">
+              <a href="#" style="padding: 10px 12px; border-radius: 10px; border: 1px solid #E3E3E3; text-decoration: none; color: #1A1A1A; display: flex; flex-direction: column; gap: 4px">
+                <span style="font-size: 14px; font-weight: 600">{{t.nome}}</span>
+                <span style="font-size: 12px; font-weight: 600; color: {{t.cor}}">{{t.status}}</span>
+              </a>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+
+      <aside aria-label="Prévia" style="flex: 1 1 300px; max-width: 360px; display: flex; flex-direction: column; gap: 14px">
+        <span style="font-size: 12px; font-weight: 700; color: #5C5C5C">PRÉVIA · como o cliente vê</span>
+        <div style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <span style="font-size: 12px; font-weight: 600; color: #5C5C5C">Tablet</span>
+          <div style="display: flex; gap: 10px; padding: 8px; border-radius: 12px; border: 1px solid #EEEEEE; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+            <div style="width: 72px; height: 72px; border-radius: 10px; background: #4D4D4D; flex-shrink: 0"></div>
+            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+              <span style="font-size: 14px; font-weight: 700">Picanha na brasa</span>
+              <span style="font-size: 11px; color: #5C5C5C">300 g de picanha grelhada na brasa…</span>
+              <span style="font-size: 14px; font-weight: 600">R$ 89,90</span>
+            </div>
+          </div>
+        </div>
+        <div style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <span style="font-size: 12px; font-weight: 600; color: #5C5C5C">Delivery (celular)</span>
+          <div style="display: flex; border-radius: 12px; border: 1px solid #EEEEEE; overflow: hidden; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+            <div style="flex-grow: 1; padding: 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0">
+              <span style="font-size: 14px; font-weight: 600">Picanha na brasa</span>
+              <span style="font-size: 11px; color: #5C5C5C">300 g de picanha grelhada…</span>
+              <span style="font-size: 13px; font-weight: 600; color: {{accent}}">A partir de R$ 89,90</span>
+            </div>
+            <div style="width: 84px; background: #4D4D4D; flex-shrink: 0"></div>
+          </div>
+        </div>
+        <div style="padding: 12px; border-radius: 12px; background: #FFF4DC; color: #7A5300; font-size: 13px; line-height: 1.5">Faltando: 1 tradução para revisar (Coreano).</div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const menuItens = [
+      ['Dashboard', 'PainelDashboard.dc.html'], ['Clientes (CRM)', 'PainelClientes.dc.html'], ['Disparos WhatsApp', 'PainelDisparos.dc.html'], ['Campanhas automáticas', 'PainelCampanhas.dc.html'],
+      ['Cardápio', 'PainelCardapio.dc.html'], ['Promoções e descontos', 'PainelPromocoes.dc.html'], ['Recomendações', 'PainelRecomendacoes.dc.html'],
+      ['Fidelidade e selos', 'PainelFidelidade.dc.html'], ['Menu degustação', '#'], ['Vitrine e banners', '#'], ['Nossa história', 'PainelHistoria.dc.html'], ['Idiomas', '#'], ['Configurações', '#']
+    ];
+    const al = [['Glúten', 1], ['Lactose', 0], ['Ovo', 0], ['Crustáceos', 0], ['Peixe', 0], ['Amendoim', 0], ['Castanhas', 0], ['Soja', 0], ['Vegano', 0], ['Sem glúten', 0]];
+    const grupos = [
+      { nome: 'Ponto da carne', regra: 'Obrigatório · escolher 1', obrig: true, usos: 4,
+        itens: [['Mal passado', 'grátis'], ['Ao ponto', 'grátis'], ['Bem passado', 'grátis']] },
+      { nome: 'Adicionais', regra: 'Opcional · até 2', obrig: false, usos: 6,
+        itens: [['Queijo coalho', '+ R$ 9,00', true], ['Arroz biro-biro', '+ R$ 12,00']] },
+      { nome: 'Retirar ingredientes', regra: 'Opcional · sem custo', obrig: false, usos: 9,
+        itens: [['Sem cebola', 'grátis'], ['Sem vinagrete', 'grátis']] }
+    ];
+    const trad = [['English', 'Revisada'], ['Español', 'Revisada'], ['Italiano', 'Automática'], ['Français', 'Automática'], ['中文', 'Automática'], ['日本語', 'Automática'], ['한국어', 'Revisar']];
+    return {
+      accent,
+      menu: menuItens.map(([nome, href], i) => ({ nome, href, peso: i === 4 ? 700 : 500, fundo: i === 4 ? '#EAF4EE' : 'transparent', cor: i === 4 ? accent : '#3A3A3A' })),
+      alergenos: al.map(([nome, on]) => ({ nome, on: !!on, borda: on ? '#7A5300' : '#DADADA', fundo: on ? '#FFF4DC' : '#FFFFFF', cor: on ? '#7A5300' : '#3A3A3A' })),
+      pimenta: ['Sem', 'Leve', 'Média', 'Forte'].map((nome, i) => ({ nome, on: i === 0, fundo: i === 0 ? '#FFFFFF' : 'transparent', sombra: i === 0 ? '0 1px 3px rgba(0,0,0,.12)' : 'none' })),
+      grupos: grupos.map((g) => ({ ...g, tagFundo: g.obrig ? '#FDE7E8' : '#EFEFEF', tagCor: g.obrig ? '#A1161C' : '#444444',
+        itens: g.itens.map(([nome, preco, esg]) => ({ nome, preco, esg: !!esg })) })),
+      canais: [['Tablet', 1], ['QR da mesa', 1], ['Delivery', 1], ['App do garçom', 1], ['PDV / caixa', 1]].map(([nome, on]) => ({ nome, on: !!on })),
+      traducoes: trad.map(([nome, status]) => ({ nome, status, cor: status === 'Revisada' ? '#1E7A45' : (status === 'Revisar' ? '#B4231C' : '#7A5300') }))
+    };
+  }
+}
+</script>
+</body>
+</html>

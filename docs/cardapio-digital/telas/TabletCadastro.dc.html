@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Tablet — cadastro para 10% de desconto</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+@keyframes orbitaA{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(-16px,12px) rotate(10deg)}}
+@keyframes orbitaB{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(14px,-10px) scale(1.1)}}
+@keyframes orbitaC{0%,100%{transform:translate(0,0)}50%{transform:translate(10px,14px)}}
+@keyframes reflexo{0%{transform:translateX(-140%) skewX(-12deg)}55%,100%{transform:translateX(420%) skewX(-12deg)}}
+.anelA{animation:orbitaA 14s ease-in-out infinite}
+.anelB{animation:orbitaB 11s ease-in-out infinite}
+.anelC{animation:orbitaC 9s ease-in-out infinite}
+.reflexo{animation:reflexo 8s ease-in-out infinite}
+@keyframes desliza{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.trilho{animation:desliza 40s linear infinite}
+.trilho-wrap{scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.trilho-wrap::-webkit-scrollbar{display:none}
+.trilho-wrap:active .trilho{animation-play-state:paused}
+@keyframes kbLento{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.kb{animation:kbLento 16s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.anelA,.anelB,.anelC,.reflexo,.trilho,.kb{animation:none}}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; box-sizing: border-box; background: #F1F1F1; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; padding: 32px">
+  <div role="dialog" aria-label="Faça parte do nosso mundo" style="width: 1080px; height: 680px; display: flex; border-radius: 24px; overflow: hidden; background: #FFFFFF; border: 1px solid #E3E3E3; box-shadow: 0 20px 50px rgba(0,0,0,.08)">
+
+    <section style="width: 380px; flex-shrink: 0; background: linear-gradient(135deg, #1D6E40 0%, {{accent}} 52%, #0C331C 100%); position: relative; overflow: hidden; isolation: isolate; box-shadow: 0 1px 2px rgba(12,51,28,.2), 0 12px 28px rgba(12,51,28,.28); color: #FFFFFF; padding: 40px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+      <span aria-hidden="true" style="position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none">
+        <span class="anelA" style="position: absolute; right: -50px; top: -70px; width: 200px; height: 200px; border-radius: 50%; border: 1px solid rgba(255,255,255,.15)"></span>
+        <span class="anelB" style="position: absolute; right: 20px; bottom: -95px; width: 170px; height: 170px; border-radius: 50%; background: rgba(255,255,255,.06)"></span>
+        <span class="anelC" style="position: absolute; left: 42%; top: -46px; width: 96px; height: 96px; border-radius: 50%; border: 1px solid rgba(255,255,255,.09)"></span>
+        <span class="reflexo" style="position: absolute; top: -20%; bottom: -20%; left: 0; width: 28%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.08), rgba(255,255,255,0))"></span>
+      </span>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: #FFFFFF; color: {{accent}}; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-weight: 700; font-size: 18px">CB</div>
+        <span style="font-family: Outfit, sans-serif; font-weight: 600; font-size: 18px">Casa Brasa</span>
+      </div>
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 38px; line-height: 1.1; font-weight: 700">Faça parte do nosso mundo</h1>
+      <p style="margin: 0; font-size: 16px; line-height: 1.5; color: #D7EBDD">Cadastre-se em 1 minuto e ganhe desconto já neste pedido.</p>
+      <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 6px">
+        <div style="display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.12)">
+          <span style="font-family: Outfit, sans-serif; font-size: 30px; font-weight: 700; min-width: 74px">10%</span>
+          <span style="font-size: 14px; line-height: 1.4">de&nbsp;<strong style="font-size: 1.15em; font-weight: 800; letter-spacing: .03em">DESCONTO</strong>&nbsp;no seu pedido</span>
+        </div>
+        <div style="display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.12)">
+          <span style="font-family: Outfit, sans-serif; font-size: 30px; font-weight: 700; min-width: 74px">R$1</span>
+          <span style="font-size: 14px; line-height: 1.4">= 1 ponto para trocar por descontos, aqui e no delivery</span>
+        </div>
+      </div>
+      <p style="margin: auto 0 0; font-size: 12px; line-height: 1.5; color: #D7EBDD">Você não fica logado neste tablet. Ao enviar o pedido, seus dados saem da tela automaticamente.</p>
+    </section>
+
+    <section style="flex-grow: 1; min-width: 0; padding: 32px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <h2 style="margin: 0; font-family: Outfit, sans-serif; font-size: 22px; font-weight: 600">Seu cadastro</h2>
+          <span style="font-size: 12px; color: #5C5C5C">Todos os campos são obrigatórios</span>
+        </div>
+        <a href="TabletEntrar.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none; color: {{accent}}">Já tenho cadastro</a>
+      </div>
+
+      <form style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px">
+        <label style="grid-column: span 2; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Nome completo
+          <input type="text" placeholder="Como está no documento" style="height: 48px; border-radius: 12px; border: 1px solid #DADADA; padding: 0 14px; font-size: 15px; font-weight: 400">
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">CPF
+          <input type="text" inputmode="numeric" placeholder="000.000.000-00" style="height: 48px; border-radius: 12px; border: 1px solid #DADADA; padding: 0 14px; font-size: 15px; font-weight: 400">
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Data de nascimento
+          <input type="text" inputmode="numeric" placeholder="DD/MM/AAAA" style="height: 48px; border-radius: 12px; border: 1px solid #DADADA; padding: 0 14px; font-size: 15px; font-weight: 400">
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Estado
+          <select style="height: 48px; border-radius: 12px; border: 1px solid #DADADA; padding: 0 12px; font-size: 15px; font-weight: 400; background: #FFFFFF; color: #1A1A1A">
+            <option>Selecione</option>
+          </select>
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Município
+          <select style="height: 48px; border-radius: 12px; border: 1px solid #DADADA; padding: 0 12px; font-size: 15px; font-weight: 400; background: #FFFFFF; color: #1A1A1A">
+            <option>Escolha o estado primeiro</option>
+          </select>
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Bairro onde mora
+          <input type="text" style="height: 48px; border-radius: 12px; border: 1px solid #DADADA; padding: 0 14px; font-size: 15px; font-weight: 400">
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">WhatsApp
+          <input type="tel" placeholder="(00) 00000-0000" style="height: 48px; border-radius: 12px; border: 1px solid #DADADA; padding: 0 14px; font-size: 15px; font-weight: 400">
+        </label>
+        <label style="grid-column: span 2; display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: #3A3A3A">
+          <input type="checkbox" style="width: 20px; height: 20px; margin: 0; accent-color: {{accent}}; flex-shrink: 0">
+          <span>Concordo com o uso dos meus dados para o desconto e o programa de pontos, conforme a <a href="#">Política de Privacidade</a>.</span>
+        </label>
+        <label style="grid-column: span 2; display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: #3A3A3A">
+          <input type="checkbox" style="width: 20px; height: 20px; margin: 0; accent-color: {{accent}}; flex-shrink: 0">
+          <span>Quero receber promoções pelo WhatsApp (opcional).</span>
+        </label>
+      </form>
+
+      <div style="margin-top: auto; display: flex; gap: 12px; align-items: center">
+        <a href="Main.dc.html" style="height: 54px; padding: 0 22px; border-radius: 14px; border: 1px solid #E3E3E3; display: flex; align-items: center; text-decoration: none; color: #3A3A3A; font-size: 15px; font-weight: 600; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">Agora não</a>
+        <a href="Main.dc.html" style="flex-grow: 1; height: 54px; border-radius: 14px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 16px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">Cadastrar e ganhar 10% de&nbsp;<strong style="font-size: 1.15em; font-weight: 800; letter-spacing: .03em">DESCONTO</strong></a>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#14532D' };
+  }
+}
+</script>
+</body>
+</html>

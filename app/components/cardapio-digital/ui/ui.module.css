@@ -1,0 +1,1086 @@
+/*
+ * Base visual do cardápio digital (seção 9L da spec, docs/cardapio-digital).
+ * Só usa as variáveis --cd-* que saem de app/lib/cardapio-visual.mjs (o
+ * TemaCardapio põe na raiz). Nenhuma cor em hexadecimal aqui: a trava
+ * cardapio-visual.test.mjs confere isso e também que todo fundo escuro tem
+ * texto branco. Regra sem texto dentro (enfeite) leva o comentário sem-texto.
+ * Toda animação desliga com "reduzir movimento".
+ */
+
+/*
+ * O reset do Tailwind (globals.css) põe borda "por dentro" (border-box) em tudo
+ * e altura de linha 1,5. O protótipo usa o padrão do navegador: link e caixa
+ * somam a borda por fora, botão já vem com ela por dentro, altura de linha
+ * "normal". Para ficar igual, o cardápio volta ao padrão do navegador e cada
+ * componente diz o box-sizing onde o protótipo diz.
+ */
+.tema {
+  font-family: var(--cd-fonte-texto), Inter, system-ui, sans-serif;
+  color: var(--cd-texto);
+  line-height: normal;
+}
+.tema,
+.tema *,
+.tema *::before,
+.tema *::after {
+  box-sizing: revert;
+}
+.titulo {
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+}
+
+/* ── Toque: o botão afunda 1 px ─────────────────────────────────────────── */
+.pressiona {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.pressiona:active {
+  transform: translateY(1px) scale(0.99);
+}
+.pressiona:focus-visible {
+  outline: 3px solid var(--cd-principal-clara-borda);
+  outline-offset: 2px;
+}
+
+/* ── Botão ──────────────────────────────────────────────────────────────── */
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  margin: 0;
+  padding: 0 14px;
+  text-decoration: none;
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.botao:disabled,
+.botao[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.larguraTotal {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+}
+.comValor {
+  justify-content: space-between;
+  padding: 0 20px;
+}
+.a36 { height: 36px; border-radius: var(--cd-raio-p); font-size: 13px; }
+.a40 { height: 40px; border-radius: var(--cd-raio-m); font-size: 13px; }
+.a44 { height: 44px; border-radius: var(--cd-raio-m); font-size: 14px; }
+.a48 { height: 48px; border-radius: var(--cd-raio-m); font-size: 14px; }
+.a52 { height: 52px; border-radius: var(--cd-raio-m); font-size: 14px; }
+.a54 { height: 54px; border-radius: var(--cd-raio-g); font-size: 16px; }
+.a56 { height: 56px; border-radius: var(--cd-raio-g); font-size: 17px; }
+.a64 { height: 64px; border-radius: var(--cd-raio-g); font-size: 18px; }
+
+.principal,
+.principal:hover,
+.principal:visited {
+  background-color: var(--cd-principal);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+  color: var(--cd-branco);
+  box-shadow: var(--cd-sombra-principal);
+}
+.secundario,
+.secundario:hover,
+.secundario:visited {
+  background: var(--cd-branco);
+  color: var(--cd-texto);
+  border: 1px solid var(--cd-borda);
+  box-shadow: var(--cd-sombra-secundario);
+  font-weight: 600;
+}
+.contorno,
+.contorno:hover,
+.contorno:visited {
+  background: var(--cd-branco);
+  color: var(--cd-texto);
+  border: 2px solid var(--cd-texto);
+}
+.clara,
+.clara:hover,
+.clara:visited {
+  background: var(--cd-principal-clara);
+  color: var(--cd-principal-escura);
+  font-weight: 600;
+}
+.fantasma,
+.fantasma:hover,
+.fantasma:visited {
+  background: transparent;
+  color: var(--cd-texto-forte);
+  font-weight: 600;
+}
+.inicio {
+  justify-content: flex-start;
+  padding: 0 12px;
+}
+.textoLink,
+.textoLink:hover,
+.textoLink:visited {
+  background: transparent;
+  color: var(--cd-principal);
+  padding: 0;
+}
+.sobreBanner,
+.sobreBanner:hover,
+.sobreBanner:visited {
+  background: var(--cd-branco);
+  color: var(--cd-principal);
+  border-radius: var(--cd-raio-pilula);
+  box-shadow: var(--cd-sombra-sobre-banner);
+}
+.valor {
+  font-weight: inherit;
+}
+.rotuloBotao {
+  display: inline-block;
+}
+
+/* Voltar e fechar: redondos, brancos, com borda e sombra */
+.redondo,
+.redondo:hover,
+.redondo:visited {
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22px;
+  border: 1px solid var(--cd-borda);
+  background: var(--cd-branco);
+  color: var(--cd-texto);
+  box-shadow: var(--cd-sombra-secundario);
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+.redondoSobreFoto,
+.redondoSobreFoto:hover {
+  border: 0;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--cd-texto);
+  box-shadow: none;
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+.card,
+.card:hover,
+.card:visited {
+  display: flex;
+  background: var(--cd-branco);
+  border: 1px solid var(--cd-borda-card);
+  border-radius: var(--cd-raio-g);
+  box-shadow: var(--cd-sombra-card);
+  color: var(--cd-texto);
+  text-decoration: none;
+}
+.cardElevado,
+.cardElevado:hover {
+  border: 0;
+  border-radius: var(--cd-raio-gg);
+  box-shadow: var(--cd-sombra-card-elevado);
+  overflow: hidden;
+}
+
+/* ── Chip ───────────────────────────────────────────────────────────────── */
+.chip,
+.chip:hover,
+.chip:visited {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 14px;
+  margin: 0;
+  border-radius: var(--cd-raio-m);
+  border: 1px solid var(--cd-borda-forte);
+  background: var(--cd-branco);
+  color: var(--cd-texto);
+  box-shadow: var(--cd-sombra-secundario);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chipEscuro,
+.chipEscuro:hover {
+  background: var(--cd-cinza-escuro);
+  border-color: var(--cd-cinza-escuro);
+  color: var(--cd-branco);
+}
+.chipPrincipal,
+.chipPrincipal:hover {
+  background: var(--cd-principal);
+  border-color: var(--cd-principal);
+  color: var(--cd-branco);
+}
+.chipClaro,
+.chipClaro:hover {
+  background: var(--cd-principal-clara);
+  border-color: var(--cd-principal-clara-borda);
+  color: var(--cd-principal-escura);
+  box-shadow: none;
+  font-weight: 700;
+  border-radius: var(--cd-raio-p);
+  padding: 0 12px;
+}
+
+/* Categoria do menu lateral do tablet */
+.categoria,
+.categoria:hover,
+.categoria:visited {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--cd-raio-p);
+  color: var(--cd-texto-forte);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+  border: 0;
+  width: 100%;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.categoriaContador {
+  font-size: 12px;
+  color: var(--cd-texto-suave);
+}
+.categoriaAtiva,
+.categoriaAtiva:hover {
+  background: var(--cd-principal);
+  color: var(--cd-branco);
+  font-weight: 600;
+}
+.categoriaAtiva .categoriaContador {
+  color: var(--cd-branco);
+  opacity: 0.75;
+}
+
+/* Etiquetas pequenas (sem ação) */
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: var(--cd-raio-pilula);
+  border: 1px solid var(--cd-borda-forte);
+  font-size: 11px;
+  color: var(--cd-texto-medio);
+  white-space: nowrap;
+}
+.etiquetaSobreFoto {
+  padding: 4px 9px;
+  border-radius: var(--cd-raio-pilula);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--cd-principal);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.etiquetaDestaque {
+  padding: 6px 10px;
+  border-radius: var(--cd-raio-pilula);
+  background: var(--cd-principal);
+  color: var(--cd-branco);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.etiquetaBranca {
+  padding: 6px 10px;
+  border-radius: var(--cd-raio-pilula);
+  background: var(--cd-branco);
+  color: var(--cd-texto);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.etiquetaVideo {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: var(--cd-raio-pilula);
+  background: rgba(50, 50, 50, 0.8);
+  color: var(--cd-branco);
+  font-size: 11px;
+  font-weight: 600;
+}
+.etiquetaVideoP {
+  gap: 3px;
+  padding: 2px 7px;
+  font-size: 10px;
+}
+
+/* ── Selos da ficha técnica (verde = lado bom, amarelo = atenção) ───────── */
+.selo {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--cd-raio-pilula);
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.seloOk {
+  background: var(--cd-ok-fundo);
+  color: var(--cd-ok-texto);
+  border-color: var(--cd-ok-borda);
+}
+.seloAlerta {
+  background: var(--cd-alerta-fundo);
+  color: var(--cd-alerta-texto);
+  border-color: var(--cd-alerta-borda);
+}
+.seloPimenta {
+  background: var(--cd-pimenta-fundo);
+  color: var(--cd-pimenta-texto);
+}
+.seloP {
+  height: auto;
+  padding: 2px 8px;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  border-width: 0;
+}
+
+/* Estado do grupo de complementos: "✓ Ok", "1 / 2", "Falta 1" */
+.estado {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.estadoOk {
+  background: var(--cd-ok-fundo);
+  color: var(--cd-ok-texto);
+}
+.estadoNeutro {
+  background: var(--cd-neutro-selo-fundo);
+  color: var(--cd-neutro-selo-texto);
+}
+.estadoFalta {
+  background: var(--cd-pimenta-fundo);
+  color: var(--cd-pimenta-texto);
+}
+
+/* A palavra DESCONTO (9M): maiúscula, negrito, um pouco maior */
+.desconto {
+  font-size: 1.15em;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+/* Pimenta: três pimentinhas + frase */
+.pimentaCaixa {
+  padding: 10px 12px;
+  border-radius: var(--cd-raio-m);
+  background: var(--cd-pimenta-caixa);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.pimentaCaixaSem {
+  background: var(--cd-ok-fundo);
+}
+.pimentas {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.pimentaAcesa {
+  fill: var(--cd-pimenta-cor);
+  stroke: var(--cd-pimenta-forte);
+}
+.pimentaApagada {
+  fill: none;
+  stroke: var(--cd-pimenta-apagada);
+}
+.pimentaTalo {
+  fill: none;
+  stroke: var(--cd-pimenta-talo);
+}
+.pimentaTextos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pimentaTitulo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cd-pimenta-forte);
+}
+.pimentaCaixaSem .pimentaTitulo {
+  color: var(--cd-ok-texto);
+}
+.pimentaNota {
+  font-size: 12px;
+  color: var(--cd-texto-secundario);
+}
+
+/* ── Banner verde: degradê, círculos que flutuam e brilho que passa ─────── */
+.banner,
+.banner:hover,
+.banner:visited {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-radius: var(--cd-raio-banner);
+  background: linear-gradient(135deg, var(--cd-degrade-inicio) 0%, var(--cd-principal) 52%, var(--cd-degrade-fim) 100%);
+  box-shadow: var(--cd-sombra-banner);
+  color: var(--cd-branco);
+  text-decoration: none;
+}
+.enfeites {
+  /* sem-texto */
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.anelA {
+  position: absolute;
+  right: -50px;
+  top: -70px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  animation: orbitaA 14s ease-in-out infinite;
+}
+.anelB {
+  position: absolute;
+  right: 20px;
+  bottom: -95px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  animation: orbitaB 11s ease-in-out infinite;
+}
+.anelC {
+  position: absolute;
+  left: 42%;
+  top: -46px;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  animation: orbitaC 9s ease-in-out infinite;
+}
+.reflexo {
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 28%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  animation: reflexo 8s ease-in-out infinite;
+}
+@keyframes orbitaA {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  50% { transform: translate(-16px, 12px) rotate(10deg); }
+}
+@keyframes orbitaB {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(14px, -10px) scale(1.1); }
+}
+@keyframes orbitaC {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(10px, 14px); }
+}
+@keyframes reflexo {
+  0% { transform: translateX(-140%) skewX(-12deg); }
+  55%, 100% { transform: translateX(420%) skewX(-12deg); }
+}
+
+/* Convite "Cadastre-se e ganhe 10% de DESCONTO" */
+.conviteTablet {
+  height: 92px;
+  padding: 0 14px 0 24px;
+  gap: 22px;
+}
+.conviteCelular {
+  height: 136px;
+  padding: 0 16px 0 20px;
+  gap: 12px;
+}
+.conviteChamada {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.conviteCelular .conviteChamada {
+  flex-grow: 1;
+}
+.conviteRotulo {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--cd-banner-rotulo);
+}
+.conviteCelular .conviteRotulo {
+  font-size: 10px;
+}
+.conviteTitulo {
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--cd-banner-titulo);
+}
+.conviteCelular .conviteTitulo {
+  font-size: 15px;
+  margin-top: 4px;
+}
+.conviteValor {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.conviteCelular .conviteValor {
+  gap: 8px;
+}
+.convitePct {
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 54px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.conviteCelular .convitePct {
+  font-size: 46px;
+}
+.conviteDesconto {
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.conviteCelular .conviteDesconto {
+  font-size: 15px;
+}
+.conviteTexto {
+  flex-grow: 1;
+  font-size: 14px;
+  color: var(--cd-banner-texto);
+}
+.conviteCelular .conviteTexto {
+  font-size: 12px;
+  margin-top: 2px;
+}
+.conviteAcao {
+  position: relative;
+  flex-shrink: 0;
+  height: 52px;
+  padding: 0 22px;
+  border-radius: 26px;
+  background: var(--cd-branco);
+  color: var(--cd-principal);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: var(--cd-sombra-sobre-banner);
+}
+.conviteCelular .conviteAcao {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  gap: 6px;
+  font-size: 13px;
+}
+
+/* Banner de foto ou vídeo (destaque da casa) */
+.midia {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--cd-raio-gg);
+  background: var(--cd-banner-midia);
+  color: var(--cd-branco);
+}
+.midiaConteudo {
+  /* sem-texto */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.midiaVazia {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--cd-texto-sobre-faixa);
+  font-size: 13px;
+}
+.faixa {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 22px 24px;
+  background: var(--cd-faixa-foto);
+  color: var(--cd-branco);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.faixaTextos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.faixaEtiqueta {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cd-etiqueta-especial);
+}
+.faixaTitulo {
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+}
+.faixaTexto {
+  font-size: 14px;
+  color: var(--cd-texto-sobre-faixa);
+}
+.pontos {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.ponto {
+  /* sem-texto */
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--cd-ponto-sobre-faixa);
+  border: 0;
+  padding: 0;
+}
+.pontoClaro {
+  background: var(--cd-ponto-inativo);
+}
+.pontoAtivo {
+  /* sem-texto */
+  width: 22px;
+  background: var(--cd-principal);
+}
+.pontosCentro {
+  justify-content: center;
+}
+.pontosCentro .pontoAtivo {
+  width: 18px;
+}
+.zoomLento {
+  animation: kbLento 16s ease-in-out infinite;
+}
+@keyframes kbLento {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+/* ── Carrossel "Agora na casa": anda sozinho, para ao tocar ─────────────── */
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.secaoCabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.secaoTitulo {
+  margin: 0;
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+}
+.secaoNota {
+  font-size: 12px;
+  color: var(--cd-texto-secundario);
+}
+.secaoLink,
+.secaoLink:hover,
+.secaoLink:visited {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cd-principal);
+  text-decoration: none;
+}
+.trilhoCaixa {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.trilhoCaixa::-webkit-scrollbar {
+  display: none;
+}
+.trilho {
+  display: flex;
+  width: max-content;
+}
+.trilhoAnda {
+  animation: desliza var(--cd-trilho-duracao, 40s) linear infinite;
+}
+.trilhoCaixa:active .trilhoAnda,
+.trilhoCaixa:focus-within .trilhoAnda {
+  animation-play-state: paused;
+}
+@keyframes desliza {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.agoraTablet,
+.agoraTablet:hover {
+  box-sizing: border-box;
+  width: 300px;
+  margin-right: 12px;
+  flex-shrink: 0;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+.agoraFoto {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--cd-foto-vazia);
+}
+.agoraTablet .agoraFoto {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--cd-raio-p);
+}
+.agoraTextos {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.agoraEtiqueta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cd-principal);
+}
+.agoraTitulo {
+  font-size: 15px;
+  font-weight: 600;
+}
+.agoraDetalhe {
+  font-size: 12px;
+  color: var(--cd-texto-secundario);
+}
+.agoraCelular,
+.agoraCelular:hover {
+  width: 168px;
+  margin-right: 12px;
+  flex-shrink: 0;
+  flex-direction: column;
+}
+.agoraCelular .agoraFoto {
+  height: 108px;
+}
+.agoraCelular .etiquetaSobreFoto {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+}
+.agoraCorpo {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.agoraCelular .agoraTitulo {
+  font-size: 14px;
+  line-height: 1.25;
+}
+.agoraLinha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.mais {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  background: var(--cd-principal);
+  color: var(--cd-branco);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* ── Foto do prato ──────────────────────────────────────────────────────── */
+.foto {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--cd-foto-vazia);
+}
+.fotoEscura {
+  background: var(--cd-foto-vazia-escura);
+  color: var(--cd-branco);
+}
+.fotoImagem {
+  /* sem-texto */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Preço ──────────────────────────────────────────────────────────────── */
+.preco {
+  display: inline-flex;
+  flex-direction: column;
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.precoPrincipal {
+  color: var(--cd-principal);
+}
+.precoTexto {
+  font-family: var(--cd-fonte-texto), Inter, system-ui, sans-serif;
+}
+.precoDe {
+  font-family: var(--cd-fonte-texto), Inter, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--cd-riscado);
+  text-decoration: line-through;
+}
+
+/* ── Quantidade (– n +) ─────────────────────────────────────────────────── */
+.quantidade {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 46px;
+  border-radius: var(--cd-raio-m);
+  border: 1px solid var(--cd-borda-forte);
+  background: var(--cd-branco);
+}
+.quantidadeBotao {
+  width: 46px;
+  height: 46px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--cd-texto);
+  font-family: inherit;
+  font-size: 22px;
+  cursor: pointer;
+}
+.quantidadeBotao:disabled {
+  color: var(--cd-pimenta-apagada);
+  cursor: not-allowed;
+}
+.quantidadeValor {
+  width: 28px;
+  text-align: center;
+  font-weight: 700;
+}
+.quantidadeP {
+  height: 36px;
+  border-radius: var(--cd-raio-p);
+}
+.quantidadeP .quantidadeBotao {
+  width: 36px;
+  height: 34px;
+  font-size: 18px;
+}
+
+/* ── Segmentado (Aqui | Viagem, Entrega | Retirada) ─────────────────────── */
+.segmentado {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  padding: 3px;
+  border-radius: var(--cd-raio-m);
+  background: var(--cd-fundo-segmentado);
+}
+.segmento {
+  height: 40px;
+  border-radius: 9px;
+  border: 0;
+  margin: 0;
+  padding: 0 6px;
+  background: transparent;
+  color: var(--cd-texto-medio);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.segmentadoLeve .segmento {
+  color: var(--cd-texto-secundario);
+  font-weight: 500;
+}
+.segmentoBranco {
+  background: var(--cd-branco);
+  color: var(--cd-texto);
+  font-weight: 600;
+  box-shadow: var(--cd-sombra-segmentado);
+}
+.segmentadoLeve .segmentoBranco {
+  color: var(--cd-texto);
+  font-weight: 600;
+}
+.segmentoPrincipal {
+  border-radius: var(--cd-raio-m);
+  background-color: var(--cd-principal);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+  color: var(--cd-branco);
+  font-weight: 700;
+  box-shadow: var(--cd-sombra-principal);
+}
+
+/* ── Barra de navegação inferior (celular) ──────────────────────────────── */
+.barra {
+  box-sizing: border-box;
+  height: 68px;
+  padding: 6px 8px 8px;
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid var(--cd-borda-card);
+  box-shadow: var(--cd-sombra-barra-inferior);
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+}
+.barraFixa {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  height: calc(68px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+.aba,
+.aba:hover,
+.aba:visited {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cd-texto-secundario);
+}
+.abaAtual,
+.abaAtual:hover {
+  font-weight: 700;
+  color: var(--cd-principal);
+}
+.abaIcone {
+  width: 52px;
+  height: 30px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.abaAtual .abaIcone {
+  background: var(--cd-principal-clara);
+}
+.abaContador {
+  box-sizing: border-box;
+  position: absolute;
+  top: 2px;
+  left: calc(50% + 12px);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--cd-badge);
+  color: var(--cd-branco);
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--cd-branco);
+}
+
+/* ── Reduzir movimento: nada anda, nada pisca ───────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .anelA,
+  .anelB,
+  .anelC,
+  .reflexo,
+  .trilhoAnda,
+  .zoomLento {
+    animation: none;
+  }
+  .copiaDoTrilho {
+    display: none;
+  }
+  /* o botão continua afundando 1 px ao toque (é resposta, não animação) */
+  .pressiona {
+    transition: none;
+  }
+}

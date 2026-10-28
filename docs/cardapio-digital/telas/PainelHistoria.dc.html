@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel — nossa história e temas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-wrap: wrap">
+
+  <nav aria-label="Painel" style="flex: 1 1 220px; max-width: 240px; min-width: 200px; background: #F7F7F7; border-right: 1px solid #E3E3E3; padding: 20px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 16px">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-weight: 700; font-size: 14px">CB</div>
+      <span style="font-family: Outfit, sans-serif; font-weight: 600; font-size: 16px">Painel</span>
+    </div>
+    <sc-for list="{{menu}}" as="m" hint-placeholder-count="13">
+      <a href="{{m.href}}" style="height: 42px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; text-decoration: none; font-size: 14px; font-weight: {{m.peso}}; background: {{m.fundo}}; color: {{m.cor}}">{{m.nome}}</a>
+    </sc-for>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; font-weight: 600; flex-grow: 1">Nossa história</h1>
+      <a href="TabletHistoria.dc.html" style="height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid #E3E3E3; display: flex; align-items: center; text-decoration: none; color: #1A1A1A; font-size: 14px; font-weight: 600; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">Ver no tablet</a>
+      <button type="button" style="height: 44px; padding: 0 20px; border-radius: 12px; border: 0; background: {{accent}}; color: #FFFFFF; font-size: 14px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">Publicar</button>
+    </div>
+
+    <section aria-labelledby="t-tema" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+      <h2 id="t-tema" style="margin: 0; font-size: 16px; font-weight: 700">Tema do fundo e movimento</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px">
+        <sc-for list="{{temas}}" as="t" hint-placeholder-count="4">
+          <button type="button" aria-pressed="{{t.sel}}" style="border-radius: 14px; border: {{t.borda}}; background: #FFFFFF; padding: 8px; text-align: left; display: flex; flex-direction: column; gap: 8px; color: #1A1A1A">
+            <span style="position: relative; display: block; height: 86px; border-radius: 10px; background: {{t.fundo}}; overflow: hidden">
+              <span style="position: absolute; left: -14px; top: -14px; width: 70px; height: 50px; border-radius: 0 80% 0 80%; background: {{t.folha}}; transform: rotate(18deg)"></span>
+              <span style="position: absolute; right: -16px; bottom: -14px; width: 80px; height: 56px; border-radius: 80% 0 80% 0; background: {{t.folha2}}; transform: rotate(-12deg)"></span>
+            </span>
+            <span style="font-size: 14px; font-weight: 700">{{t.nome}}</span>
+            <span style="font-size: 12px; color: #5C5C5C">{{t.desc}}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 18px; flex-wrap: wrap; align-items: center; font-size: 14px">
+        <label style="display: flex; align-items: center; gap: 8px">Movimento
+          <select style="height: 40px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 10px; font-size: 14px; background: #FFFFFF"><option>Folhas balançando + zoom lento na foto</option><option>Suave (só zoom)</option><option>Sem movimento</option></select>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px">Tempo por capítulo na apresentação
+          <select style="height: 40px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 10px; font-size: 14px; background: #FFFFFF"><option>6 s</option><option>8 s</option><option>10 s</option></select>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: {{accent}}">Usar como tela de descanso do tablet</label>
+      </div>
+    </section>
+
+    <div style="display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start">
+      <section aria-labelledby="t-caps" style="flex: 1 1 260px; max-width: 320px; border: 1px solid #EEEEEE; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <h2 id="t-caps" style="margin: 0; font-size: 16px; font-weight: 700">Capítulos</h2>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid #E3E3E3; background: #FFFFFF; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">+ Capítulo</button>
+        </div>
+        <sc-for list="{{capitulos}}" as="c" hint-placeholder-count="6">
+          <a href="#" style="display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 12px; border: 1px solid {{c.borda}}; background: {{c.fundo}}; text-decoration: none; color: #1A1A1A">
+            <span aria-hidden="true" style="color: #9E9E9E">⋮⋮</span>
+            <span style="width: 48px; height: 36px; border-radius: 8px; background: {{c.tom}}; flex-shrink: 0"></span>
+            <span style="display: flex; flex-direction: column; min-width: 0">
+              <span style="font-size: 14px; font-weight: 700">{{c.ano}}</span>
+              <span style="font-size: 12px; color: #5C5C5C">{{c.rotulo}}</span>
+            </span>
+            <sc-if value="{{c.aviso}}" hint-placeholder-val="{{false}}">
+              <span style="margin-left: auto; width: 10px; height: 10px; border-radius: 5px; background: #D97706" title="Tem sugestão"></span>
+            </sc-if>
+          </a>
+        </sc-for>
+      </section>
+
+      <section aria-labelledby="t-edit" style="flex: 999 1 380px; min-width: 0; border: 1px solid #EEEEEE; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <h2 id="t-edit" style="margin: 0; font-size: 16px; font-weight: 700">Capítulo 1</h2>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Ano
+            <input type="text" placeholder="Ex.: 2012" style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Rótulo curto
+            <input type="text" value="O começo" style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+          </label>
+        </div>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Título
+          <input type="text" placeholder="Ex.: Uma panela, uma receita de família" style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Texto
+          <textarea rows="5" placeholder="Conte o que aconteceu neste ano…" style="border-radius: 10px; border: 1px solid #DADADA; padding: 10px 12px; font-size: 14px; font-weight: 400; line-height: 1.5; resize: vertical"></textarea>
+        </label>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+          <div style="width: 120px; height: 80px; border-radius: 10px; border: 2px dashed #CFCFCF; background: #F7F7F7; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5C5C5C; text-align: center">Foto ou vídeo</div>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 14px">Movimento da foto
+            <select style="height: 40px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 10px; font-size: 14px; background: #FFFFFF"><option>Zoom lento (recomendado)</option><option>Deslizar para o lado</option><option>Parada</option></select>
+          </label>
+        </div>
+      </section>
+
+      <aside aria-labelledby="t-sug" style="flex: 1 1 280px; max-width: 340px; border-radius: 16px; background: #EAF4EE; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="t-sug" style="margin: 0; font-size: 16px; font-weight: 700; color: #0F3D22">Sugestões</h2>
+        <sc-for list="{{sugestoes}}" as="s" hint-placeholder-count="4">
+          <div style="border-radius: 12px; background: #FFFFFF; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 13px; line-height: 1.45; color: #1A1A1A">{{s.texto}}</span>
+            <button type="button" style="align-self: flex-start; height: 34px; padding: 0 12px; border-radius: 9px; border: 0; background: {{accent}}; color: #FFFFFF; font-size: 13px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">{{s.acao}}</button>
+          </div>
+        </sc-for>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const menuItens = [
+      ['Dashboard', 'PainelDashboard.dc.html'], ['Clientes (CRM)', 'PainelClientes.dc.html'], ['Disparos WhatsApp', 'PainelDisparos.dc.html'], ['Campanhas automáticas', 'PainelCampanhas.dc.html'],
+      ['Cardápio', 'PainelCardapio.dc.html'], ['Promoções e descontos', 'PainelPromocoes.dc.html'], ['Recomendações', 'PainelRecomendacoes.dc.html'],
+      ['Fidelidade e selos', 'PainelFidelidade.dc.html'], ['Menu degustação', '#'], ['Vitrine e banners', '#'], ['Nossa história', 'PainelHistoria.dc.html'], ['Idiomas', '#'], ['Configurações', '#']
+    ];
+    const temas = [
+      ['Floresta clara', 'Fundo claro, folhas verdes balançando', '#F3F7F1', '#2F7A4A', '#1E5C36', true],
+      ['Floresta noturna', 'Fundo verde-escuro, vaga-lumes subindo', '#0E1F15', '#1E5C36', '#2F7A4A'],
+      ['Rio e areia', 'Tons de areia com folhagem e azul do rio', '#F4F4F4', '#3C7D57', '#6FA37F'],
+      ['Sua foto', 'Use uma foto do salão como fundo', '#454545', '#5C5C5C', '#4D4D4D']
+    ];
+    const caps = [['[ANO 1]', 'O começo', '#4D4D4D', true, true], ['[ANO 2]', 'Primeira casa', '#404040', false, true], ['[ANO 3]', 'O prato da casa', '#484848'], ['[ANO 4]', 'Crescimento', '#3D3D3D'], ['[ANO 5]', 'Novos sabores', '#555555'], ['[HOJE]', 'Hoje', '#3A3A3A']];
+    return {
+      accent,
+      menu: menuItens.map(([nome, href], i) => ({ nome, href, peso: i === 10 ? 700 : 500, fundo: i === 10 ? '#EAF4EE' : 'transparent', cor: i === 10 ? accent : '#3A3A3A' })),
+      temas: temas.map(([nome, desc, fundo, folha, folha2, sel]) => ({ nome, desc, fundo, folha, folha2, sel: !!sel, borda: sel ? `2px solid ${accent}` : '1px solid #E3E3E3' })),
+      capitulos: caps.map(([ano, rotulo, tom, sel, aviso]) => ({ ano, rotulo, tom, aviso: !!aviso, borda: sel ? accent : '#EDEDED', fundo: sel ? '#EAF4EE' : '#FFFFFF' })),
+      sugestoes: [
+        { texto: 'Seu texto tem 140 palavras. No tablet, até 60 palavras é lido até o fim. Quer uma versão mais curta?', acao: 'Encurtar texto' },
+        { texto: 'Capítulo 1 está sem foto. Fotos antigas, mesmo simples, deixam a história mais real.', acao: 'Adicionar foto' },
+        { texto: 'Sugestão de título: "Uma panela, uma receita de família".', acao: 'Usar título' },
+        { texto: 'Com 6 capítulos e 6 s cada, a apresentação dura 36 s, bom para a tela de descanso.', acao: 'Ver apresentação' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

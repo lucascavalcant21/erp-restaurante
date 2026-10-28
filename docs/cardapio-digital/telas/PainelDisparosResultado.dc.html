@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel — resultado dos disparos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-wrap: wrap">
+
+  <nav aria-label="Painel" style="flex: 1 1 220px; max-width: 240px; min-width: 200px; background: #F7F7F7; border-right: 1px solid #E3E3E3; padding: 20px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 16px">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-weight: 700; font-size: 14px">CB</div>
+      <span style="font-family: Outfit, sans-serif; font-weight: 600; font-size: 16px">Painel</span>
+    </div>
+    <sc-for list="{{menu}}" as="m" hint-placeholder-count="13">
+      <a href="{{m.href}}" style="height: 42px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; text-decoration: none; font-size: 14px; font-weight: {{m.peso}}; background: {{m.fundo}}; color: {{m.cor}}">{{m.nome}}</a>
+    </sc-for>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+      <a href="PainelDisparos.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none">← Disparos</a>
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; font-weight: 600; flex-grow: 1">Resultado dos disparos</h1>
+      <span style="padding: 4px 10px; border-radius: 999px; background: #FFF4DC; color: #7A5300; font-size: 12px; font-weight: 700">Dados de exemplo</span>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+      <div role="tablist" aria-label="Período" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #EFEFEF">
+        <sc-for list="{{periodos}}" as="p" hint-placeholder-count="4">
+          <button type="button" role="tab" aria-selected="{{p.sel}}" onClick="{{p.ir}}" style="height: 40px; padding: 0 18px; border-radius: 9px; border: 0; background: {{p.fundo}}; color: {{p.cor}}; font-size: 14px; font-weight: 700">{{p.nome}}</button>
+        </sc-for>
+      </div>
+      <button type="button" style="height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid #E3E3E3; background: #FFFFFF; font-size: 14px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">{{rotuloData}} ▾</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+      <div style="border: 1px solid #EEEEEE; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <span style="font-size: 12px; font-weight: 600; color: #5C5C5C">Custo dos disparos</span>
+        <span style="font-family: Outfit, sans-serif; font-size: 28px; font-weight: 700">{{d.custo}}</span>
+      </div>
+      <div style="border: 1px solid #EEEEEE; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <span style="font-size: 12px; font-weight: 600; color: #5C5C5C">Faturamento gerado</span>
+        <span style="font-family: Outfit, sans-serif; font-size: 28px; font-weight: 700; color: #1E7A45">{{d.fat}}</span>
+      </div>
+      <div style="border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; background: {{accent}}; color: #FFFFFF">
+        <span style="font-size: 12px; font-weight: 600; color: #D7EBDD">Retorno</span>
+        <span style="font-family: Outfit, sans-serif; font-size: 28px; font-weight: 700">{{d.roi}}</span>
+        <span style="font-size: 12px; color: #D7EBDD">a cada R$ 1 gasto</span>
+      </div>
+      <div style="border: 1px solid #EEEEEE; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <span style="font-size: 12px; font-weight: 600; color: #5C5C5C">Custo por pedido</span>
+        <span style="font-family: Outfit, sans-serif; font-size: 28px; font-weight: 700">{{d.cpp}}</span>
+      </div>
+    </div>
+
+    <section aria-labelledby="t-funil" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+      <h2 id="t-funil" style="margin: 0; font-size: 16px; font-weight: 700">Do envio ao pedido</h2>
+      <sc-for list="{{funil}}" as="f" hint-placeholder-count="5">
+        <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 90px; gap: 12px; align-items: center; font-size: 14px">
+          <span>{{f.nome}}</span>
+          <div style="height: 28px; border-radius: 8px; background: #EFEFEF; overflow: hidden"><div style="height: 28px; width: {{f.largura}}; background: {{f.cor}}; border-radius: 8px"></div></div>
+          <span style="text-align: right"><strong>{{f.valor}}</strong> <span style="color: #5C5C5C; font-size: 12px">{{f.pct}}</span></span>
+        </div>
+      </sc-for>
+    </section>
+
+    <section aria-labelledby="t-lista" style="display: flex; flex-direction: column; gap: 10px">
+      <h2 id="t-lista" style="margin: 0; font-size: 16px; font-weight: 700">Disparos do período</h2>
+      <div style="overflow-x: auto; border: 1px solid #EEEEEE; border-radius: 14px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <table style="width: 100%; min-width: 780px; border-collapse: collapse; font-size: 14px">
+          <thead>
+            <tr style="background: #F7F7F7; text-align: left; color: #5C5C5C; font-size: 12px">
+              <th style="padding: 10px 12px">DATA</th><th style="padding: 10px 12px">DISPARO</th><th style="padding: 10px 12px">ENVIADAS</th><th style="padding: 10px 12px">RESPONDERAM</th><th style="padding: 10px 12px">PEDIDOS</th><th style="padding: 10px 12px">CUSTO</th><th style="padding: 10px 12px">FATUROU</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{linhas}}" as="l" hint-placeholder-count="4">
+              <tr style="border-top: 1px solid #EDEDED">
+                <td style="padding: 10px 12px; white-space: nowrap">{{l.data}}</td>
+                <td style="padding: 10px 12px; font-weight: 600">{{l.nome}}</td>
+                <td style="padding: 10px 12px">{{l.env}}</td>
+                <td style="padding: 10px 12px">{{l.resp}}</td>
+                <td style="padding: 10px 12px">{{l.ped}}</td>
+                <td style="padding: 10px 12px">{{l.custo}}</td>
+                <td style="padding: 10px 12px; font-weight: 700; color: #1E7A45">{{l.fat}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <span style="font-size: 12px; color: #5C5C5C">"Responderam" = cliente mandou mensagem ou tocou em um botão. "Pedidos" = pedido feito em até 48 h pelo link do disparo ou pelo mesmo WhatsApp.</span>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const menuItens = [
+      ['Dashboard', 'PainelDashboard.dc.html'], ['Clientes (CRM)', 'PainelClientes.dc.html'], ['Disparos WhatsApp', 'PainelDisparos.dc.html'], ['Campanhas automáticas', 'PainelCampanhas.dc.html'],
+      ['Cardápio', 'PainelCardapio.dc.html'], ['Promoções e descontos', 'PainelPromocoes.dc.html'], ['Recomendações', 'PainelRecomendacoes.dc.html'],
+      ['Fidelidade e selos', 'PainelFidelidade.dc.html'], ['Menu degustação', '#'], ['Vitrine e banners', '#'], ['Nossa história', 'PainelHistoria.dc.html'], ['Idiomas', '#'], ['Configurações', '#']
+    ];
+    // Números ilustrativos.
+    const dados = {
+      Dia:    { data: 'Hoje, 20/10', env: 200, ent: 194, lid: 151, resp: 38, ped: 21, custoN: 70, fatN: 1890 },
+      Semana: { data: '14 a 20/10', env: 820, ent: 796, lid: 602, resp: 141, ped: 77, custoN: 287, fatN: 6930 },
+      'Mês':  { data: 'Outubro 2026', env: 2900, ent: 2810, lid: 2120, resp: 470, ped: 251, custoN: 1015, fatN: 22590 },
+      Ano:    { data: '2026', env: 18400, ent: 17850, lid: 13390, resp: 2980, ped: 1590, custoN: 6440, fatN: 143100 }
+    };
+    const per = (this.state && this.state.per) || 'Dia';
+    const x = dados[per];
+    const brl = (v) => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const pct = (v) => Math.round(v / x.env * 100) + '%';
+    const etapas = [['Enviadas', x.env], ['Entregues', x.ent], ['Lidas', x.lid], ['Entraram em contato', x.resp], ['Fizeram pedido', x.ped]];
+    return {
+      accent,
+      menu: menuItens.map(([nome, href], i) => ({ nome, href, peso: i === 2 ? 700 : 500, fundo: i === 2 ? '#EAF4EE' : 'transparent', cor: i === 2 ? accent : '#3A3A3A' })),
+      periodos: Object.keys(dados).map((nome) => ({ nome, sel: nome === per, ir: () => this.setState({ per: nome }), fundo: nome === per ? accent : 'transparent', cor: nome === per ? '#FFFFFF' : '#1A1A1A' })),
+      rotuloData: x.data,
+      d: {
+        custo: brl(x.custoN), fat: brl(x.fatN),
+        roi: 'R$ ' + (x.fatN / x.custoN).toFixed(1).replace('.', ','),
+        cpp: brl(x.custoN / x.ped)
+      },
+      funil: etapas.map(([nome, v], i) => ({ nome, valor: v.toLocaleString('pt-BR'), pct: i ? pct(v) : '', largura: Math.max(2, Math.round(v / x.env * 100)) + '%', cor: i === etapas.length - 1 ? accent : '#9CC4AC' })),
+      linhas: [
+        ['20/10 11:00', 'Favoritos da terça', 200, 38, 21, 70, 1890],
+        ['18/10 18:30', 'Sumidos 30+ dias', 160, 22, 9, 56, 780],
+        ['16/10 11:00', 'Novidade: Caldeirada', 240, 47, 25, 84, 2260],
+        ['15/10 11:00', 'Terça do Tacacá', 220, 34, 22, 77, 2000]
+      ].map(([data, nome, env, resp, ped, c, f]) => ({ data, nome, env, resp, ped, custo: brl(c), fat: brl(f) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

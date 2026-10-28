@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel — configurar recomendações</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-wrap: wrap">
+
+  <nav aria-label="Painel" style="flex: 1 1 220px; max-width: 240px; min-width: 200px; background: #F7F7F7; border-right: 1px solid #E3E3E3; padding: 20px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 16px">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-weight: 700; font-size: 14px">CB</div>
+      <span style="font-family: Outfit, sans-serif; font-weight: 600; font-size: 16px">Painel</span>
+    </div>
+    <sc-for list="{{menu}}" as="m" hint-placeholder-count="13">
+      <a href="{{m.href}}" style="height: 42px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; text-decoration: none; font-size: 14px; font-weight: {{m.peso}}; background: {{m.fundo}}; color: {{m.cor}}">{{m.nome}}</a>
+    </sc-for>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; font-weight: 600; flex-grow: 1">Recomendações</h1>
+      <a href="TabletRecomenda.dc.html" style="height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid #E3E3E3; display: flex; align-items: center; text-decoration: none; color: #1A1A1A; font-size: 14px; font-weight: 600; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">Testar como cliente</a>
+      <button type="button" style="height: 44px; padding: 0 20px; border-radius: 12px; border: 0; background: {{accent}}; color: #FFFFFF; font-size: 14px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">Salvar</button>
+    </div>
+
+    <section aria-labelledby="t-saud" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 16px 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+      <h2 id="t-saud" style="grid-column: span 2; margin: 0; font-size: 16px; font-weight: 700">Boas-vindas</h2>
+      <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Cliente identificado
+        <input type="text" value="Olá, {primeiro_nome}! Que bom te ver por aqui." style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Sem cadastro
+        <input type="text" value="Olá! Seja bem-vindo." style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+      </label>
+    </section>
+
+    <div style="display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start">
+      <section aria-labelledby="t-arvore" style="flex: 1 1 380px; border: 1px solid #EEEEEE; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <h2 id="t-arvore" style="margin: 0; font-size: 16px; font-weight: 700">Perguntas e caminhos</h2>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid #E3E3E3; background: #FFFFFF; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">+ Opção</button>
+        </div>
+        <sc-for list="{{arvore}}" as="n" hint-placeholder-count="12">
+          <a href="#" style="margin-left: {{n.recuo}}; min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 1px solid {{n.borda}}; background: {{n.fundo}}; display: flex; align-items: center; gap: 8px; text-decoration: none; color: #1A1A1A">
+            <span style="padding: 2px 8px; border-radius: 6px; background: {{n.tagFundo}}; color: {{n.tagCor}}; font-size: 11px; font-weight: 700; flex-shrink: 0">{{n.tipo}}</span>
+            <span style="font-size: 14px; font-weight: {{n.peso}}">{{n.texto}}</span>
+          </a>
+        </sc-for>
+      </section>
+
+      <section aria-labelledby="t-edit" style="flex: 1 1 360px; border: 1px solid #EEEEEE; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <h2 id="t-edit" style="margin: 0; font-size: 16px; font-weight: 700">Opção: "Um bom peixe"</h2>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Título no botão
+          <input type="text" value="Um bom peixe" style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Subtítulo
+          <input type="text" value="Assado, cozido, frito…" style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+        </label>
+        <div style="display: flex; gap: 12px; align-items: center">
+          <div style="width: 96px; height: 64px; border-radius: 10px; background: #3D3D3D; flex-shrink: 0"></div>
+          <button type="button" style="height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid #E3E3E3; background: #FFFFFF; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">Trocar foto</button>
+        </div>
+        <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+          <legend style="font-size: 13px; font-weight: 600; margin-bottom: 8px">Ao tocar nesta opção</legend>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 14px"><input type="radio" name="depois" checked style="width: 18px; height: 18px; accent-color: {{accent}}">Fazer outra pergunta: "Como você prefere o peixe?"</label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 14px"><input type="radio" name="depois" style="width: 18px; height: 18px; accent-color: {{accent}}">Mostrar pratos sugeridos</label>
+        </fieldset>
+        <div style="padding: 12px; border-radius: 12px; background: #F7F7F7; font-size: 13px; line-height: 1.5; color: #444444">Nas opções finais, escolha 1 ou mais pratos do cardápio. "Outra sugestão" mostra o próximo da lista. Pratos esgotados são pulados automaticamente.</div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const menuItens = [
+      ['Dashboard', 'PainelDashboard.dc.html'], ['Clientes (CRM)', 'PainelClientes.dc.html'], ['Disparos WhatsApp', 'PainelDisparos.dc.html'], ['Campanhas automáticas', 'PainelCampanhas.dc.html'],
+      ['Cardápio', 'PainelCardapio.dc.html'], ['Promoções e descontos', 'PainelPromocoes.dc.html'], ['Recomendações', 'PainelRecomendacoes.dc.html'],
+      ['Fidelidade e selos', 'PainelFidelidade.dc.html'], ['Menu degustação', '#'], ['Vitrine e banners', '#'], ['Nossa história', 'PainelHistoria.dc.html'], ['Idiomas', '#'], ['Configurações', '#']
+    ];
+    const nos = [
+      [0, 'PERGUNTA', 'Qual experiência você está buscando hoje?'],
+      [1, 'OPÇÃO', 'Explorar a Amazônia'],
+      [2, 'PERGUNTA', 'É sua primeira vez com a culinária amazônica?'],
+      [3, 'PRATOS', 'Sim → Menu degustação'],
+      [3, 'PRATOS', 'Já conheço → Maniçoba, Tacacá'],
+      [1, 'OPÇÃO', 'Um bom peixe', true],
+      [2, 'PERGUNTA', 'Como você prefere o peixe?'],
+      [3, 'PRATOS', 'Assado → Tambaqui na brasa'],
+      [3, 'PRATOS', 'Cozido → Caldeirada de filhote'],
+      [3, 'PRATOS', 'Frito → Pirarucu frito'],
+      [1, 'OPÇÃO', 'Camarão'],
+      [1, 'OPÇÃO', 'Carne na brasa → Picanha']
+    ];
+    const tags = {
+      'PERGUNTA': ['#E3ECFB', '#1F4C9A'],
+      'OPÇÃO': ['#EAF4EE', '#0F3D22'],
+      'PRATOS': ['#E9F4EC', '#1E6B3A']
+    };
+    return {
+      accent,
+      menu: menuItens.map(([nome, href], i) => ({ nome, href, peso: i === 6 ? 700 : 500, fundo: i === 6 ? '#EAF4EE' : 'transparent', cor: i === 6 ? accent : '#3A3A3A' })),
+      arvore: nos.map(([nivel, tipo, texto, sel]) => ({
+        recuo: (nivel * 22) + 'px', tipo, texto, peso: tipo === 'PERGUNTA' ? 700 : 500,
+        borda: sel ? accent : '#EDEDED', fundo: sel ? '#EAF4EE' : '#FFFFFF',
+        tagFundo: tags[tipo][0], tagCor: tags[tipo][1]
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

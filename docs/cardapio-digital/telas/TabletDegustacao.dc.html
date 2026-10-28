@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Tablet — menu degustação</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+@keyframes pulsoPonto{0%{box-shadow:0 0 0 0 rgba(255,255,255,.9)}100%{box-shadow:0 0 0 18px rgba(255,255,255,0)}}
+.ponto-ativo{animation:pulsoPonto 1.4s ease-out infinite}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <header style="height: 72px; flex-shrink: 0; display: flex; align-items: center; gap: 14px; padding: 0 24px; border-bottom: 1px solid #EDEDED">
+    <a href="Main.dc.html" aria-label="Voltar ao cardápio" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 22px; border: 1px solid #E3E3E3; color: #1A1A1A; display: flex; align-items: center; justify-content: center; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+    </a>
+    <div style="display: flex; flex-direction: column; flex-grow: 1">
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 24px; font-weight: 600">Menu degustação</h1>
+      <span style="font-size: 13px; color: #5C5C5C">Toque em um prato na foto para saber o que é e como comer</span>
+    </div>
+    <div style="display: flex; gap: 14px; font-size: 13px; color: #444444">
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 22px; height: 22px; border-radius: 11px; background: {{accent}}; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">1</span>Pratos, na ordem</span>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 22px; height: 22px; border-radius: 11px; background: #4A4A4A; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">A</span>Molhos e farinhas</span>
+    </div>
+  </header>
+
+  <div style="flex-grow: 1; display: flex; gap: 24px; padding: 20px 24px; min-height: 0">
+
+    <section aria-label="Foto do menu degustação" style="position: relative; width: 680px; height: 680px; flex-shrink: 0; border-radius: 20px; overflow: hidden; background: #3A3A3A">
+      <img src="/_blob/f81a6e902a1163304ed6b8152c7ecba1" alt="Menu degustação servido na mesa, com vários pratos em tigelas pretas" style="width: 100%; height: 100%; object-fit: cover; display: block">
+      <sc-for list="{{pontos}}" as="p" hint-placeholder-count="11">
+        <button type="button" onClick="{{p.escolher}}" aria-label="{{p.rotulo}}: {{p.nome}}" aria-pressed="{{p.sel}}" class="{{p.classe}}" style="position: absolute; left: {{p.x}}; top: {{p.y}}; width: {{p.tam}}; height: {{p.tam}}; margin-left: {{p.meio}}; margin-top: {{p.meio}}; border-radius: 50%; border: 3px solid #FFFFFF; background: {{p.fundo}}; color: #FFFFFF; font-family: Outfit, sans-serif; font-size: {{p.fonte}}; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0">{{p.rotulo}}</button>
+      </sc-for>
+    </section>
+
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+      <div role="group" aria-label="Ordem para comer" style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; font-weight: 700; color: #5C5C5C">ORDEM PARA COMER</span>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap">
+          <sc-for list="{{passos}}" as="p" hint-placeholder-count="7">
+            <button type="button" onClick="{{p.escolher}}" aria-label="Passo {{p.rotulo}}: {{p.nome}}" style="height: 44px; min-width: 44px; padding: 0 12px; border-radius: 22px; border: {{p.borda}}; background: {{p.fundoChip}}; color: {{p.corChip}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px">
+              <span style="font-family: Outfit, sans-serif; font-size: 15px">{{p.rotulo}}</span>{{p.curtoSel}}
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <article style="flex-grow: 1; min-height: 0; border-radius: 18px; border: 1px solid #EEEEEE; padding: 18px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 22px; background: {{atual.fundo}}; color: #FFFFFF; font-family: Outfit, sans-serif; font-size: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{atual.rotulo}}</span>
+          <div style="display: flex; flex-direction: column; min-width: 0">
+            <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: {{accent}}">{{atual.etapa}}</span>
+            <h2 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; line-height: 1.15; font-weight: 700">{{atual.nome}}</h2>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #3A3A3A"><strong>O que é:</strong> {{atual.oque}}</p>
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 700">Como comer</h3>
+          <sc-for list="{{atual.como}}" as="c" hint-placeholder-count="3">
+            <div style="display: flex; gap: 10px; align-items: flex-start">
+              <span style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 12px; background: #EAF4EE; color: {{accent}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">{{c.k}}</span>
+              <span style="font-size: 14px; line-height: 1.5">{{c.txt}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <div style="padding: 10px 12px; border-radius: 12px; background: #F7F7F7; display: flex; flex-direction: column; gap: 3px">
+            <span style="font-size: 11px; font-weight: 700; color: #5C5C5C">HARMONIZA COM</span>
+            <span style="font-size: 14px">{{atual.combina}}</span>
+          </div>
+          <div style="padding: 10px 12px; border-radius: 12px; background: #F7F7F7; display: flex; flex-direction: column; gap: 5px">
+            <span style="font-size: 11px; font-weight: 700; color: #5C5C5C">CONTÉM</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap">
+              <sc-for list="{{atual.alergenos}}" as="a" hint-placeholder-count="2">
+                <span style="padding: 2px 9px; border-radius: 999px; background: #FFF4DC; color: #7A5300; font-size: 12px; font-weight: 600">{{a}}</span>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: auto; display: flex; gap: 10px">
+          <button type="button" onClick="{{anterior}}" style="height: 52px; padding: 0 20px; border-radius: 14px; border: 1px solid #E3E3E3; background: #FFFFFF; color: #1A1A1A; font-size: 15px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">← Anterior</button>
+          <button type="button" onClick="{{proximo}}" style="flex-grow: 1; height: 52px; border-radius: 14px; border: 0; background: {{accent}}; color: #FFFFFF; font-size: 16px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">{{proximoTxt}}</button>
+        </div>
+      </article>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    // Nomes e textos são um RASCUNHO a partir da foto: o restaurante confirma/corrige no painel.
+    // x/y = posição do ponto na foto, em % (marcada pelo dono tocando na foto no painel).
+    const itens = [
+      { rotulo: '1', tipo: 'passo', curto: 'Tacacá', nome: 'Tacacá', x: '53%', y: '47%',
+        oque: 'Caldo quente de tucupi com goma de tapioca, jambu e camarão.',
+        como: ['Comece por ele, ainda quente.', 'Tome o caldo e pegue o camarão com a colher.', 'O jambu deixa a boca levemente dormente: é normal e faz parte.'],
+        combina: 'Cachaça de jambu (dose pequena) ou água', alergenos: ['Crustáceos'] },
+      { rotulo: '2', tipo: 'passo', curto: 'Isca de peixe', nome: 'Isca de peixe empanada', x: '57%', y: '11%',
+        oque: 'Tiras de peixe amazônico empanadas e fritas.',
+        como: ['Passe no molho A (potinho branco).', 'Pode comer com a mão.'], combina: 'Cerveja gelada', alergenos: ['Peixe', 'Glúten'] },
+      { rotulo: '3', tipo: 'passo', curto: 'Camarão', nome: 'Camarão empanado', x: '45%', y: '77%',
+        oque: 'Camarões fritos e crocantes.',
+        como: ['Segure pela cauda; a cauda não se come.', 'Experimente com o molho B.'], combina: 'Cerveja gelada', alergenos: ['Crustáceos', 'Glúten'] },
+      { rotulo: '4', tipo: 'passo', curto: 'Vatapá', nome: 'Vatapá', x: '28%', y: '38%',
+        oque: 'Creme com leite de coco, dendê e camarão.',
+        como: ['Sirva uma colherada sobre o arroz (5).', 'Por cima, um pouco da farofa C.'], combina: 'Suco de cupuaçu ou vinho branco', alergenos: ['Crustáceos', 'Glúten', 'Castanhas'] },
+      { rotulo: '5', tipo: 'passo', curto: 'Arroz', nome: 'Arroz com jambu', x: '82%', y: '60%',
+        oque: 'Arroz amarelo com folhas de jambu.',
+        como: ['É a base: misture com o vatapá (4) e a maniçoba (6).'], combina: 'Vatapá e maniçoba', alergenos: [] },
+      { rotulo: '6', tipo: 'passo', curto: 'Maniçoba', nome: 'Maniçoba', x: '15%', y: '60%',
+        oque: 'Folhas de maniva cozidas por dias com carnes de porco. Sabor intenso.',
+        como: ['Prove pouco primeiro, com arroz (5).', 'Finalize com a farinha D.'], combina: 'Cerveja escura ou cachaça', alergenos: ['Carne suína'] },
+      { rotulo: '7', tipo: 'passo', curto: 'Macaxeira', nome: 'Macaxeira frita', x: '68%', y: '91%',
+        oque: 'Mandioca frita, crocante por fora.',
+        como: ['Coma entre os pratos para limpar o paladar.', 'Vai bem com o molho B.'], combina: 'Qualquer prato do menu', alergenos: [] },
+      { rotulo: 'A', tipo: 'acomp', curto: 'Molho', nome: 'Molho da casa', x: '43%', y: '30%',
+        oque: 'Molho para a isca de peixe.', como: ['Use na isca de peixe (2).'], combina: 'Isca de peixe (2)', alergenos: [] },
+      { rotulo: 'B', tipo: 'acomp', curto: 'Pimenta', nome: 'Molho de pimenta de cheiro', x: '62%', y: '36%',
+        oque: 'Pimenta de cheiro no tucupi: mais aroma do que ardência.', como: ['Algumas gotas no camarão (3) ou na macaxeira (7).'], combina: 'Camarão e macaxeira', alergenos: [] },
+      { rotulo: 'C', tipo: 'acomp', curto: 'Farofa', nome: 'Farofa', x: '85%', y: '42%',
+        oque: 'Farofa amarela para finalizar.', como: ['Polvilhe sobre o vatapá (4).'], combina: 'Vatapá (4)', alergenos: [] },
+      { rotulo: 'D', tipo: 'acomp', curto: 'Farinha', nome: 'Farinha de tapioca', x: '13%', y: '26%',
+        oque: 'Farinha crocante de tapioca.', como: ['Coloque um pouco sobre a maniçoba (6) ou o tacacá (1).'], combina: 'Maniçoba e tacacá', alergenos: [] }
+    ];
+    const passos = itens.filter((i) => i.tipo === 'passo');
+    const sel = (this.state && this.state.sel) || '1';
+    const escolher = (r) => this.setState({ sel: r });
+    const a = itens.find((i) => i.rotulo === sel) || itens[0];
+    const idx = passos.findIndex((p) => p.rotulo === sel);
+    const prox = idx >= 0 && idx < passos.length - 1 ? passos[idx + 1] : null;
+    const ant = idx > 0 ? passos[idx - 1] : null;
+    return {
+      accent,
+      pontos: itens.map((p) => {
+        const ativo = p.rotulo === sel;
+        const passo = p.tipo === 'passo';
+        const tam = ativo ? 56 : (passo ? 44 : 34);
+        return { ...p, sel: ativo, escolher: () => escolher(p.rotulo),
+          tam: tam + 'px', meio: (-tam / 2) + 'px', fonte: passo ? '18px' : '14px',
+          fundo: passo ? accent : '#4A4A4A', classe: ativo ? 'ponto-ativo' : '' };
+      }),
+      passos: passos.map((p) => {
+        const ativo = p.rotulo === sel;
+        return { ...p, escolher: () => escolher(p.rotulo),
+          curtoSel: p.curto,
+          borda: ativo ? `2px solid ${accent}` : '1px solid #E3E3E3',
+          fundoChip: ativo ? accent : '#FFFFFF', corChip: ativo ? '#FFFFFF' : '#1A1A1A' };
+      }),
+      atual: { ...a,
+        etapa: a.tipo === 'passo' ? `Passo ${a.rotulo} de ${passos.length}` : 'Acompanhamento',
+        fundo: a.tipo === 'passo' ? accent : '#4A4A4A',
+        como: a.como.map((txt, k) => ({ k: k + 1, txt })),
+        alergenos: a.alergenos.length ? a.alergenos : ['Nenhum alergênico comum'] },
+      anterior: () => escolher(ant ? ant.rotulo : passos[0].rotulo),
+      proximo: () => escolher(prox ? prox.rotulo : passos[0].rotulo),
+      proximoTxt: prox ? `Próximo: ${prox.curto} →` : (idx === passos.length - 1 ? 'Bom apetite! Voltar ao início' : `Ir para o passo 1 →`)
+    };
+  }
+}
+</script>
+</body>
+</html>

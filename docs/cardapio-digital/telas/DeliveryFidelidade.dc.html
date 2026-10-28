@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Cliente — pontos e cartão de selos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+@keyframes carimbo{0%{transform:scale(1.8) rotate(-20deg);opacity:0}60%{transform:scale(.9) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+@keyframes festa{0%{transform:translateY(20px);opacity:0}100%{transform:translateY(0);opacity:1}}
+.novo-selo{animation:carimbo .6s cubic-bezier(.2,.8,.2,1) both}
+.parabens{animation:festa .5s ease-out both}
+@media (prefers-reduced-motion: reduce){.novo-selo,.parabens{animation:none}}
+@keyframes orbitaA{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(-16px,12px) rotate(10deg)}}
+@keyframes orbitaB{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(14px,-10px) scale(1.1)}}
+@keyframes orbitaC{0%,100%{transform:translate(0,0)}50%{transform:translate(10px,14px)}}
+@keyframes reflexo{0%{transform:translateX(-140%) skewX(-12deg)}55%,100%{transform:translateX(420%) skewX(-12deg)}}
+.anelA{animation:orbitaA 14s ease-in-out infinite}
+.anelB{animation:orbitaB 11s ease-in-out infinite}
+.anelC{animation:orbitaC 9s ease-in-out infinite}
+.reflexo{animation:reflexo 8s ease-in-out infinite}
+@keyframes desliza{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.trilho{animation:desliza 40s linear infinite}
+.trilho-wrap{scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.trilho-wrap::-webkit-scrollbar{display:none}
+.trilho-wrap:active .trilho{animation-play-state:paused}
+@keyframes kbLento{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.kb{animation:kbLento 16s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.anelA,.anelB,.anelC,.reflexo,.trilho,.kb{animation:none}}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; position: relative; overflow: hidden">
+  <header style="height: 60px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-bottom: 1px solid #EDEDED">
+    <a href="DeliveryInicio.dc.html" aria-label="Voltar" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #1A1A1A; border-radius: 22px; background: #FFFFFF; border: 1px solid #E3E3E3; box-sizing: border-box; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+    </a>
+    <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 18px; font-weight: 600">Minha fidelidade</h1>
+  </header>
+
+  <div style="flex-grow: 1; overflow: hidden; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px">
+    <section aria-label="Pontos e cashback" style="border-radius: 18px; background: linear-gradient(135deg, #1D6E40 0%, {{accent}} 52%, #0C331C 100%); position: relative; overflow: hidden; isolation: isolate; box-shadow: 0 1px 2px rgba(12,51,28,.2), 0 12px 28px rgba(12,51,28,.28); color: #FFFFFF; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+      <span aria-hidden="true" style="position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none">
+        <span class="anelA" style="position: absolute; right: -50px; top: -70px; width: 200px; height: 200px; border-radius: 50%; border: 1px solid rgba(255,255,255,.15)"></span>
+        <span class="anelB" style="position: absolute; right: 20px; bottom: -95px; width: 170px; height: 170px; border-radius: 50%; background: rgba(255,255,255,.06)"></span>
+        <span class="anelC" style="position: absolute; left: 42%; top: -46px; width: 96px; height: 96px; border-radius: 50%; border: 1px solid rgba(255,255,255,.09)"></span>
+        <span class="reflexo" style="position: absolute; top: -20%; bottom: -20%; left: 0; width: 28%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.08), rgba(255,255,255,0))"></span>
+      </span>
+      <span style="font-size: 13px; color: #D7EBDD">Olá, Manuela</span>
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 10px">
+        <div style="display: flex; flex-direction: column">
+          <span style="font-family: Outfit, sans-serif; font-size: 34px; font-weight: 800; line-height: 1">1.120</span>
+          <span style="font-size: 13px; color: #D7EBDD">pontos</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end">
+          <span style="font-family: Outfit, sans-serif; font-size: 24px; font-weight: 800">R$ 22,40</span>
+          <span style="font-size: 12px; color: #D7EBDD">de&nbsp;<strong style="font-size: 1.15em; font-weight: 800">CASHBACK</strong></span>
+        </div>
+      </div>
+      <span style="font-size: 12px; color: #D7EBDD">R$ 1 = 1 ponto · 100 pontos = R$ 2,00 de cashback</span>
+      <a href="DeliveryCheckout.dc.html" style="height: 44px; border-radius: 12px; background: #FFFFFF; color: {{accent}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; font-weight: 700">Usar cashback no próximo pedido</a>
+    </section>
+
+    <sc-if value="{{incompleto}}" hint-placeholder-val="{{true}}">
+      <section aria-label="Cartão de selos Tacacá" style="border-radius: 18px; border: 1px solid #EEEEEE; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-family: Outfit, sans-serif; font-size: 18px; font-weight: 700">Cartão Tacacá</h2>
+          <span style="font-size: 13px; font-weight: 700; color: {{accent}}">{{n}} de 6</span>
+        </div>
+        <span style="font-size: 13px; color: #444444">Compre 6 Tacacás e ganhe 1. Vale na mesa, no delivery e no balcão.</span>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; justify-items: center">
+          <sc-for list="{{selos}}" as="s" hint-placeholder-count="6">
+            <span class="{{s.classe}}" aria-label="{{s.rotulo}}" style="width: 72px; height: 72px; border-radius: 36px; box-sizing: border-box; border: {{s.borda}}; background: {{s.fundo}}; color: {{s.cor}}; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-size: 20px; font-weight: 700">
+              <sc-if value="{{s.cheio}}" hint-placeholder-val="{{false}}">
+                <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"></path><path d="M5 19l8-8"></path></svg>
+              </sc-if>
+              <sc-if value="{{s.vazio}}" hint-placeholder-val="{{true}}">{{s.num}}</sc-if>
+            </span>
+          </sc-for>
+        </div>
+        <span style="font-size: 14px; font-weight: 700; text-align: center">{{faltaTxt}}</span>
+        <a href="DeliveryCarrinho.dc.html" style="height: 54px; border-radius: 14px; background: {{accent}}; color: #FFFFFF; text-decoration: none; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-shadow: 0 8px 18px rgba(20,83,45,.25)">
+          <span style="display: flex; flex-direction: column; line-height: 1.2">
+            <span style="font-size: 15px; font-weight: 700">Pedir 1 Tacacá</span>
+            <span style="font-size: 12px; color: #D7EBDD">ganha +1 selo</span>
+          </span>
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700">R$ 32,00
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </span>
+        </a>
+        <sc-if value="{{mostrarCompletar}}" hint-placeholder-val="{{true}}">
+          <a href="DeliveryCarrinho.dc.html" style="height: 46px; border-radius: 14px; border: 1.5px solid {{accent}}; color: {{accent}}; text-decoration: none; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700">{{completarTxt}}</a>
+        </sc-if>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{completo}}" hint-placeholder-val="{{false}}">
+      <section class="parabens" aria-label="Prêmio liberado" style="border-radius: 18px; background: linear-gradient(135deg, #1D6E40 0%, {{accent}} 52%, #0C331C 100%); position: relative; overflow: hidden; isolation: isolate; box-shadow: 0 1px 2px rgba(12,51,28,.2), 0 12px 28px rgba(12,51,28,.28); color: #FFFFFF; padding: 20px 18px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center">
+      <span aria-hidden="true" style="position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none">
+        <span class="anelA" style="position: absolute; right: -50px; top: -70px; width: 200px; height: 200px; border-radius: 50%; border: 1px solid rgba(255,255,255,.15)"></span>
+        <span class="anelB" style="position: absolute; right: 20px; bottom: -95px; width: 170px; height: 170px; border-radius: 50%; background: rgba(255,255,255,.06)"></span>
+        <span class="anelC" style="position: absolute; left: 42%; top: -46px; width: 96px; height: 96px; border-radius: 50%; border: 1px solid rgba(255,255,255,.09)"></span>
+        <span class="reflexo" style="position: absolute; top: -20%; bottom: -20%; left: 0; width: 28%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.08), rgba(255,255,255,0))"></span>
+      </span>
+        <span style="font-family: Outfit, sans-serif; font-size: 26px; font-weight: 800">Parabéns, Manuela!</span>
+        <span style="font-size: 15px; color: #E4F0E7">Você completou o cartão e ganhou <strong style="color: #FFFFFF">1 Tacacá</strong>.</span>
+        <div style="margin-top: 4px; padding: 12px 20px; border-radius: 14px; background: #FFFFFF; color: #13261A; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 12px; font-weight: 600; color: #444444">Seu código</span>
+          <span style="font-family: Outfit, sans-serif; font-size: 32px; font-weight: 800; letter-spacing: .12em">TCK-7F3Q</span>
+        </div>
+        <span style="font-size: 13px; color: #E4F0E7">Válido por <strong style="color: #FFFFFF">30 dias</strong> (até 19/11/2026). Mostre o código no balcão ou ao garçom, ou use no delivery.</span>
+        <a href="DeliveryCarrinho.dc.html" style="align-self: stretch; height: 50px; border-radius: 14px; background: #FFFFFF; color: {{accent}}; text-decoration: none; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700">Pedir meu Tacacá grátis agora</a>
+      </section>
+    </sc-if>
+
+    <section aria-label="Outro cartão" style="border-radius: 16px; border: 1px solid #EEEEEE; padding: 12px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+      <div style="display: flex; gap: 4px" aria-hidden="true">
+        <span style="width: 14px; height: 14px; border-radius: 7px; background: {{accent}}"></span>
+        <span style="width: 14px; height: 14px; border-radius: 7px; background: {{accent}}"></span>
+        <span style="width: 14px; height: 14px; border-radius: 7px; border: 2px dashed #BFDCC9; box-sizing: border-box"></span>
+        <span style="width: 14px; height: 14px; border-radius: 7px; border: 2px dashed #BFDCC9; box-sizing: border-box"></span>
+      </div>
+      <div style="display: flex; flex-direction: column; flex-grow: 1">
+        <span style="font-size: 14px; font-weight: 700">Cartão Happy hour</span>
+        <span style="font-size: 12px; color: #5C5C5C">2 de 10 chopes · ganha 1 porção</span>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"selos":{"editor":"enum","default":"4","options":["3","4","5","6"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    // Selos vêm dos pedidos reais (mesa, delivery, balcão). Tweak só para ver os estados.
+    const n = Number(this.props.selos ?? 4);
+    const ultimo = n;
+    const total = 6;
+    return {
+      accent, n,
+      incompleto: n < total,
+      completo: n >= total,
+      faltaTxt: total - n === 1 ? 'Falta 1 selo para ganhar 1 Tacacá!' : `Faltam ${total - n} selos para ganhar 1 Tacacá`,
+      mostrarCompletar: total - n >= 2,
+      completarTxt: `Pedir ${total - n} e já ganhar o prêmio · R$ ${(32 * (total - n)).toFixed(2).replace('.', ',')}`,
+      selos: Array.from({ length: total }, (_, k) => {
+        const cheio = k < n;
+        return {
+          num: k + 1, cheio, vazio: !cheio,
+          rotulo: cheio ? `Selo ${k + 1} conquistado` : `Selo ${k + 1} pendente`,
+          classe: cheio && k + 1 === ultimo ? 'novo-selo' : '',
+          borda: cheio ? `3px solid ${accent}` : '2px dashed #BFDCC9',
+          fundo: cheio ? accent : '#FFFFFF',
+          cor: cheio ? '#FFFFFF' : '#5C7A66'
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

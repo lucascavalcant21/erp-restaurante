@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Tablet — escolher idioma</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&family=Noto+Sans+SC:wght@500&family=Noto+Sans+JP:wght@500&family=Noto+Sans+KR:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; box-sizing: border-box; background: rgba(26,26,26,.45); color: #1A1A1A; font-family: Inter, 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans KR', system-ui, sans-serif; display: flex; align-items: center; justify-content: center">
+  <div role="dialog" aria-label="Idioma" style="width: 760px; border-radius: 24px; background: #FFFFFF; padding: 30px 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 20px 50px rgba(0,0,0,.18)">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>
+        <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; font-weight: 600">Idioma · Language</h1>
+      </div>
+      <a href="Main.dc.html" aria-label="Fechar" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 22px; border: 1px solid #E3E3E3; color: #1A1A1A; display: flex; align-items: center; justify-content: center; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </a>
+    </div>
+    <div role="radiogroup" aria-label="Escolha o idioma" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+      <sc-for list="{{idiomas}}" as="l" hint-placeholder-count="8">
+        <button type="button" role="radio" aria-checked="{{l.sel}}" onClick="{{l.escolher}}" lang="{{l.lang}}" style="height: 68px; padding: 0 16px; border-radius: 14px; border: {{l.borda}}; background: {{l.fundo}}; display: flex; align-items: center; gap: 14px; text-align: left; color: #1A1A1A">
+          <span style="width: 42px; height: 42px; flex-shrink: 0; border-radius: 10px; background: {{l.siglaFundo}}; color: {{l.siglaCor}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700">{{l.sigla}}</span>
+          <span style="display: flex; flex-direction: column; flex-grow: 1">
+            <span style="font-size: 18px; font-weight: 600">{{l.nome}}</span>
+            <span style="font-size: 12px; color: #5C5C5C" lang="pt-BR">{{l.pt}}</span>
+          </span>
+          <sc-if value="{{l.sel}}" hint-placeholder-val="{{false}}">
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+    <p style="margin: 0; font-size: 13px; color: #5C5C5C; text-align: center">Todo o cardápio muda: categorias, pratos, descrições, alergênicos e botões. Os preços continuam em reais (R$).</p>
+    <div style="display: flex; gap: 12px">
+      <a href="Main.dc.html" lang="{{langSel}}" style="height: 56px; padding: 0 24px; border-radius: 14px; border: 1px solid #E3E3E3; display: flex; align-items: center; text-decoration: none; color: #1A1A1A; font-size: 16px; font-weight: 600; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">{{cancelarTxt}}</a>
+      <a href="Main.dc.html" lang="{{langSel}}" style="flex-grow: 1; height: 56px; border-radius: 14px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; font-size: 18px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>{{confirmarTxt}}
+      </a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const atual = (this.state && this.state.idioma) || 'pt-BR';
+    const lista = [
+      { lang: 'pt-BR', sigla: 'PT', nome: 'Português', pt: 'Português (Brasil)' },
+      { lang: 'en', sigla: 'EN', nome: 'English', pt: 'Inglês' },
+      { lang: 'es', sigla: 'ES', nome: 'Español', pt: 'Espanhol' },
+      { lang: 'it', sigla: 'IT', nome: 'Italiano', pt: 'Italiano' },
+      { lang: 'fr', sigla: 'FR', nome: 'Français', pt: 'Francês' },
+      { lang: 'zh-CN', sigla: '中', nome: '中文 (简体)', pt: 'Chinês (mandarim)' },
+      { lang: 'ja', sigla: '日', nome: '日本語', pt: 'Japonês' },
+      { lang: 'ko', sigla: '한', nome: '한국어', pt: 'Coreano' }
+    ];
+    const confirmar = { 'pt-BR': 'Confirmar', en: 'Confirm', es: 'Confirmar', it: 'Conferma', fr: 'Confirmer', 'zh-CN': '确认', ja: '確認', ko: '확인' };
+    const cancelar = { 'pt-BR': 'Cancelar', en: 'Cancel', es: 'Cancelar', it: 'Annulla', fr: 'Annuler', 'zh-CN': '取消', ja: 'キャンセル', ko: '취소' };
+    return {
+      accent,
+      langSel: atual,
+      confirmarTxt: confirmar[atual],
+      cancelarTxt: cancelar[atual],
+      idiomas: lista.map((l) => {
+        const sel = l.lang === atual;
+        return {
+          ...l, sel,
+          escolher: () => this.setState({ idioma: l.lang }),
+          borda: sel ? `2px solid ${accent}` : '1px solid #E3E3E3',
+          fundo: sel ? '#EAF4EE' : '#FFFFFF',
+          siglaFundo: sel ? accent : '#EFEFEF',
+          siglaCor: sel ? '#FFFFFF' : '#1A1A1A'
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

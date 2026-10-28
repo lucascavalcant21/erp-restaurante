@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Delivery — sacola com sugestões</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+@keyframes entra{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+.entra{animation:entra .35s ease-out both}
+@media (prefers-reduced-motion: reduce){.entra{animation:none}}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="height: 60px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-bottom: 1px solid #EDEDED">
+    <a href="DeliveryInicio.dc.html" aria-label="Voltar" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #1A1A1A; border-radius: 22px; background: #FFFFFF; border: 1px solid #E3E3E3; box-sizing: border-box; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+    </a>
+    <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 18px; font-weight: 600">Sua sacola</h1>
+  </header>
+
+  <div style="flex-grow: 1; overflow: hidden; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px">
+    <sc-for list="{{itens}}" as="i" hint-placeholder-count="2">
+      <div class="{{i.classe}}" style="display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 14px; border: 1px solid #EEEEEE; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <span style="width: 56px; height: 56px; border-radius: 10px; background: {{i.tom}}; flex-shrink: 0"></span>
+        <div style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0">
+          <span style="font-size: 14px; font-weight: 700">{{i.qtd}}× {{i.nome}}</span>
+          <span style="font-size: 12px; color: #5C5C5C">{{i.obs}}</span>
+        </div>
+        <span style="font-size: 14px; font-weight: 700">{{i.preco}}</span>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{mostrarProgresso}}" hint-placeholder-val="{{true}}">
+      <div style="padding: 12px; border-radius: 12px; background: #EAF4EE; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; color: #13261A">Mais <strong>1 prato</strong> e você ganha <strong>10% de&nbsp;<span style="font-size: 1.15em; font-weight: 800">DESCONTO</span></strong> no pedido.</span>
+        <div style="height: 8px; border-radius: 4px; background: #FFFFFF; overflow: hidden"><div style="width: 66%; height: 8px; background: {{accent}}"></div></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{temSugestoes}}" hint-placeholder-val="{{true}}">
+      <section aria-labelledby="t-sug" style="display: flex; flex-direction: column; gap: 8px">
+        <h2 id="t-sug" style="margin: 0; font-size: 15px; font-weight: 700">Combina com seu pedido</h2>
+        <div style="display: flex; gap: 10px; margin-right: -16px">
+          <sc-for list="{{sugestoes}}" as="s" hint-placeholder-count="2">
+            <div class="entra" style="position: relative; width: 168px; flex-shrink: 0; border-radius: 14px; border: 1px solid #EEEEEE; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+              <span style="height: 84px; background: {{s.tom}}; display: block"></span>
+              <button type="button" onClick="{{s.dispensar}}" aria-label="Agora não: {{s.nome}}" style="position: absolute; right: 6px; top: 6px; width: 32px; height: 32px; border-radius: 16px; border: 0; background: rgba(255,255,255,.92); color: #1A1A1A; font-size: 16px; line-height: 1">×</button>
+              <div style="padding: 10px; display: flex; flex-direction: column; gap: 4px; flex-grow: 1">
+                <span style="font-size: 11px; font-weight: 700; color: #1E6B3A">{{s.motivo}}</span>
+                <span style="font-size: 14px; font-weight: 700">{{s.nome}}</span>
+                <span style="font-size: 13px"><span style="text-decoration: line-through; color: #767676">{{s.de}}</span> <strong>{{s.por}}</strong></span>
+                <button type="button" onClick="{{s.adicionar}}" style="margin-top: auto; height: 38px; border-radius: 10px; border: 0; background: {{accent}}; color: #FFFFFF; font-size: 13px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">+ Adicionar</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+  </div>
+
+  <div style="flex-shrink: 0; padding: 12px 16px 16px; border-top: 1px solid #EDEDED; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700"><span>Total</span><span>{{total}}</span></div>
+    <a href="DeliveryCheckout.dc.html" style="height: 54px; border-radius: 14px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 16px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">Continuar</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const brl = (v) => 'R$ ' + v.toFixed(2).replace('.', ',');
+    const st = this.state || {};
+    const add = st.add || {};
+    const fora = st.fora || {};
+    const base = [
+      { id: 'p1', qtd: 1, nome: 'Picanha na brasa', obs: 'Ao ponto · sem cebola', v: 89.90, tom: '#D4D4D4' },
+      { id: 'p2', qtd: 1, nome: 'Tacacá', obs: '', v: 32.00, tom: '#BDBDBD' }
+    ];
+    // Regras configuradas no painel: sem sobremesa → sobremesa por +R$5; sem bebida → bebida.
+    const sug = [
+      { id: 's1', motivo: 'Sem sobremesa no pedido', nome: 'Pudim de leite', de: 'R$ 18,00', por: '+ R$ 5,00', v: 5.00, tom: '#C9C9C9' },
+      { id: 's2', motivo: 'Para acompanhar', nome: 'Suco de cupuaçu', de: 'R$ 12,00', por: '+ R$ 9,90', v: 9.90, tom: '#B0B0B0' }
+    ];
+    const itens = [...base, ...sug.filter((s) => add[s.id]).map((s) => ({ id: s.id, qtd: 1, nome: s.nome, obs: 'Sugestão aceita', v: s.v, tom: s.tom, classe: 'entra' }))];
+    const visiveis = sug.filter((s) => !add[s.id] && !fora[s.id]);
+    const total = itens.reduce((t, i) => t + i.v * i.qtd, 0);
+    return {
+      accent,
+      itens: itens.map((i) => ({ ...i, preco: brl(i.v * i.qtd), classe: i.classe || '' })),
+      mostrarProgresso: true,
+      temSugestoes: visiveis.length > 0,
+      sugestoes: visiveis.map((s) => ({ ...s,
+        adicionar: () => this.setState({ add: { ...add, [s.id]: true } }),
+        dispensar: () => this.setState({ fora: { ...fora, [s.id]: true } }) })),
+      total: brl(total)
+    };
+  }
+}
+</script>
+</body>
+</html>

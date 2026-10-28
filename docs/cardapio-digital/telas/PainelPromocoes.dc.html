@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel — promoções e descontos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-wrap: wrap">
+
+  <nav aria-label="Painel" style="flex: 1 1 220px; max-width: 240px; min-width: 200px; background: #F7F7F7; border-right: 1px solid #E3E3E3; padding: 20px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 16px">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-weight: 700; font-size: 14px">CB</div>
+      <span style="font-family: Outfit, sans-serif; font-weight: 600; font-size: 16px">Painel</span>
+    </div>
+    <sc-for list="{{menu}}" as="m" hint-placeholder-count="13">
+      <a href="{{m.href}}" style="height: 42px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; text-decoration: none; font-size: 14px; font-weight: {{m.peso}}; background: {{m.fundo}}; color: {{m.cor}}">{{m.nome}}</a>
+    </sc-for>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; font-weight: 600; flex-grow: 1">Promoções e descontos</h1>
+      <a href="#" style="height: 44px; padding: 0 16px; border-radius: 12px; background: {{accent}}; display: flex; align-items: center; text-decoration: none; color: #FFFFFF; font-size: 14px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">+ Nova promoção</a>
+    </div>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start">
+      <section aria-label="Promoções" style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px">
+          <sc-for list="{{resumo}}" as="r" hint-placeholder-count="4">
+            <div style="padding: 12px 14px; border-radius: 14px; border: 1px solid #EEEEEE; background: #FFFFFF; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+              <span style="font-size: 12px; color: #5C5C5C">{{r.rotulo}}</span>
+              <span style="font-family: Outfit, sans-serif; font-size: 22px; font-weight: 700; color: {{r.cor}}">{{r.valor}}</span>
+              <span style="font-size: 11px; color: #5C5C5C">{{r.sub}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font-size: 12px; color: #767676">Este mês · dados de exemplo</span>
+        <sc-for list="{{promos}}" as="p" hint-placeholder-count="5">
+          <article style="border: 1px solid {{p.borda}}; border-radius: 14px; padding: 14px 16px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; background: {{p.fundo}}">
+            <div style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 12px; background: {{p.corTipo}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-size: 17px; font-weight: 700">{{p.selo}}</div>
+            <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+                <span style="font-size: 15px; font-weight: 700">{{p.nome}}</span>
+                <span style="padding: 2px 8px; border-radius: 999px; background: #EFEFEF; font-size: 11px; font-weight: 700; color: #444444">{{p.tipo}}</span>
+              </div>
+              <span style="font-size: 13px; color: #444444">{{p.regra}}</span>
+              <span style="font-size: 12px; color: #5C5C5C">{{p.quando}} · {{p.canais}}</span>
+              <span style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px">
+                <span style="padding: 3px 8px; border-radius: 8px; background: #F2F2F2; color: #333333; font-size: 12px; font-weight: 600">Cliente ganha {{p.ganha}}</span>
+                <span style="padding: 3px 8px; border-radius: 8px; background: {{p.lucroFundo}}; color: {{p.lucroCor}}; font-size: 12px; font-weight: 700">Lucro {{p.lucro}} por venda · {{p.margem}}</span>
+              </span>
+            </div>
+            <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: {{p.statusCor}}">
+              <input type="checkbox" checked="{{p.ativa}}" style="width: 20px; height: 20px; accent-color: {{accent}}">{{p.status}}
+            </label>
+            <a href="#" style="font-size: 13px; font-weight: 700; text-decoration: none">Editar</a>
+          </article>
+        </sc-for>
+      </section>
+
+      <aside aria-label="Nova promoção" style="flex: 1 1 380px; max-width: 460px; border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <h2 style="margin: 0; font-size: 17px; font-weight: 700">Nova promoção</h2>
+
+        <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+          <legend style="font-size: 13px; font-weight: 600; margin-bottom: 8px">Tipo</legend>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+            <sc-for list="{{tipos}}" as="t" hint-placeholder-count="6">
+              <label style="padding: 10px; border-radius: 10px; border: {{t.borda}}; background: {{t.fundo}}; display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600">
+                <input type="radio" name="tipo" checked="{{t.sel}}" style="width: 16px; height: 16px; accent-color: {{accent}}">{{t.nome}}
+              </label>
+            </sc-for>
+          </div>
+        </fieldset>
+
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Nome que o cliente vê
+          <input type="text" value="Pegue 1, leve 2 · Tacacá" style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+        </label>
+
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 13px; font-weight: 600">Aplica em</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap">
+            <span style="padding: 6px 10px; border-radius: 999px; background: #EAF4EE; color: #0F3D22; font-size: 13px; font-weight: 600">Tacacá ×</span>
+            <button type="button" style="height: 32px; padding: 0 10px; border-radius: 999px; border: 1px dashed #CFCFCF; background: #FFFFFF; font-size: 13px">+ produto ou categoria</button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 13px; font-weight: 600">Regra</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap">
+            <sc-for list="{{regras}}" as="r" hint-placeholder-count="3">
+              <button type="button" onClick="{{r.escolher}}" aria-pressed="{{r.on}}" style="height: 38px; padding: 0 12px; border-radius: 10px; border: 1.5px solid {{r.borda}}; background: {{r.fundo}}; color: {{r.cor}}; font-size: 13px; font-weight: 700; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">{{r.nome}}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <section aria-label="Conta da promoção" style="border-radius: 14px; border: 1px solid #EEEEEE; overflow: hidden; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <div style="padding: 12px 14px; background: #F7F7F7; display: flex; align-items: center; justify-content: space-between; gap: 8px">
+            <span style="font-size: 13px; font-weight: 700">Conta da promoção</span>
+            <span style="font-size: 11px; color: #5C5C5C">Custo vem da ficha técnica (F2)</span>
+          </div>
+          <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; font-size: 13px">
+            <sc-for list="{{linhas}}" as="l" hint-placeholder-count="5">
+              <div style="display: flex; justify-content: space-between; gap: 10px; color: {{l.cor}}; font-weight: {{l.peso}}; border-top: {{l.borda}}; padding-top: {{l.pad}}">
+                <span>{{l.rotulo}}</span><span style="white-space: nowrap">{{l.valor}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding: 12px 14px; background: {{veredito.fundo}}; color: {{veredito.cor}}; display: flex; gap: 10px; align-items: flex-start">
+            <span aria-hidden="true" style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 13px; background: {{veredito.icFundo}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800">{{veredito.ic}}</span>
+            <span style="display: flex; flex-direction: column; gap: 3px">
+              <span style="font-size: 14px; font-weight: 800">{{veredito.titulo}}</span>
+              <span style="font-size: 12px; line-height: 1.4">{{veredito.texto}}</span>
+            </span>
+          </div>
+        </section>
+
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 13px; font-weight: 600">Como o cliente vê</span>
+          <div style="padding: 12px; border-radius: 14px; border: 1px solid #EEEEEE; display: flex; gap: 12px; align-items: center; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+            <img src="/_blob/82a4ffcb84e1d86249bac575f13b0a4d" alt="" style="width: 60px; height: 60px; border-radius: 12px; object-fit: cover">
+            <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 11px; font-weight: 700; letter-spacing: .06em; color: {{accent}}">{{clienteEtiqueta}}</span>
+              <span style="font-size: 15px; font-weight: 700">{{clienteTitulo}}</span>
+              <span style="font-size: 13px"><span style="text-decoration: line-through; color: #767676">{{clienteDe}}</span> <strong>{{clientePor}}</strong></span>
+            </span>
+            <span style="padding: 6px 10px; border-radius: 10px; background: #E9F4EC; color: #1E6B3A; font-size: 12px; font-weight: 800; text-align: center; line-height: 1.25">Você ganha<br>{{clienteGanha}}</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 13px; font-weight: 600">Quando</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap">
+            <sc-for list="{{dias}}" as="d" hint-placeholder-count="7">
+              <button type="button" aria-pressed="{{d.on}}" style="width: 44px; height: 36px; border-radius: 9px; border: 1px solid {{d.borda}}; background: {{d.fundo}}; color: {{d.cor}}; font-size: 12px; font-weight: 700; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">{{d.nome}}</button>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; font-size: 14px">
+            <input type="text" value="17:00" aria-label="Início" style="width: 80px; height: 40px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 10px; font-size: 14px">
+            até
+            <input type="text" value="20:00" aria-label="Fim" style="width: 80px; height: 40px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 10px; font-size: 14px">
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 13px; font-weight: 600">Canais</span>
+          <div style="display: flex; gap: 14px; flex-wrap: wrap">
+            <sc-for list="{{canais}}" as="c" hint-placeholder-count="4">
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 14px"><input type="checkbox" checked="{{c.on}}" style="width: 18px; height: 18px; accent-color: {{accent}}">{{c.nome}}</label>
+            </sc-for>
+          </div>
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 10px; font-size: 14px"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: {{accent}}">Mostrar em "Agora na casa" no tablet e no delivery</label>
+        <label style="display: flex; align-items: center; gap: 10px; font-size: 14px"><input type="checkbox" style="width: 18px; height: 18px; accent-color: {{accent}}">Acumula com os 10% de cadastro</label>
+
+        <button type="button" style="height: 48px; border-radius: 12px; border: 0; background: {{accent}}; color: #FFFFFF; font-size: 15px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">Salvar promoção</button>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const menuItens = [
+      ['Dashboard', 'PainelDashboard.dc.html'], ['Clientes (CRM)', 'PainelClientes.dc.html'], ['Disparos WhatsApp', 'PainelDisparos.dc.html'], ['Campanhas automáticas', 'PainelCampanhas.dc.html'],
+      ['Cardápio', 'PainelCardapio.dc.html'], ['Promoções e descontos', 'PainelPromocoes.dc.html'], ['Recomendações', 'PainelRecomendacoes.dc.html'],
+      ['Fidelidade e selos', 'PainelFidelidade.dc.html'], ['Menu degustação', '#'], ['Vitrine e banners', '#'], ['Nossa história', 'PainelHistoria.dc.html'], ['Idiomas', '#'], ['Configurações', '#']
+    ];
+    const promos = [
+      { selo: '1+1', nome: 'Happy hour · chope em dobro', tipo: 'Pegue 1, leve 2', ganha: 'R$ 14,00 (50%)', lucro: 'R$ 6,80', margem: '49%', ok: 1, regra: 'Chope 300 ml', quando: 'Seg a sex, 17h–20h', canais: 'Tablet, QR, Garçom', ativa: true, agora: true, corTipo: '#7A5300' },
+      { selo: 'R$', nome: 'Prato do dia · Costela', tipo: 'Preço fixo', ganha: 'R$ 14,10 (15%)', lucro: 'R$ 41,60', margem: '52%', ok: 1, regra: 'Costela no fogo de chão por R$ 79,90 (de R$ 94,00)', quando: 'Quartas', canais: 'Todos os canais', ativa: true, corTipo: '#454545' },
+      { selo: '−10', nome: 'Grelhado + drink', tipo: 'Combo', ganha: 'R$ 10,00', lucro: 'R$ 52,30', margem: '48%', ok: 1, regra: 'Qualquer grelhado + qualquer drink: R$ 10 de desconto', quando: 'Sempre', canais: 'Tablet, QR, Delivery', ativa: true, corTipo: '#3D3D3D' },
+      { selo: '10%', nome: 'Desconto de cadastro', tipo: 'Desconto %', ganha: '10%', lucro: 'R$ 25,40', margem: '54%', ok: 1, regra: '10% em todos os pratos para cliente identificado por CPF', quando: 'Sempre', canais: 'Tablet, QR, Delivery', ativa: true, corTipo: accent, fixa: true },
+      { selo: '15%', nome: 'Sobremesas no domingo', tipo: 'Desconto %', ganha: '15%', lucro: 'R$ 1,10', margem: '7%', ok: 0, regra: 'Categoria Sobremesas', quando: 'Domingos', canais: 'Todos os canais', ativa: false, corTipo: '#6B6B6B' }
+    ];
+    const tipos = ['Desconto %', 'Desconto em R$', 'Preço fixo', 'Pegue 1, leve 2', 'Combo', 'Frete grátis'];
+    const dias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+    // Conta da promoção. Preço e custo (CMV) vêm da ficha técnica. Exemplo: Tacacá R$ 50, custo R$ 14.
+    const brl = (v) => (v < 0 ? '− R$ ' : 'R$ ') + Math.abs(v).toFixed(2).replace('.', ',');
+    const pct = (v) => Math.round(v * 100) + '%';
+    const st = this.state || {};
+    const REGRAS = [[1, 2], [2, 3], [1, 3]];
+    const ri = st.regra ?? 0;
+    const [pague, leve] = REGRAS[ri];
+    const preco = 50, custo = 14, taxa = 0.03, margemMinima = 0.30;
+    const cheio = preco * leve, paga = preco * pague, ganha = cheio - paga;
+    const cmv = custo * leve, taxaR = paga * taxa;
+    const lucro = paga - cmv - taxaR, margem = lucro / paga;
+    const lucroSem = preco - custo - preco * taxa;
+    const lucroSemPorCliente = lucroSem * pague;
+    const precisa = lucro > 0 ? lucroSemPorCliente / lucro - 1 : null;
+    let veredito;
+    if (lucro <= 0) veredito = { ic: '!', titulo: `Prejuízo de ${brl(-lucro)} por venda`, texto: 'O custo dos produtos passa do que o cliente paga. Não recomendado.', fundo: '#FDE7E8', cor: '#8A1A1E', icFundo: '#C8262B' };
+    else if (margem < margemMinima) veredito = { ic: '!', titulo: `Margem baixa: ${pct(margem)} (sua meta é ${pct(margemMinima)})`, texto: `Dá ${brl(lucro)} de lucro por venda, mas abaixo da sua meta. Para empatar com o lucro sem promoção, precisa vender ${pct(precisa)} mais.`, fundo: '#FFF4DC', cor: '#6B4A00', icFundo: '#A86500' };
+    else veredito = { ic: '✓', titulo: `Dá lucro: ${brl(lucro)} por venda (${pct(margem)})`, texto: `Sem a promoção você lucraria ${brl(lucroSemPorCliente)} vendendo ${pague}. Para empatar, a promoção precisa trazer ${pct(precisa)} mais vendas nesse horário.`, fundo: '#E9F4EC', cor: '#14432A', icFundo: '#1E7A45' };
+    const linhas = [
+      { rotulo: `Preço normal (${leve} × ${brl(preco)})`, valor: brl(cheio) },
+      { rotulo: `Cliente paga (${pague} × ${brl(preco)})`, valor: brl(paga) },
+      { rotulo: 'Desconto que o cliente ganha', valor: `${brl(ganha)} · ${pct(ganha / cheio)}`, cor: '#1E6B3A', peso: 700 },
+      { rotulo: `Custo dos produtos (${leve} × ${brl(custo)})`, valor: '− ' + brl(cmv), cor: '#444444' },
+      { rotulo: 'Taxa de pagamento (3%)', valor: '− ' + brl(taxaR), cor: '#444444' },
+      { rotulo: 'Seu lucro por venda', valor: `${brl(lucro)} · ${pct(margem)}`, peso: 800, borda: '1px solid #E3E3E3', pad: '8px' }
+    ].map((l) => ({ cor: '#1A1A1A', peso: 500, borda: '0', pad: '0', ...l }));
+    return {
+      accent,
+      regras: REGRAS.map(([p, l], i) => ({ nome: `Pegue ${p}, leve ${l}`, on: i === ri, escolher: () => this.setState({ regra: i }),
+        borda: i === ri ? accent : '#DADADA', fundo: i === ri ? accent : '#FFFFFF', cor: i === ri ? '#FFFFFF' : '#1A1A1A' })),
+      linhas, veredito,
+      clienteEtiqueta: `PEGUE ${pague}, LEVE ${leve}`,
+      clienteTitulo: `${leve} Tacacás`,
+      clienteDe: brl(cheio), clientePor: brl(paga),
+      clienteGanha: brl(ganha),
+      resumo: [
+        { rotulo: 'Vendas com promoção', valor: 'R$ 18.950', sub: '412 pedidos', cor: '#1A1A1A' },
+        { rotulo: 'Desconto dado', valor: 'R$ 4.380', sub: 'o que os clientes ganharam', cor: '#1A1A1A' },
+        { rotulo: 'Lucro das promoções', valor: 'R$ 6.720', sub: 'depois do custo da ficha', cor: '#1E7A45' },
+        { rotulo: 'Margem média', valor: '35%', sub: '1 promoção abaixo da meta', cor: '#A86500' }
+      ],
+      menu: menuItens.map(([nome, href], i) => ({ nome, href, peso: i === 5 ? 700 : 500, fundo: i === 5 ? '#EAF4EE' : 'transparent', cor: i === 5 ? accent : '#3A3A3A' })),
+      promos: promos.map((p) => ({ ...p,
+        status: p.ativa ? (p.agora ? 'Ativa · no ar agora' : 'Ativa') : 'Pausada',
+        statusCor: p.ativa ? '#1E7A45' : '#5C5C5C',
+        borda: p.agora ? accent : '#E3E3E3', fundo: p.agora ? '#F4FAF6' : '#FFFFFF',
+        lucroFundo: p.ok ? '#E9F4EC' : '#FDE7E8', lucroCor: p.ok ? '#1E6B3A' : '#8A1A1E' })),
+      tipos: tipos.map((nome, i) => ({ nome, sel: i === 3, borda: i === 3 ? `2px solid ${accent}` : '1px solid #E3E3E3', fundo: i === 3 ? '#EAF4EE' : '#FFFFFF' })),
+      dias: dias.map((nome, i) => ({ nome, on: i < 5, borda: i < 5 ? accent : '#DADADA', fundo: i < 5 ? accent : '#FFFFFF', cor: i < 5 ? '#FFFFFF' : '#1A1A1A' })),
+      canais: [['Tablet', 1], ['QR da mesa', 1], ['Delivery', 0], ['Garçom/PDV', 1]].map(([nome, on]) => ({ nome, on: !!on }))
+    };
+  }
+}
+</script>
+</body>
+</html>

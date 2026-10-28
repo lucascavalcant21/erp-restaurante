@@ -31,3 +31,7 @@ Thumbs.db
 
 # Agente autônomo: estado local (heartbeat, lock, STOP, logs)
 .hefisto-agent/
+
+# Cardápio digital: fotos do protótipo ficam fora do Git (repositório público)
+docs/cardapio-digital/assets/
+public/dev-cardapio/

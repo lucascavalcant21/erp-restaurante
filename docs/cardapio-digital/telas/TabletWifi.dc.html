@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Tablet — Wi-Fi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; box-sizing: border-box; background: rgba(26,26,26,.45); color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; align-items: center; justify-content: center">
+  <div role="dialog" aria-label="Conecte-se ao Wi-Fi" style="width: 860px; border-radius: 24px; background: #FFFFFF; padding: 32px 36px; box-sizing: border-box; display: flex; gap: 36px; align-items: center; box-shadow: 0 20px 50px rgba(0,0,0,.18); position: relative">
+    <a href="Main.dc.html" aria-label="Fechar" style="position: absolute; right: 18px; top: 18px; width: 44px; height: 44px; box-sizing: border-box; border-radius: 22px; border: 1px solid #E3E3E3; color: #1A1A1A; display: flex; align-items: center; justify-content: center; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+    </a>
+    <img src="/_blob/eb1a657e8147c4bb9ba876d3ec8d8e70" alt="QR Code para conectar ao Wi-Fi" style="width: 340px; height: 340px; flex-shrink: 0; border-radius: 16px; border: 1px solid #EEEEEE; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <div style="width: 56px; height: 56px; border-radius: 16px; background: #EAF4EE; color: {{accent}}; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"></path><circle cx="12" cy="19.5" r="1"></circle></svg>
+      </div>
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 34px; font-weight: 700">Conecte seu Wi-Fi</h1>
+      <p style="margin: 0; font-size: 17px; line-height: 1.5; color: #3A3A3A">Aponte a câmera do celular para o QR Code e toque em "Conectar".</p>
+      <div style="padding: 14px 16px; border-radius: 14px; background: #F7F7F7; border: 1px solid #E3E3E3; display: flex; flex-direction: column; gap: 6px; font-size: 15px">
+        <span><span style="color: #5C5C5C">Rede:</span> <strong>[NOME DA REDE]</strong></span>
+        <span><span style="color: #5C5C5C">Senha:</span> <strong>[SENHA DO WI-FI]</strong></span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#14532D' };
+  }
+}
+</script>
+</body>
+</html>

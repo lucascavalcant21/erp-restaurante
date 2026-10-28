@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Delivery — checkout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; position: relative; overflow: hidden; display: flex; flex-direction: column">
+
+  <header style="height: 60px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-bottom: 1px solid #EDEDED">
+    <a href="DeliveryInicio.dc.html" aria-label="Voltar" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #1A1A1A; border-radius: 22px; background: #FFFFFF; border: 1px solid #E3E3E3; box-sizing: border-box; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+    </a>
+    <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 18px; font-weight: 600">Finalizar pedido</h1>
+  </header>
+
+  <div style="flex-grow: 1; overflow: hidden; padding: 12px 16px 0; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 3px; border-radius: 12px; background: #EFEFEF" role="group" aria-label="Tipo de pedido">
+      <button type="button" aria-pressed="true" style="height: 40px; border-radius: 9px; border: 0; background: #FFFFFF; color: #1A1A1A; font-size: 13px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12)">Entrega</button>
+      <button type="button" aria-pressed="false" style="height: 40px; border-radius: 9px; border: 0; background: transparent; color: #5C5C5C; font-size: 13px; font-weight: 500">Retirada</button>
+    </div>
+
+    <section aria-label="Endereço" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 1px solid #EEEEEE; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"></path><path d="M9 20v-6h6v6"></path></svg>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+        <span style="font-size: 14px; font-weight: 600">Casa</span>
+        <span style="font-size: 12px; color: #5C5C5C">[RUA E NÚMERO] · [BAIRRO]</span>
+      </div>
+      <a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none; color: {{accent}}">Trocar</a>
+    </section>
+
+    <section aria-label="Quando" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0; font-size: 14px; font-weight: 600">Quando</h2>
+      <div style="display: flex; gap: 8px">
+        <button type="button" aria-pressed="true" style="flex-grow: 1; height: 48px; border-radius: 12px; border: 2px solid {{accent}}; background: #EAF4EE; color: #1A1A1A; font-size: 13px; font-weight: 600">Agora · 40–50 min</button>
+        <button type="button" aria-pressed="false" style="flex-grow: 1; height: 48px; border-radius: 12px; border: 1px solid #E3E3E3; background: #FFFFFF; color: #1A1A1A; font-size: 13px; font-weight: 500; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">Agendar</button>
+      </div>
+    </section>
+
+    <section aria-label="Pagamento" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0; font-size: 14px; font-weight: 600">Pagamento</h2>
+      <div style="display: flex; gap: 18px; border-bottom: 1px solid #EDEDED">
+        <button type="button" aria-pressed="false" style="height: 36px; border: 0; background: transparent; padding: 0; color: #5C5C5C; font-size: 13px; font-weight: 500">Pagar pelo app</button>
+        <button type="button" aria-pressed="true" style="height: 36px; border: 0; border-bottom: 2px solid {{accent}}; background: transparent; padding: 0; color: #1A1A1A; font-size: 13px; font-weight: 600">Pagar na entrega</button>
+      </div>
+      <div style="display: flex; flex-direction: column; border-radius: 12px; border: 1px solid #EEEEEE; overflow: hidden; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <label style="height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; background: #EAF4EE">
+          <input type="radio" name="pag" checked style="accent-color: {{accent}}; width: 18px; height: 18px">Dinheiro
+        </label>
+        <div style="padding: 0 12px 12px 40px; background: #EAF4EE; display: flex; align-items: center; gap: 8px">
+          <label for="troco" style="font-size: 12px; color: #444">Troco para</label>
+          <input id="troco" type="text" value="R$ 150,00" style="width: 100px; height: 36px; border-radius: 8px; border: 1px solid #DADADA; padding: 0 10px; font: inherit; font-size: 13px">
+        </div>
+        <label style="height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; border-top: 1px solid #EDEDED">
+          <input type="radio" name="pag" style="accent-color: {{accent}}; width: 18px; height: 18px">Cartão na maquininha
+        </label>
+        <label style="height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; border-top: 1px solid #EDEDED">
+          <input type="radio" name="pag" style="accent-color: {{accent}}; width: 18px; height: 18px">Vale-refeição
+        </label>
+      </div>
+    </section>
+
+    <a href="#" style="display: flex; align-items: center; justify-content: space-between; height: 48px; padding: 0 12px; border-radius: 12px; border: 1px dashed #CFCFCF; text-decoration: none; color: #1A1A1A; font-size: 14px">
+      <span style="display: flex; align-items: center; gap: 8px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"></path><circle cx="7.5" cy="7.5" r="1.5"></circle></svg>Cupom BEMVINDO aplicado</span>
+      <span style="color: #1E7A45; font-weight: 600">−R$ 11,09</span>
+    </a>
+
+    <section aria-label="Resumo" style="display: flex; flex-direction: column; gap: 6px; font-size: 13px">
+      <div style="display: flex; justify-content: space-between"><span style="color: #5C5C5C">Subtotal</span><span>R$ 110,90</span></div>
+      <div style="display: flex; justify-content: space-between"><span style="color: #5C5C5C">Taxa de entrega</span><span>R$ 6,00</span></div>
+      <div style="display: flex; justify-content: space-between"><strong style="font-size: 1.15em; font-weight: 800; letter-spacing: .03em">DESCONTO</strong><span style="color: #1E7A45">−R$ 11,09</span></div>
+      <div style="display: flex; justify-content: space-between; padding-top: 6px; border-top: 1px solid #EDEDED; font-size: 16px; font-weight: 700"><span>Total</span><span>R$ 105,81</span></div>
+    </section>
+  </div>
+
+  <div style="flex-shrink: 0; padding: 12px 16px 16px; border-top: 1px solid #EDEDED; background: #FFFFFF; display: flex; flex-direction: column; gap: 6px">
+    <span style="font-size: 12px; color: #5C5C5C; text-align: center">Você paga R$ 105,81 em dinheiro na entrega</span>
+    <a href="#" style="height: 54px; border-radius: 14px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 16px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">Fazer pedido</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#14532D' };
+  }
+}
+</script>
+</body>
+</html>

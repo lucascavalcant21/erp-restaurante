@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel — campanhas no WhatsApp</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-wrap: wrap">
+
+  <nav aria-label="Painel" style="flex: 1 1 220px; max-width: 240px; min-width: 200px; background: #F7F7F7; border-right: 1px solid #E3E3E3; padding: 20px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 16px">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-weight: 700; font-size: 14px">CB</div>
+      <span style="font-family: Outfit, sans-serif; font-weight: 600; font-size: 16px">Painel</span>
+    </div>
+    <sc-for list="{{menu}}" as="m" hint-placeholder-count="13">
+      <a href="{{m.href}}" style="height: 42px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; text-decoration: none; font-size: 14px; font-weight: {{m.peso}}; background: {{m.fundo}}; color: {{m.cor}}">{{m.nome}}</a>
+    </sc-for>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; font-weight: 600; flex-grow: 1">Campanhas no WhatsApp</h1>
+      <a href="#" style="height: 44px; padding: 0 16px; border-radius: 12px; background: {{accent}}; display: flex; align-items: center; text-decoration: none; color: #FFFFFF; font-size: 14px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">+ Nova campanha</a>
+    </div>
+
+    <section aria-label="Campanhas automáticas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px">
+      <sc-for list="{{campanhas}}" as="c" hint-placeholder-count="4">
+        <a href="#" style="border: 1px solid {{c.borda}}; background: {{c.fundo}}; border-radius: 14px; padding: 12px 14px; text-decoration: none; color: #1A1A1A; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 14px; font-weight: 700">{{c.nome}}</span>
+          <span style="font-size: 12px; color: #444444">{{c.gatilho}}</span>
+          <span style="font-size: 12px; font-weight: 600; color: {{c.cor}}">{{c.status}}</span>
+        </a>
+      </sc-for>
+    </section>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start">
+      <section aria-label="Editar campanha" style="flex: 999 1 520px; min-width: 0; border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 700">Terça do Tacacá · 20%</h2>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Quando enviar
+            <select style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 10px; font-size: 14px; font-weight: 400; background: #FFFFFF"><option>Toda terça-feira às 11:00</option><option>No aniversário do cliente</option><option>Cliente sumido há 30 dias</option><option>1 hora depois do pedido (pedir avaliação)</option></select>
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Produto em promoção
+            <select style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 10px; font-size: 14px; font-weight: 400; background: #FFFFFF"><option>Tacacá · 20% de desconto (só terças)</option></select>
+          </label>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 13px; font-weight: 600">Para quem</span>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <span style="padding: 6px 12px; border-radius: 999px; background: #EAF4EE; color: #0F3D22; font-size: 13px; font-weight: 600">Já pediram Tacacá</span>
+            <span style="padding: 6px 12px; border-radius: 999px; background: #EAF4EE; color: #0F3D22; font-size: 13px; font-weight: 600">Não avaliaram mal o Tacacá</span>
+            <span style="padding: 6px 12px; border-radius: 999px; background: #E9F4EC; color: #1E6B3A; font-size: 13px; font-weight: 600">Aceitam promoções no WhatsApp</span>
+            <button type="button" style="height: 32px; padding: 0 10px; border-radius: 999px; border: 1px dashed #CFCFCF; background: #FFFFFF; font-size: 13px">+ filtro</button>
+          </div>
+          <span style="font-size: 13px; color: #444444"><strong>[N] clientes</strong> recebem esta mensagem · máximo 1 promoção por semana por cliente</span>
+        </div>
+
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Mensagem
+          <textarea rows="4" style="border-radius: 10px; border: 1px solid #DADADA; padding: 10px 12px; font-size: 14px; font-weight: 400; line-height: 1.5; resize: vertical">Oi, {primeiro_nome}, tudo bom? Hoje é terça e o {prato} que você pediu da última vez está com {desconto} de desconto. Peça pelo link ou venha nos visitar!</textarea>
+        </label>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px">
+          <span style="color: #5C5C5C">Inserir:</span>
+          <sc-for list="{{variaveis}}" as="v" hint-placeholder-count="5">
+            <button type="button" style="height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid #DADADA; background: #F7F7F7; font-size: 12px; font-weight: 600">{{v}}</button>
+          </sc-for>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Botão 1
+            <input type="text" value="Pedir agora (link com desconto)" style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Botão 2
+            <input type="text" value="Ver o cardápio" style="height: 42px; border-radius: 10px; border: 1px solid #DADADA; padding: 0 12px; font-size: 14px; font-weight: 400">
+          </label>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding-top: 4px; border-top: 1px solid #EDEDED">
+          <div style="display: flex; flex-direction: column"><span style="font-size: 12px; color: #5C5C5C">Enviadas (última terça)</span><strong style="font-family: Outfit, sans-serif; font-size: 22px">[—]</strong></div>
+          <div style="display: flex; flex-direction: column"><span style="font-size: 12px; color: #5C5C5C">Lidas</span><strong style="font-family: Outfit, sans-serif; font-size: 22px">[—]</strong></div>
+          <div style="display: flex; flex-direction: column"><span style="font-size: 12px; color: #5C5C5C">Pedidos gerados</span><strong style="font-family: Outfit, sans-serif; font-size: 22px">[—]</strong></div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap">
+          <button type="button" style="height: 46px; padding: 0 16px; border-radius: 12px; border: 1px solid #E3E3E3; background: #FFFFFF; font-size: 14px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">Enviar teste para mim</button>
+          <button type="button" style="height: 46px; padding: 0 20px; border-radius: 12px; border: 0; background: {{accent}}; color: #FFFFFF; font-size: 14px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">Salvar e ativar</button>
+        </div>
+      </section>
+
+      <aside aria-label="Prévia no WhatsApp" style="flex: 1 1 300px; max-width: 360px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 12px; font-weight: 700; color: #5C5C5C">PRÉVIA · como chega no celular</span>
+        <div style="border-radius: 22px; background: #E8E8E8; padding: 16px 14px; display: flex; flex-direction: column; gap: 8px">
+          <div style="align-self: flex-start; max-width: 92%; border-radius: 12px; background: #FFFFFF; overflow: hidden; box-shadow: 0 1px 1px rgba(0,0,0,.08)">
+            <div style="height: 150px; background: #5E5E5E; display: flex; align-items: center; justify-content: center; color: #DADADA; font-size: 12px">[FOTO DO TACACÁ]</div>
+            <p style="margin: 0; padding: 10px 12px 4px; font-size: 14px; line-height: 1.45; color: #111111">Oi, Manuela, tudo bom? Hoje é terça e o Tacacá que você pediu da última vez está com 20% de desconto. Peça pelo link ou venha nos visitar!</p>
+            <span style="display: block; padding: 0 12px 8px; text-align: right; font-size: 11px; color: #767676">11:00</span>
+            <div style="border-top: 1px solid #EEEEEE; height: 40px; display: flex; align-items: center; justify-content: center; color: #00796B; font-size: 14px; font-weight: 600">Pedir agora</div>
+            <div style="border-top: 1px solid #EEEEEE; height: 40px; display: flex; align-items: center; justify-content: center; color: #00796B; font-size: 14px; font-weight: 600">Ver o cardápio</div>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #5C5C5C">Envio pela API oficial do WhatsApp com modelo aprovado. Só recebe quem aceitou promoções no cadastro; o cliente pode responder "PARAR" a qualquer momento.</p>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const menuItens = [
+      ['Dashboard', 'PainelDashboard.dc.html'], ['Clientes (CRM)', 'PainelClientes.dc.html'], ['Disparos WhatsApp', 'PainelDisparos.dc.html'], ['Campanhas automáticas', 'PainelCampanhas.dc.html'],
+      ['Cardápio', 'PainelCardapio.dc.html'], ['Promoções e descontos', 'PainelPromocoes.dc.html'], ['Recomendações', 'PainelRecomendacoes.dc.html'],
+      ['Fidelidade e selos', 'PainelFidelidade.dc.html'], ['Menu degustação', '#'], ['Vitrine e banners', '#'], ['Nossa história', 'PainelHistoria.dc.html'], ['Idiomas', '#'], ['Configurações', '#']
+    ];
+    const camp = [
+      ['Terça do Tacacá · 20%', 'Toda terça 11h · quem já pediu Tacacá', 'Ativa', true],
+      ['Feliz aniversário', 'No dia do aniversário · cupom de presente', 'Ativa'],
+      ['Sentimos sua falta', 'Sem pedir há 30 dias · prato favorito', 'Ativa'],
+      ['Como foi seu pedido?', '1 h depois do pedido · pede avaliação', 'Ativa']
+    ];
+    return {
+      accent,
+      menu: menuItens.map(([nome, href], i) => ({ nome, href, peso: i === 3 ? 700 : 500, fundo: i === 3 ? '#EAF4EE' : 'transparent', cor: i === 3 ? accent : '#3A3A3A' })),
+      campanhas: camp.map(([nome, gatilho, status, sel]) => ({ nome, gatilho, status, cor: '#1E7A45', borda: sel ? accent : '#E3E3E3', fundo: sel ? '#EAF4EE' : '#FFFFFF' })),
+      variaveis: ['{primeiro_nome}', '{prato}', '{desconto}', '{prato_favorito}', '{link_pedido}']
+    };
+  }
+}
+</script>
+</body>
+</html>

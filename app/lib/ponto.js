@@ -625,3 +625,18 @@ export async function salvarAjusteDiaCompleto({
   };
 }
 
+
+// Dias de ponto que ficaram abertos (entrada sem saída) antes de hoje, para o
+// painel do RH cobrar a correção. Hoje fica de fora: o turno pode estar em curso.
+export async function fetchPontosAbertos(unidadeId, desdeISO) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  const { data, error } = await supabase
+    .from("registro_ponto")
+    .select("id, colaborador_id, data_referencia, hora_entrada, hora_saida_intervalo, hora_retorno_intervalo, status_jornada")
+    .eq("unidade_id", unidadeId)
+    .gte("data_referencia", desdeISO)
+    .lt("data_referencia", dataLocalISO(0))
+    .is("hora_saida", null)
+    .order("data_referencia", { ascending: false });
+  return { data: data || [], error: error?.message };
+}

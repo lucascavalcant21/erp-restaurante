@@ -29,17 +29,54 @@ export function areaDoLocal(estoque) {
   return "outros";
 }
 
-/** Subárea do local dentro da área: principal, pré-preparo ou embalagens. */
+/** Subárea do local dentro da área: principal, pré-preparo, embalagens, abertos ou expositor. */
 export function subareaDoLocal(estoque) {
   const n = norm(estoque?.nome);
   if (/pre-?preparo/.test(n)) return "preparo";
   if (/embalage/.test(n)) return "embalagens";
+  if (/expositor|gelad/.test(n)) return "expositor";
+  if (/\babertos?\b/.test(n)) return "abertos";
   return "principal";
+}
+
+/* FECHADOS, ABERTOS E GELADAS (pedido do dono, 28/10/2026: "dividir meu
+ * estoque em produtos abertos e fechados — todos os que tenho são fechados —
+ * e no bar a bebida gelada, que está no expositor"). Cada estado é um local
+ * de estoque: o local principal guarda os fechados; "Abertos da Cozinha/do
+ * Bar" os abertos; "Expositor do Bar" as geladas. Passar de um para o outro
+ * é transferência (sai e entra numa operação só). */
+export const ESTADOS = [
+  { id: "fechado", rotulo: "Fechados" },
+  { id: "aberto", rotulo: "Abertos" },
+  { id: "gelada", rotulo: "Geladas (expositor)" },
+];
+export function estadoDoLocal(estoque) {
+  const sub = subareaDoLocal(estoque);
+  if (sub === "abertos") return "aberto";
+  if (sub === "expositor") return "gelada";
+  if (sub === "principal" && ["cozinha", "bar"].includes(areaDoLocal(estoque))) return "fechado";
+  return null;
+}
+export const LOCAIS_DE_ESTADO = [
+  { slug: "abertos-cozinha", nome: "Abertos da Cozinha", tipo: "alimentos", area: "cozinha", estado: "aberto" },
+  { slug: "abertos-bar", nome: "Abertos do Bar", tipo: "bebidas", area: "bar", estado: "aberto" },
+  { slug: "expositor-bar", nome: "Expositor do Bar (gelada)", tipo: "bebidas", area: "bar", estado: "gelada" },
+];
+/** Locais de aberto/gelada que ainda não existem (só onde há o local principal da área). */
+export function locaisDeEstadoQueFaltam(estoques = []) {
+  const lista = estoques || [];
+  return LOCAIS_DE_ESTADO.filter((d) => lista.some((e) => areaDoLocal(e) === d.area && subareaDoLocal(e) === "principal")
+    && !lista.some((e) => areaDoLocal(e) === d.area && estadoDoLocal(e) === d.estado));
+}
+/** Para onde vai ao "Abrir" ou "Gelar" um produto de um local fechado. */
+export function destinoDoEstado(estoques = [], origem, estado) {
+  const area = areaDoLocal(origem);
+  return (estoques || []).find((e) => e.id !== origem?.id && areaDoLocal(e) === area && estadoDoLocal(e) === estado) || null;
 }
 
 /** Áreas com seus locais (principal primeiro), só as que têm local. */
 export function areasComLocais(estoques) {
-  const ordemSub = { principal: 0, preparo: 1, embalagens: 2 };
+  const ordemSub = { principal: 0, abertos: 1, expositor: 2, preparo: 3, embalagens: 4 };
   const grupos = [...AREAS, OUTROS].map((a) => ({ ...a, locais: [] }));
   for (const e of estoques || []) {
     const g = grupos.find((x) => x.id === areaDoLocal(e));

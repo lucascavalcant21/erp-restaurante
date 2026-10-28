@@ -326,3 +326,14 @@ export async function fetchCombosMarmitaria(unidadeId) {
   return { data: Array.isArray(v) ? v : [], error: null };
 }
 export const salvarCombosMarmitaria = (unidadeId, combos) => salvarParams(unidadeId, { marmitaria_combos: Array.isArray(combos) ? combos.slice(0, 30) : [] });
+
+/* Promoções da marmitaria no cardápio de vendas (desconto, 2 por 1…):
+ * config_sistema.params.marmitaria_ofertas. */
+export async function fetchOfertasMarmitaria(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: [], error: error.message };
+  const v = data?.[0]?.params?.marmitaria_ofertas;
+  return { data: Array.isArray(v) ? v : [], error: null };
+}
+export const salvarOfertasMarmitaria = (unidadeId, ofertas) => salvarParams(unidadeId, { marmitaria_ofertas: Array.isArray(ofertas) ? ofertas.slice(0, 60) : [] });

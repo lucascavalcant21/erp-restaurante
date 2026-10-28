@@ -207,7 +207,7 @@ function EditorExclusiva({ item, alterarItem }) {
   );
 }
 
-function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, ehBar, onVincular }) {
+function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, ehBar, onVincular, mesaFechada = false }) {
   const exclusiva = item.origem === "exclusiva";
   // Ordem do dono (28/10/2026): 1 nome do prato, 2 receita, 3 porção.
   const semReceita = !!item.receita_pendente;
@@ -245,8 +245,8 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
       <div className={`mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-stretch ${semReceita ? "hidden" : ""}`}>
         <div className="col-span-2 rounded-xl bg-slate-50 p-2.5 sm:col-span-1">
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? "Quantidade no evento" : ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : item.dividido ? `Porções de ${item.divisaoG} g por pessoa` : "Porções por pessoa"}</span>
-            {(
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? (mesaFechada ? "Quantidade na mesa" : "Quantidade no evento") : ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : item.dividido ? `Porções de ${item.divisaoG} g por pessoa` : "Porções por pessoa"}</span>
+            {!mesaFechada && (
               <span className="inline-flex rounded-lg bg-white p-0.5 ring-1 ring-slate-200" role="radiogroup" aria-label="Medir por">
                 {/* "total": quantidade fechada para o evento (2 bolos, 30 sanduíches, 1 suco de 2 L) */}
                 {(ehBar ? [["porcao", "por pessoa"], ["total", "total"]] : [["porcao", "porções"], ["g", "gramas"], ["total", "total"]]).map(([m, rot]) => {
@@ -358,6 +358,21 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
             ? "Cada pessoa recebe 1 porção de cada item. Se houver opções à escolha (ex.: 2 pratos principais), use 0,5 em cada."
             : "Um item só: informe quanto vai por pessoa."}
       </p>
+      {/* Ticket por pessoa: monta a mesa e diz quantas pessoas comem dela. */}
+      {tipo.quantidadeFechada && (
+        <Cartao titulo="Mesa do evento" descricao="Monte a mesa com os pratos e diga quantas pessoas vão comer dela. Não importa quanto cada um come: o custo da mesa é dividido por todos.">
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="w-48 text-[11px] font-bold uppercase tracking-wide text-slate-600">Quantas pessoas vão comer?
+              <Numero valor={orc.cliente?.convidados ?? ""} onChange={(v) => setOrc((o) => ({ ...o, cliente: { ...o.cliente, convidados: v } }))} sufixo="pessoas" aria-label="Quantas pessoas vão comer" />
+            </label>
+            <div className="grid flex-1 grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-slate-50 p-2.5"><p className="text-[11px] font-bold uppercase text-slate-500">Custo da mesa</p><p className="text-lg font-black tabular-nums text-slate-900">{fmtReais(resumo.cmv)}</p></div>
+              <div className="rounded-xl bg-slate-50 p-2.5"><p className="text-[11px] font-bold uppercase text-slate-500">Pessoas</p><p className="text-lg font-black tabular-nums text-slate-900">{resumo.convidados || "—"}</p></div>
+              <div className="rounded-xl bg-emerald-50 p-2.5"><p className="text-[11px] font-bold uppercase text-emerald-800">Custo por pessoa</p><p className="text-lg font-black tabular-nums text-emerald-900">{resumo.convidados > 0 ? fmtReais(resumo.cmv / resumo.convidados) : "—"}</p></div>
+            </div>
+          </div>
+        </Cartao>
+      )}
       {tipo.secoes.map((s) => {
         const sec = SECOES[s];
         const itens = resumo.itens.filter((i) => i.secao === s);
@@ -369,7 +384,7 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
             <ul className="space-y-3">
               {itens.map((i) => (
                 <Fragment key={i.id}>
-                  <LinhaItem item={i} convidados={resumo.convidados} ehBar={s === "bar"} onVincular={() => setVinculando(vinculando === i.id ? null : i.id)}
+                  <LinhaItem item={i} convidados={resumo.convidados} ehBar={s === "bar"} mesaFechada={!!tipo.quantidadeFechada} onVincular={() => setVinculando(vinculando === i.id ? null : i.id)}
                     alterarItem={(m) => alterarItem(i.id, m)} remover={() => remover(i.id)} aberto={abertos.has(i.id)} alternar={() => alternar(i.id)} />
                   {vinculando === i.id && <li className="list-none"><BuscaFicha fichas={fichas} setor={sec.setor} onEscolher={(f) => vincularFicha(i.id, f)} onFechar={() => setVinculando(null)} /></li>}
                 </Fragment>
@@ -425,9 +440,9 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
               ) : <p className="text-xs font-semibold text-slate-500">Informe as pessoas e os itens para ver o custo por pessoa.</p>}
             </div>
           </div>
-          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto (não vale para itens em quantidade fechada). Entra no custo e na lista de compras." className="mt-4 max-w-xs">
+{!tipo.quantidadeFechada && (          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto (não vale para itens em quantidade fechada). Entra no custo e na lista de compras." className="mt-4 max-w-xs">
             <Numero valor={orc.sobra_pct} onChange={(v) => setOrc((o) => ({ ...o, sobra_pct: v }))} sufixo="%" />
-          </Campo>
+          </Campo>)}
         </Cartao>
       )}
     </div>

@@ -336,7 +336,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
               <span className="text-xs font-bold uppercase tracking-wide text-hf-text-2">{estoque?.nome}</span>
               <p className="mt-1.5 text-lg font-black leading-tight">{produto.nome}</p>
               <p className="mt-1 text-sm">Saldo aqui: <b>{saldoOperacional(produto, saldoAtual)}</b>
-                {unidadeOperacional(produto).embalagem && <span className="text-hf-muted"> ({fmtQ(saldoAtual)} {unidadeDoSaldo(produto)})</span>}
+                {unidadeOperacional(produto).embalagem && !/\+|aberta/.test(saldoOperacional(produto, saldoAtual)) && <span className="text-hf-muted"> de {fmtQ(unidadeOperacional(produto).fatorSaldo)} {unidadeDoSaldo(produto)}</span>}
               </p>
               {perfilUnidades(produto).fatores.length > 0 && <p className="text-xs text-hf-muted">{perfilUnidades(produto).fatores.join(" · ")}</p>}
             </div>

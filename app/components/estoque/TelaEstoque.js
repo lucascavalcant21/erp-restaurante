@@ -26,7 +26,8 @@ const AREAS = [["todas", "Todas"], ["cozinha", "Cozinha"], ["bar", "Bar"], ["sal
 const pluralEmb = (nome, n) => (Math.abs(n) === 1 ? nome : `${nome}s`);
 const qtd = (l, n) => (l.contagem ? fmt(n / l.contagem.fator) : fmt(n));
 const un = (l, n) => (l.contagem ? pluralEmb(l.contagem.nome, n / l.contagem.fator) : l.unidade);
-const extra = (l, n) => (l.contagem ? (n ? ` (${fmt(n)} ${l.unidade}${emMaior(n, l.unidade)})` : "") : emMaior(n, l.unidade));
+// "24 latas de 350 ml" (pedido do dono, 28/10/2026): o conteúdo de cada embalagem, não o total em ml.
+const extra = (l, n) => (l.contagem ? ` de ${fmt(l.contagem.fator)} ${l.unidade}` : emMaior(n, l.unidade));
 const qtdNum = (l, n) => (l.contagem ? Math.round((Number(n) / l.contagem.fator) * 100) / 100 : n);
 const paraBanco = (l, v) => (l.contagem && v !== "" && v != null ? Math.round(Number(v) * l.contagem.fator * 1000) / 1000 : v);
 const SITUACOES = [["todas", "Tudo"], ["zerado", "Acabou"], ["baixo", "Abaixo do mínimo"], ["acima", "Acima do máximo"], ["parado", "Sem uso"], ["sem_min", "Sem mínimo"], ["sugestao", "Com sugestão"]];

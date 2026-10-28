@@ -4,7 +4,7 @@
 // técnica do sistema ou de uma ficha exclusiva criada aqui, com ingredientes
 // que só existem neste evento (não aparecem nas fichas do restaurante).
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Search, ChefHat, Wine, FlaskConical, ChevronDown, ChevronUp, UtensilsCrossed, Soup, Sparkles, Ticket } from "lucide-react";
 import {
   TIPOS_EVENTO, SECOES, UNIDADES, tipoDoEvento, ingredienteVazio, custoDaFichaExclusiva, novoId,
@@ -207,8 +207,10 @@ function EditorExclusiva({ item, alterarItem }) {
   );
 }
 
-function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, ehBar }) {
+function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, ehBar, onVincular }) {
   const exclusiva = item.origem === "exclusiva";
+  // Ordem do dono (28/10/2026): 1 nome do prato, 2 receita, 3 porção.
+  const semReceita = !!item.receita_pendente;
   return (
     <li className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
       {/* Linha 1: o que é + nome + excluir */}
@@ -217,14 +219,30 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
           <span className={`mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${exclusiva ? "bg-zinc-100 text-zinc-800" : "bg-slate-100 text-slate-700"}`}>
             {exclusiva ? <><FlaskConical size={11} /> Exclusiva do evento</> : <><ChefHat size={11} /> Ficha técnica</>}
           </span>
-          <Texto valor={item.nome} onChange={(v) => alterarItem({ nome: v })} aria-label="Nome do produto" readOnly={!exclusiva && !!item.ficha}
-            className={!exclusiva && item.ficha ? "bg-slate-50" : ""} />
+          <Texto valor={item.nome} onChange={(v) => alterarItem({ nome: v })} aria-label="Nome do prato" placeholder="Nome do prato" />
+          {!semReceita && (
+            <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] font-semibold text-slate-500">
+              {!exclusiva && item.ficha ? <>Receita: ficha técnica “{item.ficha.nome_receita}”</> : exclusiva ? "Receita: ingredientes deste evento" : null}
+              {onVincular && <button type="button" onClick={onVincular} className="font-bold text-emerald-700 hover:underline">trocar pela ficha técnica</button>}
+            </span>
+          )}
         </div>
         <div className="pt-6"><BotaoRemover rotulo={`Remover ${item.nome}`} onClick={remover} /></div>
       </div>
 
+      {semReceita && (
+        <div className="mt-3 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/50 p-3">
+          <p className="text-sm font-black text-slate-900">2 · Qual é a receita deste prato?</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" onClick={onVincular} className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700"><ChefHat size={16} /> Usar uma ficha técnica</button>
+            <button type="button" onClick={() => { alterarItem({ receita_pendente: false, ingredientes: [ingredienteVazio()] }); if (!aberto) alternar(); }} className="flex h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 hover:bg-slate-50"><FlaskConical size={16} /> Montar os ingredientes</button>
+          </div>
+          <p className="mt-2 text-xs font-medium text-slate-500">Depois você porciona: quanto cada pessoa come ou em quantas porções o prato se divide.</p>
+        </div>
+      )}
+      {!semReceita && <p className="mt-3 text-[11px] font-black uppercase tracking-wide text-emerald-800">3 · Porcionar</p>}
       {/* Linha 2: quantidade, custos e ingredientes — cada caixa com o título em cima do valor */}
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-stretch">
+      <div className={`mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-stretch ${semReceita ? "hidden" : ""}`}>
         <div className="col-span-2 rounded-xl bg-slate-50 p-2.5 sm:col-span-1">
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? "Quantidade no evento" : ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : item.dividido ? `Porções de ${item.divisaoG} g por pessoa` : "Porções por pessoa"}</span>
@@ -290,7 +308,7 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
         <Texto valor={item.descricao} onChange={(v) => alterarItem({ descricao: v })} placeholder="Descrição para o cliente (opcional) — ex.: com farofa de manteiga e vinagrete"
           className="!h-9 text-xs" aria-label="Descrição para o cliente" />
       </div>
-      {item.problemas.length > 0 && <p className="mt-2 text-xs font-bold text-amber-700">{item.problemas.join(" · ")}</p>}
+      {!semReceita && item.problemas.length > 0 && <p className="mt-2 text-xs font-bold text-amber-700">{item.problemas.join(" · ")}</p>}
       {convidados > 0 && item.custoPorPessoa > 0 && (
         <p className="mt-1 text-xs font-medium text-slate-500">{item.dividido
           ? <>{(Number(item.porPessoa) * convidados * item.porcoesPorFicha).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} porções de {item.divisaoG} g para {convidados} pessoas = {Math.ceil(Number(item.porPessoa) * convidados - 1e-9).toLocaleString("pt-BR")} pratos · {fmtReais(item.custoPorPessoa * convidados)}</>
@@ -304,6 +322,20 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
 export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
   const tipo = tipoDoEvento(orc.tipo);
   const [buscando, setBuscando] = useState(null); // seção com a busca aberta
+  const [vinculando, setVinculando] = useState(null); // prato (id) escolhendo a ficha técnica
+  const [novoNome, setNovoNome] = useState({}); // seção → nome digitado
+  // 1º o nome do prato; a receita e a porção vêm depois (pedido do dono, 28/10/2026).
+  const adicionarPeloNome = (secao) => {
+    const nome = String(novoNome[secao] || "").trim();
+    if (!nome) return;
+    const fechado = tipoDoEvento(orc.tipo).quantidadeFechada ? { medida: "total", quantidade_total: "1" } : {};
+    setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id: novoId(), secao, origem: "exclusiva", nome, descricao: "", por_pessoa: "1", ingredientes: [], receita_pendente: true, ...fechado }] }));
+    setNovoNome((x) => ({ ...x, [secao]: "" }));
+  };
+  const vincularFicha = (itemId, f) => {
+    setOrc((o) => ({ ...o, cardapio: o.cardapio.map((i) => (i.id === itemId ? { ...i, origem: "ficha", ficha_id: f.id, custo_porcao_gravado: custoPorcaoDaFicha(f, fichas) || 0, receita_pendente: false, ingredientes: [] } : i)) }));
+    setVinculando(null);
+  };
   const [abertos, setAbertos] = useState(() => new Set());
   const alterarItem = (id, mud) => setOrc((o) => ({ ...o, cardapio: o.cardapio.map((i) => (i.id === id ? { ...i, ...mud } : i)) }));
   const remover = (id) => setOrc((o) => ({ ...o, cardapio: o.cardapio.filter((i) => i.id !== id) }));
@@ -312,11 +344,6 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
     const fechado = tipoDoEvento(orc.tipo).quantidadeFechada ? { medida: "total", quantidade_total: "1" } : {};
     setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id: novoId(), secao, origem: "ficha", ficha_id: f.id, nome: f.nome_receita, descricao: "", por_pessoa: "1", custo_porcao_gravado: custoPorcaoDaFicha(f, fichas) || 0, ...fechado }] }));
     setBuscando(null);
-  };
-  const adicionarExclusiva = (secao) => {
-    const id = novoId();
-    setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id, secao, origem: "exclusiva", nome: secao === "bar" ? "Novo drink" : "Novo prato", descricao: "", por_pessoa: "1", ingredientes: [ingredienteVazio()], ...(tipoDoEvento(orc.tipo).quantidadeFechada ? { medida: "total", quantidade_total: "1" } : {}) }] }));
-    setAbertos((s) => new Set(s).add(id));
   };
   const alternar = (id) => setAbertos((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
@@ -341,13 +368,19 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
             {itens.length === 0 && <p className="mb-3 text-sm font-medium text-slate-500">Nada nesta etapa ainda.{orc.tipo === "alacarte" ? " Se o evento não tiver esta etapa, deixe vazia." : ""}</p>}
             <ul className="space-y-3">
               {itens.map((i) => (
-                <LinhaItem key={i.id} item={i} convidados={resumo.convidados} ehBar={s === "bar"}
-                  alterarItem={(m) => alterarItem(i.id, m)} remover={() => remover(i.id)} aberto={abertos.has(i.id)} alternar={() => alternar(i.id)} />
+                <Fragment key={i.id}>
+                  <LinhaItem item={i} convidados={resumo.convidados} ehBar={s === "bar"} onVincular={() => setVinculando(vinculando === i.id ? null : i.id)}
+                    alterarItem={(m) => alterarItem(i.id, m)} remover={() => remover(i.id)} aberto={abertos.has(i.id)} alternar={() => alternar(i.id)} />
+                  {vinculando === i.id && <li className="list-none"><BuscaFicha fichas={fichas} setor={sec.setor} onEscolher={(f) => vincularFicha(i.id, f)} onFechar={() => setVinculando(null)} /></li>}
+                </Fragment>
               ))}
             </ul>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <BotaoAdicionar onClick={() => setBuscando(buscando === s ? null : s)}>Da ficha técnica</BotaoAdicionar>
-              <BotaoAdicionar onClick={() => adicionarExclusiva(s)}>{s === "bar" ? "Criar drink exclusivo" : "Criar ficha exclusiva"}</BotaoAdicionar>
+            <form className="mt-3 flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); adicionarPeloNome(s); }}>
+              <span className="min-w-[14rem] flex-1"><Texto valor={novoNome[s] || ""} onChange={(v) => setNovoNome((x) => ({ ...x, [s]: v }))} placeholder={s === "bar" ? "1 · Nome do drink (ex.: Caipirinha de cupuaçu)" : "1 · Nome do prato (ex.: Peixe ao molho de camarão)"} aria-label={`Nome do ${s === "bar" ? "drink" : "prato"}`} /></span>
+              <button type="submit" disabled={!String(novoNome[s] || "").trim()} className="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-40">Adicionar {s === "bar" ? "drink" : "prato"}</button>
+            </form>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <BotaoAdicionar onClick={() => setBuscando(buscando === s ? null : s)}>Ou escolher direto da ficha técnica</BotaoAdicionar>
             </div>
             {buscando === s && <BuscaFicha fichas={fichas} setor={sec.setor} onEscolher={(f) => adicionarFicha(s, f)} onFechar={() => setBuscando(null)} />}
           </Cartao>

@@ -14,6 +14,8 @@ import { Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, inputCls, pctTxt } 
 import { salvarMarmita, novaChave } from "../../lib/marmitaria/dados";
 import { atalhosDeQuantidade, catalogoDePrePreparos, custoDoForm, payloadDoForm, TAMANHOS, TIPOS_EMBALAGEM, unidadeDoItem } from "../../lib/marmitaria/formulario.mjs";
 import { precoSugerido, resultadoPorCanal, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
+import { CANAL_DIRETO } from "../../lib/marmitaria/promocoes.mjs";
+import { normalizarBusca } from "../../lib/ingredientes-utils.mjs";
 import { custoDeProduzirFicha, custoUnitarioEfetivoInsumo, parseNumero } from "../../lib/ficha-calculos.mjs";
 import { uploadFotoMontagem } from "../../lib/montagem";
 
@@ -31,7 +33,9 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
 
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
   const custo = useMemo(() => custoDoForm(form, ctx), [form, base]); // eslint-disable-line react-hooks/exhaustive-deps
-  const canais = base.config.canais.filter((c) => c.ativo);
+  // Sem canal configurado, a margem sai pela venda direta (sem comissão).
+  const canaisAtivos = base.config.canais.filter((c) => c.ativo);
+  const canais = canaisAtivos.length ? canaisAtivos : [CANAL_DIRETO];
   const tributos = base.config.tributos_pct;
   const margemAlvo = base.config.margem_alvo_pct;
 
@@ -87,6 +91,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
   const catalogo = useMemo(() => catalogoDePrePreparos(base.prePreparos, base.fichas, custoDeProduzirFicha), [base]);
   const [verLista, setVerLista] = useState(!form.itens.length);
   const [grupoSel, setGrupoSel] = useState("");
+  const [buscaPrep, setBuscaPrep] = useState("");
   const escolhidos = new Set(form.itens.map((i) => i.subficha_id).filter(Boolean));
   const alternarPrep = (it) => {
     if (escolhidos.has(it.id)) setForm((x) => ({ ...x, itens: x.itens.filter((i) => i.subficha_id !== it.id) }));
@@ -174,16 +179,21 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
           {verLista && (
             <div className="rounded-xl border border-hf-border">
               {catalogo.length > 1 && (
-                <div className="flex gap-1.5 overflow-x-auto border-b border-hf-border p-2 [scrollbar-width:none]">
+                <div className="flex flex-wrap gap-1.5 border-b border-hf-border p-2">
                   {["", ...catalogo.map((g) => g.grupo)].map((g) => (
                     <button key={g || "todos"} type="button" onClick={() => setGrupoSel(g)} aria-pressed={grupoSel === g}
                       className={`h-8 shrink-0 rounded-full border px-3 text-xs font-bold ${grupoSel === g ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>{g || "Todos"}</button>
                   ))}
                 </div>
               )}
-              <div className="max-h-80 space-y-2 overflow-y-auto p-2">
+              <div className="border-b border-hf-border p-2">
+                <input className={inputCls} value={buscaPrep} onChange={(e) => setBuscaPrep(e.target.value)} placeholder="Buscar pré-preparo (ex.: feijão, frango)" aria-label="Buscar pré-preparo" />
+              </div>
+              <div className="space-y-2 p-2">
                 {!catalogo.length && <p className="p-2 text-sm text-hf-muted">Nenhum pré-preparo cadastrado. Use a busca para ingredientes ou crie um pré-preparo.</p>}
-                {catalogo.filter((g) => !grupoSel || g.grupo === grupoSel).map((g) => (
+                {catalogo.filter((g) => !grupoSel || g.grupo === grupoSel)
+                  .map((g) => ({ ...g, itens: g.itens.filter((it) => !buscaPrep.trim() || normalizarBusca(it.nome).includes(normalizarBusca(buscaPrep))) }))
+                  .filter((g) => g.itens.length).map((g) => (
                   <div key={g.grupo}>
                     <p className="px-1 pb-1 text-[11px] font-black uppercase tracking-wide text-hf-muted">{g.grupo}</p>
                     <div className="grid gap-1.5 sm:grid-cols-2">
@@ -283,12 +293,12 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
           <Campo rotulo="Preço de referência (balcão/cardápio)" dica="Usado nos canais sem preço próprio.">
             <CampoNumero valor={form.preco} onChange={(v) => set("preco", v)} placeholder="0,00" />
           </Campo>
-          {tributos === null && <Aviso tipo="alerta">Configure a alíquota de tributos em Configurações para a margem descontar o imposto.</Aviso>}
+          {tributos === null
+            ? <Aviso tipo="alerta">Impostos em branco: preencha em <a href="/dashboard/financeiro/resultado" className="font-bold underline">Financeiro → Resultado do mês</a> (ou em Configurações, só para a marmitaria) para a margem descontar o imposto.</Aviso>
+            : <p className="self-center text-xs text-hf-muted">Impostos de {pctTxt(tributos)}{base.config.doResultado?.tributos_pct ? " (do Resultado do mês)" : ""}. {canaisAtivos.length ? "" : "Sem canal configurado: a tabela mostra a venda direta, sem comissão."} Promoções e combos: aba <b>Combos e promoções</b>.</p>}
         </div>
 
-        {!canais.length ? (
-          <Aviso className="mt-3">Nenhum canal configurado. Em Configurações, cadastre iFood, WhatsApp e Balcão com as taxas do seu contrato para ver a margem de cada um.</Aviso>
-        ) : (
+        {false ? null : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>

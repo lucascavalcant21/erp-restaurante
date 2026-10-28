@@ -32,6 +32,7 @@ import { fmtBRL } from "../../../../../components/ui";
 import SimuladorRendimento from "../../../../../components/SimuladorRendimento";
 import { dividirSaldo } from "../../../../../lib/estoque-bebidas";
 import CampoDecimal from "../../../../../components/CampoDecimal";
+import { unidadeOperacional } from "../../../../../lib/estoque-unidades.mjs";
 import { useContextoInteligencia } from "../../../../../components/intelligence/useContextoInteligencia";
 
 // Item fracionável (garrafa, saco, galão): a regra mora em inventario-saldo.mjs,
@@ -83,6 +84,19 @@ function departamentoDoEstoque(estoque) {
   if (texto.includes("cozinha")) return "cozinha";
   return String(estoque?.slug || "cozinha").toLowerCase();
 }
+
+/* Mínimo e máximo do bar em garrafas/latas (28/10/2026): o banco guarda em
+ * ml/L (é o que o saldo compara), mas o dono pensa e digita em garrafas.
+ * Mínimos digitados "3" eram gravados como 3 ml. Aqui a tela mostra e recebe
+ * em embalagens e converte ao gravar. Fora do bar, fator 1. */
+function contagemDoItem(item, estoque) {
+  const departamento = item?.departamento || departamentoDoEstoque(estoque);
+  if (departamento !== "bar") return null;
+  const op = unidadeOperacional({ ...item, departamento });
+  return op.embalagem && Number(op.fatorSaldo) > 0 ? { nome: op.nome, fator: Number(op.fatorSaldo) } : null;
+}
+const emEmbalagens = (v, c) => (v == null || v === "" || !c ? v : Math.round((Number(v) / c.fator) * 100) / 100);
+const paraSaldo = (v, c) => (v == null || v === "" || !c ? v : Math.round(Number(String(v).replace(",", ".")) * c.fator * 1000) / 1000);
 
 // Categorias oferecidas no cadastro rápido, conforme o setor do estoque.
 function categoriasDoEstoque(estoque) {
@@ -581,8 +595,12 @@ function EstoqueRunner() {
       // Mínimo e máximo já dava para editar depois, mas não na hora de
       // cadastrar — e item que nasce sem mínimo nunca aparece no alerta de
       // "abaixo do mínimo". Ninguém volta para preencher o que não faltou.
-      estoque_minimo: Number(String(novoProduto.minimo ?? "").replace(",", ".")) || null,
-      estoque_maximo: Number(String(novoProduto.maximo ?? "").replace(",", ".")) || null,
+      // Bar com garrafa/lata: o mínimo é digitado em embalagens e vai em ml/L.
+      ...(() => {
+        const c = contagemDoItem({ unidade_medida: novoProduto.unidade || "un", tamanho_embalagem: Number(String(novoProduto.volume ?? "").replace(",", ".")) || 1, unidade_comercial: novoProduto.unidadeComercial || null }, estoqueAtual);
+        const n = (v) => Number(String(v ?? "").replace(",", ".")) || null;
+        return { estoque_minimo: n(paraSaldo(novoProduto.minimo || "", c)), estoque_maximo: n(paraSaldo(novoProduto.maximo || "", c)) };
+      })(),
       custo_unitario: custo, custo_compra: custo, ativo: true,
     }, { origem: `Cadastro pelo estoque ${estoqueAtual.nome}` });
     if (criado.error || !criado.id) {
@@ -956,10 +974,11 @@ function EstoqueRunner() {
     setUnidadeLiberada(false);
     setPinDigitado(null);
     const semZero = (valor) => (valor == null || Number(valor) === 0 ? "" : valor);
+    const c = contagemDoItem(item, estoqueAtual);
     setFormItem({
       ...item,
-      estoque_minimo: semZero(item.estoque_minimo),
-      estoque_maximo: semZero(item.estoque_maximo),
+      estoque_minimo: semZero(emEmbalagens(item.estoque_minimo, c)),
+      estoque_maximo: semZero(emEmbalagens(item.estoque_maximo, c)),
       custo_unitario: semZero(item.custo_unitario),
     });
     setModal({ tipo: "item", item });
@@ -973,7 +992,9 @@ function EstoqueRunner() {
       return avisar("O estoque máximo não pode ser menor que o mínimo.", "erro");
     }
     setSalvando(true);
-    const resposta = await atualizarItemEstoque(formItem.estoque_item_id, formItem);
+    // Bar: digitado em garrafas/latas, gravado em ml/L.
+    const cMinMax = contagemDoItem(modal?.item || formItem, estoqueAtual);
+    const resposta = await atualizarItemEstoque(formItem.estoque_item_id, { ...formItem, estoque_minimo: paraSaldo(formItem.estoque_minimo, cMinMax), estoque_maximo: paraSaldo(formItem.estoque_maximo, cMinMax) });
     // Unidade comercial e "permite fracionado" ficam no insumo (valem p/ todos
     // os estoques do produto). Só grava se algum mudou.
     if (formItem.insumo_id) {
@@ -1622,8 +1643,8 @@ function EstoqueRunner() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <Campo label="Estoque mínimo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:cursor-not-allowed disabled:bg-card disabled:text-fg" /></Campo>
-              <Campo label="Estoque máximo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:cursor-not-allowed disabled:bg-card disabled:text-fg" /></Campo>
+              <Campo label={`Estoque mínimo${contagemDoItem(modal?.item || formItem, estoqueAtual) ? ` (${contagemDoItem(modal?.item || formItem, estoqueAtual).nome}s)` : ""}`}><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:cursor-not-allowed disabled:bg-card disabled:text-fg" /></Campo>
+              <Campo label={`Estoque máximo${contagemDoItem(modal?.item || formItem, estoqueAtual) ? ` (${contagemDoItem(modal?.item || formItem, estoqueAtual).nome}s)` : ""}`}><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:cursor-not-allowed disabled:bg-card disabled:text-fg" /></Campo>
               {!unidadeLiberada && (
                 <button type="button" onClick={() => setPinDigitado("")} className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 text-sm font-black text-amber-800">
                   <Lock size={16} /> Liberar mínimo e máximo com PIN
@@ -2035,8 +2056,8 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-fg">{dinheiro(item.custo_unitario || 0)}</strong></td>
                       <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-2xs font-bold text-subtle mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{dinheiro(valTotalItem)}</strong></td>
-                      <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
-                      <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
+                      <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : (() => { const c = contagemDoItem(item, estoque); return c ? `${fmtQtd(emEmbalagens(item.estoque_minimo, c))} ${c.nome}s` : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`; })()}</td>
+                      <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : (() => { const c = contagemDoItem(item, estoque); return c ? `${fmtQtd(emEmbalagens(item.estoque_maximo, c))} ${c.nome}s` : `${fmtQtd(item.estoque_maximo)} ${mostrarUn(item.unidade_medida)}`; })()}</td>
                       {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-900"}`}>{fmtData(item.validade)}</td>}
                       <td className="px-4 py-3.5 whitespace-nowrap text-xs font-bold text-slate-900">{fmtData(item.ultima_movimentacao_em, true)}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5">

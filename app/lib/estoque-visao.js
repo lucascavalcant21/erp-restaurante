@@ -7,7 +7,8 @@ import { supabase, isSupabaseReady } from "./supabase";
 import { coberturaDias, ritmoDoProduto, situacaoDoItem, sugerirMinMax, unidadeInteira, PADRAO_RITMO } from "./estoque-ritmo.mjs";
 import { areaDoLocal } from "./estoque-areas.mjs";
 import { unidadeOperacional } from "./estoque-unidades.mjs";
-import { unidadeDoSaldo } from "./estoque-movimento.mjs";
+import { unidadeDoSaldo, paraUnidadeDoCadastro } from "./estoque-movimento.mjs";
+import { precoNormalizadoDoInsumo, unidadeNormalizada } from "./ingredientes-utils.mjs";
 
 const DIA = 86400000;
 
@@ -23,7 +24,7 @@ export async function carregarVisaoEstoque(unidadeId, { janelaDias = PADRAO_RITM
   const ids = [...new Set(itens.map((i) => i.insumo_id))];
   const insumos = new Map();
   for (let i = 0; i < ids.length; i += 300) {
-    const { data, error } = await supabase.from("insumos").select("id, nome, categoria, unidade_medida, departamento, unidade_comercial, tamanho_embalagem").in("id", ids.slice(i, i + 300));
+    const { data, error } = await supabase.from("insumos").select("id, nome, categoria, unidade_medida, departamento, unidade_comercial, tamanho_embalagem, custo_unitario, custo_compra, preco_normalizado").in("id", ids.slice(i, i + 300));
     if (error) return { linhas: [], estoques: [], erro: "Não foi possível ler os produtos agora." };
     for (const x of data || []) insumos.set(x.id, x);
   }
@@ -56,8 +57,21 @@ export async function carregarVisaoEstoque(unidadeId, { janelaDias = PADRAO_RITM
         const emb = (v) => Math.round(Math.ceil(Number(v) / contagem.fator - 1e-9) * contagem.fator * 1000) / 1000;
         Object.assign(sugestao, { minimo: emb(sugestao.minimo), maximo: emb(sugestao.maximo) });
       }
+      // Valor (pedido do dono, 28/10/2026: "1 garrafa R$ 5; como tem 6 no
+      // estoque, R$ 30"). Mesmo preço das fichas técnicas (por kg/L/un, do
+      // cadastro) levado à unidade do saldo: ESTIMATIVA; sem preço, null.
+      // (custo_unitario não serve: 2 casas decimais zeram o preço por ml.)
+      const preco = precoNormalizadoDoInsumo(ins);
+      const fatorUn = paraUnidadeDoCadastro(1, unidadeDoSaldo(ins), unidadeNormalizada(ins.unidade_medida));
+      const custoSaldo = preco > 0 && fatorUn != null ? preco * fatorUn : null;
+      const saldoNum = Number(it.quantidade_atual) || 0;
+      const valor = custoSaldo == null ? null : {
+        unidade: op.embalagem ? op.nome : unidadeDoSaldo(ins),
+        unitario: Math.round(custoSaldo * (op.embalagem ? Number(op.fatorSaldo) : 1) * 100) / 100,
+        total: Math.round(custoSaldo * Math.max(0, saldoNum) * 100) / 100,
+      };
       return {
-        id: it.id, estoque_id: it.estoque_id, insumo_id: it.insumo_id,
+        id: it.id, estoque_id: it.estoque_id, insumo_id: it.insumo_id, valor,
         nome: ins.nome, categoria: ins.categoria || "", unidade: unidadeDoSaldo(ins),
         contagem,
         local: est.nome, area: areaDaTela(est),

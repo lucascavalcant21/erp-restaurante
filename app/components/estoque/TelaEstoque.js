@@ -15,6 +15,7 @@ import { hasPermission } from "../../lib/permissions-catalog.mjs";
 import { carregarVisaoEstoque, salvarMinMax } from "../../lib/estoque-visao";
 import { PADRAO_RITMO } from "../../lib/estoque-ritmo.mjs";
 
+const brl = (n) => Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmt = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 // ml e g grandes ficam ilegíveis (7.304 ml): mostra também em L/kg.
 const MAIOR = { ml: "L", g: "kg" };
@@ -41,6 +42,7 @@ function lerRegras(u) {
 export default function TelaEstoque({ inicial = {} }) {
   const { unidadeAtiva, sessao } = useERP();
   // Mínimo e máximo: quem só lança (cozinha) vê, mas não muda.
+  const podeVerCusto = !sessao?.gerenciado || hasPermission(sessao, "estoque.overview.view_costs") || hasPermission(sessao, "estoque.overview.view_values");
   const podeMinMax = !sessao?.gerenciado || hasPermission(sessao, "estoque.all_products.edit") || hasPermission(sessao, "estoque.overview.edit");
   // Movimentação aberta por cima: { estoque, insumo, tipo } (produto) ou { livre: true } (outro produto/local).
   const [mov, setMov] = useState(inicial.estoque && inicial.insumo ? { estoque: inicial.estoque, insumo: inicial.insumo, tipo: inicial.tipo || "" } : null);
@@ -130,7 +132,7 @@ export default function TelaEstoque({ inicial = {} }) {
       <div className="mx-auto max-w-[1500px] space-y-4 px-3 py-4 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-hf-text-2">Toque no produto para retirar ou adicionar. Saldo em cada local, quanto sai e entra, e o mínimo e o máximo pelo seu uso real.</p>
+            <p className="text-sm font-semibold text-hf-text-2">Toque no produto para retirar ou adicionar.</p>
           </div>
           <div className="flex flex-wrap gap-2">
           <button onClick={() => setMov({ livre: true })} className="inline-flex h-10 items-center gap-2 rounded-xl bg-hf-accent px-3 text-sm font-black text-white">
@@ -144,16 +146,20 @@ export default function TelaEstoque({ inicial = {} }) {
 
         {verRegras ? (
           <div className="rounded-2xl border border-hf-border bg-hf-surface p-4">
-            <div className="flex flex-wrap gap-4">
-              {campoRegra("prazoReposicaoDias", "Dias até a compra chegar")}
-              {campoRegra("segurancaDias", "Dias de folga")}
-              {campoRegra("intervaloCompraDias", "Compra a cada (dias)")}
+            {/* Texto simples (pedido do dono, 28/10/2026: "isso não entendi nada"). */}
+            <p className="text-base font-black text-hf-text">Como o sistema sugere o mínimo e o máximo</p>
+            <p className="mt-1 text-sm font-semibold text-hf-text-2">Responda 3 perguntas. O sistema olha quanto você retira de cada produto e calcula sozinho.</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              {campoRegra("prazoReposicaoDias", "Quantos dias o fornecedor leva para entregar?")}
+              {campoRegra("segurancaDias", "Quantos dias a mais, por segurança?")}
+              {campoRegra("intervaloCompraDias", "De quantos em quantos dias você compra?")}
             </div>
-            <p className="mt-3 text-sm font-semibold text-hf-text-2">
-              Mínimo = o que sai em {r.prazoReposicaoDias + r.segurancaDias} dias. Máximo = mínimo + o que sai em {r.intervaloCompraDias} dias.
-              Olha os últimos {r.janelaDias} dias; produto com menos de {r.minimoDiasHistorico} dias de histórico ou menos de {r.minimoSaidas} retiradas fica sem sugestão (dados insuficientes).
-              Estorno e ajuste de contagem não contam como uso.
-            </p>
+            <div className="mt-3 rounded-xl bg-hf-elevated p-3 text-sm font-semibold text-hf-text">
+              <p><b>Exemplo:</b> sai 1 garrafa por dia.</p>
+              <p className="mt-1">• <b>Mínimo: {r.prazoReposicaoDias + r.segurancaDias} garrafas</b> — o suficiente para esperar a entrega ({r.prazoReposicaoDias} dias) e mais {r.segurancaDias} de segurança. Chegou no mínimo, é hora de comprar.</p>
+              <p className="mt-1">• <b>Máximo: {r.prazoReposicaoDias + r.segurancaDias + r.intervaloCompraDias} garrafas</b> — o mínimo mais o que sai até a próxima compra ({r.intervaloCompraDias} dias). Compre até chegar nele.</p>
+            </div>
+            <p className="mt-2 text-xs font-semibold text-hf-text-2">A conta usa as retiradas dos últimos {r.janelaDias} dias. Produto novo ou quase sem uso fica sem sugestão até ter histórico.</p>
           </div>
         ) : null}
 
@@ -216,16 +222,21 @@ export default function TelaEstoque({ inicial = {} }) {
                     </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                    <div className="rounded-xl bg-hf-elevated p-2.5">
-                      <p className="text-[11px] font-black uppercase text-hf-text-2">Sai</p>
-                      {l.ritmo.saida.vezes ? <p className="font-bold text-hf-text">{qtd(l, l.ritmo.saida.dia)}{l.contagem ? "" : emMaior(l.ritmo.saida.dia, l.unidade)}/dia · {qtd(l, l.ritmo.saida.semana)}/sem · {qtd(l, l.ritmo.saida.mes)}/mês{l.contagem ? ` (${l.contagem.nome}s)` : ""}</p> : <p className="font-semibold text-hf-text-2">Sem retiradas</p>}
+                  {/* Valor de 1 produto e do saldo (pedido do dono, 28/10/2026), no lugar do
+                      ritmo por dia. Custo do cadastro: ESTIMATIVA. */}
+                  {podeVerCusto ? (
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                      <div className="rounded-xl bg-hf-elevated p-2.5">
+                        <p className="text-[11px] font-black uppercase text-hf-text-2">{l.valor ? `1 ${l.valor.unidade}` : "Valor de 1"}</p>
+                        <p className="text-base font-black text-hf-text">{l.valor ? brl(l.valor.unitario) : "sem custo"}</p>
+                      </div>
+                      <div className="rounded-xl bg-hf-elevated p-2.5">
+                        <p className="text-[11px] font-black uppercase text-hf-text-2">No estoque agora</p>
+                        <p className="text-base font-black text-hf-text">{l.valor ? brl(l.valor.total) : "—"}</p>
+                      </div>
+                      {!l.valor ? <p className="col-span-2 text-xs font-bold text-hf-text-2">DADOS INSUFICIENTES: produto sem custo no cadastro.</p> : null}
                     </div>
-                    <div className="rounded-xl bg-hf-elevated p-2.5">
-                      <p className="text-[11px] font-black uppercase text-hf-text-2">Entra</p>
-                      {l.ritmo.entrada.vezes ? <p className="font-bold text-hf-text">{qtd(l, l.ritmo.entrada.dia)}/dia · {qtd(l, l.ritmo.entrada.semana)}/sem · {qtd(l, l.ritmo.entrada.mes)}/mês{l.contagem ? ` (${l.contagem.nome}s)` : ""}</p> : <p className="font-semibold text-hf-text-2">Sem entradas</p>}
-                    </div>
-                  </div>
+                  ) : null}
                   {l.cobertura != null ? <p className="mt-2 text-sm font-bold text-hf-text-2">O saldo dá para <span className="text-hf-text">{l.cobertura} dia(s)</span> no ritmo atual.</p> : null}
 
                   <div className="mt-3 rounded-xl border border-dashed border-hf-border p-3">
@@ -240,7 +251,7 @@ export default function TelaEstoque({ inicial = {} }) {
                     </div> : <p className="text-sm font-bold text-hf-text-2">Mínimo {qtd(l, l.minimo)} · máximo {l.maximo ? qtd(l, l.maximo) : "—"} {un(l, 2 * (l.contagem?.fator || 1))}</p>}
                     {s.ok ? (
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-hf-text-2"><span className="font-black text-hf-text">Sugestão (estimativa):</span> mínimo {qtd(l, s.minimo)}{l.contagem ? "" : emMaior(s.minimo, l.unidade)}, máximo {qtd(l, s.maximo)} {un(l, s.maximo)}{extra(l, s.maximo)}. <span className="block text-xs">{s.explicacao}</span></p>
+                        <p className="text-sm font-semibold text-hf-text-2"><span className="font-black text-hf-text">Sugestão:</span> mínimo {qtd(l, s.minimo)}, máximo {qtd(l, s.maximo)} {un(l, s.maximo)}. <span className="block text-xs">Sai cerca de {qtd(l, l.ritmo.saida.dia)} {un(l, l.ritmo.saida.dia)} por dia.</span></p>
                         {temNova && podeMinMax ? <button onClick={() => salvar([{ id: l.id, minimo: s.minimo, maximo: s.maximo }], l.id)} disabled={salvando === l.id} className="inline-flex h-9 items-center gap-1 rounded-xl border border-hf-accent px-3 text-sm font-black text-hf-text"><Sparkles size={14} /> Usar sugestão</button> : <span className="text-xs font-black text-[#047857]">Já usa a sugestão</span>}
                       </div>
                     ) : <p className="mt-2 text-xs font-bold text-hf-text-2">DADOS INSUFICIENTES para sugerir: {s.motivo}</p>}

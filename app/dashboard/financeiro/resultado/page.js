@@ -92,7 +92,7 @@ export default function ResultadoDoMes() {
     if (!modelo || (!cmoBase.colaboradores.length && !cmoBase.recibos.length)) return null;
     const [a, m] = mes.split("-").map(Number);
     const extras = calcularCMO({ colaboradores: [], recibos: cmoBase.recibos, referencia: new Date(a, m - 1, 15), modo: "mes" }).extras;
-    return equipeDoMes(cmoBase.colaboradores, { bonus: modelo.bonus_funcionario, encargos_pct: modelo.encargos_pct, dias: Math.round(Number(modelo.dias_abertos) || 0), extrasPagos: extras, taxas: modelo.taxas_servico || {} });
+    return equipeDoMes(cmoBase.colaboradores, { bonus: modelo.bonus_funcionario, encargos_pct: modelo.encargos_pct, dias: Math.round(Number(modelo.dias_abertos) || 0), extrasPagos: extras, extrasInformados: modelo.extras_informados, taxas: modelo.taxas_servico || {} });
   }, [cmoBase, mes, modelo]);
   const cmv = useMemo(() => cmvDoMes(cmvBase.apurados, mes), [cmvBase, mes]);
   const r = useMemo(() => (modelo ? calcularResultado(modelo, { cmv, cmo }) : null), [modelo, cmv, cmo]);
@@ -224,6 +224,7 @@ export default function ResultadoDoMes() {
                 <Num rotulo="Taxa do crédito" sufixo="%" valor={modelo.cartao?.taxa_credito_pct} onChange={(v) => setCartao("taxa_credito_pct", v)} />
                 <Num rotulo="Vendas no débito" sufixo="%" valor={modelo.cartao?.parte_debito_pct} onChange={(v) => setCartao("parte_debito_pct", v)} />
                 <Num rotulo="Taxa do débito" sufixo="%" valor={modelo.cartao?.taxa_debito_pct} onChange={(v) => setCartao("taxa_debito_pct", v)} />
+                <Num rotulo="Meta de lucro" sufixo="%" valor={modelo.meta_lucro_pct} onChange={(v) => set("meta_lucro_pct", v)} className="col-span-2" dica="Base do preço sugerido nos eventos, no orçamento rápido e nas marmitas (com os impostos e as taxas acima)." />
               </div>
             </section>
 
@@ -265,11 +266,23 @@ export default function ResultadoDoMes() {
               </div>
               <p className="mt-1 text-2xl font-black text-hf-text">{brl(linha("cmo").valor)} <span className="text-sm font-bold text-hf-text-2">{pctTxt(linha("cmo").pct)}{linha("cmo").porDia != null ? ` · ${brl(linha("cmo").porDia)}/dia` : ""}</span></p>
               {cmo ? (
-                <ul className="mt-1 text-xs text-hf-text-2">{linha("cmo").detalhe.map((d) => <li key={d.id}>{d.nome}: <b className="text-hf-text">{brl(d.valor)}</b></li>)}</ul>
+                <>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {[["Fixos", "contratados do RH", cmo.fixos, cmo.fixosPorDia], ["Extras", "pagos no mês", cmo.extras, cmo.extrasPorDia]].map(([rot, sub, v, dia]) => (
+                      <div key={rot} className="rounded-xl bg-hf-elevated p-2.5">
+                        <p className="text-[11px] font-black uppercase text-hf-text-2">{rot} <span className="font-semibold normal-case">· {sub}</span></p>
+                        <p className="text-lg font-black text-hf-text">{brl(v)}</p>
+                        <p className="text-[11px] font-bold text-hf-text-2">{pctTxt(r.faturamento > 0 ? (v / r.faturamento) * 100 : null)}{dia != null ? ` · ${brl(dia)}/dia` : ""}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <ul className="mt-2 text-xs text-hf-text-2">{linha("cmo").detalhe.map((d) => <li key={d.id} className={d.grupo ? "mt-1 font-black text-hf-text" : "pl-3"}>{d.nome}: <b className="text-hf-text">{brl(d.valor)}</b></li>)}</ul>
+                </>
               ) : <p className="text-xs font-bold text-hf-danger">DADOS INSUFICIENTES: nenhum colaborador ativo no RH.{cmoBase.erro ? ` ${cmoBase.erro}` : ""}</p>}
               <div className="mt-2 grid max-w-lg grid-cols-2 gap-3">
                 <Num rotulo="Bônus por funcionário (R$/mês)" valor={modelo.bonus_funcionario} onChange={(v) => set("bonus_funcionario", v)} dica="Igual para todos os contratados." />
                 <Num rotulo="Encargos sobre o salário" sufixo="%" valor={modelo.encargos_pct} onChange={(v) => set("encargos_pct", v)} dica="FGTS, INSS, férias, 13º." />
+                <Num rotulo="Outros extras pagos no mês (R$)" valor={modelo.extras_informados} onChange={(v) => set("extras_informados", v)} className="col-span-2" dica={`Diárias pagas fora dos recibos do RH. Do RH já entram ${brl(cmo?.extrasRh || 0)}.`} />
               </div>
               {cmo?.pessoas?.length ? (
                 <div className="mt-3 overflow-x-auto rounded-xl border border-hf-border">
@@ -338,7 +351,7 @@ export default function ResultadoDoMes() {
                         <td className="whitespace-nowrap pl-3 text-right tabular-nums text-hf-text-2">{l.porDia == null ? "—" : brl(l.porDia)}</td>
                       </tr>,
                       ...(sub && abertos[`dre-${l.id}`] ? sub.flatMap((x) => [
-                        <tr key={`${l.id}-${x.id}`} className="text-xs text-hf-text-2"><td className="py-1 pl-3">{x.nome}</td><td className="text-right tabular-nums">{brl(x.valor)}</td><td className="text-right tabular-nums">{pctTxt(x.pct)}</td><td className="text-right tabular-nums">{x.porDia == null ? "—" : brl(x.porDia)}</td></tr>,
+                        <tr key={`${l.id}-${x.id}`} className={`text-xs ${x.grupo ? "font-black text-hf-text" : "text-hf-text-2"}`}><td className={`py-1 ${x.grupo || !sub.some((y) => y.grupo) ? "pl-3" : "pl-6"}`}>{x.nome}</td><td className="text-right tabular-nums">{brl(x.valor)}</td><td className="text-right tabular-nums">{pctTxt(x.pct)}</td><td className="text-right tabular-nums">{x.porDia == null ? "—" : brl(x.porDia)}</td></tr>,
                         ...(x.subitens || []).map((s) => <tr key={`${l.id}-${x.id}-${s.id}`} className="text-[11px] text-hf-muted"><td className="py-0.5 pl-6">{s.nome}</td><td className="text-right tabular-nums">{brl(s.valor)}</td><td className="text-right tabular-nums">{pctTxt(s.pct)}</td><td className="text-right tabular-nums">{s.porDia == null ? "—" : brl(s.porDia)}</td></tr>),
                       ]) : []),
                     ];

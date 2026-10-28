@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search, UtensilsCrossed } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import EditorMarmita from "../../../components/marmitaria/EditorMarmita";
+import CombosPromocoes from "../../../components/marmitaria/CombosPromocoes";
+import { CANAL_DIRETO } from "../../../lib/marmitaria/promocoes.mjs";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Cartao, Secao, SemDados, Selo, brl, inputCls, pctTxt } from "../../../components/marmitaria/ui";
 import { formDaMarmita } from "../../../lib/marmitaria/formulario.mjs";
 import { resultadoPorCanal, precoSugerido } from "../../../lib/marmitaria/nucleo.mjs";
@@ -16,7 +18,7 @@ function Conteudo() {
   const { base, custos, carregando, recarregar } = useMarmitaria();
   const params = useSearchParams();
   const router = useRouter();
-  const [aba, setAba] = useState(params.get("aba") === "precos" ? "precos" : "cardapio");
+  const [aba, setAba] = useState(["precos", "combos"].includes(params.get("aba")) ? params.get("aba") : "cardapio");
   const [editando, setEditando] = useState(null);
   const [aviso, setAviso] = useState(null);
 
@@ -36,11 +38,11 @@ function Conteudo() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="min-w-[240px] flex-1"><Abas abas={[{ id: "cardapio", rotulo: "Cardápio" }, { id: "precos", rotulo: "Preços por canal" }]} valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} /></div>
+        <div className="min-w-[240px] flex-1"><Abas abas={[{ id: "cardapio", rotulo: "Cardápio" }, { id: "precos", rotulo: "Preços por canal" }, { id: "combos", rotulo: "Combos e promoções" }]} valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} /></div>
         <Botao onClick={nova}><Plus size={16} /> Nova marmita</Botao>
       </div>
       {aviso && <Aviso>{aviso}</Aviso>}
-      {aba === "cardapio" ? <Cardapio onEditar={editar} onNova={nova} recarregar={recarregar} /> : <PrecosPorCanal onEditar={editar} />}
+      {aba === "cardapio" ? <Cardapio onEditar={editar} onNova={nova} recarregar={recarregar} /> : aba === "combos" ? <CombosPromocoes /> : <PrecosPorCanal onEditar={editar} />}
     </div>
   );
 }
@@ -50,7 +52,8 @@ function Cardapio({ onEditar, onNova, recarregar }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("todas");
   const [erro, setErro] = useState(null);
-  const canalPrincipal = base.config.canais.find((c) => c.ativo) || null;
+  // Sem canal configurado, a margem sai pela venda direta (sem comissão).
+  const canalPrincipal = base.config.canais.find((c) => c.ativo) || CANAL_DIRETO;
 
   const lista = useMemo(() => {
     const t = normalizarBusca(busca);
@@ -125,7 +128,7 @@ function Cardapio({ onEditar, onNova, recarregar }) {
         })}
       </ul>
       {!lista.length && <p className="py-4 text-sm text-hf-muted">{filtro === "fora" ? "Nenhuma marmita fora do cardápio." : "Nenhuma marmita com essa busca."}</p>}
-      {!canalPrincipal && <Aviso className="mt-3">Configure os canais de venda em Configurações para ver a margem de cada marmita.</Aviso>}
+      {canalPrincipal.id === "direto" && <Aviso className="mt-3">Margem pela venda direta (sem comissão). Configure iFood e WhatsApp em Configurações para ver por canal.</Aviso>}
     </Secao>
   );
 }
@@ -134,10 +137,10 @@ function Cardapio({ onEditar, onNova, recarregar }) {
 // cada parcela. Tabela abaixo com todas as marmitas × canais.
 function PrecosPorCanal({ onEditar }) {
   const { base, custos } = useMarmitaria();
-  const canais = base.config.canais.filter((c) => c.ativo);
+  const ativos = base.config.canais.filter((c) => c.ativo);
+  const canais = ativos.length ? ativos : [CANAL_DIRETO];
   const [sel, setSel] = useState({ marmita: base.marmitas[0]?.id || "", canal: canais[0]?.id || "", preco: "" });
   if (!base.marmitas.length) return <SemDados motivo="Cadastre uma marmita para simular o preço." />;
-  if (!canais.length) return <SemDados titulo="Nenhum canal configurado" motivo="Cadastre os canais com as taxas do seu contrato." href="/dashboard/marmitaria/configuracoes" acao="Configurar canais" />;
 
   const m = base.marmitas.find((x) => x.id === sel.marmita) || base.marmitas[0];
   const canal = canais.find((c) => c.id === sel.canal) || canais[0];

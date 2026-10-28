@@ -990,6 +990,12 @@ export function categoriaDeOrigem(produto) {
   return texto(produto?.ficha?.categoria, 60) || texto(produto?.categoria, 60) || "Outros";
 }
 
+// "Adicional - Arroz branco": no cardápio real, 26 dos 83 itens de Pratos
+// Principais (27/10/2026). Sem seção escolhida pelo dono, vão para uma seção
+// "Adicionais" própria, depois dos pratos (como no iFood e no Goomer).
+export const SECAO_ADICIONAIS = "Adicionais";
+const ehAdicionalNome = (p) => /^adiciona(l|is)\b/.test(normalizarBusca(p?.ficha?.nome_comercial || p?.nome_produto || p?.nome || ""));
+
 function papelProvavel(nome, departamento) {
   const n = normalizarBusca(nome);
   if (DOCE_RE.test(n)) return "sobremesa";
@@ -1006,13 +1012,20 @@ export function categoriasEfetivas(config, produtos = []) {
   let cats = cfg.categorias.map((c) => ({ ...c }));
   if (!cats.length) {
     const vistos = new Map();
+    let adicionais = false;
     for (const p of produtos) {
+      if (ehAdicionalNome(p) && !cfg.itens?.[p?.id]?.categoria_id) { adicionais = true; continue; }
       const nome = categoriaDeOrigem(p);
       const id = `cat-${slug(nome) || "outros"}`;
       if (!vistos.has(id)) vistos.set(id, { id, nome, descricao: "", imagem_url: "", visivel: true, papel: papelProvavel(nome, p?.ficha?.departamento || p?.departamento) });
     }
     const ordem = { comida: 0, bebida: 1, sobremesa: 2, outro: 3 };
     cats = [...vistos.values()].sort((a, b) => ordem[a.papel] - ordem[b.papel]);
+    // Adicionais logo depois das seções de comida.
+    if (adicionais) {
+      const i = cats.findIndex((c) => c.papel !== "comida");
+      cats.splice(i < 0 ? cats.length : i, 0, { id: "cat-adicionais", nome: SECAO_ADICIONAIS, descricao: "", imagem_url: "", visivel: true, papel: "comida" });
+    }
   }
   return cats;
 }
@@ -1021,6 +1034,7 @@ export function categoriasEfetivas(config, produtos = []) {
 export function categoriaDoProduto(produto, categorias, itens = {}) {
   const escolhida = itens[produto?.id]?.categoria_id;
   if (escolhida && categorias.some((c) => c.id === escolhida)) return escolhida;
+  if (ehAdicionalNome(produto) && categorias.some((c) => c.id === "cat-adicionais")) return "cat-adicionais";
   const origem = categoriaDeOrigem(produto);
   const porId = `cat-${slug(origem) || "outros"}`;
   if (categorias.some((c) => c.id === porId)) return porId;

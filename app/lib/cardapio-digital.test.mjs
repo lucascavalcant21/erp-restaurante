@@ -155,7 +155,7 @@ test("cardápio sai das fichas: nome comercial, descrição, alergênicos e cate
   assert.deepEqual(c.categorias[0].produto_ids, ["p1", "p2"], "destaque primeiro");
 });
 
-test("adicionais vão para o fim da seção, depois dos pratos; destaque continua primeiro", () => {
+test("adicionais saem dos pratos para a seção Adicionais (destaque continua primeiro)", () => {
   const produtos = [
     { id: "a1", nome_produto: "Adicional - Arroz branco", preco_venda: 12, categoria: "Pratos Principais", ficha: null },
     { id: "a2", nome_produto: "Adicionais de molho", preco_venda: 5, categoria: "Pratos Principais", ficha: null },
@@ -163,7 +163,8 @@ test("adicionais vão para o fim da seção, depois dos pratos; destaque continu
     { id: "b2", nome_produto: "Arroz paraense", preco_venda: 55, categoria: "Pratos Principais", ficha: null },
   ];
   const c = montarCardapioPublico({ produtos, config: { itens: { a1: { destaque: true } } }, agora: SAB_1830 });
-  assert.deepEqual(c.categorias[0].produto_ids, ["a1", "b2", "b1", "a2"]);
+  assert.deepEqual(c.categorias[0].produto_ids, ["b2", "b1"]);
+  assert.deepEqual(c.categorias.find((x) => x.id === "cat-adicionais").produto_ids, ["a1", "a2"]);
 });
 
 test("fora do cardápio: preço zero, ficha desativada e oculto pelo dono", () => {
@@ -354,4 +355,23 @@ test("posição: o dono manda na ordem da seção; sem posição, a regra de ant
   const c = montarCardapioPublico({ produtos: PRODUTOS, config, agora: SEG_2330 });
   const pratos = c.categorias.find((x) => x.produto_ids.includes("p1"));
   assert.deepEqual(pratos.produto_ids.slice(0, 2), ["p2", "p1"]);
+});
+
+test("adicionais ganham seção própria depois das comidas; o dono ainda pode mover", () => {
+  const produtos = [
+    ...PRODUTOS,
+    { id: "ad1", nome_produto: "Adicional - Arroz branco", preco_venda: 12, categoria: "Pratos Principais", departamento: "cozinha", ficha: null },
+    { id: "ad2", nome_produto: "Adicional - Jambu", preco_venda: 12, categoria: "Pratos Principais", departamento: "cozinha", ficha: null },
+  ];
+  const c = montarCardapioPublico({ produtos, config: {}, agora: SEG_2330 });
+  const ids = c.categorias.map((x) => x.id);
+  const ad = c.categorias.find((x) => x.id === "cat-adicionais");
+  assert.deepEqual(ad.produto_ids.sort(), ["ad1", "ad2"]);
+  assert.ok(!c.categorias.some((x) => x.id !== "cat-adicionais" && x.produto_ids.includes("ad1")));
+  // depois das comidas, antes das bebidas
+  assert.ok(ids.indexOf("cat-adicionais") < ids.findIndex((id) => /drink/.test(id)));
+  // o dono escolheu outra seção para um deles
+  const c2 = montarCardapioPublico({ produtos, config: { itens: { ad1: { categoria_id: "cat-pratos-principais" } } }, agora: SEG_2330 });
+  assert.ok(c2.categorias.find((x) => x.id === "cat-pratos-principais").produto_ids.includes("ad1"));
+  assert.deepEqual(c2.categorias.find((x) => x.id === "cat-adicionais").produto_ids, ["ad2"]);
 });

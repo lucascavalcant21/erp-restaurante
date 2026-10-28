@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { Download, Send, Wand2, Info, CalendarDays, Clock, Users, MapPin } from "lucide-react";
-import { SECOES, tipoDoEvento, cardapioParaCliente, textoDoOrcamento, linkWhatsApp, novoId, linhasDeValor, realizadoDoEvento } from "../../../../../lib/evento-orcamento.mjs";
+import { FORMAS_PAGAMENTO, SECOES, tipoDoEvento, cardapioParaCliente, textoDoOrcamento, linkWhatsApp, novoId, linhasDeValor, realizadoDoEvento, incluidoNaProposta } from "../../../../../lib/evento-orcamento.mjs";
 import { parseNumero } from "../../../../../lib/ficha-calculos.mjs";
 import { fmtReais, fmtPct } from "../../../../../lib/valor-percentual.mjs";
 import { Cartao, Campo, Texto, Numero, ModoValor, BotaoRemover, BotaoAdicionar, LinhaValor, vp } from "./ui";
@@ -21,11 +21,80 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
   const usarSugerido = () => r.precoSugeridoPorPessoa && mudar({ preco_por_pessoa: fmtNumBR(r.precoSugeridoPorPessoa) });
   return (
     <div className="space-y-5">
-      <Cartao titulo="Taxas" descricao="Saem do valor que o cliente paga. Vêm das configurações da casa; mude se este evento for diferente (ex.: pago no PIX, sem maquininha).">
+      <Cartao titulo="Valor para o cliente" descricao="O sistema sugere o valor por pessoa que cobre todos os custos e ainda deixa sua meta de lucro líquido. Você decide o valor final.">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Campo rotulo="Meta de lucro líquido" ajuda="Vem do Resultado do mês (Financeiro); mude só para este evento."><Numero valor={f.meta_lucro_pct} onChange={(v) => mudar({ meta_lucro_pct: v })} sufixo="%" /></Campo>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Sugerido por pessoa</p>
+            <p className="text-xl font-black tabular-nums text-slate-900">{r.precoSugeridoPorPessoa ? fmtReais(r.precoSugeridoPorPessoa) : "—"}</p>
+            {r.precoSugeridoPorPessoa && (
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                <button type="button" onClick={usarSugerido} className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"><Wand2 size={12} /> Usar este valor</button>
+                {r.precoSugeridoRedondo && r.precoSugeridoRedondo !== r.precoSugeridoPorPessoa && (
+                  <button type="button" onClick={() => mudar({ preco_por_pessoa: fmtNumBR(r.precoSugeridoRedondo) })} className="text-xs font-bold text-emerald-700 hover:underline">Usar {fmtReais(r.precoSugeridoRedondo)} (redondo)</button>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Mínimo (lucro zero)</p>
+            <p className="text-xl font-black tabular-nums text-slate-900">{r.precoMinimoPorPessoa ? fmtReais(r.precoMinimoPorPessoa) : "—"}</p>
+            <p className="text-xs font-medium text-slate-500">Abaixo disso, prejuízo.</p>
+          </div>
+        </div>
+        {!(r.convidados > 0) && <p className="mt-3 flex items-center gap-2 text-sm font-bold text-amber-700"><Info size={16} /> Informe quantas pessoas (etapa Cliente) para calcular o valor sugerido.</p>}
+        <div className="mt-5 grid gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4 sm:grid-cols-2">
+          <Campo rotulo="Valor por pessoa que vou passar ao cliente">
+            <Numero valor={f.preco_por_pessoa} onChange={(v) => mudar({ preco_por_pessoa: v })} prefixo="R$" placeholder="0,00" className="[&_input]:h-14 [&_input]:text-xl [&_input]:font-black" />
+          </Campo>
+          <div className="space-y-1 self-center">
+            {r.criancas > 0 && <LinhaValor rotulo={`${r.adultos} adultos + ${r.criancas} crianças (${fmtReais(r.precoCrianca)} cada)`} valor={fmtReais(r.receitaBruta)} />}
+            {r.desconto > 0 && <LinhaValor rotulo="Desconto" valor={`−${fmtReais(r.desconto)}`} />}
+            <LinhaValor rotulo={`Total${r.convidados ? ` (${r.convidados} pessoas)` : ""}`} valor={fmtReais(r.receita)} />
+            <LinhaValor forte rotulo="Meu lucro líquido" valor={r.receita > 0 ? vp(r.lucro, r.lucroPct) : "—"}
+              tom={r.prejuizo ? "text-red-600" : r.meta.atingida ? "text-emerald-700" : "text-amber-700"} />
+            {!(r.receita > 0) && <p className="text-xs font-semibold text-slate-600">Digite o valor ou toque em “Usar este valor” para ver o lucro líquido.</p>}
+            {r.lucroPorPessoa !== null && <LinhaValor rotulo="Lucro por pessoa" valor={fmtReais(r.lucroPorPessoa)} />}
+          </div>
+        </div>
+        {/* Para onde vai cada R$ que o cliente paga (pedido do dono, 28/10/2026: "melhore"). */}
+        {r.receita > 0 && (() => {
+          const fatias = [
+            ["Cardápio", r.cmv, "#0f766e"], ["Equipe", r.equipe, "#2563eb"], ["Aluguel e extras", r.extras, "#7c3aed"],
+            ["Impostos e cartão", r.imposto + r.maquininha, "#b45309"], ["Comissões e pró-labore", r.comissoesTotal + r.prolabore, "#64748b"],
+            [r.lucro >= 0 ? "Lucro líquido" : "Prejuízo", Math.abs(r.lucro), r.lucro >= 0 ? "#15803d" : "#dc2626"],
+          ].filter(([, v]) => v > 0);
+          const base = fatias.reduce((t, [, v]) => t + v, 0) || 1;
+          return (
+            <div className="mt-5">
+              <p className="text-sm font-black text-slate-900">Para onde vai o dinheiro do cliente</p>
+              <div className="mt-2 flex h-4 overflow-hidden rounded-full bg-slate-100">{fatias.map(([n, v, c]) => <span key={n} style={{ width: `${(v / base) * 100}%`, background: c }} title={n} />)}</div>
+              <ul className="mt-2 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+                {fatias.map(([n, v, c]) => (
+                  <li key={n} className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 font-semibold text-slate-700"><span className="h-2.5 w-2.5 rounded-full" style={{ background: c }} />{n}</span>
+                    <span className="font-black tabular-nums text-slate-900">{fmtReais(v)} <span className="text-xs font-bold text-slate-500">{fmtPct((v / r.receita) * 100)}</span></span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
+      </Cartao>
+
+      <Cartao titulo="Taxas" descricao="Saem do valor que o cliente paga. Vêm do Resultado do mês (Financeiro); mude se este evento for diferente (ex.: pago no PIX, sem maquininha).">
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo rotulo="Impostos"><Numero valor={f.imposto_pct} onChange={(v) => mudar({ imposto_pct: v })} sufixo="%" /></Campo>
           <Campo rotulo="Taxa da maquininha"><Numero valor={f.maquininha_pct} onChange={(v) => mudar({ maquininha_pct: v })} sufixo="%" /></Campo>
         </div>
+        {!(parseNumero(f.imposto_pct) > 0) && !(parseNumero(f.maquininha_pct) > 0) && (
+          <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+            Impostos e cartão estão em 0%. Se o restaurante paga, preencha em <a href="/dashboard/financeiro/resultado" className="font-black underline">Financeiro → Resultado do mês</a> e todos os eventos novos já vêm com os valores.
+          </p>
+        )}
+        {parseNumero(f.maquininha_pct) > 0 && (
+          <button type="button" onClick={() => mudar({ maquininha_pct: "0" })} className="mt-3 h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 hover:bg-slate-50">Cliente paga no PIX (sem maquininha)</button>
+        )}
       </Cartao>
 
       <Cartao titulo="Pró-labore e comissões" descricao="Cada um em valor fixo (R$) ou em porcentagem do valor do evento (%).">
@@ -70,42 +139,6 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
         </div>
       </Cartao>
 
-      <Cartao titulo="Valor para o cliente" descricao="O sistema sugere o valor por pessoa que cobre todos os custos e ainda deixa sua meta de lucro limpo. Você decide o valor final.">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Campo rotulo="Meta de lucro limpo" ajuda="Vem da Pizza do Lucro; mude só para este evento."><Numero valor={f.meta_lucro_pct} onChange={(v) => mudar({ meta_lucro_pct: v })} sufixo="%" /></Campo>
-          <div className="rounded-2xl bg-slate-50 px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Sugerido por pessoa</p>
-            <p className="text-xl font-black tabular-nums text-slate-900">{r.precoSugeridoPorPessoa ? fmtReais(r.precoSugeridoPorPessoa) : "—"}</p>
-            {r.precoSugeridoPorPessoa && (
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                <button type="button" onClick={usarSugerido} className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"><Wand2 size={12} /> Usar este valor</button>
-                {r.precoSugeridoRedondo && r.precoSugeridoRedondo !== r.precoSugeridoPorPessoa && (
-                  <button type="button" onClick={() => mudar({ preco_por_pessoa: fmtNumBR(r.precoSugeridoRedondo) })} className="text-xs font-bold text-emerald-700 hover:underline">Usar {fmtReais(r.precoSugeridoRedondo)} (redondo)</button>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Mínimo (lucro zero)</p>
-            <p className="text-xl font-black tabular-nums text-slate-900">{r.precoMinimoPorPessoa ? fmtReais(r.precoMinimoPorPessoa) : "—"}</p>
-            <p className="text-xs font-medium text-slate-500">Abaixo disso, prejuízo.</p>
-          </div>
-        </div>
-        {!(r.convidados > 0) && <p className="mt-3 flex items-center gap-2 text-sm font-bold text-amber-700"><Info size={16} /> Informe quantas pessoas (etapa Cliente) para calcular o valor sugerido.</p>}
-        <div className="mt-5 grid gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4 sm:grid-cols-2">
-          <Campo rotulo="Valor por pessoa que vou passar ao cliente">
-            <Numero valor={f.preco_por_pessoa} onChange={(v) => mudar({ preco_por_pessoa: v })} prefixo="R$" placeholder="0,00" className="[&_input]:h-14 [&_input]:text-xl [&_input]:font-black" />
-          </Campo>
-          <div className="space-y-1 self-center">
-            {r.criancas > 0 && <LinhaValor rotulo={`${r.adultos} adultos + ${r.criancas} crianças (${fmtReais(r.precoCrianca)} cada)`} valor={fmtReais(r.receitaBruta)} />}
-            {r.desconto > 0 && <LinhaValor rotulo="Desconto" valor={`−${fmtReais(r.desconto)}`} />}
-            <LinhaValor rotulo={`Total${r.convidados ? ` (${r.convidados} pessoas)` : ""}`} valor={fmtReais(r.receita)} />
-            <LinhaValor forte rotulo="Meu lucro limpo" valor={r.receita > 0 ? vp(r.lucro, r.lucroPct) : "—"}
-              tom={r.prejuizo ? "text-red-600" : r.meta.atingida ? "text-emerald-700" : "text-amber-700"} />
-            {r.lucroPorPessoa !== null && <LinhaValor rotulo="Lucro por pessoa" valor={fmtReais(r.lucroPorPessoa)} />}
-          </div>
-        </div>
-      </Cartao>
     </div>
   );
 }
@@ -139,7 +172,7 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
         </div>
         {r.meta.pct > 0 && r.receita > 0 && (
           <p className={`mt-3 text-sm font-bold ${r.meta.atingida ? "text-emerald-700" : "text-amber-700"}`}>
-            Meta de lucro limpo: {fmtPct(r.meta.pct)} — {r.meta.atingida ? "atingida." : `abaixo da meta. Sugerido: ${r.precoSugeridoPorPessoa ? fmtReais(r.precoSugeridoPorPessoa) : "—"} por pessoa.`}
+            Meta de lucro líquido: {fmtPct(r.meta.pct)} — {r.meta.atingida ? "atingida." : `abaixo da meta. Sugerido: ${r.precoSugeridoPorPessoa ? fmtReais(r.precoSugeridoPorPessoa) : "—"} por pessoa.`}
           </p>
         )}
       </Cartao>
@@ -173,7 +206,7 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-slate-200 font-black">
-                <td className="px-2 py-2 text-slate-900">Lucro limpo</td>
+                <td className="px-2 py-2 text-slate-900">Lucro líquido</td>
                 <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-slate-700">{fmtReais(real.lucroOrcado)}</td>
                 <td className={`whitespace-nowrap px-2 py-2 text-right tabular-nums ${real.lucroReal < 0 ? "text-red-600" : "text-emerald-700"}`}>{fmtReais(real.lucroReal)}{real.lucroRealPct !== null ? <span className="block text-xs font-bold text-slate-500">{fmtPct(real.lucroRealPct)}</span> : null}</td>
                 <td className={`whitespace-nowrap px-2 py-2 text-right tabular-nums ${real.diferencaLucro < -0.009 ? "text-red-600" : real.diferencaLucro > 0.009 ? "text-emerald-700" : "text-slate-400"}`}>{real.diferencaLucro > 0 ? "+" : ""}{fmtReais(real.diferencaLucro)}</td>
@@ -198,7 +231,7 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
           )}
           <LinhaValor forte rotulo={r.criancas > 0 || r.desconto > 0 ? "Valor médio por pessoa (com crianças e desconto)" : "Valor por pessoa para o cliente"}
             valor={r.precoPorPessoa > 0 ? fmtReais(r.criancas > 0 || r.desconto > 0 ? r.precoMedioPorPessoa : r.precoPorPessoa) : "—"} tom="text-emerald-700" />
-          {r.lucroPorPessoa !== null && <LinhaValor forte rotulo="Lucro limpo por pessoa" valor={fmtReais(r.lucroPorPessoa)} tom={r.prejuizo ? "text-red-600" : "text-emerald-700"} />}
+          {r.lucroPorPessoa !== null && <LinhaValor forte rotulo="Lucro líquido por pessoa" valor={fmtReais(r.lucroPorPessoa)} tom={r.prejuizo ? "text-red-600" : "text-emerald-700"} />}
         </div>
       </Cartao>
     </div>
@@ -207,8 +240,17 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
 
 const fmtData = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }) : "A definir");
 
+const CONDICOES_PRONTAS = [
+  "Reserva confirmada com 50% de sinal.",
+  "Restante pago até o dia do evento.",
+  "Cancelamento sem custo até 7 dias antes.",
+  "Número final de convidados até 3 dias antes.",
+  "Bebidas alcoólicas à parte.",
+  "Taxa de serviço de 10% não inclusa.",
+];
+
 // Orçamento para o cliente: produtos e valor por pessoa. Nenhum custo aparece.
-export function EtapaProposta({ orc, setOrc, resumo: r, casa }) {
+export function EtapaProposta({ orc, setOrc, resumo: r, casa, eventoId = "", telefoneCasa = "" }) {
   const prop = orc.proposta || {};
   const mudarProp = (m) => setOrc((o) => ({ ...o, proposta: { ...(o.proposta || {}), ...m } }));
   const validoAte = (() => {
@@ -219,67 +261,139 @@ export function EtapaProposta({ orc, setOrc, resumo: r, casa }) {
   })();
   const c = orc.cliente;
   const grupos = cardapioParaCliente(orc);
+  const incluso = incluidoNaProposta(orc);
+  const emitida = new Date().toLocaleDateString("pt-BR");
+  // Número da proposta: ano + início do id do evento (estável para o mesmo evento).
+  const numero = `${new Date().getFullYear()}-${String(eventoId || "").replace(/-/g, "").slice(0, 6).toUpperCase() || "000000"}`;
   const enviar = () => window.open(linkWhatsApp(c.cliente_telefone, textoDoOrcamento(orc, r, { casa })), "_blank", "noopener");
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap gap-2 print:hidden">
-        <button type="button" onClick={() => window.print()} className="flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white hover:bg-slate-800"><Download size={16} /> Baixar PDF</button>
+        <button type="button" onClick={() => window.print()} className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-700 bg-white px-5 text-sm font-black text-emerald-800 hover:bg-emerald-50"><Download size={16} /> Baixar PDF</button>
         <button type="button" onClick={enviar} className="flex h-11 items-center gap-2 rounded-xl bg-[#1fa855] px-5 text-sm font-bold text-white hover:bg-[#188f47]"><Send size={16} /> Enviar pelo WhatsApp</button>
         <div className="grid basis-full gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-[160px_1fr]">
           <Campo rotulo="Validade"><Numero valor={prop.validade_dias} onChange={(v) => mudarProp({ validade_dias: v })} sufixo="dias" /></Campo>
           <Campo rotulo="Condições" ajuda="Sinal, cancelamento, o que está incluso. Vai no PDF e no WhatsApp.">
             <textarea value={prop.condicoes || ""} onChange={(e) => mudarProp({ condicoes: e.target.value })} rows={2} placeholder="Ex.: reserva confirmada com 50% de sinal; cancelamento até 7 dias antes."
               className="w-full rounded-xl border border-slate-300 p-3 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500" />
+            {/* Condições comuns em um toque (pedido do dono, 28/10/2026: "muda"). */}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {CONDICOES_PRONTAS.map((t) => {
+                const tem = String(prop.condicoes || "").includes(t);
+                return (
+                  <button key={t} type="button" aria-pressed={tem} onClick={() => mudarProp({ condicoes: tem ? String(prop.condicoes || "").split("\n").filter((l) => l.trim() !== t).join("\n") : [String(prop.condicoes || "").trim(), t].filter(Boolean).join("\n") })}
+                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${tem ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>{tem ? "✓ " : "+ "}{t}</button>
+                );
+              })}
+            </div>
           </Campo>
         </div>
+        {!(r.precoPorPessoa > 0) && <p className="basis-full rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900">O valor por pessoa ainda não foi definido: a proposta sai com “Valor a definir”. Defina em <b>Custos e preço</b>.</p>}
         <p className="basis-full text-xs font-medium text-slate-500">No PDF, escolha “Salvar como PDF” na janela de impressão. O WhatsApp abre com o texto pronto{c.cliente_telefone ? "" : " (sem número: escolha o contato)"}; quem envia é você.</p>
       </div>
 
-      <article id="orcamento-cliente" className="mx-auto w-full max-w-[800px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm print:max-w-none print:rounded-none print:border-0 print:shadow-none">
-        <header className="bg-hf-surface px-6 py-8 text-hf-text sm:px-10 print:bg-hf-surface" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{casa || "Orçamento"}</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight">{c.nome_evento || "Orçamento do evento"}</h1>
-          {c.cliente_nome && <p className="mt-1 text-lg font-semibold text-hf-text">Para {c.cliente_nome}</p>}
-          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-hf-border pt-5 text-sm sm:grid-cols-4">
-            {[[CalendarDays, "Data", fmtData(c.data_evento)], [Clock, "Horário", c.hora_inicio ? `${c.hora_inicio}${c.hora_fim ? ` às ${c.hora_fim}` : ""}` : "A definir"],
-              [Users, "Pessoas", r.convidados || "A definir"], [MapPin, "Local", c.local_evento || "A definir"]].map(([Icone, rot, val]) => (
-              <div key={rot} className="min-w-0">
-                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-hf-text-2"><Icone size={12} /> {rot}</p>
-                <p className="mt-0.5 break-words font-bold text-hf-text">{val}</p>
-              </div>
-            ))}
+      {/* Proposta comercial (o que o cliente recebe): só preço, nunca custo nem margem. */}
+      <article id="orcamento-cliente" className="mx-auto w-full max-w-[820px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm print:max-w-none print:rounded-none print:border-0 print:shadow-none">
+        <header className="border-b-4 border-emerald-700 px-6 pb-6 pt-8 sm:px-10" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xl font-black tracking-tight text-slate-900">{casa || "Proposta"}</p>
+              {telefoneCasa ? <p className="text-xs font-semibold text-slate-500">{telefoneCasa}</p> : null}
+            </div>
+            <div className="text-right text-xs font-semibold text-slate-500">
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">Proposta comercial</p>
+              <p>Nº {numero}</p>
+              <p>Emitida em {emitida}</p>
+              {validoAte && <p>Válida até {validoAte}</p>}
+            </div>
           </div>
+          <h1 className="mt-6 text-3xl font-black tracking-tight text-slate-900">{c.nome_evento || "Seu evento"}</h1>
+          {c.cliente_nome && <p className="mt-1 text-base font-semibold text-slate-700">Preparada para {c.cliente_nome}{c.cliente_telefone ? ` · ${c.cliente_telefone}` : ""}</p>}
         </header>
+
         <div className="space-y-8 px-6 py-8 sm:px-10">
-          <p className="text-sm font-semibold uppercase tracking-widest text-slate-500">Serviço: {tipoDoEvento(orc.tipo).rotulo}</p>
-          {grupos.length === 0 && <p className="text-sm font-medium text-slate-500">O cardápio ainda não foi montado.</p>}
-          {grupos.map((g) => (
-            <section key={g.secao} className="break-inside-avoid">
-              <h2 className="border-b border-slate-200 pb-2 text-lg font-black uppercase tracking-tight text-slate-900">{g.rotulo}</h2>
-              <ul className="mt-3 space-y-2">
-                {g.itens.map((i, k) => (
-                  <li key={k}>
-                    <p className="font-bold text-slate-900">{i.nome}</p>
-                    {i.descricao && <p className="text-sm font-medium text-slate-600">{i.descricao}</p>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-          <section className="break-inside-avoid rounded-2xl bg-emerald-50 p-5" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
-            <p className="text-xs font-bold uppercase tracking-widest text-emerald-800">Valor por pessoa</p>
-            <p className="text-3xl font-black tabular-nums text-emerald-900">{r.precoPorPessoa > 0 ? fmtReais(r.precoPorPessoa) : "A definir"}</p>
-            {r.precoPorPessoa > 0 && linhasDeValor(r).slice(1).map((l) => <p key={l} className="mt-1 text-sm font-bold text-emerald-900">{l}</p>)}
-            {c.forma_pagamento && <p className="mt-3 text-sm font-semibold text-slate-700">Forma de pagamento: {c.forma_pagamento}</p>}
+          <section className="break-inside-avoid">
+            <h2 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">O evento</h2>
+            <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+              {[[CalendarDays, "Data", fmtData(c.data_evento)],
+                [Clock, "Horário", c.hora_inicio ? `${c.hora_inicio}${c.hora_fim ? ` às ${c.hora_fim}` : ""}` : "A definir"],
+                [Users, "Convidados", r.convidados ? `${r.convidados}${r.criancas ? ` (${r.criancas} crianças)` : ""}` : "A definir"],
+                [MapPin, "Local", c.local_evento || "A definir"],
+                [Info, "Serviço", tipoDoEvento(orc.tipo).rotulo]].map(([Icone, rot, val]) => (
+                <div key={rot} className="min-w-0">
+                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500"><Icone size={12} /> {rot}</p>
+                  <p className="mt-0.5 break-words font-bold text-slate-900">{val}</p>
+                </div>
+              ))}
+            </div>
           </section>
+
+          <section>
+            <h2 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Cardápio</h2>
+            {grupos.length === 0 && <p className="mt-2 text-sm font-medium text-slate-500">O cardápio ainda não foi montado.</p>}
+            <div className="mt-3 space-y-6">
+              {grupos.map((g) => (
+                <div key={g.secao} className="break-inside-avoid">
+                  <h3 className="border-b border-slate-200 pb-1.5 text-base font-black text-emerald-800">{g.rotulo}</h3>
+                  <ul className="mt-2 space-y-1.5">
+                    {g.itens.map((i, k) => (
+                      <li key={k} className="flex gap-2">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" aria-hidden />
+                        <span><span className="font-bold text-slate-900">{i.nome}</span>{i.descricao && <span className="block text-sm font-medium text-slate-600">{i.descricao}</span>}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {(incluso.equipe.length > 0 || incluso.servicos.length > 0) && (
+            <section className="break-inside-avoid">
+              <h2 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Está incluso</h2>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                {incluso.equipe.length > 0 && <div><p className="text-sm font-black text-slate-900">Equipe</p><ul className="mt-1 space-y-0.5 text-sm font-medium text-slate-700">{incluso.equipe.map((e) => <li key={e}>{e}</li>)}</ul></div>}
+                {incluso.servicos.length > 0 && <div><p className="text-sm font-black text-slate-900">Serviços</p><ul className="mt-1 space-y-0.5 text-sm font-medium text-slate-700">{incluso.servicos.map((e) => <li key={e}>{e}</li>)}</ul></div>}
+              </div>
+            </section>
+          )}
+
+          <section className="break-inside-avoid overflow-hidden rounded-2xl border border-emerald-200" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
+            <h2 className="bg-emerald-700 px-5 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">Investimento</h2>
+            {r.precoPorPessoa > 0 ? (
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr className="border-b border-emerald-100"><td className="px-5 py-2 font-semibold text-slate-700">Valor por pessoa</td><td className="px-5 py-2 text-right font-black tabular-nums text-slate-900">{fmtReais(r.precoPorPessoa)}</td></tr>
+                  {r.adultos > 0 && <tr className="border-b border-emerald-100"><td className="px-5 py-2 font-semibold text-slate-700">{r.adultos} adulto(s) × {fmtReais(r.precoPorPessoa)}</td><td className="px-5 py-2 text-right tabular-nums text-slate-900">{fmtReais(r.adultos * r.precoPorPessoa)}</td></tr>}
+                  {r.criancas > 0 && <tr className="border-b border-emerald-100"><td className="px-5 py-2 font-semibold text-slate-700">{r.criancas} criança(s) × {fmtReais(r.precoCrianca)}</td><td className="px-5 py-2 text-right tabular-nums text-slate-900">{fmtReais(r.criancas * r.precoCrianca)}</td></tr>}
+                  {r.desconto > 0 && <tr className="border-b border-emerald-100"><td className="px-5 py-2 font-semibold text-slate-700">Desconto</td><td className="px-5 py-2 text-right tabular-nums text-emerald-700">−{fmtReais(r.desconto)}</td></tr>}
+                  <tr className="bg-emerald-50"><td className="px-5 py-3 text-base font-black text-emerald-900">Total{r.convidados ? ` para ${r.convidados} pessoas` : ""}</td><td className="px-5 py-3 text-right text-2xl font-black tabular-nums text-emerald-900">{fmtReais(r.receita)}</td></tr>
+                </tbody>
+              </table>
+            ) : <p className="px-5 py-4 text-sm font-bold text-slate-600">Valor a definir.</p>}
+            {c.forma_pagamento && <p className="border-t border-emerald-100 px-5 py-2 text-sm font-semibold text-slate-700">Forma de pagamento: {c.forma_pagamento}</p>}
+          </section>
+
           {prop.condicoes && (
             <section className="break-inside-avoid">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500">Condições</h2>
+              <h2 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Condições</h2>
               <p className="mt-1 whitespace-pre-line text-sm font-medium text-slate-700">{prop.condicoes}</p>
             </section>
           )}
-          {c.observacoes && <p className="whitespace-pre-line text-sm font-medium text-slate-700">{c.observacoes}</p>}
-          {validoAte && <p className="text-xs font-semibold text-slate-500">Orçamento válido até {validoAte}.</p>}
+          {c.observacoes && (
+            <section className="break-inside-avoid">
+              <h2 className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Observações</h2>
+              <p className="mt-1 whitespace-pre-line text-sm font-medium text-slate-700">{c.observacoes}</p>
+            </section>
+          )}
+
+          <section className="break-inside-avoid pt-6">
+            <div className="grid gap-8 sm:grid-cols-2">
+              <div className="border-t border-slate-400 pt-1.5 text-center text-xs font-semibold text-slate-500">{casa || "Responsável"}</div>
+              <div className="border-t border-slate-400 pt-1.5 text-center text-xs font-semibold text-slate-500">De acordo: {c.cliente_nome || "Cliente"}</div>
+            </div>
+            {validoAte && <p className="mt-6 text-center text-xs font-semibold text-slate-500">Proposta válida até {validoAte}. Valores sujeitos a confirmação do número final de convidados.</p>}
+          </section>
         </div>
       </article>
     </div>
@@ -294,7 +408,7 @@ export function EtapaPagamentos({ pagamentos, salvarPagamentos, resumo: r, salva
     const valor = parseNumero(novo.valor);
     if (!(valor > 0)) return;
     const ok = await salvarPagamentos([...pagamentos, { ...novo, id: novoId(), valor }]);
-    if (ok) setNovo({ valor: "", data: hoje, metodo: "PIX", obs: "" });
+    if (ok) setNovo({ valor: "", data: hoje, metodo: novo.metodo, obs: "Restante" });
   };
   return (
     <div className="space-y-5">
@@ -306,14 +420,53 @@ export function EtapaPagamentos({ pagamentos, salvarPagamentos, resumo: r, salva
           </div>
         ))}
       </div>
+      {/* Pagamentos mais rápidos (pedido do dono, 28/10/2026: "muda"): barra do
+          que já entrou, atalhos de valor e forma/observação em botões. */}
+      {r.receita > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center justify-between text-sm font-bold text-slate-700"><span>Pago</span><span>{fmtPct(Math.min(100, (recebido / r.receita) * 100), 0)}</span></div>
+          <div className="mt-1.5 h-3 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.min(100, (recebido / r.receita) * 100)}%` }} /></div>
+        </div>
+      )}
       <Cartao titulo="Registrar pagamento">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-12 sm:items-end">
-          <Campo rotulo="Valor" className="sm:col-span-3"><Numero valor={novo.valor} onChange={(v) => setNovo({ ...novo, valor: v })} prefixo="R$" placeholder="0,00" /></Campo>
-          <Campo rotulo="Data" className="sm:col-span-3"><input type="date" value={novo.data} onChange={(e) => setNovo({ ...novo, data: e.target.value })}
-            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500" /></Campo>
-          <Campo rotulo="Forma" className="sm:col-span-2"><Texto valor={novo.metodo} onChange={(v) => setNovo({ ...novo, metodo: v })} /></Campo>
-          <Campo rotulo="Observação" className="sm:col-span-2"><Texto valor={novo.obs} onChange={(v) => setNovo({ ...novo, obs: v })} /></Campo>
-          <button type="button" onClick={registrar} disabled={salvando} className="col-span-2 h-11 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50 sm:col-span-2">Registrar</button>
+        <div className="space-y-4">
+          {r.receita > 0 && (
+            <div>
+              <p className="mb-1.5 text-xs font-bold text-slate-600">Valor rápido</p>
+              <div className="flex flex-wrap gap-2">
+                {[["Sinal 30%", r.receita * 0.3, "Sinal"], ["Sinal 50%", r.receita * 0.5, "Sinal"], ["Restante", Math.max(0, r.receita - recebido), "Restante"]].filter(([, v]) => v > 0.009).map(([rot, v, obs]) => (
+                  <button key={rot} type="button" onClick={() => setNovo({ ...novo, valor: fmtNumBR(v), obs })} className="h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-black text-emerald-900 hover:bg-emerald-100">{rot} · {fmtReais(v)}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Campo rotulo="Valor"><Numero valor={novo.valor} onChange={(v) => setNovo({ ...novo, valor: v })} prefixo="R$" placeholder="0,00" className="[&_input]:h-12 [&_input]:text-lg [&_input]:font-black" /></Campo>
+            <Campo rotulo="Data"><input type="date" value={novo.data} onChange={(e) => setNovo({ ...novo, data: e.target.value })}
+              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500" /></Campo>
+          </div>
+          <div>
+            <p className="mb-1.5 text-xs font-bold text-slate-600">Forma</p>
+            <div role="radiogroup" aria-label="Forma de pagamento" className="flex flex-wrap gap-2">
+              {FORMAS_PAGAMENTO.map((fp) => (
+                <button key={fp} type="button" role="radio" aria-checked={novo.metodo === fp} onClick={() => setNovo({ ...novo, metodo: fp })}
+                  className={`h-10 rounded-xl border px-3 text-sm font-bold ${novo.metodo === fp ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"}`}>{fp}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-1.5 text-xs font-bold text-slate-600">É o quê?</p>
+            <div className="flex flex-wrap items-center gap-2">
+              {["Sinal", "Parcela", "Restante", "Pagamento total"].map((o) => (
+                <button key={o} type="button" aria-pressed={novo.obs === o} onClick={() => setNovo({ ...novo, obs: o })}
+                  className={`h-10 rounded-xl border px-3 text-sm font-bold ${novo.obs === o ? "border-slate-800 bg-slate-800 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"}`}>{o}</button>
+              ))}
+              <span className="min-w-[10rem] flex-1"><Texto valor={novo.obs} onChange={(v) => setNovo({ ...novo, obs: v })} placeholder="ou escreva" aria-label="Observação" /></span>
+            </div>
+          </div>
+          <button type="button" onClick={registrar} disabled={salvando || !(parseNumero(novo.valor) > 0)} className="h-12 w-full rounded-xl bg-emerald-600 px-4 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+            Registrar {parseNumero(novo.valor) > 0 ? fmtReais(parseNumero(novo.valor)) : "pagamento"}
+          </button>
         </div>
       </Cartao>
       <Cartao titulo="Pagamentos recebidos">

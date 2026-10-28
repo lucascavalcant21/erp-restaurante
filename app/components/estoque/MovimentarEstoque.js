@@ -22,6 +22,7 @@ import {
 import { MOTIVOS, rotuloMotivo, unidadesDaFracao, produtosParaLancar, saldoDepois, podeEstornar, novaChave, unidadeDoSaldo } from "../../lib/estoque-movimento.mjs";
 import { quantidadeDoMovimento, unidadeOperacional, unidadeDeCompra, saldoOperacional, perfilUnidades } from "../../lib/estoque-unidades.mjs";
 import { areasComLocais, areaDoLocal, subareaDoLocal, categoriaNaArea } from "../../lib/estoque-areas.mjs";
+import { ehPrePreparoNoEstoque } from "../../lib/estoque-visao";
 import { tiposCompativeis } from "../../lib/estoques-multiplos-utils.mjs";
 import { useContextoInteligencia } from "../intelligence/useContextoInteligencia";
 import ModalEstorno, { fmtHora } from "./ModalEstorno";
@@ -55,6 +56,17 @@ function unidadesDoProduto(produto) {
   if (op.embalagem) lista.push(op.nome);
   for (const u of unidadesDaFracao(produto)) if (!lista.includes(u)) lista.push(u);
   return lista;
+}
+
+/* Escolha entre embalagem e unidade de medida (pedido do dono, 28/10/2026:
+ * "aparecer em que eu quero retirar ou adicionar, se é na unidade de medida
+ * do produto ou na embalagem dele"): cada botão diz o que é. */
+function dicaUnidade(produto, u) {
+  const compra = unidadeDeCompra(produto);
+  const op = unidadeOperacional(produto);
+  if (compra && u === compra.nome) return `caixa com ${fmtQ(compra.fator)} ${op.embalagem ? op.nome + "s" : op.saldo}`;
+  if (op.embalagem && u === op.nome) return `embalagem de ${fmtQ(op.fatorSaldo)} ${op.saldo}`;
+  return "unidade de medida";
 }
 
 // fixo: aberto por cima da tela do estoque, já no produto (?estoque&insumo):
@@ -126,8 +138,10 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
     if (!base || !estoqueId || produto) return [];
     // Lista de entrada: o que está no local e, buscando, o cadastro todo (o tipo vem depois).
     const lista = produtosParaLancar({ insumos: base.insumos, itens: base.itens, estoqueId, tipo: "entrada", termo: busca, limite: 80 });
-    return categoria ? lista.filter((p) => categoriaNaArea(p.insumo, area) === categoria) : lista;
-  }, [base, estoqueId, busca, produto, categoria, area]);
+    // Pré-preparo não aparece no estoque (pedido do dono, 28/10/2026).
+    const comprados = lista.filter((p) => !ehPrePreparoNoEstoque(p.insumo, estoque));
+    return categoria ? comprados.filter((p) => categoriaNaArea(p.insumo, area) === categoria) : comprados;
+  }, [base, estoqueId, busca, produto, categoria, area, estoque]);
   const categoriasPresentes = useMemo(() => {
     if (!base || !estoqueId || !areaAtual) return [];
     const doLocal = produtosParaLancar({ insumos: base.insumos, itens: base.itens, estoqueId, tipo: "saida", termo: "", limite: 2000 });
@@ -139,7 +153,12 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
   const unidadeSel = form.unidade || unidades[0] || "";
   const lanc = montarLancamento(produto, form.qtd, unidadeSel);
   const depois = lanc && !lanc.erro ? saldoDepois(saldoAtual, tipo, lanc.quantidadeSaldo) : null;
-  const motivoSel = tipo ? MOTIVOS[tipo].find((m) => m.codigo === form.motivo) : null;
+  // Cozinha e bar sem a escolha do motivo (pedido do dono, 28/10/2026: "retirar
+  // por enquanto essa opção do motivo"): retirada = consumo, entrada =
+  // recebimento. Os outros motivos seguem em "Mais opções".
+  const motivoSimples = !!estoque && ["cozinha", "bar"].includes(areaDoLocal(estoque));
+  const motivoEfetivo = form.motivo || (motivoSimples && tipo ? (tipo === "entrada" ? "recebimento" : "consumo") : "");
+  const motivoSel = tipo ? MOTIVOS[tipo].find((m) => m.codigo === motivoEfetivo) : null;
   const ehTransferencia = tipo === "saida" && form.motivo === "transferencia_enviada";
   const destinos = (base?.estoques || []).filter((e) => e.id !== estoqueId && tiposCompativeis(estoque?.tipo, e.tipo));
   const semPermissao = seg && tipo && (tipo === "entrada" ? !seg.pode_entrada : !seg.pode_retirada) && !motivoSel?.admin;
@@ -172,7 +191,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
     const r = ehTransferencia
       ? await transferirLancamento({ unidade_id: unidade, origem_id: estoqueId, destino_id: form.destino, insumo_id: produto.id,
           quantidade: lanc.quantidadeSaldo, observacao: form.observacao || lanc.texto, responsavel_nome: form.responsavel, chave: chave.current })
-      : await lancarMovimento({ unidade_id: unidade, estoque_id: estoqueId, insumo_id: produto.id, tipo, motivo: form.motivo, lancamento: lanc,
+      : await lancarMovimento({ unidade_id: unidade, estoque_id: estoqueId, insumo_id: produto.id, tipo, motivo: motivoEfetivo, lancamento: lanc,
           validade: form.validade || null, observacao: form.observacao, responsavel_nome: form.responsavel,
           chave: chave.current, pin: form.pin, justificativa: form.justificativa });
     setEnviando(false);
@@ -207,6 +226,20 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
     );
   }
 
+  const blocoMotivo = tipo ? (
+          <div>
+            <p className="text-xs font-bold text-hf-text-2">Motivo{motivoSimples ? ` (sem escolher: ${tipo === "entrada" ? "Recebimento" : "Consumo"})` : ""}</p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {MOTIVOS[tipo].filter((m) => !m.pelaCompra && (!m.admin || seg?.pode_autorizar) && (m.codigo !== "transferencia_enviada" || destinos.length)).map((m) => (
+                <button key={m.codigo} onClick={() => setForm({ ...form, motivo: m.codigo, destino: "" })} aria-pressed={motivoEfetivo === m.codigo}
+                  className={`h-10 rounded-xl border px-3 text-xs sm:text-sm font-bold transition-all active:scale-[0.98] ${motivoEfetivo === m.codigo ? "border-hf-text bg-hf-text text-hf-surface shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
+                  {m.admin && <Lock size={12} className="mr-1 inline" />}{m.rotulo}
+                </button>
+              ))}
+            </div>
+          </div>
+  ) : null;
+
   return (
     <div className={`mx-auto max-w-xl space-y-4 px-3 text-hf-text sm:px-4 ${fixo ? "pb-4 pt-1" : "pb-28 pt-4"}`}>
       {erro && (
@@ -225,14 +258,14 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
         <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">
           {areas.map((a) => (
             <button key={a.id} onClick={() => trocarArea(a.id)} aria-pressed={area === a.id}
-              className={`h-10 shrink-0 rounded-xl border px-3.5 text-sm font-bold ${area === a.id ? "border-hf-text bg-hf-text text-hf-surface" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>
+              className={`h-10 shrink-0 rounded-xl border px-3.5 text-sm font-bold ${area === a.id ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>
               {a.rotulo}
             </button>
           ))}
         </div>
-        {areaAtual && areaAtual.locais.length > 1 && (
-          <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
-            {areaAtual.locais.map((l) => (
+        {areaAtual && areaAtual.locais.filter((l) => subareaDoLocal(l) !== "preparo").length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            {areaAtual.locais.filter((l) => subareaDoLocal(l) !== "preparo").map((l) => (
               <button key={l.id} onClick={() => trocarLocal(l.id)} aria-pressed={estoqueId === l.id}
                 className={`h-9 shrink-0 rounded-lg border px-3 text-xs font-bold ${estoqueId === l.id ? "border-hf-accent bg-hf-accent/10 text-hf-accent" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>
                 {area === "outros" ? l.nome : SUB[subareaDoLocal(l)]}
@@ -265,16 +298,16 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
             {busca && <button onClick={() => setBusca("")} aria-label="Limpar busca" className="grid h-10 w-10 place-items-center text-zinc-400 hover:text-zinc-600"><X size={18} /></button>}
           </div>
           {categoriasPresentes.length > 1 && (
-            <div className="flex gap-1.5 overflow-x-auto border-b border-zinc-200/80 px-3 py-2 [scrollbar-width:none]">
+            <div className="flex flex-wrap gap-1.5 border-b border-zinc-200/80 px-3 py-2">
               {["", ...categoriasPresentes].map((c) => (
                 <button key={c || "todas"} onClick={() => setCategoria(c)} aria-pressed={categoria === c}
-                  className={`h-8 shrink-0 rounded-full px-3 text-xs font-bold transition-all ${categoria === c ? "bg-hf-text text-hf-surface shadow-xs" : "bg-zinc-100 text-hf-text-2 hover:bg-zinc-200/70"}`}>
+                  className={`h-8 shrink-0 rounded-full px-3 text-xs font-bold transition-all ${categoria === c ? "bg-hf-accent text-white shadow-xs" : "bg-zinc-100 text-hf-text-2 hover:bg-zinc-200/70"}`}>
                   {c || "Todas"}
                 </button>
               ))}
             </div>
           )}
-          <ul className="max-h-[60vh] divide-y divide-zinc-100 overflow-y-auto">
+          <ul className="divide-y divide-zinc-100">
             {!resultados.length && (
               <li className="p-5 text-center text-xs sm:text-sm font-medium text-hf-text-2">
                 {busca ? "Nenhum produto no cadastro com esse nome." : "Nenhum produto neste local ainda. Busque no cadastro."}
@@ -306,9 +339,9 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
               <span className="text-xs font-bold uppercase tracking-wide text-hf-text-2">{estoque?.nome}</span>
               <p className="mt-1.5 text-lg font-black leading-tight">{produto.nome}</p>
               <p className="mt-1 text-sm">Saldo aqui: <b>{saldoOperacional(produto, saldoAtual)}</b>
-                {unidadeOperacional(produto).embalagem && <span className="text-hf-muted"> ({fmtQ(saldoAtual)} {unidadeDoSaldo(produto)})</span>}
+                {unidadeOperacional(produto).embalagem && !/\+|aberta/.test(saldoOperacional(produto, saldoAtual)) && <span className="text-hf-muted"> de {fmtQ(unidadeOperacional(produto).fatorSaldo)} {unidadeDoSaldo(produto)}</span>}
               </p>
-              {perfilUnidades(produto).fatores.length > 0 && <p className="text-xs text-hf-muted">{perfilUnidades(produto).fatores.join(" · ")}</p>}
+              {unidadeDeCompra(produto) && <p className="text-xs text-hf-muted">{perfilUnidades(produto).fatores[0]}</p>}
             </div>
             {!fixo && <button onClick={limpar} className="h-9 shrink-0 rounded-lg bg-hf-elevated px-3 text-xs font-bold text-hf-text-2">Trocar</button>}
           </div>
@@ -325,19 +358,29 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
           {!tipo && <p className="text-center text-sm font-bold text-hf-text-2">Vai retirar ou adicionar?</p>}
 
           {tipo && <>
+          {/* Quantidade com − e + e a unidade logo abaixo (pedido do dono, 28/10/2026:
+              "melhore essas telas"). A embalagem vem primeiro; medida é alternativa. */}
           <div>
-            <label htmlFor="qtd-estoque" className="text-xs font-bold text-hf-text-2">Quantidade</label>
-            <div className="mt-1 flex gap-2">
+            <label htmlFor="qtd-estoque" className="text-xs font-bold text-hf-text-2">Quanto vai {tipo === "entrada" ? "adicionar" : "retirar"}?</label>
+            <div className="mt-1 flex items-stretch gap-2">
+              <button type="button" aria-label="Menos 1" onClick={() => setForm((f) => ({ ...f, qtd: String(Math.max(0, (Number(String(f.qtd).replace(",", ".")) || 0) - 1)).replace(".", ",") }))}
+                className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-hf-border bg-hf-surface text-hf-text shadow-xs active:scale-[0.97]"><Minus size={22} /></button>
               <input id="qtd-estoque" inputMode="decimal" autoFocus value={form.qtd} onChange={(e) => setForm({ ...form, qtd: e.target.value })} placeholder="0"
-                className="h-14 w-32 min-w-0 rounded-2xl border border-zinc-200/80 bg-hf-surface px-3 text-2xl font-black outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/30 shadow-xs" />
-              <div className="flex min-w-0 flex-1 flex-wrap gap-1.5" role="radiogroup" aria-label="Unidade">
-                {unidades.map((u) => (
+                className="h-16 min-w-0 flex-1 rounded-2xl border border-zinc-200/80 bg-hf-surface px-3 text-center text-3xl font-black outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/30 shadow-xs" />
+              <button type="button" aria-label="Mais 1" onClick={() => setForm((f) => ({ ...f, qtd: String((Number(String(f.qtd).replace(",", ".")) || 0) + 1).replace(".", ",") }))}
+                className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-hf-border bg-hf-surface text-hf-text shadow-xs active:scale-[0.97]"><Plus size={22} /></button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Unidade">
+              {unidades.map((u) => {
+                const dica = dicaUnidade(produto, u);
+                const medida = dica === "unidade de medida";
+                return (
                   <button key={u} type="button" role="radio" aria-checked={unidadeSel === u} onClick={() => setForm({ ...form, unidade: u })}
-                    className={`h-14 min-w-[3.5rem] flex-1 rounded-2xl border px-2 text-sm font-black transition-all active:scale-[0.98] ${unidadeSel === u ? "border-hf-text bg-hf-text text-hf-surface shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
-                    {u}
+                    className={`rounded-xl border px-3 font-black transition-all active:scale-[0.98] ${medida ? "h-10 text-sm" : "h-12 flex-1 text-base"} ${unidadeSel === u ? "border-emerald-700 bg-emerald-700 text-white shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
+                    {medida ? `em ${u}` : <>{u}s <span className="text-xs font-bold opacity-80">{dica.replace(/^\S+ /, "")}</span></>}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
           {lanc && (lanc.erro
@@ -348,17 +391,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
               </p>)}
           {depois < 0 && <p className="text-sm font-bold text-hf-danger">Retirada maior que o saldo deste local.</p>}
 
-          <div>
-            <p className="text-xs font-bold text-hf-text-2">Motivo</p>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              {MOTIVOS[tipo].filter((m) => !m.pelaCompra && (!m.admin || seg?.pode_autorizar) && (m.codigo !== "transferencia_enviada" || destinos.length)).map((m) => (
-                <button key={m.codigo} onClick={() => setForm({ ...form, motivo: m.codigo, destino: "" })} aria-pressed={form.motivo === m.codigo}
-                  className={`h-10 rounded-xl border px-3 text-xs sm:text-sm font-bold transition-all active:scale-[0.98] ${form.motivo === m.codigo ? "border-hf-text bg-hf-text text-hf-surface shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
-                  {m.admin && <Lock size={12} className="mr-1 inline" />}{m.rotulo}
-                </button>
-              ))}
-            </div>
-          </div>
+          {!motivoSimples && blocoMotivo}
 
           {ehTransferencia && (
             <div>
@@ -374,7 +407,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
           )}
 
           {tipo === "entrada" && (
-            <p className="text-xs text-hf-text-2">Mercadoria comprada entra por <Link href="/dashboard/operacao/estoque/compras?aba=nova" className="font-bold text-hf-accent underline">Compras</Link> (estoque, custo médio e conta a pagar juntos, sem entrar duas vezes).</p>
+            <p className="text-xs text-hf-text-2">Chegou de compra? Lance em <Link href="/dashboard/operacao/estoque/compras?aba=nova" className="font-bold text-hf-accent underline">Compras</Link>: entra no estoque e no financeiro de uma vez.</p>
           )}
 
           {motivoSel?.admin && (
@@ -390,6 +423,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
           </button>
           {maisOpcoes && (
             <div className="space-y-2">
+              {motivoSimples && blocoMotivo}
               {tipo === "entrada" && (
                 <label className="block text-xs font-bold text-hf-text-2">Validade
                   <input type="date" value={form.validade} onChange={(e) => setForm({ ...form, validade: e.target.value })} className="mt-1 h-11 w-full rounded-xl border border-hf-border bg-hf-surface px-3 font-bold text-hf-text" />

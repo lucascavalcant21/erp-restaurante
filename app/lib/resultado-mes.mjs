@@ -35,6 +35,10 @@ export function modeloInicial() {
     cartao: { parte_credito_pct: "", parte_debito_pct: "", taxa_credito_pct: "", taxa_debito_pct: "" },
     encargos_pct: "",
     bonus_funcionario: "",
+    // Meta de lucro (%): base do preço sugerido no evento, no orçamento rápido e nas marmitas.
+    meta_lucro_pct: "",
+    // Extras pagos no mês fora dos recibos do RH (R$). Não passa para o mês seguinte.
+    extras_informados: "",
     pedidos: "",
     // Taxa de serviço lançada no fim do mês, por funcionário: { id: valor }.
     taxas_servico: {},
@@ -61,7 +65,7 @@ export function mesHerdado(todos = {}, mes) {
   if (todos[mes]) return { modelo: copiarMes(todos[mes]), herdadoDe: null };
   const ult = Object.keys(todos).filter((k) => k < mes).sort().pop();
   if (!ult) return { modelo: modeloInicial(), herdadoDe: null };
-  return { modelo: { ...copiarMes(todos[ult]), cmv_manual: "" }, herdadoDe: ult };
+  return { modelo: { ...copiarMes(todos[ult]), cmv_manual: "", extras_informados: "" }, herdadoDe: ult };
 }
 
 /** Valor do item: a soma dos subcustos, se houver; senão o valor digitado. */
@@ -112,7 +116,10 @@ export function cmvDoMes(apurados = [], mes) {
  */
 // taxas: { idDoColaborador: valor } — a taxa de serviço que o dono lança no fim
 // do mês para cada um; sem lançamento, vale a do cadastro do RH.
-export function equipeDoMes(colaboradores = [], { bonus = 0, encargos_pct = 0, dias = 0, extrasPagos = 0, taxas = {} } = {}) {
+// CMO = fixos + extras (pedido do dono, 28/10/2026: "no CMO também entram os
+// extras pagos no mês, aí aparece fixos e extras"). Extras: diárias pagas no
+// RH (extrasPagos) + o que o dono informar à mão (extrasInformados).
+export function equipeDoMes(colaboradores = [], { bonus = 0, encargos_pct = 0, dias = 0, extrasPagos = 0, extrasInformados = 0, taxas = {} } = {}) {
   const b = num(bonus); const enc = num(encargos_pct);
   const pessoas = (colaboradores || [])
     .filter((c) => c && String(c.tipo_contrato || "") !== "Freelancer" && (c.status || "ativo") !== "inativo" && c.ativo !== false)
@@ -127,10 +134,14 @@ export function equipeDoMes(colaboradores = [], { bonus = 0, encargos_pct = 0, d
     })
     .sort((x, y) => y.total - x.total);
   const soma = (k) => r2(pessoas.reduce((t, p) => t + p[k], 0));
-  const extras = r2(num(extrasPagos));
-  const total = r2(soma("total") + extras);
+  const extrasRh = r2(num(extrasPagos));
+  const extrasOutros = r2(num(extrasInformados));
+  const extras = r2(extrasRh + extrasOutros);
+  const fixos = soma("total");
+  const total = r2(fixos + extras);
   return {
-    pessoas, salarios: soma("salario"), vales: soma("vale"), taxaServico: soma("taxaServico"), bonus: soma("bonus"), encargos: soma("encargos"), extras,
+    pessoas, salarios: soma("salario"), vales: soma("vale"), taxaServico: soma("taxaServico"), bonus: soma("bonus"), encargos: soma("encargos"),
+    fixos, extras, extrasRh, extrasOutros, fixosPorDia: dias > 0 ? r2(fixos / dias) : null, extrasPorDia: dias > 0 ? r2(extras / dias) : null,
     total, porDia: dias > 0 ? r2(total / dias) : null,
   };
 }
@@ -207,13 +218,16 @@ export function calcularResultado(modelo = {}, { cmv = null, cmo = null } = {}) 
   add("cmv", "(−) CMV (mercadoria)", cmvValor, "custo", { natureza: cmvNatureza, motivo: cmv?.motivo || (cmvManual > 0 ? "Informado à mão (sem contagens apuradas)." : "") });
   add("lucro_bruto", "(=) Lucro bruto", cmvValor == null ? null : lucroBruto, "subtotal");
   add("cmo", "(−) CMO (equipe)", cmoTotal, "custo", { natureza: cmo ? "REAL" : "DADOS INSUFICIENTES", detalhe: porPessoa ? [
+    { id: "fixos", nome: "FIXOS (contratados)", valor: r2(cmo.fixos ?? (cmo.total - cmo.extras)), pct: pct(cmo.fixos ?? (cmo.total - cmo.extras), fat), grupo: true },
     { id: "salarios", nome: "Salários (RH)", valor: cmo.salarios, pct: pct(cmo.salarios, fat) },
     { id: "taxa", nome: "Taxa de serviço (RH, por funcionário)", valor: cmo.taxaServico, pct: pct(cmo.taxaServico, fat) },
     { id: "bonus", nome: "Bônus", valor: cmo.bonus, pct: pct(cmo.bonus, fat) },
     { id: "vales", nome: "Vale-alimentação e transporte (RH)", valor: cmo.vales, pct: pct(cmo.vales, fat) },
     { id: "encargos", nome: `Encargos (${num(modelo.encargos_pct).toLocaleString("pt-BR")}% do salário)`, valor: cmo.encargos, pct: pct(cmo.encargos, fat) },
-    { id: "extras", nome: "Diárias de extras pagas no mês", valor: cmo.extras, pct: pct(cmo.extras, fat) },
-  ].filter((d) => d.valor > 0) : cmo ? [
+    { id: "extras_total", nome: "EXTRAS (pagos no mês)", valor: r2(cmo.extras), pct: pct(cmo.extras, fat), grupo: true, sempre: true },
+    { id: "extras", nome: "Diárias de extras pagas (RH)", valor: r2(cmo.extrasRh ?? cmo.extras), pct: pct(cmo.extrasRh ?? cmo.extras, fat) },
+    { id: "extras_outros", nome: "Outros extras pagos (informado)", valor: r2(cmo.extrasOutros || 0), pct: pct(cmo.extrasOutros || 0, fat) },
+  ].filter((d) => d.valor > 0 || d.sempre) : cmo ? [
     { id: "folha", nome: "Folha dos contratados (salário + VA, do RH)", valor: r2(cmo.folha), pct: pct(cmo.folha, fat) },
     { id: "extras", nome: "Diárias de extras pagas no mês", valor: r2(cmo.extras), pct: pct(cmo.extras, fat) },
     ...(encargos > 0 ? [{ id: "encargos", nome: `Encargos (${num(modelo.encargos_pct).toLocaleString("pt-BR")}% da folha)`, valor: encargos, pct: pct(encargos, fat) }] : []),
@@ -319,4 +333,46 @@ export function ticketMedio(faturamento, pedidos, dias = 0) {
   const f = num(faturamento); const n = Math.round(num(pedidos));
   if (!(f > 0) || !(n > 0)) return { valor: null, natureza: "DADOS INSUFICIENTES", motivo: "Informe o faturamento e quantos pedidos (ou clientes) teve no mês." };
   return { valor: r2(f / n), pedidosPorDia: dias > 0 ? r2(n / dias) : null, natureza: "INFORMADO", motivo: `${f.toLocaleString("pt-BR")} ÷ ${n.toLocaleString("pt-BR")} pedidos.` };
+}
+
+/* Parâmetros da casa a partir do Resultado do mês (pedido do dono, 28/10/2026:
+ * "não trabalhamos mais com a Pizza do Lucro; use o novo sistema no evento e
+ * nas marmitas"). Do último mês salvo até `mesRef` (inclusive):
+ *   imposto_pct      impostos sobre vendas
+ *   taxa_cartao_pct  taxa efetiva do cartão sobre TODO o faturamento
+ *                    (% no crédito × taxa do crédito + % no débito × taxa do débito)
+ *   margem_alvo_pct  meta de lucro
+ * Campo não preenchido volta null (quem usa mantém o valor anterior). */
+export function parametrosDoResultado(todos = {}, mesRef = null) {
+  const meses = Object.keys(todos || {}).filter((k) => /^\d{4}-\d{2}$/.test(k) && (!mesRef || k <= mesRef)).sort();
+  const mes = meses[meses.length - 1];
+  if (!mes) return { mes: null, imposto_pct: null, taxa_cartao_pct: null, margem_alvo_pct: null };
+  const m = todos[mes] || {};
+  const tem = (v) => v !== "" && v !== null && v !== undefined;
+  const c = m.cartao || {};
+  const temCartao = tem(c.parte_credito_pct) || tem(c.parte_debito_pct);
+  return {
+    mes,
+    imposto_pct: tem(m.impostos_pct) ? r2(num(m.impostos_pct)) : null,
+    taxa_cartao_pct: temCartao ? r2((num(c.parte_credito_pct) * num(c.taxa_credito_pct) + num(c.parte_debito_pct) * num(c.taxa_debito_pct)) / 100) : null,
+    margem_alvo_pct: tem(m.meta_lucro_pct) ? r2(num(m.meta_lucro_pct)) : null,
+  };
+}
+
+/** Sobrepõe aos parâmetros antigos (config_sistema) o que o Resultado do mês tem preenchido. */
+export function sobreporParametros(params = {}, doResultado = {}) {
+  const r = { ...params };
+  for (const k of ["imposto_pct", "taxa_cartao_pct", "margem_alvo_pct"]) if (doResultado?.[k] != null) r[k] = doResultado[k];
+  r.origem_parametros = doResultado?.mes ? `Resultado do mês (${doResultado.mes})` : null;
+  return r;
+}
+
+/** Marmitaria: alíquota e meta vazias na config dela usam o Resultado do mês.
+ * O que o dono configurou na marmitaria continua valendo (é próprio dela).
+ * `doResultado` marca o que veio de lá, para a tela dizer a origem. */
+export function configComResultado(cfg = {}, doRes = {}) {
+  const r = { ...cfg, doResultado: {} };
+  if (r.tributos_pct == null && doRes?.imposto_pct != null) { r.tributos_pct = doRes.imposto_pct; r.doResultado.tributos_pct = doRes.mes; }
+  if (r.margem_alvo_pct == null && doRes?.margem_alvo_pct != null) { r.margem_alvo_pct = doRes.margem_alvo_pct; r.doResultado.margem_alvo_pct = doRes.mes; }
+  return r;
 }

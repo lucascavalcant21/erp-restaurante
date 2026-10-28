@@ -137,3 +137,31 @@ test("mesmo produto em vários locais: um cadastro, saldos independentes", () =>
   assert.deepEqual(saldosPorLocal(itens, "c", [{ id: "bar", nome: "Bar" }, { id: "coz", nome: "Cozinha" }]),
     [{ estoqueId: "bar", local: "Bar", saldo: 3960 }, { estoqueId: "coz", local: "Cozinha", saldo: 660 }]);
 });
+
+test("bar: ml/L conta em garrafas ou latas (pedido do dono, 28/10/2026)", async () => {
+  const { unidadeOperacional, saldoOperacional, quantidadeDoMovimento } = await import("./estoque-unidades.mjs");
+  const coca = { departamento: "bar", unidade_medida: "ml", tamanho_embalagem: 350 };
+  assert.equal(unidadeOperacional(coca).nome, "garrafa");
+  assert.equal(saldoOperacional(coca, 10500), "30 garrafas");
+  const lata = { ...coca, unidade_comercial: "lata" };
+  assert.equal(saldoOperacional(lata, 700), "2 latas");
+  assert.equal(quantidadeDoMovimento({ insumo: lata, embalagens: "3" }).quantidadeSaldo, 1050);
+  // Absolut de 1 L: no bar é garrafa (fora do bar, embalagem de 1 L sem nome seguia em L).
+  const absolut = { departamento: "bar", unidade_medida: "l", tamanho_embalagem: 1 };
+  assert.equal(saldoOperacional(absolut, 3), "3 garrafas");
+  assert.equal(unidadeOperacional({ ...absolut, departamento: "salao" }).embalagem, false);
+});
+
+test("cozinha: produto comprado conta em pacotes; pré-preparo e a granel seguem em kg/g", async () => {
+  const { unidadeOperacional, saldoOperacional } = await import("./estoque-unidades.mjs");
+  const acucar = { departamento: "cozinha", categoria: "Secos", unidade_medida: "kg", tamanho_embalagem: 1 };
+  assert.equal(unidadeOperacional(acucar).nome, "pacote");
+  assert.equal(saldoOperacional(acucar, 5), "5 pacotes");
+  const leite = { departamento: "cozinha", unidade_medida: "l", unidade_comercial: "caixa", tamanho_embalagem: 1 };
+  assert.equal(saldoOperacional(leite, 12), "12 caixas");
+  const farinha = { departamento: "cozinha", unidade_medida: "g", tamanho_embalagem: 500 };
+  assert.equal(saldoOperacional(farinha, 1500), "3 pacotes");
+  assert.equal(unidadeOperacional({ ...acucar, ficha_tecnica_id: "x" }).embalagem, false);
+  assert.equal(unidadeOperacional({ ...acucar, categoria: "Pre-preparos" }).embalagem, false);
+  assert.equal(unidadeOperacional({ ...acucar, unidade_comercial: "kg", tamanho_embalagem: 5 }).embalagem, false);
+});

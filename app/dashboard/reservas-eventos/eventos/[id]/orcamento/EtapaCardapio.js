@@ -4,8 +4,8 @@
 // técnica do sistema ou de uma ficha exclusiva criada aqui, com ingredientes
 // que só existem neste evento (não aparecem nas fichas do restaurante).
 
-import { useMemo, useState } from "react";
-import { Search, ChefHat, Wine, FlaskConical, ChevronDown, ChevronUp, UtensilsCrossed, Soup, Sparkles } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
+import { Search, ChefHat, Wine, FlaskConical, ChevronDown, ChevronUp, UtensilsCrossed, Soup, Sparkles, Ticket } from "lucide-react";
 import {
   TIPOS_EVENTO, SECOES, UNIDADES, tipoDoEvento, ingredienteVazio, custoDaFichaExclusiva, novoId,
 } from "../../../../../lib/evento-orcamento.mjs";
@@ -14,14 +14,14 @@ import { tipoFichaDe, setorId } from "../../../../../lib/ficha-modelo.mjs";
 import { fmtReais } from "../../../../../lib/valor-percentual.mjs";
 import { Cartao, Campo, Texto, Numero, Selecao, BotaoRemover, BotaoAdicionar } from "./ui";
 
-const ICONE_TIPO = { buffet: Soup, alacarte: UtensilsCrossed, unico: Sparkles };
+const ICONE_TIPO = { buffet: Soup, alacarte: UtensilsCrossed, ticket: Ticket, unico: Sparkles };
 
 export function EtapaTipo({ orc, setOrc, modelos = [], onAplicarModelo, onRemoverModelo }) {
   return (
     <div className="space-y-5">
     <Cartao titulo="Que tipo de evento é?" descricao="Isso define como o cardápio é montado e como aparece no orçamento do cliente. Dá para trocar depois.">
       <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Tipo do evento">
-        {TIPOS_EVENTO.map((t) => {
+        {TIPOS_EVENTO.filter((t) => !t.oculto || orc.tipo === t.id).map((t) => {
           const Icone = ICONE_TIPO[t.id];
           const ativo = orc.tipo === t.id;
           return (
@@ -61,37 +61,93 @@ export function EtapaTipo({ orc, setOrc, modelos = [], onAplicarModelo, onRemove
 }
 
 // Busca de ficha técnica para a seção (bar → fichas do bar; comida → cozinha).
+// Antes listava só as 30 primeiras em ordem alfabética, sem pré-preparos: no
+// cardápio real só apareciam os "Adicional - …" (pedido do dono, 27/10/2026).
+// Agora mostra todas, separadas em Pratos prontos e Pré-preparos, por
+// categoria, com os adicionais no fim.
+const ehAdicionalFicha = (f) => /^adiciona(l|is)\b/i.test(String(f?.nome_receita || "").normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+const semAcento = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+// Pesquisar também pelo insumo (pedido do dono, 27/10/2026): "camarão" acha as
+// fichas que levam camarão. Devolve o nome do insumo que casou (ou null).
+const insumosDaFicha = (f) => (f.fichas_ingredientes || []).map((i) => i?.insumos?.nome || i?.nome || "").filter(Boolean);
+const insumoQueCasa = (f, t) => (t ? insumosDaFicha(f).find((n) => semAcento(n).includes(t)) || null : null);
 function BuscaFicha({ fichas, setor, onEscolher, onFechar }) {
   const [busca, setBusca] = useState("");
-  const opcoes = useMemo(() => {
-    const t = busca.trim().toLowerCase();
-    return (fichas || [])
-      .filter((f) => tipoFichaDe(f) !== "pre_preparo")
-      .filter((f) => !setor || setorId(f.departamento) === setor)
-      .filter((f) => !t || String(f.nome_receita || "").toLowerCase().includes(t))
-      .slice(0, 30);
-  }, [fichas, setor, busca]);
+  const [tipo, setTipo] = useState("prontos");
+  const [categoria, setCategoria] = useState("");
+  const doSetor = useMemo(() => (fichas || []).filter((f) => f.ativo !== false && (!setor || setorId(f.departamento) === setor)), [fichas, setor]);
+  const porTipo = useMemo(() => ({
+    prontos: doSetor.filter((f) => tipoFichaDe(f) !== "pre_preparo"),
+    preparos: doSetor.filter((f) => tipoFichaDe(f) === "pre_preparo"),
+  }), [doSetor]);
+  const grupos = useMemo(() => {
+    const t = semAcento(busca.trim());
+    const m = new Map();
+    for (const f of porTipo[tipo]) {
+      if (t && !semAcento(f.nome_receita).includes(t) && !insumoQueCasa(f, t)) continue;
+      const cat = ehAdicionalFicha(f) ? "Adicionais" : String(f.categoria || "").trim() || "Outros";
+      if (categoria && cat !== categoria) continue;
+      if (!m.has(cat)) m.set(cat, []);
+      m.get(cat).push(f);
+    }
+    const peso = (c) => (c === "Adicionais" ? 2 : c === "Outros" ? 1 : 0);
+    return [...m.entries()].sort(([a], [b]) => peso(a) - peso(b) || a.localeCompare(b, "pt-BR"))
+      .map(([cat, lista]) => [cat, lista.sort((x, y) => String(x.nome_receita).localeCompare(String(y.nome_receita), "pt-BR"))]);
+  }, [porTipo, tipo, busca, categoria]);
+  const categorias = useMemo(() => {
+    const set = new Set(porTipo[tipo].map((f) => (ehAdicionalFicha(f) ? "Adicionais" : String(f.categoria || "").trim() || "Outros")));
+    return [...set].sort((a, b) => (a === "Adicionais") - (b === "Adicionais") || a.localeCompare(b, "pt-BR"));
+  }, [porTipo, tipo]);
+  const total = grupos.reduce((t, [, l]) => t + l.length, 0);
   return (
     <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl bg-white p-1 ring-1 ring-slate-200" role="tablist" aria-label="Tipo de ficha">
+        {[["prontos", "Pratos prontos"], ["preparos", "Pré-preparos"]].map(([id, rot]) => (
+          <button key={id} type="button" role="tab" aria-selected={tipo === id} onClick={() => { setTipo(id); setCategoria(""); }}
+            className={`h-9 rounded-lg text-sm font-bold ${tipo === id ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}>
+            {rot} <span className="text-xs font-semibold opacity-70">{porTipo[id].length}</span>
+          </button>
+        ))}
+      </div>
       <div className="relative">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={`Buscar ficha ${setor === "bar" ? "do bar" : setor === "cozinha" ? "da cozinha" : ""}...`}
+        <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={`Buscar ${tipo === "preparos" ? "pré-preparo" : "prato"} ou insumo (ex.: camarão)…`}
           className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500" />
       </div>
-      <ul className="mt-2 max-h-64 divide-y divide-slate-100 overflow-y-auto rounded-xl bg-white">
-        {opcoes.length === 0 && <li className="p-4 text-center text-sm font-semibold text-slate-500">Nenhuma ficha encontrada.</li>}
-        {opcoes.map((f) => {
-          const c = custoPorcaoDaFicha(f, fichas);
-          return (
-            <li key={f.id}>
-              <button type="button" onClick={() => onEscolher(f)} className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-emerald-50">
-                <span className="min-w-0 truncate text-sm font-bold text-slate-900">{f.nome_receita}</span>
-                <span className="shrink-0 text-xs font-bold tabular-nums text-slate-600">{c > 0 ? `${fmtReais(c)} / porção` : "sem custo"}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      {categorias.length > 1 && (
+        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+          {["", ...categorias].map((c) => (
+            <button key={c || "todas"} type="button" onClick={() => setCategoria(c)} aria-pressed={categoria === c}
+              className={`h-8 shrink-0 rounded-full border px-3 text-xs font-bold ${categoria === c ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-white text-slate-600"}`}>{c || "Todas"}</button>
+          ))}
+        </div>
+      )}
+      <div className="mt-2 max-h-80 overflow-y-auto rounded-xl bg-white">
+        {total === 0 && <p className="p-4 text-center text-sm font-semibold text-slate-500">Nenhuma ficha encontrada.</p>}
+        {grupos.map(([cat, lista]) => (
+          <div key={cat}>
+            <p className="sticky top-0 bg-slate-100 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-500">{cat} · {lista.length}</p>
+            <ul className="divide-y divide-slate-100">
+              {lista.map((f) => {
+                const c = custoPorcaoDaFicha(f, fichas);
+                const t = semAcento(busca.trim());
+                const peloInsumo = t && !semAcento(f.nome_receita).includes(t) ? insumoQueCasa(f, t) : null;
+                return (
+                  <li key={f.id}>
+                    <button type="button" onClick={() => onEscolher(f)} className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-emerald-50">
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-bold text-slate-900">{f.nome_receita}</span>
+                        {peloInsumo ? <span className="block truncate text-[11px] font-semibold text-emerald-700">leva {peloInsumo}</span> : null}
+                      </span>
+                      <span className={`shrink-0 text-xs font-bold tabular-nums ${c > 0 ? "text-slate-600" : "text-amber-700"}`}>{c > 0 ? `${fmtReais(c)} / porção` : "sem custo"}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
       <button type="button" onClick={onFechar} className="mt-2 text-sm font-bold text-slate-600 hover:text-slate-900">Fechar</button>
     </div>
   );
@@ -151,56 +207,112 @@ function EditorExclusiva({ item, alterarItem }) {
   );
 }
 
-function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, ehBar }) {
+function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, ehBar, onVincular }) {
   const exclusiva = item.origem === "exclusiva";
+  // Ordem do dono (28/10/2026): 1 nome do prato, 2 receita, 3 porção.
+  const semReceita = !!item.receita_pendente;
   return (
     <li className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-12 sm:items-end">
-        <div className="col-span-2 sm:col-span-4">
+      {/* Linha 1: o que é + nome + excluir */}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
           <span className={`mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${exclusiva ? "bg-zinc-100 text-zinc-800" : "bg-slate-100 text-slate-700"}`}>
             {exclusiva ? <><FlaskConical size={11} /> Exclusiva do evento</> : <><ChefHat size={11} /> Ficha técnica</>}
           </span>
-          <Texto valor={item.nome} onChange={(v) => alterarItem({ nome: v })} aria-label="Nome do produto" readOnly={!exclusiva && !!item.ficha}
-            className={!exclusiva && item.ficha ? "bg-slate-50" : ""} />
+          <Texto valor={item.nome} onChange={(v) => alterarItem({ nome: v })} aria-label="Nome do prato" placeholder="Nome do prato" />
+          {!semReceita && (
+            <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] font-semibold text-slate-500">
+              {!exclusiva && item.ficha ? <>Receita: ficha técnica “{item.ficha.nome_receita}”</> : exclusiva ? "Receita: ingredientes deste evento" : null}
+              {onVincular && <button type="button" onClick={onVincular} className="font-bold text-emerald-700 hover:underline">trocar pela ficha técnica</button>}
+            </span>
+          )}
         </div>
-        <div className="sm:col-span-2">
-          <span className="mb-1 flex items-center justify-between gap-1 text-xs font-bold uppercase tracking-wide text-slate-600">
-            {ehBar ? "Doses/pessoa" : item.emGramas ? "Gramas/pessoa" : "Porções/pessoa"}
-            {!ehBar && (
-              <button type="button" onClick={() => alterarItem({ medida: item.emGramas ? "porcao" : "g" })} className="rounded bg-slate-100 px-1.5 text-[10px] font-black text-slate-700 hover:bg-slate-200"
-                title="Alternar entre porções e gramas por pessoa">{item.emGramas ? "usar porções" : "usar gramas"}</button>
+        <div className="pt-6"><BotaoRemover rotulo={`Remover ${item.nome}`} onClick={remover} /></div>
+      </div>
+
+      {semReceita && (
+        <div className="mt-3 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/50 p-3">
+          <p className="text-sm font-black text-slate-900">2 · Qual é a receita deste prato?</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" onClick={onVincular} className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700"><ChefHat size={16} /> Usar uma ficha técnica</button>
+            <button type="button" onClick={() => { alterarItem({ receita_pendente: false, ingredientes: [ingredienteVazio()] }); if (!aberto) alternar(); }} className="flex h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 hover:bg-slate-50"><FlaskConical size={16} /> Montar os ingredientes</button>
+          </div>
+          <p className="mt-2 text-xs font-medium text-slate-500">Depois você porciona: quanto cada pessoa come ou em quantas porções o prato se divide.</p>
+        </div>
+      )}
+      {!semReceita && <p className="mt-3 text-[11px] font-black uppercase tracking-wide text-emerald-800">3 · Porcionar</p>}
+      {/* Linha 2: quantidade, custos e ingredientes — cada caixa com o título em cima do valor */}
+      <div className={`mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-stretch ${semReceita ? "hidden" : ""}`}>
+        <div className="col-span-2 rounded-xl bg-slate-50 p-2.5 sm:col-span-1">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? "Quantidade no evento" : ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : item.dividido ? `Porções de ${item.divisaoG} g por pessoa` : "Porções por pessoa"}</span>
+            {(
+              <span className="inline-flex rounded-lg bg-white p-0.5 ring-1 ring-slate-200" role="radiogroup" aria-label="Medir por">
+                {/* "total": quantidade fechada para o evento (2 bolos, 30 sanduíches, 1 suco de 2 L) */}
+                {(ehBar ? [["porcao", "por pessoa"], ["total", "total"]] : [["porcao", "porções"], ["g", "gramas"], ["total", "total"]]).map(([m, rot]) => {
+                  const atual = item.emTotal ? "total" : item.emGramas ? "g" : "porcao";
+                  const ativo = m === atual;
+                  return (
+                    <button key={m} type="button" role="radio" aria-checked={ativo} onClick={() => alterarItem({ medida: m })}
+                      className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${ativo ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}>{rot}</button>
+                  );
+                })}
+              </span>
             )}
-          </span>
-          {item.emGramas
+          </div>
+          {item.emTotal ? (
+            <div className="space-y-1.5">
+              <Numero valor={item.quantidade_total} onChange={(v) => alterarItem({ quantidade_total: v })} sufixo={item.pesoPorcao > 0 ? `× ${item.pesoPorcao} ${ehBar ? "ml" : "g"}` : "porções"} aria-label="Quantidade para o evento" />
+              <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                Dividir em {ehBar ? "copos" : "fatias"} de
+                <span className="w-24"><Numero valor={item.fatia_g} onChange={(v) => alterarItem({ fatia_g: v })} sufixo={ehBar ? "ml" : "g"} aria-label={ehBar ? "Tamanho do copo" : "Peso da fatia"} /></span>
+              </label>
+              {item.fatias != null && <span className="block text-xs font-black text-emerald-800">Dá {item.fatias.toLocaleString("pt-BR")} {ehBar ? "copos" : "fatias"}{convidados > 0 ? ` · ${(item.fatias / convidados).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} por pessoa` : ""}</span>}
+            </div>
+          ) : item.emGramas
             ? <Numero valor={item.gramas_por_pessoa} onChange={(v) => alterarItem({ gramas_por_pessoa: v })} sufixo="g" aria-label="Gramas por pessoa" />
             : <Numero valor={item.por_pessoa} onChange={(v) => alterarItem({ por_pessoa: v })} aria-label={ehBar ? "Doses por pessoa" : "Porções por pessoa"} />}
+          {/* Divisão do prato: o peso vem da ficha; o dono escolhe o tamanho da porção da mesa. */}
+          {!ehBar && !item.emGramas && !item.emTotal && (
+            <div className="mt-2 space-y-1">
+              <span className="block text-[11px] font-bold text-slate-600">{item.pesoPorcao > 0 ? <>Prato da ficha: <b className="text-slate-900">{item.pesoPorcao.toLocaleString("pt-BR")} g</b></> : "A ficha não tem o peso do prato."}</span>
+              {item.pesoPorcao > 0 && (
+                <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                  Dividir em porções de
+                  <span className="w-24"><Numero valor={item.fatia_g} onChange={(v) => alterarItem({ fatia_g: v })} sufixo="g" aria-label="Peso da porção dividida" /></span>
+                </label>
+              )}
+              {item.dividido && <span className="block text-xs font-black text-emerald-800">1 prato = {item.porcoesPorFicha.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} porções de {item.divisaoG} g · {fmtReais(item.custoPorcaoDividida)} cada</span>}
+            </div>
+          )}
           {item.emGramas && item.pesoPorcao > 0 && <span className="mt-1 block text-[11px] font-medium text-slate-500">= {item.porPessoa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} porção de {item.pesoPorcao} g</span>}
         </div>
-        <div className="sm:col-span-2">
-          <span className="block text-xs font-bold uppercase tracking-wide text-slate-600">Custo da porção</span>
-          <span className={`block h-11 pt-2.5 text-sm font-bold tabular-nums ${item.semCusto ? "text-amber-700" : "text-slate-900"}`}>{item.semCusto ? "sem custo" : fmtReais(item.custoPorcao)}</span>
+        <div className="rounded-xl bg-slate-50 p-2.5">
+          <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.dividido ? `Custo da porção de ${item.divisaoG} g` : "Custo da porção"}</span>
+          <span className={`mt-2 block text-base font-black tabular-nums ${item.semCusto ? "text-amber-700" : "text-slate-900"}`}>{item.semCusto ? "sem custo" : fmtReais(item.dividido ? item.custoPorcaoDividida : item.custoPorcao)}</span>
+          {item.dividido && !item.semCusto && <span className="block text-[11px] font-bold text-slate-500">prato inteiro {fmtReais(item.custoPorcao)}</span>}
         </div>
-        <div className="sm:col-span-2">
-          <span className="block text-xs font-bold uppercase tracking-wide text-slate-600">Por pessoa</span>
-          <span className="block h-11 pt-2.5 text-sm font-black tabular-nums text-slate-900">{fmtReais(item.custoPorPessoa)}</span>
+        <div className="rounded-xl bg-slate-50 p-2.5">
+          <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? "Custo total" : "Custo por pessoa"}</span>
+          <span className="mt-2 block text-base font-black tabular-nums text-slate-900">{fmtReais(item.emTotal ? item.custoTotalFixo : item.custoPorPessoa)}</span>
+          {item.emTotal && convidados > 0 && item.custoTotalFixo > 0 && <span className="block text-[11px] font-bold text-slate-500">{fmtReais(item.custoTotalFixo / convidados)} por pessoa</span>}
         </div>
-        <div className="col-span-2 flex items-end justify-end gap-2 sm:col-span-2">
-          {exclusiva && (
-            <button type="button" onClick={alternar} aria-expanded={aberto}
-              className="flex h-11 items-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-bold text-zinc-800 hover:bg-zinc-100">
-              Ingredientes {aberto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-          )}
-          <BotaoRemover rotulo={`Remover ${item.nome}`} onClick={remover} />
-        </div>
+        {exclusiva && (
+          <button type="button" onClick={alternar} aria-expanded={aberto}
+            className="col-span-2 flex min-h-[44px] items-center justify-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-bold text-zinc-800 hover:bg-zinc-100 sm:col-span-1">
+            Ingredientes {aberto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        )}
       </div>
       <div className="mt-2">
         <Texto valor={item.descricao} onChange={(v) => alterarItem({ descricao: v })} placeholder="Descrição para o cliente (opcional) — ex.: com farofa de manteiga e vinagrete"
           className="!h-9 text-xs" aria-label="Descrição para o cliente" />
       </div>
-      {item.problemas.length > 0 && <p className="mt-2 text-xs font-bold text-amber-700">{item.problemas.join(" · ")}</p>}
+      {!semReceita && item.problemas.length > 0 && <p className="mt-2 text-xs font-bold text-amber-700">{item.problemas.join(" · ")}</p>}
       {convidados > 0 && item.custoPorPessoa > 0 && (
-        <p className="mt-1 text-xs font-medium text-slate-500">{(Number(item.porPessoa) * convidados).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} porções para {convidados} pessoas · {fmtReais(item.custoPorPessoa * convidados)}</p>
+        <p className="mt-1 text-xs font-medium text-slate-500">{item.dividido
+          ? <>{(Number(item.porPessoa) * convidados * item.porcoesPorFicha).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} porções de {item.divisaoG} g para {convidados} pessoas = {Math.ceil(Number(item.porPessoa) * convidados - 1e-9).toLocaleString("pt-BR")} pratos · {fmtReais(item.custoPorPessoa * convidados)}</>
+          : <>{(Number(item.porPessoa) * convidados).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} porções para {convidados} pessoas · {fmtReais(item.custoPorPessoa * convidados)}</>}</p>
       )}
       {exclusiva && aberto && <EditorExclusiva item={item} alterarItem={alterarItem} />}
     </li>
@@ -210,17 +322,28 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
 export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
   const tipo = tipoDoEvento(orc.tipo);
   const [buscando, setBuscando] = useState(null); // seção com a busca aberta
+  const [vinculando, setVinculando] = useState(null); // prato (id) escolhendo a ficha técnica
+  const [novoNome, setNovoNome] = useState({}); // seção → nome digitado
+  // 1º o nome do prato; a receita e a porção vêm depois (pedido do dono, 28/10/2026).
+  const adicionarPeloNome = (secao) => {
+    const nome = String(novoNome[secao] || "").trim();
+    if (!nome) return;
+    const fechado = tipoDoEvento(orc.tipo).quantidadeFechada ? { medida: "total", quantidade_total: "1" } : {};
+    setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id: novoId(), secao, origem: "exclusiva", nome, descricao: "", por_pessoa: "1", ingredientes: [], receita_pendente: true, ...fechado }] }));
+    setNovoNome((x) => ({ ...x, [secao]: "" }));
+  };
+  const vincularFicha = (itemId, f) => {
+    setOrc((o) => ({ ...o, cardapio: o.cardapio.map((i) => (i.id === itemId ? { ...i, origem: "ficha", ficha_id: f.id, custo_porcao_gravado: custoPorcaoDaFicha(f, fichas) || 0, receita_pendente: false, ingredientes: [] } : i)) }));
+    setVinculando(null);
+  };
   const [abertos, setAbertos] = useState(() => new Set());
   const alterarItem = (id, mud) => setOrc((o) => ({ ...o, cardapio: o.cardapio.map((i) => (i.id === id ? { ...i, ...mud } : i)) }));
   const remover = (id) => setOrc((o) => ({ ...o, cardapio: o.cardapio.filter((i) => i.id !== id) }));
   const adicionarFicha = (secao, f) => {
-    setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id: novoId(), secao, origem: "ficha", ficha_id: f.id, nome: f.nome_receita, descricao: "", por_pessoa: "1", custo_porcao_gravado: custoPorcaoDaFicha(f, fichas) || 0 }] }));
+    // Ticket por pessoa: o item já entra em quantidade fechada para o evento.
+    const fechado = tipoDoEvento(orc.tipo).quantidadeFechada ? { medida: "total", quantidade_total: "1" } : {};
+    setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id: novoId(), secao, origem: "ficha", ficha_id: f.id, nome: f.nome_receita, descricao: "", por_pessoa: "1", custo_porcao_gravado: custoPorcaoDaFicha(f, fichas) || 0, ...fechado }] }));
     setBuscando(null);
-  };
-  const adicionarExclusiva = (secao) => {
-    const id = novoId();
-    setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id, secao, origem: "exclusiva", nome: secao === "bar" ? "Novo drink" : "Novo prato", descricao: "", por_pessoa: "1", ingredientes: [ingredienteVazio()] }] }));
-    setAbertos((s) => new Set(s).add(id));
   };
   const alternar = (id) => setAbertos((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
@@ -229,6 +352,8 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
       <p className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700">
         <strong>{tipo.rotulo}.</strong> {orc.tipo === "buffet"
           ? "No buffet, diga quanto cada pessoa come de cada prato: 0,5 = meia porção por convidado."
+          : orc.tipo === "ticket"
+            ? "Diga quanto vai no total para o evento (2 bolos, 30 sanduíches, 1 suco de 2 L). O custo por pessoa e o ticket aparecem embaixo."
           : orc.tipo === "alacarte"
             ? "Cada pessoa recebe 1 porção de cada item. Se houver opções à escolha (ex.: 2 pratos principais), use 0,5 em cada."
             : "Um item só: informe quanto vai por pessoa."}
@@ -243,13 +368,19 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
             {itens.length === 0 && <p className="mb-3 text-sm font-medium text-slate-500">Nada nesta etapa ainda.{orc.tipo === "alacarte" ? " Se o evento não tiver esta etapa, deixe vazia." : ""}</p>}
             <ul className="space-y-3">
               {itens.map((i) => (
-                <LinhaItem key={i.id} item={i} convidados={resumo.convidados} ehBar={s === "bar"}
-                  alterarItem={(m) => alterarItem(i.id, m)} remover={() => remover(i.id)} aberto={abertos.has(i.id)} alternar={() => alternar(i.id)} />
+                <Fragment key={i.id}>
+                  <LinhaItem item={i} convidados={resumo.convidados} ehBar={s === "bar"} onVincular={() => setVinculando(vinculando === i.id ? null : i.id)}
+                    alterarItem={(m) => alterarItem(i.id, m)} remover={() => remover(i.id)} aberto={abertos.has(i.id)} alternar={() => alternar(i.id)} />
+                  {vinculando === i.id && <li className="list-none"><BuscaFicha fichas={fichas} setor={sec.setor} onEscolher={(f) => vincularFicha(i.id, f)} onFechar={() => setVinculando(null)} /></li>}
+                </Fragment>
               ))}
             </ul>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <BotaoAdicionar onClick={() => setBuscando(buscando === s ? null : s)}>Da ficha técnica</BotaoAdicionar>
-              <BotaoAdicionar onClick={() => adicionarExclusiva(s)}>{s === "bar" ? "Criar drink exclusivo" : "Criar ficha exclusiva"}</BotaoAdicionar>
+            <form className="mt-3 flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); adicionarPeloNome(s); }}>
+              <span className="min-w-[14rem] flex-1"><Texto valor={novoNome[s] || ""} onChange={(v) => setNovoNome((x) => ({ ...x, [s]: v }))} placeholder={s === "bar" ? "1 · Nome do drink (ex.: Caipirinha de cupuaçu)" : "1 · Nome do prato (ex.: Peixe ao molho de camarão)"} aria-label={`Nome do ${s === "bar" ? "drink" : "prato"}`} /></span>
+              <button type="submit" disabled={!String(novoNome[s] || "").trim()} className="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-40">Adicionar {s === "bar" ? "drink" : "prato"}</button>
+            </form>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <BotaoAdicionar onClick={() => setBuscando(buscando === s ? null : s)}>Ou escolher direto da ficha técnica</BotaoAdicionar>
             </div>
             {buscando === s && <BuscaFicha fichas={fichas} setor={sec.setor} onEscolher={(f) => adicionarFicha(s, f)} onFechar={() => setBuscando(null)} />}
           </Cartao>
@@ -262,7 +393,7 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
             {resumo.itens.map((i) => (
               <div key={i.id} className="flex items-baseline justify-between gap-3 py-1.5">
                 <span className="min-w-0 truncate text-sm font-semibold text-slate-700">{i.nome} <span className="text-xs font-medium text-slate-500">· {SECOES[i.secao].rotulo}</span></span>
-                <span className="whitespace-nowrap text-sm font-bold tabular-nums text-slate-900">{fmtReais(i.custoPorPessoa)}</span>
+                <span className="whitespace-nowrap text-sm font-bold tabular-nums text-slate-900">{i.emTotal ? <>{resumo.pessoasConsumo > 0 ? fmtReais(i.custoTotalFixo / resumo.pessoasConsumo) : "—"} <span className="text-xs font-medium text-slate-500">({fmtReais(i.custoTotalFixo)} no total)</span></> : fmtReais(i.custoPorPessoa)}</span>
               </div>
             ))}
             <div className="flex items-baseline justify-between gap-3 pt-2">
@@ -278,7 +409,23 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
               </div>
             )}
           </div>
-          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto. Entra no custo e na lista de compras." className="mt-4 max-w-xs">
+          {/* Conta do ticket (pedido do dono, 28/10/2026): "gasto R$ 100 para servir
+              40 pessoas, sai tanto por pessoa, e quero vender por R$ 35". */}
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
+            <p className="text-sm font-black text-slate-900">Ticket por pessoa</p>
+            <div className="mt-2 flex flex-wrap items-end gap-3">
+              <label className="w-36 text-[11px] font-bold uppercase tracking-wide text-slate-600">Vender a
+                <Numero valor={orc.financeiro?.preco_por_pessoa || ""} onChange={(v) => setOrc((o) => ({ ...o, financeiro: { ...o.financeiro, preco_por_pessoa: v } }))} sufixo="R$/pessoa" aria-label="Ticket por pessoa" />
+              </label>
+              {resumo.convidados > 0 && resumo.cmv > 0 ? (
+                <p className="text-sm font-semibold text-slate-700">
+                  Gasto <b>{fmtReais(resumo.cmv)}</b> para servir <b>{resumo.convidados}</b> pessoas = <b>{fmtReais(resumo.cmv / resumo.convidados)}</b> por pessoa.
+                  {Number(resumo.precoPorPessoa) > 0 && <> Vendendo a <b>{fmtReais(resumo.precoPorPessoa)}</b>, sobram <b className={resumo.precoPorPessoa - resumo.cmv / resumo.convidados < 0 ? "text-red-700" : "text-emerald-800"}>{fmtReais(resumo.precoPorPessoa - resumo.cmv / resumo.convidados)}</b> por pessoa ({fmtReais(resumo.receita - resumo.cmv)} no evento) antes de equipe, aluguel e taxas — o lucro líquido sai na etapa de custos.</>}
+                </p>
+              ) : <p className="text-xs font-semibold text-slate-500">Informe as pessoas e os itens para ver o custo por pessoa.</p>}
+            </div>
+          </div>
+          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto (não vale para itens em quantidade fechada). Entra no custo e na lista de compras." className="mt-4 max-w-xs">
             <Numero valor={orc.sobra_pct} onChange={(v) => setOrc((o) => ({ ...o, sobra_pct: v }))} sufixo="%" />
           </Campo>
         </Cartao>

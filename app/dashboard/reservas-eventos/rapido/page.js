@@ -12,7 +12,7 @@ import { ChefHat, Wine, Search, X, Plus, Minus, Check, Loader2, Users, Sparkles,
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
 import { fetchFichas } from "../../../lib/operacao";
-import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
+import { fetchParamsDaCasa, PARAMS_PADRAO } from "../../../lib/parametros";
 import { catalogoDeFichas, filtrarCatalogo, orcamentoDoRapido } from "../../../lib/evento-rapido.mjs";
 import { resumoDoOrcamento, camposDoEventoParaGravar, mensagemErroEvento } from "../../../lib/evento-orcamento.mjs";
 import { fmtReais } from "../../../lib/valor-percentual.mjs";
@@ -57,7 +57,7 @@ export default function OrcamentoRapido() {
     let ativo = true;
     (async () => {
       setCarregando(true);
-      const [rF, rP] = await Promise.all([fetchFichas(unidadeAtiva), fetchParams(unidadeAtiva)]);
+      const [rF, rP] = await Promise.all([fetchFichas(unidadeAtiva), fetchParamsDaCasa(unidadeAtiva)]);
       if (!ativo) return;
       setFichas(rF.data || []);
       const p = { ...PARAMS_PADRAO, ...(rP.data || {}) };
@@ -133,7 +133,7 @@ export default function OrcamentoRapido() {
           </div>
           <div className="relative mt-3">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-text-2" />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={`Buscar ${setor === "bar" ? "drink ou bebida" : "prato"}…`}
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={`Buscar ${setor === "bar" ? "drink" : "prato"} ou insumo (ex.: ${setor === "bar" ? "cachaça" : "camarão"})…`}
               className="h-11 w-full rounded-xl border border-hf-border bg-hf-surface pl-10 pr-10 font-semibold text-hf-text" />
             {busca ? <button onClick={() => setBusca("")} aria-label="Limpar busca" className="absolute right-3 top-1/2 -translate-y-1/2 text-hf-text-2"><X size={18} /></button> : null}
           </div>
@@ -164,6 +164,7 @@ export default function OrcamentoRapido() {
                                 <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg border ${sel ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border-strong text-transparent"}`}><Check size={16} /></span>
                                 <span className="min-w-0">
                                   <span className="block truncate text-sm font-bold text-hf-text">{it.nome}</span>
+                                  {it.peloInsumo ? <span className="block truncate text-[11px] font-semibold text-hf-accent">leva {it.peloInsumo}</span> : null}
                                   <span className={`block text-xs ${it.custoPorcao ? "text-hf-text-2" : "font-bold text-hf-warning"}`}>
                                     {it.custoPorcao ? `custo ${fmtReais(it.custoPorcao)} a porção` : "ficha sem custo: DADOS INSUFICIENTES"}
                                   </span>

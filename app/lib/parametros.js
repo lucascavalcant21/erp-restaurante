@@ -1,3 +1,4 @@
+import { parametrosDoResultado, sobreporParametros } from "./resultado-mes.mjs";
 import { supabase, isSupabaseReady } from "./supabase";
 
 // Parâmetros ajustáveis do sistema (Configurações > Parâmetros). Sem registro
@@ -303,3 +304,25 @@ export async function salvarPerfisEtiquetas(unidadeId, perfis) {
   const { error } = await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
   return { error: error?.message, data: perfis_etiquetas };
 }
+
+/* Parâmetros de preço da casa (impostos, maquininha, meta de lucro) para o
+ * evento, o orçamento rápido e as marmitas: o Resultado do mês substituiu a
+ * Pizza do Lucro, então o que estiver preenchido lá vale; o resto segue o
+ * cadastro antigo. `origem_parametros` diz de onde veio, para a tela mostrar. */
+export async function fetchParamsDaCasa(unidadeId) {
+  const [rP, rR] = await Promise.all([fetchParams(unidadeId), fetchResultadoMensal(unidadeId)]);
+  const base = { ...PARAMS_PADRAO, ...(rP.data || {}) };
+  const mes = new Date().toISOString().slice(0, 7);
+  return { data: sobreporParametros(base, parametrosDoResultado(rR.data || {}, mes)), error: rP.error || null };
+}
+
+/* Combos da marmitaria (comida + bebida [+ sobremesa]) em config_sistema.params
+ * .marmitaria_combos. Leitura própria (fetchParams só devolve os numéricos). */
+export async function fetchCombosMarmitaria(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: [], error: error.message };
+  const v = data?.[0]?.params?.marmitaria_combos;
+  return { data: Array.isArray(v) ? v : [], error: null };
+}
+export const salvarCombosMarmitaria = (unidadeId, combos) => salvarParams(unidadeId, { marmitaria_combos: Array.isArray(combos) ? combos.slice(0, 30) : [] });

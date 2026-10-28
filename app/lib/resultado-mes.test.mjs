@@ -164,3 +164,46 @@ test("semanas do CMV: entrou, saiu, estoque e % da semana; ticket médio", async
   assert.equal(ticketMedio("100000", "2500", 25).pedidosPorDia, 100);
   assert.equal(ticketMedio("100000", "").valor, null);
 });
+
+test("parâmetros da casa vêm do Resultado do mês (no lugar da Pizza do Lucro)", async () => {
+  const { parametrosDoResultado, sobreporParametros } = await import("./resultado-mes.mjs");
+  const todos = {
+    "2026-09": { impostos_pct: "6", cartao: { parte_credito_pct: "50", taxa_credito_pct: "3", parte_debito_pct: "30", taxa_debito_pct: "1,5" }, meta_lucro_pct: "20" },
+    "2026-10": { impostos_pct: "8", cartao: {}, meta_lucro_pct: "" },
+  };
+  const p = parametrosDoResultado(todos, "2026-10");
+  assert.equal(p.mes, "2026-10");
+  assert.equal(p.imposto_pct, 8);
+  assert.equal(p.taxa_cartao_pct, null);
+  assert.equal(p.margem_alvo_pct, null);
+  const set = parametrosDoResultado(todos, "2026-09");
+  // 50% × 3% + 30% × 1,5% = 1,95% do faturamento
+  assert.equal(set.taxa_cartao_pct, 1.95);
+  assert.equal(set.margem_alvo_pct, 20);
+  const s = sobreporParametros({ imposto_pct: 5, taxa_cartao_pct: 3, margem_alvo_pct: 25, outro: 1 }, p);
+  assert.deepEqual([s.imposto_pct, s.taxa_cartao_pct, s.margem_alvo_pct, s.outro], [8, 3, 25, 1]);
+  assert.match(s.origem_parametros, /Resultado do mês/);
+  assert.equal(parametrosDoResultado({}, "2026-10").mes, null);
+});
+
+test("marmitaria: config vazia usa o Resultado do mês; a própria prevalece", async () => {
+  const { configComResultado } = await import("./resultado-mes.mjs");
+  const res = { mes: "2026-10", imposto_pct: 8, margem_alvo_pct: 20 };
+  const a = configComResultado({ tributos_pct: null, margem_alvo_pct: 30 }, res);
+  assert.equal(a.tributos_pct, 8);
+  assert.equal(a.margem_alvo_pct, 30);
+  assert.deepEqual(a.doResultado, { tributos_pct: "2026-10" });
+  const b = configComResultado({ tributos_pct: null, margem_alvo_pct: null }, { mes: null, imposto_pct: null, margem_alvo_pct: null });
+  assert.equal(b.tributos_pct, null);
+});
+
+test("CMO separa fixos e extras (RH + informados)", async () => {
+  const { equipeDoMes } = await import("./resultado-mes.mjs");
+  const e = equipeDoMes([{ id: "a", nome: "Ana", salario: 2000 }], { bonus: 400, dias: 25, extrasPagos: 300, extrasInformados: "200" });
+  assert.equal(e.fixos, 2400);
+  assert.equal(e.extras, 500);
+  assert.equal(e.extrasRh, 300);
+  assert.equal(e.extrasOutros, 200);
+  assert.equal(e.total, 2900);
+  assert.equal(e.extrasPorDia, 20);
+});

@@ -268,9 +268,7 @@ test("criarChamadoGarcomExperience - validação e registro", async () => {
         return {
           select: () => ({
             eq: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({ data: { id: "m-1", numero: "04" } })
-              })
+              limit: async () => ({ data: [{ id: "m-1", numero: "Mesa 04" }, { id: "m-2", numero: "Mesa 05" }] })
             })
           })
         };
@@ -305,7 +303,37 @@ test("criarChamadoGarcomExperience - validação e registro", async () => {
   assert.equal(r.ok, true);
   assert.equal(chamadoRegistrado.tipo, "agua");
   assert.equal(chamadoRegistrado.mesa_numero, "04");
+  assert.equal(chamadoRegistrado.mesa_id, "m-1", "liga à mesa cadastrada no Salão (\"Mesa 04\")");
   assert.equal(chamadoRegistrado.solicitante_nome, "Maria");
+});
+
+test("criarChamadoGarcomExperience - \"Mesa 5\" vira 5; tocar de novo não abre outro; restaurante inexistente", async () => {
+  const banco = (erroInsert) => {
+    const gravados = [];
+    return {
+      gravados,
+      from: (tabela) => tabela === "mesas"
+        ? { select: () => ({ eq: () => ({ limit: async () => ({ data: [{ id: "m-5", numero: "Mesa 5" }] }) }) }) }
+        : { insert: (l) => { gravados.push(l[0]); return { select: () => ({ single: async () => (erroInsert ? { data: null, error: erroInsert } : { data: { id: "c-1" }, error: null }) }) }; } },
+    };
+  };
+  const b1 = banco(null);
+  const r1 = await criarChamadoGarcomExperience({ db: b1, unidadeId: "seldeestrela", mesaNumero: "Mesa 5", tipo: "conta" });
+  assert.equal(r1.ok, true);
+  assert.equal(r1.tipo, "conta");
+  assert.equal(b1.gravados[0].mesa_numero, "5");
+  assert.equal(b1.gravados[0].mesa_id, "m-5");
+
+  const r2 = await criarChamadoGarcomExperience({ db: banco({ code: "23505", message: "duplicate key" }), unidadeId: "seldeestrela", mesaNumero: "5", tipo: "garcom" });
+  assert.equal(r2.ok, true, "chamado já aberto: a equipe já sabe");
+  assert.equal(r2.jaAberto, true);
+
+  const r3 = await criarChamadoGarcomExperience({ db: banco({ code: "23503", message: "fk" }), unidadeId: "nao-existe", mesaNumero: "5", tipo: "garcom" });
+  assert.equal(r3.ok, false);
+  assert.equal(r3.status, 404);
+
+  const r4 = await criarChamadoGarcomExperience({ db: banco(null), unidadeId: "seldeestrela", mesaNumero: "Mesa !!", tipo: "garcom" });
+  assert.equal(r4.ok, false, "mesa sem letra nem número é recusada");
 });
 
 test("calcularDivisaoConta - cálculo exato com e sem taxa de serviço", () => {

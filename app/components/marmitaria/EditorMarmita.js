@@ -6,15 +6,17 @@
 // em "Salvando…" (finally) e, se der erro, o que foi digitado continua aqui.
 
 import { useMemo, useRef, useState } from "react";
-import { ArrowLeft, ImagePlus, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ImagePlus, Trash2 } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import BuscaItens from "./BuscaItens";
 import { NovoProduto, NovoPrePreparo } from "./CadastrosRapidos";
 import { Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, inputCls, pctTxt } from "./ui";
 import { salvarMarmita, novaChave } from "../../lib/marmitaria/dados";
-import { custoDoForm, payloadDoForm, TAMANHOS, TIPOS_EMBALAGEM, unidadeDoItem } from "../../lib/marmitaria/formulario.mjs";
+import { atalhosDeQuantidade, catalogoDePrePreparos, custoDoForm, payloadDoForm, TAMANHOS, TIPOS_EMBALAGEM, unidadeDoItem } from "../../lib/marmitaria/formulario.mjs";
 import { precoSugerido, resultadoPorCanal, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
-import { custoUnitarioEfetivoInsumo, parseNumero } from "../../lib/ficha-calculos.mjs";
+import { CANAL_DIRETO } from "../../lib/marmitaria/promocoes.mjs";
+import { normalizarBusca } from "../../lib/ingredientes-utils.mjs";
+import { custoDeProduzirFicha, custoUnitarioEfetivoInsumo, parseNumero } from "../../lib/ficha-calculos.mjs";
 import { uploadFotoMontagem } from "../../lib/montagem";
 
 export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) {
@@ -31,7 +33,9 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
 
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
   const custo = useMemo(() => custoDoForm(form, ctx), [form, base]); // eslint-disable-line react-hooks/exhaustive-deps
-  const canais = base.config.canais.filter((c) => c.ativo);
+  // Sem canal configurado, a margem sai pela venda direta (sem comissão).
+  const canaisAtivos = base.config.canais.filter((c) => c.ativo);
+  const canais = canaisAtivos.length ? canaisAtivos : [CANAL_DIRETO];
   const tributos = base.config.tributos_pct;
   const margemAlvo = base.config.margem_alvo_pct;
 
@@ -83,6 +87,16 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
     }
   }
 
+  // Lista para montar com um toque (como o orçamento rápido de eventos).
+  const catalogo = useMemo(() => catalogoDePrePreparos(base.prePreparos, base.fichas, custoDeProduzirFicha), [base]);
+  const [verLista, setVerLista] = useState(!form.itens.length);
+  const [grupoSel, setGrupoSel] = useState("");
+  const [buscaPrep, setBuscaPrep] = useState("");
+  const escolhidos = new Set(form.itens.map((i) => i.subficha_id).filter(Boolean));
+  const alternarPrep = (it) => {
+    if (escolhidos.has(it.id)) setForm((x) => ({ ...x, itens: x.itens.filter((i) => i.subficha_id !== it.id) }));
+    else adicionarItem({ tipo: "pre_preparo", id: it.id, unidade: it.unidade });
+  };
   const preco = parseNumero(form.preco);
   const linhaCusto = (item) => custo.linhas.find((l) => (item.subficha_id ? l.subficha_id === item.subficha_id : l.insumo_id === item.insumo_id));
 
@@ -144,12 +158,65 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
                     {unidadesCompativeis(unCad).map((u) => <option key={u} value={u}>{u === "l" ? "L" : u}</option>)}
                   </select>
                   <p className="text-right text-sm font-bold tabular-nums text-hf-text">{l?.custo === null || l === undefined ? "—" : brl(l.custo)}</p>
+                  <div className="col-span-2 flex flex-wrap gap-1.5 sm:col-span-5">
+                    {atalhosDeQuantidade(it.un).map((q) => (
+                      <button key={q} type="button" onClick={() => mudarItem(it.key, { qtd: String(q).replace(".", ",") })}
+                        className={`h-8 rounded-full border px-3 text-xs font-bold ${parseNumero(it.qtd) === q ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>
+                        {String(q).replace(".", ",")} {it.un === "l" ? "L" : it.un}
+                      </button>
+                    ))}
+                  </div>
                 </li>
               );
             })}
           </ul>
         )}
         <div className="mt-3 space-y-3">
+          <button type="button" onClick={() => setVerLista((v) => !v)} aria-expanded={verLista}
+            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-bold text-hf-text">
+            {verLista ? "Esconder a lista de pré-preparos" : `Escolher da lista (${catalogo.reduce((t, g) => t + g.itens.length, 0)} pré-preparos)`}
+          </button>
+          {verLista && (
+            <div className="rounded-xl border border-hf-border">
+              {catalogo.length > 1 && (
+                <div className="flex flex-wrap gap-1.5 border-b border-hf-border p-2">
+                  {["", ...catalogo.map((g) => g.grupo)].map((g) => (
+                    <button key={g || "todos"} type="button" onClick={() => setGrupoSel(g)} aria-pressed={grupoSel === g}
+                      className={`h-8 shrink-0 rounded-full border px-3 text-xs font-bold ${grupoSel === g ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>{g || "Todos"}</button>
+                  ))}
+                </div>
+              )}
+              <div className="border-b border-hf-border p-2">
+                <input className={inputCls} value={buscaPrep} onChange={(e) => setBuscaPrep(e.target.value)} placeholder="Buscar pré-preparo (ex.: feijão, frango)" aria-label="Buscar pré-preparo" />
+              </div>
+              <div className="space-y-2 p-2">
+                {!catalogo.length && <p className="p-2 text-sm text-hf-muted">Nenhum pré-preparo cadastrado. Use a busca para ingredientes ou crie um pré-preparo.</p>}
+                {catalogo.filter((g) => !grupoSel || g.grupo === grupoSel)
+                  .map((g) => ({ ...g, itens: g.itens.filter((it) => !buscaPrep.trim() || normalizarBusca(it.nome).includes(normalizarBusca(buscaPrep))) }))
+                  .filter((g) => g.itens.length).map((g) => (
+                  <div key={g.grupo}>
+                    <p className="px-1 pb-1 text-[11px] font-black uppercase tracking-wide text-hf-muted">{g.grupo}</p>
+                    <div className="grid gap-1.5 sm:grid-cols-2">
+                      {g.itens.map((it) => {
+                        const sel = escolhidos.has(it.id);
+                        const unTxt = it.unidade === "l" ? "L" : it.unidade;
+                        return (
+                          <button key={it.id} type="button" onClick={() => alternarPrep(it)} aria-pressed={sel}
+                            className={`flex min-h-[48px] items-center gap-2 rounded-xl border px-3 text-left ${sel ? "border-hf-accent bg-hf-accent/5" : "border-hf-border bg-hf-surface hover:bg-hf-elevated"}`}>
+                            <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border ${sel ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border-strong text-transparent"}`}><Check size={14} /></span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-semibold text-hf-text">{it.nome}</span>
+                              <span className={`block text-xs ${it.custoPorUnidade ? "text-hf-muted" : "font-semibold text-hf-warning"}`}>{it.custoPorUnidade ? `${brl(it.custoPorUnidade)}/${unTxt}` : "sem custo: DADOS INSUFICIENTES"}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {painel === "busca-item" && (
             <BuscaItens base={base} excluir={form.itens.map((i) => i.insumo_id || i.subficha_id)} onEscolher={adicionarItem}
               onCriarIngrediente={(t) => { setTextoNovo(t); setPainel("novo-ing"); }}
@@ -226,12 +293,12 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
           <Campo rotulo="Preço de referência (balcão/cardápio)" dica="Usado nos canais sem preço próprio.">
             <CampoNumero valor={form.preco} onChange={(v) => set("preco", v)} placeholder="0,00" />
           </Campo>
-          {tributos === null && <Aviso tipo="alerta">Configure a alíquota de tributos em Configurações para a margem descontar o imposto.</Aviso>}
+          {tributos === null
+            ? <Aviso tipo="alerta">Impostos em branco: preencha em <a href="/dashboard/financeiro/resultado" className="font-bold underline">Financeiro → Resultado do mês</a> (ou em Configurações, só para a marmitaria) para a margem descontar o imposto.</Aviso>
+            : <p className="self-center text-xs text-hf-muted">Impostos de {pctTxt(tributos)}{base.config.doResultado?.tributos_pct ? " (do Resultado do mês)" : ""}. {canaisAtivos.length ? "" : "Sem canal configurado: a tabela mostra a venda direta, sem comissão."} Promoções e combos: aba <b>Combos e promoções</b>.</p>}
         </div>
 
-        {!canais.length ? (
-          <Aviso className="mt-3">Nenhum canal configurado. Em Configurações, cadastre iFood, WhatsApp e Balcão com as taxas do seu contrato para ver a margem de cada um.</Aviso>
-        ) : (
+        {false ? null : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>

@@ -234,7 +234,7 @@ export default function EspelhoDePonto() {
     <div className="min-h-screen bg-card font-sans pb-20 print:bg-card print:pb-0">
       
       {/* Barra de Ações (Oculta na impressão) */}
-      <div className="bg-card border-b border-line p-4 flex flex-wrap items-center justify-between gap-3 print:hidden max-w-[210mm] mx-3 sm:mx-auto mt-4 sm:mt-6 rounded-t-xl">
+      <div className="bg-card border-b border-line p-4 flex flex-wrap items-center justify-between gap-3 print:hidden max-w-[210mm] mx-3 sm:mx-auto mt-4 sm:mt-6 rounded-t-xl" style={{ marginTop: "calc(var(--erp-safe-top, 3.5rem) + 0.5rem)" }}>
          <button onClick={() => router.push("/dashboard/rh")} className="flex items-center gap-2 text-slate-900 font-bold hover:text-slate-800">
             <ArrowLeft size={20}/> Voltar
          </button>

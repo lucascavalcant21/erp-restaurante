@@ -60,7 +60,7 @@ export default function ContratoRhPage() {
     <div className="min-h-screen bg-card font-sans text-slate-800 pb-20">
       
       {/* Barra de Ferramentas (Não sai na impressão) */}
-      <div className="print:hidden bg-slate-900 text-white p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 shadow-xl">
+      <div className="print:hidden bg-slate-900 text-white p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 shadow-xl" style={{ paddingTop: "calc(var(--erp-safe-top, 3.5rem) + 0.5rem)" }}>
         <button onClick={() => abrirMenu()} className="flex items-center gap-2 font-bold hover:text-emerald-400 transition-colors">
           <ArrowLeft size={18}/> Voltar
         </button>

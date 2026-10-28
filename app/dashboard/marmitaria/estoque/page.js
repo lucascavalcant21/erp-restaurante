@@ -54,15 +54,29 @@ function Conteudo() {
   );
 }
 
+// Locais principais (os marcados e os da marmitaria) à mostra; o resto em
+// "Outros locais" (pedido do dono, 28/10/2026: "melhore" — eram 17 caixas).
 function SeletorEstoques({ estoques, marcados, onChange }) {
+  const [verTodos, setVerTodos] = useState(false);
+  const principais = estoques.filter((e) => marcados.includes(e.id) || ehDaMarmitaria(e) || /^(cozinha|pre-preparos-cozinha)$/.test(e.slug || ""));
+  const outros = estoques.filter((e) => !principais.includes(e));
+  const chip = (e) => (
+    <label key={e.id} className={`flex min-h-[40px] items-center gap-2 rounded-full border px-3 text-sm ${marcados.includes(e.id) ? "border-hf-accent bg-hf-accent/10 text-hf-text" : "border-hf-border text-hf-text-2"}`}>
+      <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--hf-accent))]" checked={marcados.includes(e.id)} onChange={(ev) => onChange(ev.target.checked ? [...marcados, e.id] : marcados.filter((x) => x !== e.id))} />
+      {e.nome}
+    </label>
+  );
   return (
-    <div className="flex flex-wrap gap-2">
-      {estoques.map((e) => (
-        <label key={e.id} className={`flex min-h-[40px] items-center gap-2 rounded-full border px-3 text-sm ${marcados.includes(e.id) ? "border-hf-accent bg-hf-accent/10 text-hf-text" : "border-hf-border text-hf-text-2"}`}>
-          <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--hf-accent))]" checked={marcados.includes(e.id)} onChange={(ev) => onChange(ev.target.checked ? [...marcados, e.id] : marcados.filter((x) => x !== e.id))} />
-          {e.nome}
-        </label>
-      ))}
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">{principais.map(chip)}</div>
+      {outros.length > 0 && (
+        <>
+          <button type="button" onClick={() => setVerTodos((v) => !v)} aria-expanded={verTodos} className="text-xs font-bold text-hf-accent hover:underline">
+            {verTodos ? "Esconder outros locais" : `Outros locais (${outros.length})`}
+          </button>
+          {verTodos && <div className="flex flex-wrap gap-2">{outros.map(chip)}</div>}
+        </>
+      )}
     </div>
   );
 }

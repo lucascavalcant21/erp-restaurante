@@ -40,7 +40,16 @@ export function EtapaEquipe({ orc, setOrc, resumo, sugestoesEquipe = [], conflit
         </div>
       )}
       <Cartao titulo="Equipe do evento" descricao="Quem vai trabalhar, em qual área e quanto custa. Pague por diária ou por hora. Para várias pessoas com o mesmo valor (ex.: 4 garçons), use a quantidade.">
-        {orc.equipe.length === 0 && <p className="mb-3 text-sm font-medium text-slate-500">Ninguém escalado ainda.</p>}
+        {/* Atalhos por função (pedido do dono, 28/10/2026: "melhore essa tela"). */}
+        <div className="mb-3">
+          <p className="mb-1.5 text-xs font-bold text-slate-600">{orc.equipe.length === 0 ? "Ninguém escalado ainda. Toque para adicionar:" : "Adicionar rápido:"}</p>
+          <div className="flex flex-wrap gap-2">
+            {FUNCOES_RAPIDAS.map(([area, funcao]) => (
+              <button key={funcao} type="button" onClick={() => setOrc((o) => ({ ...o, equipe: [...o.equipe, { id: novoId(), area, funcao, nome: "", quantidade: "1", modo: "diaria", horas: "", valor: "" }] }))}
+                className="h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-black text-emerald-900 hover:bg-emerald-100">+ {funcao}</button>
+            ))}
+          </div>
+        </div>
         <datalist id="sugestoes-equipe">{sugestoesEquipe.map((s) => <option key={s.nome} value={s.nome}>{[s.area, s.funcao].filter(Boolean).join(" · ")}</option>)}</datalist>
         <ul className="space-y-3">
           {orc.equipe.map((p) => (
@@ -75,11 +84,45 @@ export function EtapaEquipe({ orc, setOrc, resumo, sugestoesEquipe = [], conflit
           </div>
         </Cartao>
       )}
-      <Cartao titulo="Observações para a equipe" descricao="Utensílios, uniforme, horário de chegada. Só uso interno.">
-        <textarea value={orc.obs_equipe || ""} onChange={(e) => setOrc((o) => ({ ...o, obs_equipe: e.target.value }))} rows={3}
-          className="w-full rounded-xl border border-slate-300 p-3 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500" />
-      </Cartao>
+      <ObservacoesEquipe orc={orc} setOrc={setOrc} />
     </div>
+  );
+}
+
+const FUNCOES_RAPIDAS = [["Salão", "Garçom"], ["Cozinha", "Cozinheiro"], ["Cozinha", "Auxiliar de cozinha"], ["Bar", "Bartender"], ["Salão", "Copeiro"], ["Recepção", "Recepcionista"], ["Limpeza", "Limpeza"], ["Segurança", "Segurança"], ["Coordenação", "Coordenador"]];
+const UNIFORMES = ["Preto", "Branco", "Camisa da casa", "Avental", "Social"];
+const LEVAR = ["Rechaud", "Louça", "Talheres", "Taças", "Toalhas", "Bandejas", "Gelo", "Caixas térmicas", "Guardanapos", "Extensão"];
+
+/* Observações para a equipe organizadas (pedido do dono, 28/10/2026): chegada,
+ * uniforme e o que levar em toques; o resto em texto livre. Tudo fica em
+ * orc.obs_equipe_detalhe; obs_equipe continua sendo o texto livre. */
+function ObservacoesEquipe({ orc, setOrc }) {
+  const d = orc.obs_equipe_detalhe || {};
+  const mudar = (m) => setOrc((o) => ({ ...o, obs_equipe_detalhe: { ...(o.obs_equipe_detalhe || {}), ...m } }));
+  const alternar = (campo, v) => { const l = d[campo] || []; mudar({ [campo]: l.includes(v) ? l.filter((x) => x !== v) : [...l, v] }); };
+  const chip = (ativo) => `h-10 rounded-xl border px-3 text-sm font-bold ${ativo ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"}`;
+  return (
+    <Cartao titulo="Observações para a equipe" descricao="Só uso interno. Toque no que vale para este evento.">
+      <div className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Campo rotulo="Chegada da equipe"><input type="time" value={d.chegada || ""} onChange={(e) => mudar({ chegada: e.target.value })} className={inputData} /></Campo>
+          <Campo rotulo="Montagem pronta até"><input type="time" value={d.montagem || ""} onChange={(e) => mudar({ montagem: e.target.value })} className={inputData} /></Campo>
+          <Campo rotulo="Responsável no local"><Texto valor={d.responsavel || ""} onChange={(v) => mudar({ responsavel: v })} placeholder="Nome e telefone" /></Campo>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-bold text-slate-600">Uniforme</p>
+          <div className="flex flex-wrap gap-2">{UNIFORMES.map((u) => <button key={u} type="button" aria-pressed={(d.uniforme || []).includes(u)} onClick={() => alternar("uniforme", u)} className={chip((d.uniforme || []).includes(u))}>{u}</button>)}</div>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-bold text-slate-600">Levar para o evento</p>
+          <div className="flex flex-wrap gap-2">{LEVAR.map((u) => <button key={u} type="button" aria-pressed={(d.levar || []).includes(u)} onClick={() => alternar("levar", u)} className={chip((d.levar || []).includes(u))}>{u}</button>)}</div>
+        </div>
+        <Campo rotulo="Outras observações">
+          <textarea value={orc.obs_equipe || ""} onChange={(e) => setOrc((o) => ({ ...o, obs_equipe: e.target.value }))} rows={3} placeholder="Ex.: estacionar nos fundos, cliente alérgico a camarão, servir o bolo às 17h."
+            className="w-full rounded-xl border border-slate-300 p-3 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500" />
+        </Campo>
+      </div>
+    </Cartao>
   );
 }
 

@@ -1603,9 +1603,16 @@ export default function RHPage() {
                { 
                  rot: "Funcionários", val: ativos.length, sub: `${fixos.length} fixos · ${extras.length} extras`,
                  render: () => (
-                    <ul className="space-y-2 text-sm">
-                       {ativos.map(f => <li key={f.id} className="flex justify-between border-b border-line pb-2"><span className="font-bold text-fg">{f.nome}</span><span className="text-subtle">{f.tipo_contrato}</span></li>)}
-                    </ul>
+                    <div className="space-y-4">
+                       {[["Fixos", fixos], ["Extras", extras]].map(([rot, lista]) => (
+                          <div key={rot}>
+                             <p className="mb-2 text-xs font-black uppercase tracking-wider text-subtle">{rot} ({lista.length})</p>
+                             {lista.length ? <ul className="space-y-2 text-sm">
+                                {lista.map(f => <li key={f.id} className="flex justify-between border-b border-line pb-2"><span className="font-bold text-fg">{f.nome}</span><span className="text-subtle">{rot === "Extras" ? `${fmtBRL(f.salario)} / diária` : f.cargo || f.tipo_contrato}</span></li>)}
+                             </ul> : <p className="text-sm text-subtle">Nenhum.</p>}
+                          </div>
+                       ))}
+                    </div>
                  )
                },
                {
@@ -1924,8 +1931,8 @@ export default function RHPage() {
 
       {/* Modal Adicionar/Editar Funcionário */}
       {modalNovo && (
-         <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm px-0 pb-0 sm:px-4 sm:pb-4" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
-            <div className="erp-editor-funcionario bg-card rounded-t-[28px] sm:rounded-[32px] w-full max-w-5xl shadow-2xl animate-in zoom-in-95 flex flex-col h-[calc(100dvh-var(--erp-safe-top,2.75rem)-0.75rem)] sm:h-auto sm:max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-2rem)] overflow-hidden">
+         <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm px-0 pb-0 sm:px-4 sm:pb-4" style={{ paddingTop: "calc(var(--erp-safe-top, 3.5rem) + 1rem)" }}>
+            <div className="erp-editor-funcionario bg-card rounded-t-[28px] sm:rounded-[32px] w-full max-w-5xl shadow-2xl animate-in zoom-in-95 flex flex-col h-[calc(100dvh-var(--erp-safe-top,3.5rem)-1.5rem)] sm:h-auto sm:max-h-[calc(100dvh-var(--erp-safe-top,3.5rem)-2rem)] overflow-hidden">
                <style>{`
                  .erp-editor-funcionario label { font-size: 12px !important; line-height: 1.35; }
                  .erp-editor-funcionario input:not([type="checkbox"]):not([type="file"]), .erp-editor-funcionario select { min-height: 48px; font-size: 16px; }

@@ -67,3 +67,19 @@ test("quantidade para a tela", () => {
   assert.deepEqual(quantidadeParaTela(2, "kg"), { qtd: "2", un: "kg" });
   assert.deepEqual(quantidadeParaTela(3, "un"), { qtd: "3", un: "un" });
 });
+
+test("catálogo de pré-preparos: cozinha antes do bar, por categoria; custo por kg da ficha", async () => {
+  const { catalogoDePrePreparos, atalhosDeQuantidade } = await import("./formulario.mjs");
+  const preps = [
+    { id: "a", nome_receita: "Arroz cozido", departamento: "cozinha", categoria: "Guarnições", rendimento_porcoes: 2, rendimento_unidade: "kg" },
+    { id: "b", nome_receita: "Feijão", departamento: "cozinha", categoria: "Guarnições", rendimento_porcoes: 0, rendimento_unidade: "kg" },
+    { id: "c", nome_receita: "Xarope de cupuaçu", departamento: "bar", categoria: "Xaropes", rendimento_porcoes: 1, rendimento_unidade: "l" },
+    { id: "d", nome_receita: "Molho velho", departamento: "cozinha", ativo: false },
+  ];
+  const g = catalogoDePrePreparos(preps, preps, (f) => (f.id === "a" ? 10 : f.id === "c" ? 8 : 0));
+  assert.deepEqual(g.map((x) => x.grupo), ["Cozinha · Guarnições", "Bar · Xaropes"]);
+  assert.equal(g[0].itens[0].custoPorUnidade, 5);
+  assert.equal(g[0].itens[1].custoPorUnidade, null);
+  assert.deepEqual(atalhosDeQuantidade("g"), [50, 100, 150, 200]);
+  assert.deepEqual(atalhosDeQuantidade("un"), [1, 2]);
+});

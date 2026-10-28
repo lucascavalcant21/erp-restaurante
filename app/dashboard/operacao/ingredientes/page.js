@@ -1,5 +1,6 @@
 "use client";
 
+import { nomeEmbalagemDoBar, nomeEmbalagemDaCozinha, ehAGranel, OPCOES_EMBALAGEM_COZINHA } from "../../../lib/estoque-unidades.mjs";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -83,6 +84,7 @@ function novoFormulario(departamento = "cozinha") {
     codigo_interno: "",
     tamanho_embalagem: "1",
     unidade_medida: ehBar ? "ml" : "kg",
+    unidade_comercial: ehBar ? "garrafa" : "pacote",
     valor_embalagem: "",
     fornecedor_atual_id: "",
     fornecedor_ids: [],
@@ -668,6 +670,7 @@ function IngredientesRunner() {
       codigo_interno: insumo.codigo_interno || "",
       tamanho_embalagem: String(insumo.tamanho_embalagem || 1),
       unidade_medida: un,
+      unidade_comercial: insumo.unidade_comercial || "",
       valor_embalagem: String(Number(insumo.custo_compra) > 0 ? insumo.custo_compra : (insumo.custo_unitario || "")),
       fornecedor_atual_id: insumo.fornecedor_atual_id || "",
       fornecedor_ids: (insumo.fornecedores_vinculados || []).map(item => item.id).filter(Boolean),
@@ -785,6 +788,8 @@ function IngredientesRunner() {
       codigo_interno: form.codigo_interno.trim() || null,
       tamanho_embalagem: quantidade,
       unidade_medida: form.unidade_medida,
+      // Bar: garrafa ou lata (é o que o estoque conta). Só vai quando escolhido.
+      ...(form.unidade_comercial ? { unidade_comercial: form.unidade_comercial } : {}),
       custo_compra: valor,
       custo_unitario: valor / quantidade,
       preco_normalizado: precoNormalizado,
@@ -1288,6 +1293,38 @@ function IngredientesRunner() {
                     </div>
                   </label>
                 </div>
+                {/* Cozinha: como vem? (pedido do dono, 28/10/2026: "na cozinha também por
+                    pacote"). O estoque conta nessa embalagem; a granel segue na balança. */}
+                {(form.departamento === "cozinha" || (form.departamento === "ambos" && (form.departamento_principal || "cozinha") === "cozinha")) && ["kg", "g", "l", "ml"].includes(String(form.unidade_medida).toLowerCase()) && (() => {
+                  const granel = ehAGranel(form);
+                  const atual = granel ? "granel" : nomeEmbalagemDaCozinha(form);
+                  const un = String(form.unidade_medida).toLowerCase() === "l" ? "L" : form.unidade_medida;
+                  return (
+                    <div className="mt-3">
+                      <span className="text-xs font-bold text-slate-900">Como vem?</span>
+                      <div role="radiogroup" aria-label="Como vem?" className="mt-1.5 flex flex-wrap gap-2">
+                        {[...OPCOES_EMBALAGEM_COZINHA.map((v) => [v, v[0].toUpperCase() + v.slice(1)]), ["granel", "A granel (balança)"]].map(([v, rot]) => (
+                          <button key={v} type="button" role="radio" aria-checked={atual === v} onClick={() => setForm({ ...form, unidade_comercial: v === "granel" ? form.unidade_medida : v })}
+                            className={`h-11 rounded-xl border px-4 text-sm font-black ${atual === v ? "border-emerald-600 bg-emerald-600 text-white" : "border-line bg-white text-slate-900"}`}>{rot}</button>
+                        ))}
+                      </div>
+                      <span className="mt-1 block text-3xs font-semibold text-fg">{granel ? `No estoque o saldo aparece em ${un}.` : `No estoque o saldo aparece em ${atual}s de ${form.tamanho_embalagem || "?"} ${un}.`}</span>
+                    </div>
+                  );
+                })()}
+                {/* Bar: é garrafa ou lata? (pedido do dono, 28/10/2026) — o estoque do bar conta assim. */}
+                {(form.departamento === "bar" || form.departamento === "ambos") && ["ml", "l"].includes(String(form.unidade_medida).toLowerCase()) && (
+                  <div className="mt-3">
+                    <span className="text-xs font-bold text-slate-900">É garrafa ou lata?</span>
+                    <div role="radiogroup" aria-label="É garrafa ou lata?" className="mt-1.5 flex flex-wrap gap-2">
+                      {[["garrafa", "Garrafa"], ["lata", "Lata"], ["long neck", "Long neck"]].map(([v, rot]) => (
+                        <button key={v} type="button" role="radio" aria-checked={nomeEmbalagemDoBar(form) === v} onClick={() => setForm({ ...form, unidade_comercial: v })}
+                          className={`h-11 rounded-xl border px-4 text-sm font-black ${nomeEmbalagemDoBar(form) === v ? "border-emerald-600 bg-emerald-600 text-white" : "border-line bg-white text-slate-900"}`}>{rot}</button>
+                      ))}
+                    </div>
+                    <span className="mt-1 block text-3xs font-semibold text-fg">No estoque do bar o saldo aparece em {nomeEmbalagemDoBar(form) === "lata" ? "latas" : nomeEmbalagemDoBar(form) === "long neck" ? "long necks" : "garrafas"} de {form.tamanho_embalagem || "?"} {String(form.unidade_medida).toLowerCase() === "l" ? "L" : form.unidade_medida}.</span>
+                  </div>
+                )}
                 {Number.isFinite(parseNumeroBR(form.tamanho_embalagem)) && Number.isFinite(parseNumeroBR(form.valor_embalagem)) && (
                   <div className="mt-3 flex items-center justify-between rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
                     <span className="text-xs font-bold text-emerald-800">Preço normalizado calculado</span>

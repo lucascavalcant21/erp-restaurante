@@ -51,6 +51,9 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         { label: "Green Dot Assist (Tablet IA)", href: "/dashboard/assistente" },
         { label: "Central operacional", href: "/dashboard/operacao/inteligente" },
         { label: "Controles & Checklists", href: "/dashboard/operacao/controles" },
+        { label: "Produtos de limpeza", href: "/dashboard/operacao/materiais/limpeza" },
+        { label: "Produtos da máquina de lavar", href: "/dashboard/operacao/materiais/maquina" },
+        { label: "Embalagens (estoque)", href: "/dashboard/operacao/materiais/embalagens" },
         { label: "Limpeza", href: "/dashboard/operacao/limpeza" },
         { label: "Manutenção", href: "/dashboard/operacao/manutencao" }
       ]
@@ -116,6 +119,31 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
     }
   ];
 
+  // Filtra módulos caso seja um App dedicado com rotas restritas
+  const modulosVisiveis = modules
+    .filter((mod) => {
+      if (!sessao?.is_app) return true;
+      const rotas = sessao.allowed_routes || [];
+      const rotaMod = mod.href.split("?")[0];
+      const matchMod = rotas.some((r) => r.split("?")[0] === rotaMod || r.startsWith(rotaMod));
+      const submodulesValidos = (mod.submodules || []).filter((sub) => {
+        const rSub = sub.href.split("?")[0];
+        return rotas.some((r) => r.split("?")[0] === rSub || r.startsWith(rSub));
+      });
+      return matchMod || submodulesValidos.length > 0;
+    })
+    .map((mod) => {
+      if (!sessao?.is_app || !mod.submodules) return mod;
+      const rotas = sessao.allowed_routes || [];
+      return {
+        ...mod,
+        submodules: mod.submodules.filter((sub) => {
+          const rSub = sub.href.split("?")[0];
+          return rotas.some((r) => r.split("?")[0] === rSub || r.startsWith(rSub));
+        }),
+      };
+    });
+
   return (
     <>
       <header className="bg-hf-menu border-b border-hf-menu-border text-hf-menu-text sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "var(--erp-safe-top)" }}>
@@ -129,16 +157,24 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             <Menu size={24} />
           </button>
 
-          <Link href="/dashboard" className="flex items-center gap-2 shrink-0 group">
+          <Link href={sessao?.is_app ? (sessao.pagina_inicial || "/dashboard") : "/dashboard"} className="flex items-center gap-2 shrink-0 group">
             <div className="w-8 h-8 bg-hf-accent rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
               <span className="text-hf-accent-fg font-black text-lg">H</span>
             </div>
             <span className="font-black tracking-tight text-xl hidden sm:block">Héfisto</span>
           </Link>
 
+          {/* BADGE DE APP DEDICADO / ESTAÇÃO */}
+          {sessao?.is_app && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              {sessao.app_nome || `App ${sessao.login}`}
+            </div>
+          )}
+
           {/* NAVEGAÇÃO DESKTOP COM SUBMENUS */}
           <nav className="hidden xl:flex items-center h-full gap-2">
-            {modules.map((mod) => {
+            {modulosVisiveis.map((mod) => {
               const isActive = pathname.startsWith(mod.href) || (mod.id === "rh" && pathname.includes("/rh"));
               const isHovered = hoveredModule === mod.id;
               // Eventos é uma tela só, sem submenu. Ler mod.submodules nele
@@ -219,17 +255,39 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             </button>
             
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-hf-surface rounded-2xl shadow-xl shadow-black/10 border border-hf-border py-2 z-50 animate-in fade-in slide-in-from-top-2 text-hf-text">
+              <div className="absolute right-0 top-full mt-2 w-60 bg-hf-surface rounded-2xl shadow-xl shadow-black/10 border border-hf-border py-2 z-50 animate-in fade-in slide-in-from-top-2 text-hf-text">
                 <div className="px-4 py-3 border-b border-hf-border mb-2">
-                  <div className="text-sm font-bold text-hf-text">{sessao?.nome}</div>
-                  <div className="text-xs text-hf-text-2 truncate">{sessao?.email}</div>
+                  <div className="text-sm font-black text-hf-text flex items-center gap-2">
+                    {sessao?.is_app && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
+                    {sessao?.app_nome || sessao?.nome}
+                  </div>
+                  <div className="text-xs text-hf-text-2 truncate font-semibold">
+                    {sessao?.is_app ? `Login: @${sessao.login}` : sessao?.email}
+                  </div>
+                  {sessao?.is_app && (
+                    <div className="text-[10px] text-emerald-600 font-extrabold mt-1 uppercase tracking-wider">
+                      App Dedicado da Loja
+                    </div>
+                  )}
                 </div>
-                <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-2 text-sm text-hf-text hover:bg-hf-elevated font-medium">
-                  <Settings size={16} className="text-hf-muted"/> Configurações
-                </Link>
-                <button onClick={onSair} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-hf-text hover:bg-hf-elevated font-medium text-left">
-                  <LogOut size={16} className="text-hf-muted"/> Sair do sistema
-                </button>
+
+                {!sessao?.is_app ? (
+                  <>
+                    <Link href="/dashboard/configuracoes/apps" className="flex items-center gap-3 px-4 py-2 text-sm text-hf-text hover:bg-hf-elevated font-medium">
+                      <span className="text-base">📱</span> Apps &amp; Terminais
+                    </Link>
+                    <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-2 text-sm text-hf-text hover:bg-hf-elevated font-medium">
+                      <Settings size={16} className="text-hf-muted"/> Configurações
+                    </Link>
+                    <button onClick={onSair} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-hf-text hover:bg-hf-elevated font-medium text-left">
+                      <LogOut size={16} className="text-hf-muted"/> Sair do sistema
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={onSair} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 font-bold text-left transition-colors">
+                    <LogOut size={16} className="text-rose-500"/> Sair do App / Trocar
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -248,6 +306,11 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                   <span className="text-hf-accent-fg font-black text-lg">H</span>
                 </div>
                 <span className="font-black tracking-tight text-xl text-hf-menu-text">Héfisto</span>
+                {sessao?.is_app && (
+                  <span className="text-3xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold uppercase">
+                    App
+                  </span>
+                )}
               </div>
               <button onClick={() => setMobileDrawerOpen(false)} aria-label="Fechar menu" className="w-11 h-11 flex items-center justify-center text-hf-menu-muted hover:text-hf-menu-text rounded-xl hover:bg-hf-menu-hover">
                 <X size={20} />
@@ -255,7 +318,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             </div>
             
             <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
-              {modules.map((mod) => {
+              {modulosVisiveis.map((mod) => {
                 const isExpanded = expandedMobileModule === mod.id;
                 const isActive = pathname.startsWith(mod.href) || (mod.id === "rh" && pathname.includes("/rh"));
                 

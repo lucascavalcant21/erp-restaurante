@@ -10,7 +10,8 @@ import CadastroCliente from "../../components/cardapio-digital/Cadastro";
 // (cores, logo, fonte) e os mesmos oito idiomas.
 export const dynamic = "force-dynamic";
 
-const serifaClassica = Fraunces({ subsets: ["latin"], display: "swap", variable: "--fonte-classica", preload: false });
+// Fraunces com os eixos óticos: títulos grandes mais finos e macios ("SOFT").
+const serifaClassica = Fraunces({ subsets: ["latin"], display: "swap", variable: "--fonte-classica", preload: false, axes: ["opsz", "SOFT"] });
 const serifaEditorial = Playfair_Display({ subsets: ["latin"], display: "swap", variable: "--fonte-editorial", preload: false });
 
 const carregar = cache(async (unidade) => {

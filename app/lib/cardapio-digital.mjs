@@ -113,6 +113,8 @@ export const CONFIG_PADRAO = Object.freeze({
   categorias: Object.freeze([]),
   itens: Object.freeze({}),
   promocoes: Object.freeze([]),
+  // Combos (27/10/2026): pratos juntos por um preço só.
+  combos: Object.freeze([]),
   // Idiomas que o cliente pode escolher (português sempre).
   idiomas: Object.freeze([...IDS_IDIOMAS]),
   // Tradução do que é do dono (pratos, seções, promoções, abertura, textos), por idioma.
@@ -123,7 +125,7 @@ export const CONFIG_PADRAO = Object.freeze({
   info: Object.freeze({ mostrar_horario: true, mostrar_endereco: false, mostrar_telefone: false }),
 });
 
-export const LIMITES = { banner: 8, categorias: 40, promocoes: 30, itens: 2000, produtosPorPromocao: 200 };
+export const LIMITES = { banner: 8, categorias: 40, promocoes: 30, itens: 2000, produtosPorPromocao: 200, combos: 30, itensPorCombo: 8 };
 
 export const TIPOS_MIDIA = [
   { id: "imagem", rotulo: "Foto" },
@@ -339,6 +341,9 @@ export function normalizarItens(obj) {
     if (selos.length) item.selos = selos;
     if (it.destaque === true) item.destaque = true;
     if (it.oculto === true) item.oculto = true;
+    // Posição do prato na seção, escolhida pelo dono (1 = primeiro).
+    const ordem = Math.round(Number(it.ordem));
+    if (Number.isInteger(ordem) && ordem >= 1 && ordem <= 9999) item.ordem = ordem;
     if (Object.keys(item).length) { r[id] = item; n++; }
   }
   return r;
@@ -393,6 +398,124 @@ export function normalizarPromocoes(lista) {
     r.push(n);
   }
   return r;
+}
+
+// ─── COMBOS ──────────────────────────────────────────────────────────────────
+// Combo = pratos juntos por um preço só (como no Goomer e no Cardápio Web).
+// No cardápio vira um item da seção "Combos" (id "combo-<id>"); no pedido o
+// servidor cobra o preço do combo e manda cada prato para a cozinha/bar.
+
+export const PREFIXO_COMBO = "combo-";
+
+export function normalizarCombo(c, i = 0) {
+  const preco = centavos(String(c?.preco ?? "").replace(/\./g, (m, _i, t) => (t.includes(",") ? "" : m)).replace(",", "."));
+  const dias = [...new Set((Array.isArray(c?.dias_semana) ? c.dias_semana : []).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
+  const vistos = new Set();
+  const itens = [];
+  for (const it of Array.isArray(c?.itens) ? c.itens : []) {
+    const id = String(it?.produto_id ?? "");
+    const q = Math.round(Number(it?.quantidade) || 1);
+    if (!idValido(id) || vistos.has(id) || itens.length >= LIMITES.itensPorCombo) continue;
+    vistos.add(id);
+    itens.push({ produto_id: id, quantidade: Math.min(Math.max(q, 1), 10) });
+  }
+  const id = idValido(c?.id) && !String(c.id).startsWith(PREFIXO_COMBO) ? c.id : `c${i + 1}`;
+  return {
+    id,
+    nome: texto(c?.nome, 60),
+    descricao: texto(c?.descricao, 200),
+    imagem_url: limparUrl(c?.imagem_url),
+    itens,
+    preco: preco > 0 ? preco : null,
+    dias_semana: dias.length === 7 ? [] : dias,
+    hora_inicio: hora(c?.hora_inicio),
+    hora_fim: hora(c?.hora_fim),
+    data_inicio: data(c?.data_inicio),
+    data_fim: data(c?.data_fim),
+    ativa: bool(c?.ativa, true),
+  };
+}
+
+/** O que falta para o combo valer (o editor mostra antes de salvar). */
+export function errosDoCombo(c) {
+  const n = normalizarCombo(c);
+  const e = [];
+  if (!n.nome) e.push("Dê um nome ao combo.");
+  if (n.itens.reduce((t, i) => t + i.quantidade, 0) < 2) e.push("Um combo tem pelo menos 2 itens.");
+  if (!n.preco) e.push("Informe o preço do combo.");
+  if (n.data_inicio && n.data_fim && n.data_fim < n.data_inicio) e.push("A data final vem antes da inicial.");
+  return e;
+}
+
+export function normalizarCombos(lista) {
+  const usados = new Set();
+  const r = [];
+  for (const [i, c] of (Array.isArray(lista) ? lista : []).entries()) {
+    if (r.length >= LIMITES.combos) break;
+    const n = normalizarCombo(c, i);
+    if (!n.nome || !n.preco || n.itens.length < 1) continue;
+    if (usados.has(n.id)) n.id = `${n.id}-${i + 1}`;
+    usados.add(n.id);
+    r.push(n);
+  }
+  return r;
+}
+
+/**
+ * Combos que vão para o cardápio agora: vigentes, com TODOS os pratos no ar
+ * (prato escondido, sem preço ou com ficha desativada tira o combo). Cada
+ * combo vira um item da seção "Combos", com preço de/por quando o combo sai
+ * mais barato que os pratos separados.
+ * @param {Array} lista produtos já montados (id, nome, preco, imagem_url, alergenicos)
+ */
+export function combosNoCardapio(combos, lista, agora = new Date(), fuso = FUSO_PADRAO) {
+  const porId = new Map(lista.map((p) => [p.id, p]));
+  const r = [];
+  for (const c of normalizarCombos(combos)) {
+    if (!promocaoVigente({ ...c, titulo: c.nome }, agora, fuso)) continue;
+    const partes = c.itens.map((i) => ({ ...i, produto: porId.get(i.produto_id) }));
+    if (partes.some((x) => !x.produto) || partes.reduce((t, x) => t + x.quantidade, 0) < 2) continue;
+    // "De": o que os pratos custariam separados AGORA (com promoção vigente), nunca um preço cheio inventado.
+    const separado = centavos(partes.reduce((t, x) => t + x.produto.preco * x.quantidade, 0));
+    r.push({
+      id: `${PREFIXO_COMBO}${c.id}`,
+      nome: c.nome,
+      descricao: c.descricao || `Inclui ${partes.map((x) => `${x.quantidade}× ${x.produto.nome}`).join(" + ")}.`,
+      imagem_url: c.imagem_url || partes.find((x) => x.produto.imagem_url)?.produto.imagem_url || null,
+      preco: c.preco,
+      preco_original: separado > c.preco ? separado : null,
+      promocao_id: null,
+      selos: [],
+      alergenicos: [...new Set(partes.flatMap((x) => x.produto.alergenicos || []))].slice(0, 12),
+      pode_conter: "",
+      harmoniza: "",
+      destaque: false,
+      categoria_id: "combos",
+      // preco = preço de cada prato agora (público); só serve para repartir o valor do combo no pedido.
+      combo: { itens: partes.map((x) => ({ produto_id: x.produto_id, nome: x.produto.nome, quantidade: x.quantidade, preco: x.produto.preco })) },
+    });
+  }
+  return r;
+}
+
+/**
+ * Linhas do pedido de um combo: uma por unidade de prato (quantidade 1), com
+ * o preço do combo repartido pelo preço normal de cada prato; os centavos que
+ * sobram vão na última linha. A soma é exatamente preço do combo × quantidade.
+ */
+export function linhasDoCombo(combo, quantidade = 1) {
+  const unidades = [];
+  for (let q = 0; q < quantidade; q++) for (const it of combo.combo.itens) for (let k = 0; k < it.quantidade; k++) unidades.push(it);
+  const totalCombo = centavos(combo.preco * quantidade);
+  const base = unidades.reduce((t, u) => t + (u.preco || 0), 0);
+  let usado = 0;
+  return unidades.map((u, i) => {
+    const valor = i === unidades.length - 1
+      ? centavos(totalCombo - usado)
+      : centavos(base > 0 ? totalCombo * (u.preco || 0) / base : totalCombo / unidades.length);
+    usado = centavos(usado + valor);
+    return { produto_id: u.produto_id, quantidade: 1, valor_unitario: valor };
+  });
 }
 
 /** Banner de abertura: fotos e vídeos, cada um com um toque que leva a algum lugar. */
@@ -527,6 +650,7 @@ export function normalizarConfigCardapio(raw) {
     categorias: normalizarCategorias(c.categorias),
     itens: normalizarItens(c.itens),
     promocoes: normalizarPromocoes(c.promocoes),
+    combos: normalizarCombos(c.combos),
     idiomas: Array.isArray(c.idiomas) ? ["pt", ...IDS_IDIOMAS.filter((i) => i !== "pt" && c.idiomas.includes(i))] : [...IDS_IDIOMAS],
     traducoes: normalizarTraducoes(c.traducoes),
     entrega: normalizarEntrega(c.entrega),
@@ -684,6 +808,12 @@ export function categoriaDeOrigem(produto) {
   return texto(produto?.ficha?.categoria, 60) || texto(produto?.categoria, 60) || "Outros";
 }
 
+// "Adicional - Arroz branco": no cardápio real, 26 dos 83 itens de Pratos
+// Principais (27/10/2026). Sem seção escolhida pelo dono, vão para uma seção
+// "Adicionais" própria, depois dos pratos (como no iFood e no Goomer).
+export const SECAO_ADICIONAIS = "Adicionais";
+const ehAdicionalNome = (p) => /^adiciona(l|is)\b/.test(normalizarBusca(p?.ficha?.nome_comercial || p?.nome_produto || p?.nome || ""));
+
 function papelProvavel(nome, departamento) {
   const n = normalizarBusca(nome);
   if (DOCE_RE.test(n)) return "sobremesa";
@@ -700,13 +830,20 @@ export function categoriasEfetivas(config, produtos = []) {
   let cats = cfg.categorias.map((c) => ({ ...c }));
   if (!cats.length) {
     const vistos = new Map();
+    let adicionais = false;
     for (const p of produtos) {
+      if (ehAdicionalNome(p) && !cfg.itens?.[p?.id]?.categoria_id) { adicionais = true; continue; }
       const nome = categoriaDeOrigem(p);
       const id = `cat-${slug(nome) || "outros"}`;
       if (!vistos.has(id)) vistos.set(id, { id, nome, descricao: "", imagem_url: "", visivel: true, papel: papelProvavel(nome, p?.ficha?.departamento || p?.departamento) });
     }
     const ordem = { comida: 0, bebida: 1, sobremesa: 2, outro: 3 };
     cats = [...vistos.values()].sort((a, b) => ordem[a.papel] - ordem[b.papel]);
+    // Adicionais logo depois das seções de comida.
+    if (adicionais) {
+      const i = cats.findIndex((c) => c.papel !== "comida");
+      cats.splice(i < 0 ? cats.length : i, 0, { id: "cat-adicionais", nome: SECAO_ADICIONAIS, descricao: "", imagem_url: "", visivel: true, papel: "comida" });
+    }
   }
   return cats;
 }
@@ -715,6 +852,7 @@ export function categoriasEfetivas(config, produtos = []) {
 export function categoriaDoProduto(produto, categorias, itens = {}) {
   const escolhida = itens[produto?.id]?.categoria_id;
   if (escolhida && categorias.some((c) => c.id === escolhida)) return escolhida;
+  if (ehAdicionalNome(produto) && categorias.some((c) => c.id === "cat-adicionais")) return "cat-adicionais";
   const origem = categoriaDeOrigem(produto);
   const porId = `cat-${slug(origem) || "outros"}`;
   if (categorias.some((c) => c.id === porId)) return porId;
@@ -818,12 +956,19 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
       pode_conter: texto(p.ficha?.pode_conter, 160),
       harmoniza: item.harmoniza || "",
       destaque: item.destaque === true,
+      ordem: item.ordem || null,
       categoria_id,
     });
   }
+  const combos = combosNoCardapio(cfg.combos, lista, agora, fuso);
   if (semCategoria.length) categorias = [...categorias, { id: "outros", nome: "Outros", descricao: "", imagem_url: "", visivel: true, papel: "outro" }];
 
-  const porNome = (a, b) => Number(b.destaque) - Number(a.destaque) || a.nome.localeCompare(b.nome, "pt-BR");
+  // Destaque do dono primeiro; "Adicional - …" depois dos pratos (a ordem
+  // alfabética punha 20 adicionais no topo dos Pratos Principais).
+  const ehAdicional = (p) => /^adiciona(l|is)\b/.test(normalizarBusca(p.nome));
+  // Posição escolhida pelo dono vem antes de tudo; sem posição, a regra de antes.
+  const pos = (p) => (p.ordem > 0 ? p.ordem : Infinity);
+  const porNome = (a, b) => pos(a) - pos(b) || Number(b.destaque) - Number(a.destaque) || Number(ehAdicional(a)) - Number(ehAdicional(b)) || a.nome.localeCompare(b.nome, "pt-BR");
   const saidaCategorias = categorias
     .filter((c) => c.visivel)
     .map((c) => ({
@@ -831,6 +976,7 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
       produto_ids: lista.filter((p) => p.categoria_id === c.id).sort(porNome).map((p) => p.id),
     }))
     .filter((c) => c.produto_ids.length);
+  if (combos.length) saidaCategorias.unshift({ id: "combos", nome: "Combos", descricao: "", imagem_url: null, papel: "comida", produto_ids: combos.map((c) => c.id) });
 
   const ids = new Set(lista.map((p) => p.id));
   const promocoes = vigentes
@@ -891,7 +1037,8 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
     banner,
     filtros: filtrosDisponiveis(lista),
     categorias: saidaCategorias,
-    produtos: lista,
+    // Combos entram como itens (a página e o carrinho tratam igual); preco_base e ordem são internos.
+    produtos: [...combos, ...lista].map(({ ordem, ...p }) => p),
     promocoes,
     traducoes,
     // Regras do programa (cartões de selo e cashback) — nunca saldo nem dado de cliente.

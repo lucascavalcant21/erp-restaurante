@@ -25,6 +25,7 @@ import Abertura from "../../../components/cardapio-digital/editor/Abertura";
 import Secoes from "../../../components/cardapio-digital/editor/Secoes";
 import Pratos from "../../../components/cardapio-digital/editor/Pratos";
 import Promocoes from "../../../components/cardapio-digital/editor/Promocoes";
+import Combos from "../../../components/cardapio-digital/editor/Combos";
 import Textos from "../../../components/cardapio-digital/editor/Textos";
 import QrCodes from "../../../components/cardapio-digital/editor/QrCodes";
 import Idiomas from "../../../components/cardapio-digital/editor/Idiomas";
@@ -32,12 +33,16 @@ import Entrega from "../../../components/cardapio-digital/editor/Entrega";
 import Fidelidade from "../../../components/cardapio-digital/editor/Fidelidade";
 import Previa from "../../../components/cardapio-digital/editor/Previa";
 
+// O que vende primeiro (pedido do dono, 27/10/2026: "um painel chamado
+// Cardápio onde ponho combos, promoções e descontos, posição dos produtos e
+// descrição"); a aparência e o resto depois.
 const ABAS = [
+  { id: "pratos", rotulo: "Produtos e posição" },
+  { id: "combos", rotulo: "Combos" },
+  { id: "promocoes", rotulo: "Promoções e descontos" },
+  { id: "secoes", rotulo: "Seções" },
   { id: "aparencia", rotulo: "Aparência" },
   { id: "abertura", rotulo: "Abertura" },
-  { id: "secoes", rotulo: "Seções" },
-  { id: "pratos", rotulo: "Pratos" },
-  { id: "promocoes", rotulo: "Promoções" },
   { id: "textos", rotulo: "Conversa e textos" },
   { id: "idiomas", rotulo: "Idiomas" },
   { id: "entrega", rotulo: "Entrega" },
@@ -54,7 +59,7 @@ export default function CardapioEditorPage() {
   const [config, setConfig] = useState(null);
   const [salvo, setSalvo] = useState("");
   const [pendentes, setPendentes] = useState(VAZIO);
-  const [aba, setAba] = useState("aparencia");
+  const [aba, setAba] = useState("pratos");
   const [salvando, setSalvando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [previaAberta, setPreviaAberta] = useState(false);
@@ -159,7 +164,7 @@ export default function CardapioEditorPage() {
 
   return (
     <>
-      <PageHeader title="Cardápio digital" subtitle="O que o cliente vê no QR Code da mesa e no link do delivery." icon={UtensilsCrossed} back={false}>
+      <PageHeader title="Cardápio" subtitle="Produtos, posição, descrição, combos, promoções e descontos do cardápio da mesa (QR Code) e do delivery." icon={UtensilsCrossed} back={false}>
         <a href={caminhoDoCardapio(unidadeAtiva)} target="_blank" rel="noreferrer"
           className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-4 text-sm font-bold text-hf-text hover:bg-hf-elevated">
           <ExternalLink size={16} /> Abrir cardápio
@@ -191,6 +196,7 @@ export default function CardapioEditorPage() {
                 <Pratos config={config} mudar={mudar} unidadeId={unidadeAtiva} juntos={juntos} categorias={categorias}
                   pendentes={pendentes} setPendentes={mudarPendentes} fichasSemProduto={fichasSemProduto} onCriarProduto={criarProduto} />
               ) : null}
+              {aba === "combos" ? <Combos config={config} mudar={mudar} unidadeId={unidadeAtiva} produtos={juntos} /> : null}
               {aba === "promocoes" ? <Promocoes config={config} mudar={mudar} unidadeId={unidadeAtiva} produtos={juntos} /> : null}
               {aba === "textos" ? <Textos config={config} mudar={mudar} /> : null}
               {aba === "idiomas" ? (

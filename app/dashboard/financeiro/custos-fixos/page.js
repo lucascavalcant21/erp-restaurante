@@ -17,14 +17,14 @@ export default function CustosFixosRedirecionaPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/dashboard/financeiro/pizza");
+    router.replace("/dashboard/financeiro/resultado");
   }, [router]);
 
   return (
     <div className="grid min-h-[60vh] place-items-center px-6 text-center">
       <div>
         <Loader2 className="mx-auto animate-spin text-success" size={28} />
-        <p className="mt-3 text-sm font-bold text-slate-800">O custo fixo do mes agora fica na Pizza do Lucro.</p>
+        <p className="mt-3 text-sm font-bold text-slate-800">O custo fixo do mês agora fica no Resultado do mês.</p>
         <p className="mt-1 text-2xs font-bold text-fg">Levando voce para la.</p>
       </div>
     </div>

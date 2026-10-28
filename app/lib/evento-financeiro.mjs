@@ -24,6 +24,25 @@ export const FUNIL_ETAPAS = [
   "APROVADO", "AGUARDANDO SINAL", "SINAL PAGO", "CONFIRMADO", "PREPARACAO", "EM PRODUCAO", "EVENTO", "FINALIZADO",
   "CANCELADO",
 ];
+// Fases do quadro (pedido do dono, 27/10/2026: 14 colunas era "feio"): as
+// 14 etapas continuam, agrupadas em 5 colunas. Soltar um card numa fase põe
+// o evento na primeira etapa dela (se ele já está na fase, nada muda).
+export const FASES_FUNIL = [
+  { id: "contato", rotulo: "Contato", etapas: ["NOVO CONTATO", "INFORMACOES RECEBIDAS"] },
+  { id: "proposta", rotulo: "Proposta", etapas: ["MONTANDO PROPOSTA", "PROPOSTA ENVIADA", "NEGOCIACAO"] },
+  { id: "fechamento", rotulo: "Fechamento", etapas: ["APROVADO", "AGUARDANDO SINAL", "SINAL PAGO"] },
+  { id: "confirmados", rotulo: "Confirmados", etapas: ["CONFIRMADO", "PREPARACAO", "EM PRODUCAO", "EVENTO"] },
+  { id: "encerrados", rotulo: "Encerrados", etapas: ["FINALIZADO", "CANCELADO"] },
+];
+export const faseDaEtapa = (status) => { const e = normalizarEtapa(status); return FASES_FUNIL.find((f) => f.etapas.includes(e)) || FASES_FUNIL[0]; };
+/** Etapa ao soltar o evento numa fase: a atual, se já é da fase; senão a primeira da fase. */
+export function etapaAoMoverPara(statusAtual, faseId) {
+  const fase = FASES_FUNIL.find((f) => f.id === faseId);
+  if (!fase) return normalizarEtapa(statusAtual);
+  const e = normalizarEtapa(statusAtual);
+  return fase.etapas.includes(e) ? e : fase.etapas[0];
+}
+
 const ROTULO_ETAPA = {
   "INFORMACOES RECEBIDAS": "Informações recebidas", "NEGOCIACAO": "Negociação", "PREPARACAO": "Preparação", "EM PRODUCAO": "Em produção",
 };

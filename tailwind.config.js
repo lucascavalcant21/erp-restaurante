@@ -86,8 +86,11 @@ module.exports = {
         xl2: "14px",
       },
       boxShadow: {
-        card: "0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.07)",
+        card: "var(--shadow-card)", // mesma profundidade dos cards (globals.css)
         pop:  "0 12px 32px rgba(16,24,40,0.14)",
+        // Design System Héfisto (docs/DESIGN_SYSTEM_HEFISTO.md)
+        xs:    "var(--shadow-xs)",
+        float: "var(--shadow-float)",
       },
       fontFamily: {
         // A fonte do app e Plus Jakarta Sans, carregada pelo next/font no

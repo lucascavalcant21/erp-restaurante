@@ -264,3 +264,48 @@ test("banco sem a EVENTOS-ORC-1: detecta pela linha lida e traduz o erro do Post
   assert.equal(mensagemErroEvento("column eventos.hora_inicio does not exist"), MSG_BANCO_EVENTOS);
   assert.equal(mensagemErroEvento("Failed to fetch"), "Failed to fetch");
 });
+
+test("o que está incluso na proposta: equipe por função e serviços, sem valores", async () => {
+  const { incluidoNaProposta } = await import("./evento-orcamento.mjs");
+  const o = orcBase();
+  o.equipe = [{ funcao: "Garçom", quantidade: 3, valor: 150 }, { funcao: "Garçom", quantidade: 1, valor: 150 }, { area: "Cozinha", quantidade: "", valor: 200 }];
+  const r = incluidoNaProposta(o);
+  assert.deepEqual(r.equipe, ["Garçom × 4", "Cozinha × 1"]);
+  assert.deepEqual(r.servicos, ["Flores", "DJ"]);
+  assert.ok(!JSON.stringify(r).includes("150"));
+});
+
+test("quantidade fechada: 2 bolos em fatias de 50 g, 30 sanduíches; custo total ÷ pessoas", async () => {
+  const { resumoDoOrcamento, itensDoOrcamento } = await import("./evento-orcamento.mjs");
+  const orc = {
+    tipo: "buffet", sobra_pct: 10, cliente: { convidados: 40, criancas: 0 },
+    cardapio: [
+      { id: "b", secao: "buffet", origem: "exclusiva", nome: "Bolo", medida: "total", quantidade_total: "2", fatia_g: "50", peso_porcao_g: "1000",
+        ingredientes: [{ nome: "Bolo pronto", quantidade: "1", unidade_uso: "un", tamanho_embalagem: "1", unidade_embalagem: "un", preco_embalagem: "30" }] },
+      { id: "s", secao: "buffet", origem: "exclusiva", nome: "Sanduíche", medida: "total", quantidade_total: "30",
+        ingredientes: [{ nome: "Sanduíche", quantidade: "1", unidade_uso: "un", tamanho_embalagem: "1", unidade_embalagem: "un", preco_embalagem: "1,333333" }] },
+    ],
+    financeiro: { preco_por_pessoa: 35 },
+  };
+  const [bolo] = itensDoOrcamento(orc, []);
+  assert.equal(bolo.fatias, 40);
+  const r = resumoDoOrcamento(orc, []);
+  // 2 × 30 + 30 × 1,33 = 100 (sem sobra: a quantidade é a decidida)
+  assert.equal(Math.round(r.cmv), 100);
+  assert.equal(Math.round(r.cmvPorPessoa * 100) / 100, 2.5);
+  assert.equal(r.receita, 1400);
+});
+
+test("divisão do prato: 700 g em porções de 100 g; 1 porção dividida por pessoa", async () => {
+  const { itensDoOrcamento, resumoDoOrcamento } = await import("./evento-orcamento.mjs");
+  const orc = { tipo: "buffet", sobra_pct: 0, cliente: { convidados: 14 },
+    cardapio: [{ id: "p", secao: "buffet", origem: "exclusiva", nome: "Peixe", peso_porcao_g: "700", fatia_g: "100", por_pessoa: "1",
+      ingredientes: [{ nome: "Peixe", quantidade: "1", unidade_uso: "un", tamanho_embalagem: "1", unidade_embalagem: "un", preco_embalagem: "70" }] }],
+    financeiro: {} };
+  const [i] = itensDoOrcamento(orc, []);
+  assert.equal(i.porcoesPorFicha, 7);
+  assert.equal(Math.round(i.custoPorcaoDividida * 100) / 100, 10);
+  assert.equal(Math.round(i.custoPorPessoa * 100) / 100, 10);
+  // 14 pessoas × 1 porção de 100 g = 2 pratos = R$ 140
+  assert.equal(Math.round(resumoDoOrcamento(orc, []).cmv), 140);
+});

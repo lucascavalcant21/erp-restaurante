@@ -51,7 +51,37 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
 - **Rodada 2 (Estoque, Financeiro, painel):** Financeiro com barra de áreas (Visão geral, A pagar, A receber, Caixa, DRE, Pizza, CMV); `/fluxo`, `/documentos` e `/margem` redirecionam (gravavam/liam tabelas fora do financeiro novo, B-024); CMV sem 0% inventado (B-023); Contas a Pagar em cartões no celular; Pizza do Lucro visível no celular; paleta sem fundo preto no Estoque e no Financeiro; abas do Estoque à vista no celular; painel inicial com faturamento vazio compacto. Simulador com o **esquema e o volume reais** (369 produtos, 374 saldos, 350 movimentos; leitura só). Mesmo resultado de testes; build OK.
 
+## 27/10/2026 (noite) — Estoque organizado, fundo cinza
+
+- **Todos os produtos** (aba nova do Estoque): saldo por local, ritmo REAL de saída/entrada (dia/semana/mês), cobertura e mínimo/máximo sugerido (ESTIMATIVA) pelo prazo de reposição + folga + intervalo de compra; grava só `estoque_minimo/estoque_maximo`. TESTADO LOCAL (6 testes) + TESTADO EM MOCK (cópia do estoque real, Playwright 11/11).
+- **Movimentar:** Retirar/Adicionar escolhidos no produto (não mais no topo). TESTADO EM MOCK (7/7).
+- **Estoque desligado do inventário:** sem "não conferido" na movimentação e no painel.
+- **Visual:** fundo cinza claro #E8EAEE, sombras mais fundas, botões com relevo.
+- PR #189 mesclado na `main` (50b903e) com o sim do dono. Produção: NÃO VALIDADO daqui (Vercel 403, BLQ-002).
+- **Eventos — Orçamento rápido por pessoa** (`/dashboard/reservas-eventos/rapido`): todas as fichas da cozinha e do bar, um toque inclui, custo REAL por pessoa, preço sugerido (ESTIMATIVA), "Criar evento" grava o orçamento e abre o evento. TESTADO EM MOCK.
+- **PR #192 mesclado na `main` (ef5d888)**; deploy de produção READY em app.hefisto.com.br, sem erros de runtime nas 2 h seguintes (TESTADO EM PRODUÇÃO: deploy e logs; telas NÃO VALIDADO com login). Acesso do Vercel liberado pelo dono (BLQ-002 resolvido).
+- **Financeiro — Resultado do mês** (`/dashboard/financeiro/resultado`) no lugar da Pizza do Lucro.
+- **Funil de eventos em 5 fases** (antes 14 colunas). **Estoque em uma tela** (Mais: histórico, inventário, locais, valor). **Cardápio**: combos (servidor cobra o combo e grava cada prato) e posição dos produtos. **Marmita**: lista de pré-preparos com um toque. Tudo TESTADO EM MOCK; produção NÃO VALIDADO.
+
+## 27/10/2026 — Delivery com movimento, letras novas e materiais da casa
+
+Branch `claude/sharp-meitner-0i36gu` (PR #189, com a `main` de 27/10):
+- **Delivery do cardápio** com movimento e tipografia nova (pedido do dono). 1 em 167 pratos tem foto: a vitrine usa ícones por prato, nunca foto inventada. Quem pede menos movimento vê tudo parado.
+- **Sticky do app de volta:** `overflow-x: hidden` em html e body (main, 18/10) quebrava `position: sticky`; agora `clip`.
+- **Limpeza, máquina de lavar e embalagens:** três telas separadas, cada uma com cadastro e estoque próprios (locais novos: Máquina de lavar da Cozinha e do Bar; tipo `limpeza`, aceito pelo banco). Sem tabela nova: produto em `insumos`, saldo em `estoque_itens`, movimento por `estoque_movimentar`. Os locais novos são criados pelo app (`garantirEstoquesPadrao`) na primeira abertura.
+- Evidência: TESTADO LOCAL (app/lib 647/647 com PGLITE, build), TESTADO EM MOCK (Playwright: cardápio em 3 aparelhos e com menos movimento; materiais: cadastro, entrada, saída, mínimo, mesma peça em duas máquinas, celular). Supabase real: só leitura (restrições de `estoques.tipo` e do motor conferidas). NÃO VALIDADO no preview autenticado.
+
+## 19/10/2026 (tarde) — Chamar garçom e pedir a conta pelo QR da mesa (HEXP-001)
+
+Branch `claude/sharp-meitner-0i36gu` (PR novo, rascunho):
+- Botões "Chamar garçom" e "Pedir a conta" no cardápio da mesa (8 idiomas), sino com água e talheres; o Salão vê os chamados (faixa amarela, botão também no celular, B-036).
+- Migração **CHAMADOS-1** (`db/CHAMADOS_1_MESA.sql`, só a tabela `experience_chamados`): **aplicada no banco real em 19/10** (APR-015), impressão digital conferida, ensaio de escrita desfeito OK.
+- Missões com status fora do padrão corrigidas (HDEV-EST-001 → VALIDATING, HEXP-001 → IN_PROGRESS); o índice voltou a gerar.
+- Evidência: TESTADO LOCAL (PGlite 5/5, servidor 13/13, app/lib 632/632, build), TESTADO EM MOCK (Playwright), TESTADO NO SUPABASE REAL (migração e ensaio desfeito).
+
 ## 19/10/2026 — Merge da main, pedidos chegando à cozinha e impressão automática
+
+**Publicado em produção (19/10, 02:13 UTC):** PR #187 mergeado na `main` (`d3fe804`, inclui o `9cea691` de RH que entrou na `main` antes); deploy `dpl_4pLK5se77SSrdghskx5R8phdbK4f` READY com o alias `app.hefisto.com.br` (conferido pela API da Vercel). O commit mergeado passou app/lib 626/626 com PGLITE e build (TESTADO LOCAL). Teste de fumaça na produção: NÃO VALIDADO (o container não alcança o domínio e os logs da Vercel dão 403, BLQ-002/BLQ-004).
 
 Mesmo branch (PR #187):
 - **FIDELIDADE-1 aplicada no banco real em 18/10** (APR-014, sim do dono): selos, cashback e cadastro pelo QR valendo assim que o dono ligar a fidelidade no editor.

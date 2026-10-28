@@ -187,24 +187,47 @@ export async function registrarUsuario({ nome, email, senha, papel, unidade }) {
   }
 }
 
+import { autenticarApp, lerSessaoAppLocal, encerrarSessaoAppLocal } from "./apps-config";
+
 // ── Login ──────────────────────────────────────────────────────
 export async function fazerLogin(email, senha) {
-  if (!isSupabaseReady()) return { ok: false, erro: "Sistema indisponível." };
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
-  if (error) return { ok: false, erro: traduzErro(error.message) };
-  const usuario = await enrichUser(data.user);
-  if (usuario?.gerenciado && usuario.status !== "ativo") {
-    await supabase.auth.signOut();
-    return { ok: false, erro: "Acesso indisponível. Fale com o administrador." };
+  const loginSlug = String(email || "").includes("@hefisto.app")
+    ? String(email).replace("@hefisto.app", "").trim().toLowerCase()
+    : String(email || "").trim().toLowerCase();
+
+  // 1. Tenta autenticar pelo Supabase Auth padrão
+  if (isSupabaseReady()) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
+    if (!error && data?.user) {
+      const usuario = await enrichUser(data.user);
+      if (usuario?.gerenciado && usuario.status !== "ativo") {
+        await supabase.auth.signOut();
+        return { ok: false, erro: "Acesso indisponível. Fale com o administrador." };
+      }
+      if (usuario?.terminate_previous_sessions) {
+        try { await supabase.auth.signOut({ scope: "others" }); } catch (_) {}
+      }
+      return { ok: true, usuario };
+    }
   }
-  if (usuario?.terminate_previous_sessions) {
-    try { await supabase.auth.signOut({ scope: "others" }); } catch (_) {}
-  }
-  return { ok: true, usuario };
+
+  // 2. Se falhar no Supabase ou for um App/Terminal criado em Configurações
+  try {
+    const sessaoApp = await autenticarApp(loginSlug, senha);
+    if (sessaoApp) {
+      return { ok: true, usuario: sessaoApp };
+    }
+  } catch (_) {}
+
+  return { ok: false, erro: "Usuário ou senha incorretos." };
 }
 
 // ── Sessão ─────────────────────────────────────────────────────
 export async function lerSessao() {
+  // 1. Verifica se há uma sessão de App Terminal ativa
+  const appSess = lerSessaoAppLocal();
+  if (appSess) return appSess;
+
   if (!isSupabaseReady()) return null;
   let { data } = await supabase.auth.getSession();
   // Se não achou a sessão de primeira (token expirado ou rede oscilou ao voltar
@@ -236,6 +259,9 @@ export async function lerSessao() {
 }
 
 export function homeDoUsuario(usuario) {
+  if (usuario?.is_app) {
+    return usuario.pagina_inicial || "/dashboard";
+  }
   const configured = usuario?.home || usuario?.pagina_inicial || homeDoPapel(usuario?.papel);
   if (!usuario?.gerenciado) return configured;
   const [path, query = ""] = String(configured).split("?");
@@ -262,6 +288,7 @@ function sessaoGuardadaNoAparelho() {
 }
 
 export async function encerrarSessao() {
+  encerrarSessaoAppLocal();
   if (isSupabaseReady()) await supabase.auth.signOut();
 }
 

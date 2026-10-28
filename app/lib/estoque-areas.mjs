@@ -19,6 +19,8 @@ const OUTROS = { id: "outros", rotulo: "Outros", categorias: [] };
 /** Área de um local pelo nome (e tipo, de reserva). */
 export function areaDoLocal(estoque) {
   const n = norm(estoque?.nome);
+  // Produtos da lava-louças ficam na Limpeza, mesmo sendo "da Cozinha"/"do Bar".
+  if (/maquina/.test(n) || /^maquina-/.test(norm(estoque?.slug))) return "limpeza";
   if (/\bbar\b/.test(n)) return "bar";
   if (/cozinha/.test(n)) return "cozinha";
   if (/salao/.test(n)) return "salao";

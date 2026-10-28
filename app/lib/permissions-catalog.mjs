@@ -67,6 +67,9 @@ export const PERMISSION_MODULES = [
       // Contagem física (inventário, F2.4A): quem conta não precisa ver custo;
       // finalizar (valorizar e congelar) é ação separada.
       { id: "counts", label: "Contagem de estoque (inventário)", route: "/dashboard/operacao/estoque/contagens", actions: ["view", "inventory", "close_inventory"] },
+      // Todos os produtos (27/10/2026): saldo por local, ritmo de saída/entrada
+      // e mínimo/máximo sugerido. Sem custo; "edit" = gravar mínimo e máximo.
+      { id: "all_products", label: "Todos os produtos e mínimo/máximo", route: "/dashboard/operacao/estoque/produtos", actions: ["view", "edit"] },
       // Compras (F2.4B): registro oficial, custo médio e conta a pagar. Vê custo.
       { id: "purchases", label: "Compras e custo médio", route: "/dashboard/operacao/estoque/compras", actions: ["view", "create", "confirm", "cancel", "view_costs"] },
       // CMV real (F2.4C): leitura; "edit" = lançar o faturamento diário (se habilitado).
@@ -160,6 +163,8 @@ export const PERMISSION_MODULES = [
       { id: "breakeven", label: "Ponto de equilíbrio (redireciona)", route: "/dashboard/financeiro/equilibrio", actions: VIEW_EXPORT },
       { id: "dre", label: "Resultado (DRE)", route: "/dashboard/financeiro/dre", actions: [...VIEW_EXPORT, "confirm", "view_values", "view_margin"] },
       { id: "cmv", label: "CMV", route: "/dashboard/financeiro/cmv", actions: [...VIEW_EXPORT, "view_costs", "view_margin"] },
+      // Resultado do mês: faturamento, custos um por um, CMO do RH, CMV das contagens, equilíbrio (27/10/2026).
+      { id: "monthly_result", label: "Resultado do mês (lucro e ponto de equilíbrio)", route: "/dashboard/financeiro/resultado", actions: [...VIEW_EXPORT, "edit", "view_costs", "view_margin"] },
       { id: "pizza_lucro", label: "Pizza do Lucro", route: "/dashboard/financeiro/pizza", actions: [...VIEW_EXPORT, "view_costs", "view_margin"] },
       { id: "fiscal", label: "Dados fiscais", route: "/dashboard/gestao/fiscal", actions: [...CRUD, "view_values", "settings"] },
     ],
@@ -226,6 +231,8 @@ export const PERMISSION_MODULES = [
     id: "eventos", label: "Eventos",
     pages: [
       { id: "events", label: "Eventos", route: "/dashboard/eventos", actions: [...CRUD, "approve", "cancel", "view_values", "view_costs", "print", "export"] },
+      // Orçamento rápido por pessoa: vê custo das fichas e cria o evento (27/10/2026).
+      { id: "quick_budget", label: "Orçamento rápido por pessoa", route: "/dashboard/reservas-eventos/rapido", actions: ["view", "create", "view_costs"] },
       { id: "budget", label: "Eventos e Reservas", route: "/dashboard/reservas-eventos/eventos", actions: [...CRUD, "approve", "reject", "view_values", "view_costs", "print"] },
       { id: "operation", label: "Eventos na operação", route: "/dashboard/operacao/eventos", actions: [...CRUD, "confirm", "cancel"] },
       // Cobre por prefixo /dashboard/reservas-eventos/agenda, /reservas e
@@ -263,6 +270,11 @@ export const PERMISSION_MODULES = [
       // Cobre por prefixo processos, rankings, nao-conformidades e a TV.
       { id: "operational_center", label: "Central Operacional", route: "/dashboard/operacao/inteligente", actions: [...CRUD, "confirm", "approve", "export"] },
       { id: "cleaning_supplies", label: "Produtos de limpeza na despensa", route: "/dashboard/operacao/limpeza", actions: [...CRUD, "adjust_stock"] },
+      // Cadastro e estoque de limpeza, produtos da máquina de lavar (cozinha e bar) e embalagens (27/10).
+      { id: "home_materials", label: "Limpeza, máquina de lavar e embalagens (entrada)", route: "/dashboard/operacao/materiais", actions: ["view"] },
+      { id: "cleaning_products", label: "Produtos de limpeza (cadastro e estoque)", route: "/dashboard/operacao/materiais/limpeza", actions: [...CRUD, "adjust_stock"] },
+      { id: "dishwasher_products", label: "Produtos da máquina de lavar (cadastro e estoque)", route: "/dashboard/operacao/materiais/maquina", actions: [...CRUD, "adjust_stock"] },
+      { id: "packaging_stock", label: "Embalagens (cadastro e estoque)", route: "/dashboard/operacao/materiais/embalagens", actions: [...CRUD, "adjust_stock"] },
       { id: "areas", label: "Áreas de trabalho", route: "/dashboard/area", actions: ["view"] },
     ],
   },
@@ -364,6 +376,12 @@ function maisEspecificas(candidatas) {
 export function canAccessRoute(session, pathname, search = "") {
   if (!session) return false;
   if (session.papel === "admin" || session.super_admin || session.permissions === "*") return true;
+  if (session.is_app && Array.isArray(session.allowed_routes)) {
+    return session.allowed_routes.some((r) => {
+      const [path] = r.split("?");
+      return pathname === path || pathname.startsWith(`${path}/`);
+    });
+  }
   const found = maisEspecificas(pagesForRoute(pathname, search));
   if (!found.length) return false;
   return found.some(({ module, page }) => hasPermission(session, permissionKey(module.id, page.id, "view")));
@@ -371,6 +389,9 @@ export function canAccessRoute(session, pathname, search = "") {
 
 export function permittedRoutes(session) {
   if (!session || session.permissions === "*" || session.papel === "admin" || session.super_admin) return null;
+  if (session.is_app && Array.isArray(session.allowed_routes)) {
+    return session.allowed_routes;
+  }
   return PERMISSION_MODULES.flatMap((module) =>
     module.pages
       .filter((page) => hasPermission(session, permissionKey(module.id, page.id, "view")))

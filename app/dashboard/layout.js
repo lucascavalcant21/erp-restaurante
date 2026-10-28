@@ -15,13 +15,14 @@ function ProtecaoPermissao({ sessao, children }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const search = searchParams.toString();
-  const permitido = !sessao?.gerenciado || canAccessRoute(sessao, pathname, search);
+  const deveVerificar = !!sessao?.gerenciado || !!sessao?.is_app;
+  const permitido = !deveVerificar || canAccessRoute(sessao, pathname, search);
 
   useEffect(() => {
-    if (!sessao?.gerenciado || permitido) return;
-    const fallback = permittedRoutes(sessao)?.[0] || "/login";
+    if (!deveVerificar || permitido) return;
+    const fallback = sessao?.pagina_inicial || permittedRoutes(sessao)?.[0] || "/dashboard";
     router.replace(fallback);
-  }, [permitido, pathname, router, sessao]);
+  }, [deveVerificar, permitido, pathname, router, sessao]);
 
   // Recentes e frequência da Central de Comando: só tela aberta com permissão,
   // uma vez por rota (a sessão é relida a cada navegação e não pode contar 2x).

@@ -90,13 +90,8 @@ export default function PainelHefisto() {
 
   return (
     <>
-      {!aberto && (
-        <button type="button" onClick={() => abrir()} aria-label="Pergunte ao Héfisto (Alt+H)" title="Pergunte ao Héfisto (Alt+H)"
-          className="fixed right-3 z-[90] grid h-10 w-10 place-items-center rounded-full bg-hf-surface/90 text-hf-accent opacity-70 shadow-md ring-1 ring-hf-border backdrop-blur transition hover:scale-105 hover:opacity-100 focus-visible:opacity-100 print:hidden"
-          style={{ bottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>
-          <Sparkles size={17} />
-        </button>
-      )}
+      {/* Sem o botão flutuante (pedido do dono, 28/10/2026: "tire isso"). O painel
+          abre pelo Alt+H e pelos atalhos do menu (eventos hefisto:perguntar/toggle-copilot). */}
 
       {aberto && (
         <div className="fixed inset-0 z-[150] print:hidden" role="dialog" aria-modal="true" aria-label="Pergunte ao Héfisto">

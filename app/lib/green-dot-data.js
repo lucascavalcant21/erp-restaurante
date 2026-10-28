@@ -20,8 +20,25 @@ export const TOPICOS_INICIAIS = {
     { id: "organizacao-camara", label: "Organização de Câmara & PVPS", prompt: "Como organizar a câmara fria e aplicar a regra PVPS na cozinha?" },
   ],
   escala: [
+    { id: "escala-organograma", label: "Organograma por Área & Horários", prompt: "Qual a escala de hoje? Mostre por área em formato de organograma as pessoas e seus horários de trabalho." },
     { id: "mapa-pracas", label: "Mapa de Praças (Play Caller)", prompt: "Mostre o posicionamento da equipe nas praças para o horário de pico." },
-    { id: "escala-turno", label: "Escala do Dia & Picos", prompt: "Abrir a escala horária do turno e previsão de pico." },
+    { id: "escala-turno", label: "Escala do Dia & Picos (Gantt)", prompt: "Abrir a escala horária do turno e previsão de pico." },
+  ],
+  limpeza: [
+    { id: "limpeza-chao", label: "Limpar Chão (ml & Produto)", prompt: "Qual produto usar no chão, quantas ml e como limpar?" },
+    { id: "limpeza-panos", label: "Higienizar Panos (Cloro & Cores)", prompt: "Como limpar e desinfetar um pano de cozinha, qual produto e quantas ml?" },
+    { id: "lavagem-maos", label: "Lavar as Mãos (ANVISA)", prompt: "Qual o procedimento correto para lavar as mãos e qual produto usar?" },
+  ],
+  checklists: [
+    { id: "checklist-abertura", label: "☀️ Checklist de Abertura da Praça", prompt: "Abrir o checklist de abertura e mise en place da cozinha e bar." },
+    { id: "checklist-fechamento", label: "🌙 Checklist de Saída / Fechamento", prompt: "Abrir o checklist de saída e fechamento de turno da cozinha e bar." },
+    { id: "etiqueta-validade", label: "🏷️ Gerar Etiqueta ANVISA", prompt: "Quero gerar uma etiqueta de validade para um produto manipulado." },
+  ],
+  rastreio: [
+    { id: "rastreio-vatapa", label: "📍 Onde está o Vatapá?", prompt: "Onde está o vatapá produzido?" },
+    { id: "rastreio-camarao", label: "🦐 Onde está o Camarão?", prompt: "Onde guardaram o camarão para o turno?" },
+    { id: "rastreio-leite-coco", label: "🥥 Onde fica o Leite de Coco?", prompt: "Onde está o leite de coco no estoque?" },
+    { id: "rastreio-bar", label: "🍸 Onde está a Espuma do Bar?", prompt: "Onde está a espuma de gengibre do Moscow Mule?" },
   ],
 };
 
@@ -553,9 +570,14 @@ export function detectarIntencaoRecalculo(frase, receitaEmContexto, todasReceita
     }
   }
 
-  if (!qtdAlvo || qtdAlvo <= 0) return null;
+  const calculo = recalcularReceitaPorIngrediente(receitaAlvo, ingMencionado.id, qtdAlvo, unAlvo);
+  if (!calculo) return null;
 
-  return recalcularReceitaPorIngrediente(receitaAlvo, ingMencionado.id, qtdAlvo, unAlvo);
+  return {
+    receita: receitaAlvo,
+    calculo,
+    ...calculo,
+  };
 }
 
 export const ROTINAS_OPERACIONAIS = {
@@ -599,7 +621,300 @@ export const ROTINAS_OPERACIONAIS = {
   },
 };
 
-// ── EQUIPAMENTOS CADASTRADOS (INCLUINDO LIQUIDIFICADORES 110V/220V + GUIAS DE ENCAIXE, USO E LIMPEZA) ──
+// ── ROTINAS DE LIMPEZA, HIGIENIZAÇÃO, PRODUTOS QUÍMICOS E DILUIÇÃO EM ML (ANVISA) ──
+export const ROTINAS_LIMPEZA_HIGIENIZACAO = {
+  "limpeza-chao": {
+    id: "limpeza-chao",
+    titulo: "Limpeza & Desengorduramento do Chão (Cozinha e Bar)",
+    categoria: "Higienização de Pisos & Prevenção de Quedas",
+    produtoPrincipal: "Desengordurante Alcalino / Clorado Industrial para Pisos",
+    mlPorLitro: 10,
+    diluicaoPadrao: "50 ml para cada 5 Litros de água morna (1:100)",
+    diluicaoPesada: "150 ml a 200 ml para cada 5 Litros de água quente (1:25)",
+    tempoAcaoQuimica: "10 minutos de ação antes de esfregar e puxar",
+    episObrigatorios: ["Bota de borracha antiderrapante", "Luva nitrílica de cano longo", "Avental impermeável"],
+    passos: [
+      {
+        passo: 1,
+        titulo: "Varrição a Seco e Remoção de Sólidos",
+        desc: "Nunca jogue água direto com restos de comida no chão. Varrer a seco e recolher restos de alimentos, farinhas e plásticos com a pá.",
+        foto: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 2,
+        titulo: "Diluição Correta do Desengordurante no Balde",
+        desc: "Coloque 5 Litros de água morna no balde e adicione 50 ml de Desengordurante (10 ml por Litro). Para áreas de fritadeira muito engorduradas, use 150 ml a 200 ml em água bem quente.",
+        foto: "https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 3,
+        titulo: "Espalhamento e Ação Química de 10 Minutos",
+        desc: "Espalhe a solução de desengordurante com o escovão. REGRA DE OURO: Deixe o produto agir por 10 minutos sem enxaguar. A química precisa desse tempo para quebrar as moléculas de gordura incrustadas no piso e rejuntes.",
+        foto: "https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 4,
+        titulo: "Esfregação Focada nas Áreas Críticas",
+        desc: "Esfregue com vigor embaixo de fogões, fritadeiras, coifas, calhas e ao redor de todos os ralos com vassoura de cerdas duras.",
+        foto: "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 5,
+        titulo: "Enxágue e Secagem Imediata com Rodo",
+        desc: "Puxe toda a água em direção aos ralos usando o rodo exclusivo de chão. Finalize passando pano embebido em solução clorada (20 ml de cloro por Litro) e deixe secar com boa ventilação.",
+        foto: "https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=600&q=80",
+      },
+    ],
+  },
+  "limpeza-panos": {
+    id: "limpeza-panos",
+    titulo: "Higienização & Desinfecção de Panos de Cozinha (Cloro & Cores)",
+    categoria: "Segurança Microbiológica ANVISA RDC 216",
+    produtoPrincipal: "Hipoclorito de Sódio / Água Sanitária (Cloro ativo 2,0% a 2,5%)",
+    mlPorLitro: 25,
+    diluicaoPadrao: "25 ml de Cloro para cada 1 Litro de água limpa (100 ml para balde de 4L)",
+    tempoAcaoQuimica: "20 a 30 minutos de molho imerso (não exceder 1h)",
+    coresPadrao: [
+      { cor: "Verde / Branco", uso: "Exclusivo para Bancadas de Manipulação e Corte de Alimentos" },
+      { cor: "Azul", uso: "Exclusivo para Salão, Bandejas de Garçom e Mesas de Clientes" },
+      { cor: "Laranja / Vermelho", uso: "Exclusivo para Chão, Rodapés e Lixeiras (NUNCA sobe para bancada!)" },
+    ],
+    codigoCores: [
+      { cor: "Verde / Branco", uso: "Exclusivo para Bancadas de Manipulação e Corte de Alimentos" },
+      { cor: "Azul", uso: "Exclusivo para Salão, Bandejas de Garçom e Mesas de Clientes" },
+      { cor: "Laranja / Vermelho", uso: "Exclusivo para Chão, Rodapés e Lixeiras (NUNCA sobe para bancada!)" },
+    ],
+    passos: [
+      {
+        passo: 1,
+        titulo: "Pré-lavagem com Detergente Neutro",
+        desc: "Lave os panos primeiro com água corrente e detergente neutro para remover a gordura grossa e restos de alimentos. O cloro não tem poder desengordurante e perde efeito se o pano estiver engordurado.",
+        foto: "https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 2,
+        titulo: "Preparo da Solução Clorada",
+        desc: "Em bacia higienizada, coloque 4 Litros de água fria e adicione 100 ml de cloro (25 ml por Litro). NUNCA use água quente no cloro, pois evapora o gás ativo e anula a desinfecção.",
+        foto: "https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 3,
+        titulo: "Molho Imerso de 20 a 30 Minutos",
+        desc: "Mergulhe os panos de forma que fiquem 100% cobertos pela solução. Deixe agir por 20 a 30 minutos cronometrados.",
+        foto: "https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 4,
+        titulo: "Enxágue Abundante e Secagem em Local Arejado",
+        desc: "Enxágue em água corrente até eliminar qualquer odor forte de cloro. Torça bem e estenda em varal ventilado exclusivo. É terminantemente proibido estender panos sobre fornos ou caldeirões.",
+        foto: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=600&q=80",
+      },
+    ],
+  },
+  "lavagem-maos": {
+    id: "lavagem-maos",
+    titulo: "Protocolo Oficial ANVISA de Lavagem e Antissepsia das Mãos",
+    categoria: "Controle de Contaminação Cruzada & Boas Práticas",
+    produtoPrincipal: "Sabonete Líquido Bactericida Inodoro + Álcool em Gel 70%",
+    mlPorLitro: 3,
+    diluicaoPadrao: "Uso puro direto da saboneteira (2 a 3 ml de sabonete líquido)",
+    tempoAcaoQuimica: "40 a 60 segundos cronometrados de fricção mecânica",
+    tempoMinimo: "40 a 60 segundos cronometrados de fricção mecânica",
+    passos: [
+      {
+        passo: 1,
+        titulo: "Molhar Mãos e Aplicar Sabonete Inodoro",
+        desc: "Abra a torneira com o cotovelo ou sensor. Molhe mãos e punhos com água corrente e aplique 2 a 3 ml de sabonete bactericida inodoro (sem fragrância, para não contaminar alimentos).",
+        foto: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 2,
+        titulo: "Fricção de Palmas e Dorso com Dedos Entrelaçados",
+        desc: "Esfregue as palmas uma na outra. Depois, esfregue o dorso da mão esquerda com a palma direita entrelaçando os dedos, e repita do outro lado.",
+        foto: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 3,
+        titulo: "Polegares, Unhas e Pontas dos Dedos",
+        desc: "Esfregue o polegar esquerdo com a mão direita em rotação, e vice-versa. Friccione as pontas dos dedos e unhas contra a palma da mão oposta com movimentos circulares.",
+        foto: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 4,
+        titulo: "Punhos e Enxágue sem Tocar na Pia",
+        desc: "Friccione os punhos. Enxágue completamente em água corrente das pontas dos dedos em direção aos punhos.",
+        foto: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 5,
+        titulo: "Secagem com Papel Toalha Descartável e Álcool 70%",
+        desc: "Seque as mãos com 2 folhas de papel toalha não reciclado. USE O PAPEL TOALHA PARA FECHAR A TORNEIRA! Finalize aplicando 2 ml de álcool 70% e deixe secar naturalmente ao ar.",
+        foto: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
+      },
+    ],
+    momentosObrigatorios: [
+      "Ao chegar ao restaurante e entrar na cozinha ou bar",
+      "Antes de manipular qualquer alimento cru ou cozido",
+      "Depois de tocar em carnes cruas, peixes, frutos do mar ou ovos",
+      "Depois de manusear lixo, vassouras, panos de chão ou caixas de papelão",
+      "Depois de tocar no celular, dinheiro, comandas ou maçanetas",
+      "Depois de espirrar, tossir, assoar o nariz ou usar o sanitário",
+      "Sempre que trocar de função na praça ou vestir luvas novas",
+    ],
+  },
+  "sanitizacao-hortifruti": {
+    id: "sanitizacao-hortifruti",
+    titulo: "Sanitização de Frutas, Folhas e Legumes (Bar & Cozinha)",
+    categoria: "Segurança de Alimentos Crus",
+    produtoPrincipal: "Sanitizante Clorado para Alimentos (Pastilha ou Hipoclorito)",
+    mlPorLitro: 10,
+    diluicaoPadrao: "10 ml (1 colher de sopa) para cada 1 Litro de água potável",
+    tempoAcaoQuimica: "15 minutos de imersão total",
+    passos: [
+      {
+        passo: 1,
+        titulo: "Lavagem em Água Corrente Folha a Folha",
+        desc: "Lave folhas e frutas em água corrente potável retirando sujidades e terra visíveis.",
+        foto: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 2,
+        titulo: "Molho na Solução Clorada por 15 Minutos",
+        desc: "Mergulhe os vegetais em 10 ml de sanitizante por litro de água por 15 minutos.",
+        foto: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80",
+      },
+      {
+        passo: 3,
+        titulo: "Enxágue Final e Secagem na Centrífuga",
+        desc: "Enxágue em água corrente para eliminar o cloro e seque na centrífuga de folhas.",
+        foto: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80",
+      },
+    ],
+  },
+};
+
+export function calcularDiluicaoLimpeza(rotinaId, litrosAgua = 5) {
+  const rotina = ROTINAS_LIMPEZA_HIGIENIZACAO[rotinaId] || ROTINAS_LIMPEZA_HIGIENIZACAO["limpeza-chao"];
+  const litros = Number(litrosAgua) || 5;
+  const mlCalculada = Math.round(rotina.mlPorLitro * litros);
+  return {
+    rotina,
+    litrosAgua: litros,
+    mlNecessaria: mlCalculada,
+    mlCalculado: mlCalculada,
+    colheresSopaAprox: Math.round(mlCalculada / 15),
+    coposCafeAprox: Math.round((mlCalculada / 50) * 10) / 10,
+  };
+}
+
+// ── CHECKLISTS DE ABERTURA (MISE EN PLACE) & SAÍDA (FECHAMENTO SEGURO) ──
+export const CHECKLISTS_PRACA = {
+  abertura: [
+    {
+      id: "chk-ab-cq",
+      setor: "Cozinha Quente",
+      icone: "Flame",
+      cor: "#A43E2B",
+      itens: [
+        { id: "ab-cq-1", texto: "Registro geral de gás aberto e sem cheiro de vazamento", critico: true },
+        { id: "ab-cq-2", texto: "Fritadeiras abastecidas com óleo novo/filtrado no nível e ligadas a 180°C", critico: true },
+        { id: "ab-cq-3", texto: "Banho-maria ligado e água atingindo 65°C a 75°C", critico: true },
+        { id: "ab-cq-4", texto: "Mise en place de bases, caldos e proteínas pesadas conferido", critico: false },
+        { id: "ab-cq-5", texto: "Potes etiquetados com data e validade PVPS", critico: false },
+        { id: "ab-cq-6", texto: "Termômetro digital de espeto higienizado com álcool 70%", critico: false },
+      ],
+    },
+    {
+      id: "chk-ab-cf",
+      setor: "Cozinha Fria / Garde Manger",
+      icone: "Salad",
+      cor: "#2E6F4E",
+      itens: [
+        { id: "ab-cf-1", texto: "Temperatura da câmara fria e geladeiras conferida (0°C a 4°C)", critico: true },
+        { id: "ab-cf-2", texto: "Folhas, hortaliças e frutas sanitizadas em solução clorada", critico: true },
+        { id: "ab-cf-3", texto: "Molhos frios, queijos e ceviches porcionados nas GNs", critico: false },
+        { id: "ab-cf-4", texto: "Tábuas de corte coloridas limpas e secas na bancada", critico: false },
+      ],
+    },
+    {
+      id: "chk-ab-bar",
+      setor: "Bar & Coquetelaria",
+      icone: "GlassWater",
+      cor: "#9E6412",
+      itens: [
+        { id: "ab-bar-1", texto: "Máquina de gelo filtrado cheia e pá higienizada", critico: true },
+        { id: "ab-bar-2", texto: "Chopeira ligada, pressão do CO2 ajustada (2.0 a 2.2 bar) e bicos purgados", critico: true },
+        { id: "ab-bar-3", texto: "Frutas de corte (limão taiti, siciliano, laranja) fatiadas e guardadas em pote", critico: false },
+        { id: "ab-bar-4", texto: "Xaropes, bitters e garrafas do Speed Rail abastecidas", critico: false },
+        { id: "ab-bar-5", texto: "Copos e taças limpos, polidos e sem cheiro de pano", critico: false },
+      ],
+    },
+    {
+      id: "chk-ab-pass",
+      setor: "Expedição, Pass & Salão",
+      icone: "BellRing",
+      cor: "#69387D",
+      itens: [
+        { id: "ab-pass-1", texto: "Lâmpada térmica do Pass ligada e bancada de inox sanitizada com álcool 70%", critico: true },
+        { id: "ab-pass-2", texto: "Bobinas de impressoras de comanda cheias e testadas", critico: true },
+        { id: "ab-pass-3", texto: "Embalagens de delivery montadas e sacolas organizadas", critico: false },
+        { id: "ab-pass-4", texto: "Galheteiros, cardápios e mesas do salão alinhadas", critico: false },
+      ],
+    },
+  ],
+  fechamento: [
+    {
+      id: "chk-fc-cq",
+      setor: "Cozinha Quente",
+      icone: "Flame",
+      cor: "#A43E2B",
+      itens: [
+        { id: "fc-cq-1", texto: "Registro geral de gás FECHADO e travado com chave", critico: true },
+        { id: "fc-cq-2", texto: "Fritadeiras, chapa e fornos DESLIGADOS da tomada", critico: true },
+        { id: "fc-cq-3", texto: "Sobras quentes resfriadas em banho de gelo (choque térmico) e guardadas na câmara", critico: true },
+        { id: "fc-cq-4", texto: "Chapa raspada e higienizada; coifa limpa", critico: false },
+        { id: "fc-cq-5", texto: "Chão lavado com desengordurante e clorado, sem acúmulo de água", critico: false },
+        { id: "fc-cq-6", texto: "Lixo orgânico retirado e lixeira lavada com saco novo", critico: false },
+      ],
+    },
+    {
+      id: "chk-fc-cf",
+      setor: "Cozinha Fria / Garde Manger",
+      icone: "Salad",
+      cor: "#2E6F4E",
+      itens: [
+        { id: "fc-cf-1", texto: "Todos os potes e GNs tampados e com etiqueta ANVISA / PVPS", critico: true },
+        { id: "fc-cf-2", texto: "Portas de câmaras e geladeiras travadas e vedadas", critico: true },
+        { id: "fc-cf-3", texto: "Bancadas de inox e pias lavadas e sanitizadas com álcool 70%", critico: false },
+        { id: "fc-cf-4", texto: "Panos colocados de molho no cloro e lixo recolhido", critico: false },
+      ],
+    },
+    {
+      id: "chk-fc-bar",
+      setor: "Bar & Coquetelaria",
+      icone: "GlassWater",
+      cor: "#9E6412",
+      itens: [
+        { id: "fc-bar-1", texto: "Válvulas de CO2 e chopp fechadas; bicos escovados e vedados com tampa de silicone", critico: true },
+        { id: "fc-bar-2", texto: "Perecíveis (frutas abertas, sucos) etiquetados na geladeira", critico: true },
+        { id: "fc-bar-3", texto: "Tapetes de borracha (bar mats) lavados com água quente e sabão", critico: false },
+        { id: "fc-bar-4", texto: "Pia, cubas e ralo do bar desinfetados com cloro", critico: false },
+      ],
+    },
+    {
+      id: "chk-fc-pass",
+      setor: "Expedição, Pass & Salão",
+      icone: "BellRing",
+      cor: "#69387D",
+      itens: [
+        { id: "fc-pass-1", texto: "Lâmpadas do Pass e aquecedores DESLIGADOS", critico: true },
+        { id: "fc-pass-2", texto: "Comandas do dia conferidas e arquivadas no sistema", critico: false },
+        { id: "fc-pass-3", texto: "Salão varrido, mesas higienizadas e cadeiras empilhadas/alinhadas", critico: false },
+        { id: "fc-pass-4", texto: "Luzes apagadas, ar-condicionado desligado e portas trancadas", critico: true },
+      ],
+    },
+  ],
+};
 export const EQUIPAMENTOS_MANUTENCAO = [
   {
     id: "liq-skymsen-4l",
@@ -1173,16 +1488,260 @@ export const CHAMADOS_MANUTENCAO_INICIAIS = [
 ];
 
 export const ESCALA_TURNO_GANTT = [
-  { id: "c1", iniciais: "GK", nome: "Gabriel K.", horario: "08:00 – 16:20", tag: "Chef de Partida", inicio: 8, fim: 16.3, intervalos: [{ h: "11:30", ok: true }] },
-  { id: "c2", iniciais: "FA", nome: "Fernando A.", horario: "08:00 – 16:20", tag: "Emprestado Filial", inicio: 8, fim: 16.3, intervalos: [{ h: "11:00", ok: true }, { h: "14:00", ok: true }] },
-  { id: "c3", iniciais: "IB", nome: "Ingrid B.", horario: "08:00 – 17:00", tag: "Líder de Turno", padrao: "dots", inicio: 8, fim: 17, intervalos: [{ h: "10:30", ok: true }, { h: "14:30", label: "14:30" }] },
-  { id: "c4", iniciais: "CG", nome: "Carlos G.", horario: "09:15 – 17:35", tag: "Barman Sênior", inicio: 9.25, fim: 17.6, intervalos: [{ h: "11:45", ok: true }, { h: "15:00", ok: true }] },
-  { id: "c5", iniciais: "JG", nome: "Júlia G.", horario: "10:30 – 18:50", tag: "Garde Manger", padrao: "stripes", inicio: 10.5, fim: 18.8, intervalos: [{ h: "15:15", label: "15:15" }, { h: "17:45", label: "17:45" }] },
-  { id: "c6", iniciais: "RH", nome: "Rita H.", horario: "11:30 – 18:30", tag: "Líder Salão", inicio: 11.5, fim: 18.5, intervalos: [{ h: "14:30", label: "14:30" }, { h: "16:30", label: "16:30" }] },
-  { id: "c7", iniciais: "CA", nome: "Caio G.", horario: "12:00 – 21:15", tag: "Grelha & Forno", padrao: "circles", inicio: 12, fim: 21.25, intervalos: [{ h: "15:30", label: "15:30" }, { h: "18:00", label: "18:00" }] },
-  { id: "c8", iniciais: "AH", nome: "Amanda H.", horario: "14:45 – 22:15", tag: "Expedição / Pass", inicio: 14.75, fim: 22.25, intervalos: [{ h: "18:45", label: "18:45" }] },
-  { id: "c9", iniciais: "JS", nome: "João S.", horario: "15:30 – 23:45", tag: "Bar Noturno", padrao: "dots", inicio: 15.5, fim: 23.75, intervalos: [{ h: "19:15", label: "19:15" }] },
+  {
+    id: "c1",
+    iniciais: "GK",
+    nome: "Gabriel K.",
+    horario: "08:00 – 16:20",
+    tag: "Chef de Partida",
+    cargo: "Chef de Partida / Fogão",
+    areaId: "cozinha-quente",
+    areaNome: "Cozinha Quente",
+    praca: "Fogão, Risotos & Massas",
+    status: "em-turno",
+    statusLabel: "Em turno agora",
+    avatar: "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=200&q=80",
+    inicio: 8,
+    fim: 16.3,
+    intervalos: [{ h: "11:30", ok: true }],
+  },
+  {
+    id: "c2",
+    iniciais: "FA",
+    nome: "Fernando A.",
+    horario: "08:00 – 16:20",
+    tag: "Emprestado Filial",
+    cargo: "Cozinheiro 1 / Grelha & Fritura",
+    areaId: "cozinha-quente",
+    areaNome: "Cozinha Quente",
+    praca: "Grelha, Proteínas & Fritadeira",
+    status: "em-turno",
+    statusLabel: "Em turno agora",
+    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80",
+    inicio: 8,
+    fim: 16.3,
+    intervalos: [{ h: "11:00", ok: true }, { h: "14:00", ok: true }],
+  },
+  {
+    id: "c3",
+    iniciais: "IB",
+    nome: "Ingrid B.",
+    horario: "08:00 – 17:00",
+    tag: "Líder de Turno Geral",
+    cargo: "Líder de Turno Geral",
+    areaId: "gestao",
+    areaNome: "Gestão & Liderança",
+    praca: "Pass Central & Coordenação Geral",
+    status: "em-turno",
+    statusLabel: "Em turno agora",
+    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80",
+    padrao: "dots",
+    inicio: 8,
+    fim: 17,
+    intervalos: [{ h: "10:30", ok: true }, { h: "14:30", label: "14:30" }],
+  },
+  {
+    id: "c4",
+    iniciais: "CG",
+    nome: "Carlos G.",
+    horario: "09:15 – 17:35",
+    tag: "Barman Sênior",
+    cargo: "Barman Sênior",
+    areaId: "bar",
+    areaNome: "Bar & Coquetelaria",
+    praca: "Drinks Autorais, Xaropes & Vinhos",
+    status: "em-turno",
+    statusLabel: "Em turno agora",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+    inicio: 9.25,
+    fim: 17.6,
+    intervalos: [{ h: "11:45", ok: true }, { h: "15:00", ok: true }],
+  },
+  {
+    id: "c5",
+    iniciais: "JG",
+    nome: "Júlia G.",
+    horario: "10:30 – 18:50",
+    tag: "Garde Manger",
+    cargo: "Garde Manger / Saladas & Sobremesas",
+    areaId: "cozinha-fria",
+    areaNome: "Cozinha Fria",
+    praca: "Saladas, Entradas Frias & Sobremesas",
+    status: "em-turno",
+    statusLabel: "Em turno agora",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+    padrao: "stripes",
+    inicio: 10.5,
+    fim: 18.8,
+    intervalos: [{ h: "15:15", label: "15:15" }, { h: "17:45", label: "17:45" }],
+  },
+  {
+    id: "c6",
+    iniciais: "RH",
+    nome: "Rita H.",
+    horario: "11:30 – 18:30",
+    tag: "Líder Salão",
+    cargo: "Líder de Salão & Maître",
+    areaId: "salao",
+    areaNome: "Salão & Hospitalidade",
+    praca: "Salão Principal, Recepção & Atendimento",
+    status: "em-turno",
+    statusLabel: "Em turno agora",
+    avatar: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=200&q=80",
+    inicio: 11.5,
+    fim: 18.5,
+    intervalos: [{ h: "14:30", label: "14:30" }, { h: "16:30", label: "16:30" }],
+  },
+  {
+    id: "c7",
+    iniciais: "CA",
+    nome: "Caio G.",
+    horario: "12:00 – 21:15",
+    tag: "Grelha & Forno",
+    cargo: "Cozinheiro 2 / Forno & Grelha Noturno",
+    areaId: "cozinha-quente",
+    areaNome: "Cozinha Quente",
+    praca: "Forno Combinado & Grelha Noturna",
+    status: "inicia-mais-tarde",
+    statusLabel: "Inicia às 12:00",
+    avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=200&q=80",
+    padrao: "circles",
+    inicio: 12,
+    fim: 21.25,
+    intervalos: [{ h: "15:30", label: "15:30" }, { h: "18:00", label: "18:00" }],
+  },
+  {
+    id: "c8",
+    iniciais: "AH",
+    nome: "Amanda H.",
+    horario: "14:45 – 22:15",
+    tag: "Expedição / Pass",
+    cargo: "Expedição / Pass & Controle de Qualidade",
+    areaId: "pass",
+    areaNome: "Expedição & Pass",
+    praca: "Pass de Saída, Conferência & Delivery",
+    status: "inicia-mais-tarde",
+    statusLabel: "Inicia às 14:45",
+    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80",
+    inicio: 14.75,
+    fim: 22.25,
+    intervalos: [{ h: "18:45", label: "18:45" }],
+  },
+  {
+    id: "c9",
+    iniciais: "JS",
+    nome: "João S.",
+    horario: "15:30 – 23:45",
+    tag: "Bar Noturno",
+    cargo: "Bartender Noturno",
+    areaId: "bar",
+    areaNome: "Bar & Coquetelaria",
+    praca: "Chopeira Torre, Drinks Noturnos & Fechamento",
+    status: "inicia-mais-tarde",
+    statusLabel: "Inicia às 15:30",
+    avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80",
+    padrao: "dots",
+    inicio: 15.5,
+    fim: 23.75,
+    intervalos: [{ h: "19:15", label: "19:15" }],
+  },
 ];
+
+// ── ORGANOGRAMA HIERÁRQUICO POR ÁREA DO DIA (COZINHA, BAR, SALÃO, PASS, GESTÃO) ──
+export const ESCALA_ORGANOGRAMA_DO_DIA = {
+  data: "Segunda-feira, 19 de Outubro",
+  turno: "Almoço & Jantar (Contínuo)",
+  totalColaboradores: 9,
+  emTurnoAgoraCount: 6,
+  iniciamMaisTardeCount: 3,
+  horarioPicoAlmoco: "12:00 – 14:00",
+  horarioPicoJantar: "19:30 – 21:30",
+  liderGeral: {
+    id: "c3",
+    iniciais: "IB",
+    nome: "Ingrid B.",
+    cargo: "Líder de Turno Geral",
+    areaId: "gestao",
+    areaNome: "Gestão & Coordenação Geral",
+    horario: "08:00 – 17:00",
+    status: "em-turno",
+    statusLabel: "Em turno agora",
+    praca: "Pass Central & Caixa",
+    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80",
+    responsabilidade:
+      "Abertura de turno, coordenação entre cozinha, bar e salão, liberação de tempos no Pass e gestão de imprevistos.",
+  },
+  areas: [
+    {
+      id: "cozinha-quente",
+      nome: "Cozinha Quente & Cocção",
+      sigla: "CQ",
+      cor: "#A43E2B",
+      bgCor: "#FBEBE8",
+      bordaCor: "#E3A397",
+      liderArea: "Gabriel K. (Chef de Partida)",
+      descricao: "Cocção de massas, caldos, risotos, fritura e grelha de carnes",
+      colaboradores: [
+        ESCALA_TURNO_GANTT[0], // Gabriel K.
+        ESCALA_TURNO_GANTT[1], // Fernando A.
+        ESCALA_TURNO_GANTT[6], // Caio G.
+      ],
+    },
+    {
+      id: "cozinha-fria",
+      nome: "Cozinha Fria & Garde Manger",
+      sigla: "CF",
+      cor: "#2E6F4E",
+      bgCor: "#EBF5EF",
+      bordaCor: "#A9D4BC",
+      liderArea: "Júlia G. (Garde Manger)",
+      descricao: "Mise en place de saladas, carpaccios, ceviches e sobremesas",
+      colaboradores: [
+        ESCALA_TURNO_GANTT[4], // Júlia G.
+      ],
+    },
+    {
+      id: "pass",
+      nome: "Expedição & Pass (Controle de Qualidade)",
+      sigla: "PASS",
+      cor: "#69387D",
+      bgCor: "#F5EDF8",
+      bordaCor: "#D2B2DE",
+      liderArea: "Amanda H. (Pass)",
+      descricao: "Conferência de comanda, temperatura de pratos e embalagem Delivery",
+      colaboradores: [
+        ESCALA_TURNO_GANTT[7], // Amanda H.
+      ],
+    },
+    {
+      id: "bar",
+      nome: "Bar & Coquetelaria",
+      sigla: "BAR",
+      cor: "#9E6412",
+      bgCor: "#FAF1DF",
+      bordaCor: "#E8CD96",
+      liderArea: "Carlos G. (Barman Sênior)",
+      descricao: "Tiragem de chopp, coquetéis clássicos e autorais, vinhos e xaropes",
+      colaboradores: [
+        ESCALA_TURNO_GANTT[3], // Carlos G.
+        ESCALA_TURNO_GANTT[8], // João S.
+      ],
+    },
+    {
+      id: "salao",
+      nome: "Salão & Hospitalidade",
+      sigla: "SALÃO",
+      cor: "#235B7E",
+      bgCor: "#E8F3FA",
+      bordaCor: "#A2CBE4",
+      liderArea: "Rita H. (Líder Salão)",
+      descricao: "Acolhimento de clientes, gestão de praças de mesas e serviço de salão",
+      colaboradores: [
+        ESCALA_TURNO_GANTT[5], // Rita H.
+      ],
+    },
+  ],
+};
 
 export const EXTRAS_DISPONIVEIS = [
   {
@@ -1261,3 +1820,563 @@ export const FORMACAO_PRACAS_BASE = [
     rotinas: ["Rotina de Drinks Autorais", "Tiragem de Chopp"],
   },
 ];
+
+// ── LOCAIS HOMOLOGADOS DE ARMAZENAMENTO & RASTREAMENTO EM PRODUÇÃO (GREEN DOT) ──
+export const LOCAIS_ARMAZENAMENTO_PADRAO = [
+  {
+    id: "camara-fria-prat-2",
+    nome: "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+    setor: "Cozinha Quente / Fria",
+    tipo: "camara-fria",
+    temperatura: "2°C a 4°C",
+    capacidadeGns: "8 cubas GN 1/2 ou 4 cubas GN 1/1",
+    icone: "Snowflake",
+  },
+  {
+    id: "camara-fria-prat-1",
+    nome: "Câmara Fria 1 — Prateleira 1 (Laticínios, Molhos & Sobremesas)",
+    setor: "Cozinha Fria / Garde Manger",
+    tipo: "camara-fria",
+    temperatura: "2°C a 4°C",
+    capacidadeGns: "10 caixas herméticas",
+    icone: "Milk",
+  },
+  {
+    id: "camara-fria-prat-4",
+    nome: "Câmara Fria 1 — Prateleira 4 (Pescados, Frutos do Mar & Carnes)",
+    setor: "Cozinha Quente / Açougue",
+    tipo: "camara-fria",
+    temperatura: "0°C a 2°C",
+    capacidadeGns: "Bandejas drenadas exclusivas",
+    icone: "Fish",
+  },
+  {
+    id: "freezer-proteinas",
+    nome: "Câmara Congelados / Freezer — Gaveta 3 (Proteínas Brutas)",
+    setor: "Estoque Central",
+    tipo: "freezer",
+    temperatura: "-18°C a -22°C",
+    capacidadeGns: "Estoque em caixas",
+    icone: "IceCream",
+  },
+  {
+    id: "geladeira-bar",
+    nome: "Geladeira do Bar — Prateleira Superior (Frutas, Xaropes & Purês)",
+    setor: "Bar & Coquetelaria",
+    tipo: "refrigerador-bar",
+    temperatura: "4°C a 6°C",
+    capacidadeGns: "Sifões iSi e bisnagas dosadoras",
+    icone: "GlassWater",
+  },
+  {
+    id: "bancada-banho-maria",
+    nome: "Bancada Quente — Banho-Maria GN 1/3 (Pronto para Empratamento)",
+    setor: "Cozinha Quente / Fogão",
+    tipo: "aquecido",
+    temperatura: "68°C a 75°C",
+    capacidadeGns: "4 cubas GN 1/3 aquecidas",
+    icone: "Flame",
+  },
+  {
+    id: "garde-manger-gaveta",
+    nome: "Garde Manger — Gaveta Refrigerada 1 (Saladas & Folhas Lavadas)",
+    setor: "Cozinha Fria",
+    tipo: "gaveta-refrigerada",
+    temperatura: "3°C a 5°C",
+    capacidadeGns: "Caixas perfuradas com papel toalha",
+    icone: "Salad",
+  },
+  {
+    id: "estoque-seco-estante-a",
+    nome: "Estoque Seco — Estante A, Prateleira 2 (Secos & Condimentos)",
+    setor: "Almoxarifado Geral",
+    tipo: "estoque-seco",
+    temperatura: "Ambiente (20°C a 24°C)",
+    capacidadeGns: "Potes plásticos atóxicos vedados",
+    icone: "Box",
+  },
+  {
+    id: "pass-aquecido",
+    nome: "Pass & Expedição — Estufa Aquecida de Pratos Prontos",
+    setor: "Expedição / Salão",
+    tipo: "estufa",
+    temperatura: "65°C constante",
+    capacidadeGns: "Bancada de saída",
+    icone: "BellRing",
+  },
+];
+
+// Lotes de pré-preparo e estoque ativos no sistema com rastreamento de localização
+export const LOTES_RASTREIO_INICIAIS = [
+  {
+    id: "rastreio-vtp-01",
+    produto: "Vatapá da Casa (Pré-Preparo Produzido)",
+    produtoId: "vatapa-baiano",
+    lote: "LOTE-VTP-8921",
+    localizacao: "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+    setor: "Cozinha Quente / Câmaras",
+    temperatura: "2°C a 4°C",
+    quantidade: "6,5 kg (2 cubas GN 1/2)",
+    conservacao: "Resfriado",
+    manipuladoEm: "Hoje às 08:30",
+    validadeEm: "Vence em 3 dias (22/10 às 08:30)",
+    responsavel: "Gabriel K.",
+    statusPvps: "🟢 1º QUE SAI (Usar este lote antes do novo)",
+    dicaLocalizacao:
+      "Ao entrar na câmara fria principal, olhe na estante de inox à direita, 2ª prateleira de cima para baixo. Cuba de inox com tampa verde e etiqueta térmica 60x40mm com QR Code de rastreio.",
+    tags: ["vatapa", "vatapá", "molho", "pre-preparo", "base", "baiano"],
+  },
+  {
+    id: "rastreio-cmr-02",
+    produto: "Camarão Rosa GG Dessalgado & Limpo",
+    produtoId: "camarao-seco",
+    lote: "LOTE-CMR-4410",
+    localizacao: "Câmara Fria 1 — Prateleira 4 (Pescados, Frutos do Mar & Carnes)",
+    setor: "Cozinha Quente / Açougue",
+    temperatura: "0°C a 2°C",
+    quantidade: "4,5 kg porcionados em sacos a vácuo (1kg cada)",
+    conservacao: "Resfriado (Descongelamento seguro Pull-to-Thaw)",
+    manipuladoEm: "Ontem às 22:00",
+    validadeEm: "Vence amanhã às 18:00 (Restam 28h)",
+    responsavel: "Fernando A.",
+    statusPvps: "🟢 1º QUE SAI (Lote em processo de degelo concluído)",
+    dicaLocalizacao:
+      "Na prateleira inferior da câmara fria (regra ANVISA: pescados sempre na base), em bandeja plástica branca perfurada com coletor de líquido.",
+    tags: ["camarao", "camarão", "frutos do mar", "pescado", "proteina"],
+  },
+  {
+    id: "rastreio-coco-03",
+    produto: "Leite de Coco Puro (Garrafas 1L)",
+    produtoId: "leite-coco",
+    lote: "LOTE-LCO-3012",
+    localizacao: "Estoque Seco — Estante A, Prateleira 2 (Secos & Condimentos)",
+    setor: "Almoxarifado Geral",
+    temperatura: "Ambiente (22°C)",
+    quantidade: "12 Litros fechados (Caixa lacrada) + 2 Litros abertos na Câmara 1",
+    conservacao: "Ambiente fechado / Resfriado após aberto",
+    manipuladoEm: "Lote de fábrica SIF 8802",
+    validadeEm: "Validade industrial: 15/12/2026",
+    responsavel: "Almoxarife / Recebimento",
+    statusPvps: "⚪ Estoque Geral de Insumos",
+    dicaLocalizacao:
+      "Caixa lacrada na estante A do almoxarifado seco. Garrafas abertas em uso ficam na Prateleira 1 da Câmara Fria 1 etiquetadas.",
+    tags: ["leite de coco", "coco", "leite coco", "garrafa"],
+  },
+  {
+    id: "rastreio-bar-04",
+    produto: "Espuma de Gengibre Artesanal (Moscow Mule)",
+    produtoId: "moscow-mule",
+    lote: "LOTE-ESP-1104",
+    localizacao: "Geladeira do Bar — Prateleira Superior (Frutas, Xaropes & Purês)",
+    setor: "Bar & Coquetelaria",
+    temperatura: "4°C a 6°C",
+    quantidade: "2 Sifões iSi de 1 Litro abastecidos e pressurizados",
+    conservacao: "Resfriado",
+    manipuladoEm: "Hoje às 10:15",
+    validadeEm: "Vence em 2 dias (21/10 às 10:15)",
+    responsavel: "Carlos G.",
+    statusPvps: "🟢 Pronto para Serviço no Bar",
+    dicaLocalizacao:
+      "Dentro da geladeira sob a bancada do bar, na porta esquerda, prateleira superior. Sifões prateados com anel de identificação verde.",
+    tags: ["espuma", "gengibre", "moscow", "mule", "bar", "drink", "sifao"],
+  },
+  {
+    id: "rastreio-rst-05",
+    produto: "Massa de Risoto Pré-Cozida (Arroz Carnaroli)",
+    produtoId: "risoto-camarao",
+    lote: "LOTE-RST-5520",
+    localizacao: "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+    setor: "Cozinha Quente / Fogão",
+    temperatura: "2°C a 4°C",
+    quantidade: "12 porções de 160g em sacos ziploc identificados",
+    conservacao: "Resfriado (Após choque térmico em banho de gelo)",
+    manipuladoEm: "Hoje às 09:00",
+    validadeEm: "Vence em 48 horas (21/10 às 09:00)",
+    responsavel: "Gabriel K.",
+    statusPvps: "🟢 1º QUE SAI",
+    dicaLocalizacao:
+      "Câmara Fria 1, prateleira 2 ao lado da cuba de vatapá. Porções embaladas individualmente para regeneração rápida em 6 minutos.",
+    tags: ["risoto", "arroz", "carnaroli", "massa de risoto", "base risoto"],
+  },
+];
+
+const STORAGE_KEY_RASTREIO = "hefisto_rastreio_etiquetas";
+
+export function obterTodosRastreios(unidadeId = "geral") {
+  if (typeof window === "undefined") return LOTES_RASTREIO_INICIAIS;
+  try {
+    const raw = localStorage.getItem(`${STORAGE_KEY_RASTREIO}_${unidadeId || "geral"}`);
+    const dinamicos = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(dinamicos) || dinamicos.length === 0) return LOTES_RASTREIO_INICIAIS;
+    return [...dinamicos, ...LOTES_RASTREIO_INICIAIS];
+  } catch {
+    return LOTES_RASTREIO_INICIAIS;
+  }
+}
+
+export function salvarRastreioEtiqueta(dados, unidadeId = "geral") {
+  if (typeof window === "undefined" || !dados) return null;
+  try {
+    const novoRastreio = {
+      id: `rastreio-din-${Date.now()}`,
+      produto: dados.produto || "Pré-Preparo",
+      produtoId: normalizarTexto(dados.produto || "").replace(/\s+/g, "-"),
+      lote: dados.lote || `LOTE-${(dados.codigo || "").slice(0, 4) || "AUTO"}`,
+      localizacao: dados.localizacao || "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+      setor: dados.departamento || "Cozinha & Produção",
+      temperatura: dados.conservacao === "Congelado" ? "-18°C" : dados.conservacao === "Resfriado" ? "2°C a 4°C" : "Ambiente",
+      quantidade: `${dados.quantidade || 1} ${dados.unidade || "kg"}`,
+      conservacao: dados.conservacao || "Resfriado",
+      manipuladoEm: new Date().toLocaleDateString("pt-BR") + " às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      validadeEm: `Vence em ${dados.validade_dias || 3} dias`,
+      responsavel: dados.responsavel || "Líder de Turno",
+      statusPvps: "🟢 Lote Etiquetado Recentemente",
+      dicaLocalizacao: `Armazenado em: ${dados.localizacao || "Câmara Fria 1"}. Procure pela etiqueta com lote ${dados.lote || "do dia"}.`,
+      tags: normalizarTexto(dados.produto || "").split(/\s+/).filter(Boolean),
+    };
+
+    const atuais = obterTodosRastreios(unidadeId).filter((r) => !r.id.startsWith("rastreio-vtp"));
+    const novaLista = [novoRastreio, ...atuais.filter((r) => r.id.startsWith("rastreio-din"))];
+    localStorage.setItem(`${STORAGE_KEY_RASTREIO}_${unidadeId || "geral"}`, JSON.stringify(novaLista));
+    return novoRastreio;
+  } catch {
+    return null;
+  }
+}
+
+// Busca tolerante a erros de digitação e variações de fala: "onde ta o vatapa", "kd o camarao", "onde guardou", etc.
+export function buscarLocalizacaoProduto(fraseOuNome, unidadeId = "geral") {
+  const q = normalizarTexto(fraseOuNome || "");
+  const lista = obterTodosRastreios(unidadeId);
+
+  // 1. Match exato ou por tags
+  const encontrado = lista.find((item) => {
+    const nomeNorm = normalizarTexto(item.produto);
+    if (q.includes(nomeNorm) || nomeNorm.includes(q)) return true;
+    return (item.tags || []).some((tag) => q.includes(normalizarTexto(tag)));
+  });
+
+  if (encontrado) return encontrado;
+
+  // 2. Se a frase menciona ingredientes ou pratos conhecidos
+  if (q.includes("vatapa") || q.includes("baiano")) {
+    return lista.find((r) => r.tags?.includes("vatapa")) || lista[0];
+  }
+  if (q.includes("camarao") || q.includes("camarão")) {
+    return lista.find((r) => r.tags?.includes("camarao")) || lista[1];
+  }
+  if (q.includes("coco") || q.includes("leite")) {
+    return lista.find((r) => r.tags?.includes("coco")) || lista[2];
+  }
+  if (q.includes("espuma") || q.includes("mule") || q.includes("bar") || q.includes("drink")) {
+    return lista.find((r) => r.tags?.includes("espuma")) || lista[3];
+  }
+  if (q.includes("risoto") || q.includes("arroz")) {
+    return lista.find((r) => r.tags?.includes("risoto")) || lista[4];
+  }
+
+  // 3. Fallback inteligente: se for carne/pescado ou legume genérico
+  if (q.includes("carne") || q.includes("bife") || q.includes("frango") || q.includes("peixe")) {
+    return {
+      produto: "Proteínas Cruas / Carnes",
+      lote: "LOTE-ESTOQUE-CENTRAL",
+      localizacao: "Câmara Fria 1 — Prateleira 4 (Pescados, Frutos do Mar & Carnes)",
+      setor: "Cozinha Quente / Açougue",
+      temperatura: "0°C a 2°C (Carnes Resfriadas) ou -18°C (Congelados)",
+      quantidade: "Ver saldo em Estoque",
+      conservacao: "Resfriado / Congelado",
+      manipuladoEm: "Conforme etiqueta PVPS",
+      validadeEm: "Regra ANVISA: 72h após descongelamento",
+      responsavel: "Açougue / Cozinha",
+      statusPvps: "Regra PVPS: Sempre na prateleira inferior",
+      dicaLocalizacao:
+        "Segundo a ANVISA RDC 216, todas as carnes, pescados e aves cruas devem ficar obrigatoriamente na prateleira inferior (base) da câmara fria para evitar gotejamento sobre alimentos prontos.",
+    };
+  }
+
+  return lista[0];
+}
+
+// Interpretador adaptativo de perguntas de colaboradores de restaurante.
+// O sistema se adapta a gírias, erros de digitação, frases incompletas e
+// SEMPRE fornece uma resposta clara e uma solução prática em 3 passos!
+export function interpretarPerguntaColaborador(pergunta, {
+  todasAsReceitas = RECEITAS_GREEN_DOT,
+  ultimaReceitaAtiva = null,
+  todosOsEquipamentos = EQUIPAMENTOS_MANUTENCAO,
+  unidadeId = "geral",
+} = {}) {
+  const p = String(pergunta || "").trim();
+  const q = normalizarTexto(p);
+
+  // 1. RASTREABILIDADE & ONDE ESTÁ O PRODUTO (Cadê, Onde tá, Onde guardaram, Onde fica, Onde acho, Onde coloco)
+  const isPerguntaOndeEsta =
+    q.includes("onde ta") ||
+    q.includes("onde esta") ||
+    q.includes("onde fica") ||
+    q.includes("onde guard") ||
+    q.includes("onde bot") ||
+    q.includes("onde enfia") ||
+    q.includes("onde acho") ||
+    q.includes("onde achar") ||
+    q.includes("onde coloco") ||
+    q.includes("kd ") ||
+    q.startsWith("kd") ||
+    q.includes("cade ") ||
+    q.startsWith("cade") ||
+    q.includes("localizacao") ||
+    q.includes("localizac") ||
+    q.includes("rastre") ||
+    (q.includes("tem ") && (q.includes("pronto") || q.includes("pronta") || q.includes("sobrando") || q.includes("feito")));
+
+  if (isPerguntaOndeEsta) {
+    const itemRastreio = buscarLocalizacaoProduto(q, unidadeId);
+    return {
+      tipo: "rastreio-localizacao",
+      item: itemRastreio,
+      respostaVoz: `O ${itemRastreio.produto} está em: ${itemRastreio.localizacao}, lote ${itemRastreio.lote}. Quantidade: ${itemRastreio.quantidade}.`,
+      solucaoTexto: `Localizado no sistema de rastreio! Vá até ${itemRastreio.localizacao}. ${itemRastreio.dicaLocalizacao}`,
+    };
+  }
+
+  // 2. RECÁLCULO PROPORCIONAL ("só tenho 2L", "era pra ser 3L", "tenho pouco ingrediente")
+  const intencaoRecalculo = detectarIntencaoRecalculo(p, ultimaReceitaAtiva, todasAsReceitas);
+  if (intencaoRecalculo && intencaoRecalculo.calculo) {
+    return {
+      tipo: "receita-recalculada",
+      receita: intencaoRecalculo.receita,
+      calculo: intencaoRecalculo.calculo,
+      respostaVoz: `Recalculei ${intencaoRecalculo.receita.nome} para ${intencaoRecalculo.calculo.percentual}% da receita original, com base em ${intencaoRecalculo.calculo.quantidadeDisponivelLimitante} ${intencaoRecalculo.calculo.ingredienteLimitante.unidade} de ${intencaoRecalculo.calculo.ingredienteLimitante.nome}.`,
+      solucaoTexto: `Receita recalculada com sucesso! Todos os insumos foram reduzidos proporcionalmente para manter o ponto e sabor da casa.`,
+    };
+  }
+
+  // 3. EQUIPAMENTOS, VOLTAGEM 110V/220V, ENCAIXE, USO E LIMPEZA
+  const isPerguntaEquip =
+    q.includes("110") ||
+    q.includes("220") ||
+    q.includes("voltagem") ||
+    q.includes("tensao") ||
+    q.includes("tomada") ||
+    q.includes("liquidificador") ||
+    q.includes("forno") ||
+    q.includes("chopeira") ||
+    q.includes("fritadeira") ||
+    q.includes("encaixar") ||
+    q.includes("copo") ||
+    q.includes("tampa") ||
+    (q.includes("como usar") && !q.includes("sistema")) ||
+    (q.includes("como limpar") && (q.includes("maquina") || q.includes("aparelho") || q.includes("equipamento") || q.includes("liquidificador") || q.includes("forno")));
+
+  if (isPerguntaEquip) {
+    const filtroCategoria = q.includes("liquidificador")
+      ? "liquidificador"
+      : q.includes("forno")
+      ? "forno"
+      : q.includes("fritadeira")
+      ? "fritadeira"
+      : q.includes("chopeira")
+      ? "chopeira"
+      : null;
+
+    const abaSugerida =
+      q.includes("encaixar") || q.includes("encaixe") || q.includes("copo") || q.includes("tampa")
+        ? "encaixe"
+        : q.includes("limpar") || q.includes("higienizar") || q.includes("lavar")
+        ? "limpeza"
+        : q.includes("como usar") || q.includes("bater") || q.includes("operar")
+        ? "uso"
+        : "voltagem";
+
+    return {
+      tipo: "equipamento-visual-guia",
+      filtroCategoria,
+      abaInicial: abaSugerida,
+      respostaVoz: "Aqui estão as fotos dos equipamentos cadastrados da loja. Toque no seu aparelho para ver voltagem 110V ou 220V, como encaixar o copo e como usar.",
+      solucaoTexto: "Selecione o equipamento que você está operando na bancada para ver o guia visual completo.",
+    };
+  }
+
+  // 4. HIGIENIZAÇÃO, LIMPEZA & QUÍMICA ANVISA (Chão, Panos, Mãos, Hortifrúti, Quantas ml)
+  const isPerguntaLimpeza =
+    q.includes("chao") ||
+    q.includes("pano") ||
+    q.includes("opano") ||
+    q.includes("lavar a mao") ||
+    q.includes("lavar as maos") ||
+    q.includes("lavar mao") ||
+    q.includes("quantas ml") ||
+    q.includes("quanto produto") ||
+    q.includes("qual produto") ||
+    q.includes("desengordurante") ||
+    q.includes("sanitiz") ||
+    q.includes("desinfet") ||
+    q.includes("cloro") ||
+    q.includes("balde");
+
+  if (isPerguntaLimpeza) {
+    const rotinaId =
+      q.includes("pano") || q.includes("opano")
+        ? "limpeza-panos"
+        : q.includes("mao")
+        ? "lavagem-maos"
+        : q.includes("fruta") || q.includes("salada") || q.includes("hortali")
+        ? "sanitizacao-hortifruti"
+        : "limpeza-chao";
+
+    return {
+      tipo: "guia-limpeza",
+      rotinaInicialId: rotinaId,
+      respostaVoz:
+        rotinaId === "limpeza-chao"
+          ? "Para o chão, use 50 ml de desengordurante para 5 litros de água morna e deixe agir 10 minutos."
+          : rotinaId === "limpeza-panos"
+          ? "Para panos, use 25 ml de cloro por litro de água fria por 20 a 30 minutos."
+          : "Para as mãos, use sabonete bactericida inodoro por 40 a 60 segundos e finalize com álcool 70%.",
+      solucaoTexto: "Guia oficial ANVISA e calculadora de diluição química em ml pronta para uso.",
+    };
+  }
+
+  // 5. CHECKLISTS DE PRAÇA (Abertura, Saída, Fechamento, Passar turno)
+  const isPerguntaChecklist =
+    q.includes("checklist") ||
+    q.includes("abertura") ||
+    q.includes("fechamento") ||
+    q.includes("saida") ||
+    q.includes("passar o turno") ||
+    q.includes("mise en place");
+
+  if (isPerguntaChecklist) {
+    const tipoCheck = q.includes("fechamento") || q.includes("saida") ? "fechamento" : "abertura";
+    return {
+      tipo: "checklist-turno",
+      tipoInicial: tipoCheck,
+      respostaVoz:
+        tipoCheck === "abertura"
+          ? "Aqui está o checklist de abertura da praça. Marque cada item antes do restaurante abrir."
+          : "Aqui está o checklist de saída e fechamento de turno com conferência obrigatória de gás e equipamentos.",
+      solucaoTexto: "Conferência digital da praça para não esquecer nenhum procedimento crítico.",
+    };
+  }
+
+  // 6. ETIQUETA DE VALIDADE / ANVISA COM RASTREIO OBRIGATÓRIO
+  const isPerguntaEtiqueta =
+    q.includes("etiqueta") ||
+    q.includes("rotulo") ||
+    q.includes("validade") ||
+    q.includes("etiquetar");
+
+  if (isPerguntaEtiqueta) {
+    return {
+      tipo: "etiqueta-rapida",
+      produtoInicial: ultimaReceitaAtiva?.nome || "Vatapá Tradicional da Casa",
+      respostaVoz: "Abri o gerador rápido de etiqueta térmica ANVISA com local de armazenamento obrigatório para rastreio em produção.",
+      solucaoTexto: "Gere a etiqueta 60x40mm informando onde o pote será guardado para rastrear no sistema.",
+    };
+  }
+
+  // 7. ESCALA DO DIA, HORÁRIOS E ORGANOGRAMA
+  const isPerguntaEscala =
+    q.includes("escala") ||
+    q.includes("organograma") ||
+    q.includes("quem trabalha") ||
+    q.includes("quem esta trabalhando") ||
+    q.includes("horario de trabalho") ||
+    q.includes("horarios");
+
+  if (isPerguntaEscala) {
+    return {
+      tipo: "escala-organograma",
+      respostaVoz: "Aqui está o organograma de hoje por área com as 5 praças, líderes e horários de trabalho.",
+      solucaoTexto: "Visualize a distribuição da equipe hoje e quem apoia cada praça no pico.",
+    };
+  }
+
+  // 8. RECEITAS ESPECÍFICAS PELO NOME OU PALAVRA-CHAVE
+  const receita = todasAsReceitas.find((r) => {
+    const nomeNorm = normalizarTexto(r.nome || "");
+    if (q.includes(nomeNorm)) return true;
+    if ((q.includes("vatapa") || q.includes("baiano")) && r.id.includes("vatapa")) return true;
+    if (q.includes("risoto") && r.id.includes("risoto")) return true;
+    if ((q.includes("mule") || q.includes("moscow")) && r.id.includes("moscow")) return true;
+    if (q.includes("parmegiana") && r.id.includes("parmegiana")) return true;
+    return false;
+  });
+
+  if (receita) {
+    return {
+      tipo: "receita-completa",
+      receita,
+      respostaVoz: `Aqui está a receita de ${receita.nome} com fotos, vídeo e ingredientes ligados ao estoque.`,
+      solucaoTexto: `Modo de preparo padronizado da casa pronto para consulta em bancada.`,
+    };
+  }
+
+  // 9. SITUAÇÕES DE APURO / RUSH / DÚVIDAS GENÉRICAS / COLABORADOR PERDIDO (SEMPRE TER RESPOSTA E SOLUÇÃO)
+  const isSituacaoEmergenciaOuDuvida =
+    q.includes("perdido") ||
+    q.includes("socorro") ||
+    q.includes("ajuda") ||
+    q.includes("deu ruim") ||
+    q.includes("o que eu faco") ||
+    q.includes("o que faco") ||
+    q.includes("atrasad") ||
+    q.includes("acumul") ||
+    q.includes("queim") ||
+    q.includes("estranho") ||
+    q.includes("cliente") ||
+    q.includes("rush");
+
+  if (isSituacaoEmergenciaOuDuvida) {
+    return {
+      tipo: "plano-solucao-imediato",
+      titulo: "🚨 Plano de Solução Operacional Imediato",
+      situacao: p,
+      passosSolucao: [
+        {
+          ordem: 1,
+          acao: "Respira e organiza a bancada (PVPS)",
+          detalhe: "Priorize as comandas por ordem de chegada (a mais antiga primeiro). Não tente fazer tudo de uma vez.",
+        },
+        {
+          ordem: 2,
+          acao: "Acione o Líder de Turno ou Apoio Extra",
+          detalhe: "Ingrid B. está na liderança geral no Pass. Bruno S. está disponível para apoio imediato em 6 minutos.",
+        },
+        {
+          ordem: 3,
+          acao: "Alinhe o tempo de saída com o Salão",
+          detalhe: "Avise Rita H. (Salão) sobre eventuais pratos com tempo estendido para acalmar a mesa com entrada ou couvert.",
+        },
+      ],
+      respostaVoz: "Fique calmo! Organizei um plano de ação em 3 passos para resolver o seu rush agora. Você também pode acionar o apoio do Bruno ou falar com a Ingrid no Pass.",
+      solucaoTexto: "Solução imediata para destravar o serviço da praça sem erros nem estresse.",
+    };
+  }
+
+  // 10. RESPOSTA PADRÃO RESOLUTIVA (NUNCA DIZ "NÃO SEI", SEMPRE APRESENTA SOLUÇÕES E ENCAMINHAMENTOS)
+  return {
+    tipo: "plano-solucao-imediato",
+    titulo: `💡 Assistência & Solução para: "${p}"`,
+    situacao: p,
+    passosSolucao: [
+      {
+        ordem: 1,
+        acao: "Localização & Rastreio de Insumos",
+        detalhe: "Verifique os pré-preparos e cubas etiquetadas na Câmara Fria 1 (Prateleira 2) ou no Estoque Seco.",
+      },
+      {
+        ordem: 2,
+        acao: "Fichas Técnicas & Recálculo",
+        detalhe: "Consulte o modo de preparo oficial com fotos e vídeos, ou recalcule as quantidades caso falte algum ingrediente.",
+      },
+      {
+        ordem: 3,
+        acao: "Manuais de Equipamentos & Procedimentos",
+        detalhe: "Confira a voltagem correta (110V/220V), modo de encaixe e higienização aprovada pela ANVISA.",
+      },
+    ],
+    respostaVoz: "Entendido! Aqui estão as soluções imediatas para a sua dúvida na bancada. Você pode rastrear produtos, abrir receitas ou checar equipamentos.",
+    solucaoTexto: "Selecione uma das opções abaixo para resolver sua dúvida com segurança.",
+  };
+}

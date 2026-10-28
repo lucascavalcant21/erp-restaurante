@@ -339,7 +339,7 @@ export default function CorrigirPontoPage() {
 
   return (
     <div className="min-h-screen bg-hf-bg pb-16 text-fg font-sans">
-      <header className="border-b border-line bg-card px-4 pt-4 pb-4 sm:px-7 sm:py-5">
+      <header className="border-b border-line bg-card px-4 pb-4 sm:px-7 sm:py-5" style={{ paddingTop: "calc(var(--erp-safe-top, 3.5rem) + 0.75rem)" }}>
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <button
             onClick={() => router.back()}

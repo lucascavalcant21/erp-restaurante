@@ -85,13 +85,13 @@ function departamentoDoEstoque(estoque) {
   return String(estoque?.slug || "cozinha").toLowerCase();
 }
 
-/* Mínimo e máximo do bar em garrafas/latas (28/10/2026): o banco guarda em
+/* Mínimo e máximo do bar (garrafas/latas) e da cozinha (pacotes) (28/10/2026): o banco guarda em
  * ml/L (é o que o saldo compara), mas o dono pensa e digita em garrafas.
  * Mínimos digitados "3" eram gravados como 3 ml. Aqui a tela mostra e recebe
  * em embalagens e converte ao gravar. Fora do bar, fator 1. */
 function contagemDoItem(item, estoque) {
   const departamento = item?.departamento || departamentoDoEstoque(estoque);
-  if (departamento !== "bar") return null;
+  if (departamento !== "bar" && departamento !== "cozinha") return null;
   const op = unidadeOperacional({ ...item, departamento });
   return op.embalagem && Number(op.fatorSaldo) > 0 ? { nome: op.nome, fator: Number(op.fatorSaldo) } : null;
 }

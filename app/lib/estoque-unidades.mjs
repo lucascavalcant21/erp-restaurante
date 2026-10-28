@@ -49,11 +49,31 @@ export function nomeEmbalagemDoBar(insumo) {
 }
 const ehDoBar = (insumo) => String(insumo?.departamento || "").trim().toLowerCase() === "bar";
 
+/* COZINHA EM PACOTES (pedido do dono, 28/10/2026: "na cozinha também por
+ * pacote em vez de g ou kg, assim como no bar, mas com suas características").
+ * Produto comprado (não pré-preparo) com saldo em kg/g/L/ml e embalagem no
+ * cadastro conta pela embalagem: o nome vem do cadastro (pacote, caixa, lata,
+ * saco, pote…), senão "pacote". A granel = unidade comercial igual à medida
+ * ("kg" e "kg"): segue na balança. */
+const NOMES_EMB_COZINHA = ["pacote", "caixa", "lata", "saco", "pote", "garrafa", "fardo", "balde", "bandeja", "vidro", "galão", "bisnaga", "sachê", "peça", "unidade"];
+const semAcentoMin = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+export function nomeEmbalagemDaCozinha(insumo) {
+  const c = semAcentoMin(insumo?.unidade_comercial);
+  return NOMES_EMB_COZINHA.find((n) => c.includes(semAcentoMin(n))) || "pacote";
+}
+export const OPCOES_EMBALAGEM_COZINHA = ["pacote", "caixa", "lata", "saco", "pote", "garrafa", "fardo", "balde"];
+const ehDaCozinha = (insumo) => String(insumo?.departamento || "").trim().toLowerCase() === "cozinha";
+const ehPrePreparo = (insumo) => !!insumo?.ficha_tecnica_id || /pre.?preparo/.test(semAcentoMin(insumo?.categoria));
+export const ehAGranel = (insumo) => !!semAcentoMin(insumo?.unidade_comercial) && semAcentoMin(insumo?.unidade_comercial) === semAcentoMin(insumo?.unidade_medida);
+
+
 /** Unidade em que o funcionário conta: a embalagem (com o conteúdo) ou a do saldo. */
 export function unidadeOperacional(insumo) {
   const emb = embalagemDoProduto(insumo);
   const saldo = unidadeDoSaldo(insumo);
   if (emb && ehDoBar(insumo) && /^(ml|l)$/i.test(saldo)) return { nome: nomeEmbalagemDoBar(insumo), fatorSaldo: emb.tamanho, embalagem: true, saldo };
+  if (ehDaCozinha(insumo) && (ehPrePreparo(insumo) || ehAGranel(insumo))) return { nome: saldo, fatorSaldo: 1, embalagem: false, saldo };
+  if (emb && ehDaCozinha(insumo) && /^(kg|g|l|ml)$/i.test(saldo)) return { nome: nomeEmbalagemDaCozinha(insumo), fatorSaldo: emb.tamanho, embalagem: true, saldo };
   // "embalagem de 1 kg" sem nome no cadastro não é unidade de contagem: o
   // funcionário pensa em kg/L ("3 kg", não "3 embalagens"). Visto em produção.
   const semNome = !String(insumo?.unidade_comercial || "").trim();

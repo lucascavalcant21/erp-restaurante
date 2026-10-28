@@ -137,3 +137,17 @@ test("mesmo produto em vários locais: um cadastro, saldos independentes", () =>
   assert.deepEqual(saldosPorLocal(itens, "c", [{ id: "bar", nome: "Bar" }, { id: "coz", nome: "Cozinha" }]),
     [{ estoqueId: "bar", local: "Bar", saldo: 3960 }, { estoqueId: "coz", local: "Cozinha", saldo: 660 }]);
 });
+
+test("bar: ml/L conta em garrafas ou latas (pedido do dono, 28/10/2026)", async () => {
+  const { unidadeOperacional, saldoOperacional, quantidadeDoMovimento } = await import("./estoque-unidades.mjs");
+  const coca = { departamento: "bar", unidade_medida: "ml", tamanho_embalagem: 350 };
+  assert.equal(unidadeOperacional(coca).nome, "garrafa");
+  assert.equal(saldoOperacional(coca, 10500), "30 garrafas");
+  const lata = { ...coca, unidade_comercial: "lata" };
+  assert.equal(saldoOperacional(lata, 700), "2 latas");
+  assert.equal(quantidadeDoMovimento({ insumo: lata, embalagens: "3" }).quantidadeSaldo, 1050);
+  // Absolut de 1 L: no bar é garrafa (fora do bar, embalagem de 1 L sem nome seguia em L).
+  const absolut = { departamento: "bar", unidade_medida: "l", tamanho_embalagem: 1 };
+  assert.equal(saldoOperacional(absolut, 3), "3 garrafas");
+  assert.equal(unidadeOperacional({ ...absolut, departamento: "cozinha" }).embalagem, false);
+});

@@ -36,10 +36,24 @@ export function unidadeDeCompra(insumo) {
   return { nome, fator };
 }
 
+/* BAR EM GARRAFAS E LATAS (pedido do dono, 28/10/2026: "no estoque do bar não
+ * quero ml ou L, quero a quantidade de latas ou garrafas"). Produto do bar com
+ * saldo em ml/L e conteúdo no cadastro conta pela embalagem: "lata" quando o
+ * cadastro diz lata, "long neck" idem, senão "garrafa" (o cadastro antigo
+ * guardava "ml", "l" ou nada no nome da embalagem). O saldo segue em ml/L. */
+export function nomeEmbalagemDoBar(insumo) {
+  const c = String(insumo?.unidade_comercial || "").trim().toLowerCase();
+  if (/lata/.test(c)) return "lata";
+  if (/long ?neck/.test(c)) return "long neck";
+  return "garrafa";
+}
+const ehDoBar = (insumo) => String(insumo?.departamento || "").trim().toLowerCase() === "bar";
+
 /** Unidade em que o funcionário conta: a embalagem (com o conteúdo) ou a do saldo. */
 export function unidadeOperacional(insumo) {
   const emb = embalagemDoProduto(insumo);
   const saldo = unidadeDoSaldo(insumo);
+  if (emb && ehDoBar(insumo) && /^(ml|l)$/i.test(saldo)) return { nome: nomeEmbalagemDoBar(insumo), fatorSaldo: emb.tamanho, embalagem: true, saldo };
   // "embalagem de 1 kg" sem nome no cadastro não é unidade de contagem: o
   // funcionário pensa em kg/L ("3 kg", não "3 embalagens"). Visto em produção.
   const semNome = !String(insumo?.unidade_comercial || "").trim();

@@ -223,13 +223,25 @@ export function itensDoOrcamento(orc = {}, fichas = []) {
       else { custoPorcao = pos(item.custo_porcao_gravado); problemas = ["ficha removida: custo congelado"]; }
     }
     const pesoPorcao = item.origem === "exclusiva" ? pos(item.peso_porcao_g) : pos(ficha?.peso_porcao_g);
+    // QUANTIDADE FECHADA (pedido do dono, 28/10/2026: "2 bolos em fatias de
+    // 50 g, 30 sanduíches, 1 suco de 2 L, 1 café de 3 L… gasto R$ 100 para 40
+    // pessoas, sai tanto por pessoa e vendo o ticket a R$ 35"). medida "total":
+    // quantidade_total = porções da ficha para o evento inteiro (não × pessoas,
+    // sem sobra); fatia_g opcional mostra quantas fatias/copos dá.
+    if (item.medida === "total") {
+      const qtd = pos(item.quantidade_total);
+      const fatia = pos(item.fatia_g);
+      const fatias = pesoPorcao > 0 && fatia > 0 ? Math.floor((qtd * pesoPorcao) / fatia + 1e-9) : null;
+      const probs = fatia > 0 && !(pesoPorcao > 0) ? [...problemas, item.origem === "exclusiva" ? "informe o peso da porção para dividir em fatias" : "a ficha não tem peso da porção; não dá para contar as fatias"] : problemas;
+      return { ...item, secao, ficha, emGramas: false, emTotal: true, quantidadeTotal: qtd, fatias, pesoPorcao, porPessoa: 0, custoPorcao, custoPorPessoa: 0, custoTotalFixo: custoPorcao * qtd, aoVivo, problemas: probs, semCusto: !(custoPorcao > 0) };
+    }
     const emGramas = item.medida === "g" && secao !== "bar";
     let porPessoa = pos(item.por_pessoa);
     if (emGramas) {
       porPessoa = pesoPorcao > 0 ? pos(item.gramas_por_pessoa) / pesoPorcao : 0;
       if (!(pesoPorcao > 0)) problemas = [...problemas, item.origem === "exclusiva" ? "informe o peso da porção para usar gramas" : "a ficha não tem peso da porção; use porções"];
     }
-    return { ...item, secao, ficha, emGramas, pesoPorcao, porPessoa, custoPorcao, custoPorPessoa: custoPorcao * porPessoa, aoVivo, problemas, semCusto: !(custoPorcao > 0) };
+    return { ...item, secao, ficha, emGramas, emTotal: false, custoTotalFixo: 0, pesoPorcao, porPessoa, custoPorcao, custoPorPessoa: custoPorcao * porPessoa, aoVivo, problemas, semCusto: !(custoPorcao > 0) };
   });
 }
 
@@ -266,10 +278,14 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
   const pessoasConsumo = adultos + criancas * consumoCrianca;
   const fatorSobra = 1 + pos(orc.sobra_pct) / 100;
   const itens = itensDoOrcamento(orc, fichas);
-  const cmvPorPessoa = itens.reduce((t, i) => t + i.custoPorPessoa, 0);
+  const ppItens = itens.reduce((t, i) => t + i.custoPorPessoa, 0);
   const cmvBebidaPP = itens.filter((i) => i.secao === "bar").reduce((t, i) => t + i.custoPorPessoa, 0);
-  const cmvComida = r2((cmvPorPessoa - cmvBebidaPP) * pessoasConsumo * fatorSobra);
-  const cmvBebida = r2(cmvBebidaPP * pessoasConsumo * fatorSobra);
+  // Itens em quantidade fechada entram pelo total, sem multiplicar por pessoas.
+  const fixoBebida = itens.filter((i) => i.secao === "bar").reduce((t, i) => t + i.custoTotalFixo, 0);
+  const fixoComida = itens.reduce((t, i) => t + i.custoTotalFixo, 0) - fixoBebida;
+  const cmvComida = r2((ppItens - cmvBebidaPP) * pessoasConsumo * fatorSobra + fixoComida);
+  const cmvBebida = r2(cmvBebidaPP * pessoasConsumo * fatorSobra + fixoBebida);
+  const cmvPorPessoa = ppItens + (pessoasConsumo > 0 ? (fixoComida + fixoBebida) / pessoasConsumo : 0);
   const cmv = r2(cmvComida + cmvBebida);
 
   const equipe = r2((orc.equipe || []).reduce((t, p) => t + custoDaPessoa(p), 0));
@@ -603,7 +619,7 @@ export function listaDeComprasDoOrcamento(orc = {}, fichas = [], { convidados: c
   const pessoas = r.pessoasConsumo * (1 + r.sobraPct / 100);
   const itens = itensDoOrcamento(orc, fichas);
   const doSistema = listaDeComprasDeFichas(
-    itens.filter((i) => i.origem !== "exclusiva").map((i) => ({ ficha: i.ficha, nome: i.nome, porcoes: i.porPessoa * pessoas })),
+    itens.filter((i) => i.origem !== "exclusiva").map((i) => ({ ficha: i.ficha, nome: i.nome, porcoes: i.emTotal ? i.quantidadeTotal : i.porPessoa * pessoas })),
     fichas,
   );
   const acc = new Map();
@@ -612,7 +628,7 @@ export function listaDeComprasDoOrcamento(orc = {}, fichas = [], { convidados: c
       const uso = paraBase(ing.quantidade, ing.unidade_uso);
       const emb = paraBase(ing.tamanho_embalagem, ing.unidade_embalagem);
       const aprov = Math.min(pos(ing.aproveitamento_pct) || 100, 100) / 100;
-      const q = uso.q * i.porPessoa * pessoas / aprov;
+      const q = uso.q * (i.emTotal ? i.quantidadeTotal : i.porPessoa * pessoas) / aprov;
       const k = `ex:${String(ing.nome || "").trim().toLowerCase()}:${uso.base}`;
       const atual = acc.get(k) || { insumo_id: null, nome: ing.nome || "Ingrediente", unidade: uso.base, categoria: "Exclusivo do evento", quantidade: 0, custo: 0, exclusivo: true };
       atual.quantidade += q;
@@ -677,3 +693,23 @@ export function mensagemErroEvento(msg) {
 }
 
 export { novoId };
+
+/* O que está incluso, para a proposta do cliente (sem valores): a equipe por
+ * função/área com a quantidade e os serviços extras (decoração, música,
+ * aluguel…) pela descrição. Pedido do dono, 27/10/2026: "orçamento bem
+ * profissional, com as informações necessárias". */
+export function incluidoNaProposta(orc = {}) {
+  const porFuncao = new Map();
+  for (const p of orc.equipe || []) {
+    const nome = String(p.funcao || p.area || "Equipe").trim() || "Equipe";
+    const q = p.quantidade === "" || p.quantidade === undefined || p.quantidade === null ? 1 : pos(p.quantidade);
+    if (!(q > 0)) continue;
+    porFuncao.set(nome, (porFuncao.get(nome) || 0) + q);
+  }
+  // "Garçom × 4" (sem plural inventado para cada função).
+  const equipe = [...porFuncao.entries()].map(([nome, q]) => `${nome} × ${q.toLocaleString("pt-BR")}`);
+  const servicos = (orc.extras || [])
+    .map((x) => String(x.descricao || CATEGORIAS_EXTRAS.find((c) => c.id === x.categoria)?.rotulo || "").trim())
+    .filter(Boolean);
+  return { equipe, servicos: [...new Set(servicos)] };
+}

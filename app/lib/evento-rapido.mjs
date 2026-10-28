@@ -13,6 +13,9 @@ import { tipoFichaDe, setorId } from "./ficha-modelo.mjs";
 
 const normal = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 const SEM_CATEGORIA = "Outros";
+// "Adicional - …" ganham categoria própria, no fim (senão dominam a lista).
+const ADICIONAIS = "Adicionais";
+const ehAdicional = (nome) => /^adiciona(l|is)\b/.test(normal(nome));
 
 /**
  * Fichas que podem entrar num evento, por setor (cozinha/bar) e categoria,
@@ -27,12 +30,14 @@ export function catalogoDeFichas(fichas = []) {
     if (!f || f.ativo === false || String(f.status || "").toLowerCase() === "inativo") continue;
     if (f.eh_base || tipoFichaDe(f) === "pre_preparo") continue;
     const setor = setorId(f.departamento);
-    const categoria = String(f.categoria || "").trim() || SEM_CATEGORIA;
+    const categoria = ehAdicional(f.nome_comercial || f.nome_receita) ? ADICIONAIS : String(f.categoria || "").trim() || SEM_CATEGORIA;
     const custo = custoPorcaoDaFicha(f, fichas);
     const item = {
       id: f.id, nome: f.nome_comercial || f.nome_receita || "Ficha", setor, categoria,
       custoPorcao: custo > 0 ? custo : null, // null = ficha sem custo (DADOS INSUFICIENTES)
       precoVenda: Number(f.preco_venda) > 0 ? Number(f.preco_venda) : null,
+      // Para pesquisar pelo insumo ("camarão" acha as fichas que levam camarão).
+      insumos: (f.fichas_ingredientes || []).map((i) => i?.insumos?.nome || i?.nome || "").filter(Boolean),
     };
     const m = porSetor[setor];
     if (!m.has(categoria)) m.set(categoria, []);
@@ -40,17 +45,28 @@ export function catalogoDeFichas(fichas = []) {
     total++;
   }
   const ordenar = (m) => [...m.entries()]
-    .sort(([a], [b]) => (a === SEM_CATEGORIA) - (b === SEM_CATEGORIA) || a.localeCompare(b, "pt-BR"))
+    .sort(([a], [b]) => (a === ADICIONAIS) - (b === ADICIONAIS) || (a === SEM_CATEGORIA) - (b === SEM_CATEGORIA) || a.localeCompare(b, "pt-BR"))
     .map(([categoria, itens]) => ({ categoria, itens: itens.sort((x, y) => x.nome.localeCompare(y.nome, "pt-BR")) }));
   return { cozinha: ordenar(porSetor.cozinha), bar: ordenar(porSetor.bar), total };
 }
 
-/** Filtra o catálogo de um setor pela busca (sem acento) e pela categoria. */
+/**
+ * Filtra o catálogo de um setor pela busca (sem acento) e pela categoria. A
+ * busca acha pelo nome, pela categoria ou por um insumo da ficha; quando foi
+ * pelo insumo, o item leva `peloInsumo` (o nome que casou) para a tela mostrar.
+ */
 export function filtrarCatalogo(grupos = [], { busca = "", categoria = "" } = {}) {
   const t = normal(busca);
   return grupos
     .filter((g) => !categoria || g.categoria === categoria)
-    .map((g) => ({ ...g, itens: g.itens.filter((i) => !t || normal(`${i.nome} ${i.categoria}`).includes(t)) }))
+    .map((g) => ({
+      ...g,
+      itens: g.itens.flatMap((i) => {
+        if (!t || normal(`${i.nome} ${i.categoria}`).includes(t)) return [i];
+        const ins = (i.insumos || []).find((n) => normal(n).includes(t));
+        return ins ? [{ ...i, peloInsumo: ins }] : [];
+      }),
+    }))
     .filter((g) => g.itens.length);
 }
 

@@ -61,3 +61,17 @@ test("sem equipe e extras: não cria linha vazia; crianças nunca passam dos con
   assert.deepEqual(orc.extras, []);
   assert.equal(orc.cliente.criancas, 10);
 });
+
+test("adicionais em categoria própria, depois das outras", () => {
+  const c = catalogoDeFichas([...FICHAS, { id: "ad", nome_receita: "Adicional - Arroz", departamento: "cozinha", categoria: "Prato principal" }]);
+  assert.deepEqual(c.cozinha.map((g) => g.categoria), ["Prato principal", "Outros", "Adicionais"]);
+});
+
+test("pesquisa pelo insumo: acha a ficha que leva o ingrediente e diz qual", () => {
+  const c = catalogoDeFichas(FICHAS);
+  const g = filtrarCatalogo(c.cozinha, { busca: "carne de sol" });
+  assert.equal(g[0].itens[0].nome, "Carne de sol");
+  const pelo = filtrarCatalogo(catalogoDeFichas([{ ...prato, nome_receita: "Escondidinho" }]).cozinha, { busca: "carne" });
+  assert.equal(pelo[0].itens[0].nome, "Escondidinho");
+  assert.equal(pelo[0].itens[0].peloInsumo, "Carne de sol");
+});

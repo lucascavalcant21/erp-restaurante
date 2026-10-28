@@ -14,6 +14,8 @@ import { novaChave } from "../estoque-movimento.mjs";
 import { fetchContasPagar } from "../financeiro";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../rh";
 import { normalizarCanal } from "./nucleo.mjs";
+import { fetchResultadoMensal } from "../parametros";
+import { parametrosDoResultado, configComResultado } from "../resultado-mes.mjs";
 
 export { novaChave };
 
@@ -49,7 +51,7 @@ export function mensagemErro(error) {
 export async function carregarBase(unidadeId) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
-  const [fichasR, insR, embR, precosR, cfgR, estR, itensR, unR, foraR] = await Promise.all([
+  const [fichasR, insR, embR, precosR, cfgR, estR, itensR, unR, foraR, resR] = await Promise.all([
     fetchFichas(unidadeId),
     supabase.from("insumos").select("*").eq("unidade_id", unidadeId).is("arquivado_em", null).order("nome"),
     supabase.from("marmitaria_fichas_embalagens").select("*").eq("unidade_id", unidadeId),
@@ -62,6 +64,8 @@ export async function carregarBase(unidadeId) {
     // false) sumia da tela e não havia como devolvê-la ao cardápio.
     supabase.from("fichas_tecnicas").select("*, fichas_ingredientes!ficha_id(*, insumos(*))")
       .eq("unidade_id", unidadeId).eq("departamento", "marmitaria").eq("ativo", false).order("nome_receita"),
+    // Impostos e meta de lucro da casa: Resultado do mês (substituiu a Pizza do Lucro).
+    fetchResultadoMensal(unidadeId),
   ]);
   const erros = [
     fichasR.error && `Fichas: ${fichasR.error}`,
@@ -107,7 +111,7 @@ export async function carregarBase(unidadeId) {
     insumosLista, insumos, espelho,
     estoques: estR.data || [],
     itensEstoque: itensR.data || [],
-    config: normalizarConfig(configRow),
+    config: configComResultado(normalizarConfig(configRow), parametrosDoResultado(resR?.data || {}, new Date().toISOString().slice(0, 7))),
     configSalva: !!configRow,
   };
 }

@@ -67,7 +67,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [areaFiltro, setAreaFiltro] = useState("Todos");
-  const [statusFiltro, setStatusFiltro] = useState("Ativos");
+  const [statusFiltro, setStatusFiltro] = useState("Fixos");
   const [pontosHoje, setPontosHoje] = useState({});   // colaborador_id → registro de hoje
   const [folgasHoje, setFolgasHoje] = useState(new Set()); // ids com folga esporádica hoje
 
@@ -751,18 +751,16 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
   }
 
   // ── Lista de colaboradores ────────────────────────────────────────────────
-  const filtrados = colaboradores.filter(c => {
+  // Fixos = contratados ativos · Extras = freelancers ativos · Inativos = desligados.
+  const noGrupo = (c, grupo) => {
     const isFree = c.tipo_contrato === "Freelancer";
     const inativo = (c.status || "ativo") === "inativo";
-    
-    if (statusFiltro === "Extras") {
-      if (!isFree || inativo) return false;
-    } else if (statusFiltro === "Inativos") {
-      if (!inativo) return false;
-    } else {
-      // Ativos (fixos)
-      if (isFree || inativo) return false;
-    }
+    if (grupo === "Extras") return isFree && !inativo;
+    if (grupo === "Inativos") return inativo;
+    return !isFree && !inativo;
+  };
+  const filtrados = colaboradores.filter(c => {
+    if (!noGrupo(c, statusFiltro)) return false;
     
     // Filtro 3: Busca e Área
     return (c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cargo || "").toLowerCase().includes(busca.toLowerCase())) &&
@@ -791,10 +789,11 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
         <div className="flex flex-wrap gap-x-4 gap-y-2 mb-4 mt-2">
           {/* Filtro de Status */}
           <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-            {["Ativos", "Extras", "Inativos"].map(st => (
+            {/* Fixos e extras separados (pedido do dono, 28/10/2026) */}
+            {["Fixos", "Extras", "Inativos"].map(st => (
               <button key={st} onClick={() => setStatusFiltro(st)}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFiltro === st ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
-                {st}
+                {st} <span className="opacity-60">({colaboradores.filter(c => noGrupo(c, st)).length})</span>
               </button>
             ))}
           </div>
@@ -802,9 +801,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
           {/* Filtro de Área */}
           <div className="flex gap-1.5 overflow-x-auto scrollbar-none items-center">
             {["Todos", ...AREAS].map(a => {
-              const n = a === "Todos" 
-                ? colaboradores.filter(c => c.tipo_contrato !== "Freelancer" && (statusFiltro === "Inativos" ? c.status === "inativo" : c.status !== "inativo")).length 
-                : colaboradores.filter(c => c.tipo_contrato !== "Freelancer" && (statusFiltro === "Inativos" ? c.status === "inativo" : c.status !== "inativo") && areaDoCargo(c.cargo) === a).length;
+              const n = colaboradores.filter(c => noGrupo(c, statusFiltro) && (a === "Todos" || areaDoCargo(c.cargo) === a)).length;
               if (a !== "Todos" && n === 0) return null;
               return (
                 <button key={a} onClick={() => setAreaFiltro(a)}

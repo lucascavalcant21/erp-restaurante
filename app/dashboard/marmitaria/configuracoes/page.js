@@ -32,7 +32,10 @@ export default function ConfiguracoesPage() {
     const c = base.config;
     setCfg({
       canais: c.canais.map((x) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, typeof v === "number" && !["itens_por_pedido"].includes(k) ? vazio(v) : v]))),
-      tributos_pct: vazio(c.tributos_pct), margem_alvo_pct: vazio(c.margem_alvo_pct),
+      // O que veio do Resultado do mês fica vazio aqui (só aparece como sugestão),
+      // senão salvar a config congelaria o valor daquele mês na marmitaria.
+      tributos_pct: c.doResultado?.tributos_pct ? "" : vazio(c.tributos_pct),
+      margem_alvo_pct: c.doResultado?.margem_alvo_pct ? "" : vazio(c.margem_alvo_pct),
       encargos: { ...c.encargos }, rateio: { padrao_pct: vazio(c.rateio?.padrao_pct), por_categoria: { ...(c.rateio?.por_categoria || {}) } },
       centros_diretos: c.centros_diretos,
     });
@@ -113,9 +116,10 @@ export default function ConfiguracoesPage() {
       </Secao>
 
       <Secao titulo="Tributos e meta">
+        <p className="mb-3 text-sm text-hf-text-2">Em branco, valem os do <a href="/dashboard/financeiro/resultado" className="font-bold text-hf-primary underline">Resultado do mês</a> (Financeiro). Preencha só se a marmitaria for diferente.</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Campo rotulo="Alíquota sobre as vendas da marmitaria (%)" dica="Ex.: a alíquota efetiva do Simples. Confirme com o contador."><CampoNumero valor={cfg.tributos_pct} onChange={(v) => setCfg({ ...cfg, tributos_pct: v })} placeholder="não configurado" /></Campo>
-          <Campo rotulo="Margem de contribuição-alvo (%)" dica="Usada para sugerir preços."><CampoNumero valor={cfg.margem_alvo_pct} onChange={(v) => setCfg({ ...cfg, margem_alvo_pct: v })} placeholder="não configurado" /></Campo>
+          <Campo rotulo="Alíquota sobre as vendas da marmitaria (%)" dica={base?.config?.doResultado?.tributos_pct ? `Em branco: ${base.config.tributos_pct}% (impostos do Resultado do mês).` : "Ex.: a alíquota efetiva do Simples. Confirme com o contador."}><CampoNumero valor={cfg.tributos_pct} onChange={(v) => setCfg({ ...cfg, tributos_pct: v })} placeholder={base?.config?.doResultado?.tributos_pct ? `${base.config.tributos_pct} (Resultado do mês)` : "não configurado"} /></Campo>
+          <Campo rotulo="Meta de lucro (%)" dica={base?.config?.doResultado?.margem_alvo_pct ? `Em branco: ${base.config.margem_alvo_pct}% (meta do Resultado do mês). Usada para sugerir preços.` : "Usada para sugerir preços."}><CampoNumero valor={cfg.margem_alvo_pct} onChange={(v) => setCfg({ ...cfg, margem_alvo_pct: v })} placeholder={base?.config?.doResultado?.margem_alvo_pct ? `${base.config.margem_alvo_pct} (Resultado do mês)` : "não configurado"} /></Campo>
         </div>
       </Secao>
 

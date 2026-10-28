@@ -234,7 +234,8 @@ test("respostas no idioma do cliente, chamando pelo nome do jeito de cada língu
 
 test("delivery: grátis acima de X e pedido mínimo (a mesma conta do servidor)", () => {
   const c = montarCardapioPublico({ unidade: { taxa_entrega: 8 }, produtos: PRODUTOS, config: { entrega: { pedido_minimo: "40", gratis_acima: "100,00", tempo_min: 50, tempo_max: 30 } } });
-  assert.deepEqual(c.entrega, { pedido_minimo: 40, gratis_acima: 100, tempo_min: 30, tempo_max: 50 });
+  assert.deepEqual(c.entrega, { pedido_minimo: 40, gratis_acima: 100, tempo_min: 30, tempo_max: 50, retirada: false, formas: ["dinheiro", "cartao"] });
+  assert.deepEqual(taxaDeEntrega(30, c, "retirada"), { taxa: 0, falta_minimo: 0, falta_gratis: 0 }, "retirada não tem taxa nem mínimo");
   assert.deepEqual(taxaDeEntrega(30, c), { taxa: 8, falta_minimo: 10, falta_gratis: 70 });
   assert.deepEqual(taxaDeEntrega(100, c), { taxa: 0, falta_minimo: 0, falta_gratis: 0 });
   assert.deepEqual(taxaDeEntrega(30, c, "qrcode"), { taxa: 0, falta_minimo: 0, falta_gratis: 0 }, "mesa não tem taxa nem mínimo");

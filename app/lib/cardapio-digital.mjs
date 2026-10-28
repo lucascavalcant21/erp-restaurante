@@ -140,7 +140,7 @@ export const CONFIG_PADRAO = Object.freeze({
   // Tradução do que é do dono (pratos, seções, promoções, abertura, textos), por idioma.
   traducoes: Object.freeze({}),
   // Delivery: o mínimo e o grátis-acima valem também no servidor, na hora do pedido.
-  entrega: Object.freeze({ pedido_minimo: 0, gratis_acima: 0, tempo_min: 0, tempo_max: 0 }),
+  entrega: Object.freeze({ pedido_minimo: 0, gratis_acima: 0, tempo_min: 0, tempo_max: 0, retirada: false, formas: Object.freeze(["dinheiro", "cartao"]) }),
   // O que aparece em "Mais informações" (cidade sempre; o resto, se o dono quiser).
   info: Object.freeze({ mostrar_horario: true, mostrar_endereco: false, mostrar_telefone: false }),
 });
@@ -669,11 +669,28 @@ export function progressoDaTraducao(campos, traducoes, idioma) {
 const dinheiro = (v) => { const n = centavos(String(v ?? "").replace(/\./g, (m, i, x) => (x.includes(",") ? "" : m)).replace(",", ".")); return n > 0 ? n : 0; };
 const minutos = (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 && n <= 600 ? n : 0; };
 
+// Formas de pagar na entrega/retirada que a loja aceita (pagamento pelo app
+// ainda não existe: precisa de um intermediador). Sem escolha do dono, as duas
+// que o pedido antigo já supunha: dinheiro (com troco) e cartão na maquininha.
+export const FORMAS_PAGAMENTO = [
+  { id: "dinheiro", rotulo: "Dinheiro" },
+  { id: "cartao", rotulo: "Cartão na maquininha" },
+  { id: "pix", rotulo: "Pix na entrega" },
+  { id: "vale", rotulo: "Vale-refeição" },
+];
+const IDS_FORMAS = FORMAS_PAGAMENTO.map((f) => f.id);
+
 export function normalizarEntrega(e = {}) {
   let tempo_min = minutos(e?.tempo_min);
   let tempo_max = minutos(e?.tempo_max);
   if (tempo_min && tempo_max && tempo_max < tempo_min) [tempo_min, tempo_max] = [tempo_max, tempo_min];
-  return { pedido_minimo: dinheiro(e?.pedido_minimo), gratis_acima: dinheiro(e?.gratis_acima), tempo_min, tempo_max };
+  const formas = IDS_FORMAS.filter((f) => (Array.isArray(e?.formas) ? e.formas : ["dinheiro", "cartao"]).includes(f));
+  return {
+    pedido_minimo: dinheiro(e?.pedido_minimo), gratis_acima: dinheiro(e?.gratis_acima), tempo_min, tempo_max,
+    // Retirada no balcão: só quando o dono liga (sem taxa e sem endereço).
+    retirada: bool(e?.retirada, false),
+    formas: formas.length ? formas : ["dinheiro", "cartao"],
+  };
 }
 
 /** Tudo o que o dono salvou, limpo. Campo ruim volta ao padrão; nada quebra. */

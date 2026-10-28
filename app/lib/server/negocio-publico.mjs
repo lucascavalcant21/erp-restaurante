@@ -200,7 +200,14 @@ export async function lerFotoPublica({ db, unidade, produto }) {
   }
 }
 
-const TIPOS_PEDIDO = ["delivery", "qrcode"];
+const TIPOS_PEDIDO = ["delivery", "retirada", "qrcode"];
+const FORMAS = ["dinheiro", "cartao", "pix", "vale"];
+// Troco: "150", "150,00", "R$ 150,00", "1.000" → em reais. Vazio ou inválido → null.
+export function trocoEmReais(v) {
+  const limpo = String(v ?? "").replace(/[^\d,.]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  const n = Number(limpo);
+  return limpo && Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
+}
 
 /**
  * Valida o pedido do cardápio. Só entram id e quantidade dos itens — preço
@@ -212,7 +219,7 @@ export function validarPedidoPublico(corpo) {
   if (!idValido(c.unidade)) return falha(400, "unidade_invalida", "Link inválido.");
   const cli = c.cliente && typeof c.cliente === "object" ? c.cliente : {};
   const tipo = TIPOS_PEDIDO.includes(cli.tipo) ? cli.tipo : null;
-  if (!tipo) return falha(400, "parametro_invalido", "Escolha delivery ou mesa.");
+  if (!tipo) return falha(400, "parametro_invalido", "Escolha entrega, retirada ou mesa.");
   let nome = texto(cli.nome, 80);
   if (!nome || nome.length < 2) return falha(400, "parametro_invalido", "Digite seu nome.");
   const mesa = texto(cli.mesa, 10);
@@ -224,6 +231,10 @@ export function validarPedidoPublico(corpo) {
   }
   const endereco = texto(cli.endereco, 300);
   if (tipo === "delivery" && !endereco) return falha(400, "parametro_invalido", "Digite seu endereço.");
+  // Forma de pagamento (entrega e retirada). Se a loja aceita essa forma,
+  // quem confere é criarPedidoPublico (precisa da configuração da loja).
+  const pagamento = tipo !== "qrcode" && FORMAS.includes(cli.pagamento) ? cli.pagamento : null;
+  if (tipo !== "qrcode" && cli.pagamento != null && !pagamento) return falha(400, "parametro_invalido", "Forma de pagamento inválida.");
   if (mesa) nome = `[MESA ${mesa}] ${nome}`;
 
   const itens = Array.isArray(c.itens) ? c.itens : [];
@@ -247,7 +258,8 @@ export function validarPedidoPublico(corpo) {
     ok: true,
     pedido: {
       unidade: c.unidade, tipo, nome, mesa: mesa || null, telefone: tel.length ? texto(cli.telefone, 20) : null,
-      endereco: tipo === "delivery" ? endereco : null, troco: texto(cli.troco, 20), itens: limpos, cashback,
+      endereco: tipo === "delivery" ? endereco : null, troco: !pagamento || pagamento === "dinheiro" ? texto(cli.troco, 20) : "",
+      pagamento, itens: limpos, cashback,
     },
   };
 }
@@ -269,8 +281,14 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
     const { loja } = carga;
     // Só vale o que o canal do pedido mostra (prato desligado no canal não entra).
     const cardapio = cardapioDoCanal(carga.cardapio, canalDoPedido(pedido.tipo));
-    if (pedido.tipo === "delivery" && loja.delivery_aberto === false) {
+    if ((pedido.tipo === "delivery" || pedido.tipo === "retirada") && loja.delivery_aberto === false) {
       return falha(409, "loja_fechada", "O delivery está fechado no momento.");
+    }
+    if (pedido.tipo === "retirada" && !cardapio.entrega?.retirada) {
+      return falha(409, "retirada_desligada", "A loja não está aceitando retirada agora.");
+    }
+    if (pedido.pagamento && !(cardapio.entrega?.formas || []).includes(pedido.pagamento)) {
+      return falha(409, "pagamento_indisponivel", "Esta forma de pagamento não está disponível. Escolha outra.");
     }
 
     const desde = new Date(agora - 10 * 60 * 1000).toISOString();
@@ -321,6 +339,11 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
     const total = centavos(bruto - descontoCadastro - cashbackUsado);
     const desconto = centavos(descontoCadastro + cashbackUsado);
     const origem = [descontoCadastro > 0 ? "cadastro" : "", cashbackUsado > 0 ? "cashback" : ""].filter(Boolean).join("+");
+    // Troco para menos que o total não serve para nada: o cliente corrige antes.
+    const troco = pedido.pagamento === "dinheiro" ? trocoEmReais(pedido.troco) : null;
+    if (troco != null && troco < total) {
+      return falha(409, "troco_menor", `O troco precisa ser para R$ ${total.toFixed(2).replace(".", ",")} ou mais.`);
+    }
 
     const { data: criado, error: eI } = await db.from("pedidos").insert([{
       unidade_id: pedido.unidade,
@@ -330,6 +353,7 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       cliente_telefone: pedido.telefone,
       endereco_entrega: pedido.endereco,
       troco_para: pedido.troco,
+      ...(pedido.pagamento ? { forma_pagamento: pedido.pagamento } : {}),
       valor_total: total,
       // Só com desconto: sem a FIDELIDADE-1 estas colunas não existem (e aí não há desconto).
       ...(desconto > 0 ? { desconto, desconto_origem: origem } : {}),

@@ -500,3 +500,13 @@ textarea *,
 @media print {
   :is(button, a) { box-shadow: none !important; }
 }
+
+/* Telas usam mais a largura (pedido do dono, 28/10/2026: "use mais as bordas,
+   não deixe tanto sobrando"). Os contêineres de página centralizados com
+   largura máxima crescem em telas largas; janelas (.fixed) e textos estreitos
+   (max-w-4xl ou menores) ficam como estão. */
+@media (min-width: 1280px) {
+  .erp-main-scroll .mx-auto:is(.max-w-5xl, .max-w-6xl, .max-w-7xl, .max-w-\[1400px\], .max-w-\[1480px\], .max-w-\[1500px\]):not(.erp-main-scroll .fixed *) {
+    max-width: min(100%, 1760px);
+  }
+}

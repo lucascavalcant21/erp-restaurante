@@ -185,7 +185,7 @@ function CardapioVendas({ linhas, vendas, mudarVenda, diasSemana, custos, onRemo
           return (
             <div key={sec}>
               <p className="mb-2 flex items-center gap-2 text-sm font-black text-hf-text">{rot} <span className="rounded-full bg-hf-elevated px-2 text-xs text-hf-text-2">{lista.length}</span></p>
-              <ul className="grid gap-3 lg:grid-cols-2">
+              <ul className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
                 {lista.map((l) => {
                   const img = l.ficha?.imagem;
                   const abrir = aberto === l.id;

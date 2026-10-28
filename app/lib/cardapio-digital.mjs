@@ -132,6 +132,8 @@ export const CONFIG_PADRAO = Object.freeze({
   promocoes: Object.freeze([]),
   // Combos (27/10/2026): pratos juntos por um preço só.
   combos: Object.freeze([]),
+  // Grupos de complementos reutilizáveis (painel → Editar produto).
+  grupos: Object.freeze([]),
   // Idiomas que o cliente pode escolher (português sempre).
   idiomas: Object.freeze([...IDS_IDIOMAS]),
   // Tradução do que é do dono (pratos, seções, promoções, abertura, textos), por idioma.
@@ -142,7 +144,7 @@ export const CONFIG_PADRAO = Object.freeze({
   info: Object.freeze({ mostrar_horario: true, mostrar_endereco: false, mostrar_telefone: false }),
 });
 
-export const LIMITES = { banner: 8, categorias: 40, promocoes: 30, itens: 2000, produtosPorPromocao: 200, combos: 30, itensPorCombo: 8 };
+export const LIMITES = { banner: 8, categorias: 40, promocoes: 30, itens: 2000, produtosPorPromocao: 200, combos: 30, itensPorCombo: 8, grupos: 60, opcoesPorGrupo: 40, fotos: 3, videos: 1 };
 
 export const TIPOS_MIDIA = [
   { id: "imagem", rotulo: "Foto" },
@@ -363,6 +365,18 @@ export function normalizarItens(obj) {
     const fora = [...new Set((Array.isArray(it.canais_ocultos) ? it.canais_ocultos : []).filter((c) => IDS_CANAIS.has(c)))];
     if (fora.length) item.canais_ocultos = fora;
     if (typeof it.esgotado_dia === "string" && DATA_RE.test(it.esgotado_dia)) item.esgotado_dia = it.esgotado_dia;
+    // Fotos e vídeo do prato (painel → Editar produto): a primeira foto é a capa.
+    const midias = normalizarMidias(it.midias);
+    if (midias.length) item.midias = midias;
+    // Grupos de complementos ligados ao prato (os grupos ficam em config.grupos e servem a vários pratos).
+    const grupos = [...new Set((Array.isArray(it.grupos) ? it.grupos : []).filter(idValido))].slice(0, 12);
+    if (grupos.length) item.grupos = grupos;
+    // "Só em dias e horários": fora disso o prato não aparece para o cliente.
+    if (it.horario && typeof it.horario === "object") {
+      const dias = [...new Set((Array.isArray(it.horario.dias_semana) ? it.horario.dias_semana : []).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
+      const h = { dias_semana: dias.length === 7 ? [] : dias, hora_inicio: hora(it.horario.hora_inicio), hora_fim: hora(it.horario.hora_fim) };
+      if (h.dias_semana.length || h.hora_inicio || h.hora_fim) item.horario = h;
+    }
     // Posição do prato na seção, escolhida pelo dono (1 = primeiro).
     const ordem = Math.round(Number(it.ordem));
     if (Number.isInteger(ordem) && ordem >= 1 && ordem <= 9999) item.ordem = ordem;
@@ -673,6 +687,7 @@ export function normalizarConfigCardapio(raw) {
     itens: normalizarItens(c.itens),
     promocoes: normalizarPromocoes(c.promocoes),
     combos: normalizarCombos(c.combos),
+    grupos: normalizarGrupos(c.grupos),
     idiomas: Array.isArray(c.idiomas) ? ["pt", ...IDS_IDIOMAS.filter((i) => i !== "pt" && c.idiomas.includes(i))] : [...IDS_IDIOMAS],
     traducoes: normalizarTraducoes(c.traducoes),
     entrega: normalizarEntrega(c.entrega),
@@ -708,6 +723,96 @@ export function partesNoFuso(agora = new Date(), fuso = FUSO_PADRAO) {
 const minutosDe = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 /** A promoção vale agora? Horário que vira a noite (22:00–02:00) conta para o dia em que começou. */
+/** Fotos (até 3) e vídeo (até 1) do prato, só https; a primeira foto é a capa. */
+export function normalizarMidias(lista) {
+  const out = [];
+  let fotos = 0;
+  let videos = 0;
+  for (const m of Array.isArray(lista) ? lista : []) {
+    const url = limparUrl(m?.url);
+    if (!url) continue;
+    if (m.tipo === "video") {
+      if (videos >= LIMITES.videos) continue;
+      videos++;
+      const poster = limparUrl(m.poster);
+      out.push({ tipo: "video", url, ...(poster ? { poster } : {}) });
+    } else {
+      if (fotos >= LIMITES.fotos) continue;
+      fotos++;
+      out.push({ tipo: "foto", url });
+    }
+  }
+  return out;
+}
+
+// Grupos de complementos (2.3 da spec): reutilizáveis entre pratos; mudar o
+// grupo muda em todos. `retirar` = tirar ingrediente, sempre sem custo.
+export const TIPOS_GRUPO = [
+  { id: "adicional", rotulo: "Escolha ou adicional" },
+  { id: "retirar", rotulo: "Retirar ingredientes (sem custo)" },
+];
+const IDS_TIPOS_GRUPO = new Set(TIPOS_GRUPO.map((t) => t.id));
+
+export function normalizarGrupo(g, i = 0) {
+  const tipo = IDS_TIPOS_GRUPO.has(g?.tipo) ? g.tipo : "adicional";
+  const opcoes = [];
+  const vistos = new Set();
+  for (const [k, o] of (Array.isArray(g?.opcoes) ? g.opcoes : []).entries()) {
+    const nome = texto(o?.nome, 60);
+    if (!nome || opcoes.length >= LIMITES.opcoesPorGrupo) continue;
+    let id = idValido(o?.id) && !vistos.has(o.id) ? o.id : `op-${k + 1}`;
+    while (vistos.has(id)) id = `${id}-x`;
+    vistos.add(id);
+    const preco = tipo === "retirar" ? 0 : centavos(Math.max(0, Math.min(9999, Number(o?.preco) || 0)));
+    opcoes.push({ id, nome, preco, ...(o?.esgotado === true ? { esgotado: true } : {}) });
+  }
+  const max = Math.max(1, Math.min(LIMITES.opcoesPorGrupo, Math.round(Number(g?.max) || 1)));
+  const min = Math.max(0, Math.min(max, Math.round(Number(g?.min) || 0)));
+  return {
+    id: idValido(g?.id) ? g.id : `grupo-${i + 1}`,
+    nome: texto(g?.nome, 60),
+    descricao: texto(g?.descricao, 120),
+    tipo,
+    min: tipo === "retirar" ? 0 : min,
+    max,
+    opcoes,
+  };
+}
+
+export function normalizarGrupos(lista) {
+  const out = [];
+  const ids = new Set();
+  for (const [i, g] of (Array.isArray(lista) ? lista : []).entries()) {
+    if (out.length >= LIMITES.grupos) break;
+    const n = normalizarGrupo(g, i);
+    if (!n.nome || ids.has(n.id)) continue;
+    ids.add(n.id);
+    out.push(n);
+  }
+  return out;
+}
+
+/** "Obrigatório · escolher 1", "Opcional · até 2", "Opcional · sem custo". */
+export function regraDoGrupo(g) {
+  if (g.tipo === "retirar") return "Opcional · sem custo";
+  if (g.min > 0) return g.min === g.max ? `Obrigatório · escolher ${g.min}` : `Obrigatório · de ${g.min} a ${g.max}`;
+  return `Opcional · até ${g.max}`;
+}
+
+/** O prato está no horário que o dono marcou? Sem horário, sempre. */
+export function itemNoHorario(item, agora = new Date(), fuso = FUSO_PADRAO) {
+  const h = item?.horario;
+  if (!h) return true;
+  const { minutos, dia } = partesNoFuso(agora, fuso);
+  const vale = (d) => !h.dias_semana?.length || h.dias_semana.includes(d);
+  const ini = h.hora_inicio ? minutosDe(h.hora_inicio) : 0;
+  const fim = h.hora_fim ? minutosDe(h.hora_fim) : 24 * 60;
+  if (ini < fim) return minutos >= ini && minutos < fim && vale(dia);
+  if (minutos >= ini) return vale(dia);
+  if (minutos < fim) return vale((dia + 6) % 7);
+  return false;
+}
+
 /** "Esgotado hoje": o dono marcou o prato como esgotado no dia de hoje (fuso da loja). */
 export function esgotadoHoje(item, agora = new Date(), fuso = FUSO_PADRAO) {
   return !!item?.esgotado_dia && item.esgotado_dia === partesNoFuso(agora, fuso).data;
@@ -958,7 +1063,7 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
     if (!idValido(String(p?.id ?? ""))) continue;
     const item = cfg.itens[p.id] || {};
     const original = centavos(p.preco_venda);
-    if (!(original > 0) || item.oculto || !fichaAtiva(p.ficha) || esgotadoHoje(item, agora, fuso)) continue;
+    if (!(original > 0) || item.oculto || !fichaAtiva(p.ficha) || esgotadoHoje(item, agora, fuso) || !itemNoHorario(item, agora, fuso)) continue;
     const categoria_id = categoriaDoProduto(p, categorias, cfg.itens);
     if (categoria_id === "outros" && !categorias.some((c) => c.id === "outros")) semCategoria.push(p.id);
     else if (visivel.get(categoria_id) === false) continue;
@@ -967,7 +1072,8 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
       id: String(p.id),
       nome: texto(p.ficha?.nome_comercial, 80) || texto(p.nome_produto, 80),
       descricao: texto(p.ficha?.descricao_comercial, 280) || item.descricao || "",
-      imagem_url: limparUrl(p.imagem_url) || limparUrl(p.ficha?.imagem_url) || null,
+      imagem_url: (item.midias || []).find((m) => m.tipo === "foto")?.url || limparUrl(p.imagem_url) || limparUrl(p.ficha?.imagem_url) || null,
+      ...(item.midias?.length ? { midias: item.midias } : {}),
       preco,
       preco_original,
       promocao_id,

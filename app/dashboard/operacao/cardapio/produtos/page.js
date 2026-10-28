@@ -103,7 +103,7 @@ export default function PainelCardapioPage() {
           verCliente: caminhoDoCardapio(unidadeAtiva),
           novaCategoria: `${EDITOR}?aba=secoes`,
           novoProduto: `${EDITOR}?aba=pratos`,
-          editar: () => `${EDITOR}?aba=pratos`,
+          editar: (id) => `/dashboard/operacao/cardapio/produtos/${encodeURIComponent(id)}`,
         }}
       />
     </TemaCardapio>

@@ -138,3 +138,70 @@ export function mover(lista, de, para) {
   r.splice(Math.max(0, Math.min(r.length, para)), 0, x);
   return r;
 }
+
+// ── Editar produto (protótipo PainelProduto) ───────────────────────────────
+
+const IDIOMAS_TRADUCAO = [["en", "English"], ["es", "Español"], ["it", "Italiano"], ["fr", "Français"], ["zh", "中文"], ["ja", "日本語"], ["ko", "한국어"]];
+
+/** Estado inicial do formulário a partir do produto, da ficha e da vitrine. */
+export function formularioDoProduto({ produto, ficha = null, config, categorias = [], agora = new Date(), fuso = FUSO_PADRAO }) {
+  const cfg = normalizarConfigCardapio(config);
+  const item = cfg.itens[produto.id] || {};
+  const juntos = juntarProdutosEFichas([produto], ficha ? [ficha] : [])[0];
+  const h = item.horario;
+  return {
+    nome: ficha?.nome_comercial || produto.nome_produto || "",
+    descricao: ficha ? ficha.descricao_comercial || "" : item.descricao || "",
+    categoria_id: categoriaDoProduto(juntos, categorias, cfg.itens),
+    tempo: ficha?.tempo_preparo > 0 ? String(Math.round(ficha.tempo_preparo)) : "",
+    midias: item.midias || (produto.imagem_url ? [{ tipo: "foto", url: produto.imagem_url }] : []),
+    grupos: item.grupos || [],
+    canais: Object.fromEntries(CANAIS_CARDAPIO.map((c) => [c.id, canaisDoItem(item).includes(c.id)])),
+    horario: { modo: h ? "horario" : "sempre", dias_semana: h?.dias_semana || [], hora_inicio: h?.hora_inicio || "", hora_fim: h?.hora_fim || "" },
+    esgotado: esgotadoHoje(item, agora, fuso),
+  };
+}
+
+/** Erros que impedem salvar (texto curto para mostrar ao lado do botão). */
+export function errosDoFormulario(f, { temFicha }) {
+  const e = [];
+  if (temFicha && !String(f.nome).trim()) e.push("Dê um nome ao prato.");
+  if (f.tempo !== "" && !(Number(f.tempo) > 0 && Number(f.tempo) <= 600)) e.push("Tempo de preparo: de 1 a 600 minutos.");
+  if (f.horario.modo === "horario" && !f.horario.dias_semana.length && !f.horario.hora_inicio && !f.horario.hora_fim) {
+    e.push("Escolha os dias ou o horário em que o prato aparece.");
+  }
+  return e;
+}
+
+/** O item da vitrine depois do formulário (o que não é do formulário fica como estava). */
+export function itemDoFormulario(item = {}, f, { temFicha, categoriaOriginal }, agora = new Date(), fuso = FUSO_PADRAO) {
+  let novo = { ...item, oculto: undefined };
+  for (const c of CANAIS_CARDAPIO) novo = itemComCanal(novo, c.id, !!f.canais[c.id]);
+  novo = itemEsgotado(novo, f.esgotado, agora, fuso);
+  novo.midias = f.midias.length ? f.midias : undefined;
+  novo.grupos = f.grupos.length ? f.grupos : undefined;
+  novo.horario = f.horario.modo === "horario"
+    ? { dias_semana: f.horario.dias_semana, hora_inicio: f.horario.hora_inicio, hora_fim: f.horario.hora_fim }
+    : undefined;
+  novo.categoria_id = f.categoria_id && f.categoria_id !== categoriaOriginal ? f.categoria_id : item.categoria_id;
+  if (!temFicha) novo.descricao = String(f.descricao || "").trim() || undefined;
+  return Object.fromEntries(Object.entries(novo).filter(([, v]) => v !== undefined));
+}
+
+/** Em quantos pratos cada grupo está ligado ("usado em 4 produtos"). */
+export function usosDosGrupos(config) {
+  const cfg = normalizarConfigCardapio(config);
+  const n = {};
+  for (const it of Object.values(cfg.itens)) for (const g of it.grupos || []) n[g] = (n[g] || 0) + 1;
+  return n;
+}
+
+/** Situação das traduções do prato em cada idioma (nome e descrição). */
+export function traducoesDoProduto(config, { id, temDescricao }) {
+  const cfg = normalizarConfigCardapio(config);
+  return IDIOMAS_TRADUCAO.filter(([lang]) => cfg.idiomas.includes(lang)).map(([lang, nome]) => {
+    const t = cfg.traducoes[lang]?.produtos?.[id] || {};
+    const status = t.nome && (!temDescricao || t.descricao) ? "ok" : t.nome || t.descricao ? "parcial" : "falta";
+    return { idioma: lang, nome, status, rotulo: { ok: "Traduzida", parcial: "Falta a descrição", falta: "Sem tradução" }[status] };
+  });
+}

@@ -107,3 +107,44 @@ export function salvarOrdemDasSecoes(unidadeId, ids, { produtos = [], fichas = [
     return { ...cfg, categorias: reordenarCategorias(atuais, ids) };
   });
 }
+
+/** Alergênicos marcados na ficha (hoje só no nível da ficha; os dos ingredientes vêm depois). */
+export async function lerAlergenicosDaFicha(unidadeId, fichaId) {
+  if (!fichaId) return { alergenicos: [], podeConter: "" };
+  const [rA, rF] = await Promise.all([
+    supabase.from("fichas_alergenicos").select("alergenico").eq("unidade_id", unidadeId).eq("ficha_id", fichaId),
+    supabase.from("fichas_tecnicas").select("alergenicos_pode_conter").eq("unidade_id", unidadeId).eq("id", fichaId).maybeSingle(),
+  ]);
+  return {
+    alergenicos: rA.error ? null : [...new Set((rA.data || []).map((a) => a.alergenico).filter(Boolean))],
+    podeConter: rF.error ? "" : rF.data?.alergenicos_pode_conter || "",
+  };
+}
+
+/**
+ * Salva o produto editado no painel, cada coisa no seu dono:
+ *   - nome, descrição e tempo de preparo: na ficha técnica;
+ *   - capa: em produtos.imagem_url (PDV e telas antigas usam);
+ *   - fotos/vídeo, categoria, canais, horário, esgotado, grupos: na vitrine.
+ * `ficha` = campos da ficha a gravar (só os que mudaram) ou null.
+ */
+export async function salvarProdutoDoPainel(unidadeId, { produtoId, fichaId, ficha, imagemUrl, mudarItem, grupos }) {
+  const erros = [];
+  if (fichaId && ficha && Object.keys(ficha).length) {
+    const { data, error } = await supabase.from("fichas_tecnicas").update(ficha).eq("id", fichaId).eq("unidade_id", unidadeId).select("id");
+    if (error || !data?.length) erros.push("Nome, descrição ou tempo não foram gravados na ficha técnica (sem permissão ou ficha removida).");
+  }
+  if (imagemUrl !== undefined) {
+    const { data, error } = await supabase.from("produtos").update({ imagem_url: imagemUrl || null }).eq("id", produtoId).eq("unidade_id", unidadeId).select("id");
+    if (error || !data?.length) erros.push("A capa não foi gravada no produto de venda.");
+  }
+  const r = await gravarVitrine(unidadeId, (cfg) => {
+    const itens = { ...cfg.itens };
+    const novo = mudarItem(itens[produtoId] || {});
+    if (novo && Object.keys(novo).length) itens[produtoId] = novo;
+    else delete itens[produtoId];
+    return { ...cfg, itens, ...(grupos ? { grupos } : {}) };
+  });
+  if (r.erro) erros.push(r.erro);
+  return { erros, config: r.config };
+}

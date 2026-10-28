@@ -5,7 +5,7 @@
 
 import { supabase, isSupabaseReady } from "./supabase";
 import { coberturaDias, ritmoDoProduto, situacaoDoItem, sugerirMinMax, unidadeInteira, PADRAO_RITMO } from "./estoque-ritmo.mjs";
-import { areaDoLocal, subareaDoLocal } from "./estoque-areas.mjs";
+import { areaDoLocal, subareaDoLocal, estadoDoLocal } from "./estoque-areas.mjs";
 import { unidadeOperacional } from "./estoque-unidades.mjs";
 import { unidadeDoSaldo, paraUnidadeDoCadastro } from "./estoque-movimento.mjs";
 import { precoNormalizadoDoInsumo, unidadeNormalizada } from "./ingredientes-utils.mjs";
@@ -78,7 +78,7 @@ export async function carregarVisaoEstoque(unidadeId, { janelaDias = PADRAO_RITM
         id: it.id, estoque_id: it.estoque_id, insumo_id: it.insumo_id, valor,
         nome: ins.nome, categoria: ins.categoria || "", unidade: unidadeDoSaldo(ins),
         contagem,
-        local: est.nome, area: areaDaTela(est),
+        local: est.nome, area: areaDaTela(est), estado: estadoDoLocal(est),
         saldo: Number(it.quantidade_atual) || 0, minimo: Number(it.estoque_minimo) || 0, maximo: Number(it.estoque_maximo) || 0,
         ritmo, sugestao, cobertura: coberturaDias(it.quantidade_atual, ritmo),
         situacao: situacaoComUso(situacaoDoItem({ saldo: it.quantidade_atual, minimo: it.estoque_minimo, maximo: it.estoque_maximo }), ritmo, it.estoque_minimo),

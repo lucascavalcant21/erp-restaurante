@@ -182,7 +182,83 @@ export default function TelaEstoque({ inicial = {} }) {
             {AREAS.map(([id, rot]) => <button key={id} onClick={() => setArea(id)} aria-pressed={area === id} className={`h-9 shrink-0 rounded-full border px-3 text-sm font-bold ${area === id ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border bg-hf-surface text-hf-text"}`}>{rot}</button>)}
           </div>
           {/* Sem a fileira de situações (pedido do dono, 28/10/2026: "tira isso"); os quadros de cima filtram. */}
-                    ) : <p className="mt-2 text-xs font-bold text-hf-text-2">DADOS INSUFICIENTES para sugerir: {s.motivo}</p>}
+        </div>
+
+        {aviso ? <p role="status" className="rounded-xl bg-hf-elevated px-3 py-2 text-sm font-bold text-hf-text">{aviso}</p> : null}
+
+        {filtradas.some((l) => l.sugestao.ok && (l.sugestao.minimo !== l.minimo || l.sugestao.maximo !== l.maximo)) ? (
+          podeMinMax && <button onClick={aplicarTodas} disabled={!!salvando} className="inline-flex h-11 items-center gap-2 rounded-xl bg-hf-accent px-4 text-sm font-black text-white disabled:opacity-60">
+            {salvando === "todas" ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} Usar a sugestão em todos da lista
+          </button>
+        ) : null}
+
+        {erro ? <p className="rounded-xl bg-red-50 p-4 font-bold text-red-800">{erro}</p> : carregando ? (
+          <p className="p-8 text-center font-bold text-hf-text-2"><Loader2 className="mr-2 inline animate-spin" size={18} />Calculando o ritmo do estoque…</p>
+        ) : !filtradas.length ? (
+          <p className="p-8 text-center font-bold text-hf-text-2">Nenhum produto nesta seleção.</p>
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {filtradas.map((l) => {
+              const ed = edicao[l.id];
+              const s = l.sugestao;
+              const temNova = s.ok && (s.minimo !== l.minimo || s.maximo !== l.maximo);
+              return (
+                <li key={l.id} className="rounded-2xl border border-hf-border bg-hf-surface p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <button type="button" onClick={() => setMov({ estoque: l.estoque_id, insumo: l.insumo_id, tipo: "" })} className="min-w-0 text-left">
+                      <p className="text-xs font-bold uppercase tracking-wide text-hf-text-2">{l.local}{l.categoria ? ` · ${l.categoria}` : ""}</p>
+                      <p className="font-black leading-tight text-hf-text underline-offset-2 hover:underline">{l.nome}</p>
+                    </button>
+                    <span className="shrink-0 rounded-lg bg-hf-elevated px-2 py-1 text-[11px] font-black uppercase" style={{ color: COR[l.situacao] }}>{ROTULO[l.situacao]}</span>
+                  </div>
+
+                  <div className="mt-3 flex items-end justify-between gap-3">
+                    <p className="text-3xl font-black leading-none" style={{ color: COR[l.situacao] }}>{qtd(l, l.saldo)} <span className="text-sm font-bold text-hf-text-2">{un(l, l.saldo)}{extra(l, l.saldo)}</span></p>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setMov({ estoque: l.estoque_id, insumo: l.insumo_id, tipo: "saida" })} aria-label={`Retirar ${l.nome}`} className="inline-flex h-11 items-center gap-1 rounded-xl border-2 border-[#B45309] bg-[#FFF4E5] px-3 text-sm font-black text-[#8A3A06] shadow-sm"><ArrowUpFromLine size={16} /> Retirar</button>
+                      <button type="button" onClick={() => setMov({ estoque: l.estoque_id, insumo: l.insumo_id, tipo: "entrada" })} aria-label={`Adicionar ${l.nome}`} className="inline-flex h-11 items-center gap-1 rounded-xl bg-hf-accent px-3 text-sm font-black text-white"><ArrowDownToLine size={16} /> Adicionar</button>
+                    </div>
+                  </div>
+
+                  {/* Valor de 1 produto e do saldo (pedido do dono, 28/10/2026), no lugar do
+                      ritmo por dia. Custo do cadastro: ESTIMATIVA. */}
+                  {/* Card mais limpo (pedido do dono, 28/10/2026: "melhore essas telas"):
+                      valor numa linha; mínimo/máximo em texto com "Editar". */}
+                  {podeVerCusto ? (
+                    <p className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-xl bg-hf-elevated px-3 py-2 text-sm font-semibold text-hf-text-2">
+                      {l.valor ? <>
+                        <span><b className="text-base font-black text-hf-text">{brl(l.valor.unitario)}</b> {l.valor.unidade === "garrafa" || l.valor.unidade === "lata" || l.contagem ? `a ${l.valor.unidade}` : `o ${l.valor.unidade}`}</span>
+                        <span><b className="text-base font-black text-hf-text">{brl(l.valor.total)}</b> no estoque</span>
+                      </> : <span>Sem preço no cadastro</span>}
+                    </p>
+                  ) : null}
+                  {l.cobertura != null ? <p className="mt-2 text-sm font-bold text-hf-text-2">Dá para <span className="text-hf-text">{l.cobertura} dia(s)</span> no ritmo atual.</p> : null}
+
+                  <div className="mt-3 border-t border-hf-border pt-3">
+                    {podeMinMax && ed ? (
+                      <div className="flex flex-wrap items-end gap-3">
+                        <label className="flex flex-col gap-1 text-[11px] font-black uppercase text-hf-text-2">Mínimo
+                          <input type="number" min={0} step="any" autoFocus value={ed.minimo ?? ""} onChange={(e) => setEdicao((x) => ({ ...x, [l.id]: { ...x[l.id], minimo: e.target.value } }))} className="h-10 w-24 rounded-xl border border-hf-border bg-hf-surface px-2 text-base font-black text-hf-text" placeholder="0" />
+                        </label>
+                        <label className="flex flex-col gap-1 text-[11px] font-black uppercase text-hf-text-2">Máximo
+                          <input type="number" min={0} step="any" value={ed.maximo ?? ""} onChange={(e) => setEdicao((x) => ({ ...x, [l.id]: { ...x[l.id], maximo: e.target.value } }))} className="h-10 w-24 rounded-xl border border-hf-border bg-hf-surface px-2 text-base font-black text-hf-text" placeholder="0" />
+                        </label>
+                        <span className="pb-2.5 text-sm font-bold text-hf-text-2">{un(l, 2 * (l.contagem?.fator || 1))}</span>
+                        <button onClick={() => salvar([{ id: l.id, minimo: paraBanco(l, ed.minimo), maximo: paraBanco(l, ed.maximo) }], l.id)} disabled={salvando === l.id} className="inline-flex h-10 items-center gap-1 rounded-xl bg-hf-accent px-3 text-sm font-black text-white"><Check size={16} /> Salvar</button>
+                        <button onClick={() => setEdicao((x) => { const n = { ...x }; delete n[l.id]; return n; })} className="h-10 rounded-xl px-2 text-sm font-bold text-hf-text-2">Cancelar</button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-hf-text-2">Mínimo <b className="text-hf-text">{l.minimo ? qtd(l, l.minimo) : "—"}</b> · Máximo <b className="text-hf-text">{l.maximo ? qtd(l, l.maximo) : "—"}</b> {(l.minimo || l.maximo) ? un(l, 2 * (l.contagem?.fator || 1)) : ""}</p>
+                        {podeMinMax ? <button onClick={() => setEdicao((x) => ({ ...x, [l.id]: { minimo: l.minimo ? qtdNum(l, l.minimo) : "", maximo: l.maximo ? qtdNum(l, l.maximo) : "" } }))} className="h-9 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-bold text-hf-text">Editar</button> : null}
+                      </div>
+                    )}
+                    {s.ok ? (
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-hf-text-2"><span className="font-black text-hf-text">Sugestão:</span> mínimo {qtd(l, s.minimo)}, máximo {qtd(l, s.maximo)} {un(l, s.maximo)} <span className="text-xs">(sai {qtd(l, l.ritmo.saida.dia)} por dia)</span></p>
+                        {temNova && podeMinMax ? <button onClick={() => salvar([{ id: l.id, minimo: s.minimo, maximo: s.maximo }], l.id)} disabled={salvando === l.id} className="inline-flex h-9 items-center gap-1 rounded-xl border border-hf-accent px-3 text-sm font-black text-hf-text"><Sparkles size={14} /> Usar</button> : <span className="text-xs font-black text-[#047857]">Já usa a sugestão</span>}
+                      </div>
+                    ) : <p className="mt-1.5 text-xs font-semibold text-hf-muted" title={s.motivo}>Dados insuficientes para sugerir: {String(s.motivo || "").replace(/ neste local\.?$/, "").toLowerCase()}.</p>}
                   </div>
                 </li>
               );

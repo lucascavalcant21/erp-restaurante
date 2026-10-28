@@ -25,12 +25,18 @@ export const SECOES = {
   sobremesa: { id: "sobremesa", rotulo: "Sobremesa", setor: "cozinha" },
   bar: { id: "bar", rotulo: "Bar e drinks", setor: "bar" },
   unico: { id: "unico", rotulo: "Item do evento", setor: null },
+  lanche: { id: "lanche", rotulo: "Comidas", setor: "cozinha" },
 };
 
 export const TIPOS_EVENTO = [
   { id: "buffet", rotulo: "Buffet", ajuda: "Vários pratos servidos à vontade. Você diz quanto cada convidado come de cada um.", secoes: ["buffet", "bar"] },
   { id: "alacarte", rotulo: "À la carte", ajuda: "Menu em etapas: entrada, prato principal, sobremesa e bar. Deixe vazia a etapa que não tiver.", secoes: ["entrada", "principal", "sobremesa", "bar"] },
-  { id: "unico", rotulo: "Uma coisa só", ajuda: "O evento tem um item só (só o coquetel, só o bar, só um prato).", secoes: ["unico"] },
+  // Ticket por pessoa (pedido do dono, 28/10/2026, no lugar de "Uma coisa só"):
+  // café da tarde, coffee break, lanche. Itens em quantidade fechada (2 bolos,
+  // 30 sanduíches, 1 suco de 2 L); custo ÷ pessoas e o ticket.
+  { id: "ticket", rotulo: "Ticket por pessoa", ajuda: "Café da tarde, coffee break, lanche: diga quanto vai no total (2 bolos, 30 sanduíches, 1 suco de 2 L) e veja o custo por pessoa e o ticket.", secoes: ["lanche", "bar"], quantidadeFechada: true },
+  // Eventos antigos ainda abrem; não aparece mais para escolher.
+  { id: "unico", rotulo: "Uma coisa só", ajuda: "O evento tem um item só.", secoes: ["unico"], oculto: true },
 ];
 export const tipoDoEvento = (id) => TIPOS_EVENTO.find((t) => t.id === id) || TIPOS_EVENTO[0];
 
@@ -236,12 +242,21 @@ export function itensDoOrcamento(orc = {}, fichas = []) {
       return { ...item, secao, ficha, emGramas: false, emTotal: true, quantidadeTotal: qtd, fatias, pesoPorcao, porPessoa: 0, custoPorcao, custoPorPessoa: 0, custoTotalFixo: custoPorcao * qtd, aoVivo, problemas: probs, semCusto: !(custoPorcao > 0) };
     }
     const emGramas = item.medida === "g" && secao !== "bar";
-    let porPessoa = pos(item.por_pessoa);
+    // DIVISÃO DO PRATO (pedido do dono, 28/10/2026: "pego o prato, o sistema já
+    // mostra o peso, eu divido em 7 porções de 100 g e monto a mesa"). Com
+    // fatia_g, "porções por pessoa" conta as porções divididas; por baixo tudo
+    // segue em fichas (lista de compras e custo).
+    const div = !emGramas ? pos(item.fatia_g) : 0;
+    const dividido = div > 0 && pesoPorcao > 0;
+    const porcoesPorFicha = dividido ? pesoPorcao / div : null;
+    let porPessoa = pos(item.por_pessoa) * (dividido ? div / pesoPorcao : 1);
     if (emGramas) {
       porPessoa = pesoPorcao > 0 ? pos(item.gramas_por_pessoa) / pesoPorcao : 0;
       if (!(pesoPorcao > 0)) problemas = [...problemas, item.origem === "exclusiva" ? "informe o peso da porção para usar gramas" : "a ficha não tem peso da porção; use porções"];
     }
-    return { ...item, secao, ficha, emGramas, emTotal: false, custoTotalFixo: 0, pesoPorcao, porPessoa, custoPorcao, custoPorPessoa: custoPorcao * porPessoa, aoVivo, problemas, semCusto: !(custoPorcao > 0) };
+    if (div > 0 && !(pesoPorcao > 0)) problemas = [...problemas, item.origem === "exclusiva" ? "informe o peso da porção para dividir" : "a ficha não tem peso da porção; não dá para dividir"];
+    return { ...item, secao, ficha, emGramas, emTotal: false, custoTotalFixo: 0, pesoPorcao, porPessoa, custoPorcao, custoPorPessoa: custoPorcao * porPessoa,
+      dividido, divisaoG: dividido ? div : null, porcoesPorFicha, custoPorcaoDividida: dividido ? custoPorcao * div / pesoPorcao : null, aoVivo, problemas, semCusto: !(custoPorcao > 0) };
   });
 }
 
@@ -264,10 +279,10 @@ export function custoDaPessoa(p = {}) {
  *   Extras ......... aluguel, decoração, música, outros
  *   Imposto, maquininha, comissões em %, pró-labore em % → sobre a receita
  *   Comissões e pró-labore em R$ → valor fixo
- *   Lucro limpo = receita − tudo acima
+ *   Lucro líquido = receita − tudo acima
  * Preço sugerido (do adulto) = o que faz a receita cobrir os custos fixos e
  * ainda deixar a meta: receita = fixos ÷ (1 − Σ% − meta%), desfazendo desconto e
- * crianças. Preço mínimo = o mesmo com meta 0 (lucro limpo zero).
+ * crianças. Preço mínimo = o mesmo com meta 0 (lucro líquido zero).
  */
 export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = {}) {
   const convidados = pos(conv ?? orc?.cliente?.convidados);
@@ -346,7 +361,7 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
     ...comissoes.filter((c) => c.total > 0).map((c) => L(`comissao_${c.id}`, `(−) Comissão${c.nome ? `: ${c.nome}` : ""}${c.modo !== "valor" ? ` (${pos(c.valor).toLocaleString("pt-BR")}%)` : ""}`, c.total)),
     L("antes_prolabore", "(=) Resultado antes do pró-labore", antesProlabore, "subtotal"),
     L("prolabore", `(−) Pró-labore${fin.prolabore?.modo !== "valor" && prolabore > 0 ? ` (${pos(fin.prolabore?.valor).toLocaleString("pt-BR")}%)` : ""}`, prolabore),
-    L("lucro", "(=) Lucro limpo", lucro, "resultado"),
+    L("lucro", "(=) Lucro líquido", lucro, "resultado"),
   ];
 
   const custoTotal = r2(receita - lucro); // tudo o que sai, incluindo taxas e pró-labore
@@ -545,7 +560,7 @@ export function pendenciasDoOrcamento(orc = {}, r, { hojeIso, etapa, recebido = 
   if (!c.data_evento) lista.push("Data do evento não definida.");
   if (!(r.precoPorPessoa > 0)) lista.push("Valor por pessoa não definido.");
   if (r.prejuizo) lista.push("O valor por pessoa não cobre os custos do evento.");
-  else if (r.receita > 0 && !r.meta.atingida && r.meta.pct > 0) lista.push("O lucro limpo está abaixo da meta.");
+  else if (r.receita > 0 && !r.meta.atingida && r.meta.pct > 0) lista.push("O lucro líquido está abaixo da meta.");
   if (c.data_evento && hojeIso && c.data_evento < hojeIso && !["FINALIZADO", "CANCELADO"].includes(etapa)) lista.push("A data já passou e o evento não foi finalizado no funil.");
   const pendente = r2(r.receita - recebido);
   if (r.receita > 0 && pendente > 0.009 && ["CONFIRMADO", "PREPARACAO", "EM PRODUCAO", "EVENTO", "FINALIZADO"].includes(etapa)) {

@@ -260,7 +260,7 @@ function CartaoEvento({ evt, hoje, arrastavel, esmaecido, onInicio, onFim }) {
       </div>
       {typeof resumo?.lucro === "number" && valor > 0 && (
         <p className={`mt-1.5 text-xs font-semibold ${resumo.lucro < 0 ? "text-hf-danger" : "text-hf-text-2"}`}>
-          Lucro limpo: {fmtReais(resumo.lucro)}{resumo.lucro_pct !== null && resumo.lucro_pct !== undefined ? ` · ${fmtPct(resumo.lucro_pct)}` : ""}
+          Lucro líquido: {fmtReais(resumo.lucro)}{resumo.lucro_pct !== null && resumo.lucro_pct !== undefined ? ` · ${fmtPct(resumo.lucro_pct)}` : ""}
         </p>
       )}
       {passou && <p className="mt-1.5 text-xs font-semibold text-hf-warning">A data já passou: atualize a etapa.</p>}

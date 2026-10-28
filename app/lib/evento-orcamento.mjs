@@ -216,7 +216,12 @@ export function secaoDoItem(item, tipo) {
  */
 export function itensDoOrcamento(orc = {}, fichas = []) {
   const porId = new Map((fichas || []).map((f) => [f.id, f]));
-  return (orc.cardapio || []).map((item) => {
+  // Ticket por pessoa: a mesa é montada em quantidade fechada; não importa
+  // quanto cada um come (pedido do dono, 28/10/2026: "gastei 100 reais, são
+  // 50 pessoas, custo por pessoa 2 reais").
+  const mesaFechada = !!tipoDoEvento(orc.tipo).quantidadeFechada;
+  return (orc.cardapio || []).map((item0) => {
+    const item = mesaFechada && item0.medida !== "total" ? { ...item0, medida: "total", quantidade_total: item0.quantidade_total ?? "1" } : item0;
     const secao = secaoDoItem(item, orc.tipo);
     let custoPorcao = 0; let aoVivo = false; let problemas = [];
     let ficha = null;

@@ -26,7 +26,7 @@ import {
   ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin, Gift, BellRing, Megaphone,
 } from "lucide-react";
 import {
-  aplicarNome, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, primeiroNome, saudacao, totalDoCarrinho,
+  aplicarNome, cardapioDoCanal, canalDoPedido, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, primeiroNome, saudacao, totalDoCarrinho,
 } from "../../lib/cardapio-digital.mjs";
 import { IDIOMAS, TEXTOS_PADRAO, detectarIdioma, infoIdioma, t } from "../../lib/cardapio-idiomas.mjs";
 import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, Selos } from "./partes";
@@ -127,7 +127,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const chaveCarrinho = chave(unidadeId, `carrinho:${mesa || "delivery"}`);
 
   // O cardápio no idioma do cliente (conteúdo traduzido pelo dono; o resto, fixo).
-  const cardapio = useMemo(() => localizarCardapio(base, idioma), [base, idioma]);
+  // Só os pratos ligados no canal desta tela (QR da mesa ou delivery).
+  const cardapio = useMemo(() => localizarCardapio(cardapioDoCanal(base, canalDoPedido(tipoPedido)), idioma), [base, idioma, tipoPedido]);
   const lingua = cardapio?.idioma || "pt";
   const T = useCallback((k, v) => t(lingua, k, v), [lingua]);
 

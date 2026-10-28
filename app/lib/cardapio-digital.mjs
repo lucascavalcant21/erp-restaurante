@@ -75,6 +75,23 @@ export const TIPOS_PROMOCAO = [
 
 export const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+// Canais onde o cliente vê o cardápio (painel → Cardápio liga e desliga cada
+// prato por canal). Garçom e PDV não entram: lá a equipe vê tudo que está ativo.
+export const CANAIS_CARDAPIO = [
+  { id: "tablet", rotulo: "Tablet" },
+  { id: "qr", rotulo: "QR mesa" },
+  { id: "delivery", rotulo: "Delivery" },
+];
+const IDS_CANAIS = new Set(CANAIS_CARDAPIO.map((c) => c.id));
+const DATA_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Canal de onde veio o pedido do cliente (tipo gravado em pedidos.tipo_pedido). */
+export function canalDoPedido(tipo) {
+  if (tipo === "qrcode") return "qr";
+  if (tipo === "tablet") return "tablet";
+  return "delivery";
+}
+
 // Combinações prontas para o dono começar. Ele pode trocar cada cor depois.
 export const TEMAS_PRONTOS = [
   { id: "casa", nome: "Casa", tema: { cor_primaria: "#9a3412", cor_fundo: "#f6f1e8", cor_texto: "#221c16", cor_cartao: "#fffdf8" } },
@@ -341,6 +358,11 @@ export function normalizarItens(obj) {
     if (selos.length) item.selos = selos;
     if (it.destaque === true) item.destaque = true;
     if (it.oculto === true) item.oculto = true;
+    // Canais em que o prato não aparece, e o dia (fuso da loja) em que esgotou:
+    // "esgotado hoje" vale só nesse dia e o prato volta sozinho no seguinte.
+    const fora = [...new Set((Array.isArray(it.canais_ocultos) ? it.canais_ocultos : []).filter((c) => IDS_CANAIS.has(c)))];
+    if (fora.length) item.canais_ocultos = fora;
+    if (typeof it.esgotado_dia === "string" && DATA_RE.test(it.esgotado_dia)) item.esgotado_dia = it.esgotado_dia;
     // Posição do prato na seção, escolhida pelo dono (1 = primeiro).
     const ordem = Math.round(Number(it.ordem));
     if (Number.isInteger(ordem) && ordem >= 1 && ordem <= 9999) item.ordem = ordem;
@@ -686,6 +708,18 @@ export function partesNoFuso(agora = new Date(), fuso = FUSO_PADRAO) {
 const minutosDe = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 /** A promoção vale agora? Horário que vira a noite (22:00–02:00) conta para o dia em que começou. */
+/** "Esgotado hoje": o dono marcou o prato como esgotado no dia de hoje (fuso da loja). */
+export function esgotadoHoje(item, agora = new Date(), fuso = FUSO_PADRAO) {
+  return !!item?.esgotado_dia && item.esgotado_dia === partesNoFuso(agora, fuso).data;
+}
+
+/** Canais em que o prato aparece para o cliente (oculto = em nenhum). */
+export function canaisDoItem(item) {
+  if (item?.oculto) return [];
+  const fora = new Set(item?.canais_ocultos || []);
+  return CANAIS_CARDAPIO.map((c) => c.id).filter((id) => !fora.has(id));
+}
+
 export function promocaoVigente(promo, agora = new Date(), fuso = FUSO_PADRAO) {
   const p = normalizarPromocao(promo);
   if (!p.ativa || !p.titulo) return false;
@@ -894,7 +928,7 @@ export function juntarProdutosEFichas(produtos = [], fichas = [], alergenicos = 
 }
 
 /** Ficha desativada, arquivada ou inativa tira o prato do cardápio. */
-function fichaAtiva(ficha) {
+export function fichaAtiva(ficha) {
   if (!ficha) return true;
   if (ficha.ativo === false) return false;
   const s = normalizarBusca(ficha.status);
@@ -924,7 +958,7 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
     if (!idValido(String(p?.id ?? ""))) continue;
     const item = cfg.itens[p.id] || {};
     const original = centavos(p.preco_venda);
-    if (!(original > 0) || item.oculto || !fichaAtiva(p.ficha)) continue;
+    if (!(original > 0) || item.oculto || !fichaAtiva(p.ficha) || esgotadoHoje(item, agora, fuso)) continue;
     const categoria_id = categoriaDoProduto(p, categorias, cfg.itens);
     if (categoria_id === "outros" && !categorias.some((c) => c.id === "outros")) semCategoria.push(p.id);
     else if (visivel.get(categoria_id) === false) continue;
@@ -944,6 +978,7 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
       destaque: item.destaque === true,
       ordem: item.ordem || null,
       categoria_id,
+      ...(item.canais_ocultos ? { fora_dos_canais: item.canais_ocultos } : {}),
     });
   }
   const combos = combosNoCardapio(cfg.combos, lista, agora, fuso);
@@ -1318,6 +1353,25 @@ export function taxaDeEntrega(subtotal, cardapio, tipo = "delivery") {
 }
 
 /** Itens do carrinho que saíram do cardápio (ou mudaram de preço) desde que entraram. */
+/**
+ * O cardápio que um canal vê: tira os pratos que o dono desligou nesse canal
+ * (e as seções e promoções que ficaram vazias). O servidor usa esta mesma
+ * função ao receber o pedido, então prato desligado no canal não é cobrado.
+ */
+export function cardapioDoCanal(cardapio, canal) {
+  if (!cardapio || !IDS_CANAIS.has(canal)) return cardapio;
+  const produtos = (cardapio.produtos || []).filter((p) => !(p.fora_dos_canais || []).includes(canal));
+  if (produtos.length === (cardapio.produtos || []).length) return cardapio;
+  const ids = new Set(produtos.map((p) => p.id));
+  const categorias = (cardapio.categorias || [])
+    .map((c) => ({ ...c, produto_ids: c.produto_ids.filter((id) => ids.has(id)) }))
+    .filter((c) => c.produto_ids.length);
+  const promocoes = (cardapio.promocoes || [])
+    .map((p) => ({ ...p, produto_ids: (p.produto_ids || []).filter((id) => ids.has(id)) }))
+    .filter((p) => p.tipo === "aviso" || p.produto_ids.length);
+  return { ...cardapio, produtos, categorias, promocoes, filtros: filtrosDisponiveis(produtos) };
+}
+
 export function conferirCarrinho(carrinho, cardapio) {
   const atual = new Map(cardapio.produtos.map((p) => [p.id, p]));
   const validos = [];

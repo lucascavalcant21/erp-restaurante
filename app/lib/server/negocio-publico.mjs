@@ -15,7 +15,7 @@
 // banco; nenhuma mensagem interna do banco na resposta. Módulo sem Next: o
 // banco entra por parâmetro, para dar para testar.
 
-import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega, linhasDoCombo } from "../cardapio-digital.mjs";
+import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega, linhasDoCombo, cardapioDoCanal, canalDoPedido } from "../cardapio-digital.mjs";
 import {
   cashbackUsavel, descontoDoCadastro, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO, validarCadastro,
 } from "../fidelidade.mjs";
@@ -261,7 +261,9 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       if (carga.status === 404) return falha(404, "unidade_invalida", "Link inválido.");
       return falha(503, "indisponivel", "Não foi possível enviar agora.");
     }
-    const { cardapio, loja } = carga;
+    const { loja } = carga;
+    // Só vale o que o canal do pedido mostra (prato desligado no canal não entra).
+    const cardapio = cardapioDoCanal(carga.cardapio, canalDoPedido(pedido.tipo));
     if (pedido.tipo === "delivery" && loja.delivery_aberto === false) {
       return falha(409, "loja_fechada", "O delivery está fechado no momento.");
     }

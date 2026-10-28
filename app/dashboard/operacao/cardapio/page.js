@@ -60,6 +60,11 @@ export default function CardapioEditorPage() {
   const [salvo, setSalvo] = useState("");
   const [pendentes, setPendentes] = useState(VAZIO);
   const [aba, setAba] = useState("pratos");
+  // O painel novo (Cardápio → Produtos) abre o editor já na aba certa: ?aba=promocoes.
+  useEffect(() => {
+    const pedida = new URLSearchParams(window.location.search).get("aba");
+    if (pedida && ABAS.some((a) => a.id === pedida)) setAba(pedida);
+  }, []);
   const [salvando, setSalvando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [previaAberta, setPreviaAberta] = useState(false);

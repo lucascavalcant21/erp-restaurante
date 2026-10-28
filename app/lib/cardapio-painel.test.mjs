@@ -23,7 +23,7 @@ test("linhas: nome comercial, tempo e pendências reais (nada inventado)", () =>
   const p = Object.fromEntries(linhas.map((l) => [l.id, l]));
   assert.equal(p.p1.nome, "Picanha na brasa");
   assert.deepEqual(p.p1.info, ["25 min"]);
-  assert.deepEqual(p.p2.info, ["5 min", "sem foto"], "tempo do produto quando a ficha não tem");
+  assert.deepEqual(p.p2.info, ["sem foto"], "tempo_preparo_base do produto (padrão 15 da coluna) não conta");
   assert.deepEqual(p.p3.info, ["sem foto", "ficha inativa", "sem preço"]);
   assert.deepEqual(p.p4.info, ["sem foto", "sem ficha técnica"]);
   assert.equal(p.p1.noAr, true);

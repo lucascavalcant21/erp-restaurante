@@ -40,7 +40,7 @@ export async function carregarPainelCardapio(unidadeId) {
     return { erro: "Escolha uma unidade para ver o cardápio dela." };
   }
   const [rP, rF, rV] = await Promise.all([
-    supabase.from("produtos").select("id, nome_produto, preco_venda, categoria, departamento, imagem_url, ficha_id, ativo, tempo_preparo_base")
+    supabase.from("produtos").select("id, nome_produto, preco_venda, categoria, departamento, imagem_url, ficha_id, ativo")
       .eq("unidade_id", unidadeId).eq("ativo", true).order("nome_produto"),
     supabase.from("fichas_tecnicas")
       .select("id, nome_receita, nome_comercial, descricao_comercial, categoria, departamento, ativo, status, tempo_preparo, eh_base")

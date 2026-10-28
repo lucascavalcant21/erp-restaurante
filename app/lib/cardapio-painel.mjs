@@ -23,8 +23,11 @@ export const FILTROS_CANAL = [
 const ROTULO_CANAL_CURTO = { tablet: "Tablet", qr: "QR", delivery: "Delivery" };
 const ESTACAO = { cozinha: "Cozinha", bar: "Bar" };
 
-const tempoDe = (produto, ficha) => {
-  const n = Math.round(Number(ficha?.tempo_preparo) || Number(produto?.tempo_preparo_base) || 0);
+// Tempo de preparo só da ficha técnica (9C.4). produtos.tempo_preparo_base não
+// serve: a coluna nasce com 15 e, no banco real (28/10/2026), os 135 produtos
+// têm 15 sem ninguém ter digitado — mostrar isso seria inventar tempo.
+const tempoDe = (ficha) => {
+  const n = Math.round(Number(ficha?.tempo_preparo) || 0);
   return n > 0 ? n : null;
 };
 
@@ -42,17 +45,15 @@ export function montarPainelCardapio({
   const vigentes = promocoesVigentes(cfg.promocoes, agora, fuso);
   const promoPorId = new Map(vigentes.map((p) => [p.id, p]));
   const fichaPorId = new Map(fichas.map((f) => [String(f.id), f]));
-  const brutoPorId = new Map(produtos.map((p) => [String(p.id), p]));
 
   const linhas = juntos.map((p) => {
-    const bruto = brutoPorId.get(String(p.id));
     const fichaBruta = p.ficha ? fichaPorId.get(String(p.ficha.id)) : null;
     const item = cfg.itens[p.id] || {};
     const preco = Math.round((Number(p.preco_venda) || 0) * 100) / 100;
     const efetivo = preco > 0 ? precoEfetivo(p, vigentes) : { preco, promocao_id: null };
     const promo = efetivo.promocao_id ? promoPorId.get(efetivo.promocao_id) : null;
     const foto = p.imagem_url || p.ficha?.imagem_url || "";
-    const tempo = tempoDe(bruto, fichaBruta);
+    const tempo = tempoDe(fichaBruta);
     const esgotado = esgotadoHoje(item, agora, fuso);
     const ligados = new Set(canaisDoItem(item));
     // Pendência = o cliente não vê o prato (a mesma regra do cardápio do cliente).

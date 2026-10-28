@@ -42,9 +42,9 @@ export default function CadastroCliente({ unidadeId, cardapioBase }) {
   const casa = cardapio?.unidade.nome || "";
   const cores = cardapio?.cores || {};
   const estilo = {
-    "--c-primaria": cores.primaria || "#9a3412", "--c-sobre": cores.sobre_primaria || "#fff", "--c-fundo": cores.fundo || "#f6f1e8",
-    "--c-texto": cores.texto || "#221c16", "--c-suave": cores.texto_suave || "#6b6259", "--c-cartao": cores.cartao || "#fffdf8",
-    "--c-linha": cores.linha || "#e4ddd2", "--c-destaque": cores.destaque || "#9a3412", "--c-primaria-suave": cores.suave_primaria || "#f3e7dd",
+    "--c-primaria": cores.primaria || "#14532d", "--c-sobre": cores.sobre_primaria || "#fff", "--c-fundo": cores.fundo || "#f4f4f4",
+    "--c-texto": cores.texto || "#1a1a1a", "--c-suave": cores.texto_suave || "#5c5c5c", "--c-cartao": cores.cartao || "#ffffff",
+    "--c-linha": cores.linha || "#e3e3e3", "--c-destaque": cores.destaque || "#14532d", "--c-primaria-suave": cores.suave_primaria || "#eaf4ee",
   };
   const idiomas = IDIOMAS.filter((i) => (cardapio?.idiomas || ["pt"]).includes(i.id));
   const campo = (k) => ({ value: form[k], onChange: (e) => setForm((f) => ({ ...f, [k]: e.target.value })) });

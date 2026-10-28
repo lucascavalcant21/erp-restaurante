@@ -52,11 +52,13 @@ export default function CarrosselAgora({
  * Um card do carrossel. `detalhe` pode ser texto ou nó (ex.: "R$ 10 de" +
  * <PalavraDesconto />). No celular, `preco` e `de` (riscado) em reais.
  */
-export function CardAgora({ variante = "tablet", etiqueta, titulo, detalhe, foto, preco, de, href = "#", copia = false, idioma = "pt" }) {
+export function CardAgora({ variante = "tablet", etiqueta, titulo, detalhe, foto, preco, de, href = "#", onClick, copia = false, idioma = "pt" }) {
   const extraCopia = copia ? { "aria-hidden": true, tabIndex: -1, className: s.copiaDoTrilho } : {};
+  // Toque que abre algo na mesma tela (o prato), sem trocar de página.
+  const tocar = onClick ? (e) => { e.preventDefault(); onClick(); } : undefined;
   if (variante === "celular") {
     return (
-      <Card href={href} elevado className={`${s.agoraCelular} ${extraCopia.className || ""}`} aria-hidden={extraCopia["aria-hidden"]} tabIndex={extraCopia.tabIndex}>
+      <Card href={href} onClick={tocar} elevado className={`${s.agoraCelular} ${extraCopia.className || ""}`} aria-hidden={extraCopia["aria-hidden"]} tabIndex={extraCopia.tabIndex}>
         <div className={s.agoraFoto}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {foto ? <img className={s.fotoImagem} src={foto} alt={titulo} /> : null}
@@ -73,7 +75,7 @@ export function CardAgora({ variante = "tablet", etiqueta, titulo, detalhe, foto
     );
   }
   return (
-    <Card href={href} className={`${s.agoraTablet} ${extraCopia.className || ""}`} aria-hidden={extraCopia["aria-hidden"]} tabIndex={extraCopia.tabIndex}>
+    <Card href={href} onClick={tocar} className={`${s.agoraTablet} ${extraCopia.className || ""}`} aria-hidden={extraCopia["aria-hidden"]} tabIndex={extraCopia.tabIndex}>
       <div className={s.agoraFoto}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {foto ? <img className={s.fotoImagem} src={foto} alt="" /> : null}

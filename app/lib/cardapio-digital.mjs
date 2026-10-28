@@ -94,7 +94,8 @@ export function canalDoPedido(tipo) {
 
 // Combinações prontas para o dono começar. Ele pode trocar cada cor depois.
 export const TEMAS_PRONTOS = [
-  { id: "casa", nome: "Casa", tema: { cor_primaria: "#9a3412", cor_fundo: "#f6f1e8", cor_texto: "#221c16", cor_cartao: "#fffdf8" } },
+  // Padrão do cardápio novo (9L): verde-escuro e neutros só em cinza, nada de marrom.
+  { id: "casa", nome: "Casa", tema: { cor_primaria: "#14532d", cor_fundo: "#f4f4f4", cor_texto: "#1a1a1a", cor_cartao: "#ffffff" } },
   { id: "mata", nome: "Mata", tema: { cor_primaria: "#2f5d3a", cor_fundo: "#f1f3ec", cor_texto: "#1b241d", cor_cartao: "#fcfdf9" } },
   { id: "rio", nome: "Rio", tema: { cor_primaria: "#1f4e6b", cor_fundo: "#eef3f5", cor_texto: "#16232b", cor_cartao: "#fbfdfe" } },
   { id: "papel", nome: "Papel", tema: { cor_primaria: "#1c1917", cor_fundo: "#fafaf9", cor_texto: "#1c1917", cor_cartao: "#ffffff" } },

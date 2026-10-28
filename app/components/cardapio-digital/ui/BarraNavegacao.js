@@ -10,9 +10,11 @@ export default function BarraNavegacao({ itens = [], fixa = false, rotulo = "Nav
   return (
     <nav aria-label={rotulo} className={`${s.barra} ${fixa ? s.barraFixa : ""} ${className}`}>
       {itens.map((it) => {
-        const Tag = it.href?.startsWith("/") ? Link : "a";
+        // Com `onClick` a aba é um botão (abre uma folha na mesma tela); com `href`, um link.
+        const Tag = it.onClick ? "button" : it.href?.startsWith("/") ? Link : "a";
+        const extra = it.onClick ? { type: "button", onClick: it.onClick } : { href: it.href || "#" };
         return (
-          <Tag key={it.rotulo} href={it.href || "#"} aria-current={it.atual ? "page" : undefined} className={`${s.aba} ${it.atual ? s.abaAtual : ""}`}>
+          <Tag key={it.rotulo} {...extra} aria-current={it.atual ? "page" : undefined} className={`${s.aba} ${it.atual ? s.abaAtual : ""}`}>
             <span className={s.abaIcone}>
               <Icone nome={it.icone} tamanho={22} />
             </span>

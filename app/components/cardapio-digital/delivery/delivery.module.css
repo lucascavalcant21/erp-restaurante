@@ -1,0 +1,346 @@
+/*
+ * Início do delivery (protótipo DeliveryInicio.dc.html), celular primeiro.
+ * Mesmas travas da base: só variáveis --cd-*, fundo escuro com texto branco.
+ */
+
+.pagina {
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--cd-branco);
+  color: var(--cd-texto);
+  padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Capa */
+.capa {
+  position: relative;
+  height: 170px;
+  background: var(--cd-foto-vazia-escura);
+  color: var(--cd-branco);
+  overflow: hidden;
+}
+.capaImagem {
+  /* sem-texto */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.capaBotoes {
+  position: absolute;
+  right: 14px;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  display: flex;
+  gap: 8px;
+}
+.idioma {
+  height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border-radius: 22px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--cd-texto);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Loja */
+.loja {
+  position: relative;
+  margin-top: -22px;
+  background: var(--cd-branco);
+  border-radius: 22px 22px 0 0;
+  padding: 0 16px 14px;
+}
+.lojaLinha {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.logo {
+  box-sizing: content-box;
+  margin-top: -34px;
+  width: 76px;
+  height: 76px;
+  border-radius: 38px;
+  background: var(--cd-principal);
+  border: 4px solid var(--cd-branco);
+  color: var(--cd-branco);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.logoImagem {
+  /* sem-texto */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--cd-branco);
+}
+.lojaTextos {
+  display: flex;
+  flex-direction: column;
+  padding-top: 10px;
+  flex-grow: 1;
+  min-width: 0;
+}
+.lojaNome {
+  margin: 0;
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cd-aberto);
+}
+.statusFechado {
+  color: var(--cd-pimenta-texto);
+}
+.statusPonto {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cd-aberto-ponto);
+  flex-shrink: 0;
+}
+.statusFechado .statusPonto {
+  /* sem-texto */
+  background: var(--cd-badge);
+}
+.info {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cd-texto-medio);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.entrega {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--cd-texto-secundario);
+}
+.entregaForte {
+  color: var(--cd-aberto);
+  font-weight: 600;
+}
+
+/* Conteúdo */
+.corpo {
+  padding: 12px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.aviso {
+  padding: 10px 12px;
+  border-radius: var(--cd-raio-m);
+  background: var(--cd-alerta-fundo);
+  color: var(--cd-alerta-texto);
+  font-size: 13px;
+}
+
+/* Faixa de chips (gruda no topo ao rolar) */
+.chips {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 -16px;
+  padding: 8px 16px;
+  background: var(--cd-branco);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar {
+  display: none;
+}
+.busca {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--cd-raio-m);
+  border: 1px solid var(--cd-borda-forte);
+  color: var(--cd-texto-secundario);
+}
+.busca input {
+  flex-grow: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  font: inherit;
+  font-size: 14px;
+  color: var(--cd-texto);
+  background: transparent;
+}
+.fecharBusca {
+  border: 0;
+  background: none;
+  color: var(--cd-texto);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+/* Seções e pratos */
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-margin-top: 64px;
+}
+.secaoTitulo {
+  margin: 0;
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+}
+/* Sem foto o card é só texto, sem altura mínima (9.3 da spec). */
+.prato,
+.prato:hover {
+  overflow: hidden;
+  text-align: left;
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.pratoComFoto {
+  min-height: 118px;
+}
+.pratoTextos {
+  flex-grow: 1;
+  min-width: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pratoNome {
+  font-size: 15px;
+  font-weight: 600;
+}
+.pratoDesc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--cd-texto-secundario);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pratoPreco {
+  margin-top: auto;
+}
+.pratoQtd {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cd-principal);
+}
+.vazio {
+  padding: 28px 8px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--cd-texto-secundario);
+}
+.rodape {
+  padding: 18px 0 8px;
+  font-size: 11px;
+  color: var(--cd-texto-secundario);
+  text-align: center;
+}
+
+/* Sacola e barra fixas */
+.base {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+.baseCaixa {
+  position: relative;
+  max-width: 480px;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+.sacola {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  height: 54px;
+  border-radius: var(--cd-raio-g);
+  border: 0;
+  background: var(--cd-principal);
+  color: var(--cd-branco);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: var(--cd-sombra-sacola);
+  cursor: pointer;
+}
+.sacolaQtd {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--cd-branco);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.sacolaEsq {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.barra {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: rgba(255, 255, 255, 0.96);
+}

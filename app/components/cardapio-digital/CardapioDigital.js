@@ -30,6 +30,9 @@ import {
 } from "../../lib/cardapio-digital.mjs";
 import { IDIOMAS, TEXTOS_PADRAO, detectarIdioma, infoIdioma, t } from "../../lib/cardapio-idiomas.mjs";
 import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, Selos } from "./partes";
+import DeliveryInicio from "./delivery/DeliveryInicio";
+import { TemaCardapio } from "./ui";
+import { caminhoDoCadastro } from "../../lib/cardapio-link.mjs";
 import Conversa from "./Conversa";
 import Pedido from "./Pedido";
 import { CartaoFidelidade, DetalheFidelidade, cartoesDoPrato } from "./Fidelidade";
@@ -119,10 +122,12 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const fecharAviso = useCallback(() => setAviso(null), []);
   const pratoInicialAberto = useRef(false);
   const lateral = useMidia(LATERAL);
-  const largo = useMidia(LARGO);
+  const largoTela = useMidia(LARGO);
   const celular = useMidia(CELULAR);
   const podePedir = !previa;
   const modo = mesa ? "mesa" : "delivery";
+  // Pedido ao lado só na mesa (tablet deitado). No delivery novo a sacola é sempre uma folha.
+  const largo = largoTela && modo === "mesa";
   const tipoPedido = mesa ? "qrcode" : "delivery";
   const chaveCarrinho = chave(unidadeId, `carrinho:${mesa || "delivery"}`);
 
@@ -513,7 +518,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
 
   // ── estados sem cardápio ─────────────────────────────────────────────────
   if (!cardapio) {
-    const cores = { "--c-fundo": "#f6f1e8", "--c-texto": "#221c16", "--c-suave": "#6b6259", "--c-primaria": "#9a3412", "--c-sobre": "#fff", "--c-cartao": "#fffdf8", "--c-linha": "#e4ddd2", "--c-destaque": "#9a3412", "--c-primaria-suave": "#f3e7dd" };
+    const cores = { "--c-fundo": "#f4f4f4", "--c-texto": "#1a1a1a", "--c-suave": "#5c5c5c", "--c-primaria": "#14532d", "--c-sobre": "#fff", "--c-cartao": "#ffffff", "--c-linha": "#e3e3e3", "--c-destaque": "#14532d", "--c-primaria-suave": "#eaf4ee" };
     const T0 = (k) => t(idioma, k);
     return (
       <div className={s.raiz} style={cores}>
@@ -576,7 +581,23 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       : p.etapa === "entregue" ? T("st_entregue") : p.etapa === "cancelado" ? T("st_cancelado") : T("st_andamento"));
 
   return (
-    <div className={`${s.raiz} ${modo === "mesa" ? s.modoMesa : s.modoDelivery} ${celular ? s.comNav : ""}`} style={estilo} data-fonte={tema.fonte} lang={infoIdioma(lingua).lang} data-cardapio="">
+    <div className={`${s.raiz} ${modo === "mesa" ? s.modoMesa : s.modoDelivery} ${celular && modo === "mesa" ? s.comNav : ""}`} style={estilo} data-fonte={tema.fonte} lang={infoIdioma(lingua).lang} data-cardapio="">
+      {modo === "delivery" ? (
+        <TemaCardapio cor={tema.cor_primaria}>
+          <DeliveryInicio
+            cardapio={cardapio} idioma={lingua} carrinho={carrinho} totalSacola={totalCarrinho.total || 0}
+            offline={estado === "offline" ? T("sem_internet", { hora: cacheEm ? hora(cacheEm) : "—" }) : ""}
+            secaoAtiva={secaoAtiva} busca={busca} buscaAberta={buscaAberta} onBusca={setBusca}
+            onAbrirBusca={() => setBuscaAberta(true)} onFecharBusca={() => { setBusca(""); setBuscaAberta(false); }}
+            resultados={resultados} filtrando={filtrando} onAbrirPrato={abrirPrato} onIrSecao={irParaSecao}
+            onAbrirSacola={() => setFolha("pedido")} onAbrirIdiomas={() => setFolha("idiomas")} temIdiomas={idiomasOferecidos.length > 1}
+            onAbrirInfo={() => setFolha("info")} temInfo={temInfo} onAjuda={() => abrirConversa()} temAjuda={conversaLigada}
+            onAbrirPedidos={() => setFolha("pedidos")} qtdPedidos={meusPedidos.length}
+            onAbrirDescontos={() => setFolha("fidelidade")} temDescontos={Boolean(cardapio.fidelidade)}
+            linkCadastro={caminhoDoCadastro(unidadeId)} visitante={!cadastroLocal && !fidStatus?.identificado} podePedir={podePedir}
+          />
+        </TemaCardapio>
+      ) : (<>
       {tema.fundo_imagem_url ? <div className={s.fundoImagem} style={{ backgroundImage: `url("${tema.fundo_imagem_url}")`, opacity: tema.fundo_opacidade }} aria-hidden="true" /> : null}
       <div className={s.casca}>
         {/* lateral: celular deitado, tablet e computador */}
@@ -824,6 +845,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           <button type="button" className={s.navBotao} onClick={() => setFolha("pedido")} disabled={!podePedir} data-sacola=""><ShoppingBag size={22} aria-hidden="true" />{T("sacola")}{qtdTotal ? <span key={qtdTotal} className={`${s.contagem} ${s.contagemPula}`}>{qtdTotal}</span> : null}</button>
         </nav>
       ) : null}
+      </>)}
 
       {folha === "pedido" && !largo ? (
         <Pedido cardapio={cardapio} carrinho={carrinho} etapa={etapa} setEtapa={setEtapa} mesa={mesa} form={form} setForm={setForm}

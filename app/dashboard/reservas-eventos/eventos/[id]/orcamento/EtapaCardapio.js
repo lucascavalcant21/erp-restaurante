@@ -227,11 +227,13 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-stretch">
         <div className="col-span-2 rounded-xl bg-slate-50 p-2.5 sm:col-span-1">
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : "Porções por pessoa"}</span>
-            {!ehBar && (
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? "Quantidade no evento" : ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : "Porções por pessoa"}</span>
+            {(
               <span className="inline-flex rounded-lg bg-white p-0.5 ring-1 ring-slate-200" role="radiogroup" aria-label="Medir por">
-                {[["porcao", "porções"], ["g", "gramas"]].map(([m, rot]) => {
-                  const ativo = (m === "g") === !!item.emGramas;
+                {/* "total": quantidade fechada para o evento (2 bolos, 30 sanduíches, 1 suco de 2 L) */}
+                {(ehBar ? [["porcao", "por pessoa"], ["total", "total"]] : [["porcao", "porções"], ["g", "gramas"], ["total", "total"]]).map(([m, rot]) => {
+                  const atual = item.emTotal ? "total" : item.emGramas ? "g" : "porcao";
+                  const ativo = m === atual;
                   return (
                     <button key={m} type="button" role="radio" aria-checked={ativo} onClick={() => alterarItem({ medida: m })}
                       className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${ativo ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}>{rot}</button>
@@ -240,7 +242,16 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
               </span>
             )}
           </div>
-          {item.emGramas
+          {item.emTotal ? (
+            <div className="space-y-1.5">
+              <Numero valor={item.quantidade_total} onChange={(v) => alterarItem({ quantidade_total: v })} sufixo={item.pesoPorcao > 0 ? `× ${item.pesoPorcao} ${ehBar ? "ml" : "g"}` : "porções"} aria-label="Quantidade para o evento" />
+              <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                Dividir em {ehBar ? "copos" : "fatias"} de
+                <span className="w-24"><Numero valor={item.fatia_g} onChange={(v) => alterarItem({ fatia_g: v })} sufixo={ehBar ? "ml" : "g"} aria-label={ehBar ? "Tamanho do copo" : "Peso da fatia"} /></span>
+              </label>
+              {item.fatias != null && <span className="block text-xs font-black text-emerald-800">Dá {item.fatias.toLocaleString("pt-BR")} {ehBar ? "copos" : "fatias"}{convidados > 0 ? ` · ${(item.fatias / convidados).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} por pessoa` : ""}</span>}
+            </div>
+          ) : item.emGramas
             ? <Numero valor={item.gramas_por_pessoa} onChange={(v) => alterarItem({ gramas_por_pessoa: v })} sufixo="g" aria-label="Gramas por pessoa" />
             : <Numero valor={item.por_pessoa} onChange={(v) => alterarItem({ por_pessoa: v })} aria-label={ehBar ? "Doses por pessoa" : "Porções por pessoa"} />}
           {item.emGramas && item.pesoPorcao > 0 && <span className="mt-1 block text-[11px] font-medium text-slate-500">= {item.porPessoa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} porção de {item.pesoPorcao} g</span>}
@@ -250,8 +261,9 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
           <span className={`mt-2 block text-base font-black tabular-nums ${item.semCusto ? "text-amber-700" : "text-slate-900"}`}>{item.semCusto ? "sem custo" : fmtReais(item.custoPorcao)}</span>
         </div>
         <div className="rounded-xl bg-slate-50 p-2.5">
-          <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-600">Custo por pessoa</span>
-          <span className="mt-2 block text-base font-black tabular-nums text-slate-900">{fmtReais(item.custoPorPessoa)}</span>
+          <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? "Custo total" : "Custo por pessoa"}</span>
+          <span className="mt-2 block text-base font-black tabular-nums text-slate-900">{fmtReais(item.emTotal ? item.custoTotalFixo : item.custoPorPessoa)}</span>
+          {item.emTotal && convidados > 0 && item.custoTotalFixo > 0 && <span className="block text-[11px] font-bold text-slate-500">{fmtReais(item.custoTotalFixo / convidados)} por pessoa</span>}
         </div>
         {exclusiva && (
           <button type="button" onClick={alternar} aria-expanded={aberto}
@@ -328,7 +340,7 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
             {resumo.itens.map((i) => (
               <div key={i.id} className="flex items-baseline justify-between gap-3 py-1.5">
                 <span className="min-w-0 truncate text-sm font-semibold text-slate-700">{i.nome} <span className="text-xs font-medium text-slate-500">· {SECOES[i.secao].rotulo}</span></span>
-                <span className="whitespace-nowrap text-sm font-bold tabular-nums text-slate-900">{fmtReais(i.custoPorPessoa)}</span>
+                <span className="whitespace-nowrap text-sm font-bold tabular-nums text-slate-900">{i.emTotal ? <>{resumo.pessoasConsumo > 0 ? fmtReais(i.custoTotalFixo / resumo.pessoasConsumo) : "—"} <span className="text-xs font-medium text-slate-500">({fmtReais(i.custoTotalFixo)} no total)</span></> : fmtReais(i.custoPorPessoa)}</span>
               </div>
             ))}
             <div className="flex items-baseline justify-between gap-3 pt-2">
@@ -344,7 +356,23 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
               </div>
             )}
           </div>
-          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto. Entra no custo e na lista de compras." className="mt-4 max-w-xs">
+          {/* Conta do ticket (pedido do dono, 28/10/2026): "gasto R$ 100 para servir
+              40 pessoas, sai tanto por pessoa, e quero vender por R$ 35". */}
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
+            <p className="text-sm font-black text-slate-900">Ticket por pessoa</p>
+            <div className="mt-2 flex flex-wrap items-end gap-3">
+              <label className="w-36 text-[11px] font-bold uppercase tracking-wide text-slate-600">Vender a
+                <Numero valor={orc.financeiro?.preco_por_pessoa || ""} onChange={(v) => setOrc((o) => ({ ...o, financeiro: { ...o.financeiro, preco_por_pessoa: v } }))} sufixo="R$/pessoa" aria-label="Ticket por pessoa" />
+              </label>
+              {resumo.convidados > 0 && resumo.cmv > 0 ? (
+                <p className="text-sm font-semibold text-slate-700">
+                  Gasto <b>{fmtReais(resumo.cmv)}</b> para servir <b>{resumo.convidados}</b> pessoas = <b>{fmtReais(resumo.cmv / resumo.convidados)}</b> por pessoa.
+                  {Number(resumo.precoPorPessoa) > 0 && <> Vendendo a <b>{fmtReais(resumo.precoPorPessoa)}</b>, sobram <b className={resumo.precoPorPessoa - resumo.cmv / resumo.convidados < 0 ? "text-red-700" : "text-emerald-800"}>{fmtReais(resumo.precoPorPessoa - resumo.cmv / resumo.convidados)}</b> por pessoa ({fmtReais(resumo.receita - resumo.cmv)} no evento) antes de equipe, aluguel e taxas — o lucro limpo sai na etapa de custos.</>}
+                </p>
+              ) : <p className="text-xs font-semibold text-slate-500">Informe as pessoas e os itens para ver o custo por pessoa.</p>}
+            </div>
+          </div>
+          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto (não vale para itens em quantidade fechada). Entra no custo e na lista de compras." className="mt-4 max-w-xs">
             <Numero valor={orc.sobra_pct} onChange={(v) => setOrc((o) => ({ ...o, sobra_pct: v }))} sufixo="%" />
           </Campo>
         </Cartao>

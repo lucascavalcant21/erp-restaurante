@@ -43,3 +43,34 @@ test("textos do delivery nos 8 idiomas, com variáveis", () => {
   assert.equal(textoDelivery("xx", "inicio"), "Início");
   for (const k of CHAVES_DELIVERY) assert.doesNotMatch(textoDelivery("en", k), /\boff\b/i);
 });
+
+const sacola = {
+  categorias: [
+    { id: "g", papel: "comida", produto_ids: ["picanha"] },
+    { id: "s", papel: "sobremesa", produto_ids: ["mousse", "pudim"] },
+    { id: "b", papel: "bebida", produto_ids: ["suco", "chope"] },
+  ],
+  produtos: [
+    { id: "picanha", nome: "Picanha", preco: 89.9, categoria_id: "g" },
+    { id: "mousse", nome: "Mousse", preco: 15, categoria_id: "s" },
+    { id: "pudim", nome: "Pudim", preco: 18, categoria_id: "s", destaque: true },
+    { id: "suco", nome: "Suco", preco: 12, preco_original: 14, categoria_id: "b" },
+    { id: "chope", nome: "Chope", preco: 14, categoria_id: "b" },
+  ],
+};
+
+test("sugestões da sacola: 1 bebida e 1 sobremesa, destaque primeiro, sem repetir o dispensado", async () => {
+  const { sugestoesDaSacola } = await import("./cardapio-delivery.mjs");
+  const s1 = sugestoesDaSacola([{ id: "picanha", quantidade: 1 }], sacola);
+  assert.deepEqual(s1.map((x) => [x.papel, x.id]), [["bebida", "suco"], ["sobremesa", "pudim"]]);
+  assert.equal(s1[0].de, 14);
+  const s2 = sugestoesDaSacola([{ id: "picanha", quantidade: 1 }, { id: "chope", quantidade: 1 }], sacola, { dispensados: ["pudim"] });
+  assert.deepEqual(s2.map((x) => x.id), ["mousse"], "já tem bebida; pudim dispensado");
+  assert.deepEqual(sugestoesDaSacola([], sacola), []);
+});
+
+test("linhas da sacola: só pratos que existem, com o total do item", async () => {
+  const { linhasDaSacola } = await import("./cardapio-delivery.mjs");
+  const l = linhasDaSacola([{ id: "picanha", quantidade: 2, observacao: "ao ponto" }, { id: "sumiu", quantidade: 1 }], sacola);
+  assert.deepEqual(l, [{ id: "picanha", nome: "Picanha", foto: "", quantidade: 2, observacao: "ao ponto", total: 179.8 }]);
+});

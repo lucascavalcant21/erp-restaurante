@@ -3,6 +3,24 @@
 import { useEffect, useState } from "react";
 import { TemaCardapio } from "../../../components/cardapio-digital/ui";
 import DeliveryInicio from "../../../components/cardapio-digital/delivery/DeliveryInicio";
+import DeliverySacola from "../../../components/cardapio-digital/delivery/DeliverySacola";
+
+// Sacola de exemplo (protótipo DeliveryCarrinho), em ?tela=sacola.
+const SACOLA = {
+  ...{ idioma: "pt", unidade: { nome: "Casa Brasa", delivery_aberto: true, taxa_entrega: 6 }, entrega: { pedido_minimo: 30 }, tema: { cor_primaria: "#14532D" }, textos: {}, banner: [], promocoes: [] },
+  categorias: [
+    { id: "g", nome: "Grelhados", papel: "comida", produto_ids: ["picanha", "tacaca"] },
+    { id: "s", nome: "Sobremesas", papel: "sobremesa", produto_ids: ["pudim"] },
+    { id: "b", nome: "Bebidas", papel: "bebida", produto_ids: ["cupuacu"] },
+  ],
+  produtos: [
+    { id: "picanha", nome: "Picanha na brasa", preco: 89.9, categoria_id: "g" },
+    { id: "tacaca", nome: "Tacacá", preco: 32, categoria_id: "g" },
+    { id: "pudim", nome: "Pudim de leite", preco: 18, categoria_id: "s" },
+    { id: "cupuacu", nome: "Suco de cupuaçu", preco: 12, categoria_id: "b" },
+  ],
+};
+const CARRINHO = [{ id: "picanha", quantidade: 1, observacao: "Ao ponto · sem cebola" }, { id: "tacaca", quantidade: 1 }];
 
 // Cardápio de exemplo no formato que o servidor manda (montarCardapioPublico),
 // com os pratos e promoções do protótipo DeliveryInicio.
@@ -37,14 +55,28 @@ const EXEMPLO = {
 
 export default function VitrineDelivery() {
   const [cardapio, setCardapio] = useState(null);
+  const [tela, setTela] = useState("");
+  const [carrinho, setCarrinho] = useState(CARRINHO);
   const [busca, setBusca] = useState("");
   const [buscaAberta, setBuscaAberta] = useState(false);
   useEffect(() => {
-    const real = new URLSearchParams(window.location.search).get("real") === "1";
+    const q = new URLSearchParams(window.location.search);
+    setTela(q.get("tela") || "");
+    const real = q.get("real") === "1";
     if (!real) { setCardapio(EXEMPLO); return; }
     fetch("/dev-cardapio/cardapio-real.json").then((r) => r.json()).then(setCardapio).catch(() => setCardapio(EXEMPLO));
   }, []);
   if (!cardapio) return null;
+  if (tela === "sacola") {
+    return (
+      <TemaCardapio cor="#14532D">
+        <DeliverySacola cardapio={SACOLA} carrinho={carrinho} onVoltar={() => {}} onContinuar={() => {}} onAbrirPrato={() => {}}
+          alterarQtd={(id, d) => setCarrinho((c) => c.map((i) => (i.id === id ? { ...i, quantidade: i.quantidade + d } : i)))}
+          remover={(id) => setCarrinho((c) => c.filter((i) => i.id !== id))}
+          adicionar={(id) => setCarrinho((c) => [...c, { id, quantidade: 1 }])} />
+      </TemaCardapio>
+    );
+  }
   const termo = busca.trim().toLowerCase();
   const resultados = termo ? cardapio.produtos.filter((p) => p.nome.toLowerCase().includes(termo)) : [];
   return (

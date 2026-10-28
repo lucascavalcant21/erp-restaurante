@@ -30,6 +30,19 @@ const T = {
   nada: { pt: "Nada encontrado com esse nome.", en: "Nothing found with that name.", es: "No encontramos nada con ese nombre.", it: "Niente con questo nome.", fr: "Rien trouvé avec ce nom.", zh: "没有找到相关菜品。", ja: "見つかりませんでした。", ko: "검색 결과가 없습니다." },
   sem_pratos: { pt: "O cardápio está sendo montado. Volte daqui a pouco.", en: "The menu is being prepared. Please come back soon.", es: "Estamos armando el menú. Vuelve pronto.", it: "Il menù è in preparazione. Torna presto.", fr: "Le menu est en préparation. Revenez bientôt.", zh: "菜单准备中，请稍后再来。", ja: "メニューを準備中です。", ko: "메뉴를 준비 중입니다." },
   no_pedido: { pt: "{n} na sacola", en: "{n} in bag", es: "{n} en la bolsa", it: "{n} nel carrello", fr: "{n} au panier", zh: "已加入 {n}", ja: "カートに{n}", ko: "{n}개 담김" },
+  sua_sacola: { pt: "Sua sacola", en: "Your bag", es: "Tu bolsa", it: "Il tuo carrello", fr: "Votre panier", zh: "购物袋", ja: "カート", ko: "장바구니" },
+  combina: { pt: "Combina com seu pedido", en: "Goes well with your order", es: "Combina con tu pedido", it: "Si abbina al tuo ordine", fr: "Va bien avec votre commande", zh: "搭配推荐", ja: "ご一緒にいかが", ko: "함께 곁들이기" },
+  para_acompanhar: { pt: "Para acompanhar", en: "To drink", es: "Para acompañar", it: "Da bere", fr: "Pour accompagner", zh: "配饮品", ja: "お飲み物", ko: "음료 추가" },
+  para_fechar: { pt: "Para fechar", en: "For dessert", es: "De postre", it: "Per dessert", fr: "Pour le dessert", zh: "来份甜点", ja: "デザートに", ko: "디저트" },
+  adicionar: { pt: "+ Adicionar", en: "+ Add", es: "+ Agregar", it: "+ Aggiungi", fr: "+ Ajouter", zh: "+ 添加", ja: "+ 追加", ko: "+ 담기" },
+  agora_nao: { pt: "Agora não", en: "Not now", es: "Ahora no", it: "Non ora", fr: "Pas maintenant", zh: "暂不需要", ja: "今はいい", ko: "다음에" },
+  total: { pt: "Total", en: "Total", es: "Total", it: "Totale", fr: "Total", zh: "合计", ja: "合計", ko: "합계" },
+  continuar: { pt: "Continuar", en: "Continue", es: "Continuar", it: "Continua", fr: "Continuer", zh: "继续", ja: "次へ", ko: "계속" },
+  voltar: { pt: "Voltar", en: "Back", es: "Volver", it: "Indietro", fr: "Retour", zh: "返回", ja: "戻る", ko: "뒤로" },
+  sacola_vazia: { pt: "Sua sacola está vazia.", en: "Your bag is empty.", es: "Tu bolsa está vacía.", it: "Il carrello è vuoto.", fr: "Votre panier est vide.", zh: "购物袋是空的。", ja: "カートは空です。", ko: "장바구니가 비어 있습니다." },
+  ver_cardapio: { pt: "Ver o cardápio", en: "See the menu", es: "Ver el menú", it: "Vedi il menù", fr: "Voir le menu", zh: "查看菜单", ja: "メニューを見る", ko: "메뉴 보기" },
+  falta_minimo: { pt: "Pedido mínimo de {minimo}: faltam {falta}.", en: "Minimum order {minimo}: {falta} to go.", es: "Pedido mínimo de {minimo}: faltan {falta}.", it: "Ordine minimo {minimo}: mancano {falta}.", fr: "Commande minimum {minimo} : il manque {falta}.", zh: "起送 {minimo}，还差 {falta}。", ja: "最低注文 {minimo}：あと {falta}", ko: "최소 주문 {minimo}: {falta} 남음" },
+  editar: { pt: "Editar", en: "Edit", es: "Editar", it: "Modifica", fr: "Modifier", zh: "编辑", ja: "編集", ko: "편집" },
 };
 
 export function textoDelivery(idioma, chave, vars = {}) {

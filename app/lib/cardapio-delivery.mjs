@@ -62,3 +62,44 @@ export function quantidadesNaSacola(carrinho = []) {
   for (const i of carrinho) m.set(i.id, (m.get(i.id) || 0) + (Number(i.quantidade) || 0));
   return m;
 }
+
+/**
+ * "Combina com seu pedido" (9P): no máximo 2 sugestões, uma por papel que
+ * falta na sacola (bebida, sobremesa), nunca algo que o cliente dispensou
+ * neste pedido. Sem regra de preço especial cadastrada, o preço é o normal.
+ * Prato em destaque vem antes; depois, a ordem da seção.
+ */
+export function sugestoesDaSacola(carrinho = [], cardapio, { dispensados = [] } = {}) {
+  if (!cardapio || !carrinho.length) return [];
+  const naSacola = new Set(carrinho.map((i) => i.id));
+  const fora = new Set(dispensados);
+  const papelDaCategoria = new Map((cardapio.categorias || []).map((c) => [c.id, c.papel]));
+  const porId = new Map((cardapio.produtos || []).map((p) => [p.id, p]));
+  const papeis = new Set([...naSacola].map((id) => papelDaCategoria.get(porId.get(id)?.categoria_id)));
+  const out = [];
+  for (const papel of ["bebida", "sobremesa"]) {
+    if (papeis.has(papel)) continue;
+    const candidatos = (cardapio.categorias || [])
+      .filter((c) => c.papel === papel)
+      .flatMap((c) => c.produto_ids.map((id, ordem) => ({ p: porId.get(id), ordem })))
+      .filter(({ p }) => p && !naSacola.has(p.id) && !fora.has(p.id))
+      .sort((a, b) => Number(!!b.p.destaque) - Number(!!a.p.destaque) || a.ordem - b.ordem);
+    if (candidatos.length) {
+      const p = candidatos[0].p;
+      out.push({ id: p.id, papel, nome: p.nome, preco: p.preco, de: p.preco_original > p.preco ? p.preco_original : undefined, foto: p.imagem_url || "" });
+    }
+  }
+  return out.slice(0, 2);
+}
+
+/** Itens da sacola com nome, foto e total (só para mostrar; quem cobra é o servidor). */
+export function linhasDaSacola(carrinho = [], cardapio) {
+  const porId = new Map((cardapio?.produtos || []).map((p) => [p.id, p]));
+  return carrinho
+    .map((i) => {
+      const p = porId.get(i.id);
+      if (!p) return null;
+      return { id: i.id, nome: p.nome, foto: p.imagem_url || "", quantidade: i.quantidade, observacao: i.observacao || "", total: Math.round(p.preco * i.quantidade * 100) / 100 };
+    })
+    .filter(Boolean);
+}

@@ -31,6 +31,7 @@ import {
 import { IDIOMAS, TEXTOS_PADRAO, detectarIdioma, infoIdioma, t } from "../../lib/cardapio-idiomas.mjs";
 import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, Selos } from "./partes";
 import DeliveryInicio from "./delivery/DeliveryInicio";
+import DeliverySacola from "./delivery/DeliverySacola";
 import { TemaCardapio } from "./ui";
 import { caminhoDoCadastro } from "../../lib/cardapio-link.mjs";
 import Conversa from "./Conversa";
@@ -847,7 +848,13 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       ) : null}
       </>)}
 
-      {folha === "pedido" && !largo ? (
+      {folha === "pedido" && modo === "delivery" && etapa === "carrinho" ? (
+        <TemaCardapio cor={tema.cor_primaria}>
+          <DeliverySacola cardapio={cardapio} idioma={lingua} carrinho={carrinho} onVoltar={() => setFolha("")}
+            onContinuar={() => setEtapa("dados")} alterarQtd={alterarQtd} remover={remover} adicionar={adicionar}
+            onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }} />
+        </TemaCardapio>
+      ) : folha === "pedido" && !largo ? (
         <Pedido cardapio={cardapio} carrinho={carrinho} etapa={etapa} setEtapa={setEtapa} mesa={mesa} form={form} setForm={setForm}
           erros={erros} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} resultado={resultado} nome={nome}
           alterarQtd={alterarQtd} definirObs={definirObs} remover={remover} adicionar={adicionar} cashback={infoCashback} onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }}

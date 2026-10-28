@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import { TemaCardapio } from "../../../components/cardapio-digital/ui";
 import DeliveryInicio from "../../../components/cardapio-digital/delivery/DeliveryInicio";
 import DeliverySacola from "../../../components/cardapio-digital/delivery/DeliverySacola";
+import { Abertura } from "../../../components/cardapio-digital/partes";
+import antigo from "../../../components/cardapio-digital/cardapio.module.css";
+
+// ?banner=1: os banners do dono (carrossel atual, com zoom lento) no topo.
+const SLIDES = [
+  { id: "b1", tipo: "imagem", url: "/dev-cardapio/tacaca.jpg", titulo: "Terça do Tacacá", texto: "Só hoje, com 20% de desconto", acao: null },
+  { id: "b2", tipo: "imagem", url: "/dev-cardapio/tacaca.jpg", titulo: "Happy hour", texto: "Das 17h às 20h", acao: null },
+];
+const CORES_ANTIGAS = { "--c-primaria": "#14532d", "--c-sobre": "#fff", "--c-fundo": "#f4f4f4", "--c-texto": "#1a1a1a", "--c-suave": "#5c5c5c", "--c-cartao": "#fff", "--c-linha": "#e3e3e3", "--c-destaque": "#14532d", "--c-primaria-suave": "#eaf4ee" };
 
 // Sacola de exemplo (protótipo DeliveryCarrinho), em ?tela=sacola.
 const SACOLA = {
@@ -61,7 +70,7 @@ export default function VitrineDelivery() {
   const [buscaAberta, setBuscaAberta] = useState(false);
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    setTela(q.get("tela") || "");
+    setTela(q.get("banner") === "1" ? "banner" : q.get("tela") || "");
     const real = q.get("real") === "1";
     if (!real) { setCardapio(EXEMPLO); return; }
     fetch("/dev-cardapio/cardapio-real.json").then((r) => r.json()).then(setCardapio).catch(() => setCardapio(EXEMPLO));
@@ -88,6 +97,7 @@ export default function VitrineDelivery() {
         secaoAtiva={cardapio.categorias[0]?.id} onAbrirPrato={() => {}} onIrSecao={() => {}} onAbrirSacola={() => {}}
         temIdiomas onAbrirIdiomas={() => {}} temInfo onAbrirInfo={() => {}} temAjuda onAjuda={() => {}}
         onAbrirPedidos={() => {}} temDescontos onAbrirDescontos={() => {}} qtdPedidos={0} linkCadastro="#" visitante
+        banners={tela === "banner" ? <div className={antigo.capa} style={{ height: "100%", ...CORES_ANTIGAS }}><Abertura slides={SLIDES} onAcao={() => {}} previa={false} idioma="pt" /></div> : null}
       />
     </TemaCardapio>
   );

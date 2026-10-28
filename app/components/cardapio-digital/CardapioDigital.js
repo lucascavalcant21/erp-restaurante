@@ -596,6 +596,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             onAbrirPedidos={() => setFolha("pedidos")} qtdPedidos={meusPedidos.length}
             onAbrirDescontos={() => setFolha("fidelidade")} temDescontos={Boolean(cardapio.fidelidade)}
             linkCadastro={caminhoDoCadastro(unidadeId)} visitante={!cadastroLocal && !fidStatus?.identificado} podePedir={podePedir}
+            banners={slides.length ? <div className={s.capa} style={{ height: "100%" }}><Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} /></div> : null}
           />
         </TemaCardapio>
       ) : (<>

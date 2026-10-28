@@ -23,6 +23,16 @@
   color: var(--cd-branco);
   overflow: hidden;
 }
+.capaComBanner {
+  height: 210px;
+}
+.zoomLento {
+  animation: kbLento 16s ease-in-out infinite;
+}
+@keyframes kbLento {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
 .capaImagem {
   /* sem-texto */
   position: absolute;
@@ -544,7 +554,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sugestao {
+  .sugestao,
+  .zoomLento {
     animation: none;
   }
 }

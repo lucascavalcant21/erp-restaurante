@@ -38,6 +38,7 @@ export default function DeliveryInicio({
   secaoAtiva, busca = "", buscaAberta = false, onBusca, onAbrirBusca, onFecharBusca, resultados = [], filtrando = false,
   onAbrirPrato, onIrSecao, onAbrirSacola, onAbrirIdiomas, temIdiomas, onAbrirInfo, temInfo, onAjuda, temAjuda,
   onAbrirPedidos, qtdPedidos = 0, onAbrirDescontos, temDescontos, linkCadastro, visitante = true, podePedir = true,
+  banners = null,
 }) {
   const T = (k, v) => textoDelivery(idioma, k, v);
   const { unidade, tema } = cardapio;
@@ -47,15 +48,19 @@ export default function DeliveryInicio({
   const agora = useMemo(() => itensAgoraNaCasa(cardapio, { rotuloDestaque: T("destaque") }), [cardapio, idioma]); // eslint-disable-line react-hooks/exhaustive-deps
   const convite = visitante ? conviteDoCadastro(cardapio.fidelidade) : null;
   const qtdSacola = carrinho.reduce((n, i) => n + i.quantidade, 0);
-  const capa = tema.capa_url || cardapio.banner?.find((b) => b.tipo !== "video")?.url || "";
+  // Banners do dono (fotos e vídeos que passam sozinhos, com zoom lento) vêm
+  // prontos do CardapioDigital; sem banner, a capa da loja com zoom lento.
+  const capa = tema.capa_url || "";
   const iniciaisLoja = String(unidade.nome || "").split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
   const aberto = unidade.delivery_aberto;
 
   return (
     <div className={s.pagina} lang={idioma}>
-      <div className={s.capa}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {capa ? <img className={s.capaImagem} src={capa} alt="" /> : null}
+      <div className={`${s.capa} ${banners ? s.capaComBanner : ""}`}>
+        {banners || (capa ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className={`${s.capaImagem} ${s.zoomLento}`} src={capa} alt="" />
+        ) : null)}
         <div className={s.capaBotoes}>
           {temIdiomas ? (
             <button type="button" className={s.idioma} onClick={onAbrirIdiomas} aria-label="Idioma · Language">

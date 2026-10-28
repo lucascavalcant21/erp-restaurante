@@ -77,7 +77,7 @@ export function sugestoesDaSacola(carrinho = [], cardapio, { dispensados = [] } 
   const porId = new Map((cardapio.produtos || []).map((p) => [p.id, p]));
   const papeis = new Set([...naSacola].map((id) => papelDaCategoria.get(porId.get(id)?.categoria_id)));
   const out = [];
-  for (const papel of ["bebida", "sobremesa"]) {
+  for (const papel of ["sobremesa", "bebida"]) {
     if (papeis.has(papel)) continue;
     const candidatos = (cardapio.categorias || [])
       .filter((c) => c.papel === papel)

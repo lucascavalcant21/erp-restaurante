@@ -447,6 +447,29 @@
   font-size: 14px;
   font-weight: 700;
 }
+.incentivo {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--cd-principal-clara);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.incentivoTexto {
+  font-size: 13px;
+  color: var(--cd-carrinho-texto);
+}
+.incentivoTrilho {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cd-branco);
+  overflow: hidden;
+}
+.incentivoBarra {
+  height: 8px;
+  background: var(--cd-principal); /* sem-texto */
+  transition: width 0.3s ease-out;
+}
 .sugestoesTitulo {
   margin: 0;
   font-size: 15px;
@@ -557,5 +580,8 @@
   .sugestao,
   .zoomLento {
     animation: none;
+  }
+  .incentivoBarra {
+    transition: none;
   }
 }

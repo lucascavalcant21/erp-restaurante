@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { formatarPreco, totalDoCarrinho } from "../../../lib/cardapio-digital.mjs";
 import { linhasDaSacola, sugestoesDaSacola } from "../../../lib/cardapio-delivery.mjs";
 import { textoDelivery } from "../../../lib/cardapio-textos-delivery.mjs";
-import { Botao, BotaoRedondo, Quantidade } from "../ui";
+import { Botao, BotaoRedondo, PalavraDesconto, Quantidade } from "../ui";
 import s from "./delivery.module.css";
 
 // Sacola do delivery (protótipo DeliveryCarrinho, 9.6 e 9P da spec).
@@ -13,7 +13,9 @@ import s from "./delivery.module.css";
 // Sugestões: no máximo 2, com "×" (agora não), adicionar com 1 toque e nunca
 // por cima da sacola. Com o "×", a mesma sugestão não volta neste pedido.
 
-export default function DeliverySacola({ cardapio, idioma = "pt", carrinho = [], onVoltar, onContinuar, alterarQtd, remover, adicionar, onAbrirPrato }) {
+// "incentivo" ({ faltam, percentual, progresso 0–1 }) vem de uma regra real do
+// painel ("Mais 1 prato = X% de DESCONTO", 9P); sem regra, o card não aparece.
+export default function DeliverySacola({ cardapio, idioma = "pt", carrinho = [], incentivo = null, onVoltar, onContinuar, alterarQtd, remover, adicionar, onAbrirPrato }) {
   const T = (k, v) => textoDelivery(idioma, k, v);
   const [dispensados, setDispensados] = useState([]);
   const linhas = useMemo(() => linhasDaSacola(carrinho, cardapio), [carrinho, cardapio]);
@@ -51,6 +53,8 @@ export default function DeliverySacola({ cardapio, idioma = "pt", carrinho = [],
             </div>
           ))}
 
+          {linhas.length && incentivo?.faltam > 0 ? <Incentivo {...incentivo} idioma={idioma} T={T} /> : null}
+
           {sugestoes.length ? (
             <section aria-labelledby="t-sug" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <h2 id="t-sug" className={s.sugestoesTitulo}>{T("combina")}</h2>
@@ -61,11 +65,11 @@ export default function DeliverySacola({ cardapio, idioma = "pt", carrinho = [],
                     {g.foto ? <img className={s.sugestaoFoto} src={g.foto} alt="" /> : <span className={s.sugestaoFoto} aria-hidden="true" />}
                     <button type="button" className={s.dispensar} aria-label={`${T("agora_nao")}: ${g.nome}`} onClick={() => setDispensados((d) => [...d, g.id])}>×</button>
                     <div className={s.sugestaoCorpo}>
-                      <span className={s.sugestaoMotivo}>{g.papel === "bebida" ? T("para_acompanhar") : T("para_fechar")}</span>
+                      <span className={s.sugestaoMotivo}>{g.papel === "bebida" ? T("sem_bebida") : T("sem_sobremesa")}</span>
                       <span className={s.sugestaoNome}>{g.nome}</span>
                       <span className={s.sugestaoPreco}>
                         {g.de ? <><span className={s.riscado}>{formatarPreco(g.de, idioma)}</span> </> : null}
-                        <strong>{formatarPreco(g.preco, idioma)}</strong>
+                        <strong>{g.complemento ? `+ ${formatarPreco(g.preco, idioma)}` : formatarPreco(g.preco, idioma)}</strong>
                       </span>
                       <button type="button" className={s.sugestaoAdicionar} onClick={() => adicionar(g.id)}>{T("adicionar")}</button>
                     </div>
@@ -86,6 +90,21 @@ export default function DeliverySacola({ cardapio, idioma = "pt", carrinho = [],
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+// "Mais 1 prato e você ganha 10% de DESCONTO no pedido." + barra (protótipo).
+function Incentivo({ faltam, percentual, progresso = 0, idioma, T }) {
+  const qtd = faltam === 1 ? T("um_prato") : T("n_pratos", { n: faltam });
+  const [antes, depois = ""] = T("incentivo", { qtd: "\u0001", pct: `\u0002${percentual}` }).split("{desconto}");
+  const [a1, resto = ""] = antes.split("\u0001");
+  const [a2, pct = ""] = resto.split("\u0002");
+  const largura = `${Math.round(Math.min(1, Math.max(0, progresso)) * 100)}%`;
+  return (
+    <div className={s.incentivo} role="status">
+      <span className={s.incentivoTexto}>{a1}<strong>{qtd}</strong>{a2}<strong>{pct}<PalavraDesconto idioma={idioma} espacoAntes={false} /></strong>{depois}</span>
+      <div className={s.incentivoTrilho} aria-hidden="true"><div className={s.incentivoBarra} style={{ width: largura }} /></div>
     </div>
   );
 }

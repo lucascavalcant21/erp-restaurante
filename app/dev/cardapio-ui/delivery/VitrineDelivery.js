@@ -79,7 +79,7 @@ export default function VitrineDelivery() {
   if (tela === "sacola") {
     return (
       <TemaCardapio cor="#14532D">
-        <DeliverySacola cardapio={SACOLA} carrinho={carrinho} onVoltar={() => {}} onContinuar={() => {}} onAbrirPrato={() => {}}
+        <DeliverySacola cardapio={SACOLA} carrinho={carrinho} incentivo={{ faltam: 1, percentual: 10, progresso: 0.66 }} onVoltar={() => {}} onContinuar={() => {}} onAbrirPrato={() => {}}
           alterarQtd={(id, d) => setCarrinho((c) => c.map((i) => (i.id === id ? { ...i, quantidade: i.quantidade + d } : i)))}
           remover={(id) => setCarrinho((c) => c.filter((i) => i.id !== id))}
           adicionar={(id) => setCarrinho((c) => [...c, { id, quantidade: 1 }])} />

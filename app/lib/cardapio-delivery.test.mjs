@@ -62,8 +62,8 @@ const sacola = {
 test("sugestões da sacola: 1 bebida e 1 sobremesa, destaque primeiro, sem repetir o dispensado", async () => {
   const { sugestoesDaSacola } = await import("./cardapio-delivery.mjs");
   const s1 = sugestoesDaSacola([{ id: "picanha", quantidade: 1 }], sacola);
-  assert.deepEqual(s1.map((x) => [x.papel, x.id]), [["bebida", "suco"], ["sobremesa", "pudim"]]);
-  assert.equal(s1[0].de, 14);
+  assert.deepEqual(s1.map((x) => [x.papel, x.id]), [["sobremesa", "pudim"], ["bebida", "suco"]]);
+  assert.equal(s1[1].de, 14);
   const s2 = sugestoesDaSacola([{ id: "picanha", quantidade: 1 }, { id: "chope", quantidade: 1 }], sacola, { dispensados: ["pudim"] });
   assert.deepEqual(s2.map((x) => x.id), ["mousse"], "já tem bebida; pudim dispensado");
   assert.deepEqual(sugestoesDaSacola([], sacola), []);

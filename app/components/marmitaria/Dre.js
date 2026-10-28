@@ -114,7 +114,23 @@ export default function Dre() {
             <Indicador rotulo="Lucro líquido gerencial" valor={ind.lucroLiquido} natureza={r.dre.natureza} nota={ind.margemLiquidaPct !== null ? `margem ${pctTxt(ind.margemLiquidaPct)}` : null} destaque />
             <Indicador rotulo="Ponto de equilíbrio" valor={ind.pontoEquilibrio} natureza={r.dre.natureza} nota={ind.pontoEquilibrioMarmitas ? `${ind.pontoEquilibrioMarmitas} marmitas no mês` : ind.motivoPontoEquilibrio} />
           </div>
-          {r.dre.alertas.map((a) => <Aviso key={a} tipo="alerta">{a}</Aviso>)}
+          {/* Avisos num quadro só, com o atalho de cada um (pedido do dono, 28/10/2026: "melhore a marmitaria"). */}
+          {r.dre.alertas.length > 0 && (
+            <div className="rounded-2xl border border-hf-warning/30 bg-hf-warning/5 p-4">
+              <p className="text-sm font-black text-hf-text">O que falta para o resultado ficar completo</p>
+              <ul className="mt-2 space-y-1.5">
+                {r.dre.alertas.map((a) => {
+                  const atalho = /venda/i.test(a) ? ["Lançar vendas", "/dashboard/marmitaria/financeiro?aba=vendas"] : /CMO|funcion/i.test(a) ? ["Alocar funcionários", "/dashboard/marmitaria/funcionarios"] : /CMV real/i.test(a) ? ["Fazer contagem", "/dashboard/operacao/estoque/contagens"] : /tribut|imposto/i.test(a) ? ["Preencher impostos", "/dashboard/financeiro/resultado"] : null;
+                  return (
+                    <li key={a} className="flex flex-wrap items-center justify-between gap-2 text-sm text-hf-text-2">
+                      <span className="min-w-0 flex-1">• {a}</span>
+                      {atalho && <a href={atalho[1]} className="shrink-0 rounded-lg border border-hf-border bg-hf-surface px-2.5 py-1 text-xs font-bold text-hf-accent hover:bg-hf-elevated">{atalho[0]}</a>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
           {duplicidadesDeFonte(r.vendas).map((d) => (
             <Aviso key={d.data} tipo="alerta">Possível duplicidade em {new Date(`${d.data}T12:00:00`).toLocaleDateString("pt-BR")}: há {brl(d.valorManual)} de iFood lançado à mão e {brl(d.valorAutomatico)} que chegou sozinho do iFood. Se for o mesmo movimento, exclua o lançamento manual em Vendas.</Aviso>
           ))}

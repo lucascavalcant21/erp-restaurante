@@ -60,7 +60,10 @@ export default function DeliveryInicio({
         {banners || (capa ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img className={`${s.capaImagem} ${s.zoomLento}`} src={capa} alt="" />
-        ) : null)}
+        ) : (
+          // Sem capa cadastrada: degradê na cor da casa, com brilho andando devagar.
+          <span className={s.capaSemFoto} aria-hidden="true"><span className={s.capaBrilho} /></span>
+        ))}
         <div className={s.capaBotoes}>
           {temIdiomas ? (
             <button type="button" className={s.idioma} onClick={onAbrirIdiomas} aria-label="Idioma · Language">

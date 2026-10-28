@@ -37,3 +37,21 @@ test("retirada e formas vêm desligadas/padrão até o dono escolher", () => {
   const e = normalizarConfigCardapio({ entrega: { retirada: true, formas: ["pix", "x", "vale"] } }).entrega;
   assert.deepEqual([e.retirada, e.formas], [true, ["pix", "vale"]]);
 });
+
+test("resumo do checkout: motivo explícito, retirada sem taxa e troco menor que o total", async () => {
+  const { resumoDoCheckout } = await import("./cardapio-checkout.mjs");
+  const cardapio = { unidade: { taxa_entrega: 6 }, entrega: { pedido_minimo: 30 }, produtos: [{ id: "a", preco: 20 }] };
+  const form = { nome: "Ana", telefone: "(91) 98888-7777", endereco: "Rua 1", troco: "" };
+  const base = { cardapio, carrinho: [{ id: "a", quantidade: 2 }], tipo: "delivery", pagamento: "cartao", form };
+  const r = resumoDoCheckout(base);
+  assert.equal(r.subtotal, 40);
+  assert.equal(r.taxa, 6);
+  assert.equal(r.total, 46);
+  assert.ok(r.pode);
+  assert.equal(resumoDoCheckout({ ...base, tipo: "retirada", form: { ...form, endereco: "" } }).taxa, 0, "retirada não paga entrega");
+  assert.equal(resumoDoCheckout({ ...base, form: { ...form, endereco: " " } }).motivo, "falta_endereco");
+  assert.equal(resumoDoCheckout({ ...base, carrinho: [{ id: "a", quantidade: 1 }] }).motivo, "falta_minimo");
+  assert.equal(resumoDoCheckout({ ...base, pagamento: "" }).motivo, "falta_pagamento");
+  assert.equal(resumoDoCheckout({ ...base, pagamento: "dinheiro", form: { ...form, troco: "R$ 20,00" } }).motivo, "troco_menor");
+  assert.equal(resumoDoCheckout({ ...base, descontoCadastro: 4, cashback: 2 }).total, 40);
+});

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { TemaCardapio } from "../../../components/cardapio-digital/ui";
 import DeliveryInicio from "../../../components/cardapio-digital/delivery/DeliveryInicio";
 import DeliverySacola from "../../../components/cardapio-digital/delivery/DeliverySacola";
+import DeliveryCheckout from "../../../components/cardapio-digital/delivery/DeliveryCheckout";
 import { Abertura } from "../../../components/cardapio-digital/partes";
 import antigo from "../../../components/cardapio-digital/cardapio.module.css";
 
@@ -76,6 +77,7 @@ export default function VitrineDelivery() {
     fetch("/dev-cardapio/cardapio-real.json").then((r) => r.json()).then(setCardapio).catch(() => setCardapio(EXEMPLO));
   }, []);
   if (!cardapio) return null;
+  if (tela === "checkout") return <VitrineCheckout />;
   if (tela === "sacola") {
     return (
       <TemaCardapio cor="#14532D">
@@ -99,6 +101,20 @@ export default function VitrineDelivery() {
         onAbrirPedidos={() => {}} temDescontos onAbrirDescontos={() => {}} qtdPedidos={0} linkCadastro="#" visitante
         banners={tela === "banner" ? <div className={antigo.capa} style={{ height: "100%", ...CORES_ANTIGAS }}><Abertura slides={SLIDES} onAcao={() => {}} previa={false} idioma="pt" /></div> : null}
       />
+    </TemaCardapio>
+  );
+}
+
+// Finalizar pedido de exemplo (protótipo DeliveryCheckout), em ?tela=checkout.
+const CHECKOUT = { ...SACOLA, unidade: { ...SACOLA.unidade, endereco: "Rua das Mangueiras, 120 · Umarizal" }, entrega: { pedido_minimo: 30, tempo_min: 40, tempo_max: 50, retirada: true, formas: ["dinheiro", "cartao", "vale"] } };
+function VitrineCheckout() {
+  const [form, setForm] = useState({ nome: "Ana", telefone: "(91) 98888-7777", endereco: "Rua das Mangueiras, 120 · Umarizal", troco: "R$ 150,00" });
+  const [tipo, setTipo] = useState("delivery");
+  const [pagamento, setPagamento] = useState("dinheiro");
+  return (
+    <TemaCardapio cor="#14532D">
+      <DeliveryCheckout cardapio={CHECKOUT} carrinho={CARRINHO} form={form} setForm={setForm} tipo={tipo} setTipo={setTipo}
+        pagamento={pagamento} setPagamento={setPagamento} cashback={{ desconto: 11.09 }} onEnviar={() => {}} onVoltar={() => {}} />
     </TemaCardapio>
   );
 }

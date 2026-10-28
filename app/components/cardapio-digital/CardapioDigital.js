@@ -32,6 +32,7 @@ import { IDIOMAS, TEXTOS_PADRAO, detectarIdioma, infoIdioma, t } from "../../lib
 import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, Selos } from "./partes";
 import DeliveryInicio from "./delivery/DeliveryInicio";
 import DeliverySacola from "./delivery/DeliverySacola";
+import DeliveryCheckout from "./delivery/DeliveryCheckout";
 import { TemaCardapio } from "./ui";
 import { caminhoDoCadastro } from "../../lib/cardapio-link.mjs";
 import Conversa from "./Conversa";
@@ -129,7 +130,10 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const modo = mesa ? "mesa" : "delivery";
   // Pedido ao lado só na mesa (tablet deitado). No delivery novo a sacola é sempre uma folha.
   const largo = largoTela && modo === "mesa";
-  const tipoPedido = mesa ? "qrcode" : "delivery";
+  // Delivery: o cliente escolhe Entrega ou Retirada no checkout (se a loja aceita retirada).
+  const [tipoEntrega, setTipoEntrega] = useState("delivery");
+  const [pagamento, setPagamento] = useState("");
+  const tipoPedido = mesa ? "qrcode" : tipoEntrega;
   const chaveCarrinho = chave(unidadeId, `carrinho:${mesa || "delivery"}`);
 
   // O cardápio no idioma do cliente (conteúdo traduzido pelo dono; o resto, fixo).
@@ -453,7 +457,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     const tel = form.telefone.replace(/\D/g, "");
     if (form.nome.trim().length < 2) e.nome = T("erro_nome");
     if (!mesa || tel.length) { if (tel.length < 10 || tel.length > 13) e.telefone = T("erro_tel"); }
-    if (!mesa && !form.endereco.trim()) e.endereco = T("erro_endereco");
+    if (tipoPedido === "delivery" && !form.endereco.trim()) e.endereco = T("erro_endereco");
     setErros(e);
     setErroEnvio("");
     if (Object.keys(e).length) return;
@@ -465,7 +469,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           unidade: unidadeId,
-          cliente: { tipo: tipoPedido, nome: form.nome.trim(), telefone: form.telefone.trim() || null, endereco: mesa ? null : form.endereco.trim(), troco: mesa ? null : form.troco.trim() || null, mesa: mesa || null },
+          cliente: { tipo: tipoPedido, nome: form.nome.trim(), telefone: form.telefone.trim() || null, endereco: tipoPedido === "delivery" ? form.endereco.trim() : null, troco: mesa || (pagamento && pagamento !== "dinheiro") ? null : form.troco.trim() || null, ...(mesa || !pagamento ? {} : { pagamento }), mesa: mesa || null },
           itens: carrinho.map((i) => ({ id: i.id, quantidade: i.quantidade, observacao: i.observacao || "" })),
           ...(cashbackAplicado > 0 ? { cashback: { usar: true, prova: fidPedidos.map((p) => p.id) } } : {}),
         }),
@@ -854,6 +858,12 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           <DeliverySacola cardapio={cardapio} idioma={lingua} carrinho={carrinho} onVoltar={() => setFolha("")}
             onContinuar={() => setEtapa("dados")} alterarQtd={alterarQtd} remover={remover} adicionar={adicionar}
             onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }} />
+        </TemaCardapio>
+      ) : folha === "pedido" && modo === "delivery" && etapa === "dados" ? (
+        <TemaCardapio cor={tema.cor_primaria}>
+          <DeliveryCheckout cardapio={cardapio} idioma={lingua} carrinho={carrinho} form={form} setForm={setForm}
+            tipo={tipoEntrega} setTipo={setTipoEntrega} pagamento={pagamento} setPagamento={setPagamento}
+            cashback={infoCashback} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} onVoltar={() => setEtapa("carrinho")} />
         </TemaCardapio>
       ) : folha === "pedido" && !largo ? (
         <Pedido cardapio={cardapio} carrinho={carrinho} etapa={etapa} setEtapa={setEtapa} mesa={mesa} form={form} setForm={setForm}

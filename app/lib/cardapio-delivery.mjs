@@ -26,6 +26,13 @@ export function itensAgoraNaCasa(cardapio, { rotuloDestaque = "Destaque", limite
     usados.add(p.id);
     out.push(cartao(p, rotuloDestaque));
   }
+  // Sem promoção nem destaque no ar: os pratos da casa, primeiro os que têm
+  // foto, para o topo não ficar vazio (mesmo rótulo de destaque).
+  if (!out.length) {
+    const comFoto = (cardapio.produtos || []).filter((p) => p.imagem_url);
+    const semFoto = (cardapio.produtos || []).filter((p) => !p.imagem_url);
+    for (const p of [...comFoto, ...semFoto].slice(0, Math.min(limite, 8))) out.push(cartao(p, rotuloDestaque));
+  }
   return out.slice(0, limite);
 }
 

@@ -74,3 +74,8 @@ test("linhas da sacola: só pratos que existem, com o total do item", async () =
   const l = linhasDaSacola([{ id: "picanha", quantidade: 2, observacao: "ao ponto" }, { id: "sumiu", quantidade: 1 }], sacola);
   assert.deepEqual(l, [{ id: "picanha", nome: "Picanha", foto: "", quantidade: 2, observacao: "ao ponto", total: 179.8 }]);
 });
+
+test("agora na casa sem promoção nem destaque: pratos da casa, com foto primeiro", () => {
+  const l = itensAgoraNaCasa({ promocoes: [], produtos: [{ id: "a", nome: "A", preco: 1 }, { id: "b", nome: "B", preco: 2, imagem_url: "/b.jpg" }] }, { rotuloDestaque: "Destaque" });
+  assert.deepEqual(l.map((x) => x.id), ["b", "a"]);
+});

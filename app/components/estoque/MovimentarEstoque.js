@@ -69,6 +69,18 @@ function dicaUnidade(produto, u) {
   return "unidade de medida";
 }
 
+/* "10 garrafas de 500 ml" — sem o "= 5.000 ml" (pedido do dono, 28/10/2026).
+ * Caixa: "2 caixas (24 garrafas)"; medida (kg, L…) segue o texto do lançamento sem o total. */
+function textoDoLancamento(produto, qtd, unidade, lanc) {
+  const op = unidadeOperacional(produto);
+  const compra = unidadeDeCompra(produto);
+  const n = Number(String(qtd).replace(",", ".")) || 0;
+  const pl = (nome, q) => (q === 1 ? nome : `${nome}s`);
+  if (op.embalagem && unidade === op.nome) return `${fmtQ(n)} ${pl(op.nome, n)} de ${fmtQ(op.fatorSaldo)} ${op.saldo}`;
+  if (compra && unidade === compra.nome) return `${fmtQ(n)} ${pl(compra.nome, n)} (${saldoOperacional(produto, lanc.quantidadeSaldo)})`;
+  return String(lanc.texto || "").split(" = ")[0];
+}
+
 // fixo: aberto por cima da tela do estoque, já no produto (?estoque&insumo):
 // sem escolher área, sem busca, sem "Trocar" (a janela de fora fecha) e sem a
 // lista dos últimos; onFeito depois de gravar (a tela de fora recarrega o saldo).
@@ -153,7 +165,15 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
     return areaAtual.categorias.filter((c) => tem.has(c));
   }, [base, estoqueId, area, areaAtual]);
 
-  const unidades = unidadesDoProduto(produto);
+  // Produto com embalagem só lança na embalagem (pacote, garrafa, lata; caixa
+  // se tiver): kg/g/L/ml só no local de Abertos (pedido do dono, 28/10/2026:
+  // "trabalhamos com pacotes fechados e garrafas ou latas").
+  const unidades = (() => {
+    const todas = unidadesDoProduto(produto);
+    if (!produto || !unidadeOperacional(produto).embalagem || subareaDoLocal(estoque) === "abertos") return todas;
+    const fechadas = todas.filter((u) => dicaUnidade(produto, u) !== "unidade de medida");
+    return fechadas.length ? fechadas : todas;
+  })();
   const unidadeSel = form.unidade || unidades[0] || "";
   const lanc = montarLancamento(produto, form.qtd, unidadeSel);
   const depois = lanc && !lanc.erro ? saldoDepois(saldoAtual, tipo, lanc.quantidadeSaldo) : null;
@@ -390,7 +410,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
           {lanc && (lanc.erro
             ? <p className="text-sm font-bold text-hf-danger">{lanc.erro}</p>
             : <p className="rounded-xl bg-hf-elevated p-2.5 text-sm">
-                <b>{lanc.texto}</b><br />
+                <b>{textoDoLancamento(produto, form.qtd, unidadeSel, lanc)}</b><br />
                 <span className="text-hf-text-2">Saldo depois: <span className={depois < 0 ? "font-bold text-hf-danger" : "font-bold text-hf-text"}>{depois < 0 ? `${fmtQ(depois)} ${unidadeDoSaldo(produto)}` : saldoOperacional(produto, depois)}</span></span>
               </p>)}
           {depois < 0 && <p className="text-sm font-bold text-hf-danger">Retirada maior que o saldo deste local.</p>}

@@ -57,6 +57,17 @@ function unidadesDoProduto(produto) {
   return lista;
 }
 
+/* Escolha entre embalagem e unidade de medida (pedido do dono, 28/10/2026:
+ * "aparecer em que eu quero retirar ou adicionar, se é na unidade de medida
+ * do produto ou na embalagem dele"): cada botão diz o que é. */
+function dicaUnidade(produto, u) {
+  const compra = unidadeDeCompra(produto);
+  const op = unidadeOperacional(produto);
+  if (compra && u === compra.nome) return `caixa com ${fmtQ(compra.fator)} ${op.embalagem ? op.nome + "s" : op.saldo}`;
+  if (op.embalagem && u === op.nome) return `embalagem de ${fmtQ(op.fatorSaldo)} ${op.saldo}`;
+  return "unidade de medida";
+}
+
 // fixo: aberto por cima da tela do estoque, já no produto (?estoque&insumo):
 // sem escolher área, sem busca, sem "Trocar" (a janela de fora fecha) e sem a
 // lista dos últimos; onFeito depois de gravar (a tela de fora recarrega o saldo).
@@ -139,7 +150,12 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
   const unidadeSel = form.unidade || unidades[0] || "";
   const lanc = montarLancamento(produto, form.qtd, unidadeSel);
   const depois = lanc && !lanc.erro ? saldoDepois(saldoAtual, tipo, lanc.quantidadeSaldo) : null;
-  const motivoSel = tipo ? MOTIVOS[tipo].find((m) => m.codigo === form.motivo) : null;
+  // Cozinha e bar sem a escolha do motivo (pedido do dono, 28/10/2026: "retirar
+  // por enquanto essa opção do motivo"): retirada = consumo, entrada =
+  // recebimento. Os outros motivos seguem em "Mais opções".
+  const motivoSimples = !!estoque && ["cozinha", "bar"].includes(areaDoLocal(estoque));
+  const motivoEfetivo = form.motivo || (motivoSimples && tipo ? (tipo === "entrada" ? "recebimento" : "consumo") : "");
+  const motivoSel = tipo ? MOTIVOS[tipo].find((m) => m.codigo === motivoEfetivo) : null;
   const ehTransferencia = tipo === "saida" && form.motivo === "transferencia_enviada";
   const destinos = (base?.estoques || []).filter((e) => e.id !== estoqueId && tiposCompativeis(estoque?.tipo, e.tipo));
   const semPermissao = seg && tipo && (tipo === "entrada" ? !seg.pode_entrada : !seg.pode_retirada) && !motivoSel?.admin;
@@ -172,7 +188,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
     const r = ehTransferencia
       ? await transferirLancamento({ unidade_id: unidade, origem_id: estoqueId, destino_id: form.destino, insumo_id: produto.id,
           quantidade: lanc.quantidadeSaldo, observacao: form.observacao || lanc.texto, responsavel_nome: form.responsavel, chave: chave.current })
-      : await lancarMovimento({ unidade_id: unidade, estoque_id: estoqueId, insumo_id: produto.id, tipo, motivo: form.motivo, lancamento: lanc,
+      : await lancarMovimento({ unidade_id: unidade, estoque_id: estoqueId, insumo_id: produto.id, tipo, motivo: motivoEfetivo, lancamento: lanc,
           validade: form.validade || null, observacao: form.observacao, responsavel_nome: form.responsavel,
           chave: chave.current, pin: form.pin, justificativa: form.justificativa });
     setEnviando(false);
@@ -206,6 +222,20 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
       </div>
     );
   }
+
+  const blocoMotivo = tipo ? (
+          <div>
+            <p className="text-xs font-bold text-hf-text-2">Motivo{motivoSimples ? ` (sem escolher: ${tipo === "entrada" ? "Recebimento" : "Consumo"})` : ""}</p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {MOTIVOS[tipo].filter((m) => !m.pelaCompra && (!m.admin || seg?.pode_autorizar) && (m.codigo !== "transferencia_enviada" || destinos.length)).map((m) => (
+                <button key={m.codigo} onClick={() => setForm({ ...form, motivo: m.codigo, destino: "" })} aria-pressed={motivoEfetivo === m.codigo}
+                  className={`h-10 rounded-xl border px-3 text-xs sm:text-sm font-bold transition-all active:scale-[0.98] ${motivoEfetivo === m.codigo ? "border-hf-text bg-hf-text text-hf-surface shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
+                  {m.admin && <Lock size={12} className="mr-1 inline" />}{m.rotulo}
+                </button>
+              ))}
+            </div>
+          </div>
+  ) : null;
 
   return (
     <div className={`mx-auto max-w-xl space-y-4 px-3 text-hf-text sm:px-4 ${fixo ? "pb-4 pt-1" : "pb-28 pt-4"}`}>
@@ -326,15 +356,16 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
 
           {tipo && <>
           <div>
-            <label htmlFor="qtd-estoque" className="text-xs font-bold text-hf-text-2">Quantidade</label>
-            <div className="mt-1 flex gap-2">
+            <label htmlFor="qtd-estoque" className="text-xs font-bold text-hf-text-2">Quantidade · {tipo === "entrada" ? "adicionar" : "retirar"} em:</label>
+            <div className="mt-1 flex flex-col gap-2 sm:flex-row">
               <input id="qtd-estoque" inputMode="decimal" autoFocus value={form.qtd} onChange={(e) => setForm({ ...form, qtd: e.target.value })} placeholder="0"
-                className="h-14 w-32 min-w-0 rounded-2xl border border-zinc-200/80 bg-hf-surface px-3 text-2xl font-black outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/30 shadow-xs" />
+                className="h-14 w-full min-w-0 rounded-2xl border border-zinc-200/80 bg-hf-surface px-3 text-2xl font-black sm:w-32 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/30 shadow-xs" />
               <div className="flex min-w-0 flex-1 flex-wrap gap-1.5" role="radiogroup" aria-label="Unidade">
                 {unidades.map((u) => (
                   <button key={u} type="button" role="radio" aria-checked={unidadeSel === u} onClick={() => setForm({ ...form, unidade: u })}
                     className={`h-14 min-w-[3.5rem] flex-1 rounded-2xl border px-2 text-sm font-black transition-all active:scale-[0.98] ${unidadeSel === u ? "border-hf-text bg-hf-text text-hf-surface shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
-                    {u}
+                    <span className="block leading-tight">{u}</span>
+                    {dicaUnidade(produto, u) && <span className="block text-[10px] font-bold leading-tight opacity-75">{dicaUnidade(produto, u)}</span>}
                   </button>
                 ))}
               </div>
@@ -348,17 +379,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
               </p>)}
           {depois < 0 && <p className="text-sm font-bold text-hf-danger">Retirada maior que o saldo deste local.</p>}
 
-          <div>
-            <p className="text-xs font-bold text-hf-text-2">Motivo</p>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              {MOTIVOS[tipo].filter((m) => !m.pelaCompra && (!m.admin || seg?.pode_autorizar) && (m.codigo !== "transferencia_enviada" || destinos.length)).map((m) => (
-                <button key={m.codigo} onClick={() => setForm({ ...form, motivo: m.codigo, destino: "" })} aria-pressed={form.motivo === m.codigo}
-                  className={`h-10 rounded-xl border px-3 text-xs sm:text-sm font-bold transition-all active:scale-[0.98] ${form.motivo === m.codigo ? "border-hf-text bg-hf-text text-hf-surface shadow-xs" : "border-zinc-200/80 bg-zinc-50/70 text-hf-text-2 hover:bg-zinc-100"}`}>
-                  {m.admin && <Lock size={12} className="mr-1 inline" />}{m.rotulo}
-                </button>
-              ))}
-            </div>
-          </div>
+          {!motivoSimples && blocoMotivo}
 
           {ehTransferencia && (
             <div>
@@ -390,6 +411,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
           </button>
           {maisOpcoes && (
             <div className="space-y-2">
+              {motivoSimples && blocoMotivo}
               {tipo === "entrada" && (
                 <label className="block text-xs font-bold text-hf-text-2">Validade
                   <input type="date" value={form.validade} onChange={(e) => setForm({ ...form, validade: e.target.value })} className="mt-1 h-11 w-full rounded-xl border border-hf-border bg-hf-surface px-3 font-bold text-hf-text" />

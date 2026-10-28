@@ -196,3 +196,14 @@ test("marmitaria: config vazia usa o Resultado do mês; a própria prevalece", a
   const b = configComResultado({ tributos_pct: null, margem_alvo_pct: null }, { mes: null, imposto_pct: null, margem_alvo_pct: null });
   assert.equal(b.tributos_pct, null);
 });
+
+test("CMO separa fixos e extras (RH + informados)", async () => {
+  const { equipeDoMes } = await import("./resultado-mes.mjs");
+  const e = equipeDoMes([{ id: "a", nome: "Ana", salario: 2000 }], { bonus: 400, dias: 25, extrasPagos: 300, extrasInformados: "200" });
+  assert.equal(e.fixos, 2400);
+  assert.equal(e.extras, 500);
+  assert.equal(e.extrasRh, 300);
+  assert.equal(e.extrasOutros, 200);
+  assert.equal(e.total, 2900);
+  assert.equal(e.extrasPorDia, 20);
+});

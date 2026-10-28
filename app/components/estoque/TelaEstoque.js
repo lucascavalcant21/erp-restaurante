@@ -19,7 +19,15 @@ const fmt = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigit
 // ml e g grandes ficam ilegíveis (7.304 ml): mostra também em L/kg.
 const MAIOR = { ml: "L", g: "kg" };
 const emMaior = (n, un) => { const u = MAIOR[String(un || "").toLowerCase()]; return u && Math.abs(n) >= 1000 ? ` (${fmt(n / 1000)} ${u})` : ""; };
-const AREAS = [["todas", "Todas"], ["cozinha", "Cozinha"], ["bar", "Bar"], ["salao", "Salão"], ["limpeza", "Limpeza"], ["outros", "Outros"]];
+const AREAS = [["todas", "Todas"], ["cozinha", "Cozinha"], ["bar", "Bar"], ["salao", "Salão"], ["limpeza", "Limpeza"], ["embalagens", "Embalagens"], ["marmitaria", "Marmitaria"], ["outros", "Outros"]];
+// Bar em garrafas/latas (pedido do dono, 28/10/2026): a linha traz `contagem`
+// { nome, fator }; o banco segue em ml/L e aqui só se divide para mostrar.
+const pluralEmb = (nome, n) => (Math.abs(n) === 1 ? nome : `${nome}s`);
+const qtd = (l, n) => (l.contagem ? fmt(n / l.contagem.fator) : fmt(n));
+const un = (l, n) => (l.contagem ? pluralEmb(l.contagem.nome, n / l.contagem.fator) : l.unidade);
+const extra = (l, n) => (l.contagem ? (n ? ` (${fmt(n)} ${l.unidade}${emMaior(n, l.unidade)})` : "") : emMaior(n, l.unidade));
+const qtdNum = (l, n) => (l.contagem ? Math.round((Number(n) / l.contagem.fator) * 100) / 100 : n);
+const paraBanco = (l, v) => (l.contagem && v !== "" && v != null ? Math.round(Number(v) * l.contagem.fator * 1000) / 1000 : v);
 const SITUACOES = [["todas", "Tudo"], ["zerado", "Acabou"], ["baixo", "Abaixo do mínimo"], ["acima", "Acima do máximo"], ["parado", "Sem uso"], ["sem_min", "Sem mínimo"], ["sugestao", "Com sugestão"]];
 const COR = { zerado: "#B42318", baixo: "#B45309", acima: "#1D4ED8", ok: "#047857", parado: "#6B7280" };
 const ROTULO = { zerado: "Acabou", baixo: "Abaixo do mínimo", acima: "Acima do máximo", ok: "Em dia", parado: "Sem uso" };
@@ -161,7 +169,7 @@ export default function TelaEstoque({ inicial = {} }) {
         <div className="space-y-2">
           <div className="relative">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-text-2" />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto, categoria ou local…" className="h-12 w-full rounded-2xl border border-hf-border bg-hf-surface pl-10 pr-10 font-semibold text-hf-text" />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto, categoria ou local…" className="h-12 w-full rounded-2xl border border-zinc-300 bg-zinc-100 pl-10 pr-10 font-semibold text-hf-text placeholder:text-zinc-500 focus:bg-hf-surface" />
             {busca ? <button onClick={() => setBusca("")} aria-label="Limpar busca" className="absolute right-3 top-1/2 -translate-y-1/2"><X size={18} /></button> : null}
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
@@ -201,9 +209,9 @@ export default function TelaEstoque({ inicial = {} }) {
                   </div>
 
                   <div className="mt-3 flex items-end justify-between gap-3">
-                    <p className="text-3xl font-black leading-none" style={{ color: COR[l.situacao] }}>{fmt(l.saldo)} <span className="text-sm font-bold text-hf-text-2">{l.unidade}{emMaior(l.saldo, l.unidade)}</span></p>
+                    <p className="text-3xl font-black leading-none" style={{ color: COR[l.situacao] }}>{qtd(l, l.saldo)} <span className="text-sm font-bold text-hf-text-2">{un(l, l.saldo)}{extra(l, l.saldo)}</span></p>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => setMov({ estoque: l.estoque_id, insumo: l.insumo_id, tipo: "saida" })} aria-label={`Retirar ${l.nome}`} className="inline-flex h-11 items-center gap-1 rounded-xl border border-hf-border px-3 text-sm font-bold text-hf-text"><ArrowUpFromLine size={16} /> Retirar</button>
+                      <button type="button" onClick={() => setMov({ estoque: l.estoque_id, insumo: l.insumo_id, tipo: "saida" })} aria-label={`Retirar ${l.nome}`} className="inline-flex h-11 items-center gap-1 rounded-xl border-2 border-[#B45309] bg-[#FFF4E5] px-3 text-sm font-black text-[#8A3A06] shadow-sm"><ArrowUpFromLine size={16} /> Retirar</button>
                       <button type="button" onClick={() => setMov({ estoque: l.estoque_id, insumo: l.insumo_id, tipo: "entrada" })} aria-label={`Adicionar ${l.nome}`} className="inline-flex h-11 items-center gap-1 rounded-xl bg-hf-accent px-3 text-sm font-black text-white"><ArrowDownToLine size={16} /> Adicionar</button>
                     </div>
                   </div>
@@ -211,11 +219,11 @@ export default function TelaEstoque({ inicial = {} }) {
                   <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                     <div className="rounded-xl bg-hf-elevated p-2.5">
                       <p className="text-[11px] font-black uppercase text-hf-text-2">Sai</p>
-                      {l.ritmo.saida.vezes ? <p className="font-bold text-hf-text">{fmt(l.ritmo.saida.dia)}{emMaior(l.ritmo.saida.dia, l.unidade)}/dia · {fmt(l.ritmo.saida.semana)}/sem · {fmt(l.ritmo.saida.mes)}/mês</p> : <p className="font-semibold text-hf-text-2">Sem retiradas</p>}
+                      {l.ritmo.saida.vezes ? <p className="font-bold text-hf-text">{qtd(l, l.ritmo.saida.dia)}{l.contagem ? "" : emMaior(l.ritmo.saida.dia, l.unidade)}/dia · {qtd(l, l.ritmo.saida.semana)}/sem · {qtd(l, l.ritmo.saida.mes)}/mês{l.contagem ? ` (${l.contagem.nome}s)` : ""}</p> : <p className="font-semibold text-hf-text-2">Sem retiradas</p>}
                     </div>
                     <div className="rounded-xl bg-hf-elevated p-2.5">
                       <p className="text-[11px] font-black uppercase text-hf-text-2">Entra</p>
-                      {l.ritmo.entrada.vezes ? <p className="font-bold text-hf-text">{fmt(l.ritmo.entrada.dia)}/dia · {fmt(l.ritmo.entrada.semana)}/sem · {fmt(l.ritmo.entrada.mes)}/mês</p> : <p className="font-semibold text-hf-text-2">Sem entradas</p>}
+                      {l.ritmo.entrada.vezes ? <p className="font-bold text-hf-text">{qtd(l, l.ritmo.entrada.dia)}/dia · {qtd(l, l.ritmo.entrada.semana)}/sem · {qtd(l, l.ritmo.entrada.mes)}/mês{l.contagem ? ` (${l.contagem.nome}s)` : ""}</p> : <p className="font-semibold text-hf-text-2">Sem entradas</p>}
                     </div>
                   </div>
                   {l.cobertura != null ? <p className="mt-2 text-sm font-bold text-hf-text-2">O saldo dá para <span className="text-hf-text">{l.cobertura} dia(s)</span> no ritmo atual.</p> : null}
@@ -223,16 +231,16 @@ export default function TelaEstoque({ inicial = {} }) {
                   <div className="mt-3 rounded-xl border border-dashed border-hf-border p-3">
                     {podeMinMax ? <div className="flex flex-wrap items-end gap-3">
                       <label className="flex flex-col gap-1 text-[11px] font-black uppercase text-hf-text-2">Mínimo
-                        <input type="number" min={0} step="any" value={ed?.minimo ?? (l.minimo || "")} onChange={(e) => setEdicao((x) => ({ ...x, [l.id]: { minimo: e.target.value, maximo: x[l.id]?.maximo ?? l.maximo } }))} className="h-10 w-24 rounded-xl border border-hf-border bg-hf-surface px-2 text-base font-black text-hf-text" placeholder="0" />
+                        <input type="number" min={0} step="any" value={ed?.minimo ?? (l.minimo ? qtdNum(l, l.minimo) : "")} onChange={(e) => setEdicao((x) => ({ ...x, [l.id]: { minimo: e.target.value, maximo: x[l.id]?.maximo ?? qtdNum(l, l.maximo) } }))} className="h-10 w-24 rounded-xl border border-hf-border bg-hf-surface px-2 text-base font-black text-hf-text" placeholder="0" />
                       </label>
                       <label className="flex flex-col gap-1 text-[11px] font-black uppercase text-hf-text-2">Máximo
-                        <input type="number" min={0} step="any" value={ed?.maximo ?? (l.maximo || "")} onChange={(e) => setEdicao((x) => ({ ...x, [l.id]: { minimo: x[l.id]?.minimo ?? l.minimo, maximo: e.target.value } }))} className="h-10 w-24 rounded-xl border border-hf-border bg-hf-surface px-2 text-base font-black text-hf-text" placeholder="0" />
+                        <input type="number" min={0} step="any" value={ed?.maximo ?? (l.maximo ? qtdNum(l, l.maximo) : "")} onChange={(e) => setEdicao((x) => ({ ...x, [l.id]: { minimo: x[l.id]?.minimo ?? qtdNum(l, l.minimo), maximo: e.target.value } }))} className="h-10 w-24 rounded-xl border border-hf-border bg-hf-surface px-2 text-base font-black text-hf-text" placeholder="0" />
                       </label>
-                      {ed ? <button onClick={() => salvar([{ id: l.id, minimo: ed.minimo, maximo: ed.maximo }], l.id)} disabled={salvando === l.id} className="inline-flex h-10 items-center gap-1 rounded-xl bg-hf-text px-3 text-sm font-black text-hf-surface"><Check size={16} /> Salvar</button> : null}
-                    </div> : <p className="text-sm font-bold text-hf-text-2">Mínimo {fmt(l.minimo)} · máximo {l.maximo ? fmt(l.maximo) : "—"} {l.unidade}</p>}
+                      {ed ? <button onClick={() => salvar([{ id: l.id, minimo: paraBanco(l, ed.minimo), maximo: paraBanco(l, ed.maximo) }], l.id)} disabled={salvando === l.id} className="inline-flex h-10 items-center gap-1 rounded-xl bg-hf-text px-3 text-sm font-black text-hf-surface"><Check size={16} /> Salvar</button> : null}
+                    </div> : <p className="text-sm font-bold text-hf-text-2">Mínimo {qtd(l, l.minimo)} · máximo {l.maximo ? qtd(l, l.maximo) : "—"} {un(l, 2 * (l.contagem?.fator || 1))}</p>}
                     {s.ok ? (
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-hf-text-2"><span className="font-black text-hf-text">Sugestão (estimativa):</span> mínimo {fmt(s.minimo)}{emMaior(s.minimo, l.unidade)}, máximo {fmt(s.maximo)} {l.unidade}{emMaior(s.maximo, l.unidade)}. <span className="block text-xs">{s.explicacao}</span></p>
+                        <p className="text-sm font-semibold text-hf-text-2"><span className="font-black text-hf-text">Sugestão (estimativa):</span> mínimo {qtd(l, s.minimo)}{l.contagem ? "" : emMaior(s.minimo, l.unidade)}, máximo {qtd(l, s.maximo)} {un(l, s.maximo)}{extra(l, s.maximo)}. <span className="block text-xs">{s.explicacao}</span></p>
                         {temNova && podeMinMax ? <button onClick={() => salvar([{ id: l.id, minimo: s.minimo, maximo: s.maximo }], l.id)} disabled={salvando === l.id} className="inline-flex h-9 items-center gap-1 rounded-xl border border-hf-accent px-3 text-sm font-black text-hf-text"><Sparkles size={14} /> Usar sugestão</button> : <span className="text-xs font-black text-[#047857]">Já usa a sugestão</span>}
                       </div>
                     ) : <p className="mt-2 text-xs font-bold text-hf-text-2">DADOS INSUFICIENTES para sugerir: {s.motivo}</p>}

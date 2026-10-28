@@ -37,6 +37,8 @@ export function modeloInicial() {
     bonus_funcionario: "",
     // Meta de lucro (%): base do preço sugerido no evento, no orçamento rápido e nas marmitas.
     meta_lucro_pct: "",
+    // Extras pagos no mês fora dos recibos do RH (R$). Não passa para o mês seguinte.
+    extras_informados: "",
     pedidos: "",
     // Taxa de serviço lançada no fim do mês, por funcionário: { id: valor }.
     taxas_servico: {},
@@ -63,7 +65,7 @@ export function mesHerdado(todos = {}, mes) {
   if (todos[mes]) return { modelo: copiarMes(todos[mes]), herdadoDe: null };
   const ult = Object.keys(todos).filter((k) => k < mes).sort().pop();
   if (!ult) return { modelo: modeloInicial(), herdadoDe: null };
-  return { modelo: { ...copiarMes(todos[ult]), cmv_manual: "" }, herdadoDe: ult };
+  return { modelo: { ...copiarMes(todos[ult]), cmv_manual: "", extras_informados: "" }, herdadoDe: ult };
 }
 
 /** Valor do item: a soma dos subcustos, se houver; senão o valor digitado. */
@@ -114,7 +116,10 @@ export function cmvDoMes(apurados = [], mes) {
  */
 // taxas: { idDoColaborador: valor } — a taxa de serviço que o dono lança no fim
 // do mês para cada um; sem lançamento, vale a do cadastro do RH.
-export function equipeDoMes(colaboradores = [], { bonus = 0, encargos_pct = 0, dias = 0, extrasPagos = 0, taxas = {} } = {}) {
+// CMO = fixos + extras (pedido do dono, 28/10/2026: "no CMO também entram os
+// extras pagos no mês, aí aparece fixos e extras"). Extras: diárias pagas no
+// RH (extrasPagos) + o que o dono informar à mão (extrasInformados).
+export function equipeDoMes(colaboradores = [], { bonus = 0, encargos_pct = 0, dias = 0, extrasPagos = 0, extrasInformados = 0, taxas = {} } = {}) {
   const b = num(bonus); const enc = num(encargos_pct);
   const pessoas = (colaboradores || [])
     .filter((c) => c && String(c.tipo_contrato || "") !== "Freelancer" && (c.status || "ativo") !== "inativo" && c.ativo !== false)
@@ -129,10 +134,14 @@ export function equipeDoMes(colaboradores = [], { bonus = 0, encargos_pct = 0, d
     })
     .sort((x, y) => y.total - x.total);
   const soma = (k) => r2(pessoas.reduce((t, p) => t + p[k], 0));
-  const extras = r2(num(extrasPagos));
-  const total = r2(soma("total") + extras);
+  const extrasRh = r2(num(extrasPagos));
+  const extrasOutros = r2(num(extrasInformados));
+  const extras = r2(extrasRh + extrasOutros);
+  const fixos = soma("total");
+  const total = r2(fixos + extras);
   return {
-    pessoas, salarios: soma("salario"), vales: soma("vale"), taxaServico: soma("taxaServico"), bonus: soma("bonus"), encargos: soma("encargos"), extras,
+    pessoas, salarios: soma("salario"), vales: soma("vale"), taxaServico: soma("taxaServico"), bonus: soma("bonus"), encargos: soma("encargos"),
+    fixos, extras, extrasRh, extrasOutros, fixosPorDia: dias > 0 ? r2(fixos / dias) : null, extrasPorDia: dias > 0 ? r2(extras / dias) : null,
     total, porDia: dias > 0 ? r2(total / dias) : null,
   };
 }
@@ -209,13 +218,16 @@ export function calcularResultado(modelo = {}, { cmv = null, cmo = null } = {}) 
   add("cmv", "(−) CMV (mercadoria)", cmvValor, "custo", { natureza: cmvNatureza, motivo: cmv?.motivo || (cmvManual > 0 ? "Informado à mão (sem contagens apuradas)." : "") });
   add("lucro_bruto", "(=) Lucro bruto", cmvValor == null ? null : lucroBruto, "subtotal");
   add("cmo", "(−) CMO (equipe)", cmoTotal, "custo", { natureza: cmo ? "REAL" : "DADOS INSUFICIENTES", detalhe: porPessoa ? [
+    { id: "fixos", nome: "FIXOS (contratados)", valor: r2(cmo.fixos ?? (cmo.total - cmo.extras)), pct: pct(cmo.fixos ?? (cmo.total - cmo.extras), fat), grupo: true },
     { id: "salarios", nome: "Salários (RH)", valor: cmo.salarios, pct: pct(cmo.salarios, fat) },
     { id: "taxa", nome: "Taxa de serviço (RH, por funcionário)", valor: cmo.taxaServico, pct: pct(cmo.taxaServico, fat) },
     { id: "bonus", nome: "Bônus", valor: cmo.bonus, pct: pct(cmo.bonus, fat) },
     { id: "vales", nome: "Vale-alimentação e transporte (RH)", valor: cmo.vales, pct: pct(cmo.vales, fat) },
     { id: "encargos", nome: `Encargos (${num(modelo.encargos_pct).toLocaleString("pt-BR")}% do salário)`, valor: cmo.encargos, pct: pct(cmo.encargos, fat) },
-    { id: "extras", nome: "Diárias de extras pagas no mês", valor: cmo.extras, pct: pct(cmo.extras, fat) },
-  ].filter((d) => d.valor > 0) : cmo ? [
+    { id: "extras_total", nome: "EXTRAS (pagos no mês)", valor: r2(cmo.extras), pct: pct(cmo.extras, fat), grupo: true, sempre: true },
+    { id: "extras", nome: "Diárias de extras pagas (RH)", valor: r2(cmo.extrasRh ?? cmo.extras), pct: pct(cmo.extrasRh ?? cmo.extras, fat) },
+    { id: "extras_outros", nome: "Outros extras pagos (informado)", valor: r2(cmo.extrasOutros || 0), pct: pct(cmo.extrasOutros || 0, fat) },
+  ].filter((d) => d.valor > 0 || d.sempre) : cmo ? [
     { id: "folha", nome: "Folha dos contratados (salário + VA, do RH)", valor: r2(cmo.folha), pct: pct(cmo.folha, fat) },
     { id: "extras", nome: "Diárias de extras pagas no mês", valor: r2(cmo.extras), pct: pct(cmo.extras, fat) },
     ...(encargos > 0 ? [{ id: "encargos", nome: `Encargos (${num(modelo.encargos_pct).toLocaleString("pt-BR")}% da folha)`, valor: encargos, pct: pct(encargos, fat) }] : []),

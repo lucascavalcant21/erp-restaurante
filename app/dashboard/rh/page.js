@@ -1811,9 +1811,16 @@ export default function RHPage() {
                { 
                  rot: "Funcionários", val: ativos.length, sub: `${fixos.length} fixos · ${extras.length} extras`,
                  render: () => (
-                    <ul className="space-y-2 text-sm">
-                       {ativos.map(f => <li key={f.id} className="flex justify-between border-b border-line pb-2"><span className="font-bold text-fg">{f.nome}</span><span className="text-subtle">{f.tipo_contrato}</span></li>)}
-                    </ul>
+                    <div className="space-y-4">
+                       {[["Fixos", fixos], ["Extras", extras]].map(([rot, lista]) => (
+                          <div key={rot}>
+                             <p className="mb-2 text-xs font-black uppercase tracking-wider text-subtle">{rot} ({lista.length})</p>
+                             {lista.length ? <ul className="space-y-2 text-sm">
+                                {lista.map(f => <li key={f.id} className="flex justify-between border-b border-line pb-2"><span className="font-bold text-fg">{f.nome}</span><span className="text-subtle">{rot === "Extras" ? `${fmtBRL(f.salario)} / diária` : f.cargo || f.tipo_contrato}</span></li>)}
+                             </ul> : <p className="text-sm text-subtle">Nenhum.</p>}
+                          </div>
+                       ))}
+                    </div>
                  )
                },
                {

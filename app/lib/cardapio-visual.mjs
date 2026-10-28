@@ -68,6 +68,7 @@ export const NEUTROS = Object.freeze({
   pontoSobreFaixa: "#666666",
   pontoInativo: "#CFCFCF",
   pimentaApagada: "#B0B0B0",
+  alca: "#9E9E9E",
   okFundo: "#E9F4EC",
   okTexto: "#1E6B3A",
   okBorda: "#C9DDCD",

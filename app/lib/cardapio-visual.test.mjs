@@ -11,6 +11,10 @@ import {
 } from "./cardapio-visual.mjs";
 
 const CSS = readFileSync(new URL("../components/cardapio-digital/ui/ui.module.css", import.meta.url), "utf8");
+// O painel segue as mesmas travas (cor só por variável, fundo escuro com texto branco).
+const CSS_PAINEL = readFileSync(new URL("../components/cardapio-digital/painel/painel.module.css", import.meta.url), "utf8");
+const TODOS_CSS = `${CSS}
+${CSS_PAINEL}`;
 
 test("cor padrão: os valores são os do protótipo", () => {
   const p = variacoesDaPrincipal(undefined);
@@ -52,14 +56,14 @@ test("variáveis CSS: todas com --cd-, sem valor vazio, com as sombras da cor da
 
 test("toda variável usada no CSS existe no tema", () => {
   const definidas = new Set(Object.keys(variaveisCss()));
-  const usadas = new Set([...CSS.matchAll(/var\((--cd-[a-z0-9-]+)/g)].map((m) => m[1]));
+  const usadas = new Set([...TODOS_CSS.matchAll(/var\((--cd-[a-z0-9-]+)/g)].map((m) => m[1]));
   const externas = new Set(["--cd-fonte-titulo", "--cd-fonte-texto", "--cd-trilho-duracao"]);
   const faltando = [...usadas].filter((u) => !definidas.has(u) && !externas.has(u));
   assert.deepEqual(faltando, []);
 });
 
 test("o CSS dos componentes não tem cor solta em hexadecimal", () => {
-  const semComentarios = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+  const semComentarios = TODOS_CSS.replace(/\/\*[\s\S]*?\*\//g, "");
   assert.deepEqual(semComentarios.match(/#[0-9a-fA-F]{3,8}\b/g) || [], []);
 });
 
@@ -77,7 +81,7 @@ function regras(css) {
 }
 
 test("fundo escuro sempre com texto branco (trava do 9L)", () => {
-  const erradas = regras(CSS)
+  const erradas = regras(TODOS_CSS)
     .filter((r) => ESCURO.test(r.corpo) && !/sem-texto/.test(r.corpo))
     .filter((r) => !/(^|;|\s)color\s*:\s*var\(--cd-branco\)/.test(r.corpo))
     .map((r) => r.seletor.replace(/\s+/g, " "));

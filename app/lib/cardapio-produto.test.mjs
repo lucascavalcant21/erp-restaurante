@@ -64,3 +64,23 @@ test("traduções do prato por idioma", () => {
   assert.equal(t.es, "Falta a descrição");
   assert.equal(t.ko, "Sem tradução");
 });
+
+test("foto da Montagem: só com nome igual e sem foto própria", async () => {
+  const { aplicarFotosDaMontagem } = await import("./cardapio-digital.mjs");
+  const montagens = [
+    { nome: "Tacacá", foto_url: "https://x/tacaca.png" },
+    { nome: "Arroz Paraense", foto_url: "https://x/arroz.png" },
+    { nome: "Executivo de Carne de Sol", foto_url: "javascript:alert(1)" },
+  ];
+  const produtos = [
+    { id: "1", nome_produto: "TACACA" },
+    { id: "2", nome_produto: "Arroz", ficha_id: "f2" },
+    { id: "3", nome_produto: "Tacacá grande" },
+    { id: "4", nome_produto: "Tacacá", imagem_url: "https://x/propria.jpg" },
+    { id: "5", nome_produto: "Tacacá", ficha_id: "f5" },
+    { id: "6", nome_produto: "Executivo de Carne de Sol" },
+  ];
+  const r = aplicarFotosDaMontagem(produtos, { fichas: [{ id: "f2", nome_receita: "Arroz paraense" }, { id: "f5" }], fichasComFoto: ["f5"], montagens });
+  assert.deepEqual(r.map((p) => p.imagem_url || ""), ["https://x/tacaca.png", "https://x/arroz.png", "", "https://x/propria.jpg", "", ""]);
+  assert.equal(aplicarFotosDaMontagem(produtos, {}), produtos);
+});

@@ -6,7 +6,7 @@
 
 import { supabase, isSupabaseReady } from "./supabase";
 import { salvarParams } from "./parametros";
-import { categoriasEfetivas, juntarProdutosEFichas, normalizarConfigCardapio } from "./cardapio-digital.mjs";
+import { aplicarFotosDaMontagem, categoriasEfetivas, juntarProdutosEFichas, normalizarConfigCardapio } from "./cardapio-digital.mjs";
 import { reordenarCategorias } from "./cardapio-painel.mjs";
 
 const LOTE = 100;
@@ -51,10 +51,12 @@ export async function carregarPainelCardapio(unidadeId) {
   if (rV.erro) return { erro: "Não foi possível ler a configuração do cardápio." };
   const fichas = rF.error ? [] : (rF.data || []);
   const usadas = [...new Set((rP.data || []).map((p) => p.ficha_id).filter(Boolean).map(String))];
-  const [rFoto, rI] = await Promise.all([
+  const [rFoto, rI, rM] = await Promise.all([
     emLotes(usadas, (lote) => supabase.from("fichas_tecnicas").select("id").eq("unidade_id", unidadeId).in("id", lote).not("imagem", "is", null).neq("imagem", "")),
     emLotes(usadas, (lote) => supabase.from("fichas_ingredientes").select("ficha_id, insumos(nome)").in("ficha_id", lote)),
+    supabase.from("montagem").select("nome, foto_url").eq("unidade_id", unidadeId).not("foto_url", "is", null),
   ]);
+  const fichasComFoto = rFoto.error ? [] : rFoto.data.map((f) => f.id);
   // Busca por ingrediente: nome dos insumos de cada ficha (sem dado, a busca fica só pelo nome).
   const ingredientes = {};
   for (const l of rI.error ? [] : rI.data || []) {
@@ -64,9 +66,10 @@ export async function carregarPainelCardapio(unidadeId) {
   }
   return {
     erro: null,
-    produtos: rP.data || [],
+    // Foto que está só na Montagem (mesmo nome do prato), igual ao cardápio do cliente.
+    produtos: aplicarFotosDaMontagem(rP.data || [], { fichas, fichasComFoto, montagens: rM.error ? [] : rM.data || [] }),
     fichas,
-    fichasComFoto: rFoto.error ? [] : rFoto.data.map((f) => f.id),
+    fichasComFoto,
     ingredientes,
     config: rV.config,
   };

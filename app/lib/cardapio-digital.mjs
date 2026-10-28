@@ -814,6 +814,31 @@ export function itemNoHorario(item, agora = new Date(), fuso = FUSO_PADRAO) {
   return false;
 }
 
+/**
+ * Foto do prato tirada da Montagem (montagem.foto_url, bucket público
+ * montagem-fotos), decidido pelo dono em 28/10/2026: vale quando o produto
+ * não tem foto própria (nem no produto, nem na ficha) e o NOME bate exatamente
+ * (sem diferença de maiúscula ou acento) com o produto, o nome comercial ou o
+ * nome da receita da ficha. Nada de "parecido": sem nome igual, sem foto.
+ */
+export function aplicarFotosDaMontagem(produtos = [], { fichas = [], fichasComFoto = [], montagens = [] } = {}) {
+  const fotos = new Map();
+  for (const m of montagens) {
+    const url = limparUrl(m?.foto_url);
+    const chave = normalizarBusca(m?.nome);
+    if (url && chave && !fotos.has(chave)) fotos.set(chave, url);
+  }
+  if (!fotos.size) return produtos;
+  const fichaPorId = new Map(fichas.map((f) => [String(f.id), f]));
+  const comFoto = new Set(fichasComFoto.map(String));
+  return produtos.map((p) => {
+    if (limparUrl(p.imagem_url) || (p.ficha_id != null && comFoto.has(String(p.ficha_id)))) return p;
+    const f = p.ficha_id != null ? fichaPorId.get(String(p.ficha_id)) : null;
+    const url = [p.nome_produto, f?.nome_comercial, f?.nome_receita].map(normalizarBusca).filter(Boolean).map((k) => fotos.get(k)).find(Boolean);
+    return url ? { ...p, imagem_url: url } : p;
+  });
+}
+
 /** "Esgotado hoje": o dono marcou o prato como esgotado no dia de hoje (fuso da loja). */
 export function esgotadoHoje(item, agora = new Date(), fuso = FUSO_PADRAO) {
   return !!item?.esgotado_dia && item.esgotado_dia === partesNoFuso(agora, fuso).data;

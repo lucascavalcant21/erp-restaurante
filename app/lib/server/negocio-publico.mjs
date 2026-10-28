@@ -15,7 +15,7 @@
 // banco; nenhuma mensagem interna do banco na resposta. Módulo sem Next: o
 // banco entra por parâmetro, para dar para testar.
 
-import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega, linhasDoCombo, cardapioDoCanal, canalDoPedido } from "../cardapio-digital.mjs";
+import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega, linhasDoCombo, cardapioDoCanal, canalDoPedido, aplicarFotosDaMontagem } from "../cardapio-digital.mjs";
 import {
   cashbackUsavel, descontoDoCadastro, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO, validarCadastro,
 } from "../fidelidade.mjs";
@@ -94,6 +94,7 @@ export async function carregarCardapio({ db, unidade, agora = new Date() }) {
     // Sempre filtrado pela unidade: ficha de outra loja nunca entra, mesmo
     // que um produto aponte para ela.
     const rF = await emLotes(fichaIds, (lote) => selecionar((c) => db.from("fichas_tecnicas").select(c).eq("unidade_id", unidade).in("id", lote), [
+      "id, nome_comercial, nome_receita, descricao_comercial, categoria, departamento, ativo, status, alergenicos_pode_conter",
       "id, nome_comercial, descricao_comercial, categoria, departamento, ativo, status, alergenicos_pode_conter",
       "id, categoria, departamento",
       "id",
@@ -116,7 +117,11 @@ export async function carregarCardapio({ db, unidade, agora = new Date() }) {
     config = params.cardapio_digital;
   }
 
-  const juntos = juntarProdutosEFichas(produtos, fichas, alergenicos, {
+  // Foto do prato que está só na Montagem (mesmo nome). Sem a tabela, segue sem.
+  const rM = await db.from("montagem").select("nome, foto_url").eq("unidade_id", unidade).not("foto_url", "is", null);
+  const comFotos = aplicarFotosDaMontagem(produtos, { fichas, fichasComFoto, montagens: rM.error ? [] : rM.data || [] });
+
+  const juntos = juntarProdutosEFichas(comFotos, fichas, alergenicos, {
     fichasComFoto,
     fotoDaFicha: (id) => fotoDaFichaUrl(unidade, id),
   });

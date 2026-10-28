@@ -62,3 +62,23 @@ test("máquina de lavar da cozinha e do bar ficam na área Limpeza", () => {
   assert.equal(areaDoLocal({ nome: "Máquina de lavar do Bar", slug: "maquina-bar", tipo: "limpeza" }), "limpeza");
 });
 
+
+test("fechados, abertos e geladas: estado do local, locais que faltam e destino", async () => {
+  const { estadoDoLocal, locaisDeEstadoQueFaltam, destinoDoEstado, subareaDoLocal } = await import("./estoque-areas.mjs");
+  const bar = { id: "b", nome: "Bar", tipo: "bebidas" };
+  const coz = { id: "c", nome: "Cozinha", tipo: "alimentos" };
+  const pre = { id: "p", nome: "Pré-preparos da Cozinha" };
+  assert.equal(estadoDoLocal(bar), "fechado");
+  assert.equal(estadoDoLocal(coz), "fechado");
+  assert.equal(estadoDoLocal(pre), null);
+  assert.deepEqual(locaisDeEstadoQueFaltam([bar, coz, pre]).map((l) => l.slug), ["abertos-cozinha", "abertos-bar", "expositor-bar"]);
+  const exp = { id: "x", nome: "Expositor do Bar (gelada)", tipo: "bebidas" };
+  const abBar = { id: "ab", nome: "Abertos do Bar", tipo: "bebidas" };
+  assert.equal(subareaDoLocal(exp), "expositor");
+  assert.equal(estadoDoLocal(exp), "gelada");
+  assert.equal(estadoDoLocal(abBar), "aberto");
+  const todos = [bar, coz, exp, abBar];
+  assert.deepEqual(locaisDeEstadoQueFaltam(todos).map((l) => l.slug), ["abertos-cozinha"]);
+  assert.equal(destinoDoEstado(todos, bar, "gelada").id, "x");
+  assert.equal(destinoDoEstado(todos, coz, "aberto"), null);
+});

@@ -31,7 +31,7 @@ import { AlertTriangle, ArrowLeftRight, Check, ChevronDown, Loader2, Lock, Minus
 const fmtQ = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 const CHAVE_LOCAL = "hefisto:estoque:local";
 const FORM_VAZIO = { qtd: "", unidade: "", motivo: "", destino: "", validade: "", observacao: "", responsavel: "", justificativa: "", pin: "" };
-const SUB = { principal: "Principal", preparo: "Pré-preparos", embalagens: "Embalagens" };
+const SUB = { principal: "Fechados", abertos: "Abertos", expositor: "Expositor (gelada)", preparo: "Pré-preparos", embalagens: "Embalagens" };
 
 function lerLocal(unidade) { try { return localStorage.getItem(`${CHAVE_LOCAL}:${unidade}`) || ""; } catch { return ""; } }
 function gravarLocal(unidade, id) { try { localStorage.setItem(`${CHAVE_LOCAL}:${unidade}`, id); } catch { /* sem armazenamento */ } }
@@ -125,7 +125,11 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
     if (inicialAplicado.current || !base?.insumos) return;
     inicialAplicado.current = true;
     const ins = inicial.insumo && base.insumos.find((i) => i.id === inicial.insumo);
-    if (ins) escolher(ins, inicial.tipo === "transferencia" ? "transferencia_enviada" : "", tipo);
+    if (ins) {
+      escolher(ins, inicial.tipo === "transferencia" ? "transferencia_enviada" : "", tipo);
+      // "Abrir" / "Gelar" já chegam com o destino (Abertos ou Expositor).
+      if (inicial.tipo === "transferencia" && inicial.destino) setForm((f) => ({ ...f, destino: inicial.destino }));
+    }
   }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const areas = useMemo(() => areasComLocais(base?.estoques), [base]);

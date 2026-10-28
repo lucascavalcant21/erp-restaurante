@@ -295,3 +295,17 @@ test("quantidade fechada: 2 bolos em fatias de 50 g, 30 sanduíches; custo total
   assert.equal(Math.round(r.cmvPorPessoa * 100) / 100, 2.5);
   assert.equal(r.receita, 1400);
 });
+
+test("divisão do prato: 700 g em porções de 100 g; 1 porção dividida por pessoa", async () => {
+  const { itensDoOrcamento, resumoDoOrcamento } = await import("./evento-orcamento.mjs");
+  const orc = { tipo: "buffet", sobra_pct: 0, cliente: { convidados: 14 },
+    cardapio: [{ id: "p", secao: "buffet", origem: "exclusiva", nome: "Peixe", peso_porcao_g: "700", fatia_g: "100", por_pessoa: "1",
+      ingredientes: [{ nome: "Peixe", quantidade: "1", unidade_uso: "un", tamanho_embalagem: "1", unidade_embalagem: "un", preco_embalagem: "70" }] }],
+    financeiro: {} };
+  const [i] = itensDoOrcamento(orc, []);
+  assert.equal(i.porcoesPorFicha, 7);
+  assert.equal(Math.round(i.custoPorcaoDividida * 100) / 100, 10);
+  assert.equal(Math.round(i.custoPorPessoa * 100) / 100, 10);
+  // 14 pessoas × 1 porção de 100 g = 2 pratos = R$ 140
+  assert.equal(Math.round(resumoDoOrcamento(orc, []).cmv), 140);
+});

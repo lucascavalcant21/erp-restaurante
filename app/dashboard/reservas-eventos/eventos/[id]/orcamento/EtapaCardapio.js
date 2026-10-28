@@ -5,7 +5,7 @@
 // que só existem neste evento (não aparecem nas fichas do restaurante).
 
 import { useMemo, useState } from "react";
-import { Search, ChefHat, Wine, FlaskConical, ChevronDown, ChevronUp, UtensilsCrossed, Soup, Sparkles } from "lucide-react";
+import { Search, ChefHat, Wine, FlaskConical, ChevronDown, ChevronUp, UtensilsCrossed, Soup, Sparkles, Ticket } from "lucide-react";
 import {
   TIPOS_EVENTO, SECOES, UNIDADES, tipoDoEvento, ingredienteVazio, custoDaFichaExclusiva, novoId,
 } from "../../../../../lib/evento-orcamento.mjs";
@@ -14,14 +14,14 @@ import { tipoFichaDe, setorId } from "../../../../../lib/ficha-modelo.mjs";
 import { fmtReais } from "../../../../../lib/valor-percentual.mjs";
 import { Cartao, Campo, Texto, Numero, Selecao, BotaoRemover, BotaoAdicionar } from "./ui";
 
-const ICONE_TIPO = { buffet: Soup, alacarte: UtensilsCrossed, unico: Sparkles };
+const ICONE_TIPO = { buffet: Soup, alacarte: UtensilsCrossed, ticket: Ticket, unico: Sparkles };
 
 export function EtapaTipo({ orc, setOrc, modelos = [], onAplicarModelo, onRemoverModelo }) {
   return (
     <div className="space-y-5">
     <Cartao titulo="Que tipo de evento é?" descricao="Isso define como o cardápio é montado e como aparece no orçamento do cliente. Dá para trocar depois.">
       <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Tipo do evento">
-        {TIPOS_EVENTO.map((t) => {
+        {TIPOS_EVENTO.filter((t) => !t.oculto || orc.tipo === t.id).map((t) => {
           const Icone = ICONE_TIPO[t.id];
           const ativo = orc.tipo === t.id;
           return (
@@ -227,7 +227,7 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-stretch">
         <div className="col-span-2 rounded-xl bg-slate-50 p-2.5 sm:col-span-1">
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? "Quantidade no evento" : ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : "Porções por pessoa"}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? "Quantidade no evento" : ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : item.dividido ? `Porções de ${item.divisaoG} g por pessoa` : "Porções por pessoa"}</span>
             {(
               <span className="inline-flex rounded-lg bg-white p-0.5 ring-1 ring-slate-200" role="radiogroup" aria-label="Medir por">
                 {/* "total": quantidade fechada para o evento (2 bolos, 30 sanduíches, 1 suco de 2 L) */}
@@ -254,11 +254,25 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
           ) : item.emGramas
             ? <Numero valor={item.gramas_por_pessoa} onChange={(v) => alterarItem({ gramas_por_pessoa: v })} sufixo="g" aria-label="Gramas por pessoa" />
             : <Numero valor={item.por_pessoa} onChange={(v) => alterarItem({ por_pessoa: v })} aria-label={ehBar ? "Doses por pessoa" : "Porções por pessoa"} />}
+          {/* Divisão do prato: o peso vem da ficha; o dono escolhe o tamanho da porção da mesa. */}
+          {!ehBar && !item.emGramas && !item.emTotal && (
+            <div className="mt-2 space-y-1">
+              <span className="block text-[11px] font-bold text-slate-600">{item.pesoPorcao > 0 ? <>Prato da ficha: <b className="text-slate-900">{item.pesoPorcao.toLocaleString("pt-BR")} g</b></> : "A ficha não tem o peso do prato."}</span>
+              {item.pesoPorcao > 0 && (
+                <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                  Dividir em porções de
+                  <span className="w-24"><Numero valor={item.fatia_g} onChange={(v) => alterarItem({ fatia_g: v })} sufixo="g" aria-label="Peso da porção dividida" /></span>
+                </label>
+              )}
+              {item.dividido && <span className="block text-xs font-black text-emerald-800">1 prato = {item.porcoesPorFicha.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} porções de {item.divisaoG} g · {fmtReais(item.custoPorcaoDividida)} cada</span>}
+            </div>
+          )}
           {item.emGramas && item.pesoPorcao > 0 && <span className="mt-1 block text-[11px] font-medium text-slate-500">= {item.porPessoa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} porção de {item.pesoPorcao} g</span>}
         </div>
         <div className="rounded-xl bg-slate-50 p-2.5">
-          <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-600">Custo da porção</span>
-          <span className={`mt-2 block text-base font-black tabular-nums ${item.semCusto ? "text-amber-700" : "text-slate-900"}`}>{item.semCusto ? "sem custo" : fmtReais(item.custoPorcao)}</span>
+          <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.dividido ? `Custo da porção de ${item.divisaoG} g` : "Custo da porção"}</span>
+          <span className={`mt-2 block text-base font-black tabular-nums ${item.semCusto ? "text-amber-700" : "text-slate-900"}`}>{item.semCusto ? "sem custo" : fmtReais(item.dividido ? item.custoPorcaoDividida : item.custoPorcao)}</span>
+          {item.dividido && !item.semCusto && <span className="block text-[11px] font-bold text-slate-500">prato inteiro {fmtReais(item.custoPorcao)}</span>}
         </div>
         <div className="rounded-xl bg-slate-50 p-2.5">
           <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? "Custo total" : "Custo por pessoa"}</span>
@@ -278,7 +292,9 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
       </div>
       {item.problemas.length > 0 && <p className="mt-2 text-xs font-bold text-amber-700">{item.problemas.join(" · ")}</p>}
       {convidados > 0 && item.custoPorPessoa > 0 && (
-        <p className="mt-1 text-xs font-medium text-slate-500">{(Number(item.porPessoa) * convidados).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} porções para {convidados} pessoas · {fmtReais(item.custoPorPessoa * convidados)}</p>
+        <p className="mt-1 text-xs font-medium text-slate-500">{item.dividido
+          ? <>{(Number(item.porPessoa) * convidados * item.porcoesPorFicha).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} porções de {item.divisaoG} g para {convidados} pessoas = {Math.ceil(Number(item.porPessoa) * convidados - 1e-9).toLocaleString("pt-BR")} pratos · {fmtReais(item.custoPorPessoa * convidados)}</>
+          : <>{(Number(item.porPessoa) * convidados).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} porções para {convidados} pessoas · {fmtReais(item.custoPorPessoa * convidados)}</>}</p>
       )}
       {exclusiva && aberto && <EditorExclusiva item={item} alterarItem={alterarItem} />}
     </li>
@@ -292,12 +308,14 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
   const alterarItem = (id, mud) => setOrc((o) => ({ ...o, cardapio: o.cardapio.map((i) => (i.id === id ? { ...i, ...mud } : i)) }));
   const remover = (id) => setOrc((o) => ({ ...o, cardapio: o.cardapio.filter((i) => i.id !== id) }));
   const adicionarFicha = (secao, f) => {
-    setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id: novoId(), secao, origem: "ficha", ficha_id: f.id, nome: f.nome_receita, descricao: "", por_pessoa: "1", custo_porcao_gravado: custoPorcaoDaFicha(f, fichas) || 0 }] }));
+    // Ticket por pessoa: o item já entra em quantidade fechada para o evento.
+    const fechado = tipoDoEvento(orc.tipo).quantidadeFechada ? { medida: "total", quantidade_total: "1" } : {};
+    setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id: novoId(), secao, origem: "ficha", ficha_id: f.id, nome: f.nome_receita, descricao: "", por_pessoa: "1", custo_porcao_gravado: custoPorcaoDaFicha(f, fichas) || 0, ...fechado }] }));
     setBuscando(null);
   };
   const adicionarExclusiva = (secao) => {
     const id = novoId();
-    setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id, secao, origem: "exclusiva", nome: secao === "bar" ? "Novo drink" : "Novo prato", descricao: "", por_pessoa: "1", ingredientes: [ingredienteVazio()] }] }));
+    setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id, secao, origem: "exclusiva", nome: secao === "bar" ? "Novo drink" : "Novo prato", descricao: "", por_pessoa: "1", ingredientes: [ingredienteVazio()], ...(tipoDoEvento(orc.tipo).quantidadeFechada ? { medida: "total", quantidade_total: "1" } : {}) }] }));
     setAbertos((s) => new Set(s).add(id));
   };
   const alternar = (id) => setAbertos((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -307,6 +325,8 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
       <p className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700">
         <strong>{tipo.rotulo}.</strong> {orc.tipo === "buffet"
           ? "No buffet, diga quanto cada pessoa come de cada prato: 0,5 = meia porção por convidado."
+          : orc.tipo === "ticket"
+            ? "Diga quanto vai no total para o evento (2 bolos, 30 sanduíches, 1 suco de 2 L). O custo por pessoa e o ticket aparecem embaixo."
           : orc.tipo === "alacarte"
             ? "Cada pessoa recebe 1 porção de cada item. Se houver opções à escolha (ex.: 2 pratos principais), use 0,5 em cada."
             : "Um item só: informe quanto vai por pessoa."}
@@ -367,7 +387,7 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
               {resumo.convidados > 0 && resumo.cmv > 0 ? (
                 <p className="text-sm font-semibold text-slate-700">
                   Gasto <b>{fmtReais(resumo.cmv)}</b> para servir <b>{resumo.convidados}</b> pessoas = <b>{fmtReais(resumo.cmv / resumo.convidados)}</b> por pessoa.
-                  {Number(resumo.precoPorPessoa) > 0 && <> Vendendo a <b>{fmtReais(resumo.precoPorPessoa)}</b>, sobram <b className={resumo.precoPorPessoa - resumo.cmv / resumo.convidados < 0 ? "text-red-700" : "text-emerald-800"}>{fmtReais(resumo.precoPorPessoa - resumo.cmv / resumo.convidados)}</b> por pessoa ({fmtReais(resumo.receita - resumo.cmv)} no evento) antes de equipe, aluguel e taxas — o lucro limpo sai na etapa de custos.</>}
+                  {Number(resumo.precoPorPessoa) > 0 && <> Vendendo a <b>{fmtReais(resumo.precoPorPessoa)}</b>, sobram <b className={resumo.precoPorPessoa - resumo.cmv / resumo.convidados < 0 ? "text-red-700" : "text-emerald-800"}>{fmtReais(resumo.precoPorPessoa - resumo.cmv / resumo.convidados)}</b> por pessoa ({fmtReais(resumo.receita - resumo.cmv)} no evento) antes de equipe, aluguel e taxas — o lucro líquido sai na etapa de custos.</>}
                 </p>
               ) : <p className="text-xs font-semibold text-slate-500">Informe as pessoas e os itens para ver o custo por pessoa.</p>}
             </div>

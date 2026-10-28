@@ -255,7 +255,7 @@ export default function EventoPage() {
   const temCusto = resumo.itens.length > 0;
 
   return (
-    <main className="min-h-screen bg-hf-bg pb-24 print:bg-white print:pb-0">
+    <main className="min-h-screen overflow-x-clip bg-hf-bg pb-24 print:bg-white print:pb-0">
       <header className="border-b border-hf-border bg-hf-surface px-4 pb-4 pt-3 sm:px-8 sm:pt-4 print:hidden">
         <div className="mx-auto flex max-w-7xl flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -303,13 +303,14 @@ export default function EventoPage() {
       </header>
 
       <nav className="sticky top-0 z-10 border-b border-hf-border bg-hf-bg/95 px-2 backdrop-blur sm:px-6 print:hidden" aria-label="Etapas do orçamento">
-        <ol ref={trilhaRef} className="relative mx-auto flex max-w-7xl gap-1 overflow-x-auto py-2">
+        {/* Sem barra de rolagem: no computador as etapas quebram linha; no celular deslizam sem a barra. */}
+        <ol ref={trilhaRef} className="relative mx-auto flex max-w-7xl gap-1 overflow-x-auto py-2 lg:gap-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-wrap lg:overflow-visible">
           {ETAPAS.map((e, i) => {
             const ativo = e.id === etapa;
             return (
               <li key={e.id} className="shrink-0">
                 <button type="button" onClick={() => setEtapa(e.id)} aria-current={ativo ? "step" : undefined} data-etapa={e.id}
-                  className={`flex h-11 items-center gap-2 rounded-xl px-3 text-sm font-bold transition ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
+                  className={`flex h-10 items-center gap-1.5 rounded-xl px-2.5 text-sm font-bold transition lg:px-2 lg:text-[13px] ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
                   <span className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-black ${ativo ? "bg-hf-surface text-hf-accent" : feito[e.id] ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-elevated text-hf-text-2"}`}>
                     {feito[e.id] && !ativo ? <Check size={12} strokeWidth={3} /> : i + 1}
                   </span>
@@ -356,7 +357,7 @@ export default function EventoPage() {
             <Linha rotulo="Valor por pessoa" valor={resumo.precoPorPessoa > 0 ? fmtReais(resumo.precoPorPessoa) : "—"} />
             {temCusto && resumo.precoSugeridoPorPessoa && <Linha rotulo={`Sugerido (meta ${fmtPct(resumo.meta.pct, 0)})`} valor={fmtReais(resumo.precoSugeridoPorPessoa)} suave />}
             <div className="mt-3 border-t border-hf-border pt-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-hf-muted">Lucro limpo</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-hf-muted">Lucro líquido</p>
               {temCusto && resumo.receita > 0 ? (
                 <>
                   <p className={`text-2xl font-black tabular-nums ${resumo.prejuizo ? "text-hf-danger" : resumo.meta.atingida ? "text-hf-accent" : "text-hf-text"}`}>{fmtReais(resumo.lucro)}</p>

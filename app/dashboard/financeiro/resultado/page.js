@@ -224,6 +224,7 @@ export default function ResultadoDoMes() {
                 <Num rotulo="Taxa do crédito" sufixo="%" valor={modelo.cartao?.taxa_credito_pct} onChange={(v) => setCartao("taxa_credito_pct", v)} />
                 <Num rotulo="Vendas no débito" sufixo="%" valor={modelo.cartao?.parte_debito_pct} onChange={(v) => setCartao("parte_debito_pct", v)} />
                 <Num rotulo="Taxa do débito" sufixo="%" valor={modelo.cartao?.taxa_debito_pct} onChange={(v) => setCartao("taxa_debito_pct", v)} />
+                <Num rotulo="Meta de lucro" sufixo="%" valor={modelo.meta_lucro_pct} onChange={(v) => set("meta_lucro_pct", v)} className="col-span-2" dica="Base do preço sugerido nos eventos, no orçamento rápido e nas marmitas (com os impostos e as taxas acima)." />
               </div>
             </section>
 

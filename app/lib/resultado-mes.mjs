@@ -35,6 +35,8 @@ export function modeloInicial() {
     cartao: { parte_credito_pct: "", parte_debito_pct: "", taxa_credito_pct: "", taxa_debito_pct: "" },
     encargos_pct: "",
     bonus_funcionario: "",
+    // Meta de lucro (%): base do preço sugerido no evento, no orçamento rápido e nas marmitas.
+    meta_lucro_pct: "",
     pedidos: "",
     // Taxa de serviço lançada no fim do mês, por funcionário: { id: valor }.
     taxas_servico: {},
@@ -319,4 +321,46 @@ export function ticketMedio(faturamento, pedidos, dias = 0) {
   const f = num(faturamento); const n = Math.round(num(pedidos));
   if (!(f > 0) || !(n > 0)) return { valor: null, natureza: "DADOS INSUFICIENTES", motivo: "Informe o faturamento e quantos pedidos (ou clientes) teve no mês." };
   return { valor: r2(f / n), pedidosPorDia: dias > 0 ? r2(n / dias) : null, natureza: "INFORMADO", motivo: `${f.toLocaleString("pt-BR")} ÷ ${n.toLocaleString("pt-BR")} pedidos.` };
+}
+
+/* Parâmetros da casa a partir do Resultado do mês (pedido do dono, 28/10/2026:
+ * "não trabalhamos mais com a Pizza do Lucro; use o novo sistema no evento e
+ * nas marmitas"). Do último mês salvo até `mesRef` (inclusive):
+ *   imposto_pct      impostos sobre vendas
+ *   taxa_cartao_pct  taxa efetiva do cartão sobre TODO o faturamento
+ *                    (% no crédito × taxa do crédito + % no débito × taxa do débito)
+ *   margem_alvo_pct  meta de lucro
+ * Campo não preenchido volta null (quem usa mantém o valor anterior). */
+export function parametrosDoResultado(todos = {}, mesRef = null) {
+  const meses = Object.keys(todos || {}).filter((k) => /^\d{4}-\d{2}$/.test(k) && (!mesRef || k <= mesRef)).sort();
+  const mes = meses[meses.length - 1];
+  if (!mes) return { mes: null, imposto_pct: null, taxa_cartao_pct: null, margem_alvo_pct: null };
+  const m = todos[mes] || {};
+  const tem = (v) => v !== "" && v !== null && v !== undefined;
+  const c = m.cartao || {};
+  const temCartao = tem(c.parte_credito_pct) || tem(c.parte_debito_pct);
+  return {
+    mes,
+    imposto_pct: tem(m.impostos_pct) ? r2(num(m.impostos_pct)) : null,
+    taxa_cartao_pct: temCartao ? r2((num(c.parte_credito_pct) * num(c.taxa_credito_pct) + num(c.parte_debito_pct) * num(c.taxa_debito_pct)) / 100) : null,
+    margem_alvo_pct: tem(m.meta_lucro_pct) ? r2(num(m.meta_lucro_pct)) : null,
+  };
+}
+
+/** Sobrepõe aos parâmetros antigos (config_sistema) o que o Resultado do mês tem preenchido. */
+export function sobreporParametros(params = {}, doResultado = {}) {
+  const r = { ...params };
+  for (const k of ["imposto_pct", "taxa_cartao_pct", "margem_alvo_pct"]) if (doResultado?.[k] != null) r[k] = doResultado[k];
+  r.origem_parametros = doResultado?.mes ? `Resultado do mês (${doResultado.mes})` : null;
+  return r;
+}
+
+/** Marmitaria: alíquota e meta vazias na config dela usam o Resultado do mês.
+ * O que o dono configurou na marmitaria continua valendo (é próprio dela).
+ * `doResultado` marca o que veio de lá, para a tela dizer a origem. */
+export function configComResultado(cfg = {}, doRes = {}) {
+  const r = { ...cfg, doResultado: {} };
+  if (r.tributos_pct == null && doRes?.imposto_pct != null) { r.tributos_pct = doRes.imposto_pct; r.doResultado.tributos_pct = doRes.mes; }
+  if (r.margem_alvo_pct == null && doRes?.margem_alvo_pct != null) { r.margem_alvo_pct = doRes.margem_alvo_pct; r.doResultado.margem_alvo_pct = doRes.mes; }
+  return r;
 }

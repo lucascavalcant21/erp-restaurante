@@ -12,7 +12,7 @@ import { ChefHat, Wine, Search, X, Plus, Minus, Check, Loader2, Users, Sparkles,
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
 import { fetchFichas } from "../../../lib/operacao";
-import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
+import { fetchParamsDaCasa, PARAMS_PADRAO } from "../../../lib/parametros";
 import { catalogoDeFichas, filtrarCatalogo, orcamentoDoRapido } from "../../../lib/evento-rapido.mjs";
 import { resumoDoOrcamento, camposDoEventoParaGravar, mensagemErroEvento } from "../../../lib/evento-orcamento.mjs";
 import { fmtReais } from "../../../lib/valor-percentual.mjs";
@@ -57,7 +57,7 @@ export default function OrcamentoRapido() {
     let ativo = true;
     (async () => {
       setCarregando(true);
-      const [rF, rP] = await Promise.all([fetchFichas(unidadeAtiva), fetchParams(unidadeAtiva)]);
+      const [rF, rP] = await Promise.all([fetchFichas(unidadeAtiva), fetchParamsDaCasa(unidadeAtiva)]);
       if (!ativo) return;
       setFichas(rF.data || []);
       const p = { ...PARAMS_PADRAO, ...(rP.data || {}) };

@@ -21,7 +21,7 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
   const usarSugerido = () => r.precoSugeridoPorPessoa && mudar({ preco_por_pessoa: fmtNumBR(r.precoSugeridoPorPessoa) });
   return (
     <div className="space-y-5">
-      <Cartao titulo="Taxas" descricao="Saem do valor que o cliente paga. Vêm das configurações da casa; mude se este evento for diferente (ex.: pago no PIX, sem maquininha).">
+      <Cartao titulo="Taxas" descricao="Saem do valor que o cliente paga. Vêm do Resultado do mês (Financeiro); mude se este evento for diferente (ex.: pago no PIX, sem maquininha).">
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo rotulo="Impostos"><Numero valor={f.imposto_pct} onChange={(v) => mudar({ imposto_pct: v })} sufixo="%" /></Campo>
           <Campo rotulo="Taxa da maquininha"><Numero valor={f.maquininha_pct} onChange={(v) => mudar({ maquininha_pct: v })} sufixo="%" /></Campo>
@@ -72,7 +72,7 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
 
       <Cartao titulo="Valor para o cliente" descricao="O sistema sugere o valor por pessoa que cobre todos os custos e ainda deixa sua meta de lucro limpo. Você decide o valor final.">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Campo rotulo="Meta de lucro limpo" ajuda="Vem da Pizza do Lucro; mude só para este evento."><Numero valor={f.meta_lucro_pct} onChange={(v) => mudar({ meta_lucro_pct: v })} sufixo="%" /></Campo>
+          <Campo rotulo="Meta de lucro limpo" ajuda="Vem do Resultado do mês (Financeiro); mude só para este evento."><Numero valor={f.meta_lucro_pct} onChange={(v) => mudar({ meta_lucro_pct: v })} sufixo="%" /></Campo>
           <div className="rounded-2xl bg-slate-50 px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Sugerido por pessoa</p>
             <p className="text-xl font-black tabular-nums text-slate-900">{r.precoSugeridoPorPessoa ? fmtReais(r.precoSugeridoPorPessoa) : "—"}</p>

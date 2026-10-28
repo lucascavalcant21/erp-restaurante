@@ -18,7 +18,7 @@ import { EtapaFinanceiro, EtapaDRE, EtapaProposta, EtapaPagamentos } from "./orc
 import { supabase } from "../../../../lib/supabase";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
-import { fetchParams, PARAMS_PADRAO, fetchModelosEvento, adicionarModeloEvento, removerModeloEvento } from "../../../../lib/parametros";
+import { fetchParamsDaCasa, PARAMS_PADRAO, fetchModelosEvento, adicionarModeloEvento, removerModeloEvento } from "../../../../lib/parametros";
 import { FUNIL_ETAPAS, rotuloEtapa, normalizarEtapa } from "../../../../lib/evento-financeiro.mjs";
 import {
   orcamentoDoEvento, resumoDoOrcamento, pendenciasDoOrcamento, listaDeComprasDoOrcamento, camposDoEventoParaGravar, CAMPOS_ESSENCIAIS, tipoDoEvento,
@@ -87,7 +87,7 @@ export default function EventoPage() {
       const [{ data, error }, resFichas, resParams, resOutrosCompleto, resModelos] = await Promise.all([
         supabase.from("eventos").select("*").eq("id", id).single(),
         fetchFichas(unidadeAtiva),
-        fetchParams(unidadeAtiva),
+        fetchParamsDaCasa(unidadeAtiva),
         // Outros eventos da loja: histórico do cliente, conflito de equipe e nomes já usados.
         outros("id, nome, cliente_nome, cliente_telefone, data_evento, valor_contratado, capacidade, funil_status, operacao_detalhes"),
         fetchModelosEvento(unidadeAtiva),

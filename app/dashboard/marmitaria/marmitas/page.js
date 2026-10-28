@@ -38,11 +38,11 @@ function Conteudo() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="min-w-[240px] flex-1"><Abas abas={[{ id: "cardapio", rotulo: "Cardápio" }, { id: "precos", rotulo: "Preços por canal" }, { id: "combos", rotulo: "Combos e promoções" }]} valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} /></div>
+        <div className="min-w-[240px] flex-1"><Abas abas={[{ id: "cardapio", rotulo: "Marmitas" }, { id: "combos", rotulo: "Cardápio de vendas e lucro" }, { id: "precos", rotulo: "Preços por canal" }]} valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} /></div>
         <Botao onClick={nova}><Plus size={16} /> Nova marmita</Botao>
       </div>
       {aviso && <Aviso>{aviso}</Aviso>}
-      {aba === "cardapio" ? <Cardapio onEditar={editar} onNova={nova} recarregar={recarregar} /> : aba === "combos" ? <CombosPromocoes /> : <PrecosPorCanal onEditar={editar} />}
+      {aba === "cardapio" ? <Cardapio onEditar={editar} onNova={nova} recarregar={recarregar} /> : aba === "combos" ? <CombosPromocoes onEditar={editar} /> : <PrecosPorCanal onEditar={editar} />}
     </div>
   );
 }

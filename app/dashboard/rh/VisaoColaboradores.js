@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   Users, ArrowLeft, Phone, CreditCard, Clock, Hourglass, CalendarHeart,
   ShoppingBag, FileText, Star, Edit3, Printer, ChevronRight, User, Network,
-  DollarSign, AlertTriangle, MapPin
+  DollarSign, AlertTriangle, MapPin, ClipboardList
 } from "lucide-react";
 import { PageHeader, PageBody, EmptyState, SearchBar, SkeletonList, fmtBRL, fmtData } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";
@@ -15,7 +15,7 @@ import {
   fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario, fetchAtestados,
   salvarAtestado, removerAtestado, anexarArquivoAtestado,
   fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
-  fetchAdvertenciasColab, calcularAdicionaisMes, entradaContratadaDoDia, jornadaContratadaMin, fetchFeriados, fetchAllFolgasDaUnidade
+  fetchAdvertenciasColab, calcularAdicionaisMes, entradaContratadaDoDia, jornadaContratadaMin, opcoesDaCasa, fetchFeriados, fetchAllFolgasDaUnidade
 } from "../../lib/rh";
 import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../lib/ponto";
 import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../lib/ponto-status.mjs";
@@ -25,6 +25,7 @@ import { abrirArquivoRH } from "../../lib/rh-arquivos";
 import { imprimirReciboExtra } from "../../lib/recibo-extra";
 import { supabase } from "../../lib/supabase";
 import { fetchConvencaoAtiva } from "../../lib/trabalhista/convencoes-dados";
+import { TOLERANCIA_MARCACAO_MIN } from "../../lib/jornada-calculo.mjs";
 import { regrasDaCompetencia } from "../../lib/trabalhista/regras-competencia.mjs";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -60,7 +61,7 @@ function Bloco({ icon: Icon, titulo, extra, children }) {
   );
 }
 
-export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, versao = 0 }) {
+export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAcoes, versao = 0 }) {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const router = useRouter();
   const [colaboradores, setColaboradores] = useState([]);
@@ -80,13 +81,6 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
   const [formAtestado, setFormAtestado] = useState(null);
   const [salvandoAtestado, setSalvandoAtestado] = useState(false);
 
-  const atualizarStatusContrato = async (novoStatus) => {
-    if (!confirm(`Deseja alterar o status do contrato para "${novoStatus}"?`)) return;
-    const { error } = await supabase.from("colaboradores").update({ status_contrato: novoStatus }).eq("id", sel.id);
-    if (error) return alert("Erro ao atualizar contrato: " + error.message);
-    setSel({ ...sel, status_contrato: novoStatus });
-    setColaboradores(colaboradores.map(c => c.id === sel.id ? { ...c, status_contrato: novoStatus } : c));
-  };
 
   const salvarAtestadoDoColaborador = async () => {
     if (!formAtestado?.data_inicio) return alert("Informe a data de início do atestado.");
@@ -125,7 +119,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
   const carregarLista = async (silencioso = false) => {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setLoading(false); return; }
     if (!silencioso) setLoading(true);
-    const hojeISO = new Date().toISOString().split("T")[0];
+    const _h = new Date(); const hojeISO = `${_h.getFullYear()}-${String(_h.getMonth() + 1).padStart(2, "0")}-${String(_h.getDate()).padStart(2, "0")}`;
     const [{ data }, rPonto, rFolgas] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
@@ -223,7 +217,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
       // Encontrar entrada esperada hoje
       let entradaEsperada = null;
       if (sel.horario_por_dia && sel.horarios_dia && sel.horarios_dia[diaSemana]) {
-        entradaEsperada = sel.horarios_dia[diaSemana].entrada;
+        entradaEsperada = sel.horarios_dia[diaSemana].e || sel.horarios_dia[diaSemana].entrada;
       } else if (!sel.horario_por_dia) {
         entradaEsperada = diaSemana === 0 ? sel.horario_dom_entrada : sel.horario_entrada;
       }
@@ -234,7 +228,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
         if (folgaEsporadica || folgaFixa) return <div className={cls("text-zinc-800 bg-zinc-100 border-zinc-200")}><Clock size={14} /> {diaSemana === 0 ? "Folga (domingo)" : "Folga hoje"}</div>;
         if (entradaEsperada) {
            const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
-           if (minAgora > strToMin(entradaEsperada)) return <div className={cls("text-rose-800 bg-rose-50 border-rose-200")}><AlertTriangle size={14} /> Atrasado (esperado às {entradaEsperada})</div>;
+           if (minAgora > strToMin(entradaEsperada) + TOLERANCIA_MARCACAO_MIN) return <div className={cls("text-rose-800 bg-rose-50 border-rose-200")}><AlertTriangle size={14} /> Atrasado (esperado às {entradaEsperada})</div>;
         }
         return <div className={cls("text-slate-700 bg-slate-50 border-slate-200")}><Clock size={14} /> {situacaoDoPonto(null).texto}</div>;
       }
@@ -242,7 +236,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
       const situacao = situacaoDoPonto(pt);
       if (pt.status_jornada === 1) {
          let atrasado = false;
-         if (entradaEsperada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(entradaEsperada); atrasado = mPt > mAg + 5; }
+         if (entradaEsperada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(entradaEsperada); atrasado = mPt > mAg + TOLERANCIA_MARCACAO_MIN; }
          return <div className={cls(atrasado ? "text-rose-800 bg-rose-50 border-rose-200" : "text-emerald-800 bg-emerald-50 border-emerald-200")}><Clock size={14} /> {situacao.texto}{atrasado ? ` (era p/ ${entradaEsperada})` : ""}</div>;
       }
       if (pt.status_jornada === 2) return <div className={cls("text-amber-800 bg-amber-50 border-amber-200")}><Clock size={14} /> {situacao.texto}</div>;
@@ -264,6 +258,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
           <button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Espelho</button>
           <button onClick={() => router.push(`/dashboard/rh/ponto/corrigir?colab=${sel.id}&data=${new Date().toISOString().slice(0, 10)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Clock size={14} /> Corrigir Ponto</button>
           <button onClick={() => router.push(isFree ? `/dashboard/rh/extra/${sel.id}/recibo` : `/dashboard/rh/funcionario/${sel.id}/recibo`)} className="erp-btn erp-btn-ghost !h-9 text-xs" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}><FileText size={14} /> Recibo</button>
+          {onAcoes && <button onClick={() => onAcoes(sel)} className="erp-btn erp-btn-ghost !h-9 text-xs"><ClipboardList size={14} /> Ações</button>}
           <button onClick={() => { if (onEditar) onEditar(sel); else router.push("/dashboard/rh"); }} className="erp-btn erp-btn-primary !h-9 text-xs"><Edit3 size={14} /> Editar</button>
         </PageHeader>
         <PageBody>
@@ -293,7 +288,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
               return (
                 <div className={`mt-4 border rounded-xl p-4 ${ehHoje ? "bg-zinc-100 border-zinc-200" : "bg-zinc-100 border-zinc-200"}`}>
                   <p className={`text-sm font-black mb-1 ${ehHoje ? "text-zinc-900" : "text-zinc-900"}`}>
-                    🎂 {ehHoje ? "Aniversário é HOJE!" : "Aniversariante do Mês!"}
+                    {ehHoje ? "Aniversário é HOJE!" : "Aniversariante do Mês!"}
                   </p>
                   <p className={`text-xs font-bold ${ehHoje ? "text-zinc-800" : "text-zinc-800"}`}>
                     Celebre o aniversário no dia {fmtData(sel.data_nascimento).slice(0, 5)}.
@@ -313,15 +308,11 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
                   <p className={`text-xs font-bold mb-3 ${critico ? "text-amber-800" : "text-zinc-800"}`}>{f.detalhe}</p>
                   {critico && (
                     <div className="flex flex-wrap gap-2">
-                      {f.periodo === 1 && (
-                        <button type="button" onClick={() => atualizarStatusContrato(`Experiência (${prazoExperiencia(sel) + (90 - prazoExperiencia(sel))}d)`)}
-                          className="bg-white border border-amber-300 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-100 transition-colors">
-                          Renovar para 2º Período
-                        </button>
-                      )}
-                      <button type="button" onClick={() => atualizarStatusContrato("Definitivo")}
+                      {/* Prorrogar e efetivar passam pelo vínculo (aprovação e histórico).
+                          Antes gravavam direto no cadastro e o contrato divergia do vínculo. */}
+                      <button type="button" onClick={() => router.push(`/dashboard/rh/funcionario/${sel.id}?aba=contratos`)}
                         className="bg-emerald-600 border border-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors">
-                        Transformar em Fixo
+                        {f.periodo === 1 ? "Prorrogar ou efetivar" : "Efetivar"}
                       </button>
                       <button type="button" onClick={() => (onDesligar ? onDesligar(sel) : router.push(`/dashboard/rh?aba=quadro`))}
                         className="bg-rose-100 border border-rose-300 text-rose-800 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-200 transition-colors">
@@ -350,11 +341,10 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
               {!isFree && (() => {
                 const rg = regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao }).regras;
                 const fonteRg = rg.id === "clt" ? "CLT" : "CCT Foz 2026/27";
-                const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario, vida.feriados, {
-                  regras: rg,
-                  contratadaDoDia: (d) => jornadaContratadaMin(sel, d),
+                const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario, vida.feriados, opcoesDaCasa(sel, {
+                  folgas: vida.folgas, regras: rg,
                   entradaDoDia: (d) => entradaContratadaDoDia(sel, d),
-                });
+                }));
                 const fixo = Number(sel.salario) || 0;
                 const nDiasSemana = (sel.dias_trabalho || "").split(",").filter(Boolean).length;
                 const diariabase = nDiasSemana > 0 && fixo > 0 ? (fixo / (nDiasSemana * 4.345)) : 0;
@@ -376,7 +366,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
                     <Linha rotulo="Adicional noturno" valor={ad.valorNoturno} dica={`${fmtMin(ad.minNoturno)} · ${rg.noturnoPct}% das ${rg.noturnoInicioH}h às ${rg.noturnoFimH}h · ${fonteRg}`} />
                     <Linha rotulo="Horas extras" valor={ad.valorExtra} dica={`${fmtMin(ad.minExtra)} · +${rg.extraPct}% · ${fonteRg}`} />
                     <Linha rotulo="Trabalho em feriado" valor={ad.valorFeriado} dica={`${fmtMin(ad.minFeriado)} em feriados · +${rg.feriadoPct}% · ${fonteRg}`} />
-                    <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O botão "Lançar Folha" no RH usa estes valores.</p>
+                    <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O Fechar folha soma estes valores.</p>
                   </Bloco>
                 );
               })()}
@@ -486,7 +476,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
                     ))}
                   </div>
                 )}
-                <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Registradas e impressas pela Gestão de RH (botão Advertências).</p>
+                <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Registre e imprima pelo botão Ações, aba Gestão.</p>
               </Bloco>
               {/* Atestados médicos. Fica antes do ponto de propósito: quem abre
                   a ficha para conferir uma falta precisa ver o atestado antes
@@ -608,7 +598,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
                     {vida.banco.map(b => (
                       <div key={b.id} className="flex justify-between items-center text-xs p-2 rounded-lg" style={{ background: b.tipo === "excesso" ? "rgba(245,158,11,0.10)" : "var(--elevated)" }}>
                         <span className="font-medium truncate" style={{ color: "var(--fg-soft)" }}>{b.data?.split("-").reverse().join("/")} · {b.observacao || "Intervalo não tirado"}</span>
-                        <span className="font-black shrink-0 ml-2" style={{ color: b.tipo === "excesso" ? "#B45309" : "var(--accent-strong)" }}>{b.tipo === "excesso" ? `+${b.minutos}min além` : fmtMin(Number(b.minutos) || 0)}</span>
+                        <span className="font-black shrink-0 ml-2" style={{ color: b.tipo === "excesso" ? "#B45309" : "var(--accent-strong)" }}>{b.tipo === "excesso" ? `+${b.minutos}min além` : b.tipo === "intervalo_curto" ? `intervalo curto (anotação)` : fmtMin(Number(b.minutos) || 0)}</span>
                       </div>
                     ))}
                   </div>
@@ -735,7 +725,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
 
               {/* Documentos */}
               <Bloco icon={FileText} titulo="Documentos anexados">
-                {vida.docs.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum documento. Anexe pela Gestão de RH.</p> : (
+                {vida.docs.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum documento. Anexe pelo botão Ações, aba Documentos.</p> : (
                   <div className="flex flex-wrap gap-2">
                     {vida.docs.map(doc => (
                       <a key={doc.id} href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("documento", doc.id); }} className="erp-badge erp-badge-ok flex items-center gap-1"><FileText size={11} /> {doc.nome_arquivo}</a>
@@ -831,7 +821,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
                   <div className="flex-1 min-w-0">
                     <p className="font-bold truncate" style={{ color: "var(--fg)" }}>{c.nome}</p>
                     <p className="text-2xs font-bold uppercase tracking-widest truncate" style={{ color: "var(--dim)" }}>
-                      {c.cargo || "—"}{c.tipo_contrato === "Freelancer" ? " · Extra" : ""}{inativo ? " · inativo" : ""}{(() => { const a = aniversario(c); return a ? ` · ${a.idade} anos${a.ehHoje ? " 🎂" : ""}` : ""; })()}
+                      {c.cargo || "—"}{c.tipo_contrato === "Freelancer" ? " · Extra" : ""}{inativo ? " · inativo" : ""}{(() => { const a = aniversario(c); return a ? ` · ${a.idade} anos${a.ehHoje ? " " : ""}` : ""; })()}
                     </p>
                     {st && (
                       <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-3xs font-bold" style={{ background: st.fundo, color: st.cor }}>

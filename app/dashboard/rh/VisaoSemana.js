@@ -17,7 +17,7 @@ import {
   Star, UserRound, Users,
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
-import { fetchColaboradores, fetchFeriados, fetchRecibosPrestacaoUnidade } from "../../lib/rh";
+import { fetchColaboradores, fetchFeriados, fetchRecibosPrestacaoUnidade, fetchAllFolgasDaUnidade } from "../../lib/rh";
 import { fetchEventos } from "../../lib/eventos";
 import { isoData } from "../../lib/compras.mjs";
 
@@ -42,6 +42,13 @@ function trabalhaNoDia(colaborador, diaSemana) {
   return dias.split(",").map(d => d.trim()).includes(String(diaSemana));
 }
 
+// Hora de entrada do dia: por dia da semana, domingo próprio ou a fixa.
+function entradaDoDia(c, diaSemana) {
+  const h = c?.horario_por_dia && c?.horarios_dia?.[String(diaSemana)];
+  const e = (h && h.e) || (diaSemana === 0 && c?.horario_dom_entrada) || c?.horario_entrada || "";
+  return String(e).slice(0, 5);
+}
+
 export default function SemanaPage() {
   const router = useRouter();
   const { unidadeAtiva } = useERP();
@@ -49,6 +56,7 @@ export default function SemanaPage() {
   const [recibos, setRecibos] = useState([]);
   const [feriados, setFeriados] = useState([]);
   const [eventos, setEventos] = useState([]);
+  const [folgas, setFolgas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [referencia, setReferencia] = useState(() => new Date());
   const [mostrarExtras, setMostrarExtras] = useState(false);
@@ -65,13 +73,15 @@ export default function SemanaPage() {
       fetchRecibosPrestacaoUnidade(unidadeAtiva),
       fetchFeriados(unidadeAtiva).catch(() => ({ data: [] })),
       fetchEventos(unidadeAtiva).catch(() => ({ data: [] })),
+      fetchAllFolgasDaUnidade(unidadeAtiva).catch(() => ({ data: [] })),
     ])
-      .then(([pessoas, historico, datasFeriado, agenda]) => {
+      .then(([pessoas, historico, datasFeriado, agenda, folgasUnidade]) => {
         if (!vivo) return;
         setEquipe(pessoas.data || []);
         setRecibos(historico.data || []);
         setFeriados(datasFeriado?.data || []);
         setEventos(agenda?.data || []);
+        setFolgas(folgasUnidade?.data || []);
         setCarregando(false);
       });
     return () => { vivo = false; };
@@ -87,7 +97,11 @@ export default function SemanaPage() {
       data.setDate(inicio.getDate() + i);
       const iso = isoData(data);
 
-      const escalados = contratados.filter(c => trabalhaNoDia(c, data.getDay()));
+      // Folga marcada tira a pessoa do dia: antes a escala mostrava escalado
+      // quem estava de folga.
+      const fora = new Set(folgas.filter(f => String(f.data_folga || "").slice(0, 10) === iso).map(f => f.colaborador_id));
+      const deFolga = contratados.filter(c => fora.has(c.id));
+      const escalados = contratados.filter(c => trabalhaNoDia(c, data.getDay()) && !fora.has(c.id));
       const diarias = [];
       for (const r of recibos) {
         const diasDet = Array.isArray(r.dados?.dias_detalhados) ? r.dados.dias_detalhados : [];
@@ -111,9 +125,9 @@ export default function SemanaPage() {
       const feriadosDoDia = feriados.filter(f => String(f.data || "").slice(0, 10) === iso);
       const eventosDoDia = eventos.filter(e => String(e.data_evento || "").slice(0, 10) === iso);
 
-      return { data, iso, diaSemana: data.getDay(), escalados, diarias, custoDiarias, feriadosDoDia, eventosDoDia };
+      return { data, iso, diaSemana: data.getDay(), escalados, deFolga, diarias, custoDiarias, feriadosDoDia, eventosDoDia };
     });
-  }, [equipe, recibos, feriados, eventos, referencia]);
+  }, [equipe, recibos, feriados, eventos, folgas, referencia]);
 
   const totalSemana = semana.reduce((s, d) => s + d.custoDiarias, 0);
   const hoje = isoData(new Date());
@@ -210,10 +224,15 @@ export default function SemanaPage() {
                         {dia.escalados.map(c => (
                           <span key={c.id} className="rounded-lg bg-card px-2 py-1 text-2xs font-bold text-fg-soft">
                             {String(c.nome || "").split(" ")[0]}
-                            {c.horario_entrada ? ` ${String(c.horario_entrada).slice(0, 5)}` : ""}
+                            {entradaDoDia(c, dia.diaSemana) ? ` ${entradaDoDia(c, dia.diaSemana)}` : ""}
                           </span>
                         ))}
                       </div>
+                    )}
+                    {dia.deFolga.length > 0 && (
+                      <p className="mt-1.5 text-2xs font-bold text-subtle">
+                        Folga marcada: {dia.deFolga.map(c => String(c.nome || "").split(" ")[0]).join(", ")}
+                      </p>
                     )}
 
                     {mostrarExtras && (

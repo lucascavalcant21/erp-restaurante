@@ -7,6 +7,7 @@ import { fetchColaboradores } from "../../lib/rh";
 import { fetchPontoHoje, registrarBatida, fetchHistoricoPonto, anexarAuditoriaFacial } from "../../lib/ponto";
 import PontoFacial from "../../components/PontoFacial";
 import { equipeDaArea } from "../../lib/equipe-area.mjs";
+import { fetchPins, PINS_PADRAO } from "../../lib/seguranca";
 import { capturarGPSAtual, validarGeofencePonto, linkGoogleMaps } from "../../lib/geolocalizacao";
 import { Fingerprint, ChefHat, GlassWater, UtensilsCrossed, Clock, CheckCircle2, AlertCircle, Lock, ArrowLeft, Maximize, X, Calendar, MapPin, ShieldAlert, Compass, ExternalLink, Loader2, ScanFace } from "lucide-react";
 
@@ -20,10 +21,11 @@ const AREAS_PONTO = [
 ];
 
 // ─── Modal de PIN ─────────────────────────────────────────────────────────────
-function ModalPIN({ onSuccess, onClose, titulo, subtitulo }) {
+function ModalPIN({ onSuccess, onClose, titulo, subtitulo, senha }) {
   const [pin, setPin] = useState("");
   const [erro, setErro] = useState("");
-  const PIN_CORRETO = "1234";
+  // PIN do gerente vem de Configurações > Senhas (config_pins), como no relógio do RH.
+  const PIN_CORRETO = senha || PINS_PADRAO.pin_gerente;
 
   function handleDigit(d) {
     if (pin.length >= 4) return;
@@ -197,6 +199,10 @@ export default function PontoPage() {
   
   // Controle de Trava e Tela Cheia
   const [pinOk, setPinOk] = useState(false);
+  const [pinGerente, setPinGerente] = useState("");
+  useEffect(() => {
+    if (unidadeAtiva && unidadeAtiva !== "todas") fetchPins(unidadeAtiva).then(r => setPinGerente(r.data.pin_gerente));
+  }, [unidadeAtiva]);
   const [pedindoSaida, setPedindoSaida] = useState(false);
   const [historicoAberto, setHistoricoAberto] = useState(false);
   // Reconhecimento facial: identifica quem é e já seleciona a pessoa.
@@ -307,7 +313,7 @@ export default function PontoPage() {
        );
 
        setGpsProcessando(false);
-       if (error) return alert(`❌ Erro ao registrar ponto: ${error}`);
+       if (error) return alert(`Erro ao registrar ponto: ${error}`);
 
        // Batida vinda do reconhecimento: guarda a foto e a precisão do match.
        if (facialPendente) {
@@ -318,11 +324,11 @@ export default function PontoPage() {
        await carregar();
        alert(geofence.semGeofenceConfigurado
          ? "Ponto registrado com sucesso!"
-         : `📍 Ponto registrado com sucesso por GPS! (Distância: ${geofence.distanciaMetros}m do restaurante)`
+         : `Ponto registrado com sucesso por GPS! (Distância: ${geofence.distanciaMetros}m do restaurante)`
        );
      } catch (errGps) {
        setGpsProcessando(false);
-       alert(`❌ GPS Obrigatório: ${errGps.message || "Ative a localização no seu celular/dispositivo para bater o ponto."}`);
+       alert(`GPS Obrigatório: ${errGps.message || "Ative a localização no seu celular/dispositivo para bater o ponto."}`);
      }
   };
 
@@ -331,7 +337,7 @@ export default function PontoPage() {
   // Tela de Bloqueio Inicial
   if(!pinOk) {
     return (
-       <ModalPIN 
+       <ModalPIN senha={pinGerente}
          titulo="Modo Ponto" 
          subtitulo="Digite o PIN do Gerente para abrir o relógio"
          // O acerto do PIN é o gesto do usuário que o navegador exige para
@@ -350,7 +356,7 @@ export default function PontoPage() {
       
       {/* Modal de Saída do Modo Ponto */}
       {pedindoSaida && (
-         <ModalPIN 
+         <ModalPIN senha={pinGerente}
            titulo="Sair do Relógio" 
            subtitulo="Digite o PIN do Gerente para voltar ao ERP"
            onSuccess={() => router.push("/dashboard")} 

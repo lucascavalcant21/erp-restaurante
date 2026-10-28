@@ -316,18 +316,17 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
     }
 
     // 2. Registrar no Histórico de Promoções (Item 3)
-    await registrarPromocaoColaborador({
+    const hist = await registrarPromocaoColaborador({
       colaborador_id: f.id,
-      colaborador_nome: f.nome,
+      unidade_id: f.unidade_id || unidadeAtiva,
       cargo_anterior: cargoAnterior,
       cargo_novo: cargoAlocar.nome,
       salario_anterior: salarioAnterior,
       salario_novo: salarioBase,
-      vale_alimentacao: va,
-      taxa_servico: taxa,
       motivo: motivoPromocao,
       responsavel: "Gestão"
     });
+    if (hist.error) alert("O cadastro foi atualizado, mas a promoção não entrou no histórico: " + hist.error);
 
     setSaving(false);
     setModalAlocar(false);

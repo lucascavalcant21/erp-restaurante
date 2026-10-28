@@ -16,6 +16,7 @@
 // banco entra por parâmetro, para dar para testar.
 
 import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega, linhasDoCombo, cardapioDoCanal, canalDoPedido, aplicarFotosDaMontagem } from "../cardapio-digital.mjs";
+import { trocoEmReais } from "../troco.mjs";
 import {
   cashbackUsavel, descontoDoCadastro, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO, validarCadastro,
 } from "../fidelidade.mjs";
@@ -202,12 +203,8 @@ export async function lerFotoPublica({ db, unidade, produto }) {
 
 const TIPOS_PEDIDO = ["delivery", "retirada", "qrcode"];
 const FORMAS = ["dinheiro", "cartao", "pix", "vale"];
-// Troco: "150", "150,00", "R$ 150,00", "1.000" → em reais. Vazio ou inválido → null.
-export function trocoEmReais(v) {
-  const limpo = String(v ?? "").replace(/[^\d,.]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
-  const n = Number(limpo);
-  return limpo && Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
-}
+// A mesma conta de troco da tela (o aviso) e do servidor (a trava).
+export { trocoEmReais };
 
 /**
  * Valida o pedido do cardápio. Só entram id e quantidade dos itens — preço

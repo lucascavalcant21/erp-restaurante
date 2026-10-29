@@ -84,6 +84,9 @@ import {
   ImmediateSolutionPlanCard,
 } from "./GreenDotCards";
 import GreenDotAdminModal from "./GreenDotAdminModal";
+import MensagemRespostaHefisto from "../intelligence/conversa/MensagemRespostaHefisto";
+import { ehPerguntaDoTempo, diaDaPergunta } from "../../lib/clima.mjs";
+import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } from "../../lib/intelligence/client/api";
 
 function formatarNumeroCurto(valor) {
   const n = Number(valor || 0);
@@ -287,6 +290,10 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
   const [vozAtiva, setVozAtiva] = useState(false);
   const escutaRef = useRef(null);
   const fimChatRef = useRef(null);
+  // Conversa com o cérebro do Héfisto (pedido do dono, 29/10/2026: o Green Dot
+  // sabe tudo do restaurante). Os números vêm do servidor, com a fonte.
+  const referenciaHefisto = useRef(null);
+  const [ocupadoHefisto, setOcupadoHefisto] = useState(false);
 
   // Lista de blocos conversacionais na tela
   const [itensConversa, setItensConversa] = useState(() => {
@@ -455,6 +462,30 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
         `Recalculei a ficha técnica de ${receitaAlvo.nome} para ${resultado.percentual}% da receita original, com base em ${resultado.quantidadeDisponivelLimitante} ${resultado.ingredienteLimitante.unidade} de ${resultado.ingredienteLimitante.nome}.`
       );
     }
+  };
+
+  const mostrarRespostaHefisto = (dados) => {
+    if (dados?.referencia) referenciaHefisto.current = dados.referencia;
+    setItensConversa((prev) => [...prev, { id: `hef-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, tipo: "resposta-hefisto", resposta: dados }]);
+    if (vozAtiva && audioDisponivel() && dados?.texto) falar(dados.texto);
+  };
+  const executarHefisto = async (chamada, falha) => {
+    if (ocupadoHefisto) return;
+    setOcupadoHefisto(true);
+    try {
+      const r = await chamada();
+      mostrarRespostaHefisto(r?.ok ? r.dados : { tipo: "erro_acao", texto: r?.dados?.erro || falha });
+    } catch (_) {
+      mostrarRespostaHefisto({ tipo: "erro_acao", texto: "Falha de conexão. Verifique a internet e tente novamente." });
+    } finally {
+      setOcupadoHefisto(false);
+    }
+  };
+  const continuarHefisto = (pergunta, valor) => {
+    const bruto = String(valor).trim();
+    const numero = pergunta.campo === "quantidade" ? Number(bruto.includes(",") ? bruto.replace(/\./g, "").replace(",", ".") : bruto) : null;
+    const campo = { acaoId: pergunta.acaoId, campo: pergunta.campo, valor: numero == null ? bruto : null, valorNumero: Number.isFinite(numero) ? numero : null };
+    return executarHefisto(() => perguntarAoHefisto(unidadeAtiva, { continuar: campo, tela: "green-dot" }), "Não consegui continuar.");
   };
 
   // Interpreta a pergunta/tópico do colaborador
@@ -868,8 +899,39 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
       return;
     }
 
-    // 9. Consulta conversacional aberta na rota de IA (/api/ia-green-dot)
+    // Previsão do tempo da cidade da unidade (Open-Meteo, grátis).
+    if (ehPerguntaDoTempo(pergunta)) {
+      setCarregandoIA(true);
+      let textoTempo = "DADOS INSUFICIENTES: não consegui a previsão agora.";
+      try {
+        const r = await fetchComSessao("/api/clima", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cidade: unidadeInfo?.cidade || "", uf: unidadeInfo?.uf || "", dia: diaDaPergunta(pergunta) }) });
+        const d = await r.json();
+        if (d?.texto) textoTempo = d.texto;
+      } catch (_) { /* fica a mensagem de dados insuficientes */ }
+      setItensConversa((prev) => [...prev, { id: `clima-${Date.now()}`, tipo: "resposta-texto-ia", texto: textoTempo }]);
+      if (vozAtiva && audioDisponivel()) falar(textoTempo);
+      setCarregandoIA(false);
+      return;
+    }
+
+    // 9. Pergunta do restaurante (lucro, estoque, CMV, vendas, contas, RH…):
+    //    responde o Héfisto com os dados reais. Se ele não entender, segue
+    //    para a conversa aberta do Green Dot.
     setCarregandoIA(true);
+    if (unidadeAtiva && unidadeAtiva !== "todas") {
+      try {
+        const r = await perguntarAoHefisto(unidadeAtiva, { texto: pergunta, chave: novaChaveDeEnvio(), canal: vozAtiva ? "voz" : "texto", tela: "green-dot", conversa: referenciaHefisto.current });
+        if (r?.ok && r.dados && r.dados.tipo !== "nao_entendi") {
+          mostrarRespostaHefisto(r.dados);
+          setCarregandoIA(false);
+          return;
+        }
+      } catch (_) {
+        // sem resposta do Héfisto: segue para a conversa aberta
+      }
+    }
+
+    // 10. Consulta conversacional aberta na rota de IA (/api/ia-green-dot)
     try {
       const res = await fetchComSessao("/api/ia-green-dot", {
         method: "POST",
@@ -1385,6 +1447,22 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
               );
             }
 
+            // Resposta do Héfisto com os dados reais da unidade
+            if (bloco.tipo === "resposta-hefisto") {
+              return (
+                <div key={bloco.id} className="flex items-start gap-3">
+                  <GreenDotAvatar />
+                  <div className="min-w-0 flex-1">
+                    <MensagemRespostaHefisto r={bloco.resposta} ocupado={ocupadoHefisto}
+                      onComando={(t) => processarPergunta(t)}
+                      onContinuar={continuarHefisto}
+                      onConfirmar={(acaoId, txt) => executarHefisto(() => confirmarAcao(unidadeAtiva, acaoId, txt), "Não consegui confirmar.")}
+                      onCancelar={(acaoId) => executarHefisto(() => cancelarAcao(unidadeAtiva, acaoId), "Não consegui cancelar.")} />
+                  </div>
+                </div>
+              );
+            }
+
             // Resposta textual da IA
             if (bloco.tipo === "resposta-texto-ia") {
               return (
@@ -1463,7 +1541,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] font-semibold text-[#5C6660] mt-1 px-1">
-                  <span>Pergunte sobre receitas, recálculo de ingredientes ou equipamentos (110V/220V)</span>
+                  <span>Pergunte qualquer coisa: lucro, estoque, fichas, escala, equipamentos…</span>
                   <span>{texto.length}/256</span>
                 </div>
               </div>

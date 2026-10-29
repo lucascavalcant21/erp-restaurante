@@ -8,7 +8,8 @@ Classifique também a intenção do colaborador em um dos fluxos visuais quando 
 - "manutencao": falhas em equipamentos (forno combinado, fritadeira, chopeira, câmara fria, impressora, fogão) ou abertura de chamado.
 - "escala": pico de movimento, escala de turno, chamar colaborador extra ou mapa de posicionamento nas praças (Play Caller).
 - "estoque": descongelamento seguro (Pull-to-Thaw), organização de câmara fria, validade PVPS ou consulta de insumos.
-- "geral": qualquer outra dúvida operacional de restaurante.`;
+- "geral": qualquer outra dúvida operacional de restaurante.
+Nunca invente números do restaurante (vendas, lucro, estoque, custos, salários): se o número não estiver no contexto enviado, diga "DADOS INSUFICIENTES" e o que falta.`;
 
 export async function POST(request) {
   const sessao = await sessaoOuNegar(request);
@@ -33,7 +34,7 @@ export async function POST(request) {
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: "claude-3-5-haiku-latest",
+            model: "claude-haiku-5-5",
             max_tokens: 700,
             system: SISTEMA,
             messages: [

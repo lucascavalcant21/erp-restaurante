@@ -39,12 +39,12 @@ export default function MarmitariaLayout({ children }) {
             <p className="text-xs font-semibold uppercase tracking-wider text-hf-accent">Operação</p>
             <h1 className="text-xl font-black text-hf-text sm:text-2xl">Marmitaria &amp; Delivery</h1>
           </header>
-          <nav aria-label="Áreas da marmitaria" className="mb-5 grid grid-cols-4 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 lg:grid-cols-7">
+          <nav aria-label="Áreas da marmitaria" className="mb-4 grid grid-cols-4 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:inline-flex sm:max-w-full sm:flex-wrap">
             {AREAS.map((a) => {
               const ativo = a.exato ? pathname === a.href : (pathname === a.href || pathname.startsWith(`${a.href}/`)) && !(a.exceto && pathname.startsWith(a.exceto));
               return (
                 <Link key={a.href} href={a.href} aria-current={ativo ? "page" : undefined}
-                  className={`flex min-h-[44px] items-center justify-center rounded-xl px-2 text-center text-sm font-semibold transition ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
+                  className={`flex min-h-[44px] items-center justify-center rounded-xl px-2 text-center text-sm font-semibold transition sm:min-h-[38px] sm:px-4 ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
                   {a.curto ? <><span className="sm:hidden">{a.curto}</span><span className="hidden sm:inline">{a.rotulo}</span></> : a.rotulo}
                 </Link>
               );

@@ -1,11 +1,10 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search, UtensilsCrossed } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import EditorMarmita from "../../../components/marmitaria/EditorMarmita";
-import CombosPromocoes from "../../../components/marmitaria/CombosPromocoes";
 import { CANAL_DIRETO } from "../../../lib/marmitaria/promocoes.mjs";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Cartao, Secao, SemDados, Selo, brl, inputCls, pctTxt } from "../../../components/marmitaria/ui";
 import { formDaMarmita } from "../../../lib/marmitaria/formulario.mjs";
@@ -18,9 +17,18 @@ function Conteudo() {
   const { base, custos, carregando, recarregar } = useMarmitaria();
   const params = useSearchParams();
   const router = useRouter();
-  const [aba, setAba] = useState(["precos", "combos"].includes(params.get("aba")) ? params.get("aba") : "cardapio");
+  const [aba, setAba] = useState(params.get("aba") === "precos" ? "precos" : "cardapio");
   const [editando, setEditando] = useState(null);
   const [aviso, setAviso] = useState(null);
+  // Links antigos (?aba=combos) e o "Editar marmita" da área de Combos.
+  const editarId = params.get("editar");
+  useEffect(() => { if (params.get("aba") === "combos") router.replace("/dashboard/marmitaria/marmitas/combos"); }, [params, router]);
+  useEffect(() => {
+    if (!base || !editarId) return;
+    const m = base.marmitas.find((x) => String(x.id) === editarId);
+    if (m) setEditando(formDaMarmita(m, { insumos: base.insumos, fichas: base.fichas }));
+    router.replace("/dashboard/marmitaria/marmitas");
+  }, [base, editarId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!base) return carregando ? <Cartao><p className="text-sm text-hf-muted">Carregando marmitas…</p></Cartao> : null;
 
@@ -38,11 +46,11 @@ function Conteudo() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="min-w-[240px] flex-1"><Abas abas={[{ id: "cardapio", rotulo: "Marmitas" }, { id: "combos", rotulo: "Cardápio de vendas e lucro" }, { id: "precos", rotulo: "Preços por canal" }]} valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} /></div>
+        <div className="min-w-[240px] flex-1"><Abas abas={[{ id: "cardapio", rotulo: "Marmitas" }, { id: "precos", rotulo: "Preços por canal" }]} valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} /></div>
         <Botao onClick={nova}><Plus size={16} /> Nova marmita</Botao>
       </div>
       {aviso && <Aviso>{aviso}</Aviso>}
-      {aba === "cardapio" ? <Cardapio onEditar={editar} onNova={nova} recarregar={recarregar} /> : aba === "combos" ? <CombosPromocoes onEditar={editar} /> : <PrecosPorCanal onEditar={editar} />}
+      {aba === "cardapio" ? <Cardapio onEditar={editar} onNova={nova} recarregar={recarregar} /> : <PrecosPorCanal onEditar={editar} />}
     </div>
   );
 }

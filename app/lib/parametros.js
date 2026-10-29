@@ -158,18 +158,18 @@ export async function salvarParams(unidadeId, paramsEntrada) {
 // Modelos de orçamento de evento ("Buffet casamento"), compartilhados entre os
 // aparelhos da unidade. Lista em params.eventos_modelos; cada alteração relê a
 // lista atual antes de gravar, para não apagar o modelo que outro salvou.
-export async function fetchModelosEvento(unidadeId) {
+export async function fetchModelosEvento(unidadeId, chave = "eventos_modelos") {
   const registro = await fetchRegistroConfig(unidadeId);
-  const lista = registro?.params?.eventos_modelos;
+  const lista = registro?.params?.[chave];
   return { data: Array.isArray(lista) ? lista : [] };
 }
 
-async function gravarModelosEvento(unidadeId, alterar) {
+async function gravarModelosEvento(unidadeId, alterar, chave = "eventos_modelos") {
   if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco" };
   if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade" };
-  const { data: atuais } = await fetchModelosEvento(unidadeId);
+  const { data: atuais } = await fetchModelosEvento(unidadeId, chave);
   const lista = alterar(atuais);
-  const patch = { eventos_modelos: lista };
+  const patch = { [chave]: lista };
   const mergeAtomico = await tentarMergeAtomico(unidadeId, patch);
   if (mergeAtomico) return { data: lista };
   const registro = await fetchRegistroConfig(unidadeId);
@@ -187,6 +187,13 @@ export function adicionarModeloEvento(unidadeId, modelo) {
 export function removerModeloEvento(unidadeId, id) {
   return gravarModelosEvento(unidadeId, (l) => l.filter((m) => m.id !== id));
 }
+
+// Bases do cardápio do evento (buffet base, mesa de comidas, bebidas base).
+export const fetchBasesEvento = (unidadeId) => fetchModelosEvento(unidadeId, "eventos_bases");
+export const adicionarBaseEvento = (unidadeId, base) =>
+  gravarModelosEvento(unidadeId, (l) => [...l.filter((m) => m.id !== base.id), base], "eventos_bases");
+export const removerBaseEvento = (unidadeId, id) =>
+  gravarModelosEvento(unidadeId, (l) => l.filter((m) => m.id !== id), "eventos_bases");
 
 // Designer da ficha de montagem. Fica no mesmo JSON de configurações da
 // unidade, mas separado dos parâmetros numéricos para poder guardar opções

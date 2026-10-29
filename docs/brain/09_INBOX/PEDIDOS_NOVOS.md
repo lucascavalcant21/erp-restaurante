@@ -43,3 +43,6 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
   - Atenção: mínimo/máximo do bar seguem gravados em ml/L; a tela converte para garrafas. Mínimos antigos digitados como "3" (pensando em garrafas) viram 0,01 garrafa — revisar no bar.
 - CMO no Resultado do mês com Fixos e Extras (RH + extras informados); RH (quadro e visão geral) separado em Fixos e Extras. FEITO · TESTADO EM MOCK + testes.
 - Evento: item em quantidade fechada ("total"), fatias/copos, custo total ÷ pessoas e ticket por pessoa. FEITO · TESTADO EM MOCK + testes.
+| 29/10/2026 | Green Dot Assist como assistente único: perguntas de tudo (lucro líquido, escala, ticket, fichas, equipamentos, CMV, eventos, marmitas, delivery, RH, CRM, marketing), ações (estoque, cadastro, etiqueta, evento, promoção), treino por função, voz como colega, previsão do tempo | Missão HDEV-GDA-001 (BACKLOG), 6 fases |
+| 29/10/2026 | Bases do cardápio do evento (buffet, mesa de comidas, bebidas) e salvar mais | Feito (PR #202) · TESTADO EM MOCK |
+| 29/10/2026 | Menu reorganizado, renomeado, claro e compacto; telas de módulo compactas | Feito (PR #202) · TESTADO EM MOCK |

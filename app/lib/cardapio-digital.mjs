@@ -70,6 +70,9 @@ const IDS_SELOS = new Set(SELOS.map((s) => s.id));
 export const TIPOS_PROMOCAO = [
   { id: "desconto", rotulo: "Desconto em %" },
   { id: "preco", rotulo: "Preço especial" },
+  { id: "desconto_valor", rotulo: "Desconto em R$" },
+  { id: "leve_mais", rotulo: "Pegue e leve mais" },
+  { id: "frete_gratis", rotulo: "Frete grátis" },
   { id: "aviso", rotulo: "Só um aviso (não muda preço)" },
 ];
 
@@ -391,6 +394,12 @@ export function normalizarPromocao(p, i = 0) {
   // O editor guarda o que foi digitado ("29,90"); aqui vira número.
   const preco = centavos(String(p?.preco_promocional ?? "").replace(/\./g, (m, i, t) => (t.includes(",") ? "" : m)).replace(",", "."));
   const pct = Math.round(Number(p?.desconto_pct));
+  const reais = (v) => centavos(String(v ?? "").replace(/\./g, (m, _i, t) => (t.includes(",") ? "" : m)).replace(",", "."));
+  const valorOff = reais(p?.desconto_valor);
+  const freteMin = reais(p?.frete_minimo);
+  const leve = Math.min(10, Math.max(2, Math.round(Number(p?.leve)) || 2));
+  const pague = Math.min(leve - 1, Math.max(1, Math.round(Number(p?.pague)) || 1));
+  const canais = [...new Set((Array.isArray(p?.canais) ? p.canais : []).filter((c) => IDS_CANAIS.has(c)))];
   const dias = [...new Set((Array.isArray(p?.dias_semana) ? p.dias_semana : []).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
   return {
     id: idValido(p?.id) ? p.id : `promo-${i + 1}`,
@@ -401,6 +410,14 @@ export function normalizarPromocao(p, i = 0) {
     tipo,
     preco_promocional: tipo === "preco" && preco > 0 ? preco : null,
     desconto_pct: tipo === "desconto" && pct >= 1 && pct <= 90 ? pct : null,
+    desconto_valor: tipo === "desconto_valor" && valorOff > 0 ? valorOff : null,
+    pague: tipo === "leve_mais" ? pague : null,
+    leve: tipo === "leve_mais" ? leve : null,
+    frete_minimo: tipo === "frete_gratis" && freteMin > 0 ? freteMin : 0,
+    // Canais onde vale (vazio = todos), "Agora na casa" e se soma com o DESCONTO do cadastro.
+    canais: canais.length === CANAIS_CARDAPIO.length ? [] : canais,
+    mostrar_agora: bool(p?.mostrar_agora, true),
+    acumula_cadastro: bool(p?.acumula_cadastro, false),
     dias_semana: dias.length === 7 ? [] : dias,
     hora_inicio: hora(p?.hora_inicio),
     hora_fim: hora(p?.hora_fim),
@@ -415,7 +432,8 @@ export function errosDaPromocao(p) {
   const e = [];
   if (!texto(p?.titulo, 60)) e.push("Dê um nome à promoção.");
   const n = normalizarPromocao(p);
-  if (n.tipo !== "aviso" && !n.produto_ids.length) e.push("Escolha os pratos da promoção.");
+  if (n.tipo !== "aviso" && n.tipo !== "frete_gratis" && !n.produto_ids.length) e.push("Escolha os pratos da promoção.");
+  if (n.tipo === "desconto_valor" && !n.desconto_valor) e.push("Informe quanto sai do preço.");
   if (n.tipo === "preco" && !n.preco_promocional) e.push("Informe o preço especial.");
   if (n.tipo === "desconto" && !n.desconto_pct) e.push("O desconto vai de 1% a 90%.");
   if (n.data_inicio && n.data_fim && n.data_fim < n.data_inicio) e.push("A data final vem antes da inicial.");
@@ -900,6 +918,7 @@ export function precoEfetivo(produto, vigentes = []) {
     let candidato = null;
     if (p.tipo === "preco" && p.preco_promocional) candidato = p.preco_promocional;
     if (p.tipo === "desconto" && p.desconto_pct) candidato = centavos(original * (1 - p.desconto_pct / 100));
+    if (p.tipo === "desconto_valor" && p.desconto_valor) candidato = centavos(original - p.desconto_valor);
     if (candidato != null && candidato > 0 && candidato < preco) {
       preco = candidato;
       promocao_id = p.id;
@@ -975,6 +994,9 @@ export function rotuloDaPromocao(promo, idioma = "pt") {
     return preencher(m.desconto, { pct: p.desconto_pct, zhe });
   }
   if (p.tipo === "preco" && p.preco_promocional) return preencher(m.preco, { valor: formatarPreco(p.preco_promocional, idioma) });
+  if (p.tipo === "desconto_valor" && p.desconto_valor) return preencher(m.valor, { valor: formatarPreco(p.desconto_valor, idioma) });
+  if (p.tipo === "leve_mais") return preencher(m.leve, { pague: p.pague, leve: p.leve });
+  if (p.tipo === "frete_gratis") return m.frete;
   return "";
 }
 
@@ -1165,13 +1187,16 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
   const ids = new Set(lista.map((p) => p.id));
   const promocoes = vigentes
     .map((p) => ({ ...p, produto_ids: p.produto_ids.filter((id) => ids.has(id)) }))
-    .filter((p) => p.tipo === "aviso" || p.produto_ids.some((id) => lista.find((x) => x.id === id)?.promocao_id === p.id))
+    .filter((p) => p.tipo === "aviso" || p.tipo === "frete_gratis" || (p.tipo === "leve_mais" && p.produto_ids.length)
+      || p.produto_ids.some((id) => lista.find((x) => x.id === id)?.promocao_id === p.id))
     .map((p) => ({
       id: p.id, titulo: p.titulo, texto: p.texto, imagem_url: p.imagem_url || null, tipo: p.tipo,
       produto_ids: p.produto_ids, rotulo: rotuloDaPromocao(p), quando: quandoVale(p),
       // dados crus: a página escreve rótulo e horário no idioma do cliente
       desconto_pct: p.desconto_pct, preco_promocional: p.preco_promocional, dias_semana: p.dias_semana,
       hora_inicio: p.hora_inicio, hora_fim: p.hora_fim, data_fim: p.data_fim,
+      desconto_valor: p.desconto_valor, pague: p.pague, leve: p.leve, frete_minimo: p.frete_minimo,
+      canais: p.canais, mostrar_agora: p.mostrar_agora, acumula_cadastro: p.acumula_cadastro,
     }));
 
   // Toque do banner que levaria a uma seção, promoção ou prato que não está
@@ -1492,11 +1517,46 @@ export function aberturaDaConversa(cardapio, { nome = "", agora = new Date(), fu
 // ─── CARRINHO ────────────────────────────────────────────────────────────────
 
 /** Total para MOSTRAR. Quem cobra é o servidor, que recalcula tudo. */
+/**
+ * A conta do pedido, igual na tela e no servidor:
+ *   subtotal ............. itens × preço do cardápio (já com desconto/preço da promoção)
+ *   desconto_promocoes ... "pegue X, leve Y" (as unidades de graça)
+ *   base_cadastro ........ o que entra no DESCONTO do cadastro: item com
+ *                          promoção que não acumula fica de fora
+ *   taxa ................. entrega (zero com "frete grátis" no ar)
+ */
 export function totalDoCarrinho(carrinho, cardapio, { tipo = "qrcode" } = {}) {
-  const preco = new Map(cardapio.produtos.map((p) => [p.id, p.preco]));
-  const subtotal = centavos((carrinho || []).reduce((s, i) => s + (preco.get(i.id) || 0) * (Number(i.quantidade) || 0), 0));
-  const regras = taxaDeEntrega(subtotal, cardapio, tipo);
-  return { subtotal, ...regras, total: centavos(subtotal + regras.taxa) };
+  const porId = new Map(cardapio.produtos.map((p) => [p.id, p]));
+  const promos = cardapio.promocoes || [];
+  const promoPorId = new Map(promos.map((p) => [p.id, p]));
+  const leveDe = new Map();
+  for (const p of promos) if (p.tipo === "leve_mais" && p.leve > p.pague) for (const id of p.produto_ids || []) if (!leveDe.has(id)) leveDe.set(id, p);
+  let subtotal = 0;
+  let descontoPromo = 0;
+  let baseCadastro = 0;
+  for (const i of carrinho || []) {
+    const p = porId.get(i.id);
+    const q = Number(i.quantidade) || 0;
+    if (!p || q <= 0) continue;
+    const valor = (p.preco || 0) * q;
+    const leve = leveDe.get(i.id);
+    const gratis = leve ? Math.floor(q / leve.leve) * (leve.leve - leve.pague) * (p.preco || 0) : 0;
+    subtotal += valor;
+    descontoPromo += gratis;
+    const promo = (gratis > 0 ? leve : null) || promoPorId.get(p.promocao_id);
+    if (!promo || promo.acumula_cadastro) baseCadastro += valor - gratis;
+  }
+  subtotal = centavos(subtotal);
+  const desconto_promocoes = centavos(descontoPromo);
+  const pago = centavos(subtotal - desconto_promocoes);
+  const regras = taxaDeEntrega(pago, cardapio, tipo);
+  const frete = tipo === "delivery" && promos.some((p) => p.tipo === "frete_gratis" && pago >= (p.frete_minimo || 0));
+  const taxa = frete ? 0 : regras.taxa;
+  return {
+    subtotal, desconto_promocoes, base_cadastro: centavos(baseCadastro), ...regras,
+    taxa, falta_gratis: frete ? 0 : regras.falta_gratis, frete_promocao: frete && regras.taxa > 0,
+    total: centavos(pago + taxa),
+  };
 }
 
 /**
@@ -1523,15 +1583,22 @@ export function taxaDeEntrega(subtotal, cardapio, tipo = "delivery") {
  */
 export function cardapioDoCanal(cardapio, canal) {
   if (!cardapio || !IDS_CANAIS.has(canal)) return cardapio;
-  const produtos = (cardapio.produtos || []).filter((p) => !(p.fora_dos_canais || []).includes(canal));
-  if (produtos.length === (cardapio.produtos || []).length) return cardapio;
+  // Promoção de outro canal sai, e o prato que estava com ela volta ao preço normal.
+  const promoFora = new Set((cardapio.promocoes || []).filter((p) => p.canais?.length && !p.canais.includes(canal)).map((p) => p.id));
+  const produtos = (cardapio.produtos || [])
+    .filter((p) => !(p.fora_dos_canais || []).includes(canal))
+    .map((p) => (p.promocao_id && promoFora.has(p.promocao_id)
+      ? { ...p, preco: p.preco_original || p.preco, preco_original: null, promocao_id: null }
+      : p));
+  if (produtos.length === (cardapio.produtos || []).length && !promoFora.size) return cardapio;
   const ids = new Set(produtos.map((p) => p.id));
   const categorias = (cardapio.categorias || [])
     .map((c) => ({ ...c, produto_ids: c.produto_ids.filter((id) => ids.has(id)) }))
     .filter((c) => c.produto_ids.length);
   const promocoes = (cardapio.promocoes || [])
+    .filter((p) => !promoFora.has(p.id))
     .map((p) => ({ ...p, produto_ids: (p.produto_ids || []).filter((id) => ids.has(id)) }))
-    .filter((p) => p.tipo === "aviso" || p.produto_ids.length);
+    .filter((p) => p.tipo === "aviso" || p.tipo === "frete_gratis" || p.produto_ids.length);
   return { ...cardapio, produtos, categorias, promocoes, filtros: filtrosDisponiveis(produtos) };
 }
 

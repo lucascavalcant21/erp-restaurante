@@ -15,7 +15,7 @@
 // banco; nenhuma mensagem interna do banco na resposta. Módulo sem Next: o
 // banco entra por parâmetro, para dar para testar.
 
-import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega, linhasDoCombo, cardapioDoCanal, canalDoPedido, aplicarFotosDaMontagem } from "../cardapio-digital.mjs";
+import { montarCardapioPublico, juntarProdutosEFichas, totalDoCarrinho, linhasDoCombo, cardapioDoCanal, canalDoPedido, aplicarFotosDaMontagem } from "../cardapio-digital.mjs";
 import { trocoEmReais } from "../troco.mjs";
 import {
   cashbackUsavel, descontoDoCadastro, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO, validarCadastro,
@@ -302,21 +302,21 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       return falha(409, "item_indisponivel", "Um item do carrinho não está mais disponível. Atualize o cardápio.");
     }
 
-    // Mínimo e grátis-acima do dono: a mesma conta que a página mostra (taxaDeEntrega).
-    const subtotal = centavos(pedido.itens.reduce((s, i) => s + preco.get(i.id) * i.quantidade, 0));
-    const regras = taxaDeEntrega(subtotal, cardapio, pedido.tipo);
+    // Mínimo e grátis-acima do dono: a mesma conta que a página mostra.
+    // Promoções de pedido ("pegue X, leve Y", frete grátis) entram na mesma conta da tela.
+    const regras = totalDoCarrinho(pedido.itens, cardapio, { tipo: pedido.tipo });
     if (regras.falta_minimo > 0) {
       return falha(409, "pedido_minimo", `O pedido mínimo para entrega é R$ ${cardapio.entrega.pedido_minimo.toFixed(2).replace(".", ",")}.`);
     }
-    const taxa = regras.taxa;
-    const bruto = centavos(subtotal + taxa);
+    const descontoPromo = regras.desconto_promocoes;
+    const bruto = regras.total;
 
     // Desconto do cadastro pelo QR: o banco diz se este telefone tem e quanto
     // (primeiro pedido ou todos, validade). Sem a migração, não há desconto.
     let descontoCadastro = 0;
     if (pedido.telefone && carga.fidelidade?.ativo && carga.fidelidade.cadastro?.ativo) {
       const { data: pct, error: eD } = await db.rpc("fidelidade_desconto_cadastro", { p_unidade: pedido.unidade, p_telefone: pedido.telefone });
-      if (!eD && Number(pct) > 0) descontoCadastro = descontoDoCadastro(subtotal, pct);
+      if (!eD && Number(pct) > 0) descontoCadastro = descontoDoCadastro(regras.base_cadastro, pct);
     }
 
     // Cashback: telefone provado por pedido concluído deste aparelho, saldo do
@@ -334,8 +334,8 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       if (!(cashbackUsado > 0)) return falha(409, "cashback_sem_saldo", "Não há cashback disponível agora. Envie sem ele.");
     }
     const total = centavos(bruto - descontoCadastro - cashbackUsado);
-    const desconto = centavos(descontoCadastro + cashbackUsado);
-    const origem = [descontoCadastro > 0 ? "cadastro" : "", cashbackUsado > 0 ? "cashback" : ""].filter(Boolean).join("+");
+    const desconto = centavos(descontoPromo + descontoCadastro + cashbackUsado);
+    const origem = [descontoPromo > 0 ? "promocao" : "", descontoCadastro > 0 ? "cadastro" : "", cashbackUsado > 0 ? "cashback" : ""].filter(Boolean).join("+");
     // Troco para menos que o total não serve para nada: o cliente corrige antes.
     const troco = pedido.pagamento === "dinheiro" ? trocoEmReais(pedido.troco) : null;
     if (troco != null && troco < total) {
@@ -392,7 +392,7 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       }
     }
     return {
-      ok: true, id: criado.id, total, taxa, cashback: cashbackUsado, desconto: descontoCadastro,
+      ok: true, id: criado.id, total, taxa: regras.taxa, cashback: cashbackUsado, desconto: descontoCadastro,
       itens: pedido.itens.map((i) => ({ id: i.id, quantidade: i.quantidade, preco: preco.get(i.id) })),
     };
   } catch {

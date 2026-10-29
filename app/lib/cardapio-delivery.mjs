@@ -13,10 +13,11 @@ export function itensAgoraNaCasa(cardapio, { rotuloDestaque = "Destaque", limite
   const usados = new Set();
   const out = [];
   for (const promo of cardapio.promocoes || []) {
-    if (promo.tipo === "aviso") continue;
+    if (promo.tipo === "aviso" || promo.tipo === "frete_gratis" || promo.mostrar_agora === false) continue;
     for (const id of promo.produto_ids || []) {
       const p = porId.get(id);
-      if (!p || usados.has(id) || p.promocao_id !== promo.id) continue;
+      // "Pegue X, leve Y" não muda o preço do prato: entra pela lista da promoção.
+      if (!p || usados.has(id) || (promo.tipo !== "leve_mais" && p.promocao_id !== promo.id)) continue;
       usados.add(id);
       out.push(cartao(p, promo.titulo));
     }

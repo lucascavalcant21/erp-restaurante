@@ -5,9 +5,12 @@
 // acabou de salvar, e confere no banco depois.
 
 import { supabase, isSupabaseReady } from "./supabase";
-import { salvarParams } from "./parametros";
 import { aplicarFotosDaMontagem, categoriasEfetivas, juntarProdutosEFichas, normalizarConfigCardapio } from "./cardapio-digital.mjs";
 import { reordenarCategorias } from "./cardapio-painel.mjs";
+import { custoDoPrato } from "./cardapio-promocoes-painel.mjs";
+import { resumoFinanceiroDaFicha } from "./ficha-financeiro.mjs";
+import { fetchFichas } from "./operacao";
+import { fetchParams, salvarParams } from "./parametros";
 
 const LOTE = 100;
 
@@ -150,4 +153,33 @@ export async function salvarProdutoDoPainel(unidadeId, { produtoId, fichaId, fic
   });
   if (r.erro) erros.push(r.erro);
   return { erros, config: r.config };
+}
+
+/**
+ * Painel → Promoções: o mesmo do cardápio + o custo de cada prato pela ficha
+ * técnica (mesma conta da Pizza do Lucro) e a meta de lucro da casa.
+ * Prato sem ficha com custo fica sem custo (a tela diz isso).
+ */
+export async function carregarPainelPromocoes(unidadeId) {
+  const base = await carregarPainelCardapio(unidadeId);
+  if (base.erro) return base;
+  const [rF, rP] = await Promise.all([fetchFichas(unidadeId), fetchParams(unidadeId)]);
+  const params = rP?.data || {};
+  const fichasCompletas = rF?.data || [];
+  const porId = new Map(fichasCompletas.map((f) => [String(f.id), f]));
+  const custos = {};
+  for (const prod of base.produtos) {
+    const ficha = prod.ficha_id ? porId.get(String(prod.ficha_id)) : null;
+    if (!ficha) continue;
+    try {
+      const c = custoDoPrato(resumoFinanceiroDaFicha(ficha, { fichas: fichasCompletas, produtos: base.produtos, params }), params);
+      if (c) custos[String(prod.id)] = c;
+    } catch { /* ficha incompleta: fica sem custo */ }
+  }
+  return { ...base, custos, metaPct: Number(params.margem_alvo_pct) || 0 };
+}
+
+/** Grava a lista inteira de promoções (relê antes e confere depois, como o resto). */
+export function salvarPromocoes(unidadeId, promocoes) {
+  return gravarVitrine(unidadeId, (cfg) => ({ ...cfg, promocoes }));
 }

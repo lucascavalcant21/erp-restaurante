@@ -332,7 +332,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const telFinal = form.telefone.replace(/\D/g, "").slice(-4);
   const descontoEstimado = cardapio?.fidelidade?.cadastro && cadastroLocal && telFinal === cadastroLocal.final
     && (cardapio.fidelidade.cadastro.aplica === "sempre" || !cadastroLocal.usado)
-    ? descontoDoCadastro(totalCarrinho.subtotal || 0, cardapio.fidelidade.cadastro.desconto_pct) : 0;
+    ? descontoDoCadastro(totalCarrinho.base_cadastro || 0, cardapio.fidelidade.cadastro.desconto_pct) : 0;
   // Cashback: só com saldo conhecido e o mesmo WhatsApp (o servidor confere de novo).
   const saldoCashback = fidStatus?.identificado && fidStatus?.disponivel ? Number(fidStatus.cashback?.saldo) || 0 : 0;
   const cashbackPossivel = cardapio?.fidelidade?.cashback && saldoCashback > 0 && fidStatus?.final

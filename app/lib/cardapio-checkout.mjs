@@ -10,8 +10,9 @@ import { trocoEmReais } from "./troco.mjs";
  */
 export function resumoDoCheckout({ cardapio, carrinho, tipo, pagamento, form, descontoCadastro = 0, cashback = 0 }) {
   const tot = totalDoCarrinho(carrinho, cardapio, { tipo });
-  const desconto = Math.round((descontoCadastro + cashback) * 100) / 100;
-  const total = Math.max(0, Math.round((tot.total - desconto) * 100) / 100);
+  // DESCONTO mostrado = promoções de pedido + cadastro + cashback; tot.total já vem sem o das promoções.
+  const desconto = Math.round(((tot.desconto_promocoes || 0) + descontoCadastro + cashback) * 100) / 100;
+  const total = Math.max(0, Math.round((tot.total - descontoCadastro - cashback) * 100) / 100);
   const tel = String(form?.telefone || "").replace(/\D/g, "");
   const troco = pagamento === "dinheiro" ? trocoEmReais(form?.troco) : null;
   let motivo = "";

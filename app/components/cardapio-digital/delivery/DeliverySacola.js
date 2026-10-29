@@ -82,7 +82,7 @@ export default function DeliverySacola({ cardapio, idioma = "pt", carrinho = [],
 
         {linhas.length ? (
           <div className={s.telaPe}>
-            <div className={s.totalLinha}><span>{T("total")}</span><span>{formatarPreco(tot.subtotal, idioma)}</span></div>
+            <div className={s.totalLinha}><span>{T("total")}</span><span>{formatarPreco(tot.subtotal - tot.desconto_promocoes, idioma)}</span></div>
             {tot.falta_minimo > 0 ? (
               <span className={s.minimo} role="status">{T("falta_minimo", { minimo: formatarPreco(minimo, idioma), falta: formatarPreco(tot.falta_minimo, idioma) })}</span>
             ) : null}

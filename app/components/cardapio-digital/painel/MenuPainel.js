@@ -10,7 +10,7 @@ export const ITENS_PAINEL = [
   { id: "campanhas", rotulo: "Campanhas automáticas", href: "/dashboard/clientes/campanhas" },
   { id: "cardapio", rotulo: "Cardápio", href: "/dashboard/operacao/cardapio/produtos" },
   { id: "promocoes", rotulo: "Promoções e descontos", href: "/dashboard/operacao/cardapio/promocoes" },
-  { id: "fidelidade", rotulo: "Fidelidade e selos", href: "/dashboard/clientes/fidelidade" },
+  { id: "fidelidade", rotulo: "Fidelidade e selos", href: "/dashboard/operacao/cardapio/fidelidade" },
   { id: "vitrine", rotulo: "Vitrine e banners", href: "/dashboard/operacao/cardapio?aba=abertura" },
   { id: "idiomas", rotulo: "Idiomas", href: "/dashboard/operacao/cardapio?aba=idiomas" },
   { id: "configuracoes", rotulo: "Configurações", href: "/dashboard/operacao/cardapio?aba=aparencia" },

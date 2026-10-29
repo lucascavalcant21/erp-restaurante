@@ -5,6 +5,8 @@ import { TemaCardapio } from "../../../components/cardapio-digital/ui";
 import DeliveryInicio from "../../../components/cardapio-digital/delivery/DeliveryInicio";
 import DeliverySacola from "../../../components/cardapio-digital/delivery/DeliverySacola";
 import DeliveryCheckout from "../../../components/cardapio-digital/delivery/DeliveryCheckout";
+import DeliveryFidelidade from "../../../components/cardapio-digital/delivery/DeliveryFidelidade";
+import ClienteArea from "../../../components/cardapio-digital/delivery/ClienteArea";
 import { Abertura } from "../../../components/cardapio-digital/partes";
 import antigo from "../../../components/cardapio-digital/cardapio.module.css";
 
@@ -78,6 +80,7 @@ export default function VitrineDelivery() {
   }, []);
   if (!cardapio) return null;
   if (tela === "checkout") return <VitrineCheckout />;
+  if (tela === "fidelidade" || tela === "area") return <VitrineFidelidade tela={tela} />;
   if (tela === "sacola") {
     return (
       <TemaCardapio cor="#14532D">
@@ -115,6 +118,42 @@ function VitrineCheckout() {
     <TemaCardapio cor="#14532D">
       <DeliveryCheckout cardapio={CHECKOUT} carrinho={CARRINHO} form={form} setForm={setForm} tipo={tipo} setTipo={setTipo}
         pagamento={pagamento} setPagamento={setPagamento} cashback={{ desconto: 11.09 }} onEnviar={() => {}} onVoltar={() => {}} />
+    </TemaCardapio>
+  );
+}
+
+// Minha fidelidade e Minha área de exemplo (protótipos DeliveryFidelidade e ClienteArea), em ?tela=fidelidade e ?tela=area.
+const FID_CARDAPIO = {
+  ...SACOLA,
+  unidade: { ...SACOLA.unidade, nome: "Casa Brasa" },
+  produtos: [
+    { id: "tacaca", nome: "Tacacá", preco: 32 }, { id: "picanha", nome: "Picanha na brasa", preco: 89.9 },
+    { id: "degust", nome: "Menu degustação", preco: 129 }, { id: "vatapa", nome: "Vatapá com arroz de jambu", preco: 58 },
+    { id: "chope", nome: "Chope", preco: 14 }, { id: "pudim", nome: "Pudim", preco: 18 },
+  ],
+  fidelidade: {
+    cartoes: [
+      { id: "tacaca", nome: "Cartão Tacacá", selos: 6, por: "unidade", recompensa: "1 Tacacá", produto_ids: ["tacaca"] },
+      { id: "hh", nome: "Cartão Happy hour", selos: 10, por: "unidade", recompensa: "1 porção", produto_ids: ["chope"] },
+    ],
+    cashback: { ativo: true, pontos_por_real: 1, valor_100: 2, percentual: 2 },
+    cadastro: { desconto_pct: 20, aplica: "sempre" },
+  },
+};
+const FID_STATUS = {
+  identificado: true, disponivel: true, final: "7777", nome: "Manuela", cliente_desde: "2026-03-10T12:00:00Z",
+  cartoes: { tacaca: { selos: 4 }, hh: { selos: 2 } }, cashback: { saldo: 22.4 },
+  totais: { pedidos: 14, pago: 1163.2, desconto: 134.9, cashback_usado: 51.5 }, premios: {},
+  pedidos: [
+    { id: "p1", em: "2026-10-27T22:42:00Z", tipo: "qrcode", total: 141, economizou: 15.67, cashback: 2.82, selos: 1, itens: [{ id: "picanha", quantidade: 1 }, { id: "pudim", quantidade: 1 }] },
+    { id: "p2", em: "2026-10-12T23:10:00Z", tipo: "delivery", total: 105.81, economizou: 11.09, cashback: 2.12, selos: 1, itens: [{ id: "tacaca", quantidade: 1 }, { id: "vatapa", quantidade: 1 }] },
+  ],
+};
+function VitrineFidelidade({ tela }) {
+  const Tela = tela === "area" ? ClienteArea : DeliveryFidelidade;
+  return (
+    <TemaCardapio cor="#14532D">
+      <Tela cardapio={FID_CARDAPIO} status={FID_STATUS} onVoltar={() => {}} onPedir={() => {}} onAdicionar={() => {}} onPedirDeNovo={() => {}} onUsarCashback={() => {}} onArea={() => {}} />
     </TemaCardapio>
   );
 }

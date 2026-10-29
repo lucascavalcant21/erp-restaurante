@@ -42,10 +42,20 @@ test("configuração: limites, padrões e campos ruins", () => {
   assert.equal(f.cashback.minimo_pedido, 0);
   assert.equal(f.cashback.uso_maximo_pct, 1);
   assert.deepEqual(normalizarFidelidade(null), {
-    ativo: false, cartoes: [],
-    cashback: { ativo: false, percentual: 5, minimo_pedido: 0, validade_dias: 60, uso_maximo_pct: 50 },
+    ativo: false, cartoes: [], canais: [],
+    cashback: { ativo: false, pontos_por_real: 1, valor_100: 5, percentual: 5, minimo_pedido: 0, validade_dias: 60, uso_maximo_pct: 50 },
     cadastro: { ativo: false, desconto_pct: 10, aplica: "primeiro", validade_dias: 0, pedir_email: false, pedir_aniversario: true },
   });
+});
+
+test("pontos: R$ 1 = 1 ponto e 100 pontos = R$ 2 vira 2% de cashback; canais", async () => {
+  const { pontosDoCashback, pontosDoGasto } = await import("./fidelidade.mjs");
+  const f = normalizarFidelidade({ cashback: { pontos_por_real: 1, valor_100: "2,00" }, canais: ["delivery", "x"] });
+  assert.equal(f.cashback.percentual, 2);
+  assert.equal(pontosDoCashback(22.4, f.cashback), 1120);
+  assert.equal(pontosDoGasto(90.5, f.cashback), 90);
+  assert.deepEqual(f.canais, ["delivery"]);
+  assert.deepEqual(normalizarFidelidade({ canais: ["mesa", "delivery", "balcao"] }).canais, [], "todos = vazio");
 });
 
 test("programa desligado não dá nada; cartão sem prêmio ou sem produto não vale", () => {

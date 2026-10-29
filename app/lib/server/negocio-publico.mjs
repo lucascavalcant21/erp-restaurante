@@ -478,6 +478,60 @@ async function saldoNoLivro({ db, unidade, telefone, cfg }) {
 }
 
 /**
+ * Área do cliente (ClienteArea / Minha fidelidade): nome, pedidos concluídos
+ * deste telefone com o que economizou em cada um e o código do prêmio de
+ * cartão completo. Só para o telefone que o próprio aparelho provou. Cada
+ * parte que faltar no banco volta vazia, sem derrubar o resto.
+ */
+async function areaDoCliente({ db, unidade, telefone, cfg, cartoes }) {
+  const saida = { nome: "", cliente_desde: null, pedidos: [], totais: { pedidos: 0, pago: 0, desconto: 0, cashback_usado: 0 }, premios: {} };
+  try {
+    const fim = telefone.slice(-4);
+    const [rC, rP, rM] = await Promise.all([
+      db.from("clientes").select("nome, tel, cadastro_em, created_at").eq("unidade_id", unidade).ilike("tel", `%${fim}`).limit(50),
+      db.from("pedidos").select("id, created_at, tipo_pedido, valor_total, desconto, status, cliente_telefone")
+        .eq("unidade_id", unidade).ilike("cliente_telefone", `%${fim}%`).in("status", [...STATUS_CONCLUIDO]).order("created_at", { ascending: false }).limit(200),
+      db.from("fidelidade_movimentos").select("tipo, selos, valor, pedido_id").eq("unidade_id", unidade).eq("cliente_tel", telefone).not("pedido_id", "is", null).limit(2000),
+    ]);
+    const cli = (rC.data || []).find((c) => normalizarTelefone(c.tel) === telefone);
+    if (cli) { saida.nome = String(cli.nome || "").split(" ")[0]; saida.cliente_desde = cli.cadastro_em || cli.created_at || null; }
+    const meus = (rP.data || []).filter((p) => normalizarTelefone(p.cliente_telefone) === telefone);
+    const porPedido = new Map();
+    for (const m of rM.data || []) {
+      const x = porPedido.get(m.pedido_id) || { selos: 0, cashback: 0, usado: 0 };
+      if (m.tipo === "selo") x.selos += Number(m.selos) || 0;
+      if (m.tipo === "cashback") x.cashback += Number(m.valor) || 0;
+      if (m.tipo === "cashback_uso") x.usado += -(Number(m.valor) || 0);
+      porPedido.set(m.pedido_id, x);
+    }
+    const ultimos = meus.slice(0, 10);
+    const rI = ultimos.length ? await db.from("pedidos_itens").select("pedido_id, produto_id, quantidade").in("pedido_id", ultimos.map((p) => p.id)) : { data: [] };
+    const itens = new Map();
+    for (const i of rI.data || []) (itens.get(i.pedido_id) || itens.set(i.pedido_id, []).get(i.pedido_id)).push({ id: String(i.produto_id), quantidade: Number(i.quantidade) || 0 });
+    for (const p of meus) {
+      const f = porPedido.get(p.id) || { selos: 0, cashback: 0, usado: 0 };
+      saida.totais.pedidos += 1;
+      saida.totais.pago = centavos(saida.totais.pago + (Number(p.valor_total) || 0));
+      saida.totais.desconto = centavos(saida.totais.desconto + Math.max(0, (Number(p.desconto) || 0) - f.usado));
+      saida.totais.cashback_usado = centavos(saida.totais.cashback_usado + f.usado);
+    }
+    saida.pedidos = ultimos.map((p) => {
+      const f = porPedido.get(p.id) || { selos: 0, cashback: 0, usado: 0 };
+      return { id: p.id, em: p.created_at, tipo: p.tipo_pedido || "", total: centavos(Number(p.valor_total) || 0), economizou: centavos(Number(p.desconto) || 0),
+        cashback: centavos(f.cashback), selos: f.selos, itens: itens.get(p.id) || [] };
+    });
+    // Cartão completo: o código que a equipe confere (FIDELIDADE-2). Sem a migração, fica sem código.
+    for (const c of normalizarFidelidade(cfg).cartoes) {
+      if (!(cartoes?.[c.id]?.completos > 0)) continue;
+      const { data, error } = await db.rpc("fidelidade_gerar_premio", { p_unidade: unidade, p_telefone: telefone, p_cartao: c.id });
+      if (error) break;
+      if (data?.ok) saida.premios[c.id] = { codigo: data.codigo, valido_ate: data.valido_ate, completo_em: data.completo_em };
+    }
+  } catch { /* área parcial: o saldo continua valendo */ }
+  return saida;
+}
+
+/**
  * Saldo de fidelidade deste aparelho. Sem pedido concluído: só as regras
  * (o cardápio já mostra). Livro ainda não criado no banco: disponivel=false.
  */
@@ -494,7 +548,8 @@ export async function lerFidelidadePublica({ db, unidade, ids }) {
     const s = await saldoNoLivro({ db, unidade, telefone: prova.telefone, cfg });
     if (!s.ok) return s;
     if (!s.disponivel) return { ok: true, ativo: true, identificado: true, disponivel: false, final: prova.telefone.slice(-4) };
-    return { ok: true, ativo: true, identificado: true, disponivel: true, final: prova.telefone.slice(-4), cartoes: s.saldo.cartoes, cashback: s.saldo.cashback };
+    const area = await areaDoCliente({ db, unidade, telefone: prova.telefone, cfg, cartoes: s.saldo.cartoes });
+    return { ok: true, ativo: true, identificado: true, disponivel: true, final: prova.telefone.slice(-4), cartoes: s.saldo.cartoes, cashback: s.saldo.cashback, ...area };
   } catch {
     return falha(503, "indisponivel", "Indisponível no momento.");
   }

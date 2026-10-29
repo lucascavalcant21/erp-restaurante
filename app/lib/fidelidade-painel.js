@@ -6,6 +6,7 @@
 
 import { supabase, isSupabaseReady } from "./supabase";
 import { normalizarFidelidade, normalizarTelefone, saldoDoCliente } from "./fidelidade.mjs";
+import { salvarParams } from "./parametros";
 
 const SEM_LIVRO = /fidelidade_movimentos|does not exist|could not find|schema cache/i;
 const mensagem = (error, padrao) => {
@@ -65,4 +66,85 @@ export async function lancarFidelidade(unidadeId, telefone, { cartaoId = null, s
     p_unidade: unidadeId, p_telefone: telefone, p_cartao: cartaoId, p_selos: selos, p_valor: valor, p_motivo: motivo,
   });
   return error ? { erro: mensagem(error, "Não foi possível lançar.") } : { erro: null };
+}
+
+// ─── Painel → Fidelidade e selos (protótipo PainelFidelidade) ──────────────
+
+const SEM_PREMIOS = /fidelidade_premios|fidelidade_validar_premio|fidelidade_confirmar_premio|does not exist|could not find|schema cache/i;
+
+/** Retiradas recentes (código, prêmio, quando) e números de cada cartão. Sem a FIDELIDADE-2: só os números do livro. */
+export async function carregarPainelFidelidade(unidadeId) {
+  const base = await carregarFidelidadePainel(unidadeId);
+  if (base.erro) return base;
+  const inicioMes = new Date();
+  inicioMes.setDate(1);
+  inicioMes.setHours(0, 0, 0, 0);
+  const [rP, rM] = await Promise.all([
+    supabase.from("fidelidade_premios").select("codigo, cartao_id, recompensa, cliente_tel, completo_em, retirado_em, retirado_por")
+      .eq("unidade_id", unidadeId).order("completo_em", { ascending: false }).limit(200),
+    supabase.from("fidelidade_movimentos").select("cliente_tel, cartao_id, selos, tipo, created_at").eq("unidade_id", unidadeId)
+      .like("tipo", "selo%").limit(5000),
+  ]);
+  const premios = rP.error ? [] : rP.data || [];
+  // Selos por cliente e cartão: quantos cartões estão em andamento (tem selo, ainda não completou).
+  const saldo = new Map();
+  for (const m of rM.error ? [] : rM.data || []) {
+    const k = `${m.cartao_id}|${m.cliente_tel}`;
+    saldo.set(k, (saldo.get(k) || 0) + (Number(m.selos) || 0));
+  }
+  const numeros = {};
+  for (const c of base.config.cartoes) {
+    let andamento = 0;
+    for (const [k, v] of saldo) if (k.startsWith(`${c.id}|`) && v > 0 && v < c.selos) andamento += 1;
+    numeros[c.id] = { andamento, completosMes: premios.filter((p) => p.cartao_id === c.id && new Date(p.completo_em) >= inicioMes).length };
+  }
+  const retiradas = premios.filter((p) => p.retirado_em).sort((a, b) => String(b.retirado_em).localeCompare(String(a.retirado_em))).slice(0, 20);
+  const tels = [...new Set(retiradas.map((p) => p.cliente_tel))];
+  const quem = [...new Set(retiradas.map((p) => p.retirado_por).filter(Boolean))];
+  const [rCli, rU] = await Promise.all([
+    tels.length ? supabase.from("clientes").select("nome, tel").eq("unidade_id", unidadeId).limit(500) : { data: [] },
+    quem.length ? supabase.from("usuarios_erp").select("auth_user_id, nome").in("auth_user_id", quem) : { data: [] },
+  ]);
+  const nomeDoTel = new Map((rCli.data || []).map((c) => [normalizarTelefone(c.tel), c.nome]));
+  const nomeDoUsuario = new Map((rU.error ? [] : rU.data || []).map((u) => [u.auth_user_id, u.nome]));
+  return {
+    ...base,
+    premiosLigados: !rP.error,
+    numeros,
+    retiradas: retiradas.map((p) => ({
+      quando: p.retirado_em, cliente: abreviar(nomeDoTel.get(p.cliente_tel)) || `final ${p.cliente_tel.slice(-4)}`,
+      premio: p.recompensa || "", codigo: p.codigo, quem: nomeDoUsuario.get(p.retirado_por) || "Equipe",
+    })),
+  };
+}
+const abreviar = (nome) => {
+  const p = String(nome || "").trim().split(/\s+/).filter(Boolean);
+  return p.length > 1 ? `${p[0]} ${p[p.length - 1][0]}.` : p[0] || "";
+};
+
+/** Código que o cliente mostrou: confere sem dar baixa. */
+export async function validarPremio(unidadeId, codigo) {
+  const { data, error } = await supabase.rpc("fidelidade_validar_premio", { p_unidade: unidadeId, p_codigo: String(codigo || "").replace(/[^A-Za-z0-9]/g, "") });
+  if (error) return { erro: SEM_PREMIOS.test(error.message || "") ? "sem_premios" : mensagem(error, "Não foi possível conferir o código.") };
+  return { erro: null, dados: data };
+}
+
+export async function confirmarPremio(unidadeId, codigo) {
+  const { data, error } = await supabase.rpc("fidelidade_confirmar_premio", { p_unidade: unidadeId, p_codigo: String(codigo || "").replace(/[^A-Za-z0-9]/g, "") });
+  if (error) {
+    const m = String(error.message || "");
+    return { erro: /^(Código|Este|O cliente)/.test(m) ? m : mensagem(error, "Não foi possível confirmar a retirada.") };
+  }
+  return { erro: null, dados: data };
+}
+
+/** Regras de pontos/cashback e canais (config_sistema.params.fidelidade), relendo antes de gravar. */
+export async function salvarRegrasFidelidade(unidadeId, mudar) {
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { erro: "Não foi possível ler a configuração." };
+  const atual = normalizarFidelidade(data?.[0]?.params?.fidelidade);
+  const nova = normalizarFidelidade(mudar(atual));
+  const r = await salvarParams(unidadeId, { fidelidade: nova });
+  if (r?.error) return { erro: "Não foi possível salvar. Confira sua permissão e tente de novo." };
+  return { erro: null, config: nova };
 }

@@ -33,6 +33,8 @@ import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, 
 import DeliveryInicio from "./delivery/DeliveryInicio";
 import DeliverySacola from "./delivery/DeliverySacola";
 import DeliveryCheckout from "./delivery/DeliveryCheckout";
+import DeliveryFidelidade from "./delivery/DeliveryFidelidade";
+import ClienteArea from "./delivery/ClienteArea";
 import { TemaCardapio } from "./ui";
 import { caminhoDoCadastro } from "../../lib/cardapio-link.mjs";
 import Conversa from "./Conversa";
@@ -305,7 +307,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     } catch { /* sem conexão: fica o que já havia */ }
   }, [previa, temFidelidade, fidPedidos, unidadeId]);
   useEffect(() => { carregarFidelidade(); }, [carregarFidelidade]);
-  useEffect(() => { if (folha === "fidelidade" || folha === "pedidos") carregarFidelidade(); }, [folha]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (folha === "fidelidade" || folha === "area" || folha === "pedidos") carregarFidelidade(); }, [folha]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── derivados ────────────────────────────────────────────────────────────
   const porId = useMemo(() => new Map((cardapio?.produtos || []).map((p) => [p.id, p])), [cardapio]);
@@ -915,7 +917,20 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         </Folha>
       ) : null}
 
-      {folha === "fidelidade" && cardapio.fidelidade ? (
+      {folha === "fidelidade" && cardapio.fidelidade && modo === "delivery" ? (
+        <TemaCardapio cor={tema.cor_primaria}>
+          <DeliveryFidelidade cardapio={cardapio} status={fidStatus} idioma={lingua} onVoltar={() => setFolha("")}
+            onUsarCashback={() => { setUsarCashback(true); setEtapa("carrinho"); setFolha("pedido"); }}
+            onAdicionar={(id, n) => { adicionar(id, n); setEtapa("carrinho"); setFolha("pedido"); }}
+            onArea={() => setFolha("area")} />
+        </TemaCardapio>
+      ) : folha === "area" && cardapio.fidelidade && modo === "delivery" ? (
+        <TemaCardapio cor={tema.cor_primaria}>
+          <ClienteArea cardapio={cardapio} status={fidStatus} idioma={lingua} onVoltar={() => setFolha("fidelidade")} onPedir={() => setFolha("")}
+            onAdicionar={(id, n) => { adicionar(id, n); setEtapa("carrinho"); setFolha("pedido"); }}
+            onPedirDeNovo={(itens) => { for (const i of itens) adicionar(i.id, i.quantidade); setEtapa("carrinho"); setFolha("pedido"); }} />
+        </TemaCardapio>
+      ) : folha === "fidelidade" && cardapio.fidelidade ? (
         <Folha titulo={T("fid_titulo")} onFechar={() => setFolha("")} idioma={lingua}>
           <div className={s.folhaCorpo}>
             <DetalheFidelidade cardapio={cardapio} status={fidStatus} onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }} unidadeId={unidadeId} cadastroLocal={cadastroLocal} />

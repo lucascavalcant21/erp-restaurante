@@ -323,3 +323,30 @@ test("ticket por pessoa: mesa de R$ 100 para 50 pessoas = R$ 2 por pessoa, sem s
   assert.equal(Math.round(r.cmv), 100);
   assert.equal(r.cmvPorPessoa, 2);
 });
+
+test("bases do cardápio: salva comidas ou bebidas e aplica em outro evento", async () => {
+  const { baseDoCardapio, aplicarBase, itensParaBase, orcamentoVazio } = await import("./evento-orcamento.mjs");
+  const orc = { ...orcamentoVazio(), tipo: "buffet", cardapio: [
+    { id: "a", secao: "buffet", nome: "Arroz", por_pessoa: "0,5" },
+    { id: "b", secao: "buffet", nome: "Frango", por_pessoa: "1" },
+    { id: "c", secao: "bar", nome: "Suco", por_pessoa: "1" },
+  ] };
+  assert.equal(itensParaBase(orc, "bebidas").length, 1);
+  const buffet = baseDoCardapio(orc, { nome: "Buffet da casa", tipo: "buffet" });
+  assert.equal(buffet.itens.length, 2);
+  assert.notEqual(buffet.itens[0].id, "a");
+  const bebidas = baseDoCardapio(orc, { nome: "", tipo: "bebidas" });
+  assert.equal(bebidas.nome, "Bebidas base");
+
+  // Evento ticket: as comidas vão para "Comidas" em quantidade fechada.
+  const ticket = { ...orcamentoVazio(), tipo: "ticket", cardapio: [{ id: "x", secao: "bar", nome: "Café" }] };
+  const t1 = aplicarBase(ticket, buffet);
+  assert.equal(t1.cardapio.length, 3);
+  assert.deepEqual(t1.cardapio.slice(1).map((i) => [i.secao, i.medida]), [["lanche", "total"], ["lanche", "total"]]);
+  // Substituir bebidas troca só o bar.
+  const t2 = aplicarBase(t1, bebidas, { substituir: true });
+  assert.deepEqual(t2.cardapio.map((i) => i.nome), ["Arroz", "Frango", "Suco"]);
+  // Aplicar duas vezes não repete ids.
+  const t3 = aplicarBase(t2, bebidas);
+  assert.equal(new Set(t3.cardapio.map((i) => i.id)).size, t3.cardapio.length);
+});

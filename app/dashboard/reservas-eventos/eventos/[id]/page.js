@@ -18,11 +18,11 @@ import { EtapaFinanceiro, EtapaDRE, EtapaProposta, EtapaPagamentos } from "./orc
 import { supabase } from "../../../../lib/supabase";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
-import { fetchParamsDaCasa, PARAMS_PADRAO, fetchModelosEvento, adicionarModeloEvento, removerModeloEvento } from "../../../../lib/parametros";
+import { fetchParamsDaCasa, PARAMS_PADRAO, fetchModelosEvento, adicionarModeloEvento, removerModeloEvento, fetchBasesEvento, adicionarBaseEvento, removerBaseEvento } from "../../../../lib/parametros";
 import { FUNIL_ETAPAS, rotuloEtapa, normalizarEtapa } from "../../../../lib/evento-financeiro.mjs";
 import {
   orcamentoDoEvento, resumoDoOrcamento, pendenciasDoOrcamento, listaDeComprasDoOrcamento, camposDoEventoParaGravar, CAMPOS_ESSENCIAIS, tipoDoEvento,
-  historicoDoCliente, conflitosDeEquipe, sugestoesDeEquipe, modeloDoOrcamento, aplicarModelo, copiaDoOrcamento, resumoParaFunil,
+  historicoDoCliente, conflitosDeEquipe, sugestoesDeEquipe, modeloDoOrcamento, aplicarModelo, baseDoCardapio, aplicarBase, copiaDoOrcamento, resumoParaFunil,
   bancoSemOrcamento, mensagemErroEvento, erroDeColunaDeEventos, MSG_BANCO_EVENTOS,
 } from "../../../../lib/evento-orcamento.mjs";
 import { fmtReais, fmtPct } from "../../../../lib/valor-percentual.mjs";
@@ -61,6 +61,7 @@ export default function EventoPage() {
   const { unidadeAtiva, unidadeInfo, sessao } = useERP();
   const [outrosEventos, setOutrosEventos] = useState([]);
   const [modelos, setModelos] = useState([]);
+  const [bases, setBases] = useState([]);
   const [paramsSis, setParamsSis] = useState(PARAMS_PADRAO);
   const [painel, setPainel] = useState(null); // "modelo" | "duplicar"
   const [aviso, setAviso] = useState("");
@@ -109,6 +110,7 @@ export default function EventoPage() {
       setFichas(resFichas.data || []);
       setOutrosEventos(resOutros.error ? [] : resOutros.data || []);
       setModelos(resModelos.data || []);
+      fetchBasesEvento(unidadeAtiva).then((r) => { if (ativo) setBases(r.data || []); });
       setParamsSis(params);
       if (!error && data) {
         const o = orcamentoDoEvento(data, params, equipeLegada);
@@ -191,6 +193,24 @@ export default function EventoPage() {
     if (!window.confirm(`Apagar o modelo “${m.nome}”? Os eventos que já usaram não mudam.`)) return;
     const res = await removerModeloEvento(unidadeAtiva, m.id);
     if (res.error) setAviso(`Não apagou: ${res.error}`); else setModelos(res.data);
+  };
+  const salvarBase = async (nome, tipoBase) => {
+    const b = baseDoCardapio(orc, { nome, tipo: tipoBase });
+    if (!b.itens.length) { setAviso("Não há pratos desse tipo no cardápio para salvar."); return false; }
+    const res = await adicionarBaseEvento(unidadeAtiva, b);
+    if (res.error) { setAviso(`Não salvou a base: ${res.error}`); return false; }
+    setBases(res.data);
+    setAviso(`Base “${b.nome}” salva com ${b.itens.length} item(ns).`);
+    return true;
+  };
+  const usarBase = (b, substituir) => {
+    setOrc((o) => aplicarBase(o, b, { substituir }));
+    setAviso(`Base “${b.nome}” ${substituir ? "trocada" : "adicionada"} no cardápio.`);
+  };
+  const apagarBase = async (b) => {
+    if (!window.confirm(`Apagar a base “${b.nome}”? Os eventos que já usaram não mudam.`)) return;
+    const res = await removerBaseEvento(unidadeAtiva, b.id);
+    if (res.error) setAviso(`Não apagou: ${res.error}`); else setBases(res.data);
   };
   // Novo evento com tudo deste, menos data, pagamentos e realizado.
   const duplicar = async (dataNova) => {
@@ -325,7 +345,7 @@ export default function EventoPage() {
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_300px] print:block print:p-0">
         <div className="min-w-0">
           {etapa === "tipo" && <EtapaTipo {...props} modelos={modelos} onAplicarModelo={usarModelo} onRemoverModelo={apagarModelo} />}
-          {etapa === "cardapio" && <EtapaCardapio {...props} />}
+          {etapa === "cardapio" && <EtapaCardapio {...props} bases={bases} onSalvarBase={salvarBase} onUsarBase={usarBase} onApagarBase={apagarBase} />}
           {etapa === "equipe" && <EtapaEquipe {...props} sugestoesEquipe={sugestoesEquipe} conflitos={conflitos} />}
           {etapa === "extras" && <EtapaExtras {...props} />}
           {etapa === "cliente" && <EtapaCliente {...props} unidadeAtiva={unidadeAtiva} historico={historico} />}

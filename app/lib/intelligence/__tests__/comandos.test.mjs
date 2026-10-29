@@ -423,3 +423,16 @@ test("conversa forjada: produto de outra empresa não é encontrado; insight ine
   assert.equal(pedidoSchema.parse({ texto: "Por que?", conversa: { unidade_id: "loja-b" } }).ok, false);
   assert.equal(pedidoSchema.parse({ texto: "Por que?", conversa: { insights: ["'; drop table x;--"] } }).ok, false);
 });
+
+test("provedor: Haiku entende (sem fallback), Sonnet cria (com fallback)", async () => {
+  const { criarProvedorAnthropic, MODELO_PADRAO, MODELO_CRIACAO } = await import("../providers/anthropic.mjs");
+  const pedidos = [];
+  const cliente = { beta: { messages: { create: async (p) => { pedidos.push(p); return { stop_reason: "end_turn", model: p.model, content: [{ type: "text", text: "{\"ok\":true}" }], usage: {} }; } } } };
+  const prov = criarProvedorAnthropic({ cliente, modelo: MODELO_PADRAO, modeloCriacao: MODELO_CRIACAO });
+  await prov.interpretar({ sistema: "s", texto: "t", esquemaJson: {} });
+  await prov.interpretar({ sistema: "s", texto: "t", esquemaJson: {}, tarefa: "criar" });
+  assert.equal(pedidos[0].model, "claude-haiku-5-5");
+  assert.equal(pedidos[0].fallbacks, undefined);
+  assert.equal(pedidos[1].model, "claude-sonnet-5-5");
+  assert.equal(pedidos[1].fallbacks, "default");
+});

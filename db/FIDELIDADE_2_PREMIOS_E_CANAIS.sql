@@ -1,8 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    FIDELIDADE-2 · CÓDIGO DE PRÊMIO E CANAIS QUE CONTAM
 
-   STATUS: escrita em 29/10/2026 (Etapa 8 do cardápio digital). Testada no
-   PGlite (app/lib/fidelidade-premios-banco.test.mjs) por cima da FIDELIDADE-1.
+   STATUS: APLICADA em 29/10/2026 com liberação do dono (Etapa 8 do cardápio
+   digital). Testada no PGlite (app/lib/fidelidade-premios-banco.test.mjs) por
+   cima da FIDELIDADE-1. No banco real (aplicada sem os comentários): impressão
+   digital 4e81641151a1770c00dfaa07768a7e13; corpo do gatilho = o deste arquivo
+   sem as linhas de comentário (md5 8aa8582c3dea5c938799ce35fe20ae66).
 
    O QUE O PROTÓTIPO PEDE (PainelFidelidade / DeliveryFidelidade):
      · o cliente completa o cartão e o app mostra um CÓDIGO; a equipe digita o

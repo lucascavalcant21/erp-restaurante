@@ -35,6 +35,7 @@ import DeliverySacola from "./delivery/DeliverySacola";
 import DeliveryCheckout from "./delivery/DeliveryCheckout";
 import DeliveryFidelidade from "./delivery/DeliveryFidelidade";
 import ClienteArea from "./delivery/ClienteArea";
+import TabletInicio from "./tablet/TabletInicio";
 import { TemaCardapio } from "./ui";
 import { caminhoDoCadastro } from "../../lib/cardapio-link.mjs";
 import Conversa from "./Conversa";
@@ -130,8 +131,10 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const celular = useMidia(CELULAR);
   const podePedir = !previa;
   const modo = mesa ? "mesa" : "delivery";
-  // Pedido ao lado só na mesa (tablet deitado). No delivery novo a sacola é sempre uma folha.
-  const largo = largoTela && modo === "mesa";
+  // Tablet da mesa (tela larga): a tela nova do protótipo Main. O pedido abre
+  // como folha (o "pedido ao lado" antigo saiu); no celular a mesa segue no layout antigo.
+  const tabletNovo = largoTela && modo === "mesa";
+  const largo = false;
   // Delivery: o cliente escolhe Entrega ou Retirada no checkout (se a loja aceita retirada).
   const [tipoEntrega, setTipoEntrega] = useState("delivery");
   const [pagamento, setPagamento] = useState("");
@@ -288,11 +291,12 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     }
   }, [previa, meusPedidos, unidadeId]);
   useEffect(() => {
-    if (folha !== "pedidos") return;
+    // No tablet o andamento fica na tela (o cartão "Pedido · Mesa"): acompanha sempre que há pedido.
+    if (folha !== "pedidos" && !(tabletNovo && meusPedidos.length)) return;
     atualizarPedidos();
     const tm = setInterval(atualizarPedidos, PEDIDOS_MS);
     return () => clearInterval(tm);
-  }, [folha, atualizarPedidos]);
+  }, [folha, atualizarPedidos, tabletNovo, meusPedidos.length]);
 
   // Saldo de fidelidade deste aparelho. O servidor acha o telefone num pedido
   // concluído entre os que o aparelho fez; sem isso, só as regras aparecem.
@@ -586,6 +590,13 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const rotuloEtapa = (p) => (p.etapa === "recebido" ? T("st_recebido") : p.etapa === "preparo" ? T("st_preparo")
     : p.etapa === "pronto" ? T(p.tipo === "mesa" ? "st_pronto_mesa" : "st_pronto_delivery") : p.etapa === "saiu" ? T("st_saiu")
       : p.etapa === "entregue" ? T("st_entregue") : p.etapa === "cancelado" ? T("st_cancelado") : T("st_andamento"));
+  // Cartão "Pedido · Mesa" do tablet: o pedido mais recente que ainda não saiu da mesa.
+  const emCurso = (andamento.pedidos || []).filter((p) => p.etapa !== "entregue" && p.etapa !== "cancelado")
+    .sort((a, b) => String(b.criado_em || "").localeCompare(String(a.criado_em || "")))[0];
+  const acompanhamento = tabletNovo && emCurso ? {
+    etapa: rotuloEtapa(emCurso), pronto: emCurso.etapa === "pronto", hora: emCurso.criado_em ? hora(emCurso.criado_em) : "",
+    itens: (emCurso.itens || []).map((i) => porId.get(i.produto_id)?.nome).filter(Boolean).join(", "),
+  } : null;
 
   return (
     <div className={`${s.raiz} ${modo === "mesa" ? s.modoMesa : s.modoDelivery} ${celular && modo === "mesa" ? s.comNav : ""}`} style={estilo} data-fonte={tema.fonte} lang={infoIdioma(lingua).lang} data-cardapio="">
@@ -601,6 +612,20 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             onAbrirInfo={() => setFolha("info")} temInfo={temInfo} onAjuda={() => abrirConversa()} temAjuda={conversaLigada}
             onAbrirPedidos={() => setFolha("pedidos")} qtdPedidos={meusPedidos.length}
             onAbrirDescontos={() => setFolha("fidelidade")} temDescontos={Boolean(cardapio.fidelidade)}
+            linkCadastro={caminhoDoCadastro(unidadeId)} visitante={!cadastroLocal && !fidStatus?.identificado} podePedir={podePedir}
+            banners={slides.length ? <div className={s.capa} style={{ height: "100%" }}><Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} /></div> : null}
+          />
+        </TemaCardapio>
+      ) : tabletNovo ? (
+        <TemaCardapio cor={tema.cor_primaria}>
+          <TabletInicio
+            cardapio={cardapio} idioma={lingua} mesa={mesa} carrinho={carrinho} totalSacola={totalCarrinho.total || 0}
+            offline={estado === "offline" ? T("sem_internet", { hora: cacheEm ? hora(cacheEm) : "—" }) : ""}
+            secaoAtiva={secaoAtiva} busca={busca} onBusca={setBusca} resultados={resultados} filtrando={filtrando}
+            selos={selos} onSelos={setSelos} onAbrirPrato={abrirPrato} onAdicionar={adicionar} onIrSecao={irParaSecao}
+            onAbrirSacola={() => setFolha("pedido")} onAbrirIdiomas={() => setFolha("idiomas")} temIdiomas={idiomasOferecidos.length > 1}
+            onChamar={() => setFolha("atendimento")} onRecomendar={() => abrirConversa()} temRecomendar={conversaLigada}
+            acompanhamento={acompanhamento} onAbrirPedidos={() => setFolha("pedidos")}
             linkCadastro={caminhoDoCadastro(unidadeId)} visitante={!cadastroLocal && !fidStatus?.identificado} podePedir={podePedir}
             banners={slides.length ? <div className={s.capa} style={{ height: "100%" }}><Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} /></div> : null}
           />

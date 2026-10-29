@@ -54,10 +54,10 @@ export function Secao({ titulo, subtitulo, direita, children, className = "" }) 
 // desce para a linha de baixo.
 export function Abas({ abas, valor, onChange }) {
   return (
-    <div role="tablist" className="flex flex-wrap gap-1 rounded-xl bg-hf-elevated p-1">
+    <div role="tablist" className="flex flex-wrap gap-1 rounded-xl bg-hf-elevated p-1 sm:inline-flex sm:max-w-full">
       {abas.map((a) => (
         <button key={a.id} type="button" role="tab" aria-selected={valor === a.id} onClick={() => onChange(a.id)}
-          className={`min-h-[40px] flex-auto whitespace-nowrap rounded-lg px-3 text-sm font-semibold transition ${valor === a.id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2 hover:text-hf-text"}`}>
+          className={`min-h-[40px] flex-auto whitespace-nowrap rounded-lg px-3 text-sm font-semibold transition sm:min-h-[34px] sm:flex-none sm:px-4 ${valor === a.id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2 hover:text-hf-text"}`}>
           {a.rotulo}
         </button>
       ))}

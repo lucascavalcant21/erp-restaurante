@@ -733,3 +733,47 @@ export function incluidoNaProposta(orc = {}) {
     .filter(Boolean);
   return { equipe, servicos: [...new Set(servicos)] };
 }
+
+// ─── Bases do cardápio ──────────────────────────────────────────────────────
+// Pedido do dono (29/10/2026): "buffet base, mesa de comidas e bebidas base,
+// nos meus eventos, e poder salvar mais". Diferente do modelo (o evento
+// inteiro), a base guarda só pratos: entra no cardápio de qualquer evento sem
+// mexer em equipe, extras ou preço. Quantas o dono quiser.
+
+export const TIPOS_BASE = [
+  { id: "buffet", rotulo: "Buffet base", grupo: "comida" },
+  { id: "comidas", rotulo: "Mesa de comidas", grupo: "comida" },
+  { id: "bebidas", rotulo: "Bebidas base", grupo: "bebida" },
+];
+export const tipoDaBase = (id) => TIPOS_BASE.find((t) => t.id === id) || TIPOS_BASE[0];
+
+const grupoDoItem = (item) => (SECOES[item?.secao]?.setor === "bar" ? "bebida" : "comida");
+
+// Os pratos do cardápio que entram numa base do tipo pedido.
+export function itensParaBase(orc = {}, tipoBase) {
+  const grupo = tipoDaBase(tipoBase).grupo;
+  return (orc.cardapio || []).filter((i) => grupoDoItem(i) === grupo);
+}
+
+export function baseDoCardapio(orc = {}, { nome, tipo } = {}) {
+  const t = tipoDaBase(tipo);
+  const itens = itensParaBase(orc, t.id).map((i) => ({ ...i, id: novoId(), ingredientes: Array.isArray(i.ingredientes) ? i.ingredientes.map((x) => ({ ...x, id: novoId() })) : i.ingredientes }));
+  return { id: novoId(), nome: String(nome || "").trim() || t.rotulo, tipo: t.id, tipo_evento: orc.tipo || "buffet", itens, criado_em: new Date().toISOString() };
+}
+
+/* Põe a base no cardápio. "substituir" troca só o grupo da base (comidas ou
+ * bebidas) e mantém o resto. Cada prato vai para a seção do tipo do evento
+ * atual; no ticket, entra em quantidade fechada. */
+export function aplicarBase(orc = {}, base = {}, { substituir = false } = {}) {
+  const grupo = tipoDaBase(base.tipo).grupo;
+  const tipo = tipoDoEvento(orc.tipo);
+  const secaoComida = tipo.secoes.find((s) => SECOES[s]?.setor !== "bar") || tipo.secoes[0];
+  const secaoBebida = tipo.secoes.includes("bar") ? "bar" : tipo.secoes[0];
+  const novos = (base.itens || []).map((i) => {
+    const secao = tipo.secoes.includes(i.secao) ? i.secao : (grupoDoItem(i) === "bebida" ? secaoBebida : secaoComida);
+    const fechado = tipo.quantidadeFechada && i.medida !== "total" ? { medida: "total", quantidade_total: i.quantidade_total || "1" } : {};
+    return { ...i, ...fechado, id: novoId(), secao, ingredientes: Array.isArray(i.ingredientes) ? i.ingredientes.map((x) => ({ ...x, id: novoId() })) : i.ingredientes };
+  });
+  const atuais = (orc.cardapio || []).filter((i) => !substituir || grupoDoItem(i) !== grupo);
+  return { ...orc, cardapio: [...atuais, ...novos] };
+}

@@ -74,6 +74,11 @@ export const INTENCOES = Object.freeze([
     frases: [["comprei", "compramos", "comprou", "compras", "gastei com compra", "gastos com compra"]], proibidas: ["preco", "precos", "caro", "cara", "caros", "aumento", "aumentaram", "subiu"], peso: 5,
   },
   {
+    id: "compras.ultimo_preco", tipo: "pergunta", agentes: ["compras"],
+    descricao: "Quanto pagou num produto na última compra (ex.: 'quanto paguei na picanha da última vez?', 'qual o preço da última compra de óleo?').",
+    frases: [["ultima vez", "ultima compra", "quanto paguei", "paguei no", "paguei na", "paguei o", "paguei a", "comprei por", "preco da ultima"]], peso: 9,
+  },
+  {
     id: "compras.maior_aumento_preco", tipo: "pergunta", agentes: ["compras"],
     descricao: "Quais produtos tiveram maior aumento (ou queda) de preço de compra.",
     frases: [["preco", "precos", "mais caro", "mais cara", "encareceu", "encareceram", "mais aumentaram", "que aumentaram"], ["aumento", "aumentaram", "aumentou", "subiu", "subiram", "maior", "mais caro", "mais cara", "encareceu", "encareceram", "variacao"]],

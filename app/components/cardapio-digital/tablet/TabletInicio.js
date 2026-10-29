@@ -19,7 +19,7 @@ function CardPrato({ produto, qtd, onAbrir, onAdicionar, podePedir, idioma, T })
   return (
     <Card className={s.prato}>
       <button type="button" className={s.pratoAbrir} onClick={() => onAbrir(produto.id)} aria-label={produto.nome}>
-        <FotoPrato src={produto.imagem_url || ""} largura={112} altura={112} raio={10} video={video} etiquetaPequena />
+        <FotoPrato src={produto.imagem_url || ""} largura={112} altura={112} video={video} etiquetaPequena />
         <span className={s.pratoTextos}>
           <span className={s.pratoNome}>{produto.nome}</span>
           {produto.descricao ? <span className={s.pratoDesc}>{produto.descricao}</span> : null}

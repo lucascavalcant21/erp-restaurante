@@ -93,7 +93,7 @@
 .secundario,
 .secundario:hover,
 .secundario:visited {
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   color: var(--cd-texto);
   border: 1px solid var(--cd-borda);
   box-shadow: var(--cd-sombra-secundario);
@@ -102,7 +102,7 @@
 .contorno,
 .contorno:hover,
 .contorno:visited {
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   color: var(--cd-texto);
   border: 2px solid var(--cd-texto);
 }
@@ -159,7 +159,7 @@
   justify-content: center;
   border-radius: 22px;
   border: 1px solid var(--cd-borda);
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   color: var(--cd-texto);
   box-shadow: var(--cd-sombra-secundario);
   padding: 0;
@@ -171,7 +171,7 @@
 .redondoSobreFoto:hover {
   border: 0;
   background: rgba(255, 255, 255, 0.9);
-  color: var(--cd-texto);
+  color: var(--cd-texto-fixo);
   box-shadow: none;
 }
 
@@ -180,7 +180,7 @@
 .card:hover,
 .card:visited {
   display: flex;
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   border: 1px solid var(--cd-borda-card);
   border-radius: var(--cd-raio-g);
   box-shadow: var(--cd-sombra-card);
@@ -209,7 +209,7 @@
   margin: 0;
   border-radius: var(--cd-raio-m);
   border: 1px solid var(--cd-borda-forte);
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   color: var(--cd-texto);
   box-shadow: var(--cd-sombra-secundario);
   font-family: inherit;
@@ -313,7 +313,7 @@
   padding: 6px 10px;
   border-radius: var(--cd-raio-pilula);
   background: var(--cd-branco);
-  color: var(--cd-texto);
+  color: var(--cd-texto-fixo);
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
@@ -443,7 +443,7 @@
   color: var(--cd-pimenta-forte);
 }
 .pimentaCaixaSem .pimentaTitulo {
-  color: var(--cd-ok-texto);
+  color: var(--cd-ok-texto-legivel);
 }
 .pimentaNota {
   font-size: 12px;
@@ -754,7 +754,7 @@
 .secaoLink:visited {
   font-size: 13px;
   font-weight: 600;
-  color: var(--cd-principal);
+  color: var(--cd-principal-legivel);
   text-decoration: none;
 }
 .trilhoCaixa {
@@ -814,7 +814,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--cd-principal);
+  color: var(--cd-principal-legivel);
 }
 .agoraTitulo {
   font-size: 15px;
@@ -897,7 +897,7 @@
   white-space: nowrap;
 }
 .precoPrincipal {
-  color: var(--cd-principal);
+  color: var(--cd-principal-legivel);
 }
 .precoTexto {
   font-family: var(--cd-fonte-texto), Inter, system-ui, sans-serif;
@@ -918,7 +918,7 @@
   height: 46px;
   border-radius: var(--cd-raio-m);
   border: 1px solid var(--cd-borda-forte);
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
 }
 .quantidadeBotao {
   width: 46px;
@@ -977,7 +977,7 @@
   font-weight: 500;
 }
 .segmentoBranco {
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   color: var(--cd-texto);
   font-weight: 600;
   box-shadow: var(--cd-sombra-segmentado);

@@ -601,7 +601,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   return (
     <div className={`${s.raiz} ${modo === "mesa" ? s.modoMesa : s.modoDelivery} ${celular && modo === "mesa" ? s.comNav : ""}`} style={estilo} data-fonte={tema.fonte} lang={infoIdioma(lingua).lang} data-cardapio="">
       {modo === "delivery" ? (
-        <TemaCardapio cor={tema.cor_primaria}>
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
           <DeliveryInicio
             cardapio={cardapio} idioma={lingua} carrinho={carrinho} totalSacola={totalCarrinho.total || 0}
             offline={estado === "offline" ? T("sem_internet", { hora: cacheEm ? hora(cacheEm) : "—" }) : ""}
@@ -613,11 +613,11 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             onAbrirPedidos={() => setFolha("pedidos")} qtdPedidos={meusPedidos.length}
             onAbrirDescontos={() => setFolha("fidelidade")} temDescontos={Boolean(cardapio.fidelidade)}
             linkCadastro={caminhoDoCadastro(unidadeId)} visitante={!cadastroLocal && !fidStatus?.identificado} podePedir={podePedir}
-            banners={slides.length ? <div className={s.capa} style={{ height: "100%" }}><Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} /></div> : null}
+            banners={slides.length ? <div className={s.capa} style={{ height: "100%" }}><Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} segundos={cardapio.carrossel?.segundos} porVez={cardapio.carrossel?.por_vez} /></div> : null}
           />
         </TemaCardapio>
       ) : tabletNovo ? (
-        <TemaCardapio cor={tema.cor_primaria}>
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
           <TabletInicio
             cardapio={cardapio} idioma={lingua} mesa={mesa} carrinho={carrinho} totalSacola={totalCarrinho.total || 0}
             offline={estado === "offline" ? T("sem_internet", { hora: cacheEm ? hora(cacheEm) : "—" }) : ""}
@@ -627,7 +627,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             onChamar={() => setFolha("atendimento")} onRecomendar={() => abrirConversa()} temRecomendar={conversaLigada}
             acompanhamento={acompanhamento} onAbrirPedidos={() => setFolha("pedidos")}
             linkCadastro={caminhoDoCadastro(unidadeId)} visitante={!cadastroLocal && !fidStatus?.identificado} podePedir={podePedir}
-            banners={slides.length ? <div className={s.capa} style={{ height: "100%" }}><Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} /></div> : null}
+            banners={slides.length ? <div className={s.capa} style={{ height: "100%" }}><Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} segundos={cardapio.carrossel?.segundos} porVez={cardapio.carrossel?.por_vez} /></div> : null}
           />
         </TemaCardapio>
       ) : (<>
@@ -687,7 +687,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           {modo === "delivery" ? (
             <>
               <div className={s.capa}>
-                {slides.length ? <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} /> : <CapaViva temas={secoesMenu.map((x) => x.tema).filter(Boolean)} />}
+                {slides.length ? <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} segundos={cardapio.carrossel?.segundos} porVez={cardapio.carrossel?.por_vez} /> : <CapaViva temas={secoesMenu.map((x) => x.tema).filter(Boolean)} />}
               </div>
               <section className={s.loja} aria-label={unidade.nome}>
                 <Foto src={tema.logo_url} className={s.lojaLogo} alt="" fallback={<span className={s.lojaMonograma} aria-hidden="true">{iniciais(unidade.nome)}</span>} />
@@ -711,7 +711,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             </>
           ) : (
             <>
-              <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} />
+              <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} segundos={cardapio.carrossel?.segundos} porVez={cardapio.carrossel?.por_vez} />
               <header className={s.cabecalho}>
                 {!slides.length ? <Foto src={tema.logo_url} className={s.cabecalhoLogo} /> : null}
                 <h1 className={s.nomeLoja}>{unidade.nome}</h1>
@@ -881,13 +881,13 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       </>)}
 
       {folha === "pedido" && modo === "delivery" && etapa === "carrinho" ? (
-        <TemaCardapio cor={tema.cor_primaria}>
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
           <DeliverySacola cardapio={cardapio} idioma={lingua} carrinho={carrinho} onVoltar={() => setFolha("")}
             onContinuar={() => setEtapa("dados")} alterarQtd={alterarQtd} remover={remover} adicionar={adicionar}
             onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }} />
         </TemaCardapio>
       ) : folha === "pedido" && modo === "delivery" && etapa === "dados" ? (
-        <TemaCardapio cor={tema.cor_primaria}>
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
           <DeliveryCheckout cardapio={cardapio} idioma={lingua} carrinho={carrinho} form={form} setForm={setForm}
             tipo={tipoEntrega} setTipo={setTipoEntrega} pagamento={pagamento} setPagamento={setPagamento}
             cashback={infoCashback} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} onVoltar={() => setEtapa("carrinho")} />
@@ -943,14 +943,14 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       ) : null}
 
       {folha === "fidelidade" && cardapio.fidelidade && modo === "delivery" ? (
-        <TemaCardapio cor={tema.cor_primaria}>
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
           <DeliveryFidelidade cardapio={cardapio} status={fidStatus} idioma={lingua} onVoltar={() => setFolha("")}
             onUsarCashback={() => { setUsarCashback(true); setEtapa("carrinho"); setFolha("pedido"); }}
             onAdicionar={(id, n) => { adicionar(id, n); setEtapa("carrinho"); setFolha("pedido"); }}
             onArea={() => setFolha("area")} />
         </TemaCardapio>
       ) : folha === "area" && cardapio.fidelidade && modo === "delivery" ? (
-        <TemaCardapio cor={tema.cor_primaria}>
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
           <ClienteArea cardapio={cardapio} status={fidStatus} idioma={lingua} onVoltar={() => setFolha("fidelidade")} onPedir={() => setFolha("")}
             onAdicionar={(id, n) => { adicionar(id, n); setEtapa("carrinho"); setFolha("pedido"); }}
             onPedirDeNovo={(itens) => { for (const i of itens) adicionar(i.id, i.quantidade); setEtapa("carrinho"); setFolha("pedido"); }} />

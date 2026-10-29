@@ -121,3 +121,19 @@ test("carrossel: anda com 3 cards ou mais, na mesma velocidade", () => {
   assert.equal(duracaoDoCarrossel(6, 312), 78);
   assert.equal(duracaoDoCarrossel(1, 100), 12, "nunca rápido demais");
 });
+
+test("aparência do dono: fundo escuro deixa todo texto legível; foto quadrada; padrão = protótipo", async () => {
+  const { variaveisDaLoja, CONTRASTE_MINIMO } = await import("./cardapio-visual.mjs");
+  const { contraste, normalizarCarrossel, normalizarTema } = await import("./cardapio-digital.mjs");
+  const escuro = variaveisDaLoja(normalizarTema({ cor_fundo: "#121212", cor_cartao: "#1E1E1E", cor_texto: "#F5F5F5" }));
+  for (const k of ["--cd-texto", "--cd-texto-forte", "--cd-texto-medio", "--cd-texto-secundario", "--cd-texto-suave", "--cd-riscado"]) {
+    assert.ok(contraste(escuro[k], "#1E1E1E") >= CONTRASTE_MINIMO, `${k} no cartão escuro`);
+  }
+  const bege = variaveisDaLoja(normalizarTema({ cor_fundo: "#E9DCC3", formato_foto: "quadrada" }));
+  assert.equal(bege["--cd-raio-foto"], "0px");
+  assert.ok(contraste(bege["--cd-texto-secundario"], "#E9DCC3") >= CONTRASTE_MINIMO);
+  assert.deepEqual(Object.keys(variaveisDaLoja(normalizarTema({}))).sort(), ["--cd-pagina", "--cd-raio-foto", "--cd-superficie"], "tema padrão não mexe nos textos");
+  assert.ok(contraste(escuro["--cd-principal-legivel"], "#1E1E1E") >= CONTRASTE_MINIMO, "verde da casa legível no escuro");
+  assert.deepEqual(normalizarCarrossel({ segundos: 99, por_vez: 7 }), { segundos: 20, por_vez: 3 });
+  assert.deepEqual(normalizarCarrossel(), { segundos: 6, por_vez: 1 });
+});

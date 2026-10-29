@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
-import { ACOES_BANNER, LIMITES, gerarId } from "../../../lib/cardapio-digital.mjs";
+import { ACOES_BANNER, LIMITES, LIMITES_CARROSSEL, gerarId, normalizarCarrossel } from "../../../lib/cardapio-digital.mjs";
 import { Aviso, Botao, Campo, Envio, Secao, inputCls, mover } from "./ui";
 
 export default function Abertura({ config, mudar, unidadeId, opcoes }) {
@@ -10,8 +10,29 @@ export default function Abertura({ config, mudar, unidadeId, opcoes }) {
   const editar = (id, campos) => setLista((l) => l.map((b) => (b.id === id ? { ...b, ...campos } : b)));
   const alvos = { categoria: opcoes.categorias, promocao: opcoes.promocoes, produto: opcoes.produtos };
 
+  const car = normalizarCarrossel(config.carrossel);
+  const mudarCar = (campos) => mudar((c) => ({ ...c, carrossel: { ...normalizarCarrossel(c.carrossel), ...campos } }));
+
   return (
     <div className="space-y-4">
+      <Secao titulo="Como os banners passam" subtitulo="Vale para o delivery e para a mesa. No celular passa um de cada vez; no tablet, quantos você escolher.">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Campo rotulo={`Tempo em cada banner: ${car.segundos} segundos`} dica="Vídeo passa quando termina, se estiver sozinho na tela.">
+            <input type="range" min={LIMITES_CARROSSEL.segundosMin} max={LIMITES_CARROSSEL.segundosMax} step={1} value={car.segundos}
+              onChange={(e) => mudarCar({ segundos: Number(e.target.value) })} className="w-full accent-hf-accent" aria-label="Segundos em cada banner" />
+          </Campo>
+          <Campo rotulo="Quantos aparecem juntos (tablet)">
+            <span className="flex gap-2">
+              {[1, 2, 3].map((n) => (
+                <button key={n} type="button" onClick={() => mudarCar({ por_vez: n })} aria-pressed={car.por_vez === n}
+                  className={`min-h-[44px] flex-1 rounded-xl border text-sm font-bold transition ${car.por_vez === n ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border text-hf-text hover:border-hf-border-strong"}`}>
+                  {n}
+                </button>
+              ))}
+            </span>
+          </Campo>
+        </div>
+      </Secao>
       <Secao titulo="Abertura do cardápio" subtitulo="Fotos e vídeos que passam no topo. Cada um pode levar o cliente a uma seção, a uma promoção ou a um prato."
         direita={<span className="text-xs font-semibold text-hf-muted">{lista.length} de {LIMITES.banner}</span>}>
         {!lista.length ? <Aviso>Sem fotos ou vídeos, o cardápio abre com a capa (em Aparência) ou só com o nome da casa.</Aviso> : null}

@@ -5,7 +5,7 @@ import s from "./ui.module.css";
 // `video` põe a etiqueta "vídeo" no canto (o vídeo que toca no quadro vem com
 // a tela do cardápio). `escura` = fundo cinza escuro para foto grande.
 export default function FotoPrato({
-  src, alt = "", largura, altura, raio = 10, escura = false, video = false, etiquetaPequena = false, zoomLento = false,
+  src, alt = "", largura, altura, raio = "var(--cd-raio-foto)", escura = false, video = false, etiquetaPequena = false, zoomLento = false,
   className = "", style, children,
 }) {
   return (

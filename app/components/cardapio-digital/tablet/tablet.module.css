@@ -3,7 +3,7 @@
 .casca {
   display: flex;
   min-height: 100vh;
-  background: var(--cd-branco);
+  background: var(--cd-pagina);
   color: var(--cd-texto);
 }
 .lateral {
@@ -142,7 +142,7 @@
   padding: 0 12px;
   border-radius: var(--cd-raio-m);
   border: 1px solid var(--cd-borda);
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   color: var(--cd-texto);
   font: inherit;
   font-size: 14px;
@@ -174,7 +174,7 @@
   padding: 0 14px;
   border-radius: var(--cd-raio-m);
   border: 1px solid var(--cd-borda);
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -198,7 +198,7 @@
   padding: 0 14px;
   border-radius: var(--cd-raio-m);
   border: 1px solid var(--cd-borda);
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   color: var(--cd-texto);
   font: inherit;
   font-size: 14px;
@@ -224,7 +224,7 @@
   padding: 8px;
   border-radius: var(--cd-raio-m);
   border: 1px solid var(--cd-borda-card);
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   box-shadow: var(--cd-sombra-flutuante);
   display: flex;
   flex-direction: column;
@@ -355,7 +355,7 @@
 .pratoQtd {
   font-size: 12px;
   font-weight: 700;
-  color: var(--cd-ok-texto);
+  color: var(--cd-ok-texto-legivel);
 }
 .vazio {
   padding: 24px;
@@ -382,7 +382,7 @@
   padding: 14px 16px;
   border-radius: var(--cd-raio-g);
   border: 1px solid var(--cd-borda-card);
-  background: var(--cd-branco);
+  background: var(--cd-superficie);
   color: var(--cd-texto);
   font: inherit;
   text-align: left;
@@ -428,11 +428,11 @@
 }
 .acompanhaTextoPronto {
   white-space: nowrap;
-  color: var(--cd-estado-pronto);
+  color: var(--cd-estado-pronto-legivel);
 }
 .acompanhaTextoPreparo {
   white-space: nowrap;
-  color: var(--cd-estado-preparo);
+  color: var(--cd-estado-preparo-legivel);
 }
 .acompanhaNota {
   font-size: 11px;

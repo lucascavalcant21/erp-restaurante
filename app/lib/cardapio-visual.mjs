@@ -170,8 +170,76 @@ export function variaveisCss(cor) {
   for (const [k, v] of Object.entries({ ...NEUTROS, ...p })) vars[`--cd-${kebab(k)}`] = v;
   for (const [k, v] of Object.entries(SOMBRAS)) vars[`--cd-sombra-${kebab(k)}`] = v;
   for (const [k, v] of Object.entries(RAIOS)) vars[`--cd-raio-${k}`] = v;
+  vars["--cd-pagina"] = BRANCO;
+  vars["--cd-superficie"] = BRANCO;
+  vars["--cd-texto-fixo"] = NEUTROS.texto;
+  vars["--cd-raio-foto"] = RAIOS.p;
+  // Cores de destaque usadas como TEXTO direto no fundo/cartão (a loja pode mudar o fundo).
+  for (const [k, v] of Object.entries(destaquesDeTexto(p.principal))) vars[`--cd-${k}-legivel`] = v;
   vars["--cd-sombra-principal"] = `0 1px 2px ${rgba(p.principalEscura, ".28")}, 0 6px 14px ${rgba(p.principal, ".22")}, inset 0 1px 0 rgba(255,255,255,.14)`;
   vars["--cd-sombra-banner"] = `0 1px 2px ${rgba(p.degradeFim, ".2")}, 0 12px 28px ${rgba(p.degradeFim, ".28")}`;
+  return vars;
+}
+
+// ─── Cores e formato escolhidos pelo dono (Aparência) ──────────────────────
+
+const PRETO = "#000000";
+const destaquesDeTexto = (principal) => ({
+  principal, "ok-texto": NEUTROS.okTexto, "estado-pronto": NEUTROS.estadoPronto, "estado-preparo": NEUTROS.estadoPreparo,
+  aberto: NEUTROS.aberto, "alerta-texto": NEUTROS.alertaTexto, "pimenta-texto": NEUTROS.pimentaTexto,
+});
+/** A cor de texto mais perto da original que ainda passa 4,5:1 no fundo (clareia no escuro, escurece no claro). */
+function legivelEm(cor, fundo) {
+  if (contraste(cor, fundo) >= CONTRASTE_MINIMO) return cor;
+  const alvo = contraste(BRANCO, fundo) >= contraste(PRETO, fundo) ? BRANCO : PRETO;
+  let c = cor;
+  for (let t = 0.1; contraste(c, fundo) < CONTRASTE_MINIMO && t <= 1.001; t += 0.1) c = misturar(cor, alvo, Math.min(1, t));
+  return c;
+}
+
+/**
+ * Variáveis do fundo, dos cartões e do formato das fotos da loja. O texto
+ * (e os tons de texto secundário, bordas e fundos de apoio) se ajustam ao
+ * fundo para nunca ficar ilegível (9L): fundo escuro → texto claro.
+ * `tema` = normalizarTema (cor_fundo, cor_cartao, cor_texto, formato_foto).
+ */
+export function variaveisDaLoja(tema = {}) {
+  const fundo = limparCor(tema.cor_fundo, BRANCO);
+  const cartao = limparCor(tema.cor_cartao, BRANCO);
+  const vars = {
+    "--cd-pagina": fundo,
+    "--cd-superficie": cartao,
+    "--cd-raio-foto": tema.formato_foto === "quadrada" ? "0px" : RAIOS.p,
+  };
+  const padrao = fundo.toUpperCase() === BRANCO && cartao.toUpperCase() === BRANCO;
+  if (padrao) return vars;
+  // O texto tem de valer no fundo e no cartão (normalizarTema já garante o principal).
+  const piorFundo = contraste(NEUTROS.texto, fundo) < contraste(NEUTROS.texto, cartao) ? fundo : cartao;
+  const escuro = contraste(BRANCO, piorFundo) > contraste(PRETO, piorFundo);
+  const texto = limparCor(tema.cor_texto, escuro ? BRANCO : NEUTROS.texto);
+  const tom = (k) => legivelEm(misturar(texto, piorFundo, k), piorFundo);
+  const principal = variacoesDaPrincipal(tema.cor_primaria).principal;
+  for (const [k, v] of Object.entries(destaquesDeTexto(principal))) vars[`--cd-${k}-legivel`] = legivelEm(v, piorFundo);
+  Object.assign(vars, {
+    "--cd-texto": legivelEm(texto, piorFundo),
+    "--cd-texto-forte": tom(0.12),
+    "--cd-texto-medio": tom(0.2),
+    "--cd-texto-secundario": tom(0.3),
+    "--cd-texto-suave": tom(0.38),
+    "--cd-riscado": tom(0.4),
+  });
+  if (escuro) {
+    Object.assign(vars, {
+      "--cd-borda": misturar(texto, piorFundo, 0.78),
+      "--cd-borda-card": misturar(texto, piorFundo, 0.84),
+      "--cd-borda-forte": misturar(texto, piorFundo, 0.7),
+      "--cd-divisoria": misturar(texto, piorFundo, 0.82),
+      "--cd-fundo-cinza": misturar(texto, piorFundo, 0.9),
+      "--cd-fundo-lateral": misturar(texto, fundo, 0.94),
+      "--cd-fundo-segmentado": misturar(texto, piorFundo, 0.88),
+      "--cd-foto-vazia": misturar(texto, piorFundo, 0.75),
+    });
+  }
   return vars;
 }
 

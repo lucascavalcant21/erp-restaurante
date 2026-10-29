@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TemaCardapio } from "../../../components/cardapio-digital/ui";
 import TabletInicio from "../../../components/cardapio-digital/tablet/TabletInicio";
 
@@ -35,8 +35,11 @@ const CARDAPIO = {
 export default function VitrineTablet() {
   const [busca, setBusca] = useState("");
   const [selos, setSelos] = useState([]);
+  // ?escuro=1: tema escuro com fotos quadradas (a aparência que o dono escolhe).
+  const [loja, setLoja] = useState(null);
+  useEffect(() => { if (new URLSearchParams(window.location.search).get("escuro") === "1") setLoja({ cor_fundo: "#121212", cor_cartao: "#1E1E1E", cor_texto: "#F5F5F5", formato_foto: "quadrada" }); }, []);
   return (
-    <TemaCardapio cor="#14532D">
+    <TemaCardapio cor="#14532D" loja={loja}>
       <TabletInicio cardapio={CARDAPIO} mesa="12" secaoAtiva="grelhados" busca={busca} onBusca={setBusca} selos={selos} onSelos={setSelos}
         onAbrirPrato={() => {}} onAdicionar={() => {}} onIrSecao={() => {}} onChamar={() => {}} onRecomendar={() => {}} temRecomendar temIdiomas
         acompanhamento={{ etapa: "Em preparação", pronto: false, hora: "20:14", itens: "Picanha na brasa, Chope em dobro" }} onAbrirPedidos={() => {}}

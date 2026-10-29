@@ -39,6 +39,14 @@ export const FONTES = [
   { id: "moderna", rotulo: "Moderna", detalhe: "Tudo sem serifa, direto" },
 ];
 
+// Formato das fotos dos pratos (Aparência): o dono escolhe.
+export const FORMATOS_FOTO = [
+  { id: "arredondada", rotulo: "Arredondadas" },
+  { id: "quadrada", rotulo: "Quadradas" },
+];
+// Carrossel de banners (Abertura): segundos em cada banner e quantos aparecem juntos.
+export const LIMITES_CARROSSEL = Object.freeze({ segundosMin: 2, segundosMax: 20, porVezMax: 3 });
+
 export const ESTILOS_LISTA = [
   { id: "lista", rotulo: "Lista", detalhe: "Como um menu impresso; foto pequena ao lado" },
   { id: "cartoes", rotulo: "Cartões", detalhe: "Foto grande em cima de cada prato" },
@@ -98,7 +106,7 @@ export function canalDoPedido(tipo) {
 // Combinações prontas para o dono começar. Ele pode trocar cada cor depois.
 export const TEMAS_PRONTOS = [
   // Padrão do cardápio novo (9L): verde-escuro e neutros só em cinza, nada de marrom.
-  { id: "casa", nome: "Casa", tema: { cor_primaria: "#14532d", cor_fundo: "#f4f4f4", cor_texto: "#1a1a1a", cor_cartao: "#ffffff" } },
+  { id: "casa", nome: "Casa", tema: { cor_primaria: "#14532d", cor_fundo: "#ffffff", cor_texto: "#1a1a1a", cor_cartao: "#ffffff" } },
   { id: "mata", nome: "Mata", tema: { cor_primaria: "#2f5d3a", cor_fundo: "#f1f3ec", cor_texto: "#1b241d", cor_cartao: "#fcfdf9" } },
   { id: "rio", nome: "Rio", tema: { cor_primaria: "#1f4e6b", cor_fundo: "#eef3f5", cor_texto: "#16232b", cor_cartao: "#fbfdfe" } },
   { id: "papel", nome: "Papel", tema: { cor_primaria: "#1c1917", cor_fundo: "#fafaf9", cor_texto: "#1c1917", cor_cartao: "#ffffff" } },
@@ -115,6 +123,7 @@ export const CONFIG_PADRAO = Object.freeze({
     logo_url: "",
     fonte: "classica",
     estilo_lista: "lista",
+    formato_foto: "arredondada",
   }),
   textos: Object.freeze({
     apresentacao: "",
@@ -131,6 +140,7 @@ export const CONFIG_PADRAO = Object.freeze({
     intro: "Posso te ajudar a escolher?",
   }),
   banner: Object.freeze([]),
+  carrossel: Object.freeze({ segundos: 6, por_vez: 1 }),
   categorias: Object.freeze([]),
   itens: Object.freeze({}),
   promocoes: Object.freeze([]),
@@ -283,6 +293,7 @@ export function normalizarTema(t = {}) {
     logo_url: limparUrl(t.logo_url),
     fonte: FONTES.some((f) => f.id === t.fonte) ? t.fonte : p.fonte,
     estilo_lista: ESTILOS_LISTA.some((e) => e.id === t.estilo_lista) ? t.estilo_lista : p.estilo_lista,
+    formato_foto: FORMATOS_FOTO.some((f) => f.id === t.formato_foto) ? t.formato_foto : p.formato_foto,
   };
 }
 
@@ -574,6 +585,17 @@ export function linhasDoCombo(combo, quantidade = 1) {
 }
 
 /** Banner de abertura: fotos e vídeos, cada um com um toque que leva a algum lugar. */
+/** Velocidade (segundos em cada banner) e quantos aparecem juntos no carrossel. */
+export function normalizarCarrossel(v = {}) {
+  const L = LIMITES_CARROSSEL;
+  const seg = Math.round(Number(v?.segundos));
+  const por = Math.round(Number(v?.por_vez));
+  return {
+    segundos: Number.isFinite(seg) ? Math.min(L.segundosMax, Math.max(L.segundosMin, seg)) : 6,
+    por_vez: Number.isFinite(por) ? Math.min(L.porVezMax, Math.max(1, por)) : 1,
+  };
+}
+
 export function normalizarBanner(lista) {
   const usados = new Set();
   const r = [];
@@ -719,6 +741,7 @@ export function normalizarConfigCardapio(raw) {
     textos: normalizarTextos(c.textos),
     conversa: normalizarConversa(c.conversa),
     banner: normalizarBanner(c.banner),
+    carrossel: normalizarCarrossel(c.carrossel),
     categorias: normalizarCategorias(c.categorias),
     itens: normalizarItens(c.itens),
     promocoes: normalizarPromocoes(c.promocoes),
@@ -1244,6 +1267,7 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
     textos: cfg.textos,
     conversa: cfg.conversa,
     banner,
+    carrossel: cfg.carrossel,
     filtros: filtrosDisponiveis(lista),
     categorias: saidaCategorias,
     // Combos entram como itens (a página e o carrinho tratam igual); preco_base e ordem são internos.

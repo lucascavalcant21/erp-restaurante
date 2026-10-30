@@ -19,4 +19,20 @@ export function mascaraCpf(v) {
   return [d.slice(0, 3), d.slice(3, 6), d.slice(6, 9)].filter(Boolean).join(".") + (d.length > 9 ? `-${d.slice(9)}` : "");
 }
 
+/** Campos do cadastro que faltam (tablet e celular; o servidor confere de novo). Só "promoções no WhatsApp" é opcional (LGPD). */
+export function camposFaltando(form) {
+  const f = form || {};
+  const tel = String(f.telefone ?? "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+  return [
+    String(f.nome ?? "").trim().split(/\s+/).filter(Boolean).length < 2 && "nome",
+    !cpfValido(f.cpf) && "cpf",
+    !f.aniversario && "aniversario",
+    !f.uf && "uf",
+    !String(f.cidade ?? "").trim() && "cidade",
+    !String(f.bairro ?? "").trim() && "bairro",
+    !/^\d{10,11}$/.test(tel) && "telefone",
+    !f.aceite && "aceite",
+  ].filter(Boolean);
+}
+
 export const UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"];

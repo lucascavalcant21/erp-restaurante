@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cpfValido, mascaraCpf, UFS } from "../../../lib/cpf.mjs";
+import { camposFaltando, cpfValido, mascaraCpf, UFS } from "../../../lib/cpf.mjs";
 import { textoDelivery } from "../../../lib/cardapio-textos-delivery.mjs";
 import { Botao, Icone, PalavraDesconto } from "../ui";
 import { Aneis } from "../delivery/DeliveryFidelidade";
@@ -80,11 +80,7 @@ export default function TabletEntrar({
   };
   const tecla = (k) => setCpf((c) => (k === "limpar" ? "" : k === "apagar" ? c.slice(0, -1) : (c + k).slice(0, 11)));
   // Cadastro: todos os campos são obrigatórios (o servidor confere de novo). Só "promoções no WhatsApp" é opcional (LGPD).
-  const faltando = [
-    form.nome.trim().split(/s+/).filter(Boolean).length < 2 && "nome", !cpfValido(form.cpf) && "cpf", !form.aniversario && "aniversario",
-    !form.uf && "uf", !form.cidade.trim() && "cidade", !form.bairro.trim() && "bairro",
-    !/^d{10,11}$/.test(form.telefone.replace(/D/g, "").replace(/^55(?=d{10,11}$)/, "")) && "telefone", !form.aceite && "aceite",
-  ].filter(Boolean);
+  const faltando = camposFaltando(form);
   const [tentouCadastro, setTentouCadastro] = useState(false);
   const muda = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
   const campo = (nome) => `${s.entrada} ${campoErro === nome || (tentouCadastro && faltando.includes(nome)) ? s.entradaErro : ""}`;

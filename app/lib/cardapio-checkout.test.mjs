@@ -68,3 +68,14 @@ test("CPF: dígitos verificadores, máscara e pedido com CPF", async () => {
   const ruim = validarPedidoPublico({ unidade: "loja", cliente: { tipo: "qrcode", nome: "Ana", mesa: "12", cpf: "123" }, itens: [{ id: "p1", quantidade: 1 }] });
   assert.equal(ruim.ok, false);
 });
+
+test("cadastro pelo CPF: nome com sobrenome e WhatsApp com DDD passam; falta o resto", async () => {
+  const { camposFaltando } = await import("./cpf.mjs");
+  const cheio = { nome: "Ana Souza", cpf: "52998224725", aniversario: "1990-05-01", uf: "PA", cidade: "Belém", bairro: "Umarizal", telefone: "(91) 98888-7777", aceite: true, novidades: false };
+  assert.deepEqual(camposFaltando(cheio), []);
+  assert.deepEqual(camposFaltando({ ...cheio, telefone: "+55 91 98888-7777" }), []);
+  assert.deepEqual(camposFaltando({ ...cheio, nome: "Ana" }), ["nome"]);
+  assert.deepEqual(camposFaltando({ ...cheio, telefone: "98888" }), ["telefone"]);
+  assert.deepEqual(camposFaltando({ ...cheio, aceite: false, bairro: " " }), ["bairro", "aceite"]);
+  assert.equal(camposFaltando({}).length, 8);
+});

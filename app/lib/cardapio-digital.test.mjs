@@ -375,3 +375,13 @@ test("adicionais ganham seção própria depois das comidas; o dono ainda pode m
   assert.ok(c2.categorias.find((x) => x.id === "cat-pratos-principais").produto_ids.includes("ad1"));
   assert.deepEqual(c2.categorias.find((x) => x.id === "cat-adicionais").produto_ids, ["ad2"]);
 });
+
+test("Wi-Fi dos clientes: QR no padrão WIFI, com escape; sem rede não aparece", async () => {
+  const { normalizarWifi, textoQrWifi, normalizarConfigCardapio } = await import("./cardapio-digital.mjs");
+  assert.equal(textoQrWifi({ rede: "Casa Brasa", senha: "brasa2026" }), "WIFI:T:WPA;S:Casa Brasa;P:brasa2026;;");
+  assert.equal(textoQrWifi({ rede: "a;b", senha: 'x:"y' }), String.raw`WIFI:T:WPA;S:a\;b;P:x\:\"y;;`);
+  assert.equal(textoQrWifi({ rede: "Aberta" }), "WIFI:T:nopass;S:Aberta;;");
+  assert.equal(textoQrWifi({ rede: "  ", senha: "x" }), "");
+  assert.deepEqual(normalizarWifi({ senha: "so senha" }), { rede: "", senha: "" });
+  assert.deepEqual(normalizarConfigCardapio({}).wifi, { rede: "", senha: "" });
+});

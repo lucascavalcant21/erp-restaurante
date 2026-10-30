@@ -11,7 +11,7 @@ import s from "./tablet.module.css";
 // a casa, a mesa, as categorias e as ações (chamar garçom, idioma), e à
 // direita busca, filtro, convite de cadastro, banners, "Agora na casa" e os
 // pratos em duas colunas. Só desenho: estado, carrinho e folhas continuam no
-// CardapioDigital. Degustação, Nossa história e Wi-Fi entram nas etapas deles.
+// CardapioDigital. Degustação e Nossa história entram nas etapas delas.
 
 function CardPrato({ produto, qtd, onAbrir, onAdicionar, podePedir, idioma, T }) {
   const promo = produto.preco_original && produto.preco_original > produto.preco;
@@ -43,7 +43,7 @@ export default function TabletInicio({
   cardapio, idioma = "pt", mesa = "", carrinho = [], totalSacola = 0, offline = "",
   secaoAtiva, busca = "", onBusca, resultados = [], filtrando = false, selos = [], onSelos,
   onAbrirPrato, onAdicionar, onIrSecao, onAbrirSacola, onAbrirIdiomas, temIdiomas, onChamar, onRecomendar, temRecomendar,
-  acompanhamento = null, onAbrirPedidos, linkCadastro, visitante = true, podePedir = true, banners = null, onConvite,
+  acompanhamento = null, onAbrirPedidos, linkCadastro, visitante = true, podePedir = true, banners = null, onConvite, onWifi,
 }) {
   const T = (k, v) => textoDelivery(idioma, k, v);
   const { unidade, tema } = cardapio;
@@ -87,9 +87,10 @@ export default function TabletInicio({
         </nav>
         <div className={s.lateralPe}>
           {mesa && onChamar ? <button type="button" className={s.acaoLateral} onClick={onChamar}><Icone nome="sino" tamanho={18} />{T("chamar_garcom")}</button> : null}
-          {temIdiomas ? (
+          {temIdiomas || onWifi ? (
             <div className={s.acoesPequenas}>
-              <button type="button" className={s.acaoLateral} onClick={onAbrirIdiomas} aria-label="Idioma · Language"><Icone nome="globo" tamanho={18} />{T("idioma_botao")}</button>
+              {temIdiomas ? <button type="button" className={s.acaoLateral} onClick={onAbrirIdiomas} aria-label="Idioma · Language"><Icone nome="globo" tamanho={18} />{T("idioma_botao")}</button> : null}
+              {onWifi ? <button type="button" className={s.acaoLateral} onClick={onWifi}><Icone nome="wifi" tamanho={18} />Wi-Fi</button> : null}
             </div>
           ) : null}
         </div>

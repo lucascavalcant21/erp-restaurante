@@ -141,6 +141,7 @@ export const CONFIG_PADRAO = Object.freeze({
   }),
   banner: Object.freeze([]),
   carrossel: Object.freeze({ segundos: 6, por_vez: 1 }),
+  wifi: Object.freeze({ rede: "", senha: "" }),
   categorias: Object.freeze([]),
   itens: Object.freeze({}),
   promocoes: Object.freeze([]),
@@ -596,6 +597,20 @@ export function normalizarCarrossel(v = {}) {
   };
 }
 
+/** Wi-Fi dos clientes (9J): rede e senha que o tablet mostra. Sem senha = rede aberta. */
+export function normalizarWifi(v = {}) {
+  const rede = String(v?.rede ?? "").trim().slice(0, 32);
+  return { rede, senha: rede ? String(v?.senha ?? "").slice(0, 63) : "" };
+}
+
+/** Texto do QR do Wi-Fi: WIFI:T:WPA;S:<rede>;P:<senha>;; (\ ; , : " escapados). "" sem rede. */
+export function textoQrWifi(wifi) {
+  const { rede, senha } = normalizarWifi(wifi);
+  if (!rede) return "";
+  const esc = (t) => t.replace(/([\\;,:"])/g, "\\$1");
+  return senha ? `WIFI:T:WPA;S:${esc(rede)};P:${esc(senha)};;` : `WIFI:T:nopass;S:${esc(rede)};;`;
+}
+
 export function normalizarBanner(lista) {
   const usados = new Set();
   const r = [];
@@ -742,6 +757,7 @@ export function normalizarConfigCardapio(raw) {
     conversa: normalizarConversa(c.conversa),
     banner: normalizarBanner(c.banner),
     carrossel: normalizarCarrossel(c.carrossel),
+    wifi: normalizarWifi(c.wifi),
     categorias: normalizarCategorias(c.categorias),
     itens: normalizarItens(c.itens),
     promocoes: normalizarPromocoes(c.promocoes),
@@ -1313,6 +1329,7 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
     conversa: cfg.conversa,
     banner,
     carrossel: cfg.carrossel,
+    wifi: cfg.wifi.rede ? cfg.wifi : null,
     filtros: filtrosDisponiveis(lista),
     categorias: saidaCategorias,
     // Combos entram como itens (a página e o carrinho tratam igual); preco_base e ordem são internos.

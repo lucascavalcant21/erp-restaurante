@@ -6,6 +6,8 @@ import TabletInicio from "../../../components/cardapio-digital/tablet/TabletInic
 import TabletDetalhe from "../../../components/cardapio-digital/tablet/TabletDetalhe";
 import TabletCarrinho, { TabletEnviado } from "../../../components/cardapio-digital/tablet/TabletCarrinho";
 import TabletEntrar from "../../../components/cardapio-digital/tablet/TabletEntrar";
+import TabletIdioma from "../../../components/cardapio-digital/tablet/TabletIdioma";
+import TabletWifi from "../../../components/cardapio-digital/tablet/TabletWifi";
 import QREntrar from "../../../components/cardapio-digital/tablet/QREntrar";
 
 // Tela principal do tablet com os dados de exemplo do protótipo Main (Casa
@@ -41,6 +43,7 @@ const CARDAPIO = {
     { id: "pudim", nome: "Pudim de leite", preco: 18, selos: [], categoria_id: "sobremesas" },
   ],
   promocoes: [],
+  wifi: { rede: "CasaBrasa-Clientes", senha: "brasa2026" },
   filtros: [{ id: "sem_gluten", rotulo: "Sem glúten", total: 1 }, { id: "sem_lactose", rotulo: "Sem lactose", total: 1 }],
   fidelidade: { cadastro: { desconto_pct: 10, aplica: "sempre" }, cashback: { percentual: 2 }, cartoes: [] },
 };
@@ -68,11 +71,13 @@ export default function VitrineTablet() {
       {tela === "enviado" ? <TabletEnviado cardapio={{ ...CARDAPIO, fidelidade: { cadastro: { desconto_pct: 10 }, cashback: { pontos_por_real: 1, valor_100: 2 } } }} mesa="12" nome="Ana" resultado={{ total: 141, desconto: 15.67 }} segundos={600} onVoltar={() => {}} /> : null}
       {tela === "entrar" || tela === "cadastro" ? <TabletEntrar cardapio={{ ...CARDAPIO, fidelidade: { cadastro: { desconto_pct: 10 }, cashback: { pontos_por_real: 1, valor_100: 2 } } }} mesa="12" unidadeId="vitrine" comecarCadastro={tela === "cadastro"} onFechar={() => {}} onIdioma={() => {}} onEntrou={() => {}} /> : null}
       {tela === "qr" || tela === "qrcadastro" ? <QREntrar cardapio={{ ...CARDAPIO, fidelidade: { cadastro: { desconto_pct: 10 }, cashback: { pontos_por_real: 1, valor_100: 2 } } }} mesa="12" unidadeId="vitrine" comecarCadastro={tela === "qrcadastro"} onFechar={() => {}} onIdioma={() => {}} onEntrou={() => {}} /> : null}
+      {tela === "idioma" ? <TabletIdioma idioma="pt" onEscolher={() => {}} onFechar={() => {}} /> : null}
+      {tela === "wifi" ? <TabletWifi wifi={CARDAPIO.wifi} onFechar={() => {}} /> : null}
       {prato ? <TabletDetalhe cardapio={CARDAPIO} produto={CARDAPIO.produtos.find((p) => p.id === prato)} mesa="12" onFechar={() => setPrato("")} onAdicionar={() => {}} /> : null}
       <TabletInicio cardapio={CARDAPIO} mesa="12" secaoAtiva="grelhados" busca={busca} onBusca={setBusca} selos={selos} onSelos={setSelos}
         onAbrirPrato={() => {}} onAdicionar={() => {}} onIrSecao={() => {}} onChamar={() => {}} onRecomendar={() => {}} temRecomendar temIdiomas
         acompanhamento={{ etapa: "Em preparação", pronto: false, hora: "20:14", itens: "Picanha na brasa, Chope em dobro" }} onAbrirPedidos={() => {}}
-        linkCadastro="#" carrinho={[{ id: "picanha", quantidade: 1 }]} totalSacola={89.9} />
+        linkCadastro="#" onWifi={() => {}} carrinho={[{ id: "picanha", quantidade: 1 }]} totalSacola={89.9} />
     </TemaCardapio>
   );
 }

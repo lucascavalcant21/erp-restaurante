@@ -1,0 +1,257 @@
+/* Janelas do tablet: idioma (TabletIdioma) e Wi-Fi (TabletWifi). Só variáveis --cd-*. */
+.fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  padding: 24px;
+  background: rgba(26, 26, 26, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: aparece 0.2s ease-out both;
+}
+@keyframes aparece {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.janela {
+  position: relative;
+  box-sizing: border-box;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  border-radius: 24px;
+  background: var(--cd-superficie);
+  color: var(--cd-texto);
+  box-shadow: var(--cd-sombra-flutuante);
+  animation: sobe 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes sobe {
+  0% { transform: translateY(16px) scale(0.98); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Idioma */
+.janelaIdioma {
+  width: 760px;
+  padding: 30px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.cabeca {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.cabecaTitulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.titulo {
+  margin: 0;
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+}
+.idiomas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.idioma {
+  box-sizing: border-box;
+  min-height: 68px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid var(--cd-borda);
+  background: var(--cd-superficie);
+  color: var(--cd-texto);
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.idiomaSel {
+  border: 2px solid var(--cd-principal-legivel);
+  background: var(--cd-principal-clara);
+  color: var(--cd-texto-fixo);
+}
+.sigla {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--cd-fundo-segmentado);
+  color: var(--cd-texto);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+.idiomaSel .sigla {
+  background: var(--cd-principal);
+  color: var(--cd-branco);
+}
+.idiomaTextos {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.idiomaNome {
+  font-size: 18px;
+  font-weight: 600;
+}
+.idiomaPt {
+  font-size: 12px;
+  color: var(--cd-texto-secundario);
+}
+.idiomaSel .idiomaPt {
+  color: var(--cd-texto-fixo);
+  opacity: 0.75;
+}
+.idiomaCheck {
+  color: var(--cd-principal);
+  flex-shrink: 0;
+}
+.nota {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cd-texto-secundario);
+}
+.pe {
+  display: flex;
+  gap: 12px;
+}
+.cancelar {
+  height: 56px;
+  padding: 0 24px;
+  border-radius: 14px;
+  border: 1px solid var(--cd-borda);
+  background: var(--cd-superficie);
+  color: var(--cd-texto);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: var(--cd-sombra-secundario);
+  cursor: pointer;
+}
+.confirmar {
+  flex-grow: 1;
+}
+
+/* Wi-Fi */
+.janelaWifi {
+  width: 860px;
+  padding: 32px 36px;
+  display: flex;
+  align-items: center;
+  gap: 36px;
+}
+.fecharCanto {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+}
+.qr {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--cd-borda);
+  background: var(--cd-branco);
+  color: var(--cd-texto-fixo);
+  box-shadow: var(--cd-sombra-card);
+  display: flex;
+}
+.qr svg {
+  width: 304px;
+  height: 304px;
+}
+.wifiTextos {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.wifiIcone {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--cd-principal-clara);
+  color: var(--cd-principal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wifiTitulo {
+  margin: 0;
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+}
+.wifiComo {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--cd-texto-medio);
+}
+.credenciais {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--cd-borda);
+  background: var(--cd-fundo-segmentado);
+  color: var(--cd-texto);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+  word-break: break-all;
+}
+.credRotulo {
+  color: var(--cd-texto-secundario);
+}
+/* Celular (idioma aberto pelo QR da mesa): uma coluna. */
+@media (max-width: 600px) {
+  .fundo {
+    padding: 12px;
+  }
+  .janelaIdioma {
+    padding: 20px 16px;
+  }
+  .titulo {
+    font-size: 21px;
+  }
+  .idiomas {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .idioma {
+    min-height: 58px;
+  }
+}
+@media (max-width: 820px) {
+  .janelaWifi {
+    flex-direction: column;
+    text-align: center;
+  }
+  .wifiTextos {
+    align-items: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fundo,
+  .janela {
+    animation: none;
+  }
+}

@@ -151,8 +151,13 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  white-space: nowrap;
   box-shadow: var(--cd-sombra-secundario);
   cursor: pointer;
+}
+.acoesPequenas .acaoLateral {
+  padding: 0 8px;
+  gap: 6px;
 }
 .conteudo {
   flex-grow: 1;

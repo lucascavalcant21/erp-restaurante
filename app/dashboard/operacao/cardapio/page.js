@@ -213,7 +213,7 @@ export default function CardapioEditorPage() {
                 <Fidelidade fidelidade={fidelidade} setFidelidade={mudarFidelidade} produtos={cardapio?.produtos || []}
                   livroFidelidade={dados.livroFidelidade} unidadeId={unidadeAtiva} nomeLoja={dados.unidade.nome} />
               ) : null}
-              {aba === "qr" ? <QrCodes unidadeId={unidadeAtiva} nomeLoja={dados.unidade.nome} mesasDoBanco={dados.mesas} /> : null}
+              {aba === "qr" ? <QrCodes unidadeId={unidadeAtiva} nomeLoja={dados.unidade.nome} mesasDoBanco={dados.mesas} config={config} mudar={mudar} /> : null}
             </div>
             <aside className="hidden xl:block">
               <div className="sticky top-24">

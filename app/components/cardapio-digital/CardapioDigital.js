@@ -39,6 +39,8 @@ import TabletInicio from "./tablet/TabletInicio";
 import TabletDetalhe from "./tablet/TabletDetalhe";
 import TabletCarrinho, { TabletEnviado } from "./tablet/TabletCarrinho";
 import TabletEntrar from "./tablet/TabletEntrar";
+import TabletIdioma from "./tablet/TabletIdioma";
+import TabletWifi from "./tablet/TabletWifi";
 import QREntrar from "./tablet/QREntrar";
 import { textoDelivery } from "../../lib/cardapio-textos-delivery.mjs";
 import { Escolhas, TemaCardapio } from "./ui";
@@ -668,6 +670,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     if (qrNovo) fecharQr(); else setEntrarAberto("");
     setAviso({ texto: textoDelivery(lingua, "bem_vindo_nome", { nome: c.nome || "" }) });
   };
+  const qrAberto = Boolean(qrNovo && cardapio.fidelidade && !clienteMesa && !previa && (entrarAberto || !qrDispensado));
   const acompanhamento = tabletNovo && emCurso ? {
     etapa: rotuloEtapa(emCurso), pronto: emCurso.etapa === "pronto", hora: emCurso.criado_em ? hora(emCurso.criado_em) : "",
     itens: (emCurso.itens || []).map((i) => porId.get(i.produto_id)?.nome).filter(Boolean).join(", "),
@@ -702,7 +705,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             onChamar={() => setFolha("atendimento")} onRecomendar={() => abrirConversa()} temRecomendar={conversaLigada}
             acompanhamento={acompanhamento} onAbrirPedidos={() => setFolha("pedidos")}
             linkCadastro={caminhoDoCadastro(unidadeId)} visitante={!cadastroLocal && !fidStatus?.identificado && !clienteMesa} podePedir={podePedir}
-            onConvite={() => setEntrarAberto("cpf")}
+            onConvite={() => setEntrarAberto("cpf")} onWifi={cardapio.wifi?.rede ? () => setFolha("wifi") : undefined}
             banners={slides.length ? <div className={s.capa} style={{ height: "100%" }}><Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} segundos={cardapio.carrossel?.segundos} porVez={cardapio.carrossel?.por_vez} /></div> : null}
           />
           {entrarAberto ? (
@@ -1002,7 +1005,15 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         </Folha>
       ) : null}
 
-      {folha === "idiomas" ? (
+      {folha === "idiomas" && (tabletNovo || qrAberto) ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <TabletIdioma idioma={lingua} oferecidos={idiomasOferecidos.map((i) => i.id)} onEscolher={escolherIdioma} onFechar={() => setFolha("")} />
+        </TemaCardapio>
+      ) : folha === "wifi" && tabletNovo ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <TabletWifi wifi={cardapio.wifi} idioma={lingua} onFechar={() => setFolha("")} />
+        </TemaCardapio>
+      ) : folha === "idiomas" ? (
         <Folha titulo={T("idioma")} onFechar={() => setFolha("")} idioma={lingua}>
           <ul className={s.idiomaLista}>
             {idiomasOferecidos.map((i) => (
@@ -1085,7 +1096,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           onIrParaSecao={irParaSecao} consultaInicial={consultaConversa} />
       ) : null}
 
-      {qrNovo && cardapio.fidelidade && !clienteMesa && !previa && (entrarAberto || !qrDispensado) ? (
+      {qrAberto ? (
         <TemaCardapio cor={tema.cor_primaria} loja={tema}>
           <QREntrar cardapio={cardapio} idioma={lingua} mesa={mesa} unidadeId={unidadeId} comecarCadastro={entrarAberto === "cadastro"}
             onIdioma={idiomasOferecidos.length > 1 ? () => setFolha("idiomas") : undefined} onFechar={fecharQr} onEntrou={entrouMesa} />

@@ -156,7 +156,7 @@ export function interpretarPorRegras(texto) {
 
   const q = extrairQuantidade(ps);
   let produto = null;
-  if (escolhida?.id === "estoque.registrar_perda" || escolhida?.id === "compras.criar") {
+  if (escolhida?.id === "estoque.registrar_perda" || escolhida?.id === "estoque.registrar_entrada" || escolhida?.id === "compras.criar") {
     produto = extrairProduto(ps, q.fim >= 0 ? q.fim + 1 : posicaoDoGatilho(ps, escolhida));
   } else if (escolhida?.id === "compras.ultimo_preco") {
     // "quanto paguei na picanha da última vez": tira as palavras do pedido e o produto é o que sobra

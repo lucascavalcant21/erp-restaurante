@@ -10,6 +10,7 @@
 // ação perigosa sem proteção, nem "quase pronta".
 
 import { registrarPerda } from "./registrar-perda.mjs";
+import { registrarEntrada } from "./registrar-entrada.mjs";
 
 export const RISCO = Object.freeze({ LOW: "LOW", MEDIUM: "MEDIUM", HIGH: "HIGH", CRITICAL: "CRITICAL" });
 
@@ -17,6 +18,7 @@ const indisponivel = (id, nome, modulo, risco, motivo) => Object.freeze({ id, no
 
 export const ACOES = Object.freeze({
   "stock.registerLoss": registrarPerda,
+  "stock.registerEntry": registrarEntrada,
   "stock.transfer": indisponivel("stock.transfer", "Transferir entre estoques", "estoque", RISCO.MEDIUM, "Transferência pela conversa ainda não foi liberada. Use a tela de Estoque."),
   "stock.adjust": indisponivel("stock.adjust", "Ajustar estoque", "estoque", RISCO.HIGH, "Ajuste de estoque exige PIN do administrador na tela de Estoque."),
   "stock.adjustRetroactive": indisponivel("stock.adjustRetroactive", "Alterar estoque retroativamente", "estoque", RISCO.CRITICAL, "Alteração retroativa de estoque não é permitida pela conversa."),

@@ -11,6 +11,7 @@ import { s } from "../schemas/schema.mjs";
 import { intencaoPorId, DESTINOS, INTENCOES, IDS_INTENCAO } from "./catalogo.mjs";
 import { interpretar } from "./interpretar.mjs";
 import { palavras } from "./interpretador-regras.mjs";
+import { motivoDaEntrada } from "../actions/registrar-entrada.mjs";
 import { responderPergunta } from "../agents/orquestrador.mjs";
 import { criarTrilha, NIVEL } from "../core/niveis.mjs";
 import { auditar, ETAPA_AUDITORIA } from "../audit/auditoria.mjs";
@@ -112,7 +113,7 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
     }
     // Produto não dito ("Perdi 2 kg.", "Quanto tenho?", "Por que aumentou?"):
     // vem do contexto pelo ID e é reconferido no cadastro DA UNIDADE (o nome é só rótulo).
-    const usaProduto = intencao && (intencao.requerProduto || intencao.acao === "stock.registerLoss" || intencao.id === "estoque.saldo_produto");
+    const usaProduto = intencao && (intencao.requerProduto || intencao.acao === "stock.registerLoss" || intencao.acao === "stock.registerEntry" || intencao.id === "estoque.saldo_produto");
     const semProdutoDito = !interp.produto;
 
     if (intencao?.id === "conversa.por_que") {
@@ -137,6 +138,7 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
     } else if (intencao.tipo === "acao") {
       trilha.passar("recomendacao", NIVEL.RECOMENDAR);
       if (usaProduto && semProdutoDito && produtoCtx && !produtoCtx.ambiguo) params.insumoId = produtoCtx.id;
+      if (intencao.acao === "stock.registerEntry") params.motivoEntrada = motivoDaEntrada(pedido.texto);
       resposta = await servicoAcoes.iniciar({ acaoId: intencao.acao, params, comando: pedido.texto, chave: pedido.chave, correlationId });
       trilha.passar("acao", NIVEL.AGIR);
     } else {

@@ -7,6 +7,7 @@
 import { NIVEL } from "../core/niveis.mjs";
 import { DADOS_INSUFICIENTES, NATUREZA, temValor } from "../core/contratos.mjs";
 import { normalizar } from "../metrics/produtos.mjs";
+import { somarDias } from "../core/periodos.mjs";
 import { generateDailyBrief } from "../insights/daily-brief.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoInsight, blocoTexto, brl, num, ddmm, valorFormatado } from "../commands/resposta.mjs";
 
@@ -248,6 +249,23 @@ export const AgenteRH = {
     let texto = `${fraseDaMetrica(m, "CMO")} Folha (cadastro) ${brl(d.folha)} + extras pagos ${brl(d.extras)}.`;
     texto += d.percentual ? ` CMO %: ${num(d.percentual.valor, 1)}% do faturamento do mês.` : " CMO %: DADOS INSUFICIENTES (faturamento do mês incompleto).";
     return r(texto, [blocoMetrica(m, "CMO do mês"), blocoLista("Composição", [{ rotulo: "Salários + VA (cadastro do RH)", valor: brl(d.folha) }, { rotulo: "Diárias de extras pagas", valor: brl(d.extras), detalhe: `${d.recibosPagos} recibo(s)` }])], [{ rotulo: "Abrir RH", rota: "/dashboard/rh" }], NIVEL.ANALISAR);
+  },
+  async "rh.escala_dia"({ motor, params }) {
+    const amanha = params.dias === 1;
+    const m = await motor.getSchedule(amanha ? { data: somarDias(motor.ambiente.hoje, 1) } : {});
+    if (!temValor(m)) return insuf(m, "Escala");
+    const d = m.detalhes;
+    const quando = amanha ? `amanhã (${ddmm(m.periodo.de)})` : "hoje";
+    let texto = d.trabalham.length
+      ? `${d.trabalham.length} pessoa(s) na escala de ${quando}: ${d.trabalham.slice(0, 8).map((p) => `${p.nome} ${p.entrada}–${p.saida}`).join(", ")}${d.trabalham.length > 8 ? "…" : ""}.`
+      : `Ninguém na escala de ${quando} pelo cadastro.`;
+    if (d.folgas.length) texto += ` De folga: ${d.folgas.map((f) => f.nome).join(", ")}.`;
+    const porArea = new Map();
+    for (const p of d.trabalham) { const a = p.area || p.cargo || "Sem área"; porArea.set(a, [...(porArea.get(a) || []), p]); }
+    const blocos = [...porArea].map(([area, ps]) => blocoLista(`${area} (${ps.length})`, ps.map((p) => ({ rotulo: p.nome, valor: `${p.entrada}–${p.saida}`, detalhe: p.cargo || "" }))));
+    if (d.folgas.length) blocos.push(blocoLista("De folga", d.folgas.map((f) => ({ rotulo: f.nome, valor: "folga", detalhe: f.motivo }))));
+    if (m.observacoes?.length) blocos.push(blocoTexto(m.observacoes.join(" "), "De onde vem"));
+    return r(texto, blocos, [{ rotulo: "Abrir escala", rota: "/dashboard/rh" }]);
   },
   async "rh.hora_extra"({ motor }) {
     return insuf(await motor.semBase("hora_extra"), "Hora extra");

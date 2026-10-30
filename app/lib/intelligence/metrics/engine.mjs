@@ -9,6 +9,7 @@ import { resolverPeriodo } from "../core/periodos.mjs";
 import { criarAmbiente, medir } from "./base.mjs";
 import { faturamento, historicoDiario } from "./faturamento.mjs";
 import { compras, variacoesDePreco, ultimaCompraDoProduto } from "./compras.mjs";
+import { escalaDoDia } from "./rh.mjs";
 import { saldoDoProduto, vencimentos, divergenciasEstoque, perdas, abaixoDoMinimo } from "./estoque.mjs";
 import { contasAPagar, lucroDoMes, ticketMedioDoMes } from "./financeiro.mjs";
 import { cmv, cmo } from "./custos.mjs";
@@ -52,6 +53,7 @@ export function criarMotorDeMetricas(p) {
     getPurchasesTotal: (tipo = "semana", op) => compras(amb, typeof tipo === "string" ? periodo(tipo) : tipo, op),
     getPriceChanges: (op) => variacoesDePreco(amb, op),
     getLastPurchase: (op) => ultimaCompraDoProduto(amb, op),
+    getSchedule: (op) => escalaDoDia(amb, op),
     getProductStock: (op) => saldoDoProduto(amb, op),
     getExpiringProducts: (op) => vencimentos(amb, op),
     getStockVariance: (op) => divergenciasEstoque(amb, op),

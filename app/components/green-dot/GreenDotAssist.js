@@ -725,33 +725,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
       return;
     }
 
-    // 7. Verifica se é Organograma por Área / Escala de Hoje / Quem trabalha hoje / Horários de trabalho
-    const isPerguntaOrganogramaOuEscalaHoje =
-      metaTopico?.id === "escala-organograma" ||
-      metaTopico?.id === "escala-turno" ||
-      q.includes("organograma") ||
-      q.includes("organogrma") ||
-      q.includes("quem trabalha hoje") ||
-      q.includes("quem esta trabalhando") ||
-      q.includes("quem está trabalhando") ||
-      (q.includes("escala") && (q.includes("hoje") || q.includes("area") || q.includes("área") || q.includes("dia") || q.includes("setor"))) ||
-      (q.includes("horario") && (q.includes("trabalho") || q.includes("hoje"))) ||
-      (q.includes("horário") && (q.includes("trabalho") || q.includes("hoje"))) ||
-      q.includes("escala") ||
-      q.includes("gantt");
-
-    if (isPerguntaOrganogramaOuEscalaHoje) {
-      setItensConversa((prev) => [
-        ...prev,
-        { id: `esc-org-${Date.now()}`, tipo: "escala-organograma" },
-      ]);
-      if (vozAtiva && audioDisponivel()) {
-        falar(
-          "Aqui está a escala e organograma de hoje por área: Cozinha Quente com 3 colaboradores, Cozinha Fria com 1, Bar com 2, Salão com 1, Pass com 1 e Ingrid B. na liderança geral. Você pode alternar entre o organograma hierárquico e a linha do tempo horizontal."
-        );
-      }
-      return;
-    }
+    // 7. Escala do dia: responde o Héfisto (passo 9) com o cadastro real do RH e as folgas lançadas.
 
     if (
       q.includes("disponível") ||
@@ -1041,10 +1015,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
         { id: "etiqueta-validade" }
       );
     } else if (fluxo === "escala") {
-      setItensConversa((prev) => [
-        ...prev,
-        { id: `esc-${Date.now()}`, tipo: "escala-organograma" },
-      ]);
+      processarPergunta("Quem trabalha hoje?");
     } else if (fluxo === "admin") {
       setAbaAdminInicial("receitas");
       setModalAdminAberto(true);
@@ -1253,15 +1224,6 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
             }}
           />
 
-          {/* Alerta Proativo de Pico de Demanda */}
-          <DemandSpikeAlertCard
-            onViewDetails={() => {
-              setItensConversa((prev) => [
-                ...prev,
-                { id: `esc-${Date.now()}`, tipo: "escala-organograma" },
-              ]);
-            }}
-          />
 
           {/* FLUXO DE MENSAGENS E CARDS INTERATIVOS */}
           {itensConversa.map((bloco) => {

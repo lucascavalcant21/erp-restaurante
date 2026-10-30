@@ -46,3 +46,7 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 29/10/2026 | Green Dot Assist como assistente único: perguntas de tudo (lucro líquido, escala, ticket, fichas, equipamentos, CMV, eventos, marmitas, delivery, RH, CRM, marketing), ações (estoque, cadastro, etiqueta, evento, promoção), treino por função, voz como colega, previsão do tempo | Missão HDEV-GDA-001 (BACKLOG), 6 fases |
 | 29/10/2026 | Bases do cardápio do evento (buffet, mesa de comidas, bebidas) e salvar mais | Feito (PR #202) · TESTADO EM MOCK |
 | 29/10/2026 | Menu reorganizado, renomeado, claro e compacto; telas de módulo compactas | Feito (PR #202) · TESTADO EM MOCK |
+| 30/10/2026 | Busca sem acento/ç e pelas primeiras letras | Feito · TESTADO EM MOCK |
+| 30/10/2026 | Estoque por categorias do dono (cozinha e bar) | Feito · TESTADO EM MOCK (dados reais copiados) |
+| 30/10/2026 | Cadastro: kg, unidade e porção; ficha/marmita por unidade ou porção | Feito · TESTADO EM MOCK + testes |
+| 30/10/2026 | Janta dos funcionários por dia, gramas por pessoa e preparo | Feito · TESTADO EM MOCK |

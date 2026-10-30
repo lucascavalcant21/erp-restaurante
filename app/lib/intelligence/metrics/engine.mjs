@@ -8,9 +8,9 @@ import { insuficiente } from "../core/contratos.mjs";
 import { resolverPeriodo } from "../core/periodos.mjs";
 import { criarAmbiente, medir } from "./base.mjs";
 import { faturamento, historicoDiario } from "./faturamento.mjs";
-import { compras, variacoesDePreco } from "./compras.mjs";
+import { compras, variacoesDePreco, ultimaCompraDoProduto } from "./compras.mjs";
 import { saldoDoProduto, vencimentos, divergenciasEstoque, perdas, abaixoDoMinimo } from "./estoque.mjs";
-import { contasAPagar } from "./financeiro.mjs";
+import { contasAPagar, lucroDoMes, ticketMedioDoMes } from "./financeiro.mjs";
 import { cmv, cmo } from "./custos.mjs";
 
 /** Métricas pedidas na especificação que os dados atuais NÃO suportam — e por quê. */
@@ -51,6 +51,7 @@ export function criarMotorDeMetricas(p) {
     getRevenueHistory: async (ate = amb.hoje, semanas = 8) => ((await amb.verificador.pode("faturamento")) ? historicoDiario(amb, ate, semanas) : null),
     getPurchasesTotal: (tipo = "semana", op) => compras(amb, typeof tipo === "string" ? periodo(tipo) : tipo, op),
     getPriceChanges: (op) => variacoesDePreco(amb, op),
+    getLastPurchase: (op) => ultimaCompraDoProduto(amb, op),
     getProductStock: (op) => saldoDoProduto(amb, op),
     getExpiringProducts: (op) => vencimentos(amb, op),
     getStockVariance: (op) => divergenciasEstoque(amb, op),
@@ -59,6 +60,8 @@ export function criarMotorDeMetricas(p) {
     getAccountsPayable: (op) => contasAPagar(amb, op),
     getCMV: () => cmv(amb),
     getCMO: (op) => cmo(amb, op),
+    getNetProfit: (op) => lucroDoMes(amb, op),
+    getAverageTicket: (op) => ticketMedioDoMes(amb, op),
     semBase(id) {
       const d = SEM_BASE[id];
       if (!d) throw new Error(`Métrica desconhecida: ${id}`);

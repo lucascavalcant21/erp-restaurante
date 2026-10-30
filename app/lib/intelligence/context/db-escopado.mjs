@@ -59,6 +59,7 @@ export const TABELAS = Object.freeze({
   rh_recibos_prestacao: { tenant: true, rotulo: "Recibos de extras" },
   fornecedores: { tenant: true, rotulo: "Fornecedores" },
   etiquetas: { tenant: true, rotulo: "Etiquetas de validade" },
+  config_sistema: { tenant: true, rotulo: "Resultado do mês (valores informados pelo dono)" },
   fin_categorias: { tenant: false, rotulo: "Plano de contas" },
 });
 

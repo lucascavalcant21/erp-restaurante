@@ -436,3 +436,17 @@ test("provedor: Haiku entende (sem fallback), Sonnet cria (com fallback)", async
   assert.equal(pedidos[1].model, "claude-sonnet-5-5");
   assert.equal(pedidos[1].fallbacks, "default");
 });
+
+test("quanto paguei na última vez, lucro líquido e ticket médio pela conversa", async () => {
+  const { pedir } = await montar();
+  const r = await pedir("Quanto paguei na picanha da última vez?");
+  assert.equal(r.interpretacao.intencao, "compras.ultimo_preco");
+  assert.match(r.texto, /Última compra de Picanha: R\$\s?70,48\/kg em 06\/10/);
+  assert.match(r.texto, /anterior \(23\/09\) foi R\$\s?65,00\/kg \(\+8,4%\)/);
+  assert.ok(!JSON.stringify(r).includes("999999"));
+  const l = await pedir("Qual meu lucro líquido?");
+  assert.equal(l.interpretacao.intencao, "financeiro.lucro");
+  assert.match(l.texto, /DADOS INSUFICIENTES/);
+  const t = await pedir("Qual o ticket médio?");
+  assert.equal(t.interpretacao.intencao, "vendas.ticket_medio");
+});

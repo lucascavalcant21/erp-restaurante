@@ -17,6 +17,8 @@ export const PERMISSOES = Object.freeze({
   contas_pagar: ["financeiro.cashflow.view"],
   cmv: ["estoque.cmv.view", "financeiro.cmv.view"],
   cmo: ["financeiro.dre.view", "rh.overview.view_values", "rh.payroll.view_values"],
+  // Resultado do mês (lucro líquido): quem vê a tela do Resultado ou o DRE.
+  resultado: ["financeiro.monthly_result.view", "financeiro.dre.view"],
   // as mesmas chaves que _estoque_pode('movimentar', unidade, 'saida') aceita no banco (EST-MOV-1)
   registrar_perda: ["estoque.losses.record_loss", "estoque.movements.create", "estoque.outputs.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
 });
@@ -32,6 +34,7 @@ export const ROTULO_CAPACIDADE = Object.freeze({
   contas_pagar: "contas a pagar",
   cmv: "CMV",
   cmo: "CMO",
+  resultado: "resultado do mês",
   registrar_perda: "registrar perda",
 });
 

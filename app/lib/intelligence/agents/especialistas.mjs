@@ -29,8 +29,13 @@ export const AgenteVendas = {
     ];
     return r(fraseDaMetrica(m, "Faturamento"), [blocoMetrica(m, "Faturamento"), blocoLista("Composição", itens)], acoes, m.comparacao ? NIVEL.ANALISAR : NIVEL.OBSERVAR);
   },
+  // Ticket médio do Resultado do mês (faturamento ÷ pedidos informados).
   async "vendas.ticket_medio"({ motor }) {
-    return insuf(await motor.semBase("ticket_medio"), "Ticket médio");
+    const m = await motor.getAverageTicket();
+    if (!temValor(m)) return { ...insuf(m, "Ticket médio"), acoes: [{ rotulo: "Abrir Resultado do mês", rota: "/dashboard/financeiro/resultado" }] };
+    const d = m.detalhes;
+    const texto = `${fraseDaMetrica(m, "Ticket médio")} São ${num(d.pedidos)} pedidos no mês${d.pedidosPorDia ? ` (${num(d.pedidosPorDia, 1)} por dia)` : ""}.`;
+    return r(texto, [blocoMetrica(m, "Ticket médio")], [{ rotulo: "Abrir Resultado do mês", rota: "/dashboard/financeiro/resultado" }]);
   },
 };
 
@@ -65,6 +70,17 @@ export const AgenteCompras = {
     if (m.detalhes.aumentos.length) blocos.push(blocoLista("Aumentos", m.detalhes.aumentos.map(linha)));
     if (m.detalhes.quedas.length) blocos.push(blocoLista("Quedas", m.detalhes.quedas.map(linha)));
     return r(texto, blocos, [{ rotulo: "Ver compras", rota: "/dashboard/operacao/estoque/compras" }], NIVEL.ANALISAR);
+  },
+  async "compras.ultimo_preco"({ motor, params }) {
+    if (!params.produto) return { ...r("De qual produto?"), pergunta: { campo: "produto", texto: "De qual produto você quer o preço da última compra?", livre: true, comandoBase: "Quanto paguei em {valor} da última vez?" } };
+    const m = await motor.getLastPurchase({ termo: params.produto });
+    if (!temValor(m)) return insuf(m, "Última compra");
+    const p = m.detalhes.produto;
+    let texto = `Última compra de ${p.nome}: ${brl(p.preco)}/${p.unidade} em ${ddmm(p.data)}${p.fornecedor ? `, com ${p.fornecedor}` : ""}.`;
+    if (p.precoAnterior != null) texto += ` Na compra anterior (${ddmm(p.dataAnterior)}) foi ${brl(p.precoAnterior)}/${p.unidade}${p.pct != null ? ` (${p.pct > 0 ? "+" : ""}${num(p.pct, 1)}%)` : ""}.`;
+    const blocos = [blocoMetrica(m, `Última compra de ${p.nome}`)];
+    if (m.detalhes.outros.length) blocos.push(blocoLista("Outros produtos com esse nome", m.detalhes.outros.map((o) => ({ rotulo: o.nome, valor: `${brl(o.preco)}/${o.unidade}`, detalhe: ddmm(o.data) }))));
+    return r(texto, blocos, [{ rotulo: "Ver compras", rota: "/dashboard/operacao/estoque/compras" }]);
   },
   async "compras.criar"() {
     return r("Criar compra pela conversa ainda não está disponível. Abra Compras para lançar.", [], [{ rotulo: "Abrir compras", rota: "/dashboard/operacao/estoque/compras" }]);
@@ -209,8 +225,16 @@ export const AgenteFinanceiro = {
     const texto = c ? `CMV real ${valorFormatado(m)} em ${m.periodo.rotulo}. Os fatores que mudaram estão abaixo; não dá para afirmar a causa só com esses números.` : `${fraseDaMetrica(m, "CMV real")} Ainda não há período anterior apurado para comparar.`;
     return r(texto, blocos, [{ rotulo: "Abrir CMV real", rota: "/dashboard/operacao/estoque/cmv" }], NIVEL.RECOMENDAR);
   },
+  // Lucro líquido do mês pelo Resultado do mês (a mesma conta da tela).
   async "financeiro.lucro"({ motor }) {
-    return insuf(await motor.semBase("lucro"), "Lucro");
+    const m = await motor.getNetProfit();
+    const acoes = [{ rotulo: "Abrir Resultado do mês", rota: "/dashboard/financeiro/resultado" }];
+    if (!temValor(m)) return { ...insuf(m, "Lucro líquido"), acoes };
+    const d = m.detalhes;
+    let texto = `${d.prejuizo ? "Prejuízo" : "Lucro líquido"} do mês: ${brl(m.valor)}${d.lucroPct != null ? ` (${num(d.lucroPct, 1)}% do faturamento de ${brl(d.faturamento)})` : ""}.`;
+    if (d.equilibrio?.mes != null) texto += ` Para não ter prejuízo, a venda do mês precisa passar de ${brl(d.equilibrio.mes)}${d.equilibrio.dia ? ` (${brl(d.equilibrio.dia)} por dia)` : ""}.`;
+    const itens = d.linhas.map((l) => ({ rotulo: l.rotulo, valor: l.valor == null ? "—" : brl(l.valor), detalhe: l.pct == null ? "" : `${num(l.pct, 1)}%` }));
+    return r(texto, [blocoMetrica(m, d.prejuizo ? "Prejuízo do mês" : "Lucro líquido do mês"), blocoLista("Para onde foi o dinheiro", itens)], acoes, NIVEL.ANALISAR);
   },
 };
 

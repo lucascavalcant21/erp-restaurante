@@ -13,7 +13,8 @@ import s from "./detalhe.module.css";
 // quantidade e "Adicionar ao pedido" com o total. O preço é o mesmo que o
 // servidor cobra (precoDaLinha).
 
-export default function TabletDetalhe({ cardapio, produto, idioma = "pt", mesa = "", onFechar, onAdicionar, podePedir = true }) {
+// `inicial` (Editar no pedido): { quantidade, observacao, opcoes, viagem } da linha; o botão vira "Salvar alterações".
+export default function TabletDetalhe({ cardapio, produto, idioma = "pt", mesa = "", onFechar, onAdicionar, podePedir = true, inicial = null }) {
   const T = (k, v) => textoDelivery(idioma, k, v);
   const [escolhas, setEscolhas] = useState({});
   const [qtd, setQtd] = useState(1);
@@ -22,7 +23,10 @@ export default function TabletDetalhe({ cardapio, produto, idioma = "pt", mesa =
   const [fotoAtual, setFotoAtual] = useState(0);
   const [ampliada, setAmpliada] = useState(false);
   const [tentou, setTentou] = useState(false);
-  useEffect(() => { setEscolhas({}); setQtd(1); setObs(""); setViagem("aqui"); setFotoAtual(0); setTentou(false); }, [produto?.id]);
+  useEffect(() => {
+    setEscolhas(inicial?.opcoes || {}); setQtd(inicial?.quantidade || 1); setObs(inicial?.observacao || "");
+    setViagem(inicial?.viagem ? "viagem" : "aqui"); setFotoAtual(0); setTentou(false);
+  }, [produto?.id, inicial]);
 
   const midias = useMemo(() => {
     const lista = (produto?.midias || []).filter((m) => m.url);
@@ -39,8 +43,7 @@ export default function TabletDetalhe({ cardapio, produto, idioma = "pt", mesa =
   const atual = midias[fotoAtual];
   const adicionar = () => {
     if (!linha.ok) { setTentou(true); return; }
-    const nota = [viagem === "viagem" ? T("para_viagem") : "", obs.trim()].filter(Boolean).join(" · ");
-    onAdicionar?.(produto.id, qtd, nota, escolhas);
+    onAdicionar?.(produto.id, qtd, obs.trim(), escolhas, false, viagem === "viagem");
   };
 
   return (
@@ -126,7 +129,7 @@ export default function TabletDetalhe({ cardapio, produto, idioma = "pt", mesa =
                     opcoes={[{ id: "aqui", rotulo: T("aqui") }, { id: "viagem", rotulo: T("viagem") }]} />
                 ) : null}
                 <Quantidade valor={qtd} onMudar={setQtd} min={1} max={50} nomeItem={produto.nome} />
-                <Botao tamanho={54} className={s.adicionar} onClick={adicionar} valor={formatarPreco(total, idioma)}>{T("adicionar_pedido")}</Botao>
+                <Botao tamanho={54} className={s.adicionar} onClick={adicionar} valor={formatarPreco(total, idioma)}>{inicial ? T("salvar_alteracoes") : T("adicionar_pedido")}</Botao>
               </div>
             </div>
           ) : null}

@@ -15,7 +15,7 @@ import s from "./delivery.module.css";
 
 // "incentivo" ({ faltam, percentual, progresso 0–1 }) vem de uma regra real do
 // painel ("Mais 1 prato = X% de DESCONTO", 9P); sem regra, o card não aparece.
-export default function DeliverySacola({ cardapio, idioma = "pt", carrinho = [], incentivo = null, onVoltar, onContinuar, alterarQtd, remover, adicionar, onAbrirPrato }) {
+export default function DeliverySacola({ cardapio, idioma = "pt", carrinho = [], incentivo = null, onVoltar, onContinuar, alterarQtd, remover, adicionar, onAbrirPrato, onEditar }) {
   const T = (k, v) => textoDelivery(idioma, k, v);
   const [dispensados, setDispensados] = useState([]);
   const linhas = useMemo(() => linhasDaSacola(carrinho, cardapio), [carrinho, cardapio]);
@@ -45,6 +45,7 @@ export default function DeliverySacola({ cardapio, idioma = "pt", carrinho = [],
                 <button type="button" className={s.itemNome} onClick={() => onAbrirPrato(i.id)} aria-label={`${T("editar")}: ${i.nome}`}>{i.quantidade}× {i.nome}</button>
                 {i.escolhas ? <span className={s.itemObs}>{i.escolhas}</span> : null}
                 {i.observacao ? <span className={s.itemObs}>{i.observacao}</span> : null}
+                {onEditar ? <button type="button" className={s.itemEditar} onClick={() => onEditar(i.chave)}>{T("editar")}</button> : null}
               </div>
               <div className={s.itemLado}>
                 <span className={s.itemPreco}>{formatarPreco(i.total, idioma)}</span>

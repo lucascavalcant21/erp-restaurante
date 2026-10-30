@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { TemaCardapio } from "../../../components/cardapio-digital/ui";
 import TabletInicio from "../../../components/cardapio-digital/tablet/TabletInicio";
 import TabletDetalhe from "../../../components/cardapio-digital/tablet/TabletDetalhe";
+import TabletCarrinho, { TabletEnviado } from "../../../components/cardapio-digital/tablet/TabletCarrinho";
 
 // Tela principal do tablet com os dados de exemplo do protótipo Main (Casa
 // Brasa, Mesa 12), só para comparar o desenho. A tela de verdade é o cardápio
@@ -49,9 +50,20 @@ export default function VitrineTablet() {
   const [loja, setLoja] = useState(null);
   useEffect(() => { if (new URLSearchParams(window.location.search).get("escuro") === "1") setLoja({ cor_fundo: "#121212", cor_cartao: "#1E1E1E", cor_texto: "#F5F5F5", formato_foto: "quadrada" }); }, []);
   const [prato, setPrato] = useState("");
-  useEffect(() => { setPrato(new URLSearchParams(window.location.search).get("prato") || ""); }, []);
+  const [tela, setTela] = useState("");
+  const [carrinho, setCarrinho] = useState([
+    { id: "picanha", quantidade: 1, observacao: "Ao ponto · sem cebola" },
+    { id: "chope", quantidade: 2 },
+    { id: "pudim", linha: "pudim||viagem", viagem: true, quantidade: 1 },
+  ]);
+  useEffect(() => { const q = new URLSearchParams(window.location.search); setPrato(q.get("prato") || ""); setTela(q.get("tela") || ""); }, []);
   return (
     <TemaCardapio cor="#14532D" loja={loja}>
+      {tela === "carrinho" ? <TabletCarrinho cardapio={CARDAPIO} mesa="12" carrinho={carrinho} nome="Ana" onFechar={() => {}} onEnviar={() => {}}
+        alterarQtd={(k, d) => setCarrinho((l) => l.map((i) => ((i.linha || i.id) === k ? { ...i, quantidade: i.quantidade + d } : i)))}
+        remover={(k) => setCarrinho((l) => l.filter((i) => (i.linha || i.id) !== k))}
+        mudarViagem={(k, v) => setCarrinho((l) => l.map((i) => ((i.linha || i.id) === k ? { ...i, viagem: v } : i)))} /> : null}
+      {tela === "enviado" ? <TabletEnviado cardapio={{ ...CARDAPIO, fidelidade: { cadastro: { desconto_pct: 10 }, cashback: { pontos_por_real: 1, valor_100: 2 } } }} mesa="12" nome="Ana" resultado={{ total: 141, desconto: 15.67 }} segundos={600} onVoltar={() => {}} /> : null}
       {prato ? <TabletDetalhe cardapio={CARDAPIO} produto={CARDAPIO.produtos.find((p) => p.id === prato)} mesa="12" onFechar={() => setPrato("")} onAdicionar={() => {}} /> : null}
       <TabletInicio cardapio={CARDAPIO} mesa="12" secaoAtiva="grelhados" busca={busca} onBusca={setBusca} selos={selos} onSelos={setSelos}
         onAbrirPrato={() => {}} onAdicionar={() => {}} onIrSecao={() => {}} onChamar={() => {}} onRecomendar={() => {}} temRecomendar temIdiomas

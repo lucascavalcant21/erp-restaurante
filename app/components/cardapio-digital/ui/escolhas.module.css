@@ -1,0 +1,108 @@
+/* Grupos de complementos (TabletDetalhe). Só variáveis --cd-*. */
+.grupos {
+  display: flex;
+  flex-direction: column;
+}
+.grupo {
+  border: 0;
+  margin: 0;
+  padding: 0 0 12px;
+  min-width: 0;
+}
+.cabeca {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  float: left;
+}
+.cabeca + * {
+  clear: both;
+}
+.cabecaTextos {
+  display: flex;
+  flex-direction: column;
+}
+.nome {
+  font-size: 15px;
+  font-weight: 600;
+}
+.regra {
+  font-size: 12px;
+  color: var(--cd-texto-secundario);
+}
+.estado {
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: var(--cd-fundo-segmentado);
+  color: var(--cd-texto-medio);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.estadoOk {
+  background: var(--cd-ok-fundo);
+  color: var(--cd-ok-texto);
+}
+.estadoObrigatorio {
+  background: var(--cd-alerta-fundo);
+  color: var(--cd-alerta-texto);
+}
+.estadoFalta {
+  background: var(--cd-pimenta-fundo);
+  color: var(--cd-perigo-texto);
+}
+.opcoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+.opcao {
+  box-sizing: border-box;
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: var(--cd-raio-m);
+  border: 1px solid var(--cd-borda);
+  background: var(--cd-superficie);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.opcaoMarcada {
+  border: 2px solid var(--cd-principal);
+  padding: 0 13px;
+  background: var(--cd-principal-clara);
+  color: var(--cd-texto-fixo);
+}
+.opcaoCheia {
+  opacity: 0.55;
+  cursor: default;
+}
+.opcao input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--cd-principal);
+}
+.opcaoNome {
+  flex-grow: 1;
+  min-width: 0;
+}
+.opcaoPreco {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.largo .cabeca {
+  width: calc(100% + 52px);
+  margin: 0 -26px 10px;
+  padding: 10px 26px;
+  background: var(--cd-fundo-cinza);
+}
+.largo .opcoes {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}

@@ -15,7 +15,7 @@
 // banco; nenhuma mensagem interna do banco na resposta. Módulo sem Next: o
 // banco entra por parâmetro, para dar para testar.
 
-import { montarCardapioPublico, juntarProdutosEFichas, totalDoCarrinho, linhasDoCombo, cardapioDoCanal, canalDoPedido, aplicarFotosDaMontagem } from "../cardapio-digital.mjs";
+import { montarCardapioPublico, juntarProdutosEFichas, totalDoCarrinho, precoDaLinha, linhasDoCombo, cardapioDoCanal, canalDoPedido, aplicarFotosDaMontagem } from "../cardapio-digital.mjs";
 import { trocoEmReais } from "../troco.mjs";
 import {
   cashbackUsavel, descontoDoCadastro, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO, validarCadastro,
@@ -242,7 +242,16 @@ export function validarPedidoPublico(corpo) {
     if (!idValido(String(it?.id ?? "")) || !Number.isInteger(qtd) || qtd < 1 || qtd > 50) {
       return falha(400, "parametro_invalido", "Item inválido no carrinho.");
     }
-    limpos.push({ id: String(it.id), quantidade: qtd, observacao: texto(it.observacao, 200) || "" });
+    // Complementos: { grupoId: [opcaoId] } só com ids válidos; quem confere preço e regra é o criarPedidoPublico.
+    let opcoes = null;
+    if (it?.opcoes && typeof it.opcoes === "object" && !Array.isArray(it.opcoes)) {
+      const pares = Object.entries(it.opcoes).slice(0, 12);
+      if (pares.some(([g, l]) => !idValido(g) || !Array.isArray(l) || l.length > 40 || l.some((o) => !idValido(String(o))))) {
+        return falha(400, "parametro_invalido", "Complemento inválido no carrinho.");
+      }
+      opcoes = Object.fromEntries(pares.map(([g, l]) => [g, l.map(String)]));
+    }
+    limpos.push({ id: String(it.id), quantidade: qtd, observacao: texto(it.observacao, 200) || "", ...(opcoes ? { opcoes } : {}) });
   }
   // Cashback da fidelidade: o cliente só diz "quero usar" e manda os pedidos
   // que este aparelho fez (a prova). Quanto usar, o servidor decide.
@@ -300,6 +309,16 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
     const preco = new Map(cardapio.produtos.map((p) => [p.id, p.preco]));
     if (pedido.itens.some((i) => !preco.has(i.id))) {
       return falha(409, "item_indisponivel", "Um item do carrinho não está mais disponível. Atualize o cardápio.");
+    }
+    // Complementos: a mesma regra da tela (precoDaLinha). Prato com escolha
+    // obrigatória (tamanho) sem a escolha, ou opção que esgotou, volta para o cliente.
+    const linhaDe = new Map();
+    for (const [n, i] of pedido.itens.entries()) {
+      const prod = cardapio.produtos.find((p) => p.id === i.id);
+      if (!prod?.grupos?.length && !i.opcoes) continue;
+      const l = precoDaLinha(prod, i.opcoes || {});
+      if (!l.ok) return falha(409, "opcao_invalida", `Confira as escolhas de "${prod.nome}": alguma opção mudou ou falta escolher.`);
+      linhaDe.set(n, l);
     }
 
     // Mínimo e grátis-acima do dono: a mesma conta que a página mostra.
@@ -360,13 +379,16 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
     // Combo: cobra o preço do combo e manda cada prato para a cozinha/bar
     // (uma linha por prato, o valor repartido; soma = preço do combo).
     const porIdCardapio = new Map(cardapio.produtos.map((p) => [p.id, p]));
-    const linhas = pedido.itens.flatMap((i) => {
+    const linhas = pedido.itens.flatMap((i, n) => {
       const prod = porIdCardapio.get(i.id);
       if (prod?.combo) {
         const obs = [`Combo: ${prod.nome}`, i.observacao].filter(Boolean).join(" · ").slice(0, 200);
         return linhasDoCombo(prod, i.quantidade).map((l) => ({ ...l, observacao: obs }));
       }
-      return [{ produto_id: i.id, quantidade: i.quantidade, valor_unitario: preco.get(i.id), observacao: i.observacao }];
+      // Com complementos: o preço da linha já com eles, e a cozinha lê as escolhas na observação.
+      const l = linhaDe.get(n);
+      const obs = [l?.texto, i.observacao].filter(Boolean).join(" · ").slice(0, 200);
+      return [{ produto_id: i.id, quantidade: i.quantidade, valor_unitario: l ? l.preco : preco.get(i.id), observacao: obs }];
     });
     const { error: eItens } = await db.from("pedidos_itens").insert(linhas.map((l) => ({
       pedido_id: criado.id,

@@ -851,6 +851,41 @@ export function normalizarGrupos(lista) {
   return out;
 }
 
+/**
+ * Preço e texto de uma linha do pedido com os complementos escolhidos
+ * (`opcoes` = { grupoId: [opcaoId, …] }). A MESMA conta roda na tela e no
+ * servidor: confere mínimo/máximo de cada grupo e opção que não existe ou
+ * esgotou. Sem grupos no prato, o preço é o do prato.
+ */
+export function precoDaLinha(produto, opcoes = {}) {
+  const base = centavos(produto?.preco);
+  const grupos = Array.isArray(produto?.grupos) ? produto.grupos : [];
+  const escolhas = opcoes && typeof opcoes === "object" ? opcoes : {};
+  for (const id of Object.keys(escolhas)) {
+    if (!grupos.some((g) => g.id === id)) return { ok: false, erro: "opcao_invalida", preco: base, extra: 0, texto: "" };
+  }
+  let extra = 0;
+  const partes = [];
+  for (const g of grupos) {
+    const ids = [...new Set((Array.isArray(escolhas[g.id]) ? escolhas[g.id] : []).map(String))];
+    if (ids.length < g.min) return { ok: false, erro: "falta_escolha", grupo: g.id, preco: base, extra: 0, texto: "" };
+    if (ids.length > g.max) return { ok: false, erro: "escolhas_demais", grupo: g.id, preco: base, extra: 0, texto: "" };
+    const nomes = [];
+    for (const id of ids) {
+      const o = g.opcoes.find((x) => x.id === id);
+      if (!o || o.esgotado) return { ok: false, erro: "opcao_invalida", grupo: g.id, preco: base, extra: 0, texto: "" };
+      extra += g.tipo === "retirar" ? 0 : o.preco;
+      nomes.push(o.nome);
+    }
+    if (nomes.length) partes.push(`${g.tipo === "retirar" ? "Sem" : g.nome}: ${nomes.join(", ")}`);
+  }
+  extra = centavos(extra);
+  return { ok: true, preco: centavos(base + extra), extra, texto: partes.join(" · ").slice(0, 200) };
+}
+
+/** Grupo de escolha única obrigatória (ex.: Tamanho): mostra o preço cheio de cada opção. */
+export const grupoDeTamanho = (g) => g.tipo !== "retirar" && g.min === 1 && g.max === 1;
+
 /** "Obrigatório · escolher 1", "Opcional · até 2", "Opcional · sem custo". */
 export function regraDoGrupo(g) {
   if (g.tipo === "retirar") return "Opcional · sem custo";
@@ -1153,11 +1188,20 @@ function alergenicosDaFicha(ficha) {
  * imagem_url, ficha: { nome_comercial, descricao_comercial, categoria,
  * departamento, ativo, status, alergenicos[], pode_conter, imagem_url } }.
  */
+/** Grupos de complementos de um prato no cardápio público: só opções que estão à venda. */
+function gruposDoItem(item, gruposPorId) {
+  return (item.grupos || []).map((id) => gruposPorId.get(id)).filter(Boolean)
+    .map((g) => ({ id: g.id, nome: g.nome, descricao: g.descricao, tipo: g.tipo, min: g.min, max: g.max, opcoes: g.opcoes.filter((o) => !o.esgotado).map(({ id, nome, preco }) => ({ id, nome, preco })) }))
+    .filter((g) => g.opcoes.length)
+    .map((g) => ({ ...g, min: Math.min(g.min, g.opcoes.length), max: Math.min(g.max, g.opcoes.length) }));
+}
+
 export function montarCardapioPublico({ unidade = {}, produtos = [], config, fidelidade = null, agora = new Date(), fuso = FUSO_PADRAO } = {}) {
   const cfg = normalizarConfigCardapio(config);
   const vigentes = promocoesVigentes(cfg.promocoes, agora, fuso);
   let categorias = categoriasEfetivas(cfg, produtos);
   const visivel = new Map(categorias.map((c) => [c.id, c.visivel]));
+  const gruposPorId = new Map(cfg.grupos.map((g) => [g.id, g]));
 
   const lista = [];
   const semCategoria = [];
@@ -1187,6 +1231,7 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
       ordem: item.ordem || null,
       categoria_id,
       ...(item.canais_ocultos ? { fora_dos_canais: item.canais_ocultos } : {}),
+      ...(gruposDoItem(item, gruposPorId).length ? { grupos: gruposDoItem(item, gruposPorId) } : {}),
     });
   }
   const combos = combosNoCardapio(cfg.combos, lista, agora, fuso);
@@ -1562,7 +1607,9 @@ export function totalDoCarrinho(carrinho, cardapio, { tipo = "qrcode" } = {}) {
     const p = porId.get(i.id);
     const q = Number(i.quantidade) || 0;
     if (!p || q <= 0) continue;
-    const valor = (p.preco || 0) * q;
+    // Complementos escolhidos (tamanho, adicionais) entram no preço da linha.
+    const linha = i.opcoes ? precoDaLinha(p, i.opcoes) : null;
+    const valor = (linha?.ok ? linha.preco : p.preco || 0) * q;
     const leve = leveDe.get(i.id);
     const gratis = leve ? Math.floor(q / leve.leve) * (leve.leve - leve.pague) * (p.preco || 0) : 0;
     subtotal += valor;

@@ -26,7 +26,7 @@ import {
   ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin, Gift, BellRing, Megaphone,
 } from "lucide-react";
 import {
-  aplicarNome, cardapioDoCanal, canalDoPedido, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, primeiroNome, saudacao, totalDoCarrinho,
+  aplicarNome, cardapioDoCanal, canalDoPedido, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, precoDaLinha, primeiroNome, saudacao, totalDoCarrinho,
 } from "../../lib/cardapio-digital.mjs";
 import { IDIOMAS, TEXTOS_PADRAO, detectarIdioma, infoIdioma, t } from "../../lib/cardapio-idiomas.mjs";
 import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, Selos } from "./partes";
@@ -36,7 +36,8 @@ import DeliveryCheckout from "./delivery/DeliveryCheckout";
 import DeliveryFidelidade from "./delivery/DeliveryFidelidade";
 import ClienteArea from "./delivery/ClienteArea";
 import TabletInicio from "./tablet/TabletInicio";
-import { TemaCardapio } from "./ui";
+import TabletDetalhe from "./tablet/TabletDetalhe";
+import { Escolhas, TemaCardapio } from "./ui";
 import { caminhoDoCadastro } from "../../lib/cardapio-link.mjs";
 import Conversa from "./Conversa";
 import Pedido from "./Pedido";
@@ -116,6 +117,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const [prato, setPrato] = useState(null);
   const [qtdPrato, setQtdPrato] = useState(1);
   const [obsPrato, setObsPrato] = useState("");
+  const [escolhasPrato, setEscolhasPrato] = useState({});
   const [folha, setFolha] = useState(""); // "", "secoes", "pedido", "idiomas", "pedidos", "info", "fidelidade", "atendimento"
   const [chamados, setChamados] = useState({}); // tipo → { estado: "enviando" | "ok", ate }
   const voarParaSacola = useVooParaSacola();
@@ -391,6 +393,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     const noCarrinho = carrinho.find((i) => i.id === id);
     setPrato(id);
     setQtdPrato(1);
+    setEscolhasPrato({});
     setObsPrato(noCarrinho?.observacao || "");
   }, [porId, carrinho]);
 
@@ -401,25 +404,29 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     abrirPrato(pratoInicial);
   }, [porId, pratoInicial, abrirPrato]);
 
-  const adicionar = useCallback((id, quantidade = 1, observacao) => {
+  const adicionar = useCallback((id, quantidade = 1, observacao, opcoes) => {
     const p = porId.get(id);
     if (!p || previa) return;
+    if (!opcoes && p.grupos?.some((g) => g.min > 0)) { abrirPrato(id); return; }
+    const temOpcoes = opcoes && Object.values(opcoes).some((l) => l?.length);
+    const linha = temOpcoes ? `${id}|${JSON.stringify(Object.keys(opcoes).sort().map((g) => [g, [...opcoes[g]].sort()]))}` : undefined;
     setCarrinho((c) => {
-      const i = c.findIndex((x) => x.id === id);
-      if (i < 0) return [...c, { id, quantidade: Math.min(50, quantidade), observacao: observacao || "" }].slice(0, 50);
+      const i = c.findIndex((x) => (x.linha || x.id) === (linha || id));
+      if (i < 0) return [...c, { id, ...(linha ? { linha, opcoes } : {}), quantidade: Math.min(50, quantidade), observacao: observacao || "" }].slice(0, 50);
       const novo = [...c];
       novo[i] = { ...novo[i], quantidade: Math.min(50, novo[i].quantidade + quantidade), observacao: observacao ?? novo[i].observacao };
       return novo;
     });
     if (etapa === "enviado") setEtapa("carrinho");
     setAviso({ texto: T("no_pedido", { prato: p.nome }), acao: largo ? null : { rotulo: T("ver_pedido"), fazer: () => setFolha("pedido") } });
-  }, [porId, previa, etapa, largo, T]);
+  }, [porId, previa, etapa, largo, T, abrirPrato]);
 
-  const alterarQtd = (id, delta) => setCarrinho((c) => c.map((i) => (i.id === id ? { ...i, quantidade: Math.max(1, Math.min(50, i.quantidade + delta)) } : i)));
-  const definirObs = (id, observacao) => setCarrinho((c) => c.map((i) => (i.id === id ? { ...i, observacao: observacao.slice(0, 200) } : i)));
+  // Cada linha do carrinho tem uma chave: o prato, ou o prato + as escolhas (tamanho, adicionais).
+  const alterarQtd = (id, delta) => setCarrinho((c) => c.map((i) => ((i.linha || i.id) === id ? { ...i, quantidade: Math.max(1, Math.min(50, i.quantidade + delta)) } : i)));
+  const definirObs = (id, observacao) => setCarrinho((c) => c.map((i) => ((i.linha || i.id) === id ? { ...i, observacao: observacao.slice(0, 200) } : i)));
   const remover = (id) => {
     const antes = carrinho;
-    setCarrinho((c) => c.filter((i) => i.id !== id));
+    setCarrinho((c) => c.filter((i) => (i.linha || i.id) !== id));
     setAviso({ texto: T("item_tirado"), acao: { rotulo: T("desfazer"), fazer: () => setCarrinho(antes) } });
   };
 
@@ -476,7 +483,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         body: JSON.stringify({
           unidade: unidadeId,
           cliente: { tipo: tipoPedido, nome: form.nome.trim(), telefone: form.telefone.trim() || null, endereco: tipoPedido === "delivery" ? form.endereco.trim() : null, troco: mesa || (pagamento && pagamento !== "dinheiro") ? null : form.troco.trim() || null, ...(mesa || !pagamento ? {} : { pagamento }), mesa: mesa || null },
-          itens: carrinho.map((i) => ({ id: i.id, quantidade: i.quantidade, observacao: i.observacao || "" })),
+          itens: carrinho.map((i) => ({ id: i.id, quantidade: i.quantidade, observacao: i.observacao || "", ...(i.opcoes ? { opcoes: i.opcoes } : {}) })),
           ...(cashbackAplicado > 0 ? { cashback: { usar: true, prova: fidPedidos.map((p) => p.id) } } : {}),
         }),
       });
@@ -991,7 +998,12 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           onIrParaSecao={irParaSecao} consultaInicial={consultaConversa} />
       ) : null}
 
-      {pAberto ? (
+      {pAberto && tabletNovo ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <TabletDetalhe cardapio={cardapio} produto={pAberto} idioma={lingua} mesa={mesa} podePedir={podePedir} onFechar={() => setPrato(null)}
+            onAdicionar={(id, n, nota, opcoes, direto) => { adicionar(id, n, nota, opcoes || undefined); if (!direto) setPrato(null); }} />
+        </TemaCardapio>
+      ) : pAberto ? (
         <Folha rotulo={pAberto.nome} onFechar={() => setPrato(null)} semCabeca idioma={lingua}
           pe={podePedir ? (
             <div className={s.linhaAcoes}>
@@ -1000,8 +1012,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
                 <output aria-live="polite">{qtdPrato}</output>
                 <button type="button" onClick={() => setQtdPrato((q) => Math.min(50, q + 1))} aria-label={T("mais_um")}><Plus size={18} aria-hidden="true" /></button>
               </span>
-              <button type="button" className={s.primario} onClick={() => { adicionar(pAberto.id, qtdPrato, obsPrato.trim()); setPrato(null); }}>
-                {T("adicionar_valor", { valor: formatarPreco(pAberto.preco * qtdPrato, lingua) })}
+              <button type="button" className={s.primario} disabled={!precoDaLinha(pAberto, escolhasPrato).ok} onClick={() => { adicionar(pAberto.id, qtdPrato, obsPrato.trim(), escolhasPrato); setPrato(null); }}>
+                {T("adicionar_valor", { valor: formatarPreco(precoDaLinha(pAberto, escolhasPrato).preco * qtdPrato, lingua) })}
               </button>
             </div>
           ) : null}>
@@ -1019,6 +1031,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             </div>
             <div className={s.itemRodape} style={{ marginTop: 8 }}><Preco produto={pAberto} idioma={lingua} /><Selos produto={pAberto} promocao={pAberto.promocao_id ? promoPorId.get(pAberto.promocao_id) : null} idioma={lingua} cartoes={cartoesDoPrato(cardapio, pAberto.id)} /></div>
             {pAberto.descricao ? <p className={s.detalheDescricao}>{pAberto.descricao}</p> : null}
+            {pAberto.grupos?.length ? <TemaCardapio cor={tema.cor_primaria} loja={tema}><Escolhas produto={pAberto} valor={escolhasPrato} onMudar={setEscolhasPrato} idioma={lingua} /></TemaCardapio> : null}
             {pAberto.promocao_id && promoPorId.get(pAberto.promocao_id)?.quando ? (
               <div className={s.detalheBloco}><strong>{T("promocao_bloco")}</strong><span>{promoPorId.get(pAberto.promocao_id).titulo} · {promoPorId.get(pAberto.promocao_id).quando}</span></div>
             ) : null}

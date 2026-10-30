@@ -38,17 +38,18 @@ export default function DeliverySacola({ cardapio, idioma = "pt", carrinho = [],
               <Botao variante="secundario" tamanho={44} onClick={onVoltar}>{T("ver_cardapio")}</Botao>
             </div>
           ) : linhas.map((i) => (
-            <div key={i.id} className={s.item}>
+            <div key={i.chave} className={s.item}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {i.foto ? <img className={s.itemFoto} src={i.foto} alt="" /> : <span className={s.itemFoto} aria-hidden="true" />}
               <div className={s.itemTextos}>
                 <button type="button" className={s.itemNome} onClick={() => onAbrirPrato(i.id)} aria-label={`${T("editar")}: ${i.nome}`}>{i.quantidade}× {i.nome}</button>
+                {i.escolhas ? <span className={s.itemObs}>{i.escolhas}</span> : null}
                 {i.observacao ? <span className={s.itemObs}>{i.observacao}</span> : null}
               </div>
               <div className={s.itemLado}>
                 <span className={s.itemPreco}>{formatarPreco(i.total, idioma)}</span>
                 <Quantidade pequeno valor={i.quantidade} min={0} max={50} nomeItem={i.nome}
-                  onMudar={(n) => (n < 1 ? remover(i.id) : alterarQtd(i.id, n - i.quantidade))} />
+                  onMudar={(n) => (n < 1 ? remover(i.chave) : alterarQtd(i.chave, n - i.quantidade))} />
               </div>
             </div>
           ))}

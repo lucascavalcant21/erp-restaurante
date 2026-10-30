@@ -13,4 +13,5 @@ export { default as FotoPrato } from "./FotoPrato";
 export { default as Preco } from "./Preco";
 export { default as Quantidade } from "./Quantidade";
 export { default as Segmentado } from "./Segmentado";
+export { default as Escolhas } from "./Escolhas";
 export { default as useMovimentoReduzido } from "./useMovimentoReduzido";

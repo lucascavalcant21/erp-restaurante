@@ -43,7 +43,7 @@ import {
   ordenarIngredientes,
   parseNumeroBR,
   precoNormalizadoDoInsumo,
-  textoPesquisavel,
+  textoPesquisavel, camposPesquisaveis,
   unidadeNormalizada,
   unidadesIngredientePorDepartamento,
   setorParaGravar,
@@ -57,6 +57,7 @@ import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { registrarAuditoria } from "../../../lib/hefisto-acoes";
 import CampoDecimal from "../../../components/CampoDecimal";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 const PAGE_SIZE = 10;
 
@@ -619,7 +620,7 @@ function IngredientesRunner() {
   const filtrados = useMemo(() => {
     const termo = normalizarBusca(busca);
     const lista = insumos.filter(insumo => {
-      const correspondeBusca = !termo || textoPesquisavel(insumo).includes(termo);
+      const correspondeBusca = !termo || casaBusca(camposPesquisaveis(insumo), busca) || textoPesquisavel(insumo).includes(termo);
       const correspondeCategoria = categoria === "Todas" || (insumo.categoria || "Outros") === categoria;
       return correspondeBusca && correspondeCategoria;
     });

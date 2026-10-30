@@ -10,6 +10,7 @@ import { PageHeader, PageBody, Card, SearchBar, EmptyState, Modal, Field, TextIn
 import { useERP } from "../../context/ERPContext";
 import { grupoMaterial, resumoDosMateriais } from "../../lib/materiais.mjs";
 import { adicionarAoEstoque, cadastrarMaterial, carregarMateriais, movimentarMaterial } from "../../lib/materiais";
+import { casaBusca } from "../../lib/busca.mjs";
 
 const ICONE = { limpeza: Sparkles, maquina: Droplets, embalagens: Package };
 const COR_ESTADO = { zerado: "#B42318", baixo: "#B45309", ok: "#047857", sem_estoque: "var(--dim)" };
@@ -113,7 +114,7 @@ export default function TelaMateriais({ grupoId }) {
   const avisar = (t) => { setToast(t); setTimeout(() => setToast(""), 3000); };
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return q ? lista.filter((p) => `${p.nome} ${p.categoria || ""}`.toLowerCase().includes(q)) : lista;
+    return q ? lista.filter((p) => casaBusca(`${p.nome} ${p.categoria || ""}`, q)) : lista;
   }, [lista, busca]);
   const resumo = resumoDosMateriais(lista);
   const idDoEstoque = (slug) => estoques.find((e) => e.slug === slug)?.id;

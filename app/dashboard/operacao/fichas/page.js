@@ -90,6 +90,7 @@ import { fatorCorrecaoDoItem, rendimentoDoInsumo } from "../../../lib/custo-rend
 import { quantidadeParaGravar } from "../../../lib/ficha-modelo.mjs";
 import CampoDecimal from "../../../components/CampoDecimal";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -882,7 +883,7 @@ function FichasRunner() {
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
   };
   const filtradas = fichas
-    .filter(f => normalizarNome(f.nome_receita).includes(normalizarNome(busca)) && passaFiltro(f))
+    .filter(f => (normalizarNome(f.nome_receita).includes(normalizarNome(busca)) || casaBusca([f.nome_receita, f.codigo, f.categoria], busca)) && passaFiltro(f))
     .sort(ordenarFichas);
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
   const fichasPagina = filtradas.slice((pagina - 1) * porPagina, pagina * porPagina);

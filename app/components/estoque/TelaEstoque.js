@@ -16,6 +16,7 @@ import { carregarVisaoEstoque, salvarMinMax } from "../../lib/estoque-visao";
 import { ESTADOS, locaisDeEstadoQueFaltam, destinoDoEstado } from "../../lib/estoque-areas.mjs";
 import { salvarEstoque } from "../../lib/estoques-multiplos";
 import { PADRAO_RITMO } from "../../lib/estoque-ritmo.mjs";
+import { casaBusca } from "../../lib/busca.mjs";
 
 const brl = (n) => Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmt = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
@@ -108,7 +109,7 @@ export default function TelaEstoque({ inicial = {} }) {
       if (situacao === "sem_min" && l.minimo > 0) return false;
       if (situacao === "sugestao" && !(l.sugestao.ok && (l.sugestao.minimo !== l.minimo || l.sugestao.maximo !== l.maximo))) return false;
       if (["zerado", "baixo", "acima", "parado"].includes(situacao) && l.situacao !== situacao) return false;
-      return !q || `${l.nome} ${l.categoria} ${l.local}`.toLowerCase().includes(q);
+      return !q || casaBusca(`${l.nome} ${l.categoria} ${l.local}`, q);
     }).sort((a, b) => ORDEM[a.situacao] - ORDEM[b.situacao] || a.nome.localeCompare(b.nome, "pt-BR"));
   }, [linhas, busca, area, situacao, estado]);
 

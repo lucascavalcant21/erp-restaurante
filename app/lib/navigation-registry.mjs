@@ -2,6 +2,7 @@
 // Fonte única de verdade de metadados para busca universal, Command Center e catálogo.
 
 import { canAccessRoute, hasPermission } from "./permissions-catalog.mjs";
+import { casaBusca } from "./busca.mjs";
 
 export const NAVIGATION_REGISTRY = [
   // --- INÍCIO & VISÃO GERAL ---
@@ -1191,6 +1192,10 @@ export function searchNavigationRegistry(query = "", session = null, options = {
     // 3. Nome contém termo
     else if (normTitle.includes(normQuery) || normShort.includes(normQuery)) {
       score += 600;
+    }
+    // 3b. Cada palavra digitada começa uma palavra do nome ("cont pag" → Contas a pagar)
+    else if (casaBusca(`${item.title} ${item.shortTitle || ""}`, query)) {
+      score += 550;
     }
 
     // 4. Correspondência em Keywords

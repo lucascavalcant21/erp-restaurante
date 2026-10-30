@@ -175,6 +175,12 @@ export function calcularCustoSolicitado(insumo, quantidadeInformada, unidadeSoli
   return { valor: volumeL * normalizado, erro: "" };
 }
 
+/** Os mesmos campos da busca, sem juntar as palavras (para casaBusca). */
+export function camposPesquisaveis(insumo) {
+  const fornecedores = (insumo?.fornecedores_vinculados || []).map((item) => (typeof item === "string" ? item : item?.nome)).filter(Boolean);
+  return [insumo?.nome, insumo?.nome_interno, insumo?.marca, insumo?.fornecedor, ...fornecedores, insumo?.codigo_interno, insumo?.categoria].filter(Boolean).join(" ");
+}
+
 export function textoPesquisavel(insumo) {
   const fornecedores = (insumo?.fornecedores_vinculados || [])
     .map(item => typeof item === "string" ? item : item?.nome)

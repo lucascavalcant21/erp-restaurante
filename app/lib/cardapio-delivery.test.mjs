@@ -72,10 +72,29 @@ test("sugestões da sacola: 1 bebida e 1 sobremesa, destaque primeiro, sem repet
 test("linhas da sacola: só pratos que existem, com o total do item", async () => {
   const { linhasDaSacola } = await import("./cardapio-delivery.mjs");
   const l = linhasDaSacola([{ id: "picanha", quantidade: 2, observacao: "ao ponto" }, { id: "sumiu", quantidade: 1 }], sacola);
-  assert.deepEqual(l, [{ id: "picanha", nome: "Picanha", foto: "", quantidade: 2, observacao: "ao ponto", total: 179.8 }]);
+  assert.deepEqual(l, [{ id: "picanha", chave: "picanha", nome: "Picanha", foto: "", quantidade: 2, escolhas: "", observacao: "ao ponto", total: 179.8 }]);
 });
 
 test("agora na casa sem promoção nem destaque: pratos da casa, com foto primeiro", () => {
   const l = itensAgoraNaCasa({ promocoes: [], produtos: [{ id: "a", nome: "A", preco: 1 }, { id: "b", nome: "B", preco: 2, imagem_url: "/b.jpg" }] }, { rotuloDestaque: "Destaque" });
   assert.deepEqual(l.map((x) => x.id), ["b", "a"]);
+});
+
+test("complementos: tamanho obrigatório, adicionais até o máximo, preço igual na tela e no servidor", async () => {
+  const { precoDaLinha, totalDoCarrinho } = await import("./cardapio-digital.mjs");
+  const tacaca = {
+    id: "t", nome: "Tacacá", preco: 32,
+    grupos: [
+      { id: "tam", nome: "Tamanho", tipo: "adicional", min: 1, max: 1, opcoes: [{ id: "m", nome: "Cuia média", preco: 0 }, { id: "g", nome: "Cuia grande", preco: 10 }] },
+      { id: "turbo", nome: "Turbine", tipo: "adicional", min: 0, max: 2, opcoes: [{ id: "cam", nome: "Camarão extra", preco: 8 }, { id: "jam", nome: "Mais jambu", preco: 4 }, { id: "x", nome: "X", preco: 1 }] },
+      { id: "sem", nome: "Retirar", tipo: "retirar", min: 0, max: 3, opcoes: [{ id: "cs", nome: "camarão seco", preco: 0 }] },
+    ],
+  };
+  assert.equal(precoDaLinha(tacaca, {}).erro, "falta_escolha");
+  const l = precoDaLinha(tacaca, { tam: ["g"], turbo: ["cam"], sem: ["cs"] });
+  assert.deepEqual([l.ok, l.preco, l.texto], [true, 50, "Tamanho: Cuia grande · Turbine: Camarão extra · Sem: camarão seco"]);
+  assert.equal(precoDaLinha(tacaca, { tam: ["m"], turbo: ["cam", "jam", "x"] }).erro, "escolhas_demais");
+  assert.equal(precoDaLinha(tacaca, { tam: ["zz"] }).erro, "opcao_invalida");
+  const t = totalDoCarrinho([{ id: "t", quantidade: 2, opcoes: { tam: ["g"], turbo: ["cam"] } }], { produtos: [tacaca], promocoes: [] });
+  assert.equal(t.subtotal, 100);
 });

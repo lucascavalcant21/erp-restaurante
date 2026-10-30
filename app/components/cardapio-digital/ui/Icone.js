@@ -24,6 +24,8 @@ const ICONES = {
   video: [{ r: [3, 5, 18, 14, 2] }, "m10 9 5 3-5 3z"],
   casa: ["M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"],
   pedidos: ["M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"],
+  lapis: ["M4 20h4L19 9l-4-4L4 16v4z", "M14 6l4 4"],
+  lixeira: ["M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"],
   descontos: ["M3 12V4h8l10 10-8 8zM7.5 8h.01"],
   perfil: ["M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"],
 };

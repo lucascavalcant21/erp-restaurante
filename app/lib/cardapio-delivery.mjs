@@ -2,6 +2,8 @@
 // Tudo sai do cardápio que o servidor montou (montarCardapioPublico): nada de
 // prato, preço ou desconto que o dono não cadastrou.
 
+import { precoDaLinha } from "./cardapio-digital.mjs";
+
 /**
  * "Agora na casa": as promoções que valem agora (com o prato que a promoção
  * baixa o preço) e, depois, os pratos que o dono marcou como destaque. Um
@@ -107,7 +109,10 @@ export function linhasDaSacola(carrinho = [], cardapio) {
     .map((i) => {
       const p = porId.get(i.id);
       if (!p) return null;
-      return { id: i.id, nome: p.nome, foto: p.imagem_url || "", quantidade: i.quantidade, observacao: i.observacao || "", total: Math.round(p.preco * i.quantidade * 100) / 100 };
+      // Com escolhas (tamanho, adicionais): o preço da linha e o texto delas.
+      const l = i.opcoes ? precoDaLinha(p, i.opcoes) : null;
+      const unit = l?.ok ? l.preco : p.preco;
+      return { id: i.id, chave: i.linha || i.id, nome: p.nome, foto: p.imagem_url || "", quantidade: i.quantidade, escolhas: l?.ok ? l.texto : "", observacao: i.observacao || "", total: Math.round(unit * i.quantidade * 100) / 100 };
     })
     .filter(Boolean);
 }

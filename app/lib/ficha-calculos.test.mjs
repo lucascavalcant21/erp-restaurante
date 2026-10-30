@@ -362,3 +362,4 @@ conferir("Cenário D - Custo total por porção R$", resD.custoTotal, 31.28);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);
+

@@ -670,3 +670,61 @@ export function entradasFinanceirasParaEditor(ficha = {}, produto = null) {
     eh_base: !!ficha?.eh_base,
   };
 }
+
+// ─── Lançar por unidade ou por porção (pedido do dono, 30/10/2026) ──────────
+// "Bolinho de carne vem em pacote de 12 unidades, 300 g por R$ 12: o kg é X,
+// cada unidade pesa Y e custa Z; na ficha eu uso a unidade ou a porção."
+// A ficha grava SEMPRE na unidade-base do insumo (kg, L, g, ml); aqui só a
+// forma de digitar: kg, g, unidade (peso de 1 unidade) ou porção (peso da porção).
+
+const GRAMAS_POR_BASE = { kg: 1000, g: 1, l: 1000, ml: 1 };
+
+/** Peso de 1 unidade (g) e da porção (g) do insumo, se cadastrados. */
+export function pesosDoInsumo(insumo = {}) {
+  const base = String(insumo.unidade_medida || "").toLowerCase();
+  const gpb = GRAMAS_POR_BASE[base] || null;
+  const unidadeG = parseNumero(insumo.peso_peca_g) > 0 ? parseNumero(insumo.peso_peca_g) : parseNumero(insumo.peso_medio_g) > 0 ? parseNumero(insumo.peso_medio_g) : null;
+  const porcaoG = gpb && parseNumero(insumo.medida_padrao) > 0 ? parseNumero(insumo.medida_padrao) * gpb : null;
+  return { unidadeG, porcaoG, gramasPorBase: gpb };
+}
+
+/**
+ * Formas de digitar a quantidade de um ingrediente na ficha. `fator` converte
+ * a quantidade-base gravada no número mostrado (mostrado = base × fator).
+ */
+export function modosDeLancamento({ unidade, unidadeG = null, porcaoG = null } = {}) {
+  const u = String(unidade || "").toLowerCase();
+  const gpb = GRAMAS_POR_BASE[u];
+  const modos = [{ id: "base", rotulo: u === "l" ? "L" : u || "un", fator: 1 }];
+  if (u === "kg") modos.push({ id: "sub", rotulo: "g", fator: 1000 });
+  if (u === "l") modos.push({ id: "sub", rotulo: "ml", fator: 1000 });
+  if (gpb && unidadeG > 0) modos.push({ id: "un", rotulo: "un", fator: gpb / unidadeG, detalhe: `1 un = ${unidadeG.toLocaleString("pt-BR")} g` });
+  if (gpb && porcaoG > 0) modos.push({ id: "porcao", rotulo: "porção", fator: gpb / porcaoG, detalhe: `1 porção = ${porcaoG.toLocaleString("pt-BR")} g` });
+  return modos;
+}
+
+/** Ao reabrir a ficha: unidade quando a quantidade dá um número redondo de unidades. */
+export function modoInicial(quantidadeBase, modos = []) {
+  const q = parseNumero(quantidadeBase);
+  const un = modos.find((m) => m.id === "un");
+  if (un && q > 0) { const n = q * un.fator; if (n >= 1 && Math.abs(n - Math.round(n)) < 0.01) return "un"; }
+  return modos.some((m) => m.id === "sub") && q > 0 && q < 1 ? "sub" : "base";
+}
+
+/**
+ * Conta do pacote para o cadastro: preço do kg, peso e preço de 1 unidade e
+ * da porção. Ex.: 300 g por R$ 12, 12 unidades → R$ 40/kg, 25 g e R$ 1,00 a unidade.
+ */
+export function contaDoPacote({ pesoPacoteG, precoPacote, unidadesNoPacote = null, unidadeG = null, porcaoG = null } = {}) {
+  const peso = parseNumero(pesoPacoteG); const preco = parseNumero(precoPacote);
+  if (!(peso > 0) || !(preco > 0)) return null;
+  const precoKg = Math.round((preco / peso) * 1000 * 100) / 100;
+  const n = parseNumero(unidadesNoPacote);
+  const pesoUn = n > 0 ? peso / n : parseNumero(unidadeG) > 0 ? parseNumero(unidadeG) : null;
+  const r2 = (v) => Math.round(v * 100) / 100;
+  return {
+    precoKg,
+    unidade: pesoUn ? { pesoG: Math.round(pesoUn * 10) / 10, preco: r2((preco / peso) * pesoUn), porPacote: n > 0 ? n : Math.round((peso / pesoUn) * 10) / 10 } : null,
+    porcao: parseNumero(porcaoG) > 0 ? { pesoG: parseNumero(porcaoG), preco: r2((preco / peso) * parseNumero(porcaoG)), porPacote: Math.round((peso / parseNumero(porcaoG)) * 10) / 10 } : null,
+  };
+}

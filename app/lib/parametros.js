@@ -344,3 +344,13 @@ export async function fetchOfertasMarmitaria(unidadeId) {
   return { data: Array.isArray(v) ? v : [], error: null };
 }
 export const salvarOfertasMarmitaria = (unidadeId, ofertas) => salvarParams(unidadeId, { marmitaria_ofertas: Array.isArray(ofertas) ? ofertas.slice(0, 60) : [] });
+
+/* Janta dos funcionários (cardápio da semana, gramas por pessoa e preparo):
+ * config_sistema.params.janta_funcionarios. */
+export async function fetchJantaFuncionarios(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: null, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: null, error: error.message };
+  return { data: data?.[0]?.params?.janta_funcionarios || null, error: null };
+}
+export const salvarJantaFuncionarios = (unidadeId, janta) => salvarParams(unidadeId, { janta_funcionarios: janta });

@@ -7,6 +7,7 @@ import { CalendarClock, AlertTriangle, CheckCircle, Clock, Check, XCircle, Trend
 import { PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi, Chips, SearchBar, EmptyState, fmtData, fmtBRL } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEtiquetas, atualizarStatusEtiqueta } from "../../../lib/etiquetas";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 function statusValidade(iso) {
   const dias = Math.floor((new Date(iso).getTime() - Date.now()) / 86400000);
@@ -65,7 +66,7 @@ export function ControleValidade({ embutido = false }) {
   const base = filtro === "perdas" ? perdas : filtro === "baixados" ? baixados : ativos;
   const filtradas = useMemo(() => base.filter((e) => {
     const q = busca.toLowerCase().trim();
-    const mb = !q || e.produto?.toLowerCase().includes(q) || (e.codigo || "").toLowerCase().includes(q);
+    const mb = !q || casaBusca([e.produto, e.codigo], q);
     let mf = true;
     if (filtro === "vencendo") mf = e.dias >= 0 && e.dias <= 7;
     if (filtro === "vencidos") mf = e.dias < 0;

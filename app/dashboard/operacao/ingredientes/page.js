@@ -43,7 +43,7 @@ import {
   ordenarIngredientes,
   parseNumeroBR,
   precoNormalizadoDoInsumo,
-  textoPesquisavel,
+  textoPesquisavel, camposPesquisaveis,
   unidadeNormalizada,
   unidadesIngredientePorDepartamento,
   setorParaGravar,
@@ -57,6 +57,12 @@ import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { registrarAuditoria } from "../../../lib/hefisto-acoes";
 import CampoDecimal from "../../../components/CampoDecimal";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
+import { casaBusca } from "../../../lib/busca.mjs";
+import { contaDoPacote, pesosDoInsumo } from "../../../lib/ficha-calculos.mjs";
+
+// Gramas (ou ml) por unidade-base do cadastro: o pacote vem em kg, g, L ou ml.
+const GRAMAS_POR_BASE_UI = { kg: 1000, g: 1, l: 1000, ml: 1 };
+const gramasDoPacote = (tamanho, unidade) => { const f = GRAMAS_POR_BASE_UI[String(unidade || "").toLowerCase()]; const t = Number(tamanho); return f && t > 0 ? t * f : 0; };
 
 const PAGE_SIZE = 10;
 
@@ -93,6 +99,8 @@ function novoFormulario(departamento = "cozinha") {
     perda_g: "",
     peso_peca_g: "",
     pecas_por_kg: "",
+    unidades_pacote: "",
+    porcao_g: "",
     empanado: false,
     ganho_pct: "",
     custo_empanado_kg: "",
@@ -619,7 +627,7 @@ function IngredientesRunner() {
   const filtrados = useMemo(() => {
     const termo = normalizarBusca(busca);
     const lista = insumos.filter(insumo => {
-      const correspondeBusca = !termo || textoPesquisavel(insumo).includes(termo);
+      const correspondeBusca = !termo || casaBusca(camposPesquisaveis(insumo), busca) || textoPesquisavel(insumo).includes(termo);
       const correspondeCategoria = categoria === "Todas" || (insumo.categoria || "Outros") === categoria;
       return correspondeBusca && correspondeCategoria;
     });
@@ -679,6 +687,9 @@ function IngredientesRunner() {
       perda_g: insumo.perda_g != null ? String(insumo.perda_g) : "",
       peso_peca_g: insumo.peso_peca_g != null ? String(insumo.peso_peca_g) : "",
       pecas_por_kg: insumo.pecas_por_kg != null ? String(insumo.pecas_por_kg) : "",
+      // Unidades no pacote e porção: derivados do peso da unidade e da medida padrão.
+      unidades_pacote: (() => { const g = gramasDoPacote(insumo.tamanho_embalagem, insumo.unidade_medida); const pu = Number(insumo.peso_peca_g || insumo.peso_medio_g); return g > 0 && pu > 0 ? String(Math.round(g / pu)) : ""; })(),
+      porcao_g: (() => { const p = pesosDoInsumo(insumo).porcaoG; return p ? String(Math.round(p * 10) / 10).replace(".", ",") : ""; })(),
       empanado: !!insumo.empanado,
       ganho_pct: insumo.ganho_pct != null ? String(insumo.ganho_pct) : "",
       custo_empanado_kg: insumo.custo_empanado_kg != null ? String(insumo.custo_empanado_kg) : "",
@@ -800,8 +811,15 @@ function IngredientesRunner() {
       peso_bruto_padrao: Number.isFinite(pesoBruto) ? pesoBruto : null,
       perda_g: Number.isFinite(perdaG) ? perdaG : null,
       perda_pct: perdaPct != null ? Number(perdaPct.toFixed(3)) : null,
-      peso_peca_g: form.peso_peca_g ? parseNumeroBR(form.peso_peca_g) : null,
-      pecas_por_kg: form.pecas_por_kg ? parseNumeroBR(form.pecas_por_kg) : null,
+      // Unidades no pacote vence: o peso da unidade é o do pacote ÷ unidades.
+      ...(() => {
+        const n = parseNumeroBR(form.unidades_pacote); const g = gramasDoPacote(parseNumeroBR(form.tamanho_embalagem), form.unidade_medida);
+        const pu = n > 0 && g > 0 ? Math.round((g / n) * 10) / 10 : (form.peso_peca_g ? parseNumeroBR(form.peso_peca_g) : null);
+        return { peso_peca_g: pu, pecas_por_kg: pu > 0 ? Math.round((1000 / pu) * 100) / 100 : (form.pecas_por_kg ? parseNumeroBR(form.pecas_por_kg) : null), peso_medio_g: pu };
+      })(),
+      // A ficha técnica lê o peso da unidade em peso_medio_g e a porção em medida_padrao (na unidade-base).
+      ...(form.porcao_g !== "" && parseNumeroBR(form.porcao_g) > 0 && GRAMAS_POR_BASE_UI[String(form.unidade_medida || "").toLowerCase()]
+        ? { medida_padrao: parseNumeroBR(form.porcao_g) / GRAMAS_POR_BASE_UI[String(form.unidade_medida).toLowerCase()] } : {}),
       empanado: !!form.empanado,
       ganho_pct: ganhoPct,
       custo_empanado_kg: custoEmpanadoKg,
@@ -1338,11 +1356,23 @@ function IngredientesRunner() {
                 <div className="mt-4 border-t border-line-soft pt-3 space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-fg flex items-center gap-1.5">
                     <Calculator size={14} className="text-success" />
-                    Porcionamento por Peça / Unidade (Opcional)
+                    Unidade e porção (opcional)
                   </h4>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <p className="text-xs font-semibold text-fg">Ex.: bolinho de carne em pacote de 12 unidades, 300 g por R$ 12: o kg sai R$ 40, cada unidade pesa 25 g e custa R$ 1,00. Na ficha técnica (restaurante, evento ou marmita) dá para lançar em kg, g, unidade ou porção.</p>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <label>
-                      <span className="text-xs font-bold text-slate-900">Peso médio de 1 peça (g)</span>
+                      <span className="text-xs font-bold text-slate-900">Unidades no pacote</span>
+                      <input inputMode="numeric" value={form.unidades_pacote} placeholder="Ex.: 12"
+                        onChange={e => {
+                          const val = e.target.value; const n = parseNumeroBR(val);
+                          const g = gramasDoPacote(parseNumeroBR(form.tamanho_embalagem), form.unidade_medida);
+                          const pu = n > 0 && g > 0 ? Math.round((g / n) * 10) / 10 : null;
+                          setForm({ ...form, unidades_pacote: val, ...(pu ? { peso_peca_g: String(pu).replace(".", ","), pecas_por_kg: (1000 / pu).toFixed(2).replace(".", ",") } : {}) });
+                        }}
+                        className="mt-1 h-10 w-full rounded-xl border border-line bg-white px-3 text-xs font-bold outline-none focus:border-emerald-500 text-slate-800" />
+                    </label>
+                    <label>
+                      <span className="text-xs font-bold text-slate-900">Peso de 1 unidade (g)</span>
                       <input
                         inputMode="decimal"
                         value={form.peso_peca_g}
@@ -1350,14 +1380,15 @@ function IngredientesRunner() {
                           const val = e.target.value;
                           const numG = parseNumeroBR(val);
                           const pecas = Number.isFinite(numG) && numG > 0 ? (1000 / numG).toFixed(2).replace('.', ',') : "";
-                          setForm({ ...form, peso_peca_g: val, pecas_por_kg: pecas });
+                          const g = gramasDoPacote(parseNumeroBR(form.tamanho_embalagem), form.unidade_medida);
+                          setForm({ ...form, peso_peca_g: val, pecas_por_kg: pecas, unidades_pacote: numG > 0 && g > 0 ? String(Math.round(g / numG)) : form.unidades_pacote });
                         }}
-                        placeholder="Ex.: 150 (g por unidade)"
+                        placeholder="Ex.: 25"
                         className="mt-1 h-10 w-full rounded-xl border border-line bg-white px-3 text-xs font-bold outline-none focus:border-emerald-500 text-slate-800"
                       />
                     </label>
                     <label>
-                      <span className="text-xs font-bold text-slate-900">Qtd. média de peças por kg</span>
+                      <span className="text-xs font-bold text-slate-900">Unidades por kg</span>
                       <input
                         inputMode="decimal"
                         value={form.pecas_por_kg}
@@ -1367,33 +1398,42 @@ function IngredientesRunner() {
                           const peso = Number.isFinite(numPec) && numPec > 0 ? (1000 / numPec).toFixed(1).replace('.', ',') : "";
                           setForm({ ...form, pecas_por_kg: val, peso_peca_g: peso });
                         }}
-                        placeholder="Ex.: 6 (un por kg)"
+                        placeholder="Ex.: 40"
                         className="mt-1 h-10 w-full rounded-xl border border-line bg-white px-3 text-xs font-bold outline-none focus:border-emerald-500 text-slate-800"
                       />
+                    </label>
+                    <label>
+                      <span className="text-xs font-bold text-slate-900">Porção (g)</span>
+                      <input inputMode="decimal" value={form.porcao_g} onChange={e => setForm({ ...form, porcao_g: e.target.value })} placeholder="Ex.: 100"
+                        className="mt-1 h-10 w-full rounded-xl border border-line bg-white px-3 text-xs font-bold outline-none focus:border-emerald-500 text-slate-800" />
                     </label>
                   </div>
 
                   {(() => {
-                    const pKg = calcularPrecoNormalizado(parseNumeroBR(form.tamanho_embalagem), form.unidade_medida, parseNumeroBR(form.valor_embalagem));
-                    const pesoG = parseNumeroBR(form.peso_peca_g);
-                    const pecasKg = parseNumeroBR(form.pecas_por_kg);
-                    if (pKg > 0 && (pesoG > 0 || pecasKg > 0)) {
-                      const custoPeca = pesoG > 0 ? pKg * (pesoG / 1000) : pKg / pecasKg;
-                      const pecasCalc = pecasKg || (1000 / pesoG);
-                      const pesoCalc = pesoG || (1000 / pecasKg);
-                      return (
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-950 space-y-1">
-                          <div className="flex justify-between items-center font-black text-emerald-900">
-                            <span>🥩 Custo estimado por peça/unidade:</span>
-                            <span className="text-sm font-black text-accent">{fmtBRL(custoPeca)} / unidade</span>
-                          </div>
-                          <p className="font-semibold text-emerald-800">
-                            ~<strong>{pesoCalc.toFixed(0)}g</strong> por peça · Rende cerca de <strong>{pecasCalc.toFixed(1)} peças por kg</strong>.
-                          </p>
+                    const c = contaDoPacote({
+                      pesoPacoteG: gramasDoPacote(parseNumeroBR(form.tamanho_embalagem), form.unidade_medida),
+                      precoPacote: parseNumeroBR(form.valor_embalagem),
+                      unidadesNoPacote: parseNumeroBR(form.unidades_pacote),
+                      unidadeG: parseNumeroBR(form.peso_peca_g),
+                      porcaoG: parseNumeroBR(form.porcao_g),
+                    });
+                    if (!c) return <p className="text-xs font-semibold text-fg">Preencha o tamanho e o valor da embalagem em gramas ou kg para ver o preço do kg, da unidade e da porção.</p>;
+                    return (
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                          <p className="text-3xs font-black uppercase tracking-wider text-emerald-800">1 kg</p>
+                          <p className="text-lg font-black text-accent">{fmtBRL(c.precoKg)}</p>
                         </div>
-                      );
-                    }
-                    return null;
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                          <p className="text-3xs font-black uppercase tracking-wider text-emerald-800">1 unidade</p>
+                          {c.unidade ? <><p className="text-lg font-black text-accent">{fmtBRL(c.unidade.preco)}</p><p className="text-xs font-semibold text-emerald-900">{c.unidade.pesoG.toLocaleString("pt-BR")} g · {c.unidade.porPacote.toLocaleString("pt-BR")} no pacote</p></> : <p className="text-xs font-semibold text-emerald-900">Informe unidades no pacote ou o peso de 1 unidade.</p>}
+                        </div>
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                          <p className="text-3xs font-black uppercase tracking-wider text-emerald-800">1 porção</p>
+                          {c.porcao ? <><p className="text-lg font-black text-accent">{fmtBRL(c.porcao.preco)}</p><p className="text-xs font-semibold text-emerald-900">{c.porcao.pesoG.toLocaleString("pt-BR")} g · {c.porcao.porPacote.toLocaleString("pt-BR")} por pacote</p></> : <p className="text-xs font-semibold text-emerald-900">Informe o peso da porção.</p>}
+                        </div>
+                      </div>
+                    );
                   })()}
                 </div>
               </section>

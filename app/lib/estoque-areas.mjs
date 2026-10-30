@@ -128,3 +128,89 @@ export function categoriaNaArea(insumo, areaId) {
   }
   return area.categorias.includes("Outros materiais") ? "Outros materiais" : null;
 }
+
+/* GRUPOS DO ESTOQUE (pedido do dono, 30/10/2026: "no estoque dividido por
+ * hortifrúti, carne vermelha, suína… para cozinha e bar, conforme suas
+ * categorias"). O cadastro não muda: o grupo sai da categoria que já existe
+ * e, quando ela é larga ("Carne vermelha", "Outros"), do nome do produto. */
+export const GRUPOS_ESTOQUE = {
+  cozinha: [
+    { id: "vermelha", rotulo: "Carne vermelha" },
+    { id: "suina", rotulo: "Carne suína" },
+    { id: "aves", rotulo: "Aves" },
+    { id: "hortifruti", rotulo: "Hortifrúti" },
+    { id: "secos", rotulo: "Produtos secos" },
+    { id: "liquidos", rotulo: "Produtos líquidos" },
+    { id: "petiscos", rotulo: "Petiscos" },
+    { id: "peixes", rotulo: "Peixes" },
+    { id: "outros", rotulo: "Outros" },
+  ],
+  bar: [
+    { id: "hortifruti", rotulo: "Hortifrúti" },
+    { id: "descartaveis", rotulo: "Descartáveis" },
+    { id: "cervejas", rotulo: "Cervejas" },
+    { id: "aguas", rotulo: "Águas" },
+    { id: "refrigerantes", rotulo: "Refrigerantes" },
+    { id: "destilados", rotulo: "Destilados" },
+    { id: "vinhos", rotulo: "Vinhos" },
+    { id: "xaropes", rotulo: "Xaropes" },
+    { id: "limao", rotulo: "Super suco de limão" },
+    { id: "polpas", rotulo: "Polpas" },
+    { id: "outros", rotulo: "Outros" },
+  ],
+};
+
+const tem = (t, re) => re.test(t);
+const SUINA = /\b(porco|suin[oa]s?|bacon|lombo|pernil|panceta|torresmo|linguica|calabresa|costelinha suina|paio|presunto|toucinho)\b/;
+const AVES = /\b(frango|galinha|peru|chester|pato|sobrecoxa)\b/;
+const PEIXES = /\b(peixe|camarao|camaroes|tilapia|salmao|bacalhau|polvo|lula|sururu|caranguejo|siri|marisco|mexilhao|manjuba|lagosta|crab|pescada|filhote|tambaqui|pirarucu|dourada|atum)\b/;
+const BOVINA = /\b(picanha|alcatra|maminha|fraldinha|contra ?file|mignon|patinho|acem|cupim|costela|carne|musculo|lagarto|coxao|hamburguer|charque|bovin[oa]|bife)\b/;
+const HORTI = /\b(tomate|cebola|alho|batata|cenoura|alface|rucula|limao|laranja|banana|abacaxi|maracuja|manga|morango|cheiro verde|coentro|salsa|cebolinha|pimentao|pepino|abobora|macaxeira|mandioca|aipim|jambu|chicoria|repolho|couve|brocolis|milho verde|hortela|manjericao|gengibre|uva|melancia|mamao|acerola|cupuacu|graviola|tucuma|maniva|acai|legumes?|verduras?|frutas?)\b/;
+const LATI = /\b(leite|queijo|manteiga|creme de leite|requeijao|iogurte|nata|mussarela|parmesao|catupiry|cheddar|cheedar|ovos?)\b/;
+const MOLHOS = /\b(molho|tucupi|caldo|tempero|mostarda|colorau|ketchup|maionese|shoyu|vinagrete)\b/;
+const DESTILADOS = /\b(cachaca|vodka|gin|whisky|whiskey|rum|tequila|licor|aperitivo|campari|aperol|conhaque|jager|jagermeister|absolut|smirnoff|ypioca|velho barreiro|domecq|chivas?|martini|vermute|curacau|cointreau|contreau|steinhaeger|absinto|destilados?)\b/;
+const CERVEJAS = /\b(cervejas?|chopp?|chope|heineken|corona|stella|amstel|eisenbahn|cerpa|budweiser|brahma|skol|itaipava|original|long neck|coroa)\b/;
+const REFRI = /\b(refrigerantes?|coca|guarana|fanta|sprite|soda|tonica|schweppes|energetico|red bull)\b/;
+
+/** Grupo do produto no estoque (Cozinha ou Bar). O nome vence a categoria quando é claro. */
+export function grupoDoEstoque(linha = {}) {
+  const area = linha.area === "bar" ? "bar" : "cozinha";
+  const cat = norm(linha.categoria);
+  const nome = norm(linha.nome);
+  if (area === "bar") {
+    if (tem(nome, /\b(canudos?|copos?|guardanapos?|descartave(l|is)|tampas?|mexedor|palitos?)\b/) || tem(cat, /descartave/)) return "descartaveis";
+    if (tem(nome, /\bsuco de limao\b|\bsuper suco\b/)) return "limao";
+    if (tem(nome, /\b(xarope|monin|calda|syrup|grenadine|espumas?)\b/)) return "xaropes";
+    if (tem(nome, /\b(polpa|poupa|suco)\b/)) return "polpas";
+    if (tem(nome, DESTILADOS)) return "destilados";
+    if (tem(nome, /\b(vinho|espumante|prosecco|champagne|sangria)\b/) || tem(cat, /vinho/)) return "vinhos";
+    if (tem(nome, CERVEJAS)) return "cervejas";
+    if (tem(nome, REFRI)) return "refrigerantes";
+    if (tem(nome, /\bagua\b/)) return "aguas";
+    if (tem(nome, HORTI) || tem(cat, /hortifruti|fruta|guarnic/) || tem(nome, /\b(alecrim|hibisco|ibisco|abacate|casca de laranja|desidratad[oa])\b/)) return "hortifruti";
+    if (tem(cat, /xarope|espuma/)) return "xaropes";
+    if (tem(cat, /polpa|suco|batida/)) return "polpas";
+    if (tem(cat, /destilad|cachaca|vodka|licor|aperitiv/)) return "destilados";
+    if (tem(cat, /cervej/)) return "cervejas";
+    if (tem(cat, /refrigerante/)) return "refrigerantes";
+    if (tem(cat, /agua/)) return "aguas";
+    return "outros";
+  }
+  // Cozinha (laticínios e molhos líquidos vão para Produtos líquidos; queijo e ovo para Outros)
+  if (tem(nome, SUINA) && !tem(nome, /\bpimenta\b/)) return "suina";
+  if (tem(cat, /petisco|congelad|salgado/)) return "petiscos";
+  if (tem(nome, PEIXES) && !tem(cat, /molho|caldo/)) return "peixes";
+  if (tem(cat, /hortifruti|legume|verdura|fruta/)) return "hortifruti";
+  if (tem(cat, /frutos do mar|peixe/)) return "peixes";
+  if (tem(cat, /\baves?\b|frango/) || tem(nome, AVES)) return "aves";
+  if (tem(cat, /carne|bovin/) || (tem(nome, BOVINA) && !tem(cat, /molho|caldo/))) return "vermelha";
+  if (tem(cat, /liquido|oleo|molho|caldo/)) return "liquidos";
+  if (tem(cat, /laticini/)) return tem(nome, /\b(queijo|mussarela|parmesao|cheddar|cheedar|pastel)\b/) ? "outros" : "liquidos";
+  if (tem(cat, /seco|farinha|empanament|grao|mercearia/)) return "secos";
+  if (tem(nome, HORTI)) return "hortifruti";
+  if (tem(nome, MOLHOS) || tem(nome, /\b(oleo|azeite|vinagre|leite|creme de leite)\b/)) return "liquidos";
+  if (tem(nome, /\b(arroz|feijao|farinha|acucar|sal|macarrao|trigo|fuba|aveia|tapioca|cafe|chocolate|castanha|amendoim|gelatina|amido|glutamato|ajinomoto|corante|pimenta|colorau|louro)\b/)) return "secos";
+  return "outros";
+}
+
+export const rotuloDoGrupo = (area, id) => (GRUPOS_ESTOQUE[area === "bar" ? "bar" : "cozinha"].find((g) => g.id === id) || { rotulo: "Outros" }).rotulo;

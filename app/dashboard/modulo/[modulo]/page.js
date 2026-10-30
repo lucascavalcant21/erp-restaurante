@@ -119,7 +119,7 @@ const MODULOS = {
       ]},
       { title: "Apoio", subtitle: "Atas, refeitório e regulamento", icon: ScrollText, accent: "#0891b2", items: [
         { label: "Atas de Reunião", desc: "Decisões e alinhamentos", href: "/dashboard/rh/atas", icon: ScrollText },
-        { label: "Refeitório", desc: "Cardápio da equipe", href: "/dashboard/rh/cardapio-funcionarios", icon: Utensils },
+        { label: "Janta dos funcionários", desc: "Cardápio da semana e quantidades", href: "/dashboard/rh/cardapio-funcionarios", icon: Utensils },
         { label: "Bônus e Regulamento", desc: "Regras de RH", href: "/dashboard/rh/configuracoes", icon: Settings },
       ]},
     ],

@@ -5,7 +5,7 @@
 // segunda vira atualização da mesma ficha, nunca uma duplicata.
 
 import { novaChave } from "../contas-pagar.mjs";
-import { parseNumero } from "../ficha-calculos.mjs";
+import { parseNumero, pesosDoInsumo } from "../ficha-calculos.mjs";
 import { paraUnidadeDoCadastro, custoDaMarmita } from "./nucleo.mjs";
 
 export const TAMANHOS = ["P", "M", "G", "GG"];
@@ -52,7 +52,7 @@ export function formDaMarmita(m, ctx) {
 export function itensConvertidos(form, ctx) {
   return form.itens.map((it) => {
     const un = unidadeDoItem(it, ctx);
-    const quantidade = paraUnidadeDoCadastro(it.qtd, it.un, un);
+    const quantidade = paraUnidadeDoCadastro(it.qtd, it.un, un, it.insumo_id ? pesosDoInsumo(ctx.insumos.get(it.insumo_id) || {}) : null);
     return { insumo_id: it.insumo_id, subficha_id: it.subficha_id, quantidade, fator_correcao: Number(it.fator_correcao) || 0 };
   });
 }

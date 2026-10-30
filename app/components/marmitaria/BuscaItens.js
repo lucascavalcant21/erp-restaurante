@@ -9,6 +9,7 @@ import { Plus, Search } from "lucide-react";
 import { normalizarBusca } from "../../lib/ingredientes-utils.mjs";
 import { custoUnitarioEfetivoInsumo, custoDeProduzirFicha, parseNumero } from "../../lib/ficha-calculos.mjs";
 import { brl, inputCls } from "./ui";
+import { casaBusca } from "../../lib/busca.mjs";
 
 export const ehEmbalagem = (i) => String(i?.departamento || "").toLowerCase() === "embalagens"
   || /embalag/i.test(String(i?.categoria || "")) || String(i?.tipo || "").toLowerCase() === "embalagem";
@@ -23,7 +24,7 @@ export default function BuscaItens({ base, modo = "ingrediente", filtroInicial =
 
   const resultados = useMemo(() => {
     const t = normalizarBusca(termo);
-    const casa = (nome) => !t || normalizarBusca(nome).includes(t);
+    const casa = (nome) => !t || casaBusca(nome, termo);
     const fora = new Set(excluir);
     if (modo === "embalagem") {
       return base.insumosLista.filter((i) => ehEmbalagem(i) && !fora.has(i.id) && casa(i.nome)).slice(0, 30)

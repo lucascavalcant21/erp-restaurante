@@ -13,6 +13,7 @@ import {
   fetchClientes, fetchAvaliacoes, fetchCampanhas, inserirCampanha 
 } from "../../lib/clientes";
 import CampoDecimal from "../../components/CampoDecimal";
+import { casaBusca } from "../../lib/busca.mjs";
 
 export default function CRMPage() {
   const router = useRouter();
@@ -64,7 +65,7 @@ export default function CRMPage() {
   }, [clientes, avaliacoes]);
 
   const clientesFiltrados = useMemo(() => {
-    return clientes.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()) || c.telefone?.includes(busca));
+    return clientes.filter(c => casaBusca(c.nome, busca) || c.telefone?.includes(busca));
   }, [clientes, busca]);
 
   async function handleSalvarCampanha() {

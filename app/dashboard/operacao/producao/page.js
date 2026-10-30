@@ -16,6 +16,7 @@ import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, P
 import { dataOperacional, ehEstoqueavel, unidadeProducao, totaisPorUnidade, previaProducaoSimples, registroDeProducao } from "../../../lib/producao-calculos.mjs";
 import { salvarPlanoProducao } from "../../../lib/memorandos";
 import { fmtBRL } from "../../../components/ui";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 // guard evita loop infinito se alguém criar uma referência circular.
@@ -314,7 +315,7 @@ function ProducaoRunner() {
   const totalProduzido = Object.entries(totaisPorUnidade(producoes)).map(([un,q]) => `${q.toLocaleString("pt-BR")} ${un}`).join(" · ") || "Nenhuma produção registrada";
   const estoqueHref = `/dashboard/operacao/estoque?dept=${deptUrl}`;
   const fichasDoSetor = fichas.filter(f => f.departamento === deptUrl);
-  const fichasFiltradas = fichasDoSetor.filter(f => incluirPratos || ehEstoqueavel(f)).filter(ficha => String(ficha.nome_receita || "").toLowerCase().includes(buscaFicha.toLowerCase()));
+  const fichasFiltradas = fichasDoSetor.filter(f => incluirPratos || ehEstoqueavel(f)).filter(ficha => casaBusca(ficha.nome_receita, buscaFicha));
 
   return (
     <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">

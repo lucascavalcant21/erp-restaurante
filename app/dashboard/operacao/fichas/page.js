@@ -73,6 +73,7 @@ import {
  *
  * Os apelidos preservam os nomes usados nesta tela: sao 22 pontos de chamada,
  * e renomear todos e como se cria `ReferenceError` de identificador orfao. */
+import { modosDeLancamento, modoInicial, pesosDoInsumo } from "../../../lib/ficha-calculos.mjs";
 import {
   converterParaBaseDoInsumo as converterParaBase,
   custoUnitarioEfetivoInsumo as custoUnitEfetivo,
@@ -90,6 +91,7 @@ import { fatorCorrecaoDoItem, rendimentoDoInsumo } from "../../../lib/custo-rend
 import { quantidadeParaGravar } from "../../../lib/ficha-modelo.mjs";
 import CampoDecimal from "../../../components/CampoDecimal";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -882,7 +884,7 @@ function FichasRunner() {
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
   };
   const filtradas = fichas
-    .filter(f => normalizarNome(f.nome_receita).includes(normalizarNome(busca)) && passaFiltro(f))
+    .filter(f => (normalizarNome(f.nome_receita).includes(normalizarNome(busca)) || casaBusca([f.nome_receita, f.codigo, f.categoria], busca)) && passaFiltro(f))
     .sort(ordenarFichas);
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
   const fichasPagina = filtradas.slice((pagina - 1) * porPagina, pagina * porPagina);
@@ -1047,7 +1049,8 @@ function FichasRunner() {
           perda_pct: fi.insumos.empanado ? 0 : rendimentoDoInsumo(fi.insumos).perdaPct,
           empanado: !!fi.insumos.empanado,
           peso_medio_g: fi.insumos.peso_medio_g || null,
-          modo: getSub(unBase) ? "sub" : "base",
+          peso_un_g: pesosDoInsumo(fi.insumos).unidadeG, porcao_g: pesosDoInsumo(fi.insumos).porcaoG,
+          modo: modoInicial(qtdBase, modosDeLancamento({ unidade: unBase, unidadeG: pesosDoInsumo(fi.insumos).unidadeG, porcaoG: pesosDoInsumo(fi.insumos).porcaoG })),
        };
     });
     setIngFicha(mapIng);
@@ -1195,6 +1198,8 @@ function FichasRunner() {
        nome: insumoDb.nome, unidade: unBase, unidade_insumo: insumoDb.unidade_medida || unBase,
        custo_unitario: custoNorm, quantidade,
        peso_medio_g: insumoDb.peso_medio_g || null,
+       // Lançar por unidade ou porção (pesos do cadastro do ingrediente).
+       peso_un_g: pesosDoInsumo(insumoDb).unidadeG, porcao_g: pesosDoInsumo(insumoDb).porcaoG,
        // Perda vem do cadastro do ingrediente (regra em custo-rendimento.mjs).
        // Empanado: fator 0, o custo por kg final já tem perda e empanamento.
        fator: fatorCorrecaoDoItem(insumoDb, 0),
@@ -1236,7 +1241,13 @@ function FichasRunner() {
 
   const toggleModo = (chave) => {
     setAutoSoma(true);
-    setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, modo: i.modo === 'sub' ? 'base' : 'sub' } : i));
+    setIngFicha(lista => lista.map(i => {
+      if (i.chave !== chave) return i;
+      // Ingrediente: kg → g → unidade → porção (as que existirem). Base: kg ⇄ g.
+      if (i.tipo !== "insumo") return { ...i, modo: i.modo === 'sub' ? 'base' : 'sub' };
+      const ids = modosDeLancamento({ unidade: i.unidade, unidadeG: i.peso_un_g, porcaoG: i.porcao_g }).map(m => m.id);
+      return { ...i, modo: ids[(ids.indexOf(i.modo) + 1) % ids.length] };
+    }));
   };
 
   // Fator de correção (%) do item — a bruta é calculada e o custo acompanha
@@ -3665,9 +3676,13 @@ function FichasRunner() {
                            )}
                            {ingFicha.map(ing => {
                               const sub = getSub(ing.unidade);
-                              const emSub = sub && ing.modo === "sub";
-                              const fator = emSub ? sub.f : 1;
-                              const unidadeLabel = emSub ? sub.sub : ing.unidade;
+                              // Ingrediente: kg, g, unidade ou porção (pedido do dono, 30/10/2026).
+                              const modos = ing.tipo === "insumo" ? modosDeLancamento({ unidade: ing.unidade, unidadeG: ing.peso_un_g, porcaoG: ing.porcao_g }) : null;
+                              const modoAt = modos ? (modos.find(m => m.id === ing.modo) || modos[0]) : null;
+                              const emSub = modos ? modoAt.id !== "base" : (sub && ing.modo === "sub");
+                              const fator = modos ? modoAt.fator : (emSub ? sub.f : 1);
+                              const unidadeLabel = modos ? modoAt.rotulo : (emSub ? sub.sub : ing.unidade);
+                              const alterna = modos ? modos.length > 1 : !!sub;
                               // valor exibido = quantidade-base convertida pra unidade de digitação
                               const valorExibido = ing.quantidade ? +(ing.quantidade * fator).toFixed(4) : "";
                               const onChangeQtd = (e) => {
@@ -3692,6 +3707,9 @@ function FichasRunner() {
                                           )}
                                        </div>
                                     )}
+                                    {modoAt && ["un", "porcao"].includes(modoAt.id) && ing.quantidade > 0 && (
+                                       <p className="text-3xs font-bold text-subtle mt-0.5">{modoAt.detalhe} · {(+(ing.quantidade * fator).toFixed(2)).toLocaleString("pt-BR")} {modoAt.rotulo === "un" ? "un" : "porção(ões)"} = {(+(ing.quantidade * (ing.unidade === "kg" || ing.unidade === "l" ? 1000 : 1)).toFixed(1)).toLocaleString("pt-BR")} {ing.unidade === "l" || ing.unidade === "ml" ? "ml" : "g"}</p>
+                                    )}
                                     {/* Equivalência em peso: 5 un de bolinho de 35g = 175 g (0,175 kg) */}
                                     {(() => {
                                        if (ing.tipo !== "base" || String(ing.unidade).toLowerCase() !== "un" || !ing.quantidade) return null;
@@ -3709,19 +3727,19 @@ function FichasRunner() {
                                  <div className="flex items-center gap-2">
                                     <input
                                        type="number"
-                                       step={emSub ? "1" : "0.001"}
+                                       step={modoAt && ["un", "porcao"].includes(modoAt.id) ? "0.5" : emSub ? "1" : "0.001"}
                                        min="0"
                                        placeholder="0"
                                        value={valorExibido}
                                        onChange={onChangeQtd}
                                        className="w-20 p-2 text-center bg-card border border-line rounded-lg font-black text-fg-soft outline-none focus:border-emerald-500"
                                     />
-                                    {sub ? (
+                                    {alterna ? (
                                        <button
                                           type="button"
                                           onClick={() => toggleModo(ing.chave)}
                                           title="Alternar unidade de lançamento"
-                                          className="text-3xs font-bold text-accent-strong bg-accent-soft hover:bg-emerald-100 border border-emerald-200 rounded-md px-1.5 py-1 uppercase w-9 transition-colors"
+                                          className="text-3xs font-bold text-accent-strong bg-accent-soft hover:bg-emerald-100 border border-emerald-200 rounded-md px-1.5 py-1 uppercase min-w-9 transition-colors"
                                        >
                                           {unidadeLabel}
                                        </button>

@@ -12,6 +12,7 @@ import { resultadoPorCanal, precoSugerido } from "../../../lib/marmitaria/nucleo
 import { definirDisponibilidade } from "../../../lib/marmitaria/dados";
 import { normalizarBusca } from "../../../lib/ingredientes-utils.mjs";
 import { parseNumero } from "../../../lib/ficha-calculos.mjs";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 function Conteudo() {
   const { base, custos, carregando, recarregar } = useMarmitaria();
@@ -67,7 +68,7 @@ function Cardapio({ onEditar, onNova, recarregar }) {
     const t = normalizarBusca(busca);
     return base.marmitas
       .filter((m) => (filtro === "todas" ? true : filtro === "disponiveis" ? m.ativo !== false : m.ativo === false))
-      .filter((m) => !t || normalizarBusca(`${m.nome_receita} ${m.codigo || ""} ${m.categoria || ""}`).includes(t));
+      .filter((m) => !t || casaBusca(`${m.nome_receita} ${m.codigo || ""} ${m.categoria || ""}`, busca));
   }, [base.marmitas, busca, filtro]);
 
   async function alternar(m) {

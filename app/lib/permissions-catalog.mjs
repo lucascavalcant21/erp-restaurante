@@ -149,7 +149,7 @@ export const PERMISSION_MODULES = [
       // Entrada propria de proposito: sem ela, o cardapio do refeitorio herdava
       // a permissao do Painel de RH, que mostra salario. Quem cozinha para a
       // equipe precisa ver o cardapio, nao a folha.
-      { id: "staff_menu", label: "Cardápio do refeitório", route: "/dashboard/rh/cardapio-funcionarios", actions: [...CRUD, "print"] },
+      { id: "staff_menu", label: "Janta dos funcionários", route: "/dashboard/rh/cardapio-funcionarios", actions: [...CRUD, "print"] },
       { id: "employee_portal", label: "Portal do colaborador", route: "/dashboard/rh/colaborador", actions: ["view", "edit", "view_history"] },
       { id: "admin_expenses", label: "Compras do mês", route: "/dashboard/rh/gastos-admin", actions: [...CRUD, "approve", "view_values", "export"] },
     ],

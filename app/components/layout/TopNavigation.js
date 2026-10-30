@@ -100,6 +100,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         { label: "Painel da equipe", href: "/dashboard/rh" },
         { label: "Ponto e espelho", href: "/dashboard/rh/ponto" },
         { label: "Extras e banco de horas", href: "/dashboard/rh/extra" },
+        { label: "Janta dos funcionários", href: "/dashboard/rh/cardapio-funcionarios" },
         { label: "Treinamentos", href: "/dashboard/treinamentos" },
       ],
     },

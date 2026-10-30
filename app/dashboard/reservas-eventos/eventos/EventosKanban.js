@@ -10,6 +10,7 @@ import { FASES_FUNIL, normalizarEtapa, rotuloEtapa, faseDaEtapa, etapaAoMoverPar
 import { fmtReais, fmtPct } from "../../../lib/valor-percentual.mjs";
 import { indicadoresDoFunil } from "../../../lib/evento-orcamento.mjs";
 import { mascaraTelefone } from "../../../lib/mascaras.mjs";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 // As etapas do funil vêm de evento-financeiro.mjs (a mesma lista do seletor
 // dentro do evento): antes eram duas listas e o evento sumia do funil.
@@ -90,7 +91,7 @@ export default function EventosKanbanPage() {
   };
   const visiveis = !termo ? doMes : doMes.filter(e => {
     const data = dataTxt(e.data_evento);
-    return [e.nome, e.cliente_nome, e.cliente_telefone, data].some(v => String(v || "").toLowerCase().includes(termo));
+    return casaBusca([e.nome, e.cliente_nome, e.cliente_telefone, data], termo);
   });
   const porFase = (faseId) => visiveis.filter(e => faseDaEtapa(e.funil_status).id === faseId)
     .sort((a, b) => FASES_FUNIL.find(f => f.id === faseId).etapas.indexOf(normalizarEtapa(a.funil_status)) - FASES_FUNIL.find(f => f.id === faseId).etapas.indexOf(normalizarEtapa(b.funil_status)) || String(a.data_evento || "").localeCompare(String(b.data_evento || "")));

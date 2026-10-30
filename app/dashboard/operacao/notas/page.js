@@ -15,6 +15,7 @@ import {
 import { inserirDocumento } from "../../../lib/financeiro";
 import { inserirSuprimentoCentral, entradaEstoqueCentral } from "../../../lib/suprimentos";
 import { mascaraCpfCnpj } from "../../../lib/mascaras.mjs";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 const CONTAS_PAGAMENTO = ["Caixa / Dinheiro", "Conta PJ", "Conta Física", "Cartão de Crédito", "Outra"];
 const FORMAS_PAGAMENTO = ["Pix", "Boleto", "Dinheiro", "Débito", "Crédito", "Transferência"];
@@ -265,7 +266,7 @@ export default function NotasFiscaisPage() {
 
   const filtrados = useMemo(() => {
     let list = notas.filter(n => {
-      const mb = n.fornecedor?.toLowerCase().includes(busca.toLowerCase()) || n.cnpj?.includes(busca);
+      const mb = casaBusca([n.fornecedor, n.numero], busca) || n.cnpj?.includes(busca);
       const mc = cat === "Todas" || n.categoria === cat;
       const ip = infoPagamento(n);
       const ms = situacao === "Todas" || ip.chave === situacao || (situacao === "A pagar" && ip.chave === "Vencidas");

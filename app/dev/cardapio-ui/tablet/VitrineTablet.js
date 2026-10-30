@@ -6,6 +6,7 @@ import TabletInicio from "../../../components/cardapio-digital/tablet/TabletInic
 import TabletDetalhe from "../../../components/cardapio-digital/tablet/TabletDetalhe";
 import TabletCarrinho, { TabletEnviado } from "../../../components/cardapio-digital/tablet/TabletCarrinho";
 import TabletEntrar from "../../../components/cardapio-digital/tablet/TabletEntrar";
+import QREntrar from "../../../components/cardapio-digital/tablet/QREntrar";
 
 // Tela principal do tablet com os dados de exemplo do protótipo Main (Casa
 // Brasa, Mesa 12), só para comparar o desenho. A tela de verdade é o cardápio
@@ -66,6 +67,7 @@ export default function VitrineTablet() {
         mudarViagem={(k, v) => setCarrinho((l) => l.map((i) => ((i.linha || i.id) === k ? { ...i, viagem: v } : i)))} /> : null}
       {tela === "enviado" ? <TabletEnviado cardapio={{ ...CARDAPIO, fidelidade: { cadastro: { desconto_pct: 10 }, cashback: { pontos_por_real: 1, valor_100: 2 } } }} mesa="12" nome="Ana" resultado={{ total: 141, desconto: 15.67 }} segundos={600} onVoltar={() => {}} /> : null}
       {tela === "entrar" || tela === "cadastro" ? <TabletEntrar cardapio={{ ...CARDAPIO, fidelidade: { cadastro: { desconto_pct: 10 }, cashback: { pontos_por_real: 1, valor_100: 2 } } }} mesa="12" unidadeId="vitrine" comecarCadastro={tela === "cadastro"} onFechar={() => {}} onIdioma={() => {}} onEntrou={() => {}} /> : null}
+      {tela === "qr" || tela === "qrcadastro" ? <QREntrar cardapio={{ ...CARDAPIO, fidelidade: { cadastro: { desconto_pct: 10 }, cashback: { pontos_por_real: 1, valor_100: 2 } } }} mesa="12" unidadeId="vitrine" comecarCadastro={tela === "qrcadastro"} onFechar={() => {}} onIdioma={() => {}} onEntrou={() => {}} /> : null}
       {prato ? <TabletDetalhe cardapio={CARDAPIO} produto={CARDAPIO.produtos.find((p) => p.id === prato)} mesa="12" onFechar={() => setPrato("")} onAdicionar={() => {}} /> : null}
       <TabletInicio cardapio={CARDAPIO} mesa="12" secaoAtiva="grelhados" busca={busca} onBusca={setBusca} selos={selos} onSelos={setSelos}
         onAbrirPrato={() => {}} onAdicionar={() => {}} onIrSecao={() => {}} onChamar={() => {}} onRecomendar={() => {}} temRecomendar temIdiomas

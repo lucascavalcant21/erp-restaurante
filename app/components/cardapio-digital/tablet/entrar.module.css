@@ -307,6 +307,17 @@
 .cadastrar {
   flex-grow: 1;
 }
+/* Celular da mesa (QREntrar): uma coluna, botões empilhados. */
+.ladoCelular {
+  padding: 16px;
+  overflow: visible;
+}
+.formCelular {
+  grid-template-columns: 1fr;
+}
+.formPeCelular {
+  flex-direction: column-reverse;
+}
 @media (prefers-reduced-motion: reduce) {
   .fundo {
     animation: none;

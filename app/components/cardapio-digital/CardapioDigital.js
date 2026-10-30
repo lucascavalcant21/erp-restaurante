@@ -39,6 +39,7 @@ import TabletInicio from "./tablet/TabletInicio";
 import TabletDetalhe from "./tablet/TabletDetalhe";
 import TabletCarrinho, { TabletEnviado } from "./tablet/TabletCarrinho";
 import TabletEntrar from "./tablet/TabletEntrar";
+import QREntrar from "./tablet/QREntrar";
 import { textoDelivery } from "../../lib/cardapio-textos-delivery.mjs";
 import { Escolhas, TemaCardapio } from "./ui";
 import { caminhoDoCadastro } from "../../lib/cardapio-link.mjs";
@@ -150,6 +151,17 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   // Tablet da mesa (tela larga): a tela nova do protótipo Main. O pedido abre
   // como folha (o "pedido ao lado" antigo saiu); no celular a mesa segue no layout antigo.
   const tabletNovo = largoTela && modo === "mesa";
+  // Celular da mesa (QR): a primeira tela convida a entrar com CPF (protótipo QREntrar). "Quero só pedir" vale até fechar a aba.
+  const qrNovo = !largoTela && modo === "mesa";
+  const [qrDispensado, setQrDispensado] = useState(true);
+  useEffect(() => {
+    try { setQrDispensado(sessionStorage.getItem(chave(unidadeId, `qr-${mesa}`)) === "1"); } catch { setQrDispensado(false); }
+  }, [unidadeId, mesa]);
+  const fecharQr = () => {
+    setEntrarAberto("");
+    setQrDispensado(true);
+    try { sessionStorage.setItem(chave(unidadeId, `qr-${mesa}`), "1"); } catch { /* sem sessão */ }
+  };
   const largo = false;
   // Delivery: o cliente escolhe Entrega ou Retirada no checkout (se a loja aceita retirada).
   const [tipoEntrega, setTipoEntrega] = useState("delivery");
@@ -650,6 +662,12 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   // Cartão "Pedido · Mesa" do tablet: o pedido mais recente que ainda não saiu da mesa.
   const emCurso = (andamento.pedidos || []).filter((p) => p.etapa !== "entregue" && p.etapa !== "cancelado")
     .sort((a, b) => String(b.criado_em || "").localeCompare(String(a.criado_em || "")))[0];
+  const entrouMesa = (c) => {
+    setClienteMesa(c);
+    setForm((f) => ({ ...f, nome: f.nome || c.nome || "" }));
+    if (qrNovo) fecharQr(); else setEntrarAberto("");
+    setAviso({ texto: textoDelivery(lingua, "bem_vindo_nome", { nome: c.nome || "" }) });
+  };
   const acompanhamento = tabletNovo && emCurso ? {
     etapa: rotuloEtapa(emCurso), pronto: emCurso.etapa === "pronto", hora: emCurso.criado_em ? hora(emCurso.criado_em) : "",
     itens: (emCurso.itens || []).map((i) => porId.get(i.produto_id)?.nome).filter(Boolean).join(", "),
@@ -690,7 +708,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           {entrarAberto ? (
             <TabletEntrar cardapio={cardapio} idioma={lingua} mesa={mesa} unidadeId={unidadeId} comecarCadastro={entrarAberto === "cadastro"}
               onIdioma={idiomasOferecidos.length > 1 ? () => setFolha("idiomas") : undefined} onFechar={() => setEntrarAberto("")}
-              onEntrou={(c) => { setClienteMesa(c); setForm((f) => ({ ...f, nome: f.nome || c.nome || "" })); setEntrarAberto(""); setAviso({ texto: textoDelivery(lingua, "bem_vindo_nome", { nome: c.nome || "" }) }); }} />
+              onEntrou={entrouMesa} />
           ) : null}
         </TemaCardapio>
       ) : (<>
@@ -1065,6 +1083,13 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         <Conversa cardapio={cardapio} nome={nome} mensagens={mensagens} setMensagens={setMensagens} podePedir={podePedir}
           onFechar={() => { setConversaAberta(false); setConsultaConversa(""); }} onAbrirPrato={abrirPrato} onAdicionar={adicionar}
           onIrParaSecao={irParaSecao} consultaInicial={consultaConversa} />
+      ) : null}
+
+      {qrNovo && cardapio.fidelidade && !clienteMesa && !previa && (entrarAberto || !qrDispensado) ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <QREntrar cardapio={cardapio} idioma={lingua} mesa={mesa} unidadeId={unidadeId} comecarCadastro={entrarAberto === "cadastro"}
+            onIdioma={idiomasOferecidos.length > 1 ? () => setFolha("idiomas") : undefined} onFechar={fecharQr} onEntrou={entrouMesa} />
+        </TemaCardapio>
       ) : null}
 
       {pAberto && tabletNovo ? (

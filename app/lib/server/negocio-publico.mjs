@@ -17,6 +17,7 @@
 
 import { montarCardapioPublico, juntarProdutosEFichas, totalDoCarrinho, precoDaLinha, linhasDoCombo, cardapioDoCanal, canalDoPedido, aplicarFotosDaMontagem } from "../cardapio-digital.mjs";
 import { trocoEmReais } from "../troco.mjs";
+import { cpfValido, UFS } from "../cpf.mjs";
 import {
   cashbackUsavel, descontoDoCadastro, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO, validarCadastro,
 } from "../fidelidade.mjs";
@@ -226,6 +227,8 @@ export function validarPedidoPublico(corpo) {
   if (tel.length || !telefoneOpcional) {
     if (tel.length < 10 || tel.length > 13) return falha(400, "parametro_invalido", "Digite seu WhatsApp com DDD.");
   }
+  const cpf = cli.cpf ? cpfValido(cli.cpf) : "";
+  if (cli.cpf && !cpf) return falha(400, "parametro_invalido", "CPF inválido.");
   const endereco = texto(cli.endereco, 300);
   if (tipo === "delivery" && !endereco) return falha(400, "parametro_invalido", "Digite seu endereço.");
   // Forma de pagamento (entrega e retirada). Se a loja aceita essa forma,
@@ -265,7 +268,7 @@ export function validarPedidoPublico(corpo) {
     pedido: {
       unidade: c.unidade, tipo, nome, mesa: mesa || null, telefone: tel.length ? texto(cli.telefone, 20) : null,
       endereco: tipo === "delivery" ? endereco : null, troco: !pagamento || pagamento === "dinheiro" ? texto(cli.troco, 20) : "",
-      pagamento, itens: limpos, cashback,
+      pagamento, itens: limpos, cashback, ...(cpf ? { cpf } : {}),
     },
   };
 }
@@ -285,6 +288,12 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       return falha(503, "indisponivel", "Não foi possível enviar agora.");
     }
     const { loja } = carga;
+    // Entrou com CPF (tablet/QR): o telefone da ficha vale para o DESCONTO e a fidelidade.
+    // Ele nunca volta para a tela. Sem a FIDELIDADE-3, o pedido segue sem.
+    if (pedido.cpf && !pedido.telefone) {
+      const { data, error } = await db.rpc("fidelidade_cliente_do_cpf", { p_unidade: pedido.unidade, p_cpf: pedido.cpf });
+      if (!error && data?.ok && data.tel) pedido = { ...pedido, telefone: data.tel };
+    }
     // Só vale o que o canal do pedido mostra (prato desligado no canal não entra).
     const cardapio = cardapioDoCanal(carga.cardapio, canalDoPedido(pedido.tipo));
     if ((pedido.tipo === "delivery" || pedido.tipo === "retirada") && loja.delivery_aberto === false) {
@@ -612,6 +621,70 @@ export async function cadastrarClientePublico({ db, unidade, corpo }) {
       return falha(503, "indisponivel", "Cadastro indisponível no momento.");
     }
     return { ok: true, desconto_pct: cfg.cadastro.desconto_pct, aplica: cfg.cadastro.aplica, final: c.telefone.slice(-4) };
+  } catch {
+    return falha(503, "indisponivel", "Cadastro indisponível no momento.");
+  }
+}
+
+// ─── ENTRAR / CADASTRAR PELO CPF (tablet da mesa e QR) ───────────────────────
+//
+// O CPF acha a ficha do cliente (FIDELIDADE-3). Para a tela volta só o
+// primeiro nome e o DESCONTO que ele ganha; o telefone fica no servidor.
+
+const ERROS_CPF = {
+  nome: "Digite seu nome completo.", cpf: "Confira o CPF.", telefone: "Digite seu WhatsApp com DDD.", aniversario: "Confira a data de nascimento.",
+  uf: "Escolha o estado.", cidade: "Digite o município.", bairro: "Digite o bairro.", aceite: "Para se cadastrar, aceite o uso dos seus dados.",
+};
+
+async function descontoDoCliente(db, unidade, tel) {
+  const { data, error } = await db.rpc("fidelidade_desconto_cadastro", { p_unidade: unidade, p_telefone: tel });
+  return !error && Number(data) > 0 ? Number(data) : 0;
+}
+
+export async function entrarPorCpf({ db, unidade, cpf }) {
+  if (!idValido(unidade)) return falha(404, "nao_encontrado", "Link inválido.");
+  const d = cpfValido(cpf);
+  if (!d) return { ...falha(400, "cpf", ERROS_CPF.cpf), campo: "cpf" };
+  try {
+    const { data, error } = await db.rpc("fidelidade_cliente_do_cpf", { p_unidade: unidade, p_cpf: d });
+    if (error) return FUNCAO_FALTANDO.test(error.message || "") ? falha(503, "cpf_indisponivel", "Entrar com CPF ainda não está disponível.") : falha(503, "indisponivel", "Indisponível no momento.");
+    if (!data?.ok) return { ok: true, encontrado: false };
+    return { ok: true, encontrado: true, nome: String(data.nome || "").trim().split(/\s+/)[0], desconto_pct: await descontoDoCliente(db, unidade, data.tel) };
+  } catch {
+    return falha(503, "indisponivel", "Indisponível no momento.");
+  }
+}
+
+export async function cadastrarPorCpf({ db, unidade, corpo }) {
+  if (!idValido(unidade)) return falha(404, "nao_encontrado", "Link inválido.");
+  const c = corpo && typeof corpo === "object" ? corpo : {};
+  const nome = texto(c.nome, 80);
+  const cpf = cpfValido(c.cpf);
+  const tel = soDigitos(c.telefone);
+  const nasc = /^\d{4}-\d{2}-\d{2}$/.test(String(c.aniversario || "")) ? String(c.aniversario) : "";
+  const uf = UFS.includes(String(c.uf || "").toUpperCase()) ? String(c.uf).toUpperCase() : "";
+  const cidade = texto(c.cidade, 80);
+  const bairro = texto(c.bairro, 80);
+  const erro = (campo) => ({ ...falha(400, campo, ERROS_CPF[campo]), campo });
+  if (!nome || nome.split(/\s+/).length < 2) return erro("nome");
+  if (!cpf) return erro("cpf");
+  if (!nasc || nasc > new Date().toISOString().slice(0, 10) || nasc < "1900-01-01") return erro("aniversario");
+  if (!uf) return erro("uf");
+  if (!cidade) return erro("cidade");
+  if (!bairro) return erro("bairro");
+  if (tel.length < 10 || tel.length > 13) return erro("telefone");
+  if (c.aceite !== true) return erro("aceite");
+  try {
+    const { error } = await db.rpc("fidelidade_cadastrar_cpf", {
+      p_unidade: unidade, p_nome: nome, p_cpf: cpf, p_telefone: tel, p_aniversario: nasc, p_uf: uf, p_cidade: cidade, p_bairro: bairro, p_novidades: c.novidades === true,
+    });
+    if (error) {
+      if (FUNCAO_FALTANDO.test(error.message || "")) return falha(503, "cpf_indisponivel", "O cadastro com CPF ainda não está disponível.");
+      if (/CPF inválido/i.test(error.message || "")) return erro("cpf");
+      return falha(503, "indisponivel", "Cadastro indisponível no momento.");
+    }
+    const r = await entrarPorCpf({ db, unidade, cpf });
+    return r.ok ? { ok: true, nome: r.nome || nome.split(/\s+/)[0], desconto_pct: r.desconto_pct || 0 } : r;
   } catch {
     return falha(503, "indisponivel", "Cadastro indisponível no momento.");
   }

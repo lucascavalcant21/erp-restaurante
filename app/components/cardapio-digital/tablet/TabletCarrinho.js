@@ -15,7 +15,7 @@ import s from "./carrinho.module.css";
 
 export default function TabletCarrinho({
   cardapio, idioma = "pt", mesa = "", carrinho = [], nome = "", onNome, erro = "", enviando = false,
-  onFechar, onEnviar, alterarQtd, remover, mudarViagem, onAbrirPrato, onEditar,
+  onFechar, onEnviar, alterarQtd, remover, mudarViagem, onAbrirPrato, onEditar, cliente = null, desconto = 0, onEntrar, onSairCliente,
 }) {
   const T = (k, v) => textoDelivery(idioma, k, v);
   const linhas = useMemo(() => linhasDaSacola(carrinho, cardapio), [carrinho, cardapio]);
@@ -23,6 +23,7 @@ export default function TabletCarrinho({
   const tot = totalDoCarrinho(carrinho, cardapio, { tipo: "qrcode" });
   const qtd = carrinho.reduce((n, i) => n + i.quantidade, 0);
   const precisaNome = String(nome || "").trim().length < 2;
+  const pct = cardapio.fidelidade?.cadastro?.desconto_pct || 0;
 
   return (
     <div className={s.fundo} role="dialog" aria-modal="true" aria-labelledby="t-pedido" lang={idioma} onClick={(e) => { if (e.target === e.currentTarget) onFechar?.(); }}>
@@ -70,7 +71,16 @@ export default function TabletCarrinho({
                 <input className={s.nomeCampo} value={nome} onChange={(e) => onNome?.(e.target.value)} maxLength={60} autoComplete="given-name" />
               </label>
             ) : null}
-            <div className={s.subtotal}><span>{T("subtotal")}</span><strong>{formatarPreco(tot.total, idioma)}</strong></div>
+            {cliente ? (
+              <div className={s.cliente}>
+                <span>{T("bem_vindo_nome", { nome: cliente.nome || "" })}</span>
+                <button type="button" className={s.sair} onClick={onSairCliente}>{T("sair_cpf")}</button>
+              </div>
+            ) : onEntrar && pct ? (
+              <button type="button" className={s.entrarCpf} onClick={onEntrar}>{T("entrar_com_cpf", { pct })} <PalavraDesconto idioma={idioma} espacoAntes={false} /></button>
+            ) : null}
+            {desconto > 0 ? <div className={s.descontoLinha}><span><PalavraDesconto idioma={idioma} espacoAntes={false} /></span><strong>−{formatarPreco(desconto, idioma)}</strong></div> : null}
+            <div className={s.subtotal}><span>{T("subtotal")}</span><strong>{formatarPreco(Math.max(0, tot.total - desconto), idioma)}</strong></div>
             {erro ? <span role="alert" className={s.erro}>{erro}</span> : null}
             <Botao tamanho={58} larguraTotal iconeDireita="seta" disabled={enviando || precisaNome} onClick={onEnviar}>{enviando ? T("enviando") : T("enviar_cozinha")}</Botao>
             <button type="button" className={s.continuar} onClick={onFechar}>{T("continuar_escolhendo")}</button>

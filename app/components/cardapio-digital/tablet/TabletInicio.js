@@ -43,7 +43,7 @@ export default function TabletInicio({
   cardapio, idioma = "pt", mesa = "", carrinho = [], totalSacola = 0, offline = "",
   secaoAtiva, busca = "", onBusca, resultados = [], filtrando = false, selos = [], onSelos,
   onAbrirPrato, onAdicionar, onIrSecao, onAbrirSacola, onAbrirIdiomas, temIdiomas, onChamar, onRecomendar, temRecomendar,
-  acompanhamento = null, onAbrirPedidos, linkCadastro, visitante = true, podePedir = true, banners = null,
+  acompanhamento = null, onAbrirPedidos, linkCadastro, visitante = true, podePedir = true, banners = null, onConvite,
 }) {
   const T = (k, v) => textoDelivery(idioma, k, v);
   const { unidade, tema } = cardapio;
@@ -128,7 +128,7 @@ export default function TabletInicio({
 
         {!filtrando && convite ? (
           <ConviteDesconto
-            layout="tablet" idioma={idioma} percentual={convite.percentual} href={linkCadastro}
+            layout="tablet" idioma={idioma} percentual={convite.percentual} href={onConvite ? undefined : linkCadastro} onClick={onConvite}
             rotulo={T("para_casa")} titulo={T("cadastre_ganhe")} acao={T("quero")}
             texto={[convite.todos ? T("todos_pedidos") : T("primeiro_pedido"), convite.pontos ? T("ponto") : ""].filter(Boolean).join(" · ")}
             rotuloAcessivel={`${T("cadastre_ganhe")} ${convite.percentual}`}

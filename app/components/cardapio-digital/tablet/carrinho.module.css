@@ -184,6 +184,46 @@
   font: inherit;
   font-size: 16px;
 }
+.cliente {
+  padding: 10px 12px;
+  border-radius: var(--cd-raio-m);
+  background: var(--cd-ok-fundo);
+  color: var(--cd-ok-texto);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.sair {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cd-ok-texto);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.entrarCpf {
+  min-height: 44px;
+  border-radius: var(--cd-raio-m);
+  border: 1.5px dashed var(--cd-principal);
+  background: var(--cd-branco);
+  color: var(--cd-principal);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.descontoLinha {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--cd-ok-texto);
+}
 .subtotal {
   display: flex;
   justify-content: space-between;

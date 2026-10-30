@@ -55,3 +55,16 @@ test("resumo do checkout: motivo explícito, retirada sem taxa e troco menor que
   assert.equal(resumoDoCheckout({ ...base, pagamento: "dinheiro", form: { ...form, troco: "R$ 20,00" } }).motivo, "troco_menor");
   assert.equal(resumoDoCheckout({ ...base, descontoCadastro: 4, cashback: 2 }).total, 40);
 });
+
+test("CPF: dígitos verificadores, máscara e pedido com CPF", async () => {
+  const { cpfValido, mascaraCpf } = await import("./cpf.mjs");
+  assert.equal(cpfValido("529.982.247-25"), "52998224725");
+  assert.equal(cpfValido("529.982.247-24"), "");
+  assert.equal(cpfValido("111.111.111-11"), "");
+  assert.equal(mascaraCpf("5299822"), "529.982.2");
+  assert.equal(mascaraCpf("52998224725"), "529.982.247-25");
+  const ok = validarPedidoPublico({ unidade: "loja", cliente: { tipo: "qrcode", nome: "Ana", mesa: "12", cpf: "529.982.247-25" }, itens: [{ id: "p1", quantidade: 1 }] });
+  assert.equal(ok.pedido.cpf, "52998224725");
+  const ruim = validarPedidoPublico({ unidade: "loja", cliente: { tipo: "qrcode", nome: "Ana", mesa: "12", cpf: "123" }, itens: [{ id: "p1", quantidade: 1 }] });
+  assert.equal(ruim.ok, false);
+});

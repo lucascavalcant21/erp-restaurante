@@ -18,7 +18,8 @@ const CSS_TABLET = readFileSync(new URL("../components/cardapio-digital/tablet/t
 const CSS_ESCOLHAS = readFileSync(new URL("../components/cardapio-digital/ui/escolhas.module.css", import.meta.url), "utf8");
 const CSS_DETALHE = readFileSync(new URL("../components/cardapio-digital/tablet/detalhe.module.css", import.meta.url), "utf8");
 const CSS_CARRINHO = readFileSync(new URL("../components/cardapio-digital/tablet/carrinho.module.css", import.meta.url), "utf8");
-const TODOS_CSS = [CSS, CSS_PAINEL, CSS_DELIVERY, CSS_TABLET, CSS_ESCOLHAS, CSS_DETALHE, CSS_CARRINHO].join(String.fromCharCode(10));
+const CSS_ENTRAR = readFileSync(new URL("../components/cardapio-digital/tablet/entrar.module.css", import.meta.url), "utf8");
+const TODOS_CSS = [CSS, CSS_PAINEL, CSS_DELIVERY, CSS_TABLET, CSS_ESCOLHAS, CSS_DETALHE, CSS_CARRINHO, CSS_ENTRAR].join(String.fromCharCode(10));
 
 test("cor padrão: os valores são os do protótipo", () => {
   const p = variacoesDaPrincipal(undefined);

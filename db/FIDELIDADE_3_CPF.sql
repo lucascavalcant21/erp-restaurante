@@ -1,7 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    FIDELIDADE-3 · ENTRAR E CADASTRAR PELO CPF (tablet da mesa e QR)
 
-   STATUS: escrita em 30/10/2026 (cardápio digital, telas TabletEntrar,
+   STATUS: APLICADA em 30/10/2026 com liberação do dono; impressão digital no
+   banco 7ee2ccbcce7f0416ce291460409eb76e (igual ao PGlite). Telas TabletEntrar,
    TabletCadastro e QREntrar). Testada no PGlite
    (app/lib/fidelidade-cpf-banco.test.mjs) por cima da FIDELIDADE-1 e 2.
 

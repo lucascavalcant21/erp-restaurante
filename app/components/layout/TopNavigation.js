@@ -76,6 +76,9 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       id: "cardapio", label: "Cardápio", href: "/dashboard/operacao/cardapio",
       submodules: [
         { label: "Cardápio digital", href: "/dashboard/operacao/cardapio" },
+        { label: "Produtos e canais", href: "/dashboard/operacao/cardapio/produtos" },
+        { label: "Promoções e descontos", href: "/dashboard/operacao/cardapio/promocoes" },
+        { label: "Fidelidade e selos", href: "/dashboard/operacao/cardapio/fidelidade" },
         { label: "Engenharia de cardápio", href: "/dashboard/operacao/engenharia" },
         { label: "Campanhas", href: "/dashboard/experience/campanhas" },
         { label: "Experiência do cliente", href: "/dashboard/experience/intelligence" },

@@ -20,9 +20,9 @@ export const TOPICOS_INICIAIS = {
     { id: "organizacao-camara", label: "Organização de Câmara & PVPS", prompt: "Como organizar a câmara fria e aplicar a regra PVPS na cozinha?" },
   ],
   escala: [
-    { id: "escala-organograma", label: "Organograma por Área & Horários", prompt: "Qual a escala de hoje? Mostre por área em formato de organograma as pessoas e seus horários de trabalho." },
+    { id: "escala-organograma", label: "Escala de hoje por área", prompt: "Qual a escala de hoje?" },
     { id: "mapa-pracas", label: "Mapa de Praças (Play Caller)", prompt: "Mostre o posicionamento da equipe nas praças para o horário de pico." },
-    { id: "escala-turno", label: "Escala do Dia & Picos (Gantt)", prompt: "Abrir a escala horária do turno e previsão de pico." },
+    { id: "escala-turno", label: "Escala de amanhã", prompt: "Qual a escala de amanhã?" },
   ],
   limpeza: [
     { id: "limpeza-chao", label: "Limpar Chão (ml & Produto)", prompt: "Qual produto usar no chão, quantas ml e como limpar?" },

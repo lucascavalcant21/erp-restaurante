@@ -57,6 +57,7 @@ export const TABELAS = Object.freeze({
   vw_fin_contas_pagar: { tenant: true, rotulo: "Contas a pagar" },
   colaboradores: { tenant: true, rotulo: "Cadastro de colaboradores" },
   rh_recibos_prestacao: { tenant: true, rotulo: "Recibos de extras" },
+  rh_folgas_esporadicas: { tenant: true, rotulo: "Folgas lançadas" },
   fornecedores: { tenant: true, rotulo: "Fornecedores" },
   etiquetas: { tenant: true, rotulo: "Etiquetas de validade" },
   config_sistema: { tenant: true, rotulo: "Resultado do mês (valores informados pelo dono)" },

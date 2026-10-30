@@ -100,10 +100,14 @@ export function tabelasPadrao() {
       { id: "pb", unidade_id: B, descricao: "B", fornecedor_id: null, saldo: 999999, valor_original: 999999, data_vencimento: HOJE, situacao: "pendente", vencida: false },
     ],
     colaboradores: [
-      { id: "co1", unidade_id: A, salario: 2500, vale_alimentacao: 300, tipo_contrato: "CLT", status: "ativo" },
-      { id: "co2", unidade_id: A, salario: 2200, vale_alimentacao: 300, tipo_contrato: "CLT", status: "ativo" },
-      { id: "co3", unidade_id: A, salario: 150, tipo_contrato: "Freelancer", status: "ativo" },
-      { id: "cob", unidade_id: B, salario: 999999, tipo_contrato: "CLT", status: "ativo" },
+      { id: "co1", unidade_id: A, nome: "Ana", cargo: "Cozinheira", area_escala: "Cozinha", salario: 2500, vale_alimentacao: 300, tipo_contrato: "CLT", status: "ativo", dias_trabalho: "2,3,4,5,6,0", horario_entrada: "15:40", horario_saida: "00:00" },
+      { id: "co2", unidade_id: A, nome: "Bruno", cargo: "Bartender", area_escala: "Bar", salario: 2200, vale_alimentacao: 300, tipo_contrato: "CLT", status: "ativo", horario_por_dia: true, horarios_dia: { 3: { e: "09:00", s: "17:00" }, 4: { e: "09:00", s: "17:00" } } },
+      { id: "co3", unidade_id: A, nome: "Carla", salario: 150, tipo_contrato: "Freelancer", status: "ativo" },
+      { id: "cob", unidade_id: B, nome: "Zé da empresa B", salario: 999999, tipo_contrato: "CLT", status: "ativo", dias_trabalho: "3", horario_entrada: "08:00", horario_saida: "16:00" },
+    ],
+    rh_folgas_esporadicas: [
+      { unidade_id: A, colaborador_id: "co1", data_folga: somarDias(HOJE, 1), descricao: "folga combinada" },
+      { unidade_id: B, colaborador_id: "cob", data_folga: HOJE, descricao: "B" },
     ],
     rh_recibos_prestacao: [
       { unidade_id: A, valor_total: 180, data_trabalho: "2026-10-03", data_pagamento: "2026-10-03", pagamento_realizado: true },

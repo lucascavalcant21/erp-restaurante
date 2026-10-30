@@ -1,218 +1,187 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+// JANTA DOS FUNCIONÁRIOS (pedido do dono, 30/10/2026): cardápio por dia da
+// semana, o que é servido, o preparo, e a quantidade de cada coisa conforme o
+// número de pessoas — o dono só põe quantas gramas por pessoa. Contas em
+// app/lib/janta-funcionarios.mjs; guardado em config_sistema (todos os
+// aparelhos da unidade veem o mesmo).
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, Loader2, Plus, Printer, Save, Trash2, Users, UtensilsCrossed } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchFichas } from "../../../lib/operacao";
-import { Utensils, Printer, ArrowLeft, Plus, X, Search } from "lucide-react";
+import { fetchInsumos } from "../../../lib/operacao";
+import { fetchJantaFuncionarios, salvarJantaFuncionarios } from "../../../lib/parametros";
+import { DIAS_SEMANA, normalizarJanta, cardapioDoDia, novoIdJanta } from "../../../lib/janta-funcionarios.mjs";
+import { casaBusca } from "../../../lib/busca.mjs";
 
-export default function CardapioFuncionarios() {
-  const router = useRouter();
+const brl = (v) => (v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+const inputCls = "h-11 w-full rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent";
+const diaDeHoje = () => ["dom", "seg", "ter", "qua", "qui", "sex", "sab"][new Date().getDay()];
+
+// Semana antiga (só no navegador, com fichas por dia) vira pratos com o nome da ficha.
+function semanaAntiga(unidade) {
+  try {
+    const v = JSON.parse(localStorage.getItem(`cardapio_rh_${unidade}`) || "null");
+    if (!v) return null;
+    const mapa = { Segunda: "seg", Terça: "ter", Quarta: "qua", Quinta: "qui", Sexta: "sex", Sábado: "sab", Domingo: "dom" };
+    const dias = {};
+    for (const [rot, id] of Object.entries(mapa)) dias[id] = { pessoas: "", pratos: (v[rot] || []).map((f) => ({ nome: f?.nome_receita || "", preparo: f?.modo_preparo || "", itens: [] })) };
+    return { dias };
+  } catch { return null; }
+}
+
+export default function JantaFuncionarios() {
   const { unidadeAtiva } = useERP();
-  const [fichas, setFichas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [busca, setBusca] = useState("");
-  
-  // Estrutura do cardápio semanal
-  const [semana, setSemana] = useState({
-    Segunda: [],
-    Terça: [],
-    Quarta: [],
-    Quinta: [],
-    Sexta: [],
-    Sábado: [],
-    Domingo: []
-  });
-
-  const [diaSelecionado, setDiaSelecionado] = useState(null);
+  const [janta, setJanta] = useState(normalizarJanta(null));
+  const [insumos, setInsumos] = useState([]);
+  const [dia, setDia] = useState(diaDeHoje());
+  const [carregando, setCarregando] = useState(true);
+  const [mudou, setMudou] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [aviso, setAviso] = useState("");
 
   useEffect(() => {
-    async function carregar() {
-      setLoading(true);
-      const { data } = await fetchFichas(unidadeAtiva);
-      setFichas(data || []);
-      
-      // Tentar carregar do localStorage
-      const salvo = localStorage.getItem(`cardapio_rh_${unidadeAtiva}`);
-      if (salvo) {
-        try {
-          setSemana(JSON.parse(salvo));
-        } catch (e) {}
-      }
-      setLoading(false);
-    }
-    if (unidadeAtiva) carregar();
+    if (!unidadeAtiva || unidadeAtiva === "todas") { setCarregando(false); return; }
+    let vivo = true;
+    (async () => {
+      setCarregando(true);
+      const [rJ, rI] = await Promise.all([fetchJantaFuncionarios(unidadeAtiva), fetchInsumos(unidadeAtiva, "cozinha")]);
+      if (!vivo) return;
+      setJanta(normalizarJanta(rJ.data || semanaAntiga(unidadeAtiva)));
+      setInsumos((rI.data || []).filter((i) => !i.arquivado_em));
+      setCarregando(false);
+    })();
+    return () => { vivo = false; };
   }, [unidadeAtiva]);
 
-  // Salvar no localstorage sempre que mudar
-  useEffect(() => {
-    if (!loading && unidadeAtiva) {
-      localStorage.setItem(`cardapio_rh_${unidadeAtiva}`, JSON.stringify(semana));
-    }
-  }, [semana, loading, unidadeAtiva]);
+  const mapaInsumos = useMemo(() => new Map(insumos.map((i) => [i.id, i])), [insumos]);
+  const doDia = useMemo(() => cardapioDoDia(janta, dia, { insumos: mapaInsumos }), [janta, dia, mapaInsumos]);
+  const semana = useMemo(() => DIAS_SEMANA.map((d) => ({ ...d, r: cardapioDoDia(janta, d.id, { insumos: mapaInsumos }) })), [janta, mapaInsumos]);
 
-  const addReceita = (ficha, dia) => {
-    setSemana(prev => ({
-      ...prev,
-      [dia]: [...prev[dia], ficha]
-    }));
-    setDiaSelecionado(null);
-    setBusca("");
-  };
+  const alterar = (fn) => { setJanta((j) => fn(structuredClone(j))); setMudou(true); };
+  const alterarDia = (fn) => alterar((j) => { fn(j.dias[dia]); return j; });
+  const alterarPrato = (pid, fn) => alterarDia((d) => { const p = d.pratos.find((x) => x.id === pid); if (p) fn(p); });
 
-  const removeReceita = (index, dia) => {
-    setSemana(prev => {
-      const novo = [...prev[dia]];
-      novo.splice(index, 1);
-      return { ...prev, [dia]: novo };
-    });
-  };
+  async function salvar() {
+    setSalvando(true);
+    const r = await salvarJantaFuncionarios(unidadeAtiva, janta);
+    setSalvando(false);
+    if (r?.error) setAviso(`Não salvou: ${r.error}`);
+    else { setMudou(false); setAviso("Janta da semana salva."); setTimeout(() => setAviso(""), 3000); }
+  }
 
-  const imprimirCardapio = () => {
-    const html = `
-      <html>
-        <head>
-          <title>Cardápio Semanal - Refeitório</title>
-          <style>
-            body { font-family: sans-serif; padding: 40px; color: #1e293b; }
-            h1 { text-align: center; font-size: 24px; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 30px; }
-            .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 40px; }
-            .dia-card { border: 2px solid #e2e8f0; border-radius: 8px; padding: 15px; }
-            .dia-titulo { font-weight: bold; font-size: 16px; margin-bottom: 10px; text-transform: uppercase; background: #f8fafc; padding: 5px; text-align: center; }
-            .receita-item { margin-bottom: 8px; font-weight: bold; color: #334155; display: flex; align-items: center; gap: 5px; font-size: 14px; }
-            .receita-item::before { content: "•"; color: #10b981; font-size: 18px; }
-            
-            .receitas-detalhes { page-break-before: always; }
-            .receita-box { margin-bottom: 30px; border: 1px solid #cbd5e1; padding: 20px; border-radius: 8px; }
-            .receita-box h2 { font-size: 18px; margin-top: 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; }
-            .ingredientes-lista { column-count: 2; margin-top: 5px; }
-            .ingrediente { font-size: 13px; margin-bottom: 5px; }
-            .modo-preparo { margin-top: 20px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; background: #f8fafc; padding: 15px; border-radius: 8px; }
-            @media print { body { padding: 0; } }
-          </style>
-        </head>
-        <body>
-          <h1>Cardápio Semanal dos Funcionários</h1>
-          <div class="grid">
-            ${Object.entries(semana).map(([dia, pratos]) => `
-              <div class="dia-card">
-                <div class="dia-titulo">${dia}</div>
-                ${pratos.length === 0 ? '<div style="color: #94a3b8; font-size: 12px; text-align: center; margin-top: 10px;">A definir</div>' : ''}
-                ${pratos.map(p => `
-                  <div class="receita-item">${p.nome_receita}</div>
-                `).join('')}
-              </div>
-            `).join('')}
-          </div>
+  function imprimir(lista) {
+    const html = `<html><head><meta charset="utf-8"><title>Janta dos funcionários</title><style>
+      body{font-family:system-ui,sans-serif;padding:24px;color:#111827} h1{font-size:20px;margin:0 0 16px} h2{font-size:16px;margin:18px 0 6px;border-bottom:2px solid #047857;padding-bottom:4px}
+      h3{font-size:14px;margin:10px 0 4px} table{width:100%;border-collapse:collapse;font-size:13px} td,th{border-bottom:1px solid #e5e7eb;padding:4px;text-align:left} td.n{text-align:right}
+      p{white-space:pre-line;font-size:13px;margin:4px 0} .s{color:#4b5563;font-size:12px}</style></head><body>
+      <h1>Janta dos funcionários</h1>
+      ${lista.map(({ rotulo, r }) => `<h2>${rotulo} · ${r.pessoas || "?"} pessoa(s)</h2>${r.pratos.length ? r.pratos.map((p) => `
+        <h3>${p.nome || "Prato"}</h3>
+        <table><tr><th>Item</th><th class="n">Por pessoa</th><th class="n">Total</th></tr>
+        ${p.itens.map((i) => `<tr><td>${i.nome}</td><td class="n">${i.gPessoa ? `${i.gPessoa} g` : "—"}</td><td class="n"><b>${i.rotulo}</b></td></tr>`).join("")}</table>
+        ${p.preparo ? `<p><b>Preparo:</b> ${p.preparo.replace(/</g, "&lt;")}</p>` : ""}`).join("") : `<p class="s">Sem prato cadastrado.</p>`}`).join("")}
+      </body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html); w.document.close(); w.focus(); w.print();
+  }
 
-          <div class="receitas-detalhes">
-            <h1>Receitas do Cardápio</h1>
-            ${Object.values(semana).flat().filter((v,i,a)=>a.findIndex(t=>(t.id === v.id))===i).map(ficha => `
-              <div class="receita-box">
-                <h2>${ficha.nome_receita} <span style="font-weight:normal; font-size:14px; color:#64748b; margin-left: 10px;">(Rende ${ficha.rendimento_porcoes} ${ficha.rendimento_unidade})</span></h2>
-                <strong>Ingredientes:</strong>
-                <div class="ingredientes-lista">
-                  ${(ficha.fichas_ingredientes || []).map(ing => {
-                     let nome = ing.insumos?.nome || "Sub-receita";
-                     return `<div class="ingrediente">- ${ing.quantidade} ${ing.insumos?.unidade_medida || ''} ${nome}</div>`;
-                  }).join('')}
-                </div>
-                ${ficha.modo_preparo ? `
-                  <div style="margin-top: 20px;"><strong>Modo de Preparo:</strong></div>
-                  <div class="modo-preparo">${ficha.modo_preparo}</div>
-                ` : ''}
-              </div>
-            `).join('')}
-          </div>
-        </body>
-      </html>
-    `;
-    const win = window.open("", "_blank");
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => win.print(), 500);
-  };
-
-  const fichasFiltradas = fichas.filter(f => f.nome_receita.toLowerCase().includes(busca.toLowerCase()));
+  if (carregando) return <div className="p-8 text-center font-bold text-hf-text-2"><Loader2 className="mr-2 inline animate-spin" size={18} />Carregando a janta…</div>;
+  const d = janta.dias[dia];
+  const rotDia = DIAS_SEMANA.find((x) => x.id === dia)?.rotulo;
 
   return (
-    <div className="min-h-screen font-sans pb-24 text-slate-800">
-      {/* HEADER */}
-      <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
-         <div className="flex items-center gap-4">
-           <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-card border border-line flex items-center justify-center text-fg hover:bg-white transition-colors shadow-sm"><ArrowLeft size={18}/></button>
-           <div className="w-16 h-16 rounded-3xl bg-card text-success flex items-center justify-center shadow-inner">
-              <Utensils size={32} />
-           </div>
-           <div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-fg">Cardápio da Equipe</h1>
-              <p className="text-fg-soft font-bold uppercase tracking-widest text-xs mt-1">Refeitório de Funcionários</p>
-           </div>
-         </div>
-         <button onClick={imprimirCardapio} className="flex items-center gap-2 bg-slate-800 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-lg shadow-slate-800/20">
-            <Printer size={18} /> Imprimir Cardápio e Receitas
-         </button>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-6">
-         {loading ? (
-           <div className="text-center p-10 font-bold text-fg">Carregando fichas técnicas...</div>
-         ) : (
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {Object.entries(semana).map(([dia, pratos]) => (
-               <div key={dia} className="bg-card rounded-[24px] border border-line shadow-sm p-5 flex flex-col">
-                 <div className="flex items-center justify-between mb-4">
-                   <h2 className="font-black text-lg text-slate-800">{dia}</h2>
-                   <button onClick={() => setDiaSelecionado(dia)} className="w-8 h-8 rounded-full bg-accent-soft text-accent-strong flex items-center justify-center hover:bg-emerald-100 transition-colors"><Plus size={16}/></button>
-                 </div>
-                 
-                 <div className="flex-1 space-y-2">
-                   {pratos.length === 0 ? (
-                     <div className="text-center py-6 text-subtle font-medium text-sm border-2 border-dashed border-line-soft rounded-xl">Sem pratos definidos</div>
-                   ) : pratos.map((p, idx) => (
-                     <div key={idx} className="flex items-center justify-between bg-white border border-line-soft p-3 rounded-xl">
-                       <span className="font-bold text-fg-soft text-sm line-clamp-1">{p.nome_receita}</span>
-                       <button onClick={() => removeReceita(idx, dia)} className="text-subtle hover:text-red-500 p-1"><X size={14}/></button>
-                     </div>
-                   ))}
-                 </div>
-               </div>
-             ))}
-           </div>
-         )}
-      </div>
-
-      {/* Modal Selecionar Receita */}
-      {diaSelecionado && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-card rounded-[32px] w-full max-w-lg p-6 sm:p-8 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-             <div className="flex items-center justify-between mb-6">
-               <h3 className="text-2xl font-black text-slate-800">Prato para {diaSelecionado}</h3>
-               <button onClick={() => setDiaSelecionado(null)} className="p-2 bg-card text-fg rounded-full hover:bg-slate-200"><X size={20}/></button>
-             </div>
-             
-             <div className="bg-white p-3 rounded-xl border border-line flex items-center gap-3 mb-4 shrink-0">
-               <Search size={18} className="text-subtle"/>
-               <input autoFocus type="text" placeholder="Buscar receita..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full bg-transparent outline-none font-medium text-fg-soft"/>
-             </div>
-
-             <div className="flex-1 overflow-y-auto pr-2 space-y-2">
-               {fichasFiltradas.length === 0 ? (
-                 <div className="text-center p-6 text-fg font-medium text-sm">Nenhuma receita encontrada.</div>
-               ) : fichasFiltradas.map(f => (
-                 <button key={f.id} onClick={() => addReceita(f, diaSelecionado)} className="w-full text-left bg-card border border-line p-4 rounded-xl hover:border-emerald-500 hover:shadow-sm transition-all group flex items-center justify-between">
-                   <div>
-                     <div className="font-bold text-slate-800 group-hover:text-accent">{f.nome_receita}</div>
-                     <div className="text-2xs font-semibold text-fg mt-1">Rende {f.rendimento_porcoes} {f.rendimento_unidade}</div>
-                   </div>
-                   <Plus size={18} className="text-dim group-hover:text-emerald-500"/>
-                 </button>
-               ))}
-             </div>
-          </div>
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-5 sm:px-6">
+      <header className="flex flex-wrap items-center gap-3">
+        <Link href="/dashboard/rh" aria-label="Voltar ao RH" className="grid h-11 w-11 place-items-center rounded-xl border border-hf-border bg-hf-surface text-hf-text-2"><ArrowLeft size={18} /></Link>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-black uppercase tracking-wider text-hf-accent">Equipe</p>
+          <h1 className="text-xl font-black text-hf-text">Janta dos funcionários</h1>
         </div>
-      )}
+        <button onClick={() => imprimir(semana)} className="inline-flex h-11 items-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-bold text-hf-text"><Printer size={16} /> Imprimir semana</button>
+        <button onClick={salvar} disabled={!mudou || salvando} className="inline-flex h-11 items-center gap-2 rounded-xl bg-hf-accent px-4 text-sm font-black text-white disabled:opacity-50">{salvando ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar</button>
+      </header>
+      {aviso && <p role="status" className="rounded-xl bg-hf-elevated px-3 py-2 text-sm font-bold text-hf-text">{aviso}</p>}
 
+      <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-hf-border bg-hf-surface p-4">
+        <label className="w-48 text-xs font-bold text-hf-text-2">Pessoas que jantam (padrão)
+          <input inputMode="numeric" value={janta.pessoas_padrao} onChange={(e) => alterar((j) => { j.pessoas_padrao = e.target.value; return j; })} placeholder="Ex.: 12" className={`${inputCls} mt-1`} />
+        </label>
+        <p className="min-w-[200px] flex-1 text-sm text-hf-text-2">Você põe quantas <b>gramas por pessoa</b> de cada coisa do prato; o Héfisto calcula o total para o número de pessoas do dia. Ex.: macarrão 120 g por pessoa → 6 pessoas = 720 g.</p>
+      </section>
+
+      <div role="tablist" className="flex gap-1 overflow-x-auto rounded-xl bg-hf-elevated p-1 [scrollbar-width:none]">
+        {semana.map((x) => (
+          <button key={x.id} role="tab" aria-selected={dia === x.id} onClick={() => setDia(x.id)}
+            className={`shrink-0 rounded-lg px-3 py-2 text-left text-sm font-bold transition ${dia === x.id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2"}`}>
+            {x.rotulo}{x.id === diaDeHoje() ? " · hoje" : ""}
+            <span className="block text-[11px] font-semibold text-hf-muted">{x.r.pratos.length ? x.r.pratos.map((p) => p.nome || "Prato").join(", ").slice(0, 28) : "sem prato"}</span>
+          </button>
+        ))}
+      </div>
+
+      <section className="grid gap-3 sm:grid-cols-3">
+        <label className="rounded-2xl border border-hf-border bg-hf-surface p-4 text-xs font-bold text-hf-text-2"><Users size={14} className="mr-1 inline" />Pessoas na {rotDia}
+          <input inputMode="numeric" value={d.pessoas} onChange={(e) => alterarDia((x) => { x.pessoas = e.target.value; })} placeholder={janta.pessoas_padrao ? `padrão: ${janta.pessoas_padrao}` : "Ex.: 12"} className={`${inputCls} mt-1`} />
+        </label>
+        <div className="rounded-2xl border border-hf-border bg-hf-surface p-4">
+          <p className="text-xs font-bold text-hf-text-2">Custo da janta</p>
+          <p className="text-2xl font-black text-hf-text">{doDia.custo > 0 ? brl(doDia.custo) : "—"}</p>
+          <p className="text-xs text-hf-muted">{doDia.semCusto ? `ESTIMATIVA: ${doDia.semCusto} item(ns) sem produto com preço` : doDia.custo > 0 ? "Pelos preços do cadastro" : "Ligue os itens aos produtos para ver o custo"}</p>
+        </div>
+        <div className="rounded-2xl border border-hf-border bg-hf-surface p-4">
+          <p className="text-xs font-bold text-hf-text-2">Por pessoa</p>
+          <p className="text-2xl font-black text-hf-text">{brl(doDia.custoPorPessoa)}</p>
+          <button onClick={() => imprimir([{ rotulo: rotDia, r: doDia }])} className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-hf-accent"><Printer size={13} /> Imprimir o cardápio do dia</button>
+        </div>
+      </section>
+
+      <datalist id="produtos-janta">{insumos.map((i) => <option key={i.id} value={i.nome} />)}</datalist>
+      <div className="space-y-3">
+        {doDia.pratos.map((p) => (
+          <article key={p.id} className="rounded-2xl border border-hf-border bg-hf-surface p-4">
+            <div className="flex items-center gap-2">
+              <UtensilsCrossed size={18} className="shrink-0 text-hf-accent" />
+              <input value={p.nome} onChange={(e) => alterarPrato(p.id, (x) => { x.nome = e.target.value; })} placeholder="Nome do prato (ex.: Macarronada)" className={`${inputCls} text-base font-black`} />
+              <button onClick={() => alterarDia((x) => { x.pratos = x.pratos.filter((y) => y.id !== p.id); })} aria-label={`Remover ${p.nome || "prato"}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hf-border text-hf-text-2 hover:text-hf-danger"><Trash2 size={16} /></button>
+            </div>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[520px] text-sm">
+                <thead><tr className="text-left text-[11px] font-black uppercase tracking-wide text-hf-muted"><th className="pb-1">Item</th><th className="w-28 pb-1">g por pessoa</th><th className="w-28 pb-1 text-right">Total ({doDia.pessoas || "?"})</th><th className="w-24 pb-1 text-right">Custo</th><th className="w-10" /></tr></thead>
+                <tbody>
+                  {janta.dias[dia].pratos.find((x) => x.id === p.id).itens.map((i) => {
+                    const calc = p.itens.find((x) => x.id === i.id);
+                    return (
+                      <tr key={i.id} className="border-t border-hf-border">
+                        <td className="py-1.5 pr-2">
+                          <input list="produtos-janta" value={i.nome} placeholder="Produto (ex.: Macarrão)"
+                            onChange={(e) => { const v = e.target.value; const achado = insumos.find((x) => x.nome === v) || null; alterarPrato(p.id, (x) => { const it = x.itens.find((y) => y.id === i.id); it.nome = v; it.insumo_id = achado?.id || null; }); }}
+                            className={inputCls} />
+                          {i.nome && !i.insumo_id && <span className="text-[11px] text-hf-muted">{insumos.some((x) => casaBusca(x.nome, i.nome)) ? "Escolha da lista para ligar ao cadastro e ver o custo." : "Fora do cadastro: entra na quantidade, sem custo."}</span>}
+                        </td>
+                        <td className="py-1.5 pr-2"><input inputMode="decimal" value={i.g_pessoa} onChange={(e) => alterarPrato(p.id, (x) => { x.itens.find((y) => y.id === i.id).g_pessoa = e.target.value; })} placeholder="120" className={inputCls} /></td>
+                        <td className="py-1.5 text-right font-black tabular-nums text-hf-text">{calc?.rotulo || "—"}</td>
+                        <td className="py-1.5 text-right tabular-nums text-hf-text-2">{calc?.custo != null ? brl(calc.custo) : "—"}</td>
+                        <td className="py-1.5 text-right"><button onClick={() => alterarPrato(p.id, (x) => { x.itens = x.itens.filter((y) => y.id !== i.id); })} aria-label="Remover item" className="text-hf-muted hover:text-hf-danger"><Trash2 size={15} /></button></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <button onClick={() => alterarPrato(p.id, (x) => { x.itens.push({ id: novoIdJanta("i"), nome: "", insumo_id: null, g_pessoa: "" }); })} className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-hf-accent"><Plus size={15} /> Item</button>
+            <label className="mt-3 block text-xs font-bold text-hf-text-2">Como fazer (preparo)
+              <textarea value={p.preparo} onChange={(e) => alterarPrato(p.id, (x) => { x.preparo = e.target.value; })} rows={4} placeholder="1. Cozinhe o macarrão em água com sal…&#10;2. Refogue a carne com alho e cebola…" className="mt-1 w-full rounded-xl border border-hf-border bg-hf-surface p-3 text-sm text-hf-text outline-none focus:border-hf-accent" />
+            </label>
+          </article>
+        ))}
+        <button onClick={() => alterarDia((x) => { x.pratos.push({ id: novoIdJanta("p"), nome: "", preparo: "", itens: [{ id: novoIdJanta("i"), nome: "", insumo_id: null, g_pessoa: "" }] }); })}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-hf-border p-4 text-sm font-black text-hf-text-2 hover:border-hf-accent hover:text-hf-accent">
+          <Plus size={16} /> Adicionar prato na {rotDia}
+        </button>
+      </div>
     </div>
   );
 }

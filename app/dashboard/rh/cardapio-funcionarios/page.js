@@ -8,29 +8,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, ChevronDown, Loader2, Plus, Printer, Save, Trash2, Users, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, ChevronDown, Loader2, Minus, Plus, Printer, Save, Trash2, UtensilsCrossed } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos } from "../../../lib/operacao";
 import { fetchJantaFuncionarios, salvarJantaFuncionarios } from "../../../lib/parametros";
-import { fetchColaboradores, fetchAllFolgasDaUnidade } from "../../../lib/rh";
-import { DIAS_SEMANA, normalizarJanta, cardapioDoDia, novoIdJanta, escalaDaJanta, pessoasDaJanta } from "../../../lib/janta-funcionarios.mjs";
+import { DIAS_SEMANA, normalizarJanta, cardapioDoDia, novoIdJanta, pessoasDoDia } from "../../../lib/janta-funcionarios.mjs";
 import { casaBusca } from "../../../lib/busca.mjs";
 
 const brl = (v) => (v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 // Campos em "pílula" (padrão visual do dono, 31/10/2026)
 const inputCls = "h-11 w-full rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent";
 const diaDeHoje = () => ["dom", "seg", "ter", "qua", "qui", "sex", "sab"][new Date().getDay()];
-const hojeIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
-const ddmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
-const ORIGEM = { manual: "número fixo deste dia", escala: "pela escala do dia", padrao: "padrão da casa (sem escala no cadastro)", sem_dado: "" };
-
-// Círculo de seleção com ✓ (como no simulador)
-function Marca({ marcado }) {
-  return marcado
-    ? <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-hf-text text-white"><Check size={15} strokeWidth={3} /></span>
-    : <span className="h-6 w-6 shrink-0 rounded-full border-2 border-hf-border-strong" />;
-}
-
 // Semana antiga (só no navegador, com fichas por dia) vira pratos com o nome da ficha.
 function semanaAntiga(unidade) {
   try {
@@ -47,9 +35,9 @@ export default function JantaFuncionarios() {
   const { unidadeAtiva } = useERP();
   const [janta, setJanta] = useState(normalizarJanta(null));
   const [insumos, setInsumos] = useState([]);
-  const [equipe, setEquipe] = useState([]);
-  const [folgas, setFolgas] = useState([]);
   const [dia, setDia] = useState(diaDeHoje());
+  // "ficha": o funcionário vê o dia, põe quantas pessoas e lê a ficha pronta; "montar": o dono monta a semana
+  const [modo, setModo] = useState("ficha");
   const [carregando, setCarregando] = useState(true);
   const [mudou, setMudou] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -60,10 +48,8 @@ export default function JantaFuncionarios() {
     let vivo = true;
     (async () => {
       setCarregando(true);
-      const [rJ, rI, rC, rF] = await Promise.all([fetchJantaFuncionarios(unidadeAtiva), fetchInsumos(unidadeAtiva, "cozinha"), fetchColaboradores(unidadeAtiva), fetchAllFolgasDaUnidade(unidadeAtiva)]);
+      const [rJ, rI] = await Promise.all([fetchJantaFuncionarios(unidadeAtiva), fetchInsumos(unidadeAtiva, "cozinha")]);
       if (!vivo) return;
-      setEquipe(rC.data || []);
-      setFolgas(rF.data || []);
       setJanta(normalizarJanta(rJ.data || semanaAntiga(unidadeAtiva)));
       setInsumos((rI.data || []).filter((i) => !i.arquivado_em));
       setCarregando(false);
@@ -72,15 +58,10 @@ export default function JantaFuncionarios() {
   }, [unidadeAtiva]);
 
   const mapaInsumos = useMemo(() => new Map(insumos.map((i) => [i.id, i])), [insumos]);
-  // Pessoas de cada dia: escala da janta (cadastro + folgas), número fixo do dia ou padrão
-  const semana = useMemo(() => DIAS_SEMANA.map((d) => {
-    const esc = escalaDaJanta(janta, d.id, { colaboradores: equipe, folgas, hojeIso: hojeIso() });
-    const pessoas = pessoasDaJanta(janta, d.id, esc);
-    return { ...d, esc, pessoas, r: cardapioDoDia(janta, d.id, { pessoas: pessoas.total, insumos: mapaInsumos }) };
-  }), [janta, equipe, folgas, mapaInsumos]);
+  // Pessoas de cada dia: o número que o dono informa (sem número no dia, o padrão)
+  const semana = useMemo(() => DIAS_SEMANA.map((d) => ({ ...d, pessoas: pessoasDoDia(janta, d.id), r: cardapioDoDia(janta, d.id, { insumos: mapaInsumos }) })), [janta, mapaInsumos]);
   const doSel = semana.find((x) => x.id === dia);
   const doDia = doSel.r;
-  const esc = doSel.esc;
 
   const alterar = (fn) => { setJanta((j) => fn(structuredClone(j))); setMudou(true); };
   const alterarDia = (fn) => alterar((j) => { fn(j.dias[dia]); return j; });
@@ -115,9 +96,7 @@ export default function JantaFuncionarios() {
   const d = janta.dias[dia];
   const rotDia = DIAS_SEMANA.find((x) => x.id === dia)?.rotulo;
 
-  const alternarFora = (id) => alterarDia((x) => { const s = new Set(x.fora || []); s.has(String(id)) ? s.delete(String(id)) : s.add(String(id)); x.fora = [...s]; });
-  const comJanta = [...esc.jantam, ...esc.tirados].sort((a, b) => a.entrada.localeCompare(b.entrada) || String(a.nome).localeCompare(String(b.nome)));
-  const foraSet = new Set(d.fora || []);
+  const mudarPessoas = (delta) => alterarDia((x) => { const atual = Number(x.pessoas) || Number(janta.pessoas_padrao) || 0; x.pessoas = String(Math.max(0, atual + delta)); });
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-5 sm:px-6">
@@ -135,62 +114,40 @@ export default function JantaFuncionarios() {
       {aviso && <p role="status" className="rounded-full bg-hf-elevated px-4 py-2 text-sm font-bold text-hf-text">{aviso}</p>}
 
       {/* Semana: cada dia com quantas pessoas jantam e o prato */}
+      <div className="grid grid-cols-2 gap-1 rounded-full bg-hf-elevated p-1 sm:inline-grid sm:w-auto">
+        {[["ficha", "Ficha do dia"], ["montar", "Montar a semana"]].map(([id, rot]) => (
+          <button key={id} onClick={() => setModo(id)} aria-pressed={modo === id}
+            className={`h-10 rounded-full px-5 text-sm font-black transition ${modo === id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2"}`}>{rot}</button>
+        ))}
+      </div>
+
       <div role="tablist" aria-label="Dia da semana" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {semana.map((x) => (
           <button key={x.id} role="tab" aria-selected={dia === x.id} onClick={() => setDia(x.id)}
             className={`shrink-0 rounded-2xl border px-4 py-2 text-left transition ${dia === x.id ? "border-hf-text bg-hf-text text-white" : "border-hf-border bg-hf-surface text-hf-text"}`}>
             <span className="block text-sm font-black">{x.rotulo}{x.id === diaDeHoje() ? " · hoje" : ""}</span>
             <span className={`block text-[11px] font-semibold ${dia === x.id ? "text-white/75" : "text-hf-muted"}`}>
-              {x.pessoas.total ? `${x.pessoas.total} pessoa(s)` : "sem pessoas"} · {x.r.pratos.length ? x.r.pratos.map((p) => p.nome || "Prato").join(", ").slice(0, 22) : "sem prato"}
+              {x.pessoas ? `${x.pessoas} pessoa(s)` : "quantas pessoas?"} · {x.r.pratos.length ? x.r.pratos.map((p) => p.nome || "Prato").join(", ").slice(0, 22) : "sem prato"}
             </span>
           </button>
         ))}
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
-        {/* ESCALA DA JANTA */}
+        {/* QUANTAS PESSOAS JANTAM (o dono informa) */}
         <section className="rounded-3xl border border-hf-border bg-hf-surface p-5">
-          <p className="text-[11px] font-black uppercase tracking-wider text-hf-muted">Escala da janta · {rotDia} {ddmm(esc.data)}</p>
-          <div className="mt-2 flex items-end gap-2">
-            <p className="text-4xl font-black tabular-nums text-hf-text">{doSel.pessoas.total || "—"}</p>
-            <p className="pb-1.5 text-sm font-bold text-hf-text-2">pessoa(s) jantam</p>
+          <p className="text-[11px] font-black uppercase tracking-wider text-hf-muted">Quantas pessoas jantam · {rotDia}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <button onClick={() => mudarPessoas(-1)} aria-label="Uma pessoa a menos" className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-hf-border bg-hf-surface text-hf-text"><Minus size={20} /></button>
+            <input inputMode="numeric" aria-label={`Pessoas que jantam na ${rotDia}`} value={d.pessoas} onChange={(e) => alterarDia((x) => { x.pessoas = e.target.value.replace(/\D/g, ""); })}
+              placeholder={janta.pessoas_padrao ? String(janta.pessoas_padrao) : "0"}
+              className="h-14 min-w-0 flex-1 rounded-full border border-hf-border bg-hf-surface text-center text-3xl font-black tabular-nums text-hf-text outline-none focus:border-hf-accent" />
+            <button onClick={() => mudarPessoas(1)} aria-label="Uma pessoa a mais" className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-hf-border bg-hf-surface text-hf-text"><Plus size={20} /></button>
           </div>
-          <p className="text-xs text-hf-muted">{doSel.pessoas.total ? ORIGEM[doSel.pessoas.origem] : "DADOS INSUFICIENTES: ninguém com horário neste dia no cadastro do RH. Ponha um número fixo abaixo."}</p>
-
-          {comJanta.length > 0 && (
-            <ul className="mt-4 divide-y divide-hf-border">
-              {comJanta.map((p) => {
-                const janta = !foraSet.has(String(p.id));
-                return (
-                  <li key={p.id}>
-                    <button onClick={() => alternarFora(p.id)} aria-pressed={janta} className="flex w-full items-center gap-3 py-2.5 text-left">
-                      <Marca marcado={janta} />
-                      <span className={`min-w-0 flex-1 truncate text-[15px] ${janta ? "font-semibold text-hf-text" : "text-hf-muted line-through"}`}>{p.nome}</span>
-                      <span className="text-xs tabular-nums text-hf-muted">{p.entrada}–{p.saida}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {(esc.semJanta.length > 0 || esc.folgas.length > 0) && (
-            <div className="mt-3 space-y-1 rounded-2xl bg-hf-elevated p-3 text-xs text-hf-text-2">
-              {esc.folgas.length > 0 && <p><b>De folga:</b> {esc.folgas.map((f) => f.nome).join(", ")}</p>}
-              {esc.semJanta.length > 0 && <p><b>Trabalham sem janta</b> (cadastro): {esc.semJanta.map((f) => f.nome).join(", ")}</p>}
-            </div>
-          )}
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <label className="text-xs font-bold text-hf-text-2">Extras (visitas, freelas)
-              <input inputMode="numeric" value={d.extras} onChange={(e) => alterarDia((x) => { x.extras = e.target.value; })} placeholder="0" className={`${inputCls} mt-1`} />
-            </label>
-            <label className="text-xs font-bold text-hf-text-2">Número fixo do dia
-              <input inputMode="numeric" value={d.pessoas} onChange={(e) => alterarDia((x) => { x.pessoas = e.target.value; })} placeholder="pela escala" className={`${inputCls} mt-1`} />
-            </label>
-          </div>
+          <p className="mt-2 text-xs text-hf-muted">{d.pessoas ? "A ficha da janta já está calculada para esse número." : janta.pessoas_padrao ? `Sem número neste dia: usando o padrão de ${janta.pessoas_padrao}.` : "Diga quantas pessoas jantam: as quantidades da ficha saem desse número."}</p>
           <details className="mt-3 text-xs text-hf-text-2">
-            <summary className="flex cursor-pointer items-center gap-1 font-bold"><ChevronDown size={14} /> Padrão quando não há escala</summary>
-            <input inputMode="numeric" value={janta.pessoas_padrao} onChange={(e) => alterar((j) => { j.pessoas_padrao = e.target.value; return j; })} placeholder="Ex.: 12" className={`${inputCls} mt-2`} />
+            <summary className="flex cursor-pointer items-center gap-1 font-bold"><ChevronDown size={14} /> Número padrão (quando o dia fica em branco)</summary>
+            <input inputMode="numeric" value={janta.pessoas_padrao} onChange={(e) => alterar((j) => { j.pessoas_padrao = e.target.value.replace(/\D/g, ""); return j; })} placeholder="Ex.: 12" className={`${inputCls} mt-2`} />
           </details>
         </section>
 
@@ -198,15 +155,46 @@ export default function JantaFuncionarios() {
         <section className="space-y-3">
           <div className="rounded-3xl border border-hf-border bg-hf-surface p-5">
             <p className="text-[11px] font-black uppercase tracking-wider text-hf-muted">Ficha da janta · {rotDia}</p>
+            {modo === "ficha" ? (
+              <p className="mt-2 text-sm font-semibold text-hf-text-2">{doDia.pessoas ? <>Quantidades para <b className="text-hf-text">{doDia.pessoas} pessoa(s)</b>. Mudou o número? Ajuste em "Quantas pessoas jantam" e a ficha atualiza.</> : "Ponha quantas pessoas vão jantar para ver as quantidades."}</p>
+            ) : (<>
             <div className="mt-3 grid grid-cols-3 gap-3">
               <div><p className="text-xs text-hf-text-2">Pessoas</p><p className="text-xl font-black tabular-nums text-hf-text">{doDia.pessoas || "—"}</p></div>
               <div><p className="text-xs text-hf-text-2">Custo da janta</p><p className="text-xl font-black tabular-nums text-hf-text">{doDia.custo > 0 ? brl(doDia.custo) : "—"}</p></div>
               <div><p className="text-xs text-hf-text-2">Por pessoa</p><p className="text-xl font-black tabular-nums text-hf-text">{brl(doDia.custoPorPessoa)}</p></div>
             </div>
             <p className="mt-2 text-xs text-hf-muted">{doDia.semCusto ? `ESTIMATIVA: ${doDia.semCusto} item(ns) sem produto com preço no cadastro.` : doDia.custo > 0 ? "Custo pelos preços do cadastro. As quantidades mudam sozinhas com o número de pessoas." : "Você põe os gramas por pessoa de cada item; o total muda sozinho com o número de pessoas do dia."}</p>
+            </>)}
             <button onClick={() => imprimir([{ rotulo: rotDia, r: doDia }])} className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-hf-elevated text-sm font-black text-hf-text hover:bg-hf-border"><Printer size={16} /> Imprimir a ficha da janta de {rotDia}</button>
           </div>
 
+      {modo === "ficha" ? (
+        <div className="space-y-3">
+          {doDia.pratos.length === 0 && (
+            <p className="rounded-3xl border border-dashed border-hf-border p-6 text-center text-sm font-semibold text-hf-text-2">Nenhum prato na {rotDia}. Monte o cardápio em <button onClick={() => setModo("montar")} className="font-black text-hf-accent underline">Montar a semana</button>.</p>
+          )}
+          {doDia.pratos.map((p) => (
+            <article key={p.id} className="rounded-3xl border border-hf-border bg-hf-surface p-5">
+              <h2 className="flex items-center gap-2 text-lg font-black text-hf-text"><UtensilsCrossed size={18} className="text-hf-accent" />{p.nome || "Prato"}</h2>
+              <ul className="mt-3 divide-y divide-hf-border">
+                {p.itens.map((i) => (
+                  <li key={i.id} className="flex items-baseline gap-3 py-2.5">
+                    <span className="min-w-0 flex-1 text-[15px] font-semibold text-hf-text">{i.nome || "Item"}</span>
+                    <span className="text-xs text-hf-muted">{i.gPessoa ? `${i.gPessoa} g/pessoa` : ""}</span>
+                    <span className="w-24 text-right text-lg font-black tabular-nums text-hf-text">{i.rotulo}</span>
+                  </li>
+                ))}
+              </ul>
+              {p.preparo && (
+                <div className="mt-3 rounded-2xl bg-hf-elevated p-4">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-hf-muted">Como fazer</p>
+                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-hf-text">{p.preparo}</p>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      ) : (<>
       <datalist id="produtos-janta">{insumos.map((i) => <option key={i.id} value={i.nome} />)}</datalist>
       <div className="space-y-3">
         {doDia.pratos.map((p) => (
@@ -251,6 +239,7 @@ export default function JantaFuncionarios() {
           <Plus size={16} /> Adicionar prato na {rotDia}
         </button>
       </div>
+      </>)}
         </section>
       </div>
     </div>

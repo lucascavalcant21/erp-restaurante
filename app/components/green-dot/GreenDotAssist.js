@@ -612,7 +612,18 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
     }
 
     // 4. Verifica se é uma das receitas (Vatapá, Risoto, Moscow Mule, Parmegiana, Custom ou Ficha Real pelo nome)
-    const receitaEncontrada = todasAsReceitas.find((r) => {
+    // Ficha real da casa primeiro (nome inteiro ou a palavra principal: "vatapá" acha "Vatapá Baiano");
+    // as receitas de referência do Green Dot só entram quando a casa não tem ficha com esse nome.
+    const semAcento = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace("*", "").trim();
+    const qn = ` ${semAcento(q).replace(/[^a-z0-9]+/g, " ")} `;
+    const daCasa = todasAsReceitas.filter((r) => !RECEITAS_GREEN_DOT.includes(r));
+    const receitaDaCasa =
+      daCasa.find((r) => (metaTopico?.id && metaTopico.id === r.id) || (semAcento(r.nome) && qn.includes(` ${semAcento(r.nome)} `))) ||
+      daCasa.find((r) => {
+        const principal = semAcento(r.nome).split(/[^a-z0-9]+/).find((w) => w.length >= 4);
+        return principal && qn.includes(` ${principal} `);
+      });
+    const receitaEncontrada = receitaDaCasa || RECEITAS_GREEN_DOT.find((r) => {
       if (metaTopico?.id && metaTopico.id === r.id) return true;
       const nomeLimpo = String(r.nome || "")
         .toLowerCase()

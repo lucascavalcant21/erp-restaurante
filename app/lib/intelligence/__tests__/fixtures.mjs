@@ -105,6 +105,22 @@ export function tabelasPadrao() {
       { id: "co3", unidade_id: A, nome: "Carla", salario: 150, tipo_contrato: "Freelancer", status: "ativo" },
       { id: "cob", unidade_id: B, nome: "Zé da empresa B", salario: 999999, tipo_contrato: "CLT", status: "ativo", dias_trabalho: "3", horario_entrada: "08:00", horario_saida: "16:00" },
     ],
+    fichas_tecnicas: [
+      { id: "f1", unidade_id: A, nome_receita: "Vatapá Baiano", departamento: "cozinha", rendimento_porcoes: 10, rendimento_unidade: "porções", peso_porcao_g: 250, modo_preparo: "Texto antigo", tempo_preparo: 40, ativo: true },
+      { id: "f2", unidade_id: A, nome_receita: "Caldo de camarão", departamento: "cozinha", rendimento_porcoes: 2, rendimento_unidade: "L", modo_preparo: "Ferver as cascas por 30 min e coar.", eh_base: true, ativo: true },
+      { id: "fb", unidade_id: B, nome_receita: "Vatapá Baiano", departamento: "cozinha", rendimento_porcoes: 999999, modo_preparo: "segredo da B", ativo: true },
+    ],
+    fichas_ingredientes: [
+      { ficha_id: "f1", insumo_id: CAMARAO, quantidade: 0.5 },
+      { ficha_id: "f1", insumo_id: OLEO, quantidade: 0.1 },
+      { ficha_id: "f1", subficha_id: "f2", quantidade: 1.5 },
+      { ficha_id: "fb", insumo_id: PICANHA_B, quantidade: 999999 },
+    ],
+    fichas_etapas: [
+      { unidade_id: A, ficha_id: "f1", ordem: 2, titulo: "Cozinhar", instrucao: "Juntar o caldo e o pão e mexer até engrossar.", tempo_min: 25 },
+      { unidade_id: A, ficha_id: "f1", ordem: 1, titulo: "Refogar", instrucao: "Refogar o camarão no óleo.", tempo_min: 5, equipamento: "Fogão" },
+      { unidade_id: B, ficha_id: "fb", ordem: 1, titulo: "B", instrucao: "segredo da B" },
+    ],
     rh_folgas_esporadicas: [
       { unidade_id: A, colaborador_id: "co1", data_folga: somarDias(HOJE, 1), descricao: "folga combinada" },
       { unidade_id: B, colaborador_id: "cob", data_folga: HOJE, descricao: "B" },

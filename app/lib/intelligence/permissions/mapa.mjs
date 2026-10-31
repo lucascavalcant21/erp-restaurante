@@ -21,6 +21,8 @@ export const PERMISSOES = Object.freeze({
   resultado: ["financeiro.monthly_result.view", "financeiro.dre.view"],
   // as mesmas chaves que _estoque_pode('movimentar', unidade, 'saida') aceita no banco (EST-MOV-1)
   // escala do dia: quem vê o painel do RH, funcionários ou o organograma (sem valores)
+  // ficha técnica (sem custo): quem vê as fichas da cozinha, do bar ou o módulo de fichas
+  fichas: ["fichas.recipes.view", "cozinha.recipes.view", "bar.recipes.view"],
   escala: ["rh.overview.view", "rh.employees.view", "rh.orgchart.view"],
   // as mesmas chaves que _estoque_pode('movimentar', unidade, 'entrada') aceita no banco (EST-MOV-1)
   registrar_entrada: ["estoque.entries.create", "estoque.movements.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
@@ -40,6 +42,7 @@ export const ROTULO_CAPACIDADE = Object.freeze({
   cmo: "CMO",
   resultado: "resultado do mês",
   escala: "escala da equipe",
+  fichas: "fichas técnicas",
   registrar_perda: "registrar perda",
   registrar_entrada: "dar entrada no estoque",
 });

@@ -221,14 +221,14 @@ export function WelcomeGovernanceCard({
                 onClick={() =>
                   onSelectTopic({
                     id: `ficha-real-${f.id}`,
-                    label: f.nome,
-                    prompt: `Como se faz ${f.nome}?`,
+                    label: f.nome || f.nome_receita,
+                    prompt: `Como se faz ${f.nome || f.nome_receita}?`,
                     fichaReal: f,
                   })
                 }
                 className="px-3.5 py-2 rounded-lg border border-[#2E6F4E]/50 bg-[#EFF7F2] hover:bg-[#E0F0E6] text-[#1E4D3B] font-bold text-xs sm:text-sm transition"
               >
-                📋 {f.nome} ({f.departamento || "ERP"})
+                📋 {f.nome || f.nome_receita || "Ficha sem nome"} ({f.departamento || "ERP"})
               </button>
             ))}
           </div>

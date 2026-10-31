@@ -4,6 +4,9 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Settings,
   HelpCircle,
+  CheckCheck,
+  SendHorizontal,
+  MoreVertical,
   RotateCcw,
   ArrowUp,
   Mic,
@@ -253,11 +256,34 @@ function converterFichaRealParaGreenDot(ficha, complementos = {}) {
   };
 }
 
+// Atalhos da barra de digitação: viram a pergunta, como se a pessoa tivesse digitado.
+const ATALHOS_RAPIDOS = [
+  { rotulo: "Lucro do mês", pergunta: "Qual o lucro líquido do mês?" },
+  { rotulo: "Quem trabalha hoje", pergunta: "Quem trabalha hoje?" },
+  { rotulo: "Vendas de hoje", pergunta: "Quanto vendi hoje?" },
+  { rotulo: "Vencendo", pergunta: "Quais produtos estão próximos do vencimento?" },
+  { rotulo: "Contas a vencer", pergunta: "Quais contas vencem nos próximos dias?" },
+  { rotulo: "CMV", pergunta: "Como está meu CMV?" },
+  { rotulo: "Previsão do tempo", pergunta: "Qual a previsão do tempo para hoje?" },
+  { rotulo: "Checklist", pergunta: "Checklist de abertura da cozinha" },
+  { rotulo: "Etiqueta", pergunta: "Quero gerar uma etiqueta de validade" },
+];
+
+// Hora da mensagem (HH:MM): o id do bloco carrega o Date.now() de quando foi criado.
+function horaDoBloco(bloco) {
+  if (bloco?.hora) return bloco.hora;
+  const m = String(bloco?.id || "").match(/(\d{13})/);
+  return m ? Number(m[1]) : Date.now();
+}
+const horaCurta = (ms) => new Date(ms).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
 export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
   const { estoque = [], unidadeAtiva, unidadeInfo, sessao } = useERP() || {};
 
   // Estado visual do tablet / conversa
-  const [molduraTablet, setMolduraTablet] = useState(true);
+  const [molduraTablet, setMolduraTablet] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [mostrarAtalhos, setMostrarAtalhos] = useState(false);
   const [mostrarBannerProp, setMostrarBannerProp] = useState(false);
   const [mostrarConfig, setMostrarConfig] = useState(false);
   const [modalAdminAberto, setModalAdminAberto] = useState(false);
@@ -404,7 +430,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
   }, [equipamentosCustom, guiasBanco]);
 
   useEffect(() => {
-    fimChatRef.current?.scrollIntoView({ behavior: "smooth" });
+    fimChatRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [itensConversa, carregandoIA, convidadoExtraId, progressoConvite]);
 
   const reiniciarConversa = () => {
@@ -944,7 +970,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
       const data = await res.json();
       const textoResposta =
         data?.resposta ||
-        "Consultei os manuais da unidade. Você pode usar os botões abaixo para abrir fichas técnicas, recalcular ingredientes ou ver fotos e voltagem dos equipamentos.";
+        "Não consegui responder isso agora. Tente perguntar de outro jeito ou toque em um dos atalhos aqui embaixo.";
       setItensConversa((prev) => [
         ...prev,
         { id: `ia-${Date.now()}`, tipo: "resposta-texto-ia", texto: textoResposta },
@@ -956,7 +982,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
         {
           id: `ia-err-${Date.now()}`,
           tipo: "resposta-texto-ia",
-          texto: "Aqui está o acesso rápido às fichas técnicas, calculadora de ingredientes e manuais de equipamentos da loja.",
+          texto: "Estou sem conexão para responder agora. Confira a internet e tente de novo.",
         },
       ]);
     } finally {
@@ -1035,127 +1061,68 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
 
   return (
     <div
-      className={`min-h-[calc(100dvh-4rem)] w-full flex flex-col items-center justify-center transition-colors ${
-        molduraTablet ? "bg-[#244332] py-3 sm:py-6 px-2 sm:px-6" : "bg-[#F4F3EF]"
+      className={`h-full min-h-0 w-full flex flex-col items-center transition-colors ${
+        molduraTablet ? "bg-[#244332] py-3 sm:py-6 px-2 sm:px-6 justify-center" : "bg-[#EFEAE2]"
       }`}
     >
-      {/* MOLDURA DE IPAD / TABLET DE LOJA */}
+      {/* Conversa no estilo WhatsApp (moldura de tablet opcional no computador) */}
       <div
-        className={`w-full flex flex-col bg-[#F4F3EF] text-[#1C2826] overflow-hidden transition-all ${
+        className={`w-full flex flex-col min-h-0 text-[#111B21] overflow-hidden transition-all ${
           molduraTablet
-            ? "max-w-4xl rounded-[28px] border-[10px] sm:border-[14px] border-[#1A1D1B] shadow-2xl min-h-[85dvh] max-h-[90dvh]"
-            : "max-w-5xl min-h-[calc(100dvh-4rem)]"
+            ? "max-w-4xl rounded-[28px] border-[10px] sm:border-[14px] border-[#1A1D1B] shadow-2xl h-[85dvh]"
+            : "max-w-5xl h-full lg:border-x lg:border-[#D6D1C4]"
         }`}
       >
-        {/* BARRA DE TOPO DO TABLET */}
-        <header className="px-4 sm:px-6 py-3 bg-[#F4F3EF]/95 backdrop-blur-xs border-b border-[#E4E2DA] flex items-center justify-between gap-2 shrink-0 z-20">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setMostrarConfig((v) => !v)}
-              title="Configurações do Tablet"
-              className="w-9 h-9 rounded-lg border border-[#76847D] bg-white hover:bg-[#EBF3EE] text-[#1E4D3B] flex items-center justify-center shadow-2xs transition"
-            >
-              <Settings size={18} />
-            </button>
-
-            <div className="flex items-center gap-2 pl-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#2E6F4E] animate-pulse" />
-              <div>
-                <h1 className="text-xs sm:text-sm font-black tracking-tight text-[#1E4D3B] flex items-center gap-1.5">
-                  Green Dot Assist
-                  <span className="hidden sm:inline-block text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#DCECE3] text-[#1E4D3B]">
-                    Cozinha · Bar · Equipamentos
-                  </span>
-                </h1>
-              </div>
+        {/* BARRA DE TOPO: avatar, nome e status, como no WhatsApp */}
+        <header className="h-14 px-2 sm:px-4 bg-[#1E4D3B] text-white flex items-center gap-2 shrink-0 z-20 shadow-sm">
+          <div className="relative shrink-0">
+            <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/30">
+              <Sparkles size={19} className="fill-white" />
             </div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#25D366] ring-2 ring-[#1E4D3B]" />
+          </div>
+          <div className="min-w-0 flex-1 leading-tight">
+            <h1 className="text-[15px] font-bold truncate">Green Dot</h1>
+            <p className="text-[12px] text-white/80 truncate" aria-live="polite">
+              {ouvindo ? "ouvindo…" : carregandoIA || ocupadoHefisto ? "digitando…" : `online · ${unidadeInfo?.nome || "sua unidade"}`}
+            </p>
           </div>
 
-          {/* Pílulas de demonstração rápida dos fluxos */}
-          <div className="hidden lg:flex items-center gap-1 bg-[#EAE8E1] p-1 rounded-xl border border-[#DAD8CE]">
+          <button
+            onClick={() => setVozAtiva((v) => !v)}
+            title={vozAtiva ? "Desativar leitura em voz" : "Ler respostas em voz alta"}
+            aria-label={vozAtiva ? "Desativar leitura em voz" : "Ler respostas em voz alta"}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition ${vozAtiva ? "bg-white/20" : "hover:bg-white/10"}`}
+          >
+            {vozAtiva ? <Volume2 size={20} /> : <VolumeX size={20} />}
+          </button>
+          <button
+            onClick={() => { setAbaAdminInicial("receitas"); setModalAdminAberto(true); }}
+            title="Cadastrar receitas, fotos, vídeos e equipamentos"
+            aria-label="Cadastrar receitas, fotos, vídeos e equipamentos"
+            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition"
+          >
+            <PlusCircle size={20} />
+          </button>
+          <div className="relative">
             <button
-              onClick={() => abrirFluxoDireto("vatapa")}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#1E4D3B] hover:bg-white transition flex items-center gap-1"
+              onClick={() => setMenuAberto((v) => !v)}
+              aria-label="Mais opções"
+              aria-expanded={menuAberto}
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition"
             >
-              <UtensilsCrossed size={12} /> Receita Vatapá
+              <MoreVertical size={20} />
             </button>
-            <button
-              onClick={() => abrirFluxoDireto("recalculo")}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#8A4200] hover:bg-white transition flex items-center gap-1"
-            >
-              <Scale size={12} /> Só Tenho 2L (Recálculo)
-            </button>
-            <button
-              onClick={() => abrirFluxoDireto("liquidificador")}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#1E4D3B] hover:bg-white transition flex items-center gap-1"
-            >
-              <Zap size={12} /> 110V/220V &amp; Encaixe
-            </button>
-            <button
-              onClick={() => abrirFluxoDireto("limpeza")}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#1E4D3B] hover:bg-white transition flex items-center gap-1"
-            >
-              <Droplets size={12} /> Limpeza (mL)
-            </button>
-            <button
-              onClick={() => abrirFluxoDireto("checklist")}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#8C6D23] hover:bg-white transition flex items-center gap-1"
-            >
-              <ClipboardCheck size={12} /> Checklists
-            </button>
-            <button
-              onClick={() => abrirFluxoDireto("etiqueta")}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#1E4D3B] hover:bg-white transition flex items-center gap-1"
-            >
-              <Tag size={12} /> Etiqueta ANVISA
-            </button>
-            <button
-              onClick={() => abrirFluxoDireto("admin")}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-[#1E4D3B] text-white hover:bg-[#163B2D] transition flex items-center gap-1"
-            >
-              <PlusCircle size={12} /> Cadastrar Tudo
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => {
-                setAbaAdminInicial("receitas");
-                setModalAdminAberto(true);
-              }}
-              title="Alimentar Receitas, Fotos, Vídeos e Equipamentos"
-              className="lg:hidden px-2.5 h-9 rounded-lg bg-[#1E4D3B] text-white text-[11px] font-extrabold flex items-center gap-1"
-            >
-              <PlusCircle size={14} /> Cadastrar
-            </button>
-
-            <button
-              onClick={() => setVozAtiva((v) => !v)}
-              title={vozAtiva ? "Desativar leitura em voz" : "Ativar leitura em voz"}
-              className={`w-9 h-9 rounded-lg border flex items-center justify-center transition ${
-                vozAtiva
-                  ? "border-[#2E6F4E] bg-[#2E6F4E] text-white"
-                  : "border-[#76847D] bg-white text-[#1E4D3B] hover:bg-[#EBF3EE]"
-              }`}
-            >
-              {vozAtiva ? <Volume2 size={17} /> : <VolumeX size={17} />}
-            </button>
-
-            <button
-              onClick={() => setMolduraTablet((v) => !v)}
-              title={molduraTablet ? "Expandir tela cheia" : "Mostrar moldura iPad"}
-              className="w-9 h-9 rounded-lg border border-[#76847D] bg-white hover:bg-[#EBF3EE] text-[#1E4D3B] flex items-center justify-center shadow-2xs transition"
-            >
-              {molduraTablet ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
-            </button>
-
-            <button
-              onClick={() => setMostrarBannerProp((v) => !v)}
-              title="Sobre o Green Dot Assist"
-              className="w-9 h-9 rounded-lg border border-[#76847D] bg-white hover:bg-[#EBF3EE] text-[#1E4D3B] flex items-center justify-center shadow-2xs transition"
-            >
-              <HelpCircle size={18} />
-            </button>
+            {menuAberto && (
+              <div className="absolute right-0 top-11 w-60 bg-white text-[#111B21] rounded-lg shadow-xl py-1.5 text-sm z-30" onClick={() => setMenuAberto(false)}>
+                <button onClick={() => setMostrarConfig((v) => !v)} className="w-full text-left px-4 py-2.5 hover:bg-[#F5F6F6] flex items-center gap-3"><Settings size={16} /> Atalhos de teste e dados</button>
+                <button onClick={() => setMostrarBannerProp((v) => !v)} className="w-full text-left px-4 py-2.5 hover:bg-[#F5F6F6] flex items-center gap-3"><HelpCircle size={16} /> Sobre o Green Dot</button>
+                <button onClick={reiniciarConversa} className="w-full text-left px-4 py-2.5 hover:bg-[#F5F6F6] flex items-center gap-3"><RotateCcw size={16} /> Limpar conversa</button>
+                <button onClick={() => setMolduraTablet((v) => !v)} className="hidden lg:flex w-full text-left px-4 py-2.5 hover:bg-[#F5F6F6] items-center gap-3">
+                  {molduraTablet ? <Maximize2 size={16} /> : <Minimize2 size={16} />} {molduraTablet ? "Tela cheia" : "Moldura de tablet"}
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
@@ -1218,37 +1185,49 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
           </div>
         )}
 
-        {/* ÁREA DE CONTEÚDO ROLÁVEL DO TABLET */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-10 py-6 space-y-6">
-          {/* Banner Editorial quando ativo */}
+        {/* ÁREA DA CONVERSA (fundo bege do WhatsApp) */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain gd-fundo-conversa">
+          <div className="max-w-3xl mx-auto px-2.5 sm:px-6 py-3 space-y-2.5">
+          <div className="flex justify-center">
+            <span className="px-3 py-1 rounded-lg bg-white/90 text-[11px] font-semibold text-[#54656F] shadow-2xs uppercase tracking-wide">Hoje</span>
+          </div>
           {mostrarBannerProp && <BrandValueBanner />}
 
-          {/* Card de Boas-Vindas e Pílulas de Acesso Rápido + Botão para Alimentar Conhecimento */}
-          <WelcomeGovernanceCard
-            fichasReais={fichasReais}
-            receitasCustom={receitasCustom}
-            equipamentosCustom={equipamentosCustom}
-            onSelectTopic={(topico) => processarPergunta(topico.prompt, topico)}
-            onOpenAdminStudio={() => {
-              setAbaAdminInicial("receitas");
-              setModalAdminAberto(true);
-            }}
-          />
+          {/* Primeira mensagem do Green Dot */}
+          <div className="flex justify-start">
+            <div className="gd-bolha gd-bolha-ele max-w-[88%] sm:max-w-[75%]">
+              <p className="text-[15px] leading-snug">
+                Oi! Sou o <strong>Green Dot</strong>. Pergunte do jeito que você falaria com um colega: lucro, estoque, escala, fichas, equipamentos, limpeza… Também dá para falar pelo microfone.
+              </p>
+              <button onClick={() => setMostrarAtalhos((v) => !v)} className="mt-2 text-[13px] font-bold text-[#027EB5]">
+                {mostrarAtalhos ? "Esconder atalhos" : "Ver todos os atalhos"}
+              </button>
+              <span className="gd-hora">{horaCurta(Date.now())}</span>
+            </div>
+          </div>
+          {mostrarAtalhos && (
+            <WelcomeGovernanceCard
+              fichasReais={fichasReais}
+              receitasCustom={receitasCustom}
+              equipamentosCustom={equipamentosCustom}
+              onSelectTopic={(topico) => { setMostrarAtalhos(false); processarPergunta(topico.prompt, topico); }}
+              onOpenAdminStudio={() => {
+                setAbaAdminInicial("receitas");
+                setModalAdminAberto(true);
+              }}
+            />
+          )}
 
-
-          {/* FLUXO DE MENSAGENS E CARDS INTERATIVOS */}
+          {/* FLUXO DE MENSAGENS E CARDS INTERATIVOS */}          {/* FLUXO DE MENSAGENS E CARDS INTERATIVOS */}
           {itensConversa.map((bloco) => {
             if (bloco.tipo === "pergunta-usuario") {
               return (
-                <div key={bloco.id} className="space-y-1">
-                  <div className="flex items-center justify-end gap-3">
-                    <div className="flex-1 max-w-xl bg-white rounded-2xl border border-[#DFDDD4] shadow-xs px-5 py-3.5 text-sm sm:text-base font-bold text-[#1C2826]">
-                      {bloco.texto}
-                    </div>
-                    <PartnerBubbleAvatar />
-                  </div>
-                  <div className="pr-14 text-right text-[11px] font-bold text-[#5A655F]">
-                    {bloco.numReq} de 5 solicitações
+                <div key={bloco.id} className="flex justify-end">
+                  <div className="gd-bolha gd-bolha-eu max-w-[85%] sm:max-w-[75%]">
+                    <p className="text-[15px] leading-snug whitespace-pre-line break-words">{bloco.texto}</p>
+                    <span className="gd-hora">
+                      {horaCurta(horaDoBloco(bloco))} <CheckCheck size={15} className="inline -mt-0.5 text-[#53BDEB]" />
+                    </span>
                   </div>
                 </div>
               );
@@ -1423,14 +1402,14 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
             // Resposta do Héfisto com os dados reais da unidade
             if (bloco.tipo === "resposta-hefisto") {
               return (
-                <div key={bloco.id} className="flex items-start gap-3">
-                  <GreenDotAvatar />
-                  <div className="min-w-0 flex-1">
+                <div key={bloco.id} className="flex justify-start">
+                  <div className="gd-bolha gd-bolha-ele w-full max-w-[92%] sm:max-w-[80%]">
                     <MensagemRespostaHefisto r={bloco.resposta} ocupado={ocupadoHefisto}
                       onComando={(t) => processarPergunta(t)}
                       onContinuar={continuarHefisto}
                       onConfirmar={(acaoId, txt) => executarHefisto(() => confirmarAcao(unidadeAtiva, acaoId, txt), "Não consegui confirmar.")}
                       onCancelar={(acaoId) => executarHefisto(() => cancelarAcao(unidadeAtiva, acaoId), "Não consegui cancelar.")} />
+                    <span className="gd-hora">{horaCurta(horaDoBloco(bloco))}</span>
                   </div>
                 </div>
               );
@@ -1439,10 +1418,10 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
             // Resposta textual da IA
             if (bloco.tipo === "resposta-texto-ia") {
               return (
-                <div key={bloco.id} className="flex items-start gap-3">
-                  <GreenDotAvatar />
-                  <div className="flex-1 bg-white rounded-2xl border border-[#E2E0D8] shadow-sm p-5 text-sm sm:text-base text-[#1C2826] leading-relaxed whitespace-pre-line font-medium">
-                    {bloco.texto}
+                <div key={bloco.id} className="flex justify-start">
+                  <div className="gd-bolha gd-bolha-ele max-w-[88%] sm:max-w-[75%]">
+                    <p className="text-[15px] leading-snug whitespace-pre-line break-words">{bloco.texto}</p>
+                    <span className="gd-hora">{horaCurta(horaDoBloco(bloco))}</span>
                   </div>
                 </div>
               );
@@ -1451,84 +1430,72 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
             return null;
           })}
 
-          {carregandoIA && (
-            <div className="flex items-start gap-3">
-              <GreenDotAvatar />
-              <div className="bg-white rounded-2xl border border-[#E2E0D8] px-5 py-4 text-xs sm:text-sm font-bold text-[#2E6F4E] flex items-center gap-2">
-                <Sparkles size={16} className="animate-spin" />
-                Consultando fichas técnicas, estoque e manuais de equipamentos...
+          {(carregandoIA || ocupadoHefisto) && (
+            <div className="flex justify-start" aria-label="Green Dot está digitando">
+              <div className="gd-bolha gd-bolha-ele flex items-center gap-1 py-3">
+                <span className="w-2 h-2 rounded-full bg-[#8696A0] animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-2 h-2 rounded-full bg-[#8696A0] animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-2 h-2 rounded-full bg-[#8696A0] animate-bounce" />
               </div>
             </div>
           )}
 
           <div ref={fimChatRef} />
+          </div>
         </div>
 
-        {/* BARRA INFERIOR FIXA IDÊNTICA ÀS TELAS DO IPAD */}
-        <footer className="p-3 sm:p-4 bg-[#FAF9F6] border-t border-[#E2E0D8] shrink-0">
+        {/* BARRA DE DIGITAÇÃO NO ESTILO WHATSAPP */}
+        <footer className="bg-[#F0F2F5] border-t border-[#E3E1DB] shrink-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="max-w-3xl mx-auto">
-            <div className="flex items-stretch gap-2.5 sm:gap-3">
-              {/* Botão Coral "Restart" (Reiniciar) */}
-              <button
-                onClick={reiniciarConversa}
-                className="w-20 sm:w-24 py-2.5 rounded-xl bg-[#E7B5AC] hover:bg-[#DDA399] border border-[#BA7A70] text-[#6E261E] flex flex-col items-center justify-center gap-1 font-extrabold text-xs sm:text-sm transition active:scale-95 shrink-0 shadow-2xs"
-              >
-                <RotateCcw size={18} strokeWidth={2.4} />
-                <span>Reiniciar</span>
-              </button>
-
-              {/* Caixa de Texto Central com Microfone */}
-              <div className="flex-1 flex flex-col">
-                <div className="flex-1 relative flex items-center bg-[#DEDEDE] rounded-xl border border-[#C9C9C7] focus-within:border-[#2E6F4E] focus-within:bg-white transition px-3.5">
-                  <input
-                    type="text"
-                    maxLength={256}
-                    value={texto}
-                    onChange={(e) => setTexto(e.target.value.slice(0, 256))}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        processarPergunta();
-                      }
-                    }}
-                    placeholder={
-                      ouvindo
-                        ? "Ouvindo sua voz na bancada..."
-                        : "Ex: 'Como se faz um vatapá', 'Só tenho 2L de leite de coco', 'Esse liquidificador é 110V ou 220V?'..."
+            {/* Atalhos rápidos (rolam para o lado) */}
+            <div className="flex gap-2 overflow-x-auto gd-sem-barra px-2.5 pt-2 pb-1">
+              {ATALHOS_RAPIDOS.map((a) => (
+                <button
+                  key={a.rotulo}
+                  onClick={() => processarPergunta(a.pergunta)}
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-white border border-[#D1D7DB] text-[13px] font-semibold text-[#1E4D3B] active:scale-95 transition"
+                >
+                  {a.rotulo}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-end gap-2 px-2.5 pt-1">
+              <div className="flex-1 min-w-0 flex items-center bg-white rounded-3xl px-4 shadow-2xs">
+                <input
+                  type="text"
+                  maxLength={256}
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value.slice(0, 256))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      processarPergunta();
                     }
-                    className="w-full py-3 bg-transparent text-xs sm:text-sm font-semibold text-[#1C2826] placeholder:text-[#6B706D] focus:outline-none pr-9"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={alternarMicrofone}
-                    title="Falar comando por voz"
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${
-                      ouvindo
-                        ? "bg-red-600 text-white animate-pulse"
-                        : "text-[#4A5550] hover:bg-black/10"
-                    }`}
-                  >
-                    {ouvindo ? <MicOff size={16} /> : <Mic size={16} />}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] font-semibold text-[#5C6660] mt-1 px-1">
-                  <span>Pergunte qualquer coisa: lucro, estoque, fichas, escala, equipamentos…</span>
-                  <span>{texto.length}/256</span>
-                </div>
+                  }}
+                  aria-label="Mensagem para o Green Dot"
+                  placeholder={ouvindo ? "Ouvindo…" : "Mensagem"}
+                  enterKeyHint="send"
+                  className="w-full py-3 bg-transparent text-base text-[#111B21] placeholder:text-[#667781] focus:outline-none"
+                />
               </div>
-
-              {/* Botão Verde-Floresta "Send" (Enviar) */}
-              <button
-                onClick={() => processarPergunta()}
-                className="w-20 sm:w-24 py-2.5 rounded-xl bg-[#547D65] hover:bg-[#3E634D] text-white flex flex-col items-center justify-center gap-1 font-extrabold text-xs sm:text-sm transition active:scale-95 shrink-0 shadow-2xs"
-              >
-                <div className="w-5 h-5 rounded-full bg-white text-[#3E634D] flex items-center justify-center">
-                  <ArrowUp size={13} strokeWidth={3} />
-                </div>
-                <span>Enviar</span>
-              </button>
+              {texto.trim() ? (
+                <button
+                  onClick={() => processarPergunta()}
+                  aria-label="Enviar"
+                  className="w-12 h-12 rounded-full bg-[#1E4D3B] hover:bg-[#163B2D] text-white flex items-center justify-center shrink-0 shadow-sm active:scale-95 transition"
+                >
+                  <SendHorizontal size={21} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={alternarMicrofone}
+                  aria-label={ouvindo ? "Parar de ouvir" : "Falar pelo microfone"}
+                  className={`w-12 h-12 rounded-full text-white flex items-center justify-center shrink-0 shadow-sm active:scale-95 transition ${ouvindo ? "bg-red-600 animate-pulse" : "bg-[#1E4D3B] hover:bg-[#163B2D]"}`}
+                >
+                  {ouvindo ? <MicOff size={21} /> : <Mic size={21} />}
+                </button>
+              )}
             </div>
           </div>
         </footer>

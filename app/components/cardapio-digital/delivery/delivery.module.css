@@ -188,6 +188,24 @@
   color: var(--cd-aberto-legivel);
   font-weight: 600;
 }
+/* Mesa pelo QR: chamar o garçom no lugar da linha de entrega. */
+.chamar {
+  margin-top: 12px;
+  width: 100%;
+  min-height: 46px;
+  border-radius: var(--cd-raio-m);
+  border: 1.5px solid var(--cd-principal-legivel);
+  background: var(--cd-superficie);
+  color: var(--cd-principal-legivel);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
 
 /* Conteúdo */
 .corpo {

@@ -204,7 +204,6 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--cd-ok-texto);
-  text-decoration: underline;
   cursor: pointer;
 }
 .entrarCpf {

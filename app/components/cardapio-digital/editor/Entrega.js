@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatarPreco } from "../../../lib/cardapio-digital.mjs";
+import { FORMAS_PAGAMENTO, formatarPreco } from "../../../lib/cardapio-digital.mjs";
 import { Alternar, Aviso, Campo, Secao, inputCls } from "./ui";
 
 /** "8,90", "8.90" e "1.234,50" viram número; vazio é 0. */
@@ -78,6 +78,25 @@ export default function Entrega({ config, mudar, unidade, pendenteUnidade = {}, 
         </div>
         {tempoTrocado ? <Aviso tipo="alerta" className="mt-3">O “até” está menor que o “de”. Ao salvar, os dois trocam de lugar.</Aviso> : null}
         {!en.tempo_min || !en.tempo_max ? <p className="mt-2 text-xs text-hf-muted">Sem os dois tempos, o cardápio não mostra tempo de entrega (nada de prazo inventado).</p> : null}
+      </Secao>
+
+      <Secao titulo="Retirada e pagamento" subtitulo="O que o cliente escolhe ao finalizar o pedido do delivery.">
+        <Alternar ativo={en.retirada} onChange={(v) => setE({ retirada: v })} rotulo="Aceitar retirada no balcão"
+          dica={en.retirada ? "O cliente escolhe Entrega ou Retirada. Na retirada não há taxa nem endereço." : "Desligado: o cliente só vê Entrega."} />
+        <p className="mt-3 text-sm font-semibold text-hf-text">Formas de pagamento na entrega ou retirada</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {FORMAS_PAGAMENTO.map((f) => {
+            const ligada = en.formas.includes(f.id);
+            return (
+              <label key={f.id} className="flex min-h-[44px] items-center gap-3 rounded-xl border border-hf-border px-3 text-sm">
+                <input type="checkbox" checked={ligada} disabled={ligada && en.formas.length === 1}
+                  onChange={() => setE({ formas: ligada ? en.formas.filter((x) => x !== f.id) : [...en.formas, f.id] })} />
+                {f.rotulo}
+              </label>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-hf-muted">Pelo menos uma. Pagar pelo app (Pix ou cartão online) precisa de um intermediador de pagamento e ainda não existe.</p>
       </Secao>
 
       <Secao titulo="Mais informações" subtitulo="O que aparece no botão “Mais informações” do cartão da loja.">

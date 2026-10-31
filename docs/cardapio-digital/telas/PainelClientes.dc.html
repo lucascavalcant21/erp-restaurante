@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel — CRM: perfil do cliente</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-wrap: wrap">
+
+  <nav aria-label="Painel" style="flex: 1 1 220px; max-width: 240px; min-width: 200px; background: #F7F7F7; border-right: 1px solid #E3E3E3; padding: 20px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 16px">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-weight: 700; font-size: 14px">CB</div>
+      <span style="font-family: Outfit, sans-serif; font-weight: 600; font-size: 16px">Painel</span>
+    </div>
+    <sc-for list="{{menu}}" as="m" hint-placeholder-count="13">
+      <a href="{{m.href}}" style="height: 42px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; text-decoration: none; font-size: 14px; font-weight: {{m.peso}}; background: {{m.fundo}}; color: {{m.cor}}">{{m.nome}}</a>
+    </sc-for>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 28px; box-sizing: border-box; display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start">
+
+    <section aria-label="Clientes" style="flex: 1 1 260px; max-width: 300px; display: flex; flex-direction: column; gap: 10px">
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; font-weight: 600">Clientes</h1>
+      <label style="display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 12px; border-radius: 12px; border: 1px solid #DADADA; color: #5C5C5C">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input type="search" placeholder="Nome, CPF ou WhatsApp" aria-label="Buscar cliente" style="flex-grow: 1; border: 0; outline: none; font-size: 14px">
+      </label>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap">
+        <sc-for list="{{filtros}}" as="f" hint-placeholder-count="4">
+          <span style="padding: 5px 10px; border-radius: 999px; border: 1px solid #DADADA; font-size: 12px; font-weight: 600">{{f}}</span>
+        </sc-for>
+      </div>
+      <sc-for list="{{lista}}" as="c" hint-placeholder-count="6">
+        <a href="#" style="padding: 10px 12px; border-radius: 12px; border: 1px solid {{c.borda}}; background: {{c.fundo}}; text-decoration: none; color: #1A1A1A; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 14px; font-weight: 700">{{c.nome}}</span>
+          <span style="font-size: 12px; color: #5C5C5C">{{c.info}}</span>
+        </a>
+      </sc-for>
+    </section>
+
+    <section aria-label="Perfil" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border: 1px solid #EEEEEE; border-radius: 16px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <div style="width: 56px; height: 56px; border-radius: 28px; background: #EAF4EE; color: {{accent}}; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-size: 22px; font-weight: 700">MR</div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px">
+          <span style="font-family: Outfit, sans-serif; font-size: 22px; font-weight: 700">Manuela R.</span>
+          <span style="font-size: 13px; color: #5C5C5C">WhatsApp (45) 9••••-••12 · aniversário 14/03 · Centro, [MUNICÍPIO]/[UF] · cliente desde mar/2026</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap">
+            <span style="padding: 2px 8px; border-radius: 999px; background: #E9F4EC; color: #1E6B3A; font-size: 12px; font-weight: 700">Aceita promoções no WhatsApp</span>
+            <span style="padding: 2px 8px; border-radius: 999px; background: #EFEFEF; font-size: 12px; font-weight: 600">Mesa e Delivery</span>
+            <span style="padding: 2px 8px; border-radius: 999px; background: #EFEFEF; font-size: 12px; font-weight: 600">Cliente frequente</span>
+          </div>
+        </div>
+        <a href="PainelDisparos.dc.html" style="height: 44px; padding: 0 16px; border-radius: 12px; background: #1E7A45; color: #FFFFFF; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 14px; font-weight: 700">Enviar mensagem</a>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px">
+        <sc-for list="{{kpis}}" as="k" hint-placeholder-count="5">
+          <div style="border: 1px solid #EEEEEE; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+            <span style="font-size: 12px; color: #5C5C5C; font-weight: 600">{{k.nome}}</span>
+            <span style="font-family: Outfit, sans-serif; font-size: 22px; font-weight: 700">{{k.valor}}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <section aria-labelledby="t-semana" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <h2 id="t-semana" style="margin: 0; font-size: 16px; font-weight: 700">O que ela costuma pedir em cada dia</h2>
+        <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{semana}}" as="d" hint-placeholder-count="7">
+            <div style="border-radius: 12px; padding: 10px; background: {{d.fundo}}; display: flex; flex-direction: column; gap: 4px; min-height: 92px">
+              <span style="font-size: 12px; font-weight: 700; color: #5C5C5C">{{d.dia}}</span>
+              <span style="font-size: 13px; font-weight: 600; line-height: 1.3">{{d.prato}}</span>
+              <span style="font-size: 11px; color: #5C5C5C">{{d.vezes}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px">
+        <section aria-labelledby="t-mais" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <h2 id="t-mais" style="margin: 0; font-size: 16px; font-weight: 700">Mais pedidos</h2>
+          <sc-for list="{{mais}}" as="m" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; font-size: 14px"><span>{{m.nome}}</span><strong>{{m.qtd}}×</strong></div>
+          </sc-for>
+        </section>
+        <section aria-labelledby="t-gostou" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <h2 id="t-gostou" style="margin: 0; font-size: 16px; font-weight: 700; color: #1E6B3A">Gostou</h2>
+          <sc-for list="{{gostou}}" as="g" hint-placeholder-count="3">
+            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 14px">
+              <span><strong>{{g.nome}}</strong> · {{g.nota}}</span>
+              <span style="font-size: 12px; color: #5C5C5C">{{g.coment}}</span>
+            </div>
+          </sc-for>
+        </section>
+        <section aria-labelledby="t-naogostou" style="border: 1px solid #F3C5C7; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+          <h2 id="t-naogostou" style="margin: 0; font-size: 16px; font-weight: 700; color: #A1161C">Não gostou</h2>
+          <sc-for list="{{naoGostou}}" as="g" hint-placeholder-count="2">
+            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 14px">
+              <span><strong>{{g.nome}}</strong> · {{g.nota}}</span>
+              <span style="font-size: 12px; color: #5C5C5C">{{g.coment}}</span>
+            </div>
+          </sc-for>
+        </section>
+        <section aria-labelledby="t-nunca" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <h2 id="t-nunca" style="margin: 0; font-size: 16px; font-weight: 700">Nunca pediu (oportunidade)</h2>
+          <sc-for list="{{nunca}}" as="n" hint-placeholder-count="3">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; gap: 8px"><span>{{n}}</span><a href="PainelCampanhas.dc.html" style="font-size: 12px; font-weight: 700; text-decoration: none">Oferecer</a></div>
+          </sc-for>
+        </section>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const menuItens = [
+      ['Dashboard', 'PainelDashboard.dc.html'], ['Clientes (CRM)', 'PainelClientes.dc.html'], ['Disparos WhatsApp', 'PainelDisparos.dc.html'], ['Campanhas automáticas', 'PainelCampanhas.dc.html'],
+      ['Cardápio', 'PainelCardapio.dc.html'], ['Promoções e descontos', 'PainelPromocoes.dc.html'], ['Recomendações', 'PainelRecomendacoes.dc.html'],
+      ['Fidelidade e selos', 'PainelFidelidade.dc.html'], ['Menu degustação', '#'], ['Vitrine e banners', '#'], ['Nossa história', 'PainelHistoria.dc.html'], ['Idiomas', '#'], ['Configurações', '#']
+    ];
+    // Cliente e números fictícios, só para mostrar o layout.
+    const lista = [
+      ['Manuela R.', '14 visitas · último pedido ontem', true], ['Carlos M.', '6 visitas · delivery'], ['Juliana P.', '3 visitas · mesa'],
+      ['Rafael S.', '22 visitas · cliente frequente'], ['Beatriz L.', 'Cadastrou hoje'], ['André T.', 'Sumido há 45 dias']
+    ];
+    const semana = [
+      ['Seg', '—', ''], ['Ter', 'Tacacá', '5 de 6 terças'], ['Qua', 'Picanha na brasa', '4 de 5 quartas'], ['Qui', '—', ''],
+      ['Sex', 'Menu degustação', '3 vezes'], ['Sáb', 'Vatapá', '2 vezes'], ['Dom', '—', '']
+    ];
+    return {
+      accent,
+      menu: menuItens.map(([nome, href], i) => ({ nome, href, peso: i === 1 ? 700 : 500, fundo: i === 1 ? '#EAF4EE' : 'transparent', cor: i === 1 ? accent : '#3A3A3A' })),
+      filtros: ['Frequentes', 'Sumidos 30+ dias', 'Aniversário no mês', 'Só delivery'],
+      lista: lista.map(([nome, info, sel]) => ({ nome, info, borda: sel ? accent : '#E3E3E3', fundo: sel ? '#EAF4EE' : '#FFFFFF' })),
+      kpis: [['Visitas', '14'], ['Ticket médio', 'R$ 96,40'], ['Total gasto', 'R$ 1.349,60'], ['Pontos', '1.120'], ['Última visita', 'Ontem, mesa 12']].map(([nome, valor]) => ({ nome, valor })),
+      semana: semana.map(([dia, prato, vezes]) => ({ dia, prato, vezes, fundo: prato === '—' ? '#F7F7F7' : '#EAF4EE' })),
+      mais: [['Tacacá', 9], ['Picanha na brasa', 6], ['Caipirinha de limão', 6], ['Vatapá', 4]].map(([nome, qtd]) => ({ nome, qtd })),
+      gostou: [['Tacacá', '★★★★★', '"Melhor da cidade"'], ['Menu degustação', '★★★★★', 'Avaliou após o pedido'], ['Picanha na brasa', '★★★★☆', '']].map(([nome, nota, coment]) => ({ nome, nota, coment })),
+      naoGostou: [['Maniçoba', '★★☆☆☆', '"Sabor forte demais para mim"'], ['Pirarucu frito', '★★☆☆☆', '"Veio frio" · pedido delivery']].map(([nome, nota, coment]) => ({ nome, nota, coment })),
+      nunca: ['Caldeirada de filhote', 'Tambaqui assado', 'Camarão empanado']
+    };
+  }
+}
+</script>
+</body>
+</html>

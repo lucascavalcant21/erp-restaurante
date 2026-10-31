@@ -9,6 +9,7 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { fetchFornecedores, inserirFornecedor, atualizarFornecedor, removerFornecedor } from "../../../lib/fornecedores";
 import { mascaraTelefone } from "../../../lib/mascaras.mjs";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 const SEGMENTOS = ["Carnes", "Grãos e Cereais", "Hortifruti", "Laticínios", "Bebidas", "Embalagens", "Limpeza", "Outros"];
 const PAGAMENTOS = ["À Vista", "Boleto 7d", "Boleto 15d", "Boleto 30d", "Pix"];
@@ -123,7 +124,7 @@ export default function FornecedoresPage() {
   }, [lista]);
 
   const filtrados = useMemo(() => lista.filter((f) => {
-    const mb = f.nome?.toLowerCase().includes(busca.toLowerCase()) || (f.contato || "").toLowerCase().includes(busca.toLowerCase());
+    const mb = casaBusca([f.nome, f.contato, f.segmento], busca);
     const ms = seg === "Todos" || f.segmento === seg;
     return mb && ms;
   }), [lista, busca, seg]);

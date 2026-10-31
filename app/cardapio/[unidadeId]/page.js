@@ -47,7 +47,7 @@ export async function generateViewport({ params }) {
     maximumScale: 5,
     userScalable: true,
     viewportFit: "cover",
-    themeColor: r.ok ? r.cardapio.cores.fundo : "#f6f1e8",
+    themeColor: r.ok ? r.cardapio.cores.fundo : "#f4f4f4",
   };
 }
 

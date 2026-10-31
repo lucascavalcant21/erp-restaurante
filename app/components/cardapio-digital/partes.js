@@ -112,55 +112,68 @@ export function Miniatura({ produto, onAbrir, idioma, icone = null }) {
 const reduzMovimento = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 /** Banner de abertura: fotos e vídeos do dono, com toque que leva a algum lugar. */
-export function Abertura({ slides, onAcao, previa, idioma, classe = "" }) {
+// `segundos` em cada banner e `porVez` banners lado a lado (o dono escolhe na
+// Abertura). No celular (tela estreita) passa um de cada vez.
+export function Abertura({ slides, onAcao, previa, idioma, classe = "", segundos = 6, porVez = 1 }) {
   const trilho = useRef(null);
   const videos = useRef({});
   const [atual, setAtual] = useState(0);
   const [pausadoAte, setPausadoAte] = useState(0);
   const [semMovimento, setSemMovimento] = useState(false);
   const [tocando, setTocando] = useState({});
+  const [estreita, setEstreita] = useState(false);
   useEffect(() => { setSemMovimento(reduzMovimento()); }, []);
+  useEffect(() => {
+    const m = window.matchMedia("(max-width: 699px)");
+    const ver = () => setEstreita(m.matches);
+    ver();
+    m.addEventListener?.("change", ver);
+    return () => m.removeEventListener?.("change", ver);
+  }, []);
+  const juntos = estreita ? 1 : Math.max(1, Math.min(3, Math.round(porVez) || 1, slides.length || 1));
+  const ultimo = Math.max(0, slides.length - juntos);
+  const passo = (el) => el.clientWidth / juntos;
 
   const ir = (i) => {
     const el = trilho.current;
     if (!el) return;
-    const n = (i + slides.length) % slides.length;
-    el.scrollTo({ left: n * el.clientWidth, behavior: semMovimento ? "auto" : "smooth" });
+    const n = i > ultimo ? 0 : i < 0 ? ultimo : i;
+    el.scrollTo({ left: n * passo(el), behavior: semMovimento ? "auto" : "smooth" });
   };
 
-  // Troca sozinha: foto a cada 6 s; vídeo quando acaba. Para quando o cliente
+  // Troca sozinha: foto a cada `segundos`; vídeo quando acaba. Para quando o cliente
   // mexe, quando a aba some e para quem pediu menos movimento.
   useEffect(() => {
-    if (slides.length < 2 || semMovimento) return;
+    if (slides.length <= juntos || semMovimento) return;
     const slide = slides[atual];
-    if (slide?.tipo === "video") return;
-    const espera = Math.max(6000, pausadoAte - Date.now());
+    if (slide?.tipo === "video" && juntos === 1) return;
+    const espera = Math.max(Math.max(2, segundos) * 1000, pausadoAte - Date.now());
     const tm = setTimeout(() => { if (!document.hidden) ir(atual + 1); }, espera);
     return () => clearTimeout(tm);
-  }, [atual, slides, pausadoAte, semMovimento]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [atual, slides, pausadoAte, semMovimento, segundos, juntos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Só o vídeo visível toca.
   useEffect(() => {
     slides.forEach((sl, i) => {
       const v = videos.current[sl.id];
       if (!v) return;
-      if (i === atual && !semMovimento) { v.play?.().catch(() => {}); } else { v.pause?.(); }
+      if (i >= atual && i < atual + juntos && !semMovimento) { v.play?.().catch(() => {}); } else { v.pause?.(); }
     });
-  }, [atual, slides, semMovimento]);
+  }, [atual, slides, semMovimento, juntos]);
 
   const aoRolar = () => {
     const el = trilho.current;
     if (!el || !el.clientWidth) return;
-    const i = Math.round(el.scrollLeft / el.clientWidth);
+    const i = Math.round(el.scrollLeft / passo(el));
     if (i !== atual) setAtual(i);
   };
 
   // Girar o aparelho muda a largura: volta para o slide certo.
   useEffect(() => {
-    const aoRedimensionar = () => { const el = trilho.current; if (el) el.scrollTo({ left: atual * el.clientWidth }); };
+    const aoRedimensionar = () => { const el = trilho.current; if (el) el.scrollTo({ left: Math.min(atual, ultimo) * passo(el) }); };
     window.addEventListener("resize", aoRedimensionar);
     return () => window.removeEventListener("resize", aoRedimensionar);
-  }, [atual]);
+  }, [atual, juntos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!slides.length) return null;
   const rotuloAcao = (a) => t(idioma, a.tipo === "produto" ? "ver_prato" : a.tipo === "promocao" ? "ver_promocao" : "ver_secao");
@@ -197,11 +210,11 @@ export function Abertura({ slides, onAcao, previa, idioma, classe = "" }) {
             </>
           );
           return sl.acao && !previa ? (
-            <button key={sl.id} type="button" className={s.slide} data-ativo={i === atual ? "true" : undefined} onClick={() => onAcao(sl.acao)} aria-label={sl.titulo || rotuloAcao(sl.acao)}>
+            <button key={sl.id} type="button" className={s.slide} style={juntos > 1 ? { flex: `0 0 calc(${100 / juntos}% - ${((juntos - 1) * 10) / juntos}px)`, marginRight: 10, borderRadius: 14, overflow: "hidden" } : undefined} data-ativo={i === atual ? "true" : undefined} onClick={() => onAcao(sl.acao)} aria-label={sl.titulo || rotuloAcao(sl.acao)}>
               {conteudo}
             </button>
           ) : (
-            <div key={sl.id} className={s.slide} data-ativo={i === atual ? "true" : undefined}>{conteudo}</div>
+            <div key={sl.id} className={s.slide} style={juntos > 1 ? { flex: `0 0 calc(${100 / juntos}% - ${((juntos - 1) * 10) / juntos}px)`, marginRight: 10, borderRadius: 14, overflow: "hidden" } : undefined} data-ativo={i === atual ? "true" : undefined}>{conteudo}</div>
           );
         })}
       </div>
@@ -210,9 +223,9 @@ export function Abertura({ slides, onAcao, previa, idioma, classe = "" }) {
           <Play size={20} aria-hidden="true" />
         </button>
       ) : null}
-      {slides.length > 1 ? (
+      {slides.length > juntos ? (
         <div className={s.pontos}>
-          {slides.map((sl, i) => (
+          {slides.slice(0, ultimo + 1).map((sl, i) => (
             <button key={sl.id} type="button" className={s.ponto} aria-label={t(idioma, "destaque_n", { i: i + 1, n: slides.length })}
               aria-current={i === atual ? "true" : undefined} onClick={() => { setPausadoAte(Date.now() + 10000); ir(i); }} />
           ))}

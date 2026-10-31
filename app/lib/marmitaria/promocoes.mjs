@@ -123,7 +123,9 @@ const ehSobremesa = (f) => /sobremesa|doce|bolo|pudim|mousse|torta|sorvete|acai/
  */
 export function catalogoParaCombo({ marmitas = [], custos = new Map(), fichas = [], custoFicha = () => null, canalId = null } = {}) {
   const precoMarmita = (m) => (canalId && m.precos?.[canalId] != null ? n(m.precos[canalId]) : n(m.preco_venda));
-  const marmita = (marmitas || []).filter((m) => m.ativo !== false).map((m) => ({ id: m.id, nome: m.nome_receita, preco: precoMarmita(m), custo: custos.get(m.id)?.total ?? null, grupo: "marmita" }));
+  // Custo incompleto ou zero não é custo: o lucro sairia 100% (DADOS INSUFICIENTES).
+  const custoMarmita = (m) => { const c = custos.get(m.id); return c && c.completo !== false && Number(c.total) > 0 ? c.total : null; };
+  const marmita = (marmitas || []).filter((m) => m.ativo !== false).map((m) => ({ id: m.id, nome: m.nome_receita, preco: precoMarmita(m), custo: custoMarmita(m), grupo: "marmita" }));
   const vendaveis = (fichas || []).filter((f) => f && f.ativo !== false && !f.eh_base && f.departamento !== "marmitaria");
   const item = (f, grupo) => ({ id: f.id, nome: f.nome_comercial || f.nome_receita, preco: n(f.preco_venda), custo: custoFicha(f), grupo });
   const bebida = vendaveis.filter((f) => f.departamento === "bar").map((f) => item(f, "bebida"));
@@ -152,4 +154,89 @@ export function itensDoCombo(combo, catalogo) {
     out.push({ ...it, qtd: 1 });
   }
   return out;
+}
+
+// ─── Cardápio de vendas (pedido do dono, 28/10/2026) ────────────────────────
+// "Cardápio onde vejo os pratos com e sem desconto, 2x1 e combos, como se
+// fosse montar no iFood, e ao lado meu lucro líquido; aprofundar os custos e
+// saber se faz sentido" + "simular se eu vender X quanto lucro no dia,
+// semana e mês". Ofertas salvas: [{ id, ficha_id, tipo, valor, leve, pague }].
+
+export function rotuloDaOferta(o = {}) {
+  if (o.tipo === "leve_pague") return `${Math.round(pos(o.leve) || 2)} por ${Math.round(pos(o.pague) || 1)}`;
+  if (o.tipo === "desconto_pct") return `${pos(o.valor).toLocaleString("pt-BR")}% off`;
+  if (o.tipo === "desconto_rs") return `R$ ${pos(o.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} off`;
+  return "Preço cheio";
+}
+
+export function normalizarOferta(o = {}) {
+  const tipo = ["desconto_pct", "desconto_rs", "leve_pague"].includes(o.tipo) ? o.tipo : "desconto_pct";
+  return { id: String(o.id || `oferta-${Math.random().toString(36).slice(2, 9)}`), ficha_id: String(o.ficha_id || ""), tipo, valor: String(o.valor ?? ""), leve: String(o.leve ?? "2"), pague: String(o.pague ?? "1") };
+}
+
+/** Faz sentido? Pela meta de lucro (% da receita). */
+export function veredito(lucroPct, metaPct = null, semCusto = false) {
+  if (semCusto || lucroPct == null) return { id: "sem_dados", rotulo: "Sem custo: DADOS INSUFICIENTES" };
+  if (lucroPct < 0) return { id: "prejuizo", rotulo: "Prejuízo" };
+  const meta = metaPct == null || metaPct === "" ? null : n(metaPct);
+  if (meta == null) return { id: "lucro", rotulo: "Dá lucro" };
+  return lucroPct >= meta ? { id: "ok", rotulo: "Faz sentido" } : { id: "baixo", rotulo: `Abaixo da meta (${meta.toLocaleString("pt-BR")}%)` };
+}
+
+/**
+ * Linhas do cardápio de vendas: marmitas a preço cheio, promoções salvas e
+ * combos, cada uma com a simulação do pedido (lucro já sem impostos, taxas do
+ * canal, custo e fixos).
+ */
+export function cardapioDeVendas({ catalogo = { marmita: [], bebida: [], sobremesa: [] }, marmitas = [], ofertas = [], combos = [], canal = CANAL_DIRETO, tributosPct = null, fixosPct = null, metaPct = null } = {}) {
+  const comum = { canal, tributosPct, fixosPct };
+  const info = new Map((marmitas || []).map((m) => [m.id, m]));
+  const linha = (secao, id, nome, itens, oferta, extra = {}) => {
+    const s = simularOferta({ itens, oferta, ...comum });
+    const r = s.com;
+    return {
+      id, secao, nome, itens, oferta, sim: s,
+      precoCheio: s.com.pedido?.cheio ?? null, precoPago: s.com.pedido?.paga ?? null,
+      lucro: r.valido ? r.lucro : null, lucroPct: r.valido ? r.lucroPct : null, receita: r.valido ? r.receita : null,
+      veredito: veredito(r.valido ? r.lucroPct : null, metaPct, s.semCusto),
+      ...extra,
+    };
+  };
+  const out = [];
+  for (const o of (ofertas || []).map(normalizarOferta)) {
+    const it = catalogo.marmita.find((x) => x.id === o.ficha_id);
+    if (!it) continue;
+    out.push(linha("promocoes", o.id, it.nome, [{ ...it, qtd: 1 }], o, { rotulo: rotuloDaOferta(o), ficha: info.get(it.id) || null }));
+  }
+  for (const c of (combos || []).map(normalizarCombo)) {
+    const itens = itensDoCombo(c, catalogo);
+    if (!itens || !String(c.preco).trim()) continue;
+    out.push(linha("combos", c.id, c.nome || "Combo", itens, { tipo: "preco_fixo", valor: c.preco }, { rotulo: "Combo", descricao: itens.map((i) => i.nome).join(" + ") }));
+  }
+  for (const it of catalogo.marmita) {
+    if (!(it.preco > 0)) { out.push({ id: `m-${it.id}`, secao: "marmitas", nome: it.nome, itens: [{ ...it, qtd: 1 }], oferta: { tipo: "nenhuma" }, sim: null, precoCheio: null, precoPago: null, lucro: null, lucroPct: null, receita: null, veredito: { id: "sem_dados", rotulo: "Sem preço" }, semPreco: true, ficha: info.get(it.id) || null }); continue; }
+    out.push(linha("marmitas", `m-${it.id}`, it.nome, [{ ...it, qtd: 1 }], { tipo: "nenhuma" }, { ficha: info.get(it.id) || null }));
+  }
+  return out;
+}
+
+/**
+ * Se vender X por dia: faturamento e lucro no dia, na semana e no mês.
+ * vendas: { idDaLinha: pedidos por dia }. mês = dia × dias por semana × 52 ÷ 12.
+ * SIMULAÇÃO (o lucro por pedido já desconta o rateio dos fixos em %).
+ */
+export function projecaoDeVendas(linhas = [], vendas = {}, { diasPorSemana = 6 } = {}) {
+  const d = Math.min(7, Math.max(1, Math.round(pos(diasPorSemana) || 6)));
+  let fat = 0; let lucro = 0; let pedidos = 0; let semDados = 0;
+  for (const l of linhas || []) {
+    const q = pos(vendas?.[l.id]);
+    if (!(q > 0)) continue;
+    pedidos += q;
+    if (l.lucro == null || l.receita == null) { semDados += 1; continue; }
+    fat += q * l.receita;
+    lucro += q * l.lucro;
+  }
+  const fator = { dia: 1, semana: d, mes: (d * 52) / 12 };
+  const em = (k) => ({ pedidos: r2(pedidos * fator[k]), faturamento: r2(fat * fator[k]), lucro: r2(lucro * fator[k]) });
+  return { dia: em("dia"), semana: em("semana"), mes: em("mes"), lucroPct: fat > 0 ? r2((lucro / fat) * 100) : null, semDados, diasPorSemana: d };
 }

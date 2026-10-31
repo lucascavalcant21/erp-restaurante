@@ -31,7 +31,7 @@ import { AlertTriangle, ArrowLeftRight, Check, ChevronDown, Loader2, Lock, Minus
 const fmtQ = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 const CHAVE_LOCAL = "hefisto:estoque:local";
 const FORM_VAZIO = { qtd: "", unidade: "", motivo: "", destino: "", validade: "", observacao: "", responsavel: "", justificativa: "", pin: "" };
-const SUB = { principal: "Principal", preparo: "Pré-preparos", embalagens: "Embalagens" };
+const SUB = { principal: "Fechados", abertos: "Abertos", expositor: "Expositor (gelada)", preparo: "Pré-preparos", embalagens: "Embalagens" };
 
 function lerLocal(unidade) { try { return localStorage.getItem(`${CHAVE_LOCAL}:${unidade}`) || ""; } catch { return ""; } }
 function gravarLocal(unidade, id) { try { localStorage.setItem(`${CHAVE_LOCAL}:${unidade}`, id); } catch { /* sem armazenamento */ } }
@@ -67,6 +67,18 @@ function dicaUnidade(produto, u) {
   if (compra && u === compra.nome) return `caixa com ${fmtQ(compra.fator)} ${op.embalagem ? op.nome + "s" : op.saldo}`;
   if (op.embalagem && u === op.nome) return `embalagem de ${fmtQ(op.fatorSaldo)} ${op.saldo}`;
   return "unidade de medida";
+}
+
+/* "10 garrafas de 500 ml" — sem o "= 5.000 ml" (pedido do dono, 28/10/2026).
+ * Caixa: "2 caixas (24 garrafas)"; medida (kg, L…) segue o texto do lançamento sem o total. */
+function textoDoLancamento(produto, qtd, unidade, lanc) {
+  const op = unidadeOperacional(produto);
+  const compra = unidadeDeCompra(produto);
+  const n = Number(String(qtd).replace(",", ".")) || 0;
+  const pl = (nome, q) => (q === 1 ? nome : `${nome}s`);
+  if (op.embalagem && unidade === op.nome) return `${fmtQ(n)} ${pl(op.nome, n)} de ${fmtQ(op.fatorSaldo)} ${op.saldo}`;
+  if (compra && unidade === compra.nome) return `${fmtQ(n)} ${pl(compra.nome, n)} (${saldoOperacional(produto, lanc.quantidadeSaldo)})`;
+  return String(lanc.texto || "").split(" = ")[0];
 }
 
 // fixo: aberto por cima da tela do estoque, já no produto (?estoque&insumo):
@@ -125,7 +137,11 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
     if (inicialAplicado.current || !base?.insumos) return;
     inicialAplicado.current = true;
     const ins = inicial.insumo && base.insumos.find((i) => i.id === inicial.insumo);
-    if (ins) escolher(ins, inicial.tipo === "transferencia" ? "transferencia_enviada" : "", tipo);
+    if (ins) {
+      escolher(ins, inicial.tipo === "transferencia" ? "transferencia_enviada" : "", tipo);
+      // "Abrir" / "Gelar" já chegam com o destino (Abertos ou Expositor).
+      if (inicial.tipo === "transferencia" && inicial.destino) setForm((f) => ({ ...f, destino: inicial.destino }));
+    }
   }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const areas = useMemo(() => areasComLocais(base?.estoques), [base]);
@@ -149,7 +165,15 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
     return areaAtual.categorias.filter((c) => tem.has(c));
   }, [base, estoqueId, area, areaAtual]);
 
-  const unidades = unidadesDoProduto(produto);
+  // Produto com embalagem só lança na embalagem (pacote, garrafa, lata; caixa
+  // se tiver): kg/g/L/ml só no local de Abertos (pedido do dono, 28/10/2026:
+  // "trabalhamos com pacotes fechados e garrafas ou latas").
+  const unidades = (() => {
+    const todas = unidadesDoProduto(produto);
+    if (!produto || !unidadeOperacional(produto).embalagem || subareaDoLocal(estoque) === "abertos") return todas;
+    const fechadas = todas.filter((u) => dicaUnidade(produto, u) !== "unidade de medida");
+    return fechadas.length ? fechadas : todas;
+  })();
   const unidadeSel = form.unidade || unidades[0] || "";
   const lanc = montarLancamento(produto, form.qtd, unidadeSel);
   const depois = lanc && !lanc.erro ? saldoDepois(saldoAtual, tipo, lanc.quantidadeSaldo) : null;
@@ -386,7 +410,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
           {lanc && (lanc.erro
             ? <p className="text-sm font-bold text-hf-danger">{lanc.erro}</p>
             : <p className="rounded-xl bg-hf-elevated p-2.5 text-sm">
-                <b>{lanc.texto}</b><br />
+                <b>{textoDoLancamento(produto, form.qtd, unidadeSel, lanc)}</b><br />
                 <span className="text-hf-text-2">Saldo depois: <span className={depois < 0 ? "font-bold text-hf-danger" : "font-bold text-hf-text"}>{depois < 0 ? `${fmtQ(depois)} ${unidadeDoSaldo(produto)}` : saldoOperacional(produto, depois)}</span></span>
               </p>)}
           {depois < 0 && <p className="text-sm font-bold text-hf-danger">Retirada maior que o saldo deste local.</p>}

@@ -2,6 +2,7 @@
 // Fonte única de verdade de metadados para busca universal, Command Center e catálogo.
 
 import { canAccessRoute, hasPermission } from "./permissions-catalog.mjs";
+import { casaBusca } from "./busca.mjs";
 
 export const NAVIGATION_REGISTRY = [
   // --- INÍCIO & VISÃO GERAL ---
@@ -1051,6 +1052,22 @@ export const NAVIGATION_REGISTRY = [
     searchable: true,
   },
   {
+    id: "marmitaria-combos",
+    title: "Marmitaria — Combos e promoções",
+    shortTitle: "Combos",
+    description: "Cardápio de vendas com combos, 2 por 1 e descontos, o lucro líquido de cada pedido e a projeção do dia, da semana e do mês",
+    route: "/dashboard/marmitaria/marmitas/combos",
+    domain: "Marmitaria & Delivery",
+    section: "Cardápio",
+    icon: "Tag",
+    keywords: ["combos","promocao","promocoes","2 por 1","desconto","lucro","cardapio de vendas"],
+    synonyms: ["montar combo","simular promocao","2x1"],
+    permission: "marmitaria.recipes.view",
+    mobilePriority: 2,
+    adminOnly: false,
+    searchable: true,
+  },
+  {
     id: "marmitaria-estoque",
     title: "Marmitaria — Estoque e Produção",
     shortTitle: "Estoque Marmitaria",
@@ -1175,6 +1192,10 @@ export function searchNavigationRegistry(query = "", session = null, options = {
     // 3. Nome contém termo
     else if (normTitle.includes(normQuery) || normShort.includes(normQuery)) {
       score += 600;
+    }
+    // 3b. Cada palavra digitada começa uma palavra do nome ("cont pag" → Contas a pagar)
+    else if (casaBusca(`${item.title} ${item.shortTitle || ""}`, query)) {
+      score += 550;
     }
 
     // 4. Correspondência em Keywords

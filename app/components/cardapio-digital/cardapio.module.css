@@ -22,8 +22,9 @@
 .raiz[data-fonte="editorial"] { --fonte-titulo: var(--fonte-editorial), "Didot", Georgia, serif; }
 .raiz[data-fonte="moderna"] { --fonte-titulo: var(--fonte-texto); }
 .raiz *, .raiz *::before, .raiz *::after { box-sizing: border-box; }
-.raiz button { font: inherit; color: inherit; cursor: pointer; }
-.raiz input, .raiz textarea { font: inherit; font-size: max(16px, 1em); color: inherit; }
+/* :where = sem peso: as classes das telas novas (fonte, cor branca no verde) valem por cima. */
+:where(.raiz) button { font: inherit; color: inherit; cursor: pointer; }
+:where(.raiz) input, :where(.raiz) textarea { font: inherit; font-size: max(16px, 1em); color: inherit; }
 .raiz :focus-visible { outline: 2px solid var(--c-primaria); outline-offset: 2px; }
 
 .fundoImagem {

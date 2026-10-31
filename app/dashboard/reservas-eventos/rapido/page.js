@@ -107,12 +107,15 @@ export default function OrcamentoRapido() {
       <div className="min-w-0 space-y-4">
         <section className="rounded-2xl border border-hf-border bg-hf-surface p-4">
           <h2 className="flex items-center gap-2 text-base font-black text-hf-text"><Users size={18} className="text-hf-accent" /> Quantas pessoas?</h2>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {[-10, -1].map((d) => <button key={d} type="button" onClick={() => setConvidados((c) => Math.max(0, c + d))} className="h-12 min-w-12 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-black text-hf-text">{d}</button>)}
-            <input inputMode="numeric" aria-label="Convidados" value={convidados} onChange={(e) => setConvidados(Math.max(0, Math.round(Number(e.target.value.replace(/\D/g, "")) || 0)))}
-              className="h-12 w-24 rounded-xl border border-hf-border bg-hf-surface text-center text-2xl font-black text-hf-text" />
-            {[1, 10].map((d) => <button key={d} type="button" onClick={() => setConvidados((c) => c + d)} className="h-12 min-w-12 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-black text-hf-text">+{d}</button>)}
-            <label className="ml-auto flex items-center gap-2 text-sm font-bold text-hf-text-2">Crianças
+          {/* Celular: −10 −1 [nº] +1 +10 sempre numa linha; Crianças embaixo. */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-3">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              {[-10, -1].map((d) => <button key={d} type="button" onClick={() => setConvidados((c) => Math.max(0, c + d))} className="h-12 min-w-0 flex-1 rounded-xl border border-hf-border bg-hf-surface px-2 text-sm font-black text-hf-text sm:min-w-12 sm:flex-none sm:px-3">{d}</button>)}
+              <input inputMode="numeric" aria-label="Convidados" value={convidados} onChange={(e) => setConvidados(Math.max(0, Math.round(Number(e.target.value.replace(/\D/g, "")) || 0)))}
+                className="h-12 w-20 min-w-0 flex-[1.4] rounded-xl border border-hf-border bg-hf-surface text-center text-2xl font-black text-hf-text sm:w-24 sm:flex-none" />
+              {[1, 10].map((d) => <button key={d} type="button" onClick={() => setConvidados((c) => c + d)} className="h-12 min-w-0 flex-1 rounded-xl border border-hf-border bg-hf-surface px-2 text-sm font-black text-hf-text sm:min-w-12 sm:flex-none sm:px-3">+{d}</button>)}
+            </div>
+            <label className="flex w-full items-center justify-between gap-2 text-sm font-bold text-hf-text-2 sm:ml-auto sm:w-auto sm:justify-start">Crianças
               <input inputMode="numeric" aria-label="Crianças" value={criancas} onChange={(e) => setCriancas(Math.max(0, Math.round(Number(e.target.value.replace(/\D/g, "")) || 0)))}
                 className="h-10 w-16 rounded-xl border border-hf-border bg-hf-surface text-center text-base font-black text-hf-text" />
             </label>

@@ -152,3 +152,40 @@ export function variacoesDePreco(amb, { janelaDias = 120 } = {}) {
     });
   });
 }
+
+/**
+ * Última compra de um produto (pedido do dono, 29/10/2026: "cadastra produtos
+ * e vê qual o valor da última vez"): preço por unidade base, data e
+ * fornecedor da última compra confirmada, e a anterior para comparar.
+ */
+export function ultimaCompraDoProduto(amb, { termo, janelaDias = 365 } = {}) {
+  const periodo = { de: somarDias(amb.hoje, -janelaDias), ate: amb.hoje, rotulo: `compras dos últimos ${janelaDias} dias` };
+  return medir(amb, { id: "ultima_compra", capacidade: "precos_compra", periodo }, async (consultas) => {
+    const fontes = [fonte("vw_compras", "Compras confirmadas"), fonte("compras_itens", "Preço do item por unidade base, sem frete")];
+    const { compras: todas, itens } = await lerCompras(amb, periodo.de, periodo.ate, { folgaDias: 30 });
+    const vs = variacoesPreco(todas, itens);
+    const insumos = await nomes(amb, "insumos", vs.map((v) => v.insumo_id));
+    const alvo = String(termo || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const norm = (x) => String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const achados = vs.filter((v) => alvo && norm(insumos.get(v.insumo_id)).includes(alvo));
+    if (!achados.length) {
+      return insuficiente({ metrica: "ultima_compra", periodo, escopo: amb.escopo, apuradoEm: amb.apuradoEm, fontes, consultas: consultas(),
+        motivo: `Nenhuma compra confirmada de "${termo}" nos últimos ${janelaDias} dias (a busca é pelo nome do produto).`, faltando: ["compra confirmada do produto"] });
+    }
+    // mais de um produto com o nome: o de compra mais recente responde, os outros aparecem na lista
+    achados.sort((a, b) => String(b.atual.data).localeCompare(String(a.atual.data)));
+    const fornecedores = await nomes(amb, "fornecedores", achados.flatMap((v) => [v.atual.fornecedor_id, v.anterior?.fornecedor_id]));
+    const linha = (v) => ({
+      insumo_id: v.insumo_id, nome: insumos.get(v.insumo_id) || "(produto)", unidade: rotuloBase(v.unidade_base),
+      preco: r2(v.atual.preco), data: v.atual.data, fornecedor: fornecedores.get(v.atual.fornecedor_id) || null,
+      precoAnterior: v.anterior ? r2(v.anterior.preco) : null, dataAnterior: v.anterior?.data || null, pct: v.pct, compras: v.historico.length,
+    });
+    const lista = achados.map(linha);
+    return metrica({
+      metrica: "ultima_compra", valor: lista[0].preco, unidade: "BRL", periodo, fontes, consultas: consultas(), escopo: amb.escopo,
+      completude: 1, confianca: CONFIANCA.ALTA, apuradoEm: amb.apuradoEm,
+      observacoes: [`Preço por ${lista[0].unidade}, sem frete, da última compra confirmada.`],
+      detalhes: { produto: lista[0], outros: lista.slice(1, 6) },
+    });
+  });
+}

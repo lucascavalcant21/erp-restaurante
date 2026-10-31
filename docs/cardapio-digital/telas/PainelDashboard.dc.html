@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel — dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-wrap: wrap">
+
+  <nav aria-label="Painel" style="flex: 1 1 220px; max-width: 240px; min-width: 200px; background: #F7F7F7; border-right: 1px solid #E3E3E3; padding: 20px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 16px">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: Outfit, sans-serif; font-weight: 700; font-size: 14px">CB</div>
+      <span style="font-family: Outfit, sans-serif; font-weight: 600; font-size: 16px">Painel</span>
+    </div>
+    <sc-for list="{{menu}}" as="m" hint-placeholder-count="13">
+      <a href="{{m.href}}" style="height: 42px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; text-decoration: none; font-size: 14px; font-weight: {{m.peso}}; background: {{m.fundo}}; color: {{m.cor}}">{{m.nome}}</a>
+    </sc-for>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+      <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; font-weight: 600; flex-grow: 1">Dashboard</h1>
+      <span style="padding: 4px 10px; border-radius: 999px; background: #FFF4DC; color: #7A5300; font-size: 12px; font-weight: 700">Dados de exemplo</span>
+      <button type="button" style="height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid #E3E3E3; background: #FFFFFF; font-size: 14px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">Hoje ▾</button>
+    </div>
+
+    <div role="tablist" aria-label="Canal" style="display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: #EFEFEF; align-self: flex-start; flex-wrap: wrap">
+      <sc-for list="{{abas}}" as="a" hint-placeholder-count="4">
+        <button type="button" role="tab" aria-selected="{{a.sel}}" onClick="{{a.ir}}" style="height: 40px; padding: 0 18px; border-radius: 9px; border: 0; background: {{a.fundo}}; color: #1A1A1A; font-size: 14px; font-weight: 700; box-shadow: {{a.sombra}}">{{a.nome}}</button>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+      <sc-for list="{{kpis}}" as="k" hint-placeholder-count="5">
+        <div style="border: 1px solid #EEEEEE; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+          <span style="font-size: 12px; font-weight: 600; color: #5C5C5C">{{k.nome}}</span>
+          <span style="font-family: Outfit, sans-serif; font-size: 28px; font-weight: 700">{{k.valor}}</span>
+          <span style="font-size: 12px; font-weight: 600; color: {{k.cor}}">{{k.delta}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px">
+      <section aria-labelledby="t-origem" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <h2 id="t-origem" style="margin: 0; font-size: 16px; font-weight: 700">Por onde os clientes chegam ao prato</h2>
+        <sc-for list="{{origens}}" as="o" hint-placeholder-count="6">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div style="display: flex; justify-content: space-between; font-size: 14px"><span>{{o.nome}}</span><strong>{{o.pct}}</strong></div>
+            <div style="height: 10px; border-radius: 5px; background: #EFEFEF; overflow: hidden"><div style="height: 10px; width: {{o.pct}}; background: {{o.cor}}; border-radius: 5px"></div></div>
+          </div>
+        </sc-for>
+      </section>
+
+      <section aria-labelledby="t-cad" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <h2 id="t-cad" style="margin: 0; font-size: 16px; font-weight: 700">Cadastro hoje</h2>
+        <div style="display: flex; height: 22px; border-radius: 11px; overflow: hidden">
+          <div style="width: {{cad.pctCom}}; background: {{accent}}"></div>
+          <div style="flex-grow: 1; background: #E3E3E3"></div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+          <div style="display: flex; flex-direction: column"><span style="font-size: 12px; color: #5C5C5C">Novos cadastros</span><strong style="font-family: Outfit, sans-serif; font-size: 22px">{{cad.novos}}</strong></div>
+          <div style="display: flex; flex-direction: column"><span style="font-size: 12px; color: #5C5C5C">Entraram com CPF</span><strong style="font-family: Outfit, sans-serif; font-size: 22px">{{cad.entraram}}</strong></div>
+          <div style="display: flex; flex-direction: column"><span style="font-size: 12px; color: #5C5C5C">Pediram sem cadastro</span><strong style="font-family: Outfit, sans-serif; font-size: 22px">{{cad.sem}}</strong></div>
+        </div>
+        <span style="font-size: 13px; color: #444444">{{cad.pctCom}} dos pedidos com cliente identificado · desconto de cadastro concedido: {{cad.desconto}}</span>
+      </section>
+
+      <section aria-labelledby="t-top" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <h2 id="t-top" style="margin: 0; font-size: 16px; font-weight: 700">Pratos mais pedidos</h2>
+        <sc-for list="{{top}}" as="t" hint-placeholder-count="5">
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 14px">
+            <span style="width: 24px; font-weight: 700; color: #5C5C5C">{{t.pos}}</span>
+            <span style="flex-grow: 1">{{t.nome}}</span>
+            <span style="font-weight: 600">{{t.qtd}}</span>
+          </div>
+        </sc-for>
+      </section>
+
+      <section aria-labelledby="t-hora" style="border: 1px solid #EEEEEE; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+        <h2 id="t-hora" style="margin: 0; font-size: 16px; font-weight: 700">Pedidos por horário</h2>
+        <div style="display: flex; align-items: flex-end; gap: 8px; height: 140px">
+          <sc-for list="{{horas}}" as="h" hint-placeholder-count="10">
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end">
+              <div style="width: 100%; height: {{h.alt}}; border-radius: 6px 6px 0 0; background: {{h.cor}}"></div>
+              <span style="font-size: 11px; color: #5C5C5C">{{h.h}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const menuItens = [
+      ['Dashboard', 'PainelDashboard.dc.html'], ['Clientes (CRM)', 'PainelClientes.dc.html'], ['Disparos WhatsApp', 'PainelDisparos.dc.html'], ['Campanhas automáticas', 'PainelCampanhas.dc.html'],
+      ['Cardápio', 'PainelCardapio.dc.html'], ['Promoções e descontos', 'PainelPromocoes.dc.html'], ['Recomendações', 'PainelRecomendacoes.dc.html'],
+      ['Fidelidade e selos', 'PainelFidelidade.dc.html'], ['Menu degustação', '#'], ['Vitrine e banners', '#'], ['Nossa história', 'PainelHistoria.dc.html'], ['Idiomas', '#'], ['Configurações', '#']
+    ];
+    // Números ilustrativos, só para mostrar o layout.
+    const dados = {
+      Geral:    { kpis: [['Pedidos', '186', '+12% vs. terça passada'], ['Faturamento', 'R$ 14.820', '+8%'], ['Ticket médio', 'R$ 79,70', '−2%'], ['Novos cadastros', '23', '+5'], ['Tempo médio de preparo', '17 min', 'Meta 15 min']],
+                  origens: [['Categorias (navegando)', 46], ['Recomendações', 18], ['Promoções / Agora na casa', 14], ['Busca', 9], ['Repetir último pedido', 8], ['Menu degustação', 5]],
+                  cad: { novos: 23, entraram: 64, sem: 99, pct: 47, desconto: 'R$ 812,40' } },
+      Mesa:     { kpis: [['Pedidos', '94', '+15%'], ['Faturamento', 'R$ 8.960', '+11%'], ['Ticket por mesa', 'R$ 182,00', '+4%'], ['Novos cadastros', '17', '+6'], ['Tempo médio de preparo', '19 min', 'Meta 15 min']],
+                  origens: [['Categorias (navegando)', 41], ['Recomendações', 24], ['Promoções / Agora na casa', 12], ['Menu degustação', 10], ['Busca', 8], ['Repetir último pedido', 5]],
+                  cad: { novos: 17, entraram: 31, sem: 46, pct: 51, desconto: 'R$ 498,10' } },
+      Delivery: { kpis: [['Pedidos', '61', '+9%'], ['Faturamento', 'R$ 4.540', '+6%'], ['Ticket médio', 'R$ 74,40', '−1%'], ['Novos cadastros', '6', '−1'], ['Tempo médio de entrega', '43 min', 'Meta 45 min']],
+                  origens: [['Categorias (navegando)', 44], ['Repetir último pedido', 19], ['Promoções / Agora na casa', 17], ['Campanha WhatsApp', 11], ['Busca', 9]],
+                  cad: { novos: 6, entraram: 33, sem: 22, pct: 60, desconto: 'R$ 314,30' } },
+      'Balcão': { kpis: [['Pedidos', '31', '+4%'], ['Faturamento', 'R$ 1.320', '+2%'], ['Ticket médio', 'R$ 42,60', '0%'], ['Novos cadastros', '0', '—'], ['Tempo médio de preparo', '11 min', 'Meta 12 min']],
+                  origens: [['Totem', 58], ['Caixa (PDV)', 42]],
+                  cad: { novos: 0, entraram: 0, sem: 31, pct: 0, desconto: 'R$ 0,00' } }
+    };
+    const aba = (this.state && this.state.aba) || 'Geral';
+    const d = dados[aba];
+    const cores = [accent, '#1F5FBF', '#1E6B45', '#7A5300', '#5C5C5C', '#8A1F3C'];
+    const horas = [['11h', 8], ['12h', 30], ['13h', 26], ['14h', 10], ['17h', 9], ['18h', 14], ['19h', 34], ['20h', 38], ['21h', 22], ['22h', 9]];
+    const maxH = 38;
+    return {
+      accent,
+      menu: menuItens.map(([nome, href], i) => ({ nome, href, peso: i === 0 ? 700 : 500, fundo: i === 0 ? '#EAF4EE' : 'transparent', cor: i === 0 ? accent : '#3A3A3A' })),
+      abas: Object.keys(dados).map((nome) => ({ nome, sel: nome === aba, ir: () => this.setState({ aba: nome }), fundo: nome === aba ? '#FFFFFF' : 'transparent', sombra: nome === aba ? '0 1px 3px rgba(0,0,0,.12)' : 'none' })),
+      kpis: d.kpis.map(([nome, valor, delta]) => ({ nome, valor, delta, cor: delta.startsWith('−') ? '#B4231C' : (delta.startsWith('+') ? '#1E7A45' : '#5C5C5C') })),
+      origens: d.origens.map(([nome, v], i) => ({ nome, pct: v + '%', cor: cores[i % cores.length] })),
+      cad: { ...d.cad, pctCom: d.cad.pct + '%' },
+      top: [['Picanha na brasa', 42], ['Tacacá', 31], ['Caipirinha de limão', 29], ['Menu degustação', 18], ['Pudim de leite', 17]].map(([nome, qtd], i) => ({ pos: i + 1, nome, qtd })),
+      horas: horas.map(([h, v]) => ({ h, alt: Math.round(v / maxH * 100) + '%', cor: v === maxH ? accent : '#D6D6D6' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

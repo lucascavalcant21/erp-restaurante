@@ -15,7 +15,7 @@ const PEDIDO_FORA_DA_COZINHA = new Set(["cancelado", "recusado", "pago", "entreg
 
 // Só pedidos online mudam de estado quando a cozinha termina: a comanda do salão
 // fica "aberto" até o garçom fechar a conta.
-const TIPOS_ONLINE = new Set(["delivery", "qrcode", "ifood"]);
+const TIPOS_ONLINE = new Set(["delivery", "retirada", "qrcode", "ifood"]);
 const ESTADOS_EM_PREPARO = new Set(["preparando_delivery", "preparando", "aberto", "pendente"]);
 
 export function proximoStatusKDS(status) {
@@ -34,6 +34,7 @@ export function origemDoPedido(pedido) {
   const t = pedido?.tipo_pedido;
   if (t === "qrcode") return "Mesa (QR)";
   if (t === "delivery") return "Delivery";
+  if (t === "retirada") return "Retirada";
   if (t === "ifood") return "iFood";
   if (t === "balcao") return "Balcão";
   return "Salão";

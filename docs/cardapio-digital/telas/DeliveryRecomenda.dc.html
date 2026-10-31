@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Delivery e retirada — me ajuda a escolher</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+@keyframes sobe{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+.sobe{animation:sobe .35s ease-out both}
+.op:active{transform:scale(.98)}
+.rolar{scrollbar-width:none}.rolar::-webkit-scrollbar{display:none}
+@media (prefers-reduced-motion: reduce){.sobe{animation:none}}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F7F7; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; position: relative; overflow: hidden">
+  <header style="flex-shrink: 0; background: #FFFFFF; border-bottom: 1px solid #EDEDED; padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; align-items: center; gap: 6px">
+      <sc-if value="{{podeVoltar}}" hint-placeholder-val="{{false}}">
+        <button type="button" onClick="{{voltar}}" aria-label="Voltar uma pergunta" style="width: 44px; height: 44px; border: 0; background: transparent; color: #1A1A1A; display: flex; align-items: center; justify-content: center">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+        </button>
+      </sc-if>
+      <a href="DeliveryInicio.dc.html" aria-label="Fechar" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #1A1A1A; border-radius: 22px; background: #FFFFFF; border: 1px solid #E3E3E3; box-sizing: border-box; box-shadow: 0 1px 2px rgba(16,24,20,.06), 0 3px 10px rgba(16,24,20,.07), inset 0 -1px 0 rgba(16,24,20,.04)">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </a>
+      <span style="flex-grow: 1; font-family: Outfit, sans-serif; font-size: 17px; font-weight: 600">Me ajuda a escolher</span>
+      <span style="height: 30px; padding: 0 10px; border-radius: 15px; background: #EAF4EE; color: #0F3D22; display: flex; align-items: center; font-size: 12px; font-weight: 700">{{modoTxt}}</span>
+    </div>
+    <div style="display: flex; gap: 4px; padding: 0 4px" aria-hidden="true">
+      <sc-for list="{{progresso}}" as="p" hint-placeholder-count="4">
+        <span style="flex: 1; height: 4px; border-radius: 2px; background: {{p.cor}}"></span>
+      </sc-for>
+    </div>
+  </header>
+
+  <div class="rolar" style="flex-grow: 1; min-height: 0; overflow-y: auto">
+    <sc-if value="{{mostrarOpcoes}}" hint-placeholder-val="{{true}}">
+      <div class="sobe" style="padding: 18px 16px 24px; display: flex; flex-direction: column; gap: 6px">
+        <sc-if value="{{mostrarSaudacao}}" hint-placeholder-val="{{true}}">
+          <span style="font-family: Outfit, sans-serif; font-size: 15px; font-weight: 600; color: {{accent}}">{{saudacao}}</span>
+        </sc-if>
+        <h1 style="margin: 0 0 12px; font-family: Outfit, sans-serif; font-size: 24px; line-height: 1.15; font-weight: 700">{{pergunta}}</h1>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <sc-for list="{{opcoes}}" as="o" hint-placeholder-count="6">
+            <button type="button" class="op" onClick="{{o.escolher}}" style="height: 150px; border-radius: 18px; border: 1px solid #EEEEEE; background: #FFFFFF; padding: 0; overflow: hidden; display: flex; flex-direction: column; text-align: left; color: #1A1A1A; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 8px 20px rgba(16,24,20,.08); transition: transform .15s">
+              <span style="width: 100%; height: 78px; background: linear-gradient(135deg, #F3F7F4, #E4EEE7); display: flex; align-items: center; justify-content: center; color: {{accent}}">
+                <svg aria-hidden="true" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="{{o.icone}}"></path></svg>
+              </span>
+              <span style="padding: 10px 12px; display: flex; flex-direction: column; gap: 2px">
+                <span style="font-family: Outfit, sans-serif; font-size: 15px; font-weight: 700; line-height: 1.2">{{o.titulo}}</span>
+                <span style="font-size: 12px; color: #5C5C5C">{{o.sub}}</span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+        <sc-if value="{{mostrarFavorito}}" hint-placeholder-val="{{true}}">
+          <div style="margin-top: 10px; padding: 10px; border-radius: 16px; background: #FFFFFF; border: 1px solid #EEEEEE; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+            <img src="/_blob/82a4ffcb84e1d86249bac575f13b0a4d" alt="" style="width: 44px; height: 44px; border-radius: 10px; object-fit: cover">
+            <span style="flex-grow: 1; font-size: 13px; line-height: 1.35">Seu favorito: <strong>Tacacá</strong><br><span style="color: #5C5C5C">pediu 3 vezes</span></span>
+            <button type="button" onClick="{{pedirFavorito}}" style="height: 40px; padding: 0 12px; border-radius: 12px; border: 0; background: {{accent}}; color: #FFFFFF; font-size: 13px; font-weight: 700; box-shadow: 0 1px 2px rgba(12,51,28,.28), 0 6px 14px rgba(20,83,45,.22), inset 0 1px 0 rgba(255,255,255,.14); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0))">Pedir de novo</button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{mostrarRestricoes}}" hint-placeholder-val="{{false}}">
+      <div class="sobe" style="padding: 22px 16px 24px; display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 24px; font-weight: 700">Alguma restrição?</h1>
+        <span style="font-size: 14px; color: #5C5C5C; margin-bottom: 14px">Marque quantas quiser. {{restrSub}}</span>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{restricoes}}" as="r" hint-placeholder-count="5">
+            <button type="button" onClick="{{r.alternar}}" aria-pressed="{{r.on}}" style="height: 56px; padding: 0 16px; border-radius: 14px; border: 1.5px solid {{r.borda}}; background: {{r.fundo}}; color: {{r.cor}}; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 4px 12px rgba(16,24,20,.05)">
+              {{r.texto}}
+              <sc-if value="{{r.check}}" hint-placeholder-val="{{false}}">
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+        <button type="button" onClick="{{continuar}}" style="margin-top: 18px; height: 54px; border-radius: 14px; border: 0; background: {{accent}}; color: #FFFFFF; font-size: 16px; font-weight: 700; box-shadow: 0 8px 18px rgba(20,83,45,.25)">{{continuarTxt}}</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{mostrarPessoas}}" hint-placeholder-val="{{false}}">
+      <div class="sobe" style="padding: 22px 16px 24px; display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 24px; font-weight: 700">Quantas pessoas vão comer?</h1>
+        <span style="font-size: 14px; color: #5C5C5C; margin-bottom: 14px">Assim sugerimos a quantidade certa.</span>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <sc-for list="{{pessoasOpcoes}}" as="q" hint-placeholder-count="4">
+            <button type="button" class="op" onClick="{{q.escolher}}" style="height: 120px; border-radius: 18px; border: 1px solid #EEEEEE; background: #FFFFFF; color: #1A1A1A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 8px 20px rgba(16,24,20,.08); transition: transform .15s">
+              <span style="font-family: Outfit, sans-serif; font-size: 38px; font-weight: 800; color: {{accent}}; line-height: 1">{{q.num}}</span>
+              <span style="font-size: 13px; color: #5C5C5C; font-weight: 600">{{q.sub}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{mostrarResultado}}" hint-placeholder-val="{{false}}">
+      <div class="sobe" style="padding: 14px 16px 100px; display: flex; flex-direction: column; gap: 12px">
+        <div style="position: relative; height: 200px; border-radius: 20px; overflow: hidden; background: #D4D4D4; box-shadow: 0 2px 4px rgba(16,24,20,.06), 0 12px 26px rgba(16,24,20,.12)">
+          <sc-if value="{{prato.temFoto}}" hint-placeholder-val="{{true}}">
+            <img src="{{prato.foto}}" alt="{{prato.nome}}" style="width: 100%; height: 100%; object-fit: cover; display: block">
+          </sc-if>
+          <sc-if value="{{prato.semFoto}}" hint-placeholder-val="{{false}}">
+            <span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #4A4A4A; font-size: 12px">[FOTO DO PRATO]</span>
+          </sc-if>
+          <span style="position: absolute; left: 10px; top: 10px; padding: 6px 10px; border-radius: 999px; background: {{accent}}; color: #FFFFFF; font-size: 11px; font-weight: 700">Nossa sugestão para você</span>
+          <span style="position: absolute; left: 10px; bottom: 10px; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.94); color: #1A1A1A; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2"></path></svg>{{tempo}}
+          </span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 26px; line-height: 1.1; font-weight: 700">{{prato.nome}}</h1>
+          <p style="margin: 0; font-size: 14px; line-height: 1.45; color: #3A3A3A">{{prato.desc}}</p>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px">
+          <sc-for list="{{selos}}" as="s" hint-placeholder-count="4">
+            <span style="height: 28px; padding: 0 9px; border-radius: 999px; background: {{s.fundo}}; color: {{s.cor}}; border: 1px solid {{s.borda}}; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700">
+              <sc-if value="{{s.ok}}" hint-placeholder-val="{{true}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+              <sc-if value="{{s.alerta}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"></path><path d="M12 10v4M12 17h.01"></path></svg></sc-if>
+              {{s.texto}}
+            </span>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap">
+          <sc-for list="{{porque}}" as="c" hint-placeholder-count="2">
+            <span style="padding: 4px 9px; border-radius: 999px; background: #EAF4EE; color: #0F3D22; font-size: 11px; font-weight: 700">✓ {{c}}</span>
+          </sc-for>
+        </div>
+        <sc-if value="{{avisoFallback}}" hint-placeholder-val="{{false}}">
+          <span style="padding: 8px 10px; border-radius: 10px; background: #FFF4DC; color: #7A5300; font-size: 12px; font-weight: 600">Nenhum prato dessa linha atende às suas restrições. Estes atendem.</span>
+        </sc-if>
+        <sc-if value="{{avisoGosto}}" hint-placeholder-val="{{false}}">
+          <span style="font-size: 12px; color: #5C5C5C">Tiramos o Camarão empanado: você não curtiu da última vez.</span>
+        </sc-if>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #EEEEEE; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 16px rgba(16,24,20,.06)">
+          <span style="font-size: 13px; color: #444444; font-weight: 600">{{qtdTxt}}</span>
+          <span style="font-family: Outfit, sans-serif; font-size: 18px; font-weight: 700; white-space: nowrap">{{prato.preco}}</span>
+        </div>
+        <span style="font-size: 14px; font-weight: 700">Combina com</span>
+        <sc-for list="{{combina}}" as="c" hint-placeholder-count="2">
+          <div style="padding: 10px 10px 10px 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #EEEEEE; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 16px rgba(16,24,20,.06)">
+            <span style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+              <span style="font-size: 11px; font-weight: 700; color: #1E6B3A">{{c.motivo}}</span>
+              <span style="font-size: 14px; font-weight: 700">{{c.nome}}</span>
+              <span style="font-size: 13px"><span style="text-decoration: line-through; color: #767676">{{c.de}}</span> {{c.preco}}</span>
+            </span>
+            <button type="button" onClick="{{c.alternar}}" aria-pressed="{{c.on}}" aria-label="Adicionar {{c.nome}}" style="width: 44px; height: 44px; border-radius: 22px; border: {{c.borda}}; background: {{c.fundo}}; color: {{c.cor}}; font-size: 22px; font-weight: 700; flex-shrink: 0">{{c.botao}}</button>
+          </div>
+        </sc-for>
+        <sc-if value="{{temAlternativas}}" hint-placeholder-val="{{true}}">
+          <span style="margin-top: 4px; font-size: 14px; font-weight: 700">Outras opções para você</span>
+          <sc-for list="{{alternativas}}" as="a" hint-placeholder-count="2">
+            <button type="button" onClick="{{a.escolher}}" style="height: 64px; padding: 8px; border-radius: 14px; border: 1px solid #EEEEEE; background: #FFFFFF; display: flex; align-items: center; gap: 10px; text-align: left; color: #1A1A1A; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 16px rgba(16,24,20,.06)">
+              <span style="width: 48px; height: 48px; border-radius: 10px; background: {{a.tom}}; overflow: hidden; flex-shrink: 0">
+                <sc-if value="{{a.temFoto}}" hint-placeholder-val="{{false}}"><img src="{{a.foto}}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block"></sc-if>
+              </span>
+              <span style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+                <span style="font-size: 14px; font-weight: 700">{{a.nome}}</span>
+                <span style="font-size: 12px; color: #5C5C5C">{{a.preco}} · {{a.tempo}}</span>
+              </span>
+              <span style="font-size: 13px; font-weight: 700; color: {{accent}}; padding-right: 6px">Ver</span>
+            </button>
+          </sc-for>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{mostrarResultado}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 18px; background: linear-gradient(rgba(247,247,247,0), #F7F7F7 30%)">
+      <a href="DeliveryCarrinho.dc.html" style="height: 56px; border-radius: 16px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; text-decoration: none; font-size: 16px; font-weight: 700; box-shadow: 0 10px 22px rgba(20,83,45,.28)"><span>Adicionar à sacola</span><span>{{total}}</span></a>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"clienteIdentificado":{"editor":"boolean","default":true},"modo":{"editor":"enum","default":"Entrega","options":["Entrega","Retirada"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    const identificado = this.props.clienteIdentificado ?? true;
+    const canal = 'delivery';
+    const modo = this.props.modo ?? 'Entrega';
+    const brl = (v) => 'R$ ' + v.toFixed(2).replace('.', ',');
+    const FOTO = '/_blob/82a4ffcb84e1d86249bac575f13b0a4d';
+    // Ícones (o painel permite trocar por foto em cada opção)
+    const I = {
+      folha: 'M5 19c0-8 6-14 15-14 0 9-6 15-14 15M5 19l8-8',
+      peixe: 'M3 12c2.5-3.5 6-5.5 10-5.5 3.5 0 6.5 2.3 8 5.5-1.5 3.2-4.5 5.5-8 5.5-4 0-7.5-2-10-5.5zM3 12 1.5 8.5M3 12l-1.5 3.5M16.5 11h.01',
+      camarao: 'M18 5c-6.5 0-11 4.2-11 9.2 0 3 2 4.8 4.8 4.8 2 0 3.2-1.1 3.2-2.6 0-1.4-1-2.4-2.5-2.4M18 5c1.6 0 2.6 1 2.6 2.4M10.5 10 8 8M13.5 8 12.6 5.4M7.5 14H4.5',
+      chama: 'M12 21c-4 0-7-2.7-7-6.5 0-3.5 2.5-5.5 4-8 .5 2 1.5 3 3 3.5C12 7 13 4.5 15 3c.5 3.5 4 5.5 4 10.5 0 4.5-3 7.5-7 7.5z',
+      tigela: 'M3 11h18a9 9 0 0 1-18 0zM8 11c0-3 1.5-5 4-6M13 11c.5-2.5 2-4 4.5-4.5',
+      brilho: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z',
+      crocante: 'M4 15c3-1 4-4 8-4s5 3 8 4M6 19h12M8 11c0-2.5 1.8-4.5 4-4.5s4 2 4 4.5',
+      creme: 'M4 13h16c0 3.9-3.6 7-8 7s-8-3.1-8-7zM8 13c.5-1.5 2-2.5 4-2.5s3.5 1 4 2.5M12 4v3M9 5l.8 2M15 5l-.8 2'
+    };
+    // Pratos com dados da ficha técnica (F2). Exemplo ilustrativo.
+    const pratos = {
+      degustacao: { nome: 'Menu degustação amazônico', desc: 'Sete preparos para provar um pouco de tudo, com guia de como comer.', v: 129, porPessoa: true, tempo: '25 a 30 min', serve: 1, gluten: true, lactose: true, crustaceo: true, pimenta: 1, veg: false, combina: ['cachaca', 'cupuacu'] },
+      manicoba: { nome: 'Maniçoba', desc: 'Folhas de maniva cozidas por dias com carnes de porco. O sabor mais marcante da Amazônia.', v: 68, tempo: '15 min', serve: 1, gluten: false, lactose: false, crustaceo: false, pimenta: 0, veg: false, combina: ['farinha', 'cupuacu'] },
+      tambaqui: { nome: 'Tambaqui assado na brasa', desc: 'Costela de tambaqui assada, com arroz de jambu e farofa.', v: 89, tempo: '30 a 35 min', serve: 2, gluten: true, lactose: false, crustaceo: false, pimenta: 0, veg: false, combina: ['cupuacu', 'pudim'] },
+      caldeirada: { nome: 'Caldeirada de filhote', desc: 'Peixe cozido no tucupi com legumes, camarão e pirão.', v: 92, tempo: '25 min', serve: 2, gluten: false, lactose: false, crustaceo: true, pimenta: 1, veg: false, combina: ['cachaca', 'pudim'] },
+      pirarucu: { nome: 'Isca de pirarucu', desc: 'Iscas empanadas com molho de pimenta-de-cheiro.', v: 64, tempo: '15 min', serve: 2, gluten: true, lactose: false, crustaceo: false, pimenta: 2, veg: false, combina: ['chope', 'cupuacu'] },
+      tacaca: { nome: 'Tacacá', desc: 'Caldo quente de tucupi, goma de tapioca, jambu e camarão seco.', v: 32, tempo: '10 a 15 min', serve: 1, gluten: false, lactose: false, crustaceo: true, pimenta: 1, veg: false, foto: FOTO, combina: ['cachaca', 'pirarucuMeia'] },
+      vatapa: { nome: 'Vatapá com arroz de jambu', desc: 'Creme de leite de coco, dendê e camarão.', v: 58, tempo: '15 min', serve: 1, gluten: true, lactose: false, crustaceo: true, pimenta: 1, veg: false, combina: ['cupuacu', 'pudim'] },
+      camarao: { nome: 'Camarão empanado', desc: 'Camarões crocantes com molho da casa.', v: 59, tempo: '15 min', serve: 2, gluten: true, lactose: true, crustaceo: true, pimenta: 0, veg: false, combina: ['chope', 'cupuacu'] },
+      picanha: { nome: 'Picanha na brasa', desc: '300 g com farofa, vinagrete e mandioca frita.', v: 89.9, tempo: '20 a 25 min', serve: 1, gluten: true, lactose: false, crustaceo: false, pimenta: 0, veg: false, combina: ['chope', 'pudim'] },
+      moqueca: { nome: 'Moqueca de banana-da-terra', desc: 'Banana-da-terra e palmito no leite de coco, com arroz e farofa de dendê.', v: 54, tempo: '20 min', serve: 1, gluten: false, lactose: false, crustaceo: false, pimenta: 1, veg: true, combina: ['cupuacu', 'pudim'] },
+      salada: { nome: 'Salada de pupunha', desc: 'Folhas, pupunha grelhada, castanha-do-pará e vinagrete de cupuaçu.', v: 38, tempo: '10 min', serve: 1, gluten: false, lactose: false, crustaceo: false, pimenta: 0, veg: true, combina: ['cupuacu', 'cachaca'] }
+    };
+    const extras = {
+      cachaca: { nome: 'Cachaça de jambu', v: 12, motivo: 'Harmoniza' },
+      cupuacu: { nome: 'Suco de cupuaçu', v: 12, motivo: 'Para acompanhar' },
+      pudim: { nome: 'Pudim de tapioca', v: 5, de: 18, motivo: 'Sobremesa por + R$ 5' },
+      chope: { nome: 'Chope gelado', v: 14, motivo: 'Combina' },
+      farinha: { nome: "Farinha d'água", v: 6, motivo: 'Clássico junto' },
+      pirarucuMeia: { nome: 'Isca de pirarucu (meia)', v: 34, motivo: 'Quem pede também leva' }
+    };
+    // Árvore configurada no painel (Recomendações) — a mesma para mesa, delivery e retirada.
+    const arvore = {
+      raiz: { pergunta: 'Qual experiência você está buscando hoje?', opcoes: [
+        { titulo: 'Explorar a Amazônia', sub: 'Gastronomia amazônica', icone: I.folha, vai: 'amazonia' },
+        { titulo: 'Um bom peixe', sub: 'Assado, cozido, frito…', icone: I.peixe, vai: 'peixe' },
+        { titulo: 'Camarão', sub: 'Do caldo ao crocante', icone: I.camarao, vai: 'camarao' },
+        { titulo: 'Carne na brasa', sub: 'Cortes grelhados', icone: I.chama, fim: ['picanha', 'tambaqui'] },
+        { titulo: 'Algo leve', sub: 'Porções menores', icone: I.tigela, fim: ['salada', 'tacaca', 'moqueca'] },
+        { titulo: 'Surpreenda-me', sub: 'O chef escolhe', icone: I.brilho, fim: ['degustacao', 'caldeirada', 'tacaca'] }
+      ] },
+      amazonia: { pergunta: 'É sua primeira vez com a culinária amazônica?', opcoes: [
+        { titulo: 'Sim, quero provar de tudo', sub: 'Vários pratos pequenos', icone: I.brilho, fim: ['degustacao', 'tacaca'] },
+        { titulo: 'Já conheço', sub: 'Quero algo marcante', icone: I.folha, fim: ['manicoba', 'caldeirada', 'tacaca'] },
+        { titulo: 'Quero algo suave', sub: 'Sem sabores fortes', icone: I.tigela, fim: ['vatapa', 'moqueca'] }
+      ] },
+      peixe: { pergunta: 'Como você prefere o peixe?', opcoes: [
+        { titulo: 'Assado', sub: 'Na brasa', icone: I.chama, fim: ['tambaqui'] },
+        { titulo: 'Cozido', sub: 'Em caldo', icone: I.tigela, fim: ['caldeirada'] },
+        { titulo: 'Frito', sub: 'Crocante', icone: I.crocante, fim: ['pirarucu'] }
+      ] },
+      camarao: { pergunta: 'E o camarão, de que jeito?', opcoes: [
+        { titulo: 'No caldo', sub: 'Quentinho', icone: I.tigela, fim: ['tacaca', 'caldeirada'] },
+        { titulo: 'No creme', sub: 'Com arroz', icone: I.creme, fim: ['vatapa'] },
+        { titulo: 'Crocante', sub: 'Empanado', icone: I.crocante, fim: ['camarao'] }
+      ] }
+    };
+    const RESTR = [['gluten', 'Sem glúten'], ['lactose', 'Sem lactose'], ['crustaceo', 'Sem crustáceos'], ['pimenta', 'Sem pimenta'], ['veg', 'Vegetariano']];
+    const PESSOAS = [[1, '1', 'Só eu'], [2, '2', 'Casal ou dupla'], [4, '3 ou 4', 'Para dividir'], [5, '5+', 'Mesa grande']];
+
+    const st = this.state || {};
+    const etapa = st.etapa || 'experiencia';
+    const no = st.no || 'raiz';
+    const caminho = st.caminho || [];
+    const lista = st.lista || null;
+    const restr = st.restr || {};
+    const pessoas = st.pessoas || 1;
+    const idx = st.idx || 0;
+    const add = st.add || {};
+    const hist = st.hist || [];
+    const go = (prox) => this.setState({ ...prox, hist: [...hist, { etapa, no, caminho, lista }] });
+    const voltar = () => { const h = hist[hist.length - 1]; if (h) this.setState({ ...h, hist: hist.slice(0, -1), idx: 0, add: {} }); };
+
+    const atual = arvore[no];
+    const passa = (p) => (!restr.gluten || !p.gluten) && (!restr.lactose || !p.lactose) && (!restr.crustaceo || !p.crustaceo) && (!restr.pimenta || !p.pimenta) && (!restr.veg || p.veg);
+    const naoGostou = identificado ? ['camarao'] : [];
+    let cand = (lista || []).filter((k) => passa(pratos[k]) && !naoGostou.includes(k));
+    const tirouPorGosto = identificado && (lista || []).some((k) => naoGostou.includes(k));
+    let fallback = false;
+    if (lista && !cand.length) { fallback = true; cand = Object.keys(pratos).filter((k) => passa(pratos[k]) && !naoGostou.includes(k)).slice(0, 3); }
+    const chave = cand.length ? cand[idx % cand.length] : 'tacaca';
+    const p = pratos[chave];
+    const n = pessoas;
+    const qtd = p.serve >= 2 ? Math.ceil(n / 2) : n;
+    const porcoes = qtd === 1 ? '1 porção' : `${qtd} porções`;
+    const qtdTxt = p.serve >= 2
+      ? `Serve 2 · ${porcoes} para ${n === 5 ? '5+' : n} ${n > 1 ? 'pessoas' : 'pessoa'}`
+      : (n > 1 ? `${qtd} × ${p.nome} (1 por pessoa)` : 'Serve 1 pessoa');
+    const combina = p.combina.map((k) => {
+      const e = extras[k]; const on = !!add[k];
+      return { ...e, preco: '+ ' + brl(e.v), de: e.de ? brl(e.de) : '', on,
+        alternar: () => this.setState({ add: { ...add, [k]: !on } }),
+        botao: on ? '✓' : '+', fundo: on ? '#EAF4EE' : accent, cor: on ? '#0F3D22' : '#FFFFFF', borda: on ? `1.5px solid ${accent}` : '0' };
+    });
+    const total = p.v * qtd + combina.filter((c) => c.on).reduce((s, c) => s + c.v, 0);
+    const sim = (texto) => ({ texto, ok: true, alerta: false, fundo: '#E9F4EC', cor: '#1E6B3A', borda: '#C9DDCD' });
+    const nao = (texto) => ({ texto, ok: false, alerta: true, fundo: '#FFF4DC', cor: '#7A5300', borda: '#F2DDA6' });
+    const selos = [
+      p.gluten ? nao('Contém glúten') : sim('Sem glúten'),
+      p.lactose ? nao('Contém lactose') : sim('Sem lactose'),
+      ...(p.crustaceo ? [nao('Contém crustáceos')] : []),
+      p.pimenta ? nao(['', 'Pimenta leve', 'Pimenta média', 'Pimenta forte'][p.pimenta]) : sim('Sem pimenta'),
+      ...(p.veg ? [sim('Vegetariano')] : [])
+    ];
+    const tempo = canal === 'mesa' ? 'Pronto em ' + p.tempo
+      : (modo === 'Entrega' ? 'Chega em 40 a 55 min' : 'Pronto para retirar em ' + p.tempo);
+    const restrAtivas = RESTR.filter(([k]) => restr[k]).map(([, t]) => t);
+    const ordem = ['experiencia', 'restricoes', 'pessoas', 'resultado'];
+    const passo = ordem.indexOf(etapa === 'detalhe' ? 'experiencia' : etapa);
+    const algumaRestr = restrAtivas.length > 0;
+    return {
+      accent,
+      modoTxt: modo,
+      mostrarOpcoes: etapa === 'experiencia' || etapa === 'detalhe',
+      mostrarRestricoes: etapa === 'restricoes',
+      mostrarPessoas: etapa === 'pessoas',
+      mostrarResultado: etapa === 'resultado',
+      mostrarSaudacao: etapa === 'experiencia',
+      mostrarFavorito: etapa === 'experiencia' && identificado,
+      saudacao: identificado ? 'Olá, Manuela! Que bom te ver por aqui.' : 'Olá! Seja bem-vindo.',
+      pergunta: atual.pergunta,
+      opcoes: atual.opcoes.map((o) => ({ ...o, escolher: () => go(o.fim
+        ? { etapa: 'restricoes', lista: o.fim, caminho: [...caminho, o.titulo] }
+        : { etapa: 'detalhe', no: o.vai, caminho: [...caminho, o.titulo] }) })),
+      pedirFavorito: () => go({ etapa: 'resultado', lista: ['tacaca'], caminho: ['Seu favorito'], idx: 0 }),
+      restricoes: RESTR.map(([k, t]) => {
+        const on = !!restr[k];
+        return { texto: t, on, alternar: () => this.setState({ restr: { ...restr, [k]: !on } }),
+          fundo: on ? accent : '#FFFFFF', cor: on ? '#FFFFFF' : '#1A1A1A', borda: on ? accent : '#DADADA', check: on };
+      }),
+      restrSub: identificado ? 'Vamos guardar no seu cadastro para a próxima vez.' : 'Cada prato vem marcado pela ficha técnica da cozinha.',
+      continuarTxt: algumaRestr ? 'Continuar' : 'Não tenho restrição',
+      continuar: () => go({ etapa: 'pessoas' }),
+      pessoasOpcoes: PESSOAS.map(([v, num, sub]) => ({ num, sub, escolher: () => go({ etapa: 'resultado', pessoas: v, idx: 0, add: {} }) })),
+      prato: { ...p, preco: brl(p.v) + (p.porPessoa ? ' por pessoa' : ''), temFoto: !!p.foto, semFoto: !p.foto },
+      selos, tempo, qtdTxt, combina,
+      total: brl(total),
+      porque: [...caminho, ...restrAtivas, n > 1 ? `${n === 5 ? '5+' : n} pessoas` : null].filter(Boolean),
+      avisoFallback: fallback,
+      avisoGosto: tirouPorGosto && !fallback,
+      alternativas: cand.map((k, i) => ({ k, i })).filter((a) => a.k !== chave).slice(0, 2).map((a) => ({
+        nome: pratos[a.k].nome, preco: brl(pratos[a.k].v), tempo: pratos[a.k].tempo, tom: ['#D4D4D4', '#C2C2C2'][a.i % 2],
+        foto: pratos[a.k].foto || '', temFoto: !!pratos[a.k].foto, semFoto: !pratos[a.k].foto,
+        escolher: () => this.setState({ idx: a.i, add: {} }) })),
+      temAlternativas: cand.length > 1,
+      outra: () => this.setState({ idx: idx + 1, add: {} }),
+      podeVoltar: hist.length > 0,
+      voltar,
+      recomecar: () => this.setState({ etapa: 'experiencia', no: 'raiz', caminho: [], lista: null, restr: {}, pessoas: 1, idx: 0, add: {}, hist: [] }),
+      progresso: ordem.map((_, k) => ({ cor: k <= passo ? accent : '#E3E3E3' }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>

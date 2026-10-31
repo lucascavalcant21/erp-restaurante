@@ -260,3 +260,36 @@ test("resolução de produto e custo na unidade do saldo", () => {
   assert.equal(custoPorUnidadeDoSaldo(0.0689, { unidade_medida: "kg" }), 68.9);
   assert.equal(custoPorUnidadeDoSaldo(30, { unidade_medida: "garrafa", tamanho_embalagem: 750, permite_fracionado: true }), 0.04);
 });
+
+// ── resultado do mês (lucro líquido e ticket médio) ─────────────────────────
+test("Qual meu lucro líquido? — a mesma conta do Resultado do mês, só da minha unidade", async () => {
+  const tabelas = tabelasPadrao();
+  const mes = { faturamento: "100000", impostos_pct: "6", cmv_manual: "30000", dias_abertos: "26", pedidos: "2000",
+    itens: { fixos: [{ id: "f1", nome: "Aluguel", valor: "8000" }], variaveis: [], outros: [] }, depreciacao: [] };
+  tabelas.config_sistema = [
+    { id: "c-a", unidade_id: "loja-a", params: { resultado_mensal: { "2026-10": mes } } },
+    { id: "c-b", unidade_id: "loja-b", params: { resultado_mensal: { "2026-10": { ...mes, faturamento: "999999" } } } },
+  ];
+  const { motor } = await montar({ tabelas });
+  const m = await motor.getNetProfit();
+  assert.equal(m.status, "ok");
+  // 100.000 − 6.000 impostos − 30.000 CMV − CMO do RH − 8.000 fixos
+  const cmo = m.detalhes.linhas.find((l) => l.id === "cmo").valor;
+  assert.ok(cmo > 0);
+  assert.equal(m.valor, Math.round((100000 - 6000 - 30000 - cmo - 8000) * 100) / 100);
+  assert.equal(m.natureza, "REAL");
+  assert.equal(m.fontes[0].tabela, "config_sistema");
+  assert.ok(semArmadilha(m));
+  const t = await motor.getAverageTicket();
+  assert.equal(t.valor, 50);
+  assert.equal(t.detalhes.pedidos, 2000);
+});
+
+test("lucro sem Resultado do mês preenchido é DADOS INSUFICIENTES com o que falta", async () => {
+  const { motor } = await montar();
+  const m = await motor.getNetProfit();
+  assert.equal(m.status, "insuficiente");
+  assert.match(m.motivo, /Resultado do mês/);
+  const t = await motor.getAverageTicket();
+  assert.equal(t.status, "insuficiente");
+});

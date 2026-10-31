@@ -30,7 +30,7 @@ export async function generateMetadata({ params }) {
 export async function generateViewport({ params }) {
   const { unidade } = await params;
   const r = await carregar(unidade);
-  return { width: "device-width", initialScale: 1, maximumScale: 5, userScalable: true, viewportFit: "cover", themeColor: r.ok ? r.cardapio.cores.fundo : "#f6f1e8" };
+  return { width: "device-width", initialScale: 1, maximumScale: 5, userScalable: true, viewportFit: "cover", themeColor: r.ok ? r.cardapio.cores.fundo : "#f4f4f4" };
 }
 
 export default async function CadastroPage({ params }) {

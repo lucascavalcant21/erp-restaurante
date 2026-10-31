@@ -39,32 +39,32 @@ function Itens({ cardapio, carrinho, alterarQtd, definirObs, remover, onAbrirPra
         const p = porId.get(i.id);
         if (!p) return null;
         return (
-          <div key={i.id} className={s.pedidoItem}>
+          <div key={i.linha || i.id} className={s.pedidoItem}>
             <button type="button" className={s.itemAbrir} onClick={() => onAbrirPrato(i.id)}>
               <span className={s.pedidoNome}>{p.nome}</span>
               {p.nome_original ? <span className={s.nomeOriginal} lang="pt-BR">{p.nome_original}</span> : null}
               <span className={s.pedidoObs}>{i.quantidade} × {formatarPreco(p.preco, idioma)}</span>
             </button>
             <span className={s.preco}>{formatarPreco(p.preco * i.quantidade, idioma)}</span>
-            {editando === i.id ? (
+            {editando === (i.linha || i.id) ? (
               <div style={{ gridColumn: "1 / -1" }}>
                 <textarea className={s.observacao} autoFocus value={i.observacao || ""} maxLength={200}
-                  onChange={(e) => definirObs(i.id, e.target.value)} placeholder={T("obs_item_placeholder")} aria-label={T("obs_de", { prato: p.nome })} />
+                  onChange={(e) => definirObs(i.linha || i.id, e.target.value)} placeholder={T("obs_item_placeholder")} aria-label={T("obs_de", { prato: p.nome })} />
                 <button type="button" className={s.link} onClick={() => setEditando(null)}>{T("pronto")}</button>
               </div>
             ) : (
               <div style={{ gridColumn: "1 / -1" }}>
                 {i.observacao ? <span className={s.pedidoObs}>“{i.observacao}” </span> : null}
-                <button type="button" className={s.link} onClick={() => setEditando(i.id)}>{i.observacao ? T("mudar_obs") : T("obs_btn")}</button>
+                <button type="button" className={s.link} onClick={() => setEditando(i.linha || i.id)}>{i.observacao ? T("mudar_obs") : T("obs_btn")}</button>
               </div>
             )}
             <div className={s.pedidoControles}>
               <span className={s.contador}>
-                <button type="button" onClick={() => alterarQtd(i.id, -1)} aria-label={T("menos_prato", { prato: p.nome })} disabled={i.quantidade <= 1}><Minus size={18} aria-hidden="true" /></button>
+                <button type="button" onClick={() => alterarQtd(i.linha || i.id, -1)} aria-label={T("menos_prato", { prato: p.nome })} disabled={i.quantidade <= 1}><Minus size={18} aria-hidden="true" /></button>
                 <output aria-live="polite">{i.quantidade}</output>
-                <button type="button" onClick={() => alterarQtd(i.id, 1)} aria-label={T("mais_prato_simples", { prato: p.nome })} disabled={i.quantidade >= 50}><Plus size={18} aria-hidden="true" /></button>
+                <button type="button" onClick={() => alterarQtd(i.linha || i.id, 1)} aria-label={T("mais_prato_simples", { prato: p.nome })} disabled={i.quantidade >= 50}><Plus size={18} aria-hidden="true" /></button>
               </span>
-              <button type="button" className={s.secundario} onClick={() => remover(i.id)} aria-label={T("tirar_prato", { prato: p.nome })}><Trash2 size={16} aria-hidden="true" /> {T("tirar")}</button>
+              <button type="button" className={s.secundario} onClick={() => remover(i.linha || i.id)} aria-label={T("tirar_prato", { prato: p.nome })}><Trash2 size={16} aria-hidden="true" /> {T("tirar")}</button>
             </div>
           </div>
         );

@@ -10,6 +10,7 @@ import { FASES_FUNIL, normalizarEtapa, rotuloEtapa, faseDaEtapa, etapaAoMoverPar
 import { fmtReais, fmtPct } from "../../../lib/valor-percentual.mjs";
 import { indicadoresDoFunil } from "../../../lib/evento-orcamento.mjs";
 import { mascaraTelefone } from "../../../lib/mascaras.mjs";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 // As etapas do funil vêm de evento-financeiro.mjs (a mesma lista do seletor
 // dentro do evento): antes eram duas listas e o evento sumia do funil.
@@ -90,7 +91,7 @@ export default function EventosKanbanPage() {
   };
   const visiveis = !termo ? doMes : doMes.filter(e => {
     const data = dataTxt(e.data_evento);
-    return [e.nome, e.cliente_nome, e.cliente_telefone, data].some(v => String(v || "").toLowerCase().includes(termo));
+    return casaBusca([e.nome, e.cliente_nome, e.cliente_telefone, data], termo);
   });
   const porFase = (faseId) => visiveis.filter(e => faseDaEtapa(e.funil_status).id === faseId)
     .sort((a, b) => FASES_FUNIL.find(f => f.id === faseId).etapas.indexOf(normalizarEtapa(a.funil_status)) - FASES_FUNIL.find(f => f.id === faseId).etapas.indexOf(normalizarEtapa(b.funil_status)) || String(a.data_evento || "").localeCompare(String(b.data_evento || "")));
@@ -134,9 +135,10 @@ export default function EventosKanbanPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        {kpis.map(([r, v], i) => (
-          <div key={r} className={`min-w-0 rounded-xl border border-hf-border bg-hf-surface px-3 py-2 ${i === kpis.length - 1 ? "col-span-2 sm:col-span-1" : ""}`}>
+      {/* Celular: os números correm numa faixa (arrasta para o lado) em vez de ocupar meia tela. */}
+      <div className="-mx-3 flex snap-x gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5 [&::-webkit-scrollbar]:hidden">
+        {kpis.map(([r, v]) => (
+          <div key={r} className="min-w-[44%] shrink-0 snap-start rounded-xl border border-hf-border bg-hf-surface px-3 py-2 sm:min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-hf-muted">{r}</p>
             <p className="truncate text-base font-black tabular-nums text-hf-text">{v}</p>
           </div>
@@ -146,7 +148,7 @@ export default function EventosKanbanPage() {
 
       <div className="flex flex-wrap items-center gap-2">
         <select value={mes} onChange={e => setMes(e.target.value)} aria-label="Mês do evento"
-          className="min-h-[44px] rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent focus:ring-2 focus:ring-hf-accent/15">
+          className="min-h-[44px] w-full rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent focus:ring-2 focus:ring-hf-accent/15 sm:w-auto">
           <option value="">Todos os meses</option>
           {meses.map(m => <option key={m} value={m}>{rotuloMes(m)}</option>)}
         </select>
@@ -369,7 +371,7 @@ function NovoEventoModal({ onClose, onSuccess, unidadeAtiva, usuarioId }) {
           <button type="button" onClick={onClose} className="min-h-[44px] rounded-xl px-4 text-sm font-bold text-hf-text-2 hover:bg-hf-elevated">
             Cancelar
           </button>
-          <button type="submit" form="evento-form" disabled={salvando} className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-hf-accent px-5 text-sm font-bold text-hf-accent-fg hover:brightness-110 disabled:opacity-50">
+          <button type="submit" form="evento-form" disabled={salvando} className="inline-flex min-h-[44px] items-center gap-2 whitespace-nowrap rounded-xl bg-hf-accent px-5 text-sm font-bold text-hf-accent-fg hover:brightness-110 disabled:opacity-50">
             {salvando ? "Criando…" : <><Check size={18} /> Criar e montar orçamento</>}
           </button>
         </footer>

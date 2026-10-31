@@ -7,6 +7,7 @@
 import { NIVEL } from "../core/niveis.mjs";
 import { DADOS_INSUFICIENTES, NATUREZA, temValor } from "../core/contratos.mjs";
 import { normalizar } from "../metrics/produtos.mjs";
+import { somarDias } from "../core/periodos.mjs";
 import { generateDailyBrief } from "../insights/daily-brief.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoInsight, blocoTexto, brl, num, ddmm, valorFormatado } from "../commands/resposta.mjs";
 
@@ -29,8 +30,13 @@ export const AgenteVendas = {
     ];
     return r(fraseDaMetrica(m, "Faturamento"), [blocoMetrica(m, "Faturamento"), blocoLista("Composição", itens)], acoes, m.comparacao ? NIVEL.ANALISAR : NIVEL.OBSERVAR);
   },
+  // Ticket médio do Resultado do mês (faturamento ÷ pedidos informados).
   async "vendas.ticket_medio"({ motor }) {
-    return insuf(await motor.semBase("ticket_medio"), "Ticket médio");
+    const m = await motor.getAverageTicket();
+    if (!temValor(m)) return { ...insuf(m, "Ticket médio"), acoes: [{ rotulo: "Abrir Resultado do mês", rota: "/dashboard/financeiro/resultado" }] };
+    const d = m.detalhes;
+    const texto = `${fraseDaMetrica(m, "Ticket médio")} São ${num(d.pedidos)} pedidos no mês${d.pedidosPorDia ? ` (${num(d.pedidosPorDia, 1)} por dia)` : ""}.`;
+    return r(texto, [blocoMetrica(m, "Ticket médio")], [{ rotulo: "Abrir Resultado do mês", rota: "/dashboard/financeiro/resultado" }]);
   },
 };
 
@@ -65,6 +71,17 @@ export const AgenteCompras = {
     if (m.detalhes.aumentos.length) blocos.push(blocoLista("Aumentos", m.detalhes.aumentos.map(linha)));
     if (m.detalhes.quedas.length) blocos.push(blocoLista("Quedas", m.detalhes.quedas.map(linha)));
     return r(texto, blocos, [{ rotulo: "Ver compras", rota: "/dashboard/operacao/estoque/compras" }], NIVEL.ANALISAR);
+  },
+  async "compras.ultimo_preco"({ motor, params }) {
+    if (!params.produto) return { ...r("De qual produto?"), pergunta: { campo: "produto", texto: "De qual produto você quer o preço da última compra?", livre: true, comandoBase: "Quanto paguei em {valor} da última vez?" } };
+    const m = await motor.getLastPurchase({ termo: params.produto });
+    if (!temValor(m)) return insuf(m, "Última compra");
+    const p = m.detalhes.produto;
+    let texto = `Última compra de ${p.nome}: ${brl(p.preco)}/${p.unidade} em ${ddmm(p.data)}${p.fornecedor ? `, com ${p.fornecedor}` : ""}.`;
+    if (p.precoAnterior != null) texto += ` Na compra anterior (${ddmm(p.dataAnterior)}) foi ${brl(p.precoAnterior)}/${p.unidade}${p.pct != null ? ` (${p.pct > 0 ? "+" : ""}${num(p.pct, 1)}%)` : ""}.`;
+    const blocos = [blocoMetrica(m, `Última compra de ${p.nome}`)];
+    if (m.detalhes.outros.length) blocos.push(blocoLista("Outros produtos com esse nome", m.detalhes.outros.map((o) => ({ rotulo: o.nome, valor: `${brl(o.preco)}/${o.unidade}`, detalhe: ddmm(o.data) }))));
+    return r(texto, blocos, [{ rotulo: "Ver compras", rota: "/dashboard/operacao/estoque/compras" }]);
   },
   async "compras.criar"() {
     return r("Criar compra pela conversa ainda não está disponível. Abra Compras para lançar.", [], [{ rotulo: "Abrir compras", rota: "/dashboard/operacao/estoque/compras" }]);
@@ -209,8 +226,16 @@ export const AgenteFinanceiro = {
     const texto = c ? `CMV real ${valorFormatado(m)} em ${m.periodo.rotulo}. Os fatores que mudaram estão abaixo; não dá para afirmar a causa só com esses números.` : `${fraseDaMetrica(m, "CMV real")} Ainda não há período anterior apurado para comparar.`;
     return r(texto, blocos, [{ rotulo: "Abrir CMV real", rota: "/dashboard/operacao/estoque/cmv" }], NIVEL.RECOMENDAR);
   },
+  // Lucro líquido do mês pelo Resultado do mês (a mesma conta da tela).
   async "financeiro.lucro"({ motor }) {
-    return insuf(await motor.semBase("lucro"), "Lucro");
+    const m = await motor.getNetProfit();
+    const acoes = [{ rotulo: "Abrir Resultado do mês", rota: "/dashboard/financeiro/resultado" }];
+    if (!temValor(m)) return { ...insuf(m, "Lucro líquido"), acoes };
+    const d = m.detalhes;
+    let texto = `${d.prejuizo ? "Prejuízo" : "Lucro líquido"} do mês: ${brl(m.valor)}${d.lucroPct != null ? ` (${num(d.lucroPct, 1)}% do faturamento de ${brl(d.faturamento)})` : ""}.`;
+    if (d.equilibrio?.mes != null) texto += ` Para não ter prejuízo, a venda do mês precisa passar de ${brl(d.equilibrio.mes)}${d.equilibrio.dia ? ` (${brl(d.equilibrio.dia)} por dia)` : ""}.`;
+    const itens = d.linhas.map((l) => ({ rotulo: l.rotulo, valor: l.valor == null ? "—" : brl(l.valor), detalhe: l.pct == null ? "" : `${num(l.pct, 1)}%` }));
+    return r(texto, [blocoMetrica(m, d.prejuizo ? "Prejuízo do mês" : "Lucro líquido do mês"), blocoLista("Para onde foi o dinheiro", itens)], acoes, NIVEL.ANALISAR);
   },
 };
 
@@ -225,6 +250,23 @@ export const AgenteRH = {
     texto += d.percentual ? ` CMO %: ${num(d.percentual.valor, 1)}% do faturamento do mês.` : " CMO %: DADOS INSUFICIENTES (faturamento do mês incompleto).";
     return r(texto, [blocoMetrica(m, "CMO do mês"), blocoLista("Composição", [{ rotulo: "Salários + VA (cadastro do RH)", valor: brl(d.folha) }, { rotulo: "Diárias de extras pagas", valor: brl(d.extras), detalhe: `${d.recibosPagos} recibo(s)` }])], [{ rotulo: "Abrir RH", rota: "/dashboard/rh" }], NIVEL.ANALISAR);
   },
+  async "rh.escala_dia"({ motor, params }) {
+    const amanha = params.dias === 1;
+    const m = await motor.getSchedule(amanha ? { data: somarDias(motor.ambiente.hoje, 1) } : {});
+    if (!temValor(m)) return insuf(m, "Escala");
+    const d = m.detalhes;
+    const quando = amanha ? `amanhã (${ddmm(m.periodo.de)})` : "hoje";
+    let texto = d.trabalham.length
+      ? `${d.trabalham.length} pessoa(s) na escala de ${quando}: ${d.trabalham.slice(0, 8).map((p) => `${p.nome} ${p.entrada}–${p.saida}`).join(", ")}${d.trabalham.length > 8 ? "…" : ""}.`
+      : `Ninguém na escala de ${quando} pelo cadastro.`;
+    if (d.folgas.length) texto += ` De folga: ${d.folgas.map((f) => f.nome).join(", ")}.`;
+    const porArea = new Map();
+    for (const p of d.trabalham) { const a = p.area || p.cargo || "Sem área"; porArea.set(a, [...(porArea.get(a) || []), p]); }
+    const blocos = [...porArea].map(([area, ps]) => blocoLista(`${area} (${ps.length})`, ps.map((p) => ({ rotulo: p.nome, valor: `${p.entrada}–${p.saida}`, detalhe: p.cargo || "" }))));
+    if (d.folgas.length) blocos.push(blocoLista("De folga", d.folgas.map((f) => ({ rotulo: f.nome, valor: "folga", detalhe: f.motivo }))));
+    if (m.observacoes?.length) blocos.push(blocoTexto(m.observacoes.join(" "), "De onde vem"));
+    return r(texto, blocos, [{ rotulo: "Abrir escala", rota: "/dashboard/rh" }]);
+  },
   async "rh.hora_extra"({ motor }) {
     return insuf(await motor.semBase("hora_extra"), "Hora extra");
   },
@@ -233,6 +275,26 @@ export const AgenteRH = {
 // ─── Operações (resumo do dia: consulta vários agentes) ──────────────────────
 export const AgenteOperacoes = {
   id: "operacoes", nome: "OperationsAgent",
+  async "fichas.preparo"({ motor, params }) {
+    if (!params.produto) return { ...r("De qual prato ou drink?"), pergunta: { campo: "produto", texto: "De qual prato ou drink você quer a ficha?", livre: true, comandoBase: "Como faz {valor}?" } };
+    const m = await motor.getRecipe({ termo: params.produto });
+    if (!temValor(m)) return insuf(m, "Ficha técnica");
+    const { ficha: f, ingredientes, etapas, outras } = m.detalhes;
+    const partes = [`${f.nome}${f.rendimento ? ` rende ${f.rendimento}` : ""}${f.porcaoG ? ` (porção de ${num(f.porcaoG)} g)` : ""}.`];
+    if (ingredientes.length) partes.push(`Ingredientes: ${ingredientes.map((i) => `${i.quantidade} de ${i.nome}`).join("; ")}.`);
+    if (etapas.length) partes.push(`Preparo: ${etapas.map((e, i) => `${i + 1}) ${e.instrucao || e.titulo}`).join(" ")}`);
+    else if (f.modoPreparo) partes.push(`Preparo: ${f.modoPreparo}`);
+    else partes.push("Modo de preparo: não cadastrado na ficha.");
+    const tempos = [f.tempoPreparo ? `preparo ${f.tempoPreparo} min` : null, f.tempoCoccao ? `cocção ${f.tempoCoccao} min` : null, f.temperatura ? `temperatura ${f.temperatura}` : null].filter(Boolean);
+    const blocos = [];
+    if (ingredientes.length) blocos.push(blocoLista(`Ingredientes — ${f.nome}`, ingredientes.map((i) => ({ rotulo: i.nome, valor: i.quantidade }))));
+    if (etapas.length) blocos.push(blocoLista("Modo de preparo", etapas.map((e, i) => ({ rotulo: `${i + 1}. ${e.titulo || "Etapa"}`, valor: e.tempoMin ? `${e.tempoMin} min` : "", detalhe: [e.instrucao, e.equipamento, e.temperatura].filter(Boolean).join(" · ") }))));
+    else if (f.modoPreparo) blocos.push(blocoTexto(f.modoPreparo, "Modo de preparo"));
+    const extra = [tempos.length ? tempos.join(" · ") : null, f.validadeDias ? `validade ${f.validadeDias} dia(s)` : null, f.bar?.copo ? `copo ${f.bar.copo}` : null, f.bar?.gelo ? `gelo ${f.bar.gelo}` : null, f.bar?.guarnicao ? `guarnição ${f.bar.guarnicao}` : null, f.observacoes].filter(Boolean);
+    if (extra.length) blocos.push(blocoTexto(extra.join(" · "), "Detalhes"));
+    if (outras.length) blocos.push(blocoTexto(`Também encontrei: ${outras.join(", ")}.`, "Outras fichas"));
+    return r(partes.join(" "), blocos, [{ rotulo: "Abrir fichas técnicas", rota: "/dashboard/operacao/fichas" }]);
+  },
   async "empresa.resumo_dia"({ motor, store, nomeUsuario }) {
     const b = await generateDailyBrief({ motor, store, nomeUsuario });
     const fat = b.metrics.find((x) => x.id === "faturamento_hoje")?.metrica;

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>KDS — cozinha e bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button{font-family:inherit;cursor:pointer}
+@keyframes kdsPiscar{0%,100%{box-shadow:0 0 0 2px #E5484D;background-color:#FFFFFF}50%{box-shadow:0 0 0 6px rgba(229,72,77,.55);background-color:#FDE7E8}}
+.kds-p1{animation:kdsPiscar 2.4s ease-in-out infinite}
+.kds-p2{animation:kdsPiscar 1.6s ease-in-out infinite}
+.kds-p3{animation:kdsPiscar 1s ease-in-out infinite}
+.kds-p4{animation:kdsPiscar .6s ease-in-out infinite}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 72px; flex-shrink: 0; display: flex; align-items: center; gap: 20px; padding: 0 24px; background: #F7F7F7; border-bottom: 1px solid #E3E3E3">
+    <span style="font-family: Outfit, sans-serif; font-size: 20px; font-weight: 700">KDS</span>
+    <nav aria-label="Estações" style="display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: #EFEFEF">
+      <sc-for list="{{estacoes}}" as="e" hint-placeholder-count="4">
+        <a href="#" style="height: 40px; padding: 0 16px; border-radius: 9px; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 14px; font-weight: 600; background: {{e.fundo}}; color: {{e.cor}}">{{e.nome}}<span style="min-width: 22px; height: 22px; border-radius: 11px; background: {{e.badge}}; display: inline-flex; align-items: center; justify-content: center; font-size: 12px">{{e.qtd}}</span></a>
+      </sc-for>
+    </nav>
+    <div style="flex-grow: 1"></div>
+    <div style="display: flex; gap: 18px; font-size: 13px; color: #5C5C5C">
+      <span>Tempo médio <strong style="color: #1A1A1A">11 min</strong></span>
+      <span>Prioridades <strong style="color: #B4231C">{{totalPrioridades}}</strong></span>
+    </div>
+    <span style="font-family: Outfit, sans-serif; font-size: 22px; font-weight: 600">19:54</span>
+  </header>
+
+  <div style="flex-grow: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 16px; min-height: 0">
+    <sc-for list="{{colunas}}" as="col" hint-placeholder-count="3">
+      <section aria-label="{{col.titulo}}" style="display: flex; flex-direction: column; gap: 12px; min-height: 0">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px">
+          <span style="width: 10px; height: 10px; border-radius: 5px; background: {{col.cor}}"></span>
+          <h2 style="margin: 0; font-family: Outfit, sans-serif; font-size: 18px; font-weight: 600">{{col.titulo}}</h2>
+          <span style="font-size: 14px; color: #5C5C5C">{{col.qtd}}</span>
+        </div>
+        <sc-for list="{{col.cards}}" as="c" hint-placeholder-count="3">
+          <article class="{{c.classe}}" style="border-radius: 14px; background: #FFFFFF; border: 1px solid {{c.borda}}; overflow: hidden; display: flex; flex-direction: column">
+            <sc-if value="{{c.prioridade}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: #C8262B; color: #FFFFFF">
+                <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; letter-spacing: .08em">
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"></path><path d="M12 10v4M12 17v.5"></path></svg>PRIORIDADE {{c.prioridade}}
+                </span>
+                <span style="font-size: 13px; font-weight: 700">Atrasado há {{c.atraso}} min</span>
+              </div>
+            </sc-if>
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: {{c.topo}}">
+              <div style="display: flex; flex-direction: column; gap: 2px">
+                <span style="font-family: Outfit, sans-serif; font-size: 18px; font-weight: 700">{{c.numero}} · {{c.origem}}</span>
+                <span style="font-size: 12px; color: #444444">{{c.canal}} · chegou {{c.hora}}</span>
+              </div>
+              <span style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 9px; background: {{c.tempoFundo}}; color: {{c.tempoCor}}; font-family: Outfit, sans-serif; font-size: 18px; font-weight: 700">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M9 2h6"></path></svg>{{c.tempo}}
+              </span>
+            </div>
+            <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 10px">
+              <sc-if value="{{c.alergia}}" hint-placeholder-val="{{false}}">
+                <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 9px; background: #FDE7E8; color: #A1161C; font-size: 13px; font-weight: 700">
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"></path><path d="M12 10v4M12 17v.5"></path></svg>{{c.alergia}}
+                </div>
+              </sc-if>
+              <sc-for list="{{c.itens}}" as="i" hint-placeholder-count="2">
+                <div style="display: flex; flex-direction: column; gap: 3px">
+                  <div style="display: flex; align-items: baseline; gap: 8px">
+                    <span style="font-family: Outfit, sans-serif; font-size: 18px; font-weight: 700; color: {{accent}}">{{i.qtd}}×</span>
+                    <span style="font-size: 16px; font-weight: 600; flex-grow: 1">{{i.nome}}</span>
+                    <sc-if value="{{i.viagem}}" hint-placeholder-val="{{false}}">
+                      <span style="padding: 3px 8px; border-radius: 6px; background: #E3ECFB; color: #1F4C9A; font-size: 11px; font-weight: 700; letter-spacing: .05em">VIAGEM</span>
+                    </sc-if>
+                    <sc-if value="{{i.local}}" hint-placeholder-val="{{true}}">
+                      <span style="padding: 3px 8px; border-radius: 6px; background: #E9F4EC; color: #1E6B3A; font-size: 11px; font-weight: 700; letter-spacing: .05em">NO LOCAL</span>
+                    </sc-if>
+                  </div>
+                  <sc-for list="{{i.mods}}" as="m" hint-placeholder-count="1">
+                    <span style="padding-left: 30px; font-size: 14px; color: #444444">{{m}}</span>
+                  </sc-for>
+                  <sc-if value="{{i.obs}}" hint-placeholder-val="{{false}}">
+                    <span style="margin-left: 30px; padding: 4px 8px; border-radius: 6px; background: #FFF4DC; color: #7A5300; font-size: 13px; font-weight: 600; align-self: flex-start">Obs: {{i.obs}}</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{c.acao}}" hint-placeholder-val="{{true}}">
+              <sc-if value="{{c.impressa}}" hint-placeholder-val="{{false}}">
+                <span style="margin: 0 14px 8px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #1E6B3A; font-weight: 600">
+                  <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>Comanda de entrega impressa {{c.impressa}} · entregar na {{c.origem}}
+                </span>
+              </sc-if>
+              <button type="button" style="margin: 0 14px 14px; height: 52px; border-radius: 11px; border: {{c.acaoBorda}}; background: {{c.acaoFundo}}; color: {{c.acaoCor}}; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px">
+                <sc-if value="{{c.imprime}}" hint-placeholder-val="{{false}}">
+                  <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v7H6z"></path></svg>
+                </sc-if>{{c.acao}}
+              </button>
+            </sc-if>
+          </article>
+        </sc-for>
+      </section>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1F5FBF"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#14532D';
+    // Prazo da estação: passou de 15 min = atrasado = PRIORIDADE.
+    // Pisca em vermelho; a cada 5 min de atraso pisca mais rápido (níveis 1 a 4).
+    const PRAZO = 15;
+    const tempo = (min, seg) => {
+      const t = `${String(min).padStart(2, '0')}:${String(seg).padStart(2, '0')}`;
+      if (min >= PRAZO) {
+        const atraso = min - PRAZO;
+        const nivel = Math.min(4, 1 + Math.floor(atraso / 5));
+        return { tempo: t, tempoFundo: '#E5484D', tempoCor: '#fff', borda: '#E5484D', atrasado: true, atraso, classe: 'kds-p' + nivel, decorrido: min * 60 + seg };
+      }
+      if (min >= 10) return { tempo: t, tempoFundo: '#F2B33D', tempoCor: '#1A1300', borda: '#E3E3E3', decorrido: min * 60 + seg };
+      return { tempo: t, tempoFundo: '#E3F4E9', tempoCor: '#1E6B3A', borda: '#E3E3E3', decorrido: min * 60 + seg };
+    };
+    const fila = [
+      { numero: '#49', origem: 'Mesa 5', canal: 'Tablet', hora: '19:33', ...tempo(21, 0),
+        itens: [ { qtd: 1, nome: 'Feijoada completa', mods: ['Couve extra'] } ] },
+      { numero: '#52', origem: 'Mesa 7', canal: 'Tablet', hora: '19:51', ...tempo(3, 12),
+        itens: [
+          { qtd: 2, nome: 'Frango ao chimichurri', mods: ['Arroz biro-biro'], obs: 'Molho à parte' },
+          { qtd: 1, nome: 'Picanha na brasa', mods: ['Ao ponto', 'SEM cebola'], viagem: true }
+        ] },
+      { numero: '#53', origem: 'Delivery', canal: 'App próprio', hora: '19:52', ...tempo(1, 40),
+        alergia: 'ALERGIA: crustáceos',
+        itens: [ { qtd: 1, nome: 'Costela no fogo de chão', mods: ['Mandioca cozida'], viagem: true } ] }
+    ].map((c) => ({ ...c, topo: '#F5F5F5', acao: 'Iniciar preparo', acaoFundo: '#E3E3E3', acaoCor: '#1A1A1A', acaoBorda: '0' }));
+    const preparo = [
+      { numero: '#47', origem: 'Mesa 12', canal: 'Tablet', hora: '19:42', ...tempo(12, 5),
+        itens: [ { qtd: 1, nome: 'Picanha na brasa', mods: ['Ao ponto', 'Queijo coalho'], obs: 'Sem cebola no vinagrete' } ] },
+      { numero: '#44', origem: 'Mesa 3', canal: 'Garçom', hora: '19:28', ...tempo(26, 10),
+        itens: [
+          { qtd: 3, nome: 'Linguiça artesanal', mods: [] },
+          { qtd: 1, nome: 'Arroz biro-biro', mods: [] }
+        ] }
+    ].map((c) => ({ ...c, topo: '#FFF4DC', acao: 'Pronto · imprimir comanda', imprime: true, acaoFundo: accent, acaoCor: '#FFFFFF', acaoBorda: '0' }));
+    const prontos = [
+      { numero: '#47', origem: 'Mesa 12', canal: 'Bar', hora: '19:42', tempo: 'Pronto 19:47', impressa: '19:47', tempoFundo: '#E3F4E9', tempoCor: '#1E6B3A', borda: '#E3E3E3',
+        itens: [ { qtd: 2, nome: 'Caipirinha de limão', mods: [] } ] },
+      { numero: '#45', origem: 'Mesa 9', canal: 'Tablet', hora: '19:38', tempo: 'Pronto 19:49', impressa: '19:49', tempoFundo: '#E3F4E9', tempoCor: '#1E6B3A', borda: '#E3E3E3',
+        itens: [ { qtd: 1, nome: 'Pudim de leite', mods: [], viagem: true } ] }
+    ].map((c) => ({ ...c, topo: '#E9F4EC', acao: 'Reimprimir comanda', imprime: true, acaoFundo: '#FFFFFF', acaoCor: '#1A1A1A', acaoBorda: '1px solid #DADADA' }));
+    // Prioridades numeradas pela mais antiga primeiro (maior tempo decorrido), em todas as colunas.
+    const atrasados = [...fila, ...preparo].filter((c) => c.atrasado).sort((a, b) => b.decorrido - a.decorrido);
+    const posicao = new Map(atrasados.map((c, i) => [c.numero, i + 1]));
+    const marcar = (cards) => cards
+      .map((c) => ({
+        ...c,
+        prioridade: posicao.get(c.numero) || null,
+        classe: c.classe || '',
+        itens: c.itens.map((i) => ({ ...i, local: !i.viagem }))
+      }))
+      // Na coluna: prioridades no topo (mais antiga primeiro), depois o resto por ordem de chegada.
+      .sort((a, b) => {
+        if (a.prioridade && b.prioridade) return a.prioridade - b.prioridade;
+        if (a.prioridade) return -1;
+        if (b.prioridade) return 1;
+        return (b.decorrido || 0) - (a.decorrido || 0);
+      });
+    return {
+      accent,
+      totalPrioridades: atrasados.length,
+      estacoes: [
+        { nome: 'Todas', qtd: 7, sel: true }, { nome: 'Cozinha', qtd: 5 }, { nome: 'Bar', qtd: 1 }, { nome: 'Sobremesas', qtd: 1 }
+      ].map((e) => ({ ...e, fundo: e.sel ? accent : 'transparent', cor: e.sel ? '#FFFFFF' : '#444444', badge: e.sel ? 'rgba(255,255,255,.25)' : '#E3E3E3' })),
+      colunas: [
+        { titulo: 'Na fila', qtd: fila.length, cor: '#8C939A', cards: marcar(fila) },
+        { titulo: 'Em preparo', qtd: preparo.length, cor: '#F2B33D', cards: marcar(preparo) },
+        { titulo: 'Prontos', qtd: prontos.length, cor: '#3DBE7A', cards: marcar(prontos) }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

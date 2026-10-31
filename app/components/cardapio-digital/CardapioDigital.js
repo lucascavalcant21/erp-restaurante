@@ -26,10 +26,25 @@ import {
   ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin, Gift, BellRing, Megaphone,
 } from "lucide-react";
 import {
-  aplicarNome, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, primeiroNome, saudacao, totalDoCarrinho,
+  aplicarNome, cardapioDoCanal, canalDoPedido, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, precoDaLinha, primeiroNome, saudacao, totalDoCarrinho,
 } from "../../lib/cardapio-digital.mjs";
 import { IDIOMAS, TEXTOS_PADRAO, detectarIdioma, infoIdioma, t } from "../../lib/cardapio-idiomas.mjs";
 import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, Selos } from "./partes";
+import DeliveryInicio from "./delivery/DeliveryInicio";
+import DeliverySacola from "./delivery/DeliverySacola";
+import DeliveryCheckout from "./delivery/DeliveryCheckout";
+import DeliveryFidelidade from "./delivery/DeliveryFidelidade";
+import ClienteArea from "./delivery/ClienteArea";
+import TabletInicio from "./tablet/TabletInicio";
+import TabletDetalhe from "./tablet/TabletDetalhe";
+import TabletCarrinho, { TabletEnviado } from "./tablet/TabletCarrinho";
+import TabletEntrar from "./tablet/TabletEntrar";
+import TabletIdioma from "./tablet/TabletIdioma";
+import TabletWifi from "./tablet/TabletWifi";
+import QREntrar from "./tablet/QREntrar";
+import { textoDelivery } from "../../lib/cardapio-textos-delivery.mjs";
+import { Escolhas, TemaCardapio } from "./ui";
+import { caminhoDoCadastro } from "../../lib/cardapio-link.mjs";
 import Conversa from "./Conversa";
 import Pedido from "./Pedido";
 import { CartaoFidelidade, DetalheFidelidade, cartoesDoPrato } from "./Fidelidade";
@@ -68,6 +83,12 @@ const ERROS_POR_CODIGO = {
   limite: "erro_limite", item_indisponivel: "erro_item", loja_fechada: "erro_fechado", pedido_minimo: "erro_minimo",
   cashback_telefone: "erro_cashback_tel", cashback_mudou: "erro_cashback", cashback_sem_saldo: "erro_cashback",
 };
+function chaveDaLinha(id, opcoes, viagem) {
+  const temOpcoes = opcoes && Object.values(opcoes).some((l) => l?.length);
+  if (!temOpcoes && !viagem) return undefined;
+  const op = temOpcoes ? JSON.stringify(Object.keys(opcoes).sort().map((g) => [g, [...opcoes[g]].sort()])) : "";
+  return `${id}|${op}${viagem ? "|viagem" : ""}`;
+}
 const UM_ANO = 365 * 86400000;
 
 export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm = null, mesa = "", pratoInicial = "", previa = false }) {
@@ -97,6 +118,9 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const [fidPedidos, setFidPedidos] = useState([]);
   const [fidStatus, setFidStatus] = useState(null);
   const [usarCashback, setUsarCashback] = useState(false);
+  // Tablet: quem entrou com CPF nesta mesa (só na memória; sai da tela ao enviar o pedido).
+  const [clienteMesa, setClienteMesa] = useState(null); // { cpf, nome, desconto_pct }
+  const [entrarAberto, setEntrarAberto] = useState(""); // "", "cpf", "cadastro"
   const [cadastroLocal, setCadastroLocal] = useState(null); // { final, pct, aplica, usado } — cadastro pelo QR feito neste aparelho
 
   const [busca, setBusca] = useState("");
@@ -108,6 +132,9 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const [prato, setPrato] = useState(null);
   const [qtdPrato, setQtdPrato] = useState(1);
   const [obsPrato, setObsPrato] = useState("");
+  const [escolhasPrato, setEscolhasPrato] = useState({});
+  // "Editar" no pedido: a linha que o detalhe do prato vai substituir.
+  const [linhaEditada, setLinhaEditada] = useState(null);
   const [folha, setFolha] = useState(""); // "", "secoes", "pedido", "idiomas", "pedidos", "info", "fidelidade", "atendimento"
   const [chamados, setChamados] = useState({}); // tipo → { estado: "enviando" | "ok", ate }
   const voarParaSacola = useVooParaSacola();
@@ -119,15 +146,34 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const fecharAviso = useCallback(() => setAviso(null), []);
   const pratoInicialAberto = useRef(false);
   const lateral = useMidia(LATERAL);
-  const largo = useMidia(LARGO);
+  const largoTela = useMidia(LARGO);
   const celular = useMidia(CELULAR);
   const podePedir = !previa;
   const modo = mesa ? "mesa" : "delivery";
-  const tipoPedido = mesa ? "qrcode" : "delivery";
+  // Tablet da mesa (tela larga): a tela nova do protótipo Main. O pedido abre
+  // como folha (o "pedido ao lado" antigo saiu); no celular a mesa segue no layout antigo.
+  const tabletNovo = largoTela && modo === "mesa";
+  // Celular da mesa (QR): a primeira tela convida a entrar com CPF (protótipo QREntrar). "Quero só pedir" vale até fechar a aba.
+  const qrNovo = !largoTela && modo === "mesa";
+  const [qrDispensado, setQrDispensado] = useState(true);
+  useEffect(() => {
+    try { setQrDispensado(sessionStorage.getItem(chave(unidadeId, `qr-${mesa}`)) === "1"); } catch { setQrDispensado(false); }
+  }, [unidadeId, mesa]);
+  const fecharQr = () => {
+    setEntrarAberto("");
+    setQrDispensado(true);
+    try { sessionStorage.setItem(chave(unidadeId, `qr-${mesa}`), "1"); } catch { /* sem sessão */ }
+  };
+  const largo = false;
+  // Delivery: o cliente escolhe Entrega ou Retirada no checkout (se a loja aceita retirada).
+  const [tipoEntrega, setTipoEntrega] = useState("delivery");
+  const [pagamento, setPagamento] = useState("");
+  const tipoPedido = mesa ? "qrcode" : tipoEntrega;
   const chaveCarrinho = chave(unidadeId, `carrinho:${mesa || "delivery"}`);
 
   // O cardápio no idioma do cliente (conteúdo traduzido pelo dono; o resto, fixo).
-  const cardapio = useMemo(() => localizarCardapio(base, idioma), [base, idioma]);
+  // Só os pratos ligados no canal desta tela (QR da mesa ou delivery).
+  const cardapio = useMemo(() => localizarCardapio(cardapioDoCanal(base, canalDoPedido(tipoPedido)), idioma), [base, idioma, tipoPedido]);
   const lingua = cardapio?.idioma || "pt";
   const T = useCallback((k, v) => t(lingua, k, v), [lingua]);
 
@@ -275,11 +321,12 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     }
   }, [previa, meusPedidos, unidadeId]);
   useEffect(() => {
-    if (folha !== "pedidos") return;
+    // No tablet o andamento fica na tela (o cartão "Pedido · Mesa"): acompanha sempre que há pedido.
+    if (folha !== "pedidos" && !(tabletNovo && meusPedidos.length)) return;
     atualizarPedidos();
     const tm = setInterval(atualizarPedidos, PEDIDOS_MS);
     return () => clearInterval(tm);
-  }, [folha, atualizarPedidos]);
+  }, [folha, atualizarPedidos, tabletNovo, meusPedidos.length]);
 
   // Saldo de fidelidade deste aparelho. O servidor acha o telefone num pedido
   // concluído entre os que o aparelho fez; sem isso, só as regras aparecem.
@@ -294,7 +341,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     } catch { /* sem conexão: fica o que já havia */ }
   }, [previa, temFidelidade, fidPedidos, unidadeId]);
   useEffect(() => { carregarFidelidade(); }, [carregarFidelidade]);
-  useEffect(() => { if (folha === "fidelidade" || folha === "pedidos") carregarFidelidade(); }, [folha]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (folha === "fidelidade" || folha === "area" || folha === "pedidos") carregarFidelidade(); }, [folha]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── derivados ────────────────────────────────────────────────────────────
   const porId = useMemo(() => new Map((cardapio?.produtos || []).map((p) => [p.id, p])), [cardapio]);
@@ -321,7 +368,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const telFinal = form.telefone.replace(/\D/g, "").slice(-4);
   const descontoEstimado = cardapio?.fidelidade?.cadastro && cadastroLocal && telFinal === cadastroLocal.final
     && (cardapio.fidelidade.cadastro.aplica === "sempre" || !cadastroLocal.usado)
-    ? descontoDoCadastro(totalCarrinho.subtotal || 0, cardapio.fidelidade.cadastro.desconto_pct) : 0;
+    ? descontoDoCadastro(totalCarrinho.base_cadastro || 0, cardapio.fidelidade.cadastro.desconto_pct)
+    : clienteMesa?.desconto_pct ? descontoDoCadastro(totalCarrinho.base_cadastro || 0, clienteMesa.desconto_pct) : 0;
   // Cashback: só com saldo conhecido e o mesmo WhatsApp (o servidor confere de novo).
   const saldoCashback = fidStatus?.identificado && fidStatus?.disponivel ? Number(fidStatus.cashback?.saldo) || 0 : 0;
   const cashbackPossivel = cardapio?.fidelidade?.cashback && saldoCashback > 0 && fidStatus?.final
@@ -373,7 +421,9 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     if (!porId.has(id)) return;
     const noCarrinho = carrinho.find((i) => i.id === id);
     setPrato(id);
+    setLinhaEditada(null);
     setQtdPrato(1);
+    setEscolhasPrato({});
     setObsPrato(noCarrinho?.observacao || "");
   }, [porId, carrinho]);
 
@@ -384,25 +434,62 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     abrirPrato(pratoInicial);
   }, [porId, pratoInicial, abrirPrato]);
 
-  const adicionar = useCallback((id, quantidade = 1, observacao) => {
+  const adicionar = useCallback((id, quantidade = 1, observacao, opcoes, { viagem = false } = {}) => {
     const p = porId.get(id);
     if (!p || previa) return;
+    if (!opcoes && p.grupos?.some((g) => g.min > 0)) { abrirPrato(id); return; }
+    const linha = chaveDaLinha(id, opcoes, viagem);
     setCarrinho((c) => {
-      const i = c.findIndex((x) => x.id === id);
-      if (i < 0) return [...c, { id, quantidade: Math.min(50, quantidade), observacao: observacao || "" }].slice(0, 50);
+      const i = c.findIndex((x) => (x.linha || x.id) === (linha || id));
+      if (i < 0) return [...c, { id, ...(linha ? { linha } : {}), ...(opcoes && linha ? { opcoes } : {}), ...(viagem ? { viagem: true } : {}), quantidade: Math.min(50, quantidade), observacao: observacao || "" }].slice(0, 50);
       const novo = [...c];
       novo[i] = { ...novo[i], quantidade: Math.min(50, novo[i].quantidade + quantidade), observacao: observacao ?? novo[i].observacao };
       return novo;
     });
     if (etapa === "enviado") setEtapa("carrinho");
     setAviso({ texto: T("no_pedido", { prato: p.nome }), acao: largo ? null : { rotulo: T("ver_pedido"), fazer: () => setFolha("pedido") } });
-  }, [porId, previa, etapa, largo, T]);
+  }, [porId, previa, etapa, largo, T, abrirPrato]);
 
-  const alterarQtd = (id, delta) => setCarrinho((c) => c.map((i) => (i.id === id ? { ...i, quantidade: Math.max(1, Math.min(50, i.quantidade + delta)) } : i)));
-  const definirObs = (id, observacao) => setCarrinho((c) => c.map((i) => (i.id === id ? { ...i, observacao: observacao.slice(0, 200) } : i)));
+  // Cada linha do carrinho tem uma chave: o prato, ou o prato + as escolhas (tamanho, adicionais).
+  const alterarQtd = (id, delta) => setCarrinho((c) => c.map((i) => ((i.linha || i.id) === id ? { ...i, quantidade: Math.max(1, Math.min(50, i.quantidade + delta)) } : i)));
+  const definirObs = (id, observacao) => setCarrinho((c) => c.map((i) => ((i.linha || i.id) === id ? { ...i, observacao: observacao.slice(0, 200) } : i)));
+  // "Consumir aqui" / "Para viagem" de uma linha (tablet). Se já houver a mesma linha do outro jeito, junta.
+  const mudarViagem = (chave, viagem) => setCarrinho((c) => {
+    const i = c.findIndex((x) => (x.linha || x.id) === chave);
+    if (i < 0) return c;
+    const nova = { ...c[i], viagem: viagem || undefined, linha: chaveDaLinha(c[i].id, c[i].opcoes, viagem) };
+    if (!nova.linha) delete nova.linha;
+    const j = c.findIndex((x, k) => k !== i && (x.linha || x.id) === (nova.linha || nova.id));
+    if (j < 0) return c.map((x, k) => (k === i ? nova : x));
+    return c.filter((_, k) => k !== i).map((x) => ((x.linha || x.id) === (nova.linha || nova.id) ? { ...x, quantidade: Math.min(50, x.quantidade + nova.quantidade) } : x));
+  });
+  const editarLinha = (chave) => {
+    const l = carrinho.find((x) => (x.linha || x.id) === chave);
+    if (!l || !porId.has(l.id)) return;
+    setFolha("");
+    setPrato(l.id);
+    setQtdPrato(l.quantidade);
+    setEscolhasPrato(l.opcoes || {});
+    setObsPrato(l.observacao || "");
+    setLinhaEditada({ chave, quantidade: l.quantidade, observacao: l.observacao || "", opcoes: l.opcoes || {}, viagem: !!l.viagem });
+  };
+  // Salva a linha editada: tira a antiga e põe a nova (junta se ficar igual a outra).
+  const salvarLinha = (id, quantidade, observacao, opcoes, viagem) => {
+    const chave = linhaEditada?.chave;
+    setCarrinho((c) => {
+      const sem = c.filter((x) => (x.linha || x.id) !== chave);
+      const linha = chaveDaLinha(id, opcoes, viagem);
+      const j = sem.findIndex((x) => (x.linha || x.id) === (linha || id));
+      if (j >= 0) return sem.map((x, k) => (k === j ? { ...x, quantidade: Math.min(50, x.quantidade + quantidade), observacao: observacao || x.observacao } : x));
+      return [...sem, { id, ...(linha ? { linha } : {}), ...(opcoes && linha ? { opcoes } : {}), ...(viagem ? { viagem: true } : {}), quantidade: Math.min(50, quantidade), observacao: observacao || "" }];
+    });
+    setLinhaEditada(null);
+    setPrato(null);
+    setFolha("pedido");
+  };
   const remover = (id) => {
     const antes = carrinho;
-    setCarrinho((c) => c.filter((i) => i.id !== id));
+    setCarrinho((c) => c.filter((i) => (i.linha || i.id) !== id));
     setAviso({ texto: T("item_tirado"), acao: { rotulo: T("desfazer"), fazer: () => setCarrinho(antes) } });
   };
 
@@ -446,7 +533,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
     const tel = form.telefone.replace(/\D/g, "");
     if (form.nome.trim().length < 2) e.nome = T("erro_nome");
     if (!mesa || tel.length) { if (tel.length < 10 || tel.length > 13) e.telefone = T("erro_tel"); }
-    if (!mesa && !form.endereco.trim()) e.endereco = T("erro_endereco");
+    if (tipoPedido === "delivery" && !form.endereco.trim()) e.endereco = T("erro_endereco");
     setErros(e);
     setErroEnvio("");
     if (Object.keys(e).length) return;
@@ -458,8 +545,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           unidade: unidadeId,
-          cliente: { tipo: tipoPedido, nome: form.nome.trim(), telefone: form.telefone.trim() || null, endereco: mesa ? null : form.endereco.trim(), troco: mesa ? null : form.troco.trim() || null, mesa: mesa || null },
-          itens: carrinho.map((i) => ({ id: i.id, quantidade: i.quantidade, observacao: i.observacao || "" })),
+          cliente: { tipo: tipoPedido, nome: form.nome.trim(), telefone: form.telefone.trim() || null, endereco: tipoPedido === "delivery" ? form.endereco.trim() : null, troco: mesa || (pagamento && pagamento !== "dinheiro") ? null : form.troco.trim() || null, ...(mesa || !pagamento ? {} : { pagamento }), ...(mesa && clienteMesa?.cpf ? { cpf: clienteMesa.cpf } : {}), mesa: mesa || null },
+          itens: carrinho.map((i) => ({ id: i.id, quantidade: i.quantidade, observacao: [i.viagem ? "PARA VIAGEM" : "", i.observacao || ""].filter(Boolean).join(" · ").slice(0, 200), ...(i.opcoes ? { opcoes: i.opcoes } : {}) })),
           ...(cashbackAplicado > 0 ? { cashback: { usar: true, prova: fidPedidos.map((p) => p.id) } } : {}),
         }),
       });
@@ -493,6 +580,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       if (!mesa) gravar(chave(unidadeId, "endereco"), form.endereco.trim());
       if (!nome && form.nome.trim()) { setNome(form.nome.trim()); gravar(chave(unidadeId, "nome"), form.nome.trim()); }
       setCarrinho([]);
+      setClienteMesa(null);
       setEtapa("enviado");
       if (!largo) setFolha("pedido");
     } catch {
@@ -512,7 +600,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
 
   // ── estados sem cardápio ─────────────────────────────────────────────────
   if (!cardapio) {
-    const cores = { "--c-fundo": "#f6f1e8", "--c-texto": "#221c16", "--c-suave": "#6b6259", "--c-primaria": "#9a3412", "--c-sobre": "#fff", "--c-cartao": "#fffdf8", "--c-linha": "#e4ddd2", "--c-destaque": "#9a3412", "--c-primaria-suave": "#f3e7dd" };
+    const cores = { "--c-fundo": "#f4f4f4", "--c-texto": "#1a1a1a", "--c-suave": "#5c5c5c", "--c-primaria": "#14532d", "--c-sobre": "#fff", "--c-cartao": "#ffffff", "--c-linha": "#e3e3e3", "--c-destaque": "#14532d", "--c-primaria-suave": "#eaf4ee" };
     const T0 = (k) => t(idioma, k);
     return (
       <div className={s.raiz} style={cores}>
@@ -573,9 +661,60 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const rotuloEtapa = (p) => (p.etapa === "recebido" ? T("st_recebido") : p.etapa === "preparo" ? T("st_preparo")
     : p.etapa === "pronto" ? T(p.tipo === "mesa" ? "st_pronto_mesa" : "st_pronto_delivery") : p.etapa === "saiu" ? T("st_saiu")
       : p.etapa === "entregue" ? T("st_entregue") : p.etapa === "cancelado" ? T("st_cancelado") : T("st_andamento"));
+  // Cartão "Pedido · Mesa" do tablet: o pedido mais recente que ainda não saiu da mesa.
+  const emCurso = (andamento.pedidos || []).filter((p) => p.etapa !== "entregue" && p.etapa !== "cancelado")
+    .sort((a, b) => String(b.criado_em || "").localeCompare(String(a.criado_em || "")))[0];
+  const entrouMesa = (c) => {
+    setClienteMesa(c);
+    setForm((f) => ({ ...f, nome: f.nome || c.nome || "" }));
+    if (qrNovo) fecharQr(); else setEntrarAberto("");
+    setAviso({ texto: textoDelivery(lingua, "bem_vindo_nome", { nome: c.nome || "" }) });
+  };
+  const qrAberto = Boolean(qrNovo && cardapio.fidelidade && !clienteMesa && !previa && (entrarAberto || !qrDispensado));
+  const acompanhamento = tabletNovo && emCurso ? {
+    etapa: rotuloEtapa(emCurso), pronto: emCurso.etapa === "pronto", hora: emCurso.criado_em ? hora(emCurso.criado_em) : "",
+    itens: (emCurso.itens || []).map((i) => porId.get(i.produto_id)?.nome).filter(Boolean).join(", "),
+  } : null;
 
   return (
-    <div className={`${s.raiz} ${modo === "mesa" ? s.modoMesa : s.modoDelivery} ${celular ? s.comNav : ""}`} style={estilo} data-fonte={tema.fonte} lang={infoIdioma(lingua).lang} data-cardapio="">
+    <div className={`${s.raiz} ${modo === "mesa" ? s.modoMesa : s.modoDelivery} ${celular && modo === "mesa" ? s.comNav : ""}`} style={estilo} data-fonte={tema.fonte} lang={infoIdioma(lingua).lang} data-cardapio="">
+      {modo === "delivery" ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <DeliveryInicio
+            cardapio={cardapio} idioma={lingua} carrinho={carrinho} totalSacola={totalCarrinho.total || 0}
+            offline={estado === "offline" ? T("sem_internet", { hora: cacheEm ? hora(cacheEm) : "—" }) : ""}
+            secaoAtiva={secaoAtiva} busca={busca} buscaAberta={buscaAberta} onBusca={setBusca}
+            onAbrirBusca={() => setBuscaAberta(true)} onFecharBusca={() => { setBusca(""); setBuscaAberta(false); }}
+            resultados={resultados} filtrando={filtrando} onAbrirPrato={abrirPrato} onIrSecao={irParaSecao}
+            onAbrirSacola={() => setFolha("pedido")} onAbrirIdiomas={() => setFolha("idiomas")} temIdiomas={idiomasOferecidos.length > 1}
+            onAbrirInfo={() => setFolha("info")} temInfo={temInfo} onAjuda={() => abrirConversa()} temAjuda={conversaLigada}
+            onAbrirPedidos={() => setFolha("pedidos")} qtdPedidos={meusPedidos.length}
+            onAbrirDescontos={() => setFolha("fidelidade")} temDescontos={Boolean(cardapio.fidelidade)}
+            linkCadastro={caminhoDoCadastro(unidadeId)} visitante={!cadastroLocal && !fidStatus?.identificado} podePedir={podePedir}
+            banners={slides.length ? <div className={s.capa} style={{ height: "100%" }}><Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} segundos={cardapio.carrossel?.segundos} porVez={cardapio.carrossel?.por_vez} /></div> : null}
+          />
+        </TemaCardapio>
+      ) : tabletNovo ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <TabletInicio
+            cardapio={cardapio} idioma={lingua} mesa={mesa} carrinho={carrinho} totalSacola={totalCarrinho.total || 0}
+            offline={estado === "offline" ? T("sem_internet", { hora: cacheEm ? hora(cacheEm) : "—" }) : ""}
+            secaoAtiva={secaoAtiva} busca={busca} onBusca={setBusca} resultados={resultados} filtrando={filtrando}
+            selos={selos} onSelos={setSelos} onAbrirPrato={abrirPrato} onAdicionar={adicionar} onIrSecao={irParaSecao}
+            onAbrirSacola={() => setFolha("pedido")} onAbrirIdiomas={() => setFolha("idiomas")} temIdiomas={idiomasOferecidos.length > 1}
+            onChamar={() => setFolha("atendimento")} onRecomendar={() => abrirConversa()} temRecomendar={conversaLigada}
+            acompanhamento={acompanhamento} onAbrirPedidos={() => setFolha("pedidos")}
+            linkCadastro={caminhoDoCadastro(unidadeId)} visitante={!cadastroLocal && !fidStatus?.identificado && !clienteMesa} podePedir={podePedir}
+            onConvite={() => setEntrarAberto("cpf")} onWifi={cardapio.wifi?.rede ? () => setFolha("wifi") : undefined}
+            banners={slides.length ? <div className={s.capa} style={{ height: "100%" }}><Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} segundos={cardapio.carrossel?.segundos} porVez={cardapio.carrossel?.por_vez} /></div> : null}
+          />
+          {entrarAberto ? (
+            <TabletEntrar cardapio={cardapio} idioma={lingua} mesa={mesa} unidadeId={unidadeId} comecarCadastro={entrarAberto === "cadastro"}
+              onIdioma={idiomasOferecidos.length > 1 ? () => setFolha("idiomas") : undefined} onFechar={() => setEntrarAberto("")}
+              onEntrou={entrouMesa} />
+          ) : null}
+        </TemaCardapio>
+      ) : (<>
       {tema.fundo_imagem_url ? <div className={s.fundoImagem} style={{ backgroundImage: `url("${tema.fundo_imagem_url}")`, opacity: tema.fundo_opacidade }} aria-hidden="true" /> : null}
       <div className={s.casca}>
         {/* lateral: celular deitado, tablet e computador */}
@@ -632,7 +771,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           {modo === "delivery" ? (
             <>
               <div className={s.capa}>
-                {slides.length ? <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} /> : <CapaViva temas={secoesMenu.map((x) => x.tema).filter(Boolean)} />}
+                {slides.length ? <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} segundos={cardapio.carrossel?.segundos} porVez={cardapio.carrossel?.por_vez} /> : <CapaViva temas={secoesMenu.map((x) => x.tema).filter(Boolean)} />}
               </div>
               <section className={s.loja} aria-label={unidade.nome}>
                 <Foto src={tema.logo_url} className={s.lojaLogo} alt="" fallback={<span className={s.lojaMonograma} aria-hidden="true">{iniciais(unidade.nome)}</span>} />
@@ -656,7 +795,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             </>
           ) : (
             <>
-              <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} />
+              <Abertura slides={slides} onAcao={acaoBanner} previa={previa} idioma={lingua} segundos={cardapio.carrossel?.segundos} porVez={cardapio.carrossel?.por_vez} />
               <header className={s.cabecalho}>
                 {!slides.length ? <Foto src={tema.logo_url} className={s.cabecalhoLogo} /> : null}
                 <h1 className={s.nomeLoja}>{unidade.nome}</h1>
@@ -823,8 +962,34 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           <button type="button" className={s.navBotao} onClick={() => setFolha("pedido")} disabled={!podePedir} data-sacola=""><ShoppingBag size={22} aria-hidden="true" />{T("sacola")}{qtdTotal ? <span key={qtdTotal} className={`${s.contagem} ${s.contagemPula}`}>{qtdTotal}</span> : null}</button>
         </nav>
       ) : null}
+      </>)}
 
-      {folha === "pedido" && !largo ? (
+      {folha === "pedido" && tabletNovo && etapa === "enviado" ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <TabletEnviado cardapio={cardapio} idioma={lingua} mesa={mesa} nome={primeiroNome(form.nome)} resultado={resultado || {}}
+            onVoltar={() => { setEtapa("carrinho"); setFolha(""); }} />
+        </TemaCardapio>
+      ) : folha === "pedido" && tabletNovo ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <TabletCarrinho cardapio={cardapio} idioma={lingua} mesa={mesa} carrinho={carrinho} nome={form.nome}
+            onNome={(v) => setForm((f) => ({ ...f, nome: v }))} erro={erroEnvio} enviando={enviando} onFechar={() => setFolha("")}
+            onEnviar={enviar} alterarQtd={alterarQtd} remover={remover} mudarViagem={mudarViagem} onEditar={editarLinha}
+            cliente={clienteMesa} desconto={descontoEstimado} onEntrar={cardapio.fidelidade?.cadastro ? () => setEntrarAberto("cpf") : undefined} onSairCliente={() => setClienteMesa(null)}
+            onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }} />
+        </TemaCardapio>
+      ) : folha === "pedido" && modo === "delivery" && etapa === "carrinho" ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <DeliverySacola cardapio={cardapio} idioma={lingua} carrinho={carrinho} onVoltar={() => setFolha("")}
+            onContinuar={() => setEtapa("dados")} alterarQtd={alterarQtd} remover={remover} adicionar={adicionar} onEditar={editarLinha}
+            onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }} />
+        </TemaCardapio>
+      ) : folha === "pedido" && modo === "delivery" && etapa === "dados" ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <DeliveryCheckout cardapio={cardapio} idioma={lingua} carrinho={carrinho} form={form} setForm={setForm}
+            tipo={tipoEntrega} setTipo={setTipoEntrega} pagamento={pagamento} setPagamento={setPagamento}
+            cashback={infoCashback} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} onVoltar={() => setEtapa("carrinho")} />
+        </TemaCardapio>
+      ) : folha === "pedido" && !largo ? (
         <Pedido cardapio={cardapio} carrinho={carrinho} etapa={etapa} setEtapa={setEtapa} mesa={mesa} form={form} setForm={setForm}
           erros={erros} erroEnvio={erroEnvio} enviando={enviando} onEnviar={enviar} resultado={resultado} nome={nome}
           alterarQtd={alterarQtd} definirObs={definirObs} remover={remover} adicionar={adicionar} cashback={infoCashback} onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }}
@@ -840,7 +1005,15 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         </Folha>
       ) : null}
 
-      {folha === "idiomas" ? (
+      {folha === "idiomas" && (tabletNovo || qrAberto) ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <TabletIdioma idioma={lingua} oferecidos={idiomasOferecidos.map((i) => i.id)} onEscolher={escolherIdioma} onFechar={() => setFolha("")} />
+        </TemaCardapio>
+      ) : folha === "wifi" && tabletNovo ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <TabletWifi wifi={cardapio.wifi} idioma={lingua} onFechar={() => setFolha("")} />
+        </TemaCardapio>
+      ) : folha === "idiomas" ? (
         <Folha titulo={T("idioma")} onFechar={() => setFolha("")} idioma={lingua}>
           <ul className={s.idiomaLista}>
             {idiomasOferecidos.map((i) => (
@@ -874,7 +1047,20 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
         </Folha>
       ) : null}
 
-      {folha === "fidelidade" && cardapio.fidelidade ? (
+      {folha === "fidelidade" && cardapio.fidelidade && modo === "delivery" ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <DeliveryFidelidade cardapio={cardapio} status={fidStatus} idioma={lingua} onVoltar={() => setFolha("")}
+            onUsarCashback={() => { setUsarCashback(true); setEtapa("carrinho"); setFolha("pedido"); }}
+            onAdicionar={(id, n) => { adicionar(id, n); setEtapa("carrinho"); setFolha("pedido"); }}
+            onArea={() => setFolha("area")} />
+        </TemaCardapio>
+      ) : folha === "area" && cardapio.fidelidade && modo === "delivery" ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <ClienteArea cardapio={cardapio} status={fidStatus} idioma={lingua} onVoltar={() => setFolha("fidelidade")} onPedir={() => setFolha("")}
+            onAdicionar={(id, n) => { adicionar(id, n); setEtapa("carrinho"); setFolha("pedido"); }}
+            onPedirDeNovo={(itens) => { for (const i of itens) adicionar(i.id, i.quantidade); setEtapa("carrinho"); setFolha("pedido"); }} />
+        </TemaCardapio>
+      ) : folha === "fidelidade" && cardapio.fidelidade ? (
         <Folha titulo={T("fid_titulo")} onFechar={() => setFolha("")} idioma={lingua}>
           <div className={s.folhaCorpo}>
             <DetalheFidelidade cardapio={cardapio} status={fidStatus} onAbrirPrato={(id) => { setFolha(""); abrirPrato(id); }} unidadeId={unidadeId} cadastroLocal={cadastroLocal} />
@@ -910,7 +1096,22 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
           onIrParaSecao={irParaSecao} consultaInicial={consultaConversa} />
       ) : null}
 
-      {pAberto ? (
+      {qrAberto ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <QREntrar cardapio={cardapio} idioma={lingua} mesa={mesa} unidadeId={unidadeId} comecarCadastro={entrarAberto === "cadastro"}
+            onIdioma={idiomasOferecidos.length > 1 ? () => setFolha("idiomas") : undefined} onFechar={fecharQr} onEntrou={entrouMesa} />
+        </TemaCardapio>
+      ) : null}
+
+      {pAberto && tabletNovo ? (
+        <TemaCardapio cor={tema.cor_primaria} loja={tema}>
+          <TabletDetalhe cardapio={cardapio} produto={pAberto} idioma={lingua} mesa={mesa} podePedir={podePedir} onFechar={() => setPrato(null)}
+            inicial={linhaEditada} onAdicionar={(id, n, nota, opcoes, direto, viagem) => {
+              if (linhaEditada && !direto) { salvarLinha(id, n, nota, opcoes || undefined, viagem); return; }
+              adicionar(id, n, nota, opcoes || undefined, { viagem }); if (!direto) setPrato(null);
+            }} />
+        </TemaCardapio>
+      ) : pAberto ? (
         <Folha rotulo={pAberto.nome} onFechar={() => setPrato(null)} semCabeca idioma={lingua}
           pe={podePedir ? (
             <div className={s.linhaAcoes}>
@@ -919,8 +1120,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
                 <output aria-live="polite">{qtdPrato}</output>
                 <button type="button" onClick={() => setQtdPrato((q) => Math.min(50, q + 1))} aria-label={T("mais_um")}><Plus size={18} aria-hidden="true" /></button>
               </span>
-              <button type="button" className={s.primario} onClick={() => { adicionar(pAberto.id, qtdPrato, obsPrato.trim()); setPrato(null); }}>
-                {T("adicionar_valor", { valor: formatarPreco(pAberto.preco * qtdPrato, lingua) })}
+              <button type="button" className={s.primario} disabled={!precoDaLinha(pAberto, escolhasPrato).ok} onClick={() => { if (linhaEditada) { salvarLinha(pAberto.id, qtdPrato, obsPrato.trim(), escolhasPrato, linhaEditada.viagem); return; } adicionar(pAberto.id, qtdPrato, obsPrato.trim(), escolhasPrato); setPrato(null); }}>
+                {T("adicionar_valor", { valor: formatarPreco(precoDaLinha(pAberto, escolhasPrato).preco * qtdPrato, lingua) })}
               </button>
             </div>
           ) : null}>
@@ -938,6 +1139,7 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
             </div>
             <div className={s.itemRodape} style={{ marginTop: 8 }}><Preco produto={pAberto} idioma={lingua} /><Selos produto={pAberto} promocao={pAberto.promocao_id ? promoPorId.get(pAberto.promocao_id) : null} idioma={lingua} cartoes={cartoesDoPrato(cardapio, pAberto.id)} /></div>
             {pAberto.descricao ? <p className={s.detalheDescricao}>{pAberto.descricao}</p> : null}
+            {pAberto.grupos?.length ? <TemaCardapio cor={tema.cor_primaria} loja={tema}><Escolhas produto={pAberto} valor={escolhasPrato} onMudar={setEscolhasPrato} idioma={lingua} /></TemaCardapio> : null}
             {pAberto.promocao_id && promoPorId.get(pAberto.promocao_id)?.quando ? (
               <div className={s.detalheBloco}><strong>{T("promocao_bloco")}</strong><span>{promoPorId.get(pAberto.promocao_id).titulo} · {promoPorId.get(pAberto.promocao_id).quando}</span></div>
             ) : null}

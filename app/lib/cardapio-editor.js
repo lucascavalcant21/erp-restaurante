@@ -15,7 +15,7 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { salvarParams } from "./parametros";
 import { salvarProduto } from "./vendas";
-import { normalizarConfigCardapio } from "./cardapio-digital.mjs";
+import { mesclarConfigCardapio, normalizarConfigCardapio } from "./cardapio-digital.mjs";
 import { normalizarFidelidade } from "./fidelidade.mjs";
 
 const LOTE = 100;
@@ -128,7 +128,7 @@ export async function enviarArquivoCardapio(unidadeId, arquivo, pasta = "geral")
  * (UPDATE barrado por RLS volta sem erro e sem linha) e a vitrine é relida
  * depois de gravada.
  */
-export async function salvarEditorCardapio(unidadeId, { config, fichas = {}, produtos = {}, unidade = {}, fidelidade }) {
+export async function salvarEditorCardapio(unidadeId, { config, base, fichas = {}, produtos = {}, unidade = {}, fidelidade, fidelidadeBase }) {
   if (!isSupabaseReady()) return { erros: ["Sem conexão com o banco."] };
   const erros = [];
   const mudancaUnidade = {};
@@ -160,8 +160,16 @@ export async function salvarEditorCardapio(unidadeId, { config, fichas = {}, pro
       .eq("id", id).eq("unidade_id", unidadeId).select("id");
     if (error || !data?.length) erros.push("A foto de um prato não foi gravada (sem permissão ou produto removido).");
   }
-  const vitrine = normalizarConfigCardapio(config);
-  const regras = fidelidade === undefined ? undefined : normalizarFidelidade(fidelidade);
+  // As abas Produtos, Promoções e Fidelidade gravam direto no banco. Com a base
+  // (o que o editor carregou), só vai o que foi mexido aqui; o resto fica como
+  // está no banco agora.
+  let vitrine = normalizarConfigCardapio(config);
+  let regras = fidelidade === undefined ? undefined : normalizarFidelidade(fidelidade);
+  if (base !== undefined || fidelidadeBase !== undefined) {
+    const { data: atual } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+    if (base !== undefined) vitrine = mesclarConfigCardapio(atual?.[0]?.params?.cardapio_digital, base, config);
+    if (regras !== undefined && fidelidadeBase !== undefined && estavel(regras) === estavel(normalizarFidelidade(fidelidadeBase))) regras = undefined;
+  }
   const r = await salvarParams(unidadeId, regras === undefined ? { cardapio_digital: vitrine } : { cardapio_digital: vitrine, fidelidade: regras });
   if (r?.error) erros.push("A aparência do cardápio não foi salva.");
   else {

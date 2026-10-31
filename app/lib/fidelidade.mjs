@@ -24,6 +24,18 @@
 export const LIMITES_FIDELIDADE = Object.freeze({ cartoes: 10, produtosPorCartao: 200, selosMin: 2, selosMax: 30, pctMin: 0.5, pctMax: 30, validadeMax: 730 });
 export const STATUS_CONCLUIDO = Object.freeze(["pago", "entregue", "fechado", "finalizado", "concluido"]);
 export const STATUS_CANCELADO = Object.freeze(["cancelado", "recusado"]);
+export const CANAIS_FIDELIDADE = Object.freeze(["mesa", "delivery", "balcao"]);
+
+/** Saldo de cashback (R$) em pontos, pela regra do dono (100 pontos = valor_100). */
+export function pontosDoCashback(valor, cashback) {
+  const v100 = Number(cashback?.valor_100) || 0;
+  return v100 > 0 ? Math.floor(((Number(valor) || 0) * 100) / v100 + 1e-9) : 0;
+}
+
+/** Pontos que um valor gasto rende ("+90 pontos"). */
+export function pontosDoGasto(valor, cashback) {
+  return Math.floor((Number(valor) || 0) * (Number(cashback?.pontos_por_real) || 0) + 1e-9);
+}
 
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const centavos = (v) => Math.round((Number(v) || 0) * 100) / 100;
@@ -80,12 +92,24 @@ export function normalizarFidelidade(raw) {
   const P = FIDELIDADE_PADRAO.cashback;
   const cad = c.cadastro && typeof c.cadastro === "object" ? c.cadastro : {};
   const PC = FIDELIDADE_PADRAO.cadastro;
+  // Pontos (o que o cliente vê): "a cada R$ 1 ganha N pontos; 100 pontos = R$ X".
+  // O banco guarda e credita em R$: percentual = pontos por real × R$ de 100 pontos.
+  const temPontos = cb.pontos_por_real != null && cb.valor_100 != null;
+  const pontosPorReal = numero(cb.pontos_por_real, 0.1, 100, 1);
+  const valor100 = centavos(numero(cb.valor_100, 0.01, 1000, 0));
+  const pctPontos = temPontos ? Math.round(pontosPorReal * valor100 * 100) / 100 : null;
+  const percentual = centavos(numero(pctPontos ?? cb.percentual, LIMITES_FIDELIDADE.pctMin, LIMITES_FIDELIDADE.pctMax, P.percentual));
   return {
     ativo: c.ativo === true,
     cartoes,
+    // Canais que contam (vazio = todos). iFood e outros apps nunca contam (o banco confere).
+    canais: [...new Set((Array.isArray(c.canais) ? c.canais : []).filter((x) => CANAIS_FIDELIDADE.includes(x)))].length === CANAIS_FIDELIDADE.length
+      ? [] : [...new Set((Array.isArray(c.canais) ? c.canais : []).filter((x) => CANAIS_FIDELIDADE.includes(x)))],
     cashback: {
       ativo: cb.ativo === true,
-      percentual: centavos(numero(cb.percentual, LIMITES_FIDELIDADE.pctMin, LIMITES_FIDELIDADE.pctMax, P.percentual)),
+      pontos_por_real: temPontos ? pontosPorReal : 1,
+      valor_100: temPontos ? valor100 : percentual,
+      percentual,
       minimo_pedido: centavos(numero(cb.minimo_pedido, 0, 100000, P.minimo_pedido)),
       validade_dias: inteiro(cb.validade_dias, 0, LIMITES_FIDELIDADE.validadeMax, P.validade_dias),
       uso_maximo_pct: inteiro(cb.uso_maximo_pct, 1, 100, P.uso_maximo_pct),

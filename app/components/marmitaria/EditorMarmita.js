@@ -14,6 +14,7 @@ import { Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, inputCls, pctTxt } 
 import { salvarMarmita, novaChave } from "../../lib/marmitaria/dados";
 import { atalhosDeQuantidade, catalogoDePrePreparos, custoDoForm, payloadDoForm, TAMANHOS, TIPOS_EMBALAGEM, unidadeDoItem } from "../../lib/marmitaria/formulario.mjs";
 import { precoSugerido, resultadoPorCanal, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
+import { pesosDoInsumo } from "../../lib/ficha-calculos.mjs";
 import { CANAL_DIRETO } from "../../lib/marmitaria/promocoes.mjs";
 import { normalizarBusca } from "../../lib/ingredientes-utils.mjs";
 import { custoDeProduzirFicha, custoUnitarioEfetivoInsumo, parseNumero } from "../../lib/ficha-calculos.mjs";
@@ -155,7 +156,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
                   <button type="button" aria-label="Remover" onClick={() => setForm((x) => ({ ...x, itens: x.itens.filter((i) => i.key !== it.key) }))} className="flex h-11 w-11 items-center justify-center rounded-lg text-hf-muted hover:bg-hf-elevated sm:order-last"><Trash2 size={16} /></button>
                   <CampoNumero valor={it.qtd} onChange={(v) => mudarItem(it.key, { qtd: v })} placeholder="Qtd." aria-label={`Quantidade de ${nome}`} />
                   <select className={inputCls} value={it.un} onChange={(e) => mudarItem(it.key, { un: e.target.value })} aria-label="Unidade">
-                    {unidadesCompativeis(unCad).map((u) => <option key={u} value={u}>{u === "l" ? "L" : u}</option>)}
+                    {unidadesCompativeis(unCad, it.insumo_id ? pesosDoInsumo(base.insumos.get(it.insumo_id) || {}) : null).map((u) => <option key={u} value={u}>{u === "l" ? "L" : u === "porcao" ? "porção" : u}</option>)}
                   </select>
                   <p className="text-right text-sm font-bold tabular-nums text-hf-text">{l?.custo === null || l === undefined ? "—" : brl(l.custo)}</p>
                   <div className="col-span-2 flex flex-wrap gap-1.5 sm:col-span-5">

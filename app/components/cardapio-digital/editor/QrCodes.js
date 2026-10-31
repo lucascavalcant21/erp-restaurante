@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { Check, Copy, Download, ExternalLink, Printer } from "lucide-react";
 import { caminhoDoCardapio, limparMesa } from "../../../lib/cardapio-link.mjs";
+import { normalizarWifi, textoQrWifi } from "../../../lib/cardapio-digital.mjs";
 import { Botao, Campo, Secao, inputCls } from "./ui";
 
 /** "1-12, 15, Varanda" → ["1", …, "12", "15", "Varanda"] (até 200). */
@@ -29,7 +30,34 @@ function Copiar({ texto }) {
   );
 }
 
-export default function QrCodes({ unidadeId, nomeLoja, mesasDoBanco }) {
+/** Rede e senha do Wi-Fi dos clientes (9J): o tablet mostra um QR para conectar. */
+function WifiClientes({ config, mudar }) {
+  const wifi = normalizarWifi(config?.wifi);
+  const mudarWifi = (campos) => mudar((c) => ({ ...c, wifi: { ...normalizarWifi(c.wifi), ...campos } }));
+  const texto = textoQrWifi(wifi);
+  return (
+    <Secao titulo="Wi-Fi dos clientes" subtitulo="Aparece no tablet da mesa, no botão Wi-Fi: um QR Code para o cliente conectar o celular, com a rede e a senha por extenso. Use a rede dos clientes, separada da rede do caixa.">
+      <div className="flex flex-wrap items-start gap-4">
+        <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+          <Campo rotulo="Nome da rede">
+            <input className={inputCls} value={wifi.rede} maxLength={32} onChange={(e) => mudarWifi({ rede: e.target.value })} placeholder="Ex.: CasaBrasa-Clientes" autoComplete="off" />
+          </Campo>
+          <Campo rotulo="Senha" dica="Em branco = rede aberta.">
+            <input className={inputCls} value={wifi.senha} maxLength={63} disabled={!wifi.rede} onChange={(e) => mudarWifi({ senha: e.target.value })} autoComplete="off" />
+          </Campo>
+        </div>
+        {texto ? (
+          <div className="rounded-xl border border-hf-border bg-white p-2" aria-label="QR do Wi-Fi">
+            <QRCodeSVG value={texto} size={96} marginSize={1} />
+          </div>
+        ) : null}
+      </div>
+      {!wifi.rede ? <p className="mt-2 text-xs text-hf-muted">Sem rede cadastrada, o botão Wi-Fi não aparece no tablet.</p> : null}
+    </Secao>
+  );
+}
+
+export default function QrCodes({ unidadeId, nomeLoja, mesasDoBanco, config, mudar }) {
   const origem = typeof window !== "undefined" ? window.location.origin : "";
   const linkGeral = `${origem}${caminhoDoCardapio(unidadeId)}`;
   const [textoMesas, setTextoMesas] = useState(() => mesasDoBanco.map(limparMesa).filter(Boolean).join(", "));
@@ -95,6 +123,8 @@ export default function QrCodes({ unidadeId, nomeLoja, mesasDoBanco }) {
           })}
         </div>
       </Secao>
+
+      {mudar ? <WifiClientes config={config} mudar={mudar} /> : null}
     </div>
   );
 }

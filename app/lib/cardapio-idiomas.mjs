@@ -1119,12 +1119,12 @@ export const HORAS_T = {
   ko: { entre: "{a}~{b}", desde: "{a}부터", ate: "{b}까지", data: "{d}까지" },
 };
 export const ROTULO_PROMO_T = {
-  pt: { desconto: "{pct}% off", preco: "por {valor}" },
-  en: { desconto: "{pct}% off", preco: "now {valor}" },
-  es: { desconto: "{pct}% de descuento", preco: "a {valor}" },
-  fr: { desconto: "-{pct} %", preco: "à {valor}" },
-  it: { desconto: "-{pct}%", preco: "a {valor}" },
-  zh: { desconto: "{zhe}折", preco: "特价{valor}" },
-  ja: { desconto: "{pct}%オフ", preco: "特別価格 {valor}" },
-  ko: { desconto: "{pct}% 할인", preco: "특가 {valor}" },
+  pt: { desconto: "{pct}% off", preco: "por {valor}", valor: "{valor} off", leve: "pegue {pague}, leve {leve}", frete: "frete grátis" },
+  en: { desconto: "{pct}% off", preco: "now {valor}", valor: "{valor} off", leve: "buy {pague}, get {leve}", frete: "free delivery" },
+  es: { desconto: "{pct}% de descuento", preco: "a {valor}", valor: "{valor} de descuento", leve: "paga {pague}, lleva {leve}", frete: "envío gratis" },
+  fr: { desconto: "-{pct} %", preco: "à {valor}", valor: "-{valor}", leve: "{pague} acheté(s), {leve} reçu(s)", frete: "livraison offerte" },
+  it: { desconto: "-{pct}%", preco: "a {valor}", valor: "-{valor}", leve: "paghi {pague}, prendi {leve}", frete: "consegna gratuita" },
+  zh: { desconto: "{zhe}折", preco: "特价{valor}", valor: "立减{valor}", leve: "买{pague}得{leve}", frete: "免配送费" },
+  ja: { desconto: "{pct}%オフ", preco: "特別価格 {valor}", valor: "{valor}引き", leve: "{pague}個分で{leve}個", frete: "配達無料" },
+  ko: { desconto: "{pct}% 할인", preco: "특가 {valor}", valor: "{valor} 할인", leve: "{pague}개 가격에 {leve}개", frete: "배달비 무료" },
 };

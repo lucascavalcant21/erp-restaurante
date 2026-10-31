@@ -27,6 +27,7 @@ import { supabase } from "../../lib/supabase";
 import { fetchConvencaoAtiva } from "../../lib/trabalhista/convencoes-dados";
 import { TOLERANCIA_MARCACAO_MIN } from "../../lib/jornada-calculo.mjs";
 import { regrasDaCompetencia } from "../../lib/trabalhista/regras-competencia.mjs";
+import { casaBusca } from "../../lib/busca.mjs";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 // Nome curto de cada batida, para caber na etiqueta de localização.
@@ -753,7 +754,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, onAc
     if (!noGrupo(c, statusFiltro)) return false;
     
     // Filtro 3: Busca e Área
-    return (c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cargo || "").toLowerCase().includes(busca.toLowerCase())) &&
+    return casaBusca([c.nome, c.cargo], busca) &&
            (areaFiltro === "Todos" || areaDoCargo(c.cargo) === areaFiltro);
   });
 

@@ -158,18 +158,18 @@ export async function salvarParams(unidadeId, paramsEntrada) {
 // Modelos de orçamento de evento ("Buffet casamento"), compartilhados entre os
 // aparelhos da unidade. Lista em params.eventos_modelos; cada alteração relê a
 // lista atual antes de gravar, para não apagar o modelo que outro salvou.
-export async function fetchModelosEvento(unidadeId) {
+export async function fetchModelosEvento(unidadeId, chave = "eventos_modelos") {
   const registro = await fetchRegistroConfig(unidadeId);
-  const lista = registro?.params?.eventos_modelos;
+  const lista = registro?.params?.[chave];
   return { data: Array.isArray(lista) ? lista : [] };
 }
 
-async function gravarModelosEvento(unidadeId, alterar) {
+async function gravarModelosEvento(unidadeId, alterar, chave = "eventos_modelos") {
   if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco" };
   if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade" };
-  const { data: atuais } = await fetchModelosEvento(unidadeId);
+  const { data: atuais } = await fetchModelosEvento(unidadeId, chave);
   const lista = alterar(atuais);
-  const patch = { eventos_modelos: lista };
+  const patch = { [chave]: lista };
   const mergeAtomico = await tentarMergeAtomico(unidadeId, patch);
   if (mergeAtomico) return { data: lista };
   const registro = await fetchRegistroConfig(unidadeId);
@@ -187,6 +187,13 @@ export function adicionarModeloEvento(unidadeId, modelo) {
 export function removerModeloEvento(unidadeId, id) {
   return gravarModelosEvento(unidadeId, (l) => l.filter((m) => m.id !== id));
 }
+
+// Bases do cardápio do evento (buffet base, mesa de comidas, bebidas base).
+export const fetchBasesEvento = (unidadeId) => fetchModelosEvento(unidadeId, "eventos_bases");
+export const adicionarBaseEvento = (unidadeId, base) =>
+  gravarModelosEvento(unidadeId, (l) => [...l.filter((m) => m.id !== base.id), base], "eventos_bases");
+export const removerBaseEvento = (unidadeId, id) =>
+  gravarModelosEvento(unidadeId, (l) => l.filter((m) => m.id !== id), "eventos_bases");
 
 // Designer da ficha de montagem. Fica no mesmo JSON de configurações da
 // unidade, mas separado dos parâmetros numéricos para poder guardar opções
@@ -326,3 +333,24 @@ export async function fetchCombosMarmitaria(unidadeId) {
   return { data: Array.isArray(v) ? v : [], error: null };
 }
 export const salvarCombosMarmitaria = (unidadeId, combos) => salvarParams(unidadeId, { marmitaria_combos: Array.isArray(combos) ? combos.slice(0, 30) : [] });
+
+/* Promoções da marmitaria no cardápio de vendas (desconto, 2 por 1…):
+ * config_sistema.params.marmitaria_ofertas. */
+export async function fetchOfertasMarmitaria(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: [], error: error.message };
+  const v = data?.[0]?.params?.marmitaria_ofertas;
+  return { data: Array.isArray(v) ? v : [], error: null };
+}
+export const salvarOfertasMarmitaria = (unidadeId, ofertas) => salvarParams(unidadeId, { marmitaria_ofertas: Array.isArray(ofertas) ? ofertas.slice(0, 60) : [] });
+
+/* Janta dos funcionários (cardápio da semana, gramas por pessoa e preparo):
+ * config_sistema.params.janta_funcionarios. */
+export async function fetchJantaFuncionarios(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: null, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: null, error: error.message };
+  return { data: data?.[0]?.params?.janta_funcionarios || null, error: null };
+}
+export const salvarJantaFuncionarios = (unidadeId, janta) => salvarParams(unidadeId, { janta_funcionarios: janta });

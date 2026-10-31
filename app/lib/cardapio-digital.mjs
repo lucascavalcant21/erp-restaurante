@@ -39,6 +39,14 @@ export const FONTES = [
   { id: "moderna", rotulo: "Moderna", detalhe: "Tudo sem serifa, direto" },
 ];
 
+// Formato das fotos dos pratos (Aparência): o dono escolhe.
+export const FORMATOS_FOTO = [
+  { id: "arredondada", rotulo: "Arredondadas" },
+  { id: "quadrada", rotulo: "Quadradas" },
+];
+// Carrossel de banners (Abertura): segundos em cada banner e quantos aparecem juntos.
+export const LIMITES_CARROSSEL = Object.freeze({ segundosMin: 2, segundosMax: 20, porVezMax: 3 });
+
 export const ESTILOS_LISTA = [
   { id: "lista", rotulo: "Lista", detalhe: "Como um menu impresso; foto pequena ao lado" },
   { id: "cartoes", rotulo: "Cartões", detalhe: "Foto grande em cima de cada prato" },
@@ -70,14 +78,35 @@ const IDS_SELOS = new Set(SELOS.map((s) => s.id));
 export const TIPOS_PROMOCAO = [
   { id: "desconto", rotulo: "Desconto em %" },
   { id: "preco", rotulo: "Preço especial" },
+  { id: "desconto_valor", rotulo: "Desconto em R$" },
+  { id: "leve_mais", rotulo: "Pegue e leve mais" },
+  { id: "frete_gratis", rotulo: "Frete grátis" },
   { id: "aviso", rotulo: "Só um aviso (não muda preço)" },
 ];
 
 export const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+// Canais onde o cliente vê o cardápio (painel → Cardápio liga e desliga cada
+// prato por canal). Garçom e PDV não entram: lá a equipe vê tudo que está ativo.
+export const CANAIS_CARDAPIO = [
+  { id: "tablet", rotulo: "Tablet" },
+  { id: "qr", rotulo: "QR mesa" },
+  { id: "delivery", rotulo: "Delivery" },
+];
+const IDS_CANAIS = new Set(CANAIS_CARDAPIO.map((c) => c.id));
+const DATA_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Canal de onde veio o pedido do cliente (tipo gravado em pedidos.tipo_pedido). */
+export function canalDoPedido(tipo) {
+  if (tipo === "qrcode") return "qr";
+  if (tipo === "tablet") return "tablet";
+  return "delivery";
+}
+
 // Combinações prontas para o dono começar. Ele pode trocar cada cor depois.
 export const TEMAS_PRONTOS = [
-  { id: "casa", nome: "Casa", tema: { cor_primaria: "#9a3412", cor_fundo: "#f6f1e8", cor_texto: "#221c16", cor_cartao: "#fffdf8" } },
+  // Padrão do cardápio novo (9L): verde-escuro e neutros só em cinza, nada de marrom.
+  { id: "casa", nome: "Casa", tema: { cor_primaria: "#14532d", cor_fundo: "#ffffff", cor_texto: "#1a1a1a", cor_cartao: "#ffffff" } },
   { id: "mata", nome: "Mata", tema: { cor_primaria: "#2f5d3a", cor_fundo: "#f1f3ec", cor_texto: "#1b241d", cor_cartao: "#fcfdf9" } },
   { id: "rio", nome: "Rio", tema: { cor_primaria: "#1f4e6b", cor_fundo: "#eef3f5", cor_texto: "#16232b", cor_cartao: "#fbfdfe" } },
   { id: "papel", nome: "Papel", tema: { cor_primaria: "#1c1917", cor_fundo: "#fafaf9", cor_texto: "#1c1917", cor_cartao: "#ffffff" } },
@@ -94,6 +123,7 @@ export const CONFIG_PADRAO = Object.freeze({
     logo_url: "",
     fonte: "classica",
     estilo_lista: "lista",
+    formato_foto: "arredondada",
   }),
   textos: Object.freeze({
     apresentacao: "",
@@ -110,22 +140,26 @@ export const CONFIG_PADRAO = Object.freeze({
     intro: "Posso te ajudar a escolher?",
   }),
   banner: Object.freeze([]),
+  carrossel: Object.freeze({ segundos: 6, por_vez: 1 }),
+  wifi: Object.freeze({ rede: "", senha: "" }),
   categorias: Object.freeze([]),
   itens: Object.freeze({}),
   promocoes: Object.freeze([]),
   // Combos (27/10/2026): pratos juntos por um preço só.
   combos: Object.freeze([]),
+  // Grupos de complementos reutilizáveis (painel → Editar produto).
+  grupos: Object.freeze([]),
   // Idiomas que o cliente pode escolher (português sempre).
   idiomas: Object.freeze([...IDS_IDIOMAS]),
   // Tradução do que é do dono (pratos, seções, promoções, abertura, textos), por idioma.
   traducoes: Object.freeze({}),
   // Delivery: o mínimo e o grátis-acima valem também no servidor, na hora do pedido.
-  entrega: Object.freeze({ pedido_minimo: 0, gratis_acima: 0, tempo_min: 0, tempo_max: 0 }),
+  entrega: Object.freeze({ pedido_minimo: 0, gratis_acima: 0, tempo_min: 0, tempo_max: 0, retirada: false, formas: Object.freeze(["dinheiro", "cartao"]) }),
   // O que aparece em "Mais informações" (cidade sempre; o resto, se o dono quiser).
   info: Object.freeze({ mostrar_horario: true, mostrar_endereco: false, mostrar_telefone: false }),
 });
 
-export const LIMITES = { banner: 8, categorias: 40, promocoes: 30, itens: 2000, produtosPorPromocao: 200, combos: 30, itensPorCombo: 8 };
+export const LIMITES = { banner: 8, categorias: 40, promocoes: 30, itens: 2000, produtosPorPromocao: 200, combos: 30, itensPorCombo: 8, grupos: 60, opcoesPorGrupo: 40, fotos: 3, videos: 1 };
 
 export const TIPOS_MIDIA = [
   { id: "imagem", rotulo: "Foto" },
@@ -260,6 +294,7 @@ export function normalizarTema(t = {}) {
     logo_url: limparUrl(t.logo_url),
     fonte: FONTES.some((f) => f.id === t.fonte) ? t.fonte : p.fonte,
     estilo_lista: ESTILOS_LISTA.some((e) => e.id === t.estilo_lista) ? t.estilo_lista : p.estilo_lista,
+    formato_foto: FORMATOS_FOTO.some((f) => f.id === t.formato_foto) ? t.formato_foto : p.formato_foto,
   };
 }
 
@@ -341,6 +376,23 @@ export function normalizarItens(obj) {
     if (selos.length) item.selos = selos;
     if (it.destaque === true) item.destaque = true;
     if (it.oculto === true) item.oculto = true;
+    // Canais em que o prato não aparece, e o dia (fuso da loja) em que esgotou:
+    // "esgotado hoje" vale só nesse dia e o prato volta sozinho no seguinte.
+    const fora = [...new Set((Array.isArray(it.canais_ocultos) ? it.canais_ocultos : []).filter((c) => IDS_CANAIS.has(c)))];
+    if (fora.length) item.canais_ocultos = fora;
+    if (typeof it.esgotado_dia === "string" && DATA_RE.test(it.esgotado_dia)) item.esgotado_dia = it.esgotado_dia;
+    // Fotos e vídeo do prato (painel → Editar produto): a primeira foto é a capa.
+    const midias = normalizarMidias(it.midias);
+    if (midias.length) item.midias = midias;
+    // Grupos de complementos ligados ao prato (os grupos ficam em config.grupos e servem a vários pratos).
+    const grupos = [...new Set((Array.isArray(it.grupos) ? it.grupos : []).filter(idValido))].slice(0, 12);
+    if (grupos.length) item.grupos = grupos;
+    // "Só em dias e horários": fora disso o prato não aparece para o cliente.
+    if (it.horario && typeof it.horario === "object") {
+      const dias = [...new Set((Array.isArray(it.horario.dias_semana) ? it.horario.dias_semana : []).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
+      const h = { dias_semana: dias.length === 7 ? [] : dias, hora_inicio: hora(it.horario.hora_inicio), hora_fim: hora(it.horario.hora_fim) };
+      if (h.dias_semana.length || h.hora_inicio || h.hora_fim) item.horario = h;
+    }
     // Posição do prato na seção, escolhida pelo dono (1 = primeiro).
     const ordem = Math.round(Number(it.ordem));
     if (Number.isInteger(ordem) && ordem >= 1 && ordem <= 9999) item.ordem = ordem;
@@ -354,6 +406,12 @@ export function normalizarPromocao(p, i = 0) {
   // O editor guarda o que foi digitado ("29,90"); aqui vira número.
   const preco = centavos(String(p?.preco_promocional ?? "").replace(/\./g, (m, i, t) => (t.includes(",") ? "" : m)).replace(",", "."));
   const pct = Math.round(Number(p?.desconto_pct));
+  const reais = (v) => centavos(String(v ?? "").replace(/\./g, (m, _i, t) => (t.includes(",") ? "" : m)).replace(",", "."));
+  const valorOff = reais(p?.desconto_valor);
+  const freteMin = reais(p?.frete_minimo);
+  const leve = Math.min(10, Math.max(2, Math.round(Number(p?.leve)) || 2));
+  const pague = Math.min(leve - 1, Math.max(1, Math.round(Number(p?.pague)) || 1));
+  const canais = [...new Set((Array.isArray(p?.canais) ? p.canais : []).filter((c) => IDS_CANAIS.has(c)))];
   const dias = [...new Set((Array.isArray(p?.dias_semana) ? p.dias_semana : []).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
   return {
     id: idValido(p?.id) ? p.id : `promo-${i + 1}`,
@@ -364,6 +422,14 @@ export function normalizarPromocao(p, i = 0) {
     tipo,
     preco_promocional: tipo === "preco" && preco > 0 ? preco : null,
     desconto_pct: tipo === "desconto" && pct >= 1 && pct <= 90 ? pct : null,
+    desconto_valor: tipo === "desconto_valor" && valorOff > 0 ? valorOff : null,
+    pague: tipo === "leve_mais" ? pague : null,
+    leve: tipo === "leve_mais" ? leve : null,
+    frete_minimo: tipo === "frete_gratis" && freteMin > 0 ? freteMin : 0,
+    // Canais onde vale (vazio = todos), "Agora na casa" e se soma com o DESCONTO do cadastro.
+    canais: canais.length === CANAIS_CARDAPIO.length ? [] : canais,
+    mostrar_agora: bool(p?.mostrar_agora, true),
+    acumula_cadastro: bool(p?.acumula_cadastro, false),
     dias_semana: dias.length === 7 ? [] : dias,
     hora_inicio: hora(p?.hora_inicio),
     hora_fim: hora(p?.hora_fim),
@@ -378,7 +444,8 @@ export function errosDaPromocao(p) {
   const e = [];
   if (!texto(p?.titulo, 60)) e.push("Dê um nome à promoção.");
   const n = normalizarPromocao(p);
-  if (n.tipo !== "aviso" && !n.produto_ids.length) e.push("Escolha os pratos da promoção.");
+  if (n.tipo !== "aviso" && n.tipo !== "frete_gratis" && !n.produto_ids.length) e.push("Escolha os pratos da promoção.");
+  if (n.tipo === "desconto_valor" && !n.desconto_valor) e.push("Informe quanto sai do preço.");
   if (n.tipo === "preco" && !n.preco_promocional) e.push("Informe o preço especial.");
   if (n.tipo === "desconto" && !n.desconto_pct) e.push("O desconto vai de 1% a 90%.");
   if (n.data_inicio && n.data_fim && n.data_fim < n.data_inicio) e.push("A data final vem antes da inicial.");
@@ -519,6 +586,31 @@ export function linhasDoCombo(combo, quantidade = 1) {
 }
 
 /** Banner de abertura: fotos e vídeos, cada um com um toque que leva a algum lugar. */
+/** Velocidade (segundos em cada banner) e quantos aparecem juntos no carrossel. */
+export function normalizarCarrossel(v = {}) {
+  const L = LIMITES_CARROSSEL;
+  const seg = Math.round(Number(v?.segundos));
+  const por = Math.round(Number(v?.por_vez));
+  return {
+    segundos: Number.isFinite(seg) ? Math.min(L.segundosMax, Math.max(L.segundosMin, seg)) : 6,
+    por_vez: Number.isFinite(por) ? Math.min(L.porVezMax, Math.max(1, por)) : 1,
+  };
+}
+
+/** Wi-Fi dos clientes (9J): rede e senha que o tablet mostra. Sem senha = rede aberta. */
+export function normalizarWifi(v = {}) {
+  const rede = String(v?.rede ?? "").trim().slice(0, 32);
+  return { rede, senha: rede ? String(v?.senha ?? "").slice(0, 63) : "" };
+}
+
+/** Texto do QR do Wi-Fi: WIFI:T:WPA;S:<rede>;P:<senha>;; (\ ; , : " escapados). "" sem rede. */
+export function textoQrWifi(wifi) {
+  const { rede, senha } = normalizarWifi(wifi);
+  if (!rede) return "";
+  const esc = (t) => t.replace(/([\\;,:"])/g, "\\$1");
+  return senha ? `WIFI:T:WPA;S:${esc(rede)};P:${esc(senha)};;` : `WIFI:T:nopass;S:${esc(rede)};;`;
+}
+
 export function normalizarBanner(lista) {
   const usados = new Set();
   const r = [];
@@ -632,11 +724,46 @@ export function progressoDaTraducao(campos, traducoes, idioma) {
 const dinheiro = (v) => { const n = centavos(String(v ?? "").replace(/\./g, (m, i, x) => (x.includes(",") ? "" : m)).replace(",", ".")); return n > 0 ? n : 0; };
 const minutos = (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 && n <= 600 ? n : 0; };
 
+// Formas de pagar na entrega/retirada que a loja aceita (pagamento pelo app
+// ainda não existe: precisa de um intermediador). Sem escolha do dono, as duas
+// que o pedido antigo já supunha: dinheiro (com troco) e cartão na maquininha.
+export const FORMAS_PAGAMENTO = [
+  { id: "dinheiro", rotulo: "Dinheiro" },
+  { id: "cartao", rotulo: "Cartão na maquininha" },
+  { id: "pix", rotulo: "Pix na entrega" },
+  { id: "vale", rotulo: "Vale-refeição" },
+];
+const IDS_FORMAS = FORMAS_PAGAMENTO.map((f) => f.id);
+
 export function normalizarEntrega(e = {}) {
   let tempo_min = minutos(e?.tempo_min);
   let tempo_max = minutos(e?.tempo_max);
   if (tempo_min && tempo_max && tempo_max < tempo_min) [tempo_min, tempo_max] = [tempo_max, tempo_min];
-  return { pedido_minimo: dinheiro(e?.pedido_minimo), gratis_acima: dinheiro(e?.gratis_acima), tempo_min, tempo_max };
+  const formas = IDS_FORMAS.filter((f) => (Array.isArray(e?.formas) ? e.formas : ["dinheiro", "cartao"]).includes(f));
+  return {
+    pedido_minimo: dinheiro(e?.pedido_minimo), gratis_acima: dinheiro(e?.gratis_acima), tempo_min, tempo_max,
+    // Retirada no balcão: só quando o dono liga (sem taxa e sem endereço).
+    retirada: bool(e?.retirada, false),
+    formas: formas.length ? formas : ["dinheiro", "cartao"],
+  };
+}
+
+/**
+ * Salvar do editor sem apagar o que outra aba gravou: parte por parte
+ * (tema, promoções, itens…), o que o editor não mexeu desde que abriu fica
+ * como está no banco; o que mexeu, vale o do editor.
+ * @param {object} banco config gravada agora
+ * @param {object} base config que o editor carregou
+ * @param {object} editado config do editor
+ */
+export function mesclarConfigCardapio(banco, base, editado) {
+  const n = (v) => JSON.stringify(v ?? null);
+  const b = normalizarConfigCardapio(banco);
+  const o = normalizarConfigCardapio(base);
+  const e = normalizarConfigCardapio(editado);
+  const final = {};
+  for (const k of Object.keys(e)) final[k] = n(e[k]) === n(o[k]) ? b[k] : e[k];
+  return normalizarConfigCardapio(final);
 }
 
 /** Tudo o que o dono salvou, limpo. Campo ruim volta ao padrão; nada quebra. */
@@ -647,10 +774,13 @@ export function normalizarConfigCardapio(raw) {
     textos: normalizarTextos(c.textos),
     conversa: normalizarConversa(c.conversa),
     banner: normalizarBanner(c.banner),
+    carrossel: normalizarCarrossel(c.carrossel),
+    wifi: normalizarWifi(c.wifi),
     categorias: normalizarCategorias(c.categorias),
     itens: normalizarItens(c.itens),
     promocoes: normalizarPromocoes(c.promocoes),
     combos: normalizarCombos(c.combos),
+    grupos: normalizarGrupos(c.grupos),
     idiomas: Array.isArray(c.idiomas) ? ["pt", ...IDS_IDIOMAS.filter((i) => i !== "pt" && c.idiomas.includes(i))] : [...IDS_IDIOMAS],
     traducoes: normalizarTraducoes(c.traducoes),
     entrega: normalizarEntrega(c.entrega),
@@ -686,6 +816,168 @@ export function partesNoFuso(agora = new Date(), fuso = FUSO_PADRAO) {
 const minutosDe = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 /** A promoção vale agora? Horário que vira a noite (22:00–02:00) conta para o dia em que começou. */
+/** Fotos (até 3) e vídeo (até 1) do prato, só https; a primeira foto é a capa. */
+export function normalizarMidias(lista) {
+  const out = [];
+  let fotos = 0;
+  let videos = 0;
+  for (const m of Array.isArray(lista) ? lista : []) {
+    const url = limparUrl(m?.url);
+    if (!url) continue;
+    if (m.tipo === "video") {
+      if (videos >= LIMITES.videos) continue;
+      videos++;
+      const poster = limparUrl(m.poster);
+      out.push({ tipo: "video", url, ...(poster ? { poster } : {}) });
+    } else {
+      if (fotos >= LIMITES.fotos) continue;
+      fotos++;
+      out.push({ tipo: "foto", url });
+    }
+  }
+  return out;
+}
+
+// Grupos de complementos (2.3 da spec): reutilizáveis entre pratos; mudar o
+// grupo muda em todos. `retirar` = tirar ingrediente, sempre sem custo.
+export const TIPOS_GRUPO = [
+  { id: "adicional", rotulo: "Escolha ou adicional" },
+  { id: "retirar", rotulo: "Retirar ingredientes (sem custo)" },
+];
+const IDS_TIPOS_GRUPO = new Set(TIPOS_GRUPO.map((t) => t.id));
+
+export function normalizarGrupo(g, i = 0) {
+  const tipo = IDS_TIPOS_GRUPO.has(g?.tipo) ? g.tipo : "adicional";
+  const opcoes = [];
+  const vistos = new Set();
+  for (const [k, o] of (Array.isArray(g?.opcoes) ? g.opcoes : []).entries()) {
+    const nome = texto(o?.nome, 60);
+    if (!nome || opcoes.length >= LIMITES.opcoesPorGrupo) continue;
+    let id = idValido(o?.id) && !vistos.has(o.id) ? o.id : `op-${k + 1}`;
+    while (vistos.has(id)) id = `${id}-x`;
+    vistos.add(id);
+    const preco = tipo === "retirar" ? 0 : centavos(Math.max(0, Math.min(9999, Number(o?.preco) || 0)));
+    opcoes.push({ id, nome, preco, ...(o?.esgotado === true ? { esgotado: true } : {}) });
+  }
+  const max = Math.max(1, Math.min(LIMITES.opcoesPorGrupo, Math.round(Number(g?.max) || 1)));
+  const min = Math.max(0, Math.min(max, Math.round(Number(g?.min) || 0)));
+  return {
+    id: idValido(g?.id) ? g.id : `grupo-${i + 1}`,
+    nome: texto(g?.nome, 60),
+    descricao: texto(g?.descricao, 120),
+    tipo,
+    min: tipo === "retirar" ? 0 : min,
+    max,
+    opcoes,
+  };
+}
+
+export function normalizarGrupos(lista) {
+  const out = [];
+  const ids = new Set();
+  for (const [i, g] of (Array.isArray(lista) ? lista : []).entries()) {
+    if (out.length >= LIMITES.grupos) break;
+    const n = normalizarGrupo(g, i);
+    if (!n.nome || ids.has(n.id)) continue;
+    ids.add(n.id);
+    out.push(n);
+  }
+  return out;
+}
+
+/**
+ * Preço e texto de uma linha do pedido com os complementos escolhidos
+ * (`opcoes` = { grupoId: [opcaoId, …] }). A MESMA conta roda na tela e no
+ * servidor: confere mínimo/máximo de cada grupo e opção que não existe ou
+ * esgotou. Sem grupos no prato, o preço é o do prato.
+ */
+export function precoDaLinha(produto, opcoes = {}) {
+  const base = centavos(produto?.preco);
+  const grupos = Array.isArray(produto?.grupos) ? produto.grupos : [];
+  const escolhas = opcoes && typeof opcoes === "object" ? opcoes : {};
+  for (const id of Object.keys(escolhas)) {
+    if (!grupos.some((g) => g.id === id)) return { ok: false, erro: "opcao_invalida", preco: base, extra: 0, texto: "" };
+  }
+  let extra = 0;
+  const partes = [];
+  for (const g of grupos) {
+    const ids = [...new Set((Array.isArray(escolhas[g.id]) ? escolhas[g.id] : []).map(String))];
+    if (ids.length < g.min) return { ok: false, erro: "falta_escolha", grupo: g.id, preco: base, extra: 0, texto: "" };
+    if (ids.length > g.max) return { ok: false, erro: "escolhas_demais", grupo: g.id, preco: base, extra: 0, texto: "" };
+    const nomes = [];
+    for (const id of ids) {
+      const o = g.opcoes.find((x) => x.id === id);
+      if (!o || o.esgotado) return { ok: false, erro: "opcao_invalida", grupo: g.id, preco: base, extra: 0, texto: "" };
+      extra += g.tipo === "retirar" ? 0 : o.preco;
+      nomes.push(o.nome);
+    }
+    if (nomes.length) partes.push(`${g.tipo === "retirar" ? "Sem" : g.nome}: ${nomes.join(", ")}`);
+  }
+  extra = centavos(extra);
+  return { ok: true, preco: centavos(base + extra), extra, texto: partes.join(" · ").slice(0, 200) };
+}
+
+/** Grupo de escolha única obrigatória (ex.: Tamanho): mostra o preço cheio de cada opção. */
+export const grupoDeTamanho = (g) => g.tipo !== "retirar" && g.min === 1 && g.max === 1;
+
+/** "Obrigatório · escolher 1", "Opcional · até 2", "Opcional · sem custo". */
+export function regraDoGrupo(g) {
+  if (g.tipo === "retirar") return "Opcional · sem custo";
+  if (g.min > 0) return g.min === g.max ? `Obrigatório · escolher ${g.min}` : `Obrigatório · de ${g.min} a ${g.max}`;
+  return `Opcional · até ${g.max}`;
+}
+
+/** O prato está no horário que o dono marcou? Sem horário, sempre. */
+export function itemNoHorario(item, agora = new Date(), fuso = FUSO_PADRAO) {
+  const h = item?.horario;
+  if (!h) return true;
+  const { minutos, dia } = partesNoFuso(agora, fuso);
+  const vale = (d) => !h.dias_semana?.length || h.dias_semana.includes(d);
+  const ini = h.hora_inicio ? minutosDe(h.hora_inicio) : 0;
+  const fim = h.hora_fim ? minutosDe(h.hora_fim) : 24 * 60;
+  if (ini < fim) return minutos >= ini && minutos < fim && vale(dia);
+  if (minutos >= ini) return vale(dia);
+  if (minutos < fim) return vale((dia + 6) % 7);
+  return false;
+}
+
+/**
+ * Foto do prato tirada da Montagem (montagem.foto_url, bucket público
+ * montagem-fotos), decidido pelo dono em 28/10/2026: vale quando o produto
+ * não tem foto própria (nem no produto, nem na ficha) e o NOME bate exatamente
+ * (sem diferença de maiúscula ou acento) com o produto, o nome comercial ou o
+ * nome da receita da ficha. Nada de "parecido": sem nome igual, sem foto.
+ */
+export function aplicarFotosDaMontagem(produtos = [], { fichas = [], fichasComFoto = [], montagens = [] } = {}) {
+  const fotos = new Map();
+  for (const m of montagens) {
+    const url = limparUrl(m?.foto_url);
+    const chave = normalizarBusca(m?.nome);
+    if (url && chave && !fotos.has(chave)) fotos.set(chave, url);
+  }
+  if (!fotos.size) return produtos;
+  const fichaPorId = new Map(fichas.map((f) => [String(f.id), f]));
+  const comFoto = new Set(fichasComFoto.map(String));
+  return produtos.map((p) => {
+    if (limparUrl(p.imagem_url) || (p.ficha_id != null && comFoto.has(String(p.ficha_id)))) return p;
+    const f = p.ficha_id != null ? fichaPorId.get(String(p.ficha_id)) : null;
+    const url = [p.nome_produto, f?.nome_comercial, f?.nome_receita].map(normalizarBusca).filter(Boolean).map((k) => fotos.get(k)).find(Boolean);
+    return url ? { ...p, imagem_url: url } : p;
+  });
+}
+
+/** "Esgotado hoje": o dono marcou o prato como esgotado no dia de hoje (fuso da loja). */
+export function esgotadoHoje(item, agora = new Date(), fuso = FUSO_PADRAO) {
+  return !!item?.esgotado_dia && item.esgotado_dia === partesNoFuso(agora, fuso).data;
+}
+
+/** Canais em que o prato aparece para o cliente (oculto = em nenhum). */
+export function canaisDoItem(item) {
+  if (item?.oculto) return [];
+  const fora = new Set(item?.canais_ocultos || []);
+  return CANAIS_CARDAPIO.map((c) => c.id).filter((id) => !fora.has(id));
+}
+
 export function promocaoVigente(promo, agora = new Date(), fuso = FUSO_PADRAO) {
   const p = normalizarPromocao(promo);
   if (!p.ativa || !p.titulo) return false;
@@ -718,6 +1010,7 @@ export function precoEfetivo(produto, vigentes = []) {
     let candidato = null;
     if (p.tipo === "preco" && p.preco_promocional) candidato = p.preco_promocional;
     if (p.tipo === "desconto" && p.desconto_pct) candidato = centavos(original * (1 - p.desconto_pct / 100));
+    if (p.tipo === "desconto_valor" && p.desconto_valor) candidato = centavos(original - p.desconto_valor);
     if (candidato != null && candidato > 0 && candidato < preco) {
       preco = candidato;
       promocao_id = p.id;
@@ -793,6 +1086,9 @@ export function rotuloDaPromocao(promo, idioma = "pt") {
     return preencher(m.desconto, { pct: p.desconto_pct, zhe });
   }
   if (p.tipo === "preco" && p.preco_promocional) return preencher(m.preco, { valor: formatarPreco(p.preco_promocional, idioma) });
+  if (p.tipo === "desconto_valor" && p.desconto_valor) return preencher(m.valor, { valor: formatarPreco(p.desconto_valor, idioma) });
+  if (p.tipo === "leve_mais") return preencher(m.leve, { pague: p.pague, leve: p.leve });
+  if (p.tipo === "frete_gratis") return m.frete;
   return "";
 }
 
@@ -908,7 +1204,7 @@ export function juntarProdutosEFichas(produtos = [], fichas = [], alergenicos = 
 }
 
 /** Ficha desativada, arquivada ou inativa tira o prato do cardápio. */
-function fichaAtiva(ficha) {
+export function fichaAtiva(ficha) {
   if (!ficha) return true;
   if (ficha.ativo === false) return false;
   const s = normalizarBusca(ficha.status);
@@ -926,11 +1222,20 @@ function alergenicosDaFicha(ficha) {
  * imagem_url, ficha: { nome_comercial, descricao_comercial, categoria,
  * departamento, ativo, status, alergenicos[], pode_conter, imagem_url } }.
  */
+/** Grupos de complementos de um prato no cardápio público: só opções que estão à venda. */
+function gruposDoItem(item, gruposPorId) {
+  return (item.grupos || []).map((id) => gruposPorId.get(id)).filter(Boolean)
+    .map((g) => ({ id: g.id, nome: g.nome, descricao: g.descricao, tipo: g.tipo, min: g.min, max: g.max, opcoes: g.opcoes.filter((o) => !o.esgotado).map(({ id, nome, preco }) => ({ id, nome, preco })) }))
+    .filter((g) => g.opcoes.length)
+    .map((g) => ({ ...g, min: Math.min(g.min, g.opcoes.length), max: Math.min(g.max, g.opcoes.length) }));
+}
+
 export function montarCardapioPublico({ unidade = {}, produtos = [], config, fidelidade = null, agora = new Date(), fuso = FUSO_PADRAO } = {}) {
   const cfg = normalizarConfigCardapio(config);
   const vigentes = promocoesVigentes(cfg.promocoes, agora, fuso);
   let categorias = categoriasEfetivas(cfg, produtos);
   const visivel = new Map(categorias.map((c) => [c.id, c.visivel]));
+  const gruposPorId = new Map(cfg.grupos.map((g) => [g.id, g]));
 
   const lista = [];
   const semCategoria = [];
@@ -938,7 +1243,7 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
     if (!idValido(String(p?.id ?? ""))) continue;
     const item = cfg.itens[p.id] || {};
     const original = centavos(p.preco_venda);
-    if (!(original > 0) || item.oculto || !fichaAtiva(p.ficha)) continue;
+    if (!(original > 0) || item.oculto || !fichaAtiva(p.ficha) || esgotadoHoje(item, agora, fuso) || !itemNoHorario(item, agora, fuso)) continue;
     const categoria_id = categoriaDoProduto(p, categorias, cfg.itens);
     if (categoria_id === "outros" && !categorias.some((c) => c.id === "outros")) semCategoria.push(p.id);
     else if (visivel.get(categoria_id) === false) continue;
@@ -947,7 +1252,8 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
       id: String(p.id),
       nome: texto(p.ficha?.nome_comercial, 80) || texto(p.nome_produto, 80),
       descricao: texto(p.ficha?.descricao_comercial, 280) || item.descricao || "",
-      imagem_url: limparUrl(p.imagem_url) || limparUrl(p.ficha?.imagem_url) || null,
+      imagem_url: (item.midias || []).find((m) => m.tipo === "foto")?.url || limparUrl(p.imagem_url) || limparUrl(p.ficha?.imagem_url) || null,
+      ...(item.midias?.length ? { midias: item.midias } : {}),
       preco,
       preco_original,
       promocao_id,
@@ -958,6 +1264,8 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
       destaque: item.destaque === true,
       ordem: item.ordem || null,
       categoria_id,
+      ...(item.canais_ocultos ? { fora_dos_canais: item.canais_ocultos } : {}),
+      ...(gruposDoItem(item, gruposPorId).length ? { grupos: gruposDoItem(item, gruposPorId) } : {}),
     });
   }
   const combos = combosNoCardapio(cfg.combos, lista, agora, fuso);
@@ -981,13 +1289,16 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
   const ids = new Set(lista.map((p) => p.id));
   const promocoes = vigentes
     .map((p) => ({ ...p, produto_ids: p.produto_ids.filter((id) => ids.has(id)) }))
-    .filter((p) => p.tipo === "aviso" || p.produto_ids.some((id) => lista.find((x) => x.id === id)?.promocao_id === p.id))
+    .filter((p) => p.tipo === "aviso" || p.tipo === "frete_gratis" || (p.tipo === "leve_mais" && p.produto_ids.length)
+      || p.produto_ids.some((id) => lista.find((x) => x.id === id)?.promocao_id === p.id))
     .map((p) => ({
       id: p.id, titulo: p.titulo, texto: p.texto, imagem_url: p.imagem_url || null, tipo: p.tipo,
       produto_ids: p.produto_ids, rotulo: rotuloDaPromocao(p), quando: quandoVale(p),
       // dados crus: a página escreve rótulo e horário no idioma do cliente
       desconto_pct: p.desconto_pct, preco_promocional: p.preco_promocional, dias_semana: p.dias_semana,
       hora_inicio: p.hora_inicio, hora_fim: p.hora_fim, data_fim: p.data_fim,
+      desconto_valor: p.desconto_valor, pague: p.pague, leve: p.leve, frete_minimo: p.frete_minimo,
+      canais: p.canais, mostrar_agora: p.mostrar_agora, acumula_cadastro: p.acumula_cadastro,
     }));
 
   // Toque do banner que levaria a uma seção, promoção ou prato que não está
@@ -1035,6 +1346,8 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
     textos: cfg.textos,
     conversa: cfg.conversa,
     banner,
+    carrossel: cfg.carrossel,
+    wifi: cfg.wifi.rede ? cfg.wifi : null,
     filtros: filtrosDisponiveis(lista),
     categorias: saidaCategorias,
     // Combos entram como itens (a página e o carrinho tratam igual); preco_base e ordem são internos.
@@ -1308,11 +1621,48 @@ export function aberturaDaConversa(cardapio, { nome = "", agora = new Date(), fu
 // ─── CARRINHO ────────────────────────────────────────────────────────────────
 
 /** Total para MOSTRAR. Quem cobra é o servidor, que recalcula tudo. */
+/**
+ * A conta do pedido, igual na tela e no servidor:
+ *   subtotal ............. itens × preço do cardápio (já com desconto/preço da promoção)
+ *   desconto_promocoes ... "pegue X, leve Y" (as unidades de graça)
+ *   base_cadastro ........ o que entra no DESCONTO do cadastro: item com
+ *                          promoção que não acumula fica de fora
+ *   taxa ................. entrega (zero com "frete grátis" no ar)
+ */
 export function totalDoCarrinho(carrinho, cardapio, { tipo = "qrcode" } = {}) {
-  const preco = new Map(cardapio.produtos.map((p) => [p.id, p.preco]));
-  const subtotal = centavos((carrinho || []).reduce((s, i) => s + (preco.get(i.id) || 0) * (Number(i.quantidade) || 0), 0));
-  const regras = taxaDeEntrega(subtotal, cardapio, tipo);
-  return { subtotal, ...regras, total: centavos(subtotal + regras.taxa) };
+  const porId = new Map(cardapio.produtos.map((p) => [p.id, p]));
+  const promos = cardapio.promocoes || [];
+  const promoPorId = new Map(promos.map((p) => [p.id, p]));
+  const leveDe = new Map();
+  for (const p of promos) if (p.tipo === "leve_mais" && p.leve > p.pague) for (const id of p.produto_ids || []) if (!leveDe.has(id)) leveDe.set(id, p);
+  let subtotal = 0;
+  let descontoPromo = 0;
+  let baseCadastro = 0;
+  for (const i of carrinho || []) {
+    const p = porId.get(i.id);
+    const q = Number(i.quantidade) || 0;
+    if (!p || q <= 0) continue;
+    // Complementos escolhidos (tamanho, adicionais) entram no preço da linha.
+    const linha = i.opcoes ? precoDaLinha(p, i.opcoes) : null;
+    const valor = (linha?.ok ? linha.preco : p.preco || 0) * q;
+    const leve = leveDe.get(i.id);
+    const gratis = leve ? Math.floor(q / leve.leve) * (leve.leve - leve.pague) * (p.preco || 0) : 0;
+    subtotal += valor;
+    descontoPromo += gratis;
+    const promo = (gratis > 0 ? leve : null) || promoPorId.get(p.promocao_id);
+    if (!promo || promo.acumula_cadastro) baseCadastro += valor - gratis;
+  }
+  subtotal = centavos(subtotal);
+  const desconto_promocoes = centavos(descontoPromo);
+  const pago = centavos(subtotal - desconto_promocoes);
+  const regras = taxaDeEntrega(pago, cardapio, tipo);
+  const frete = tipo === "delivery" && promos.some((p) => p.tipo === "frete_gratis" && pago >= (p.frete_minimo || 0));
+  const taxa = frete ? 0 : regras.taxa;
+  return {
+    subtotal, desconto_promocoes, base_cadastro: centavos(baseCadastro), ...regras,
+    taxa, falta_gratis: frete ? 0 : regras.falta_gratis, frete_promocao: frete && regras.taxa > 0,
+    total: centavos(pago + taxa),
+  };
 }
 
 /**
@@ -1332,6 +1682,32 @@ export function taxaDeEntrega(subtotal, cardapio, tipo = "delivery") {
 }
 
 /** Itens do carrinho que saíram do cardápio (ou mudaram de preço) desde que entraram. */
+/**
+ * O cardápio que um canal vê: tira os pratos que o dono desligou nesse canal
+ * (e as seções e promoções que ficaram vazias). O servidor usa esta mesma
+ * função ao receber o pedido, então prato desligado no canal não é cobrado.
+ */
+export function cardapioDoCanal(cardapio, canal) {
+  if (!cardapio || !IDS_CANAIS.has(canal)) return cardapio;
+  // Promoção de outro canal sai, e o prato que estava com ela volta ao preço normal.
+  const promoFora = new Set((cardapio.promocoes || []).filter((p) => p.canais?.length && !p.canais.includes(canal)).map((p) => p.id));
+  const produtos = (cardapio.produtos || [])
+    .filter((p) => !(p.fora_dos_canais || []).includes(canal))
+    .map((p) => (p.promocao_id && promoFora.has(p.promocao_id)
+      ? { ...p, preco: p.preco_original || p.preco, preco_original: null, promocao_id: null }
+      : p));
+  if (produtos.length === (cardapio.produtos || []).length && !promoFora.size) return cardapio;
+  const ids = new Set(produtos.map((p) => p.id));
+  const categorias = (cardapio.categorias || [])
+    .map((c) => ({ ...c, produto_ids: c.produto_ids.filter((id) => ids.has(id)) }))
+    .filter((c) => c.produto_ids.length);
+  const promocoes = (cardapio.promocoes || [])
+    .filter((p) => !promoFora.has(p.id))
+    .map((p) => ({ ...p, produto_ids: (p.produto_ids || []).filter((id) => ids.has(id)) }))
+    .filter((p) => p.tipo === "aviso" || p.tipo === "frete_gratis" || p.produto_ids.length);
+  return { ...cardapio, produtos, categorias, promocoes, filtros: filtrosDisponiveis(produtos) };
+}
+
 export function conferirCarrinho(carrinho, cardapio) {
   const atual = new Map(cardapio.produtos.map((p) => [p.id, p]));
   const validos = [];

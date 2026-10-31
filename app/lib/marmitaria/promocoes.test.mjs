@@ -62,3 +62,34 @@ test("catálogo e combo comida + bebida + sobremesa", () => {
   assert.equal(s.com.lucro, 28);
   assert.equal(itensDoCombo(normalizarCombo({ modelo: "comida_bebida" }), cat), null);
 });
+
+test("cardápio de vendas: preço cheio, promoção 2x1 e combo, com veredito", async () => {
+  const { cardapioDeVendas, projecaoDeVendas, veredito } = await import("./promocoes.mjs");
+  const catalogo = { marmita: [{ id: "m1", nome: "Frango", preco: 40, custo: 15 }], bebida: [{ id: "b1", nome: "Suco", preco: 10, custo: 3 }], sobremesa: [] };
+  const linhas = cardapioDeVendas({
+    catalogo, ofertas: [{ id: "o1", ficha_id: "m1", tipo: "leve_pague", leve: "2", pague: "1" }],
+    combos: [{ id: "c1", nome: "Frango + suco", modelo: "comida_bebida", itens: [{ grupo: "marmita", id: "m1" }, { grupo: "bebida", id: "b1" }], preco: "45" }],
+    tributosPct: 0, fixosPct: 0, metaPct: 20,
+  });
+  const por = Object.fromEntries(linhas.map((l) => [l.id, l]));
+  assert.equal(por["m-m1"].lucro, 25);           // 40 − 15
+  assert.equal(por["m-m1"].veredito.id, "ok");
+  assert.equal(por.o1.lucro, 10);                // paga 40, sai 2 × 15
+  assert.equal(por.o1.rotulo, "2 por 1");
+  assert.equal(por.o1.veredito.id, "ok");        // 25% ≥ 20%
+  assert.equal(por.c1.lucro, 27);                // 45 − 18
+  assert.equal(veredito(-1, 20).id, "prejuizo");
+  assert.equal(veredito(10, 20).id, "baixo");
+  // 10 frangos por dia, 6 dias: 250/dia, 1500/semana, 6500/mês
+  const p = projecaoDeVendas(linhas, { "m-m1": 10 }, { diasPorSemana: 6 });
+  assert.deepEqual([p.dia.lucro, p.semana.lucro, p.mes.lucro, p.dia.faturamento], [250, 1500, 6500, 400]);
+});
+
+test("marmita com custo incompleto não aparece como lucro de 100%", async () => {
+  const { catalogoParaCombo, cardapioDeVendas } = await import("./promocoes.mjs");
+  const cat = catalogoParaCombo({ marmitas: [{ id: "m1", nome_receita: "Frango", preco_venda: 38 }], custos: new Map([["m1", { total: 0, completo: false }]]) });
+  assert.equal(cat.marmita[0].custo, null);
+  const [l] = cardapioDeVendas({ catalogo: cat, tributosPct: 0 });
+  assert.equal(l.veredito.id, "sem_dados");
+  assert.equal(l.lucro, null);
+});

@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { ESTILOS_LISTA, FONTES, TEMAS_PRONTOS, contraste, normalizarTema } from "../../../lib/cardapio-digital.mjs";
+import { ESTILOS_LISTA, FONTES, FORMATOS_FOTO, TEMAS_PRONTOS, contraste, normalizarTema } from "../../../lib/cardapio-digital.mjs";
 import { Aviso, CampoCor, Envio, Secao } from "./ui";
 
 export default function Aparencia({ config, mudar, unidadeId }) {
@@ -69,6 +69,19 @@ export default function Aparencia({ config, mudar, unidadeId }) {
               <span className="block text-xs text-hf-muted">{e.detalhe}</span>
             </button>
           ))}
+        </div>
+        <p className="mb-2 mt-4 text-xs font-semibold text-hf-text-2">Formato das fotos (delivery e mesa)</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {FORMATOS_FOTO.map((f) => {
+            const ativo = (tema.formato_foto || "arredondada") === f.id;
+            return (
+              <button key={f.id} type="button" onClick={() => t({ formato_foto: f.id })} aria-pressed={ativo}
+                className={`flex min-h-[64px] items-center gap-3 rounded-xl border p-3 text-left transition ${ativo ? "border-hf-accent ring-2 ring-hf-accent/20" : "border-hf-border hover:border-hf-border-strong"}`}>
+                <span aria-hidden="true" className={`h-10 w-10 flex-shrink-0 bg-hf-border-strong ${f.id === "quadrada" ? "" : "rounded-lg"}`} />
+                <span className="text-sm font-bold text-hf-text">{f.rotulo}</span>
+              </button>
+            );
+          })}
         </div>
       </Secao>
 

@@ -334,7 +334,8 @@ body {
 :root {
   --erp-safe-top: env(safe-area-inset-top, 0px);
 }
-@media (max-width: 1279px), (pointer: coarse), (display-mode: standalone), (display-mode: fullscreen) {
+/* App instalado no computador (mouse) não tem barra de status: sem o recuo. */
+@media (max-width: 1279px) and (pointer: coarse), (max-width: 767px), (pointer: coarse) and (display-mode: standalone), (pointer: coarse) and (display-mode: fullscreen) {
   :root {
     --erp-safe-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 1.25rem));
   }
@@ -460,12 +461,13 @@ textarea *,
   --hf-warning:       180 83 9;   /* #B45309 atenção, pendência */
   --hf-danger:        185 28 28;  /* #B91C1C vencido, crítico, negativo */
   /* Menu (barra superior e gaveta do celular): preto, pedido do dono (2026-10-13) */
-  --hf-menu:          10 10 10;   /* #0A0A0A fundo do menu */
-  --hf-menu-hover:    39 39 42;   /* #27272A item em foco, botões do menu */
-  --hf-menu-border:   39 39 42;   /* #27272A divisórias */
-  --hf-menu-text:     250 250 250;/* #FAFAFA texto (19:1 sobre o preto) */
-  --hf-menu-muted:    161 161 170;/* #A1A1AA texto secundário (8:1) */
-  --hf-menu-accent:   250 204 21; /* #FACC15 amarelo: item ativo */
+  /* Menu claro com o verde da casa (pedido do dono, 29/10/2026: "mude esse visual e essa cor"). */
+  --hf-menu:          255 255 255;/* #FFFFFF fundo do menu */
+  --hf-menu-hover:    243 244 246;/* #F3F4F6 item em foco, botões do menu */
+  --hf-menu-border:   229 231 235;/* #E5E7EB divisórias */
+  --hf-menu-text:     17 24 39;   /* #111827 texto */
+  --hf-menu-muted:    75 85 99;   /* #4B5563 texto secundário (7:1 sobre o branco) */
+  --hf-menu-accent:   4 120 87;   /* #047857 verde: item ativo */
 }
 
 /* ═══ CARDS COM PROFUNDIDADE ═════════════════════════════════════════════
@@ -500,3 +502,53 @@ textarea *,
 @media print {
   :is(button, a) { box-shadow: none !important; }
 }
+
+/* Telas usam mais a largura (pedido do dono, 28/10/2026: "use mais as bordas,
+   não deixe tanto sobrando"). Os contêineres de página centralizados com
+   largura máxima crescem em telas largas; janelas (.fixed) e textos estreitos
+   (max-w-4xl ou menores) ficam como estão. */
+@media (min-width: 1280px) {
+  .erp-main-scroll .mx-auto:is(.max-w-5xl, .max-w-6xl, .max-w-7xl, .max-w-\[1400px\], .max-w-\[1480px\], .max-w-\[1500px\]):not(.erp-main-scroll .fixed *) {
+    max-width: min(100%, 1760px);
+  }
+}
+
+/* Green Dot no estilo WhatsApp: fundo bege com desenho leve, bolhas com "rabinho" e hora no canto. */
+.gd-fundo-conversa {
+  background-color: #efeae2;
+  background-image:
+    radial-gradient(circle at 20px 20px, rgba(30, 77, 59, 0.05) 2px, transparent 2.5px),
+    radial-gradient(circle at 60px 50px, rgba(30, 77, 59, 0.04) 3px, transparent 3.5px);
+  background-size: 80px 80px;
+}
+.gd-bolha {
+  position: relative;
+  border-radius: 10px;
+  padding: 7px 10px 20px;
+  box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+  color: #111b21;
+  min-width: 84px;
+}
+.gd-bolha-eu { background: #d9fdd3; border-top-right-radius: 0; }
+.gd-bolha-ele { background: #ffffff; border-top-left-radius: 0; }
+.gd-bolha-eu::before,
+.gd-bolha-ele::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 13px;
+}
+.gd-bolha-eu::before { right: -8px; background: #d9fdd3; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.gd-bolha-ele::before { left: -8px; background: #ffffff; clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.gd-hora {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  font-size: 11px;
+  line-height: 1;
+  color: #667781;
+  white-space: nowrap;
+}
+.gd-sem-barra { scrollbar-width: none; }
+.gd-sem-barra::-webkit-scrollbar { display: none; }

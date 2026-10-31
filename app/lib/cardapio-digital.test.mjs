@@ -375,3 +375,28 @@ test("adicionais ganham seção própria depois das comidas; o dono ainda pode m
   assert.ok(c2.categorias.find((x) => x.id === "cat-pratos-principais").produto_ids.includes("ad1"));
   assert.deepEqual(c2.categorias.find((x) => x.id === "cat-adicionais").produto_ids, ["ad2"]);
 });
+
+test("Wi-Fi dos clientes: QR no padrão WIFI, com escape; sem rede não aparece", async () => {
+  const { normalizarWifi, textoQrWifi, normalizarConfigCardapio } = await import("./cardapio-digital.mjs");
+  assert.equal(textoQrWifi({ rede: "Casa Brasa", senha: "brasa2026" }), "WIFI:T:WPA;S:Casa Brasa;P:brasa2026;;");
+  assert.equal(textoQrWifi({ rede: "a;b", senha: 'x:"y' }), String.raw`WIFI:T:WPA;S:a\;b;P:x\:\"y;;`);
+  assert.equal(textoQrWifi({ rede: "Aberta" }), "WIFI:T:nopass;S:Aberta;;");
+  assert.equal(textoQrWifi({ rede: "  ", senha: "x" }), "");
+  assert.deepEqual(normalizarWifi({ senha: "so senha" }), { rede: "", senha: "" });
+  assert.deepEqual(normalizarConfigCardapio({}).wifi, { rede: "", senha: "" });
+});
+
+test("Salvar do editor não apaga o que a aba nova gravou: só vai o que o editor mexeu", async () => {
+  const { mesclarConfigCardapio } = await import("./cardapio-digital.mjs");
+  const promo = { id: "p1", titulo: "Happy hour", tipo: "desconto", produto_ids: ["x"], desconto_pct: 10, ativa: true };
+  const base = { tema: { cor_primaria: "#14532D" }, promocoes: [] };
+  const banco = { tema: { cor_primaria: "#14532D" }, promocoes: [promo] }; // a aba Promoções gravou depois
+  const editado = { tema: { cor_primaria: "#1F5FBF" }, promocoes: [] }; // o editor só trocou a cor
+  const r = mesclarConfigCardapio(banco, base, editado);
+  assert.equal(r.tema.cor_primaria.toUpperCase(), "#1F5FBF");
+  assert.equal(r.promocoes.length, 1);
+  assert.equal(r.promocoes[0].id, "p1");
+  // Se o editor também mexeu nas promoções, vale o do editor.
+  const r2 = mesclarConfigCardapio(banco, base, { ...editado, promocoes: [{ ...promo, id: "p2", titulo: "Almoço" }] });
+  assert.deepEqual(r2.promocoes.map((x) => x.id), ["p2"]);
+});

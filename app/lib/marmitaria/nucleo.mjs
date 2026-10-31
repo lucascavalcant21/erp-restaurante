@@ -38,22 +38,27 @@ export function fatorSaldo(insumo) {
 
 // Quantidade digitada (g, kg, ml, L, un) → unidade do cadastro do insumo ou do
 // rendimento do pré-preparo. Grandezas incompatíveis devolvem null.
-export function paraUnidadeDoCadastro(quantidade, unidadeDigitada, unidadeCadastro) {
+// pesos (opcional): { unidadeG, porcaoG } do cadastro, para digitar "3 un" ou
+// "2 porções" de um produto comprado em kg (pedido do dono, 30/10/2026).
+export function paraUnidadeDoCadastro(quantidade, unidadeDigitada, unidadeCadastro, pesos = null) {
   const q = parseNumero(quantidade);
   const de = String(unidadeDigitada || "").toLowerCase();
   const para = String(unidadeCadastro || "").toLowerCase();
   if (!de || de === para) return q;
   const massa = { g: 1, kg: 1000 }; const vol = { ml: 1, l: 1000 };
+  const pesoDe = de === "un" ? pesos?.unidadeG : de === "porcao" ? pesos?.porcaoG : null;
+  if (pesoDe > 0 && (massa[para] || vol[para])) return (q * pesoDe) / (massa[para] || vol[para]);
   if (massa[de] && massa[para]) return (q * massa[de]) / massa[para];
   if (vol[de] && vol[para]) return (q * vol[de]) / vol[para];
   if ((de === "porcao" || de === "un") && (para === "porcao" || para === "un")) return q;
   return null;
 }
 
-export function unidadesCompativeis(unidadeCadastro) {
+export function unidadesCompativeis(unidadeCadastro, pesos = null) {
   const u = String(unidadeCadastro || "").toLowerCase();
-  if (u === "kg" || u === "g") return ["g", "kg"];
-  if (u === "l" || u === "ml") return ["ml", "l"];
+  const extra = [...(pesos?.unidadeG > 0 ? ["un"] : []), ...(pesos?.porcaoG > 0 ? ["porcao"] : [])];
+  if (u === "kg" || u === "g") return ["g", "kg", ...extra];
+  if (u === "l" || u === "ml") return ["ml", "l", ...extra];
   return [u || "un"];
 }
 

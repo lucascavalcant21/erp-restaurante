@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Tablet — pedido enviado (6 s e volta ao início)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#14532D}a:hover{color:#0F3D22}
+button,a{transition:transform .12s ease, box-shadow .12s ease}
+button:active{transform:translateY(1px) scale(.99)}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; box-sizing: border-box; background: #FFFFFF; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 40px">
+  <div style="width: 96px; height: 96px; border-radius: 48px; background: #E9F4EC; color: #1E6B3A; display: flex; align-items: center; justify-content: center">
+    <svg aria-hidden="true" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>
+  </div>
+  <h1 style="margin: 0; font-family: Outfit, sans-serif; font-size: 40px; font-weight: 700; text-align: center">Pedido enviado para a cozinha!</h1>
+  <p style="margin: 0; font-size: 18px; color: #444444; text-align: center">Obrigado, Ana. Pedido #48 · Mesa 12</p>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; width: 620px">
+    <div style="padding: 18px; border-radius: 16px; border: 1px solid #EEEEEE; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+      <span style="font-size: 13px; color: #5C5C5C"><strong style="font-size: 1.15em; font-weight: 800; letter-spacing: .03em">DESCONTO</strong>&nbsp;de cadastro (10%)</span>
+      <span style="font-family: Outfit, sans-serif; font-size: 26px; font-weight: 700; color: #1E7A45">−R$ 15,67</span>
+    </div>
+    <div style="padding: 18px; border-radius: 16px; border: 1px solid #EEEEEE; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 2px rgba(16,24,20,.05), 0 6px 18px rgba(16,24,20,.07)">
+      <span style="font-size: 13px; color: #5C5C5C">Pontos (creditados após o pagamento)</span>
+      <span style="font-family: Outfit, sans-serif; font-size: 26px; font-weight: 700; color: {{accent}}">+141 pontos</span>
+    </div>
+  </div>
+
+  <p style="margin: 0; font-size: 16px; color: #444444; text-align: center">Voltando ao cardápio em <strong>6 s</strong>. Você acompanha o pedido na tela inicial.</p>
+  <div style="width: 620px; height: 6px; border-radius: 3px; background: #EDEDED; overflow: hidden" aria-hidden="true">
+    <div style="width: 50%; height: 6px; background: {{accent}}"></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#14532D","options":["#14532D","#0F3D2E","#1E6B45","#1F5FBF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#14532D' };
+  }
+}
+</script>
+</body>
+</html>

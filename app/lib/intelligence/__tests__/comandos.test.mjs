@@ -20,7 +20,17 @@ function rpcEstoqueMovimentar(chamadas) {
     chamadas.push(a);
     const ja = (dados.estoque_movimentacoes_multi || []).find((m) => m.chave_idempotencia === a.p_chave && m.unidade_id === a.p_unidade_id);
     if (ja) return { ok: true, idempotente: true, movimento_id: ja.id, saldo_anterior: ja.saldo_anterior, saldo_posterior: ja.saldo_posterior };
-    const item = dados.estoque_itens.find((i) => i.estoque_id === a.p_estoque_id && i.insumo_id === a.p_insumo_id && i.unidade_id === a.p_unidade_id);
+    let item = dados.estoque_itens.find((i) => i.estoque_id === a.p_estoque_id && i.insumo_id === a.p_insumo_id && i.unidade_id === a.p_unidade_id);
+    if (a.p_tipo === "entrada") {
+      // a RPC real cria o item no local na primeira entrada
+      if (!["recebimento", "producao", "devolucao", "transferencia_recebida"].includes(a.p_motivo)) throw new Error("motivo inválido");
+      if (!item) { item = { unidade_id: a.p_unidade_id, estoque_id: a.p_estoque_id, insumo_id: a.p_insumo_id, quantidade_atual: 0 }; dados.estoque_itens.push(item); }
+      const antes = item.quantidade_atual;
+      item.quantidade_atual = Math.round((antes + a.p_quantidade) * 1000) / 1000;
+      const mov = { id: `mov-${chamadas.length}`, unidade_id: a.p_unidade_id, chave_idempotencia: a.p_chave, saldo_anterior: antes, saldo_posterior: item.quantidade_atual, tipo: "entrada", motivo: a.p_motivo, quantidade: a.p_quantidade, insumo_id: a.p_insumo_id, data_movimento: AGORA.toISOString() };
+      dados.estoque_movimentacoes_multi.push(mov);
+      return { ok: true, idempotente: false, movimento_id: mov.id, saldo_anterior: antes, saldo_posterior: item.quantidade_atual, valor_total: null, unidade_medida: "kg" };
+    }
     if (!item) throw new Error("Este produto não está neste estoque.");
     if (!["perda", "vencimento", "quebra", "consumo"].includes(a.p_motivo)) throw new Error("motivo inválido");
     if (item.quantidade_atual + 0.0005 < a.p_quantidade) throw new Error("Saldo insuficiente.");
@@ -422,4 +432,84 @@ test("conversa forjada: produto de outra empresa não é encontrado; insight ine
   // campos de tenant na conversa são recusados pelo esquema do pedido
   assert.equal(pedidoSchema.parse({ texto: "Por que?", conversa: { unidade_id: "loja-b" } }).ok, false);
   assert.equal(pedidoSchema.parse({ texto: "Por que?", conversa: { insights: ["'; drop table x;--"] } }).ok, false);
+});
+
+test("provedor: Haiku entende (sem fallback), Sonnet cria (com fallback)", async () => {
+  const { criarProvedorAnthropic, MODELO_PADRAO, MODELO_CRIACAO } = await import("../providers/anthropic.mjs");
+  const pedidos = [];
+  const cliente = { beta: { messages: { create: async (p) => { pedidos.push(p); return { stop_reason: "end_turn", model: p.model, content: [{ type: "text", text: "{\"ok\":true}" }], usage: {} }; } } } };
+  const prov = criarProvedorAnthropic({ cliente, modelo: MODELO_PADRAO, modeloCriacao: MODELO_CRIACAO });
+  await prov.interpretar({ sistema: "s", texto: "t", esquemaJson: {} });
+  await prov.interpretar({ sistema: "s", texto: "t", esquemaJson: {}, tarefa: "criar" });
+  assert.equal(pedidos[0].model, "claude-haiku-5-5");
+  assert.equal(pedidos[0].fallbacks, undefined);
+  assert.equal(pedidos[1].model, "claude-sonnet-5-5");
+  assert.equal(pedidos[1].fallbacks, "default");
+});
+
+test("quanto paguei na última vez, lucro líquido e ticket médio pela conversa", async () => {
+  const { pedir } = await montar();
+  const r = await pedir("Quanto paguei na picanha da última vez?");
+  assert.equal(r.interpretacao.intencao, "compras.ultimo_preco");
+  assert.match(r.texto, /Última compra de Picanha: R\$\s?70,48\/kg em 06\/10/);
+  assert.match(r.texto, /anterior \(23\/09\) foi R\$\s?65,00\/kg \(\+8,4%\)/);
+  assert.ok(!JSON.stringify(r).includes("999999"));
+  const l = await pedir("Qual meu lucro líquido?");
+  assert.equal(l.interpretacao.intencao, "financeiro.lucro");
+  assert.match(l.texto, /DADOS INSUFICIENTES/);
+  const t = await pedir("Qual o ticket médio?");
+  assert.equal(t.interpretacao.intencao, "vendas.ticket_medio");
+});
+
+// ── ação: dar entrada no estoque ─────────────────────────────────────────────
+test("Dei entrada de 3 kg de picanha → pergunta a origem → prévia → confirmar → entrada pela RPC do estoque", async () => {
+  const { pedir, continuar, servicoAcoes, rpcChamadas, db } = await montar();
+  const r1 = await pedir("Dei entrada de 3 kg de picanha");
+  assert.equal(r1.interpretacao.intencao, "estoque.registrar_entrada");
+  assert.equal(r1.tipo, "pergunta");
+  assert.equal(r1.pergunta.campo, "motivoEntrada");
+  assert.ok(!r1.pergunta.opcoes.some((o) => o.id === "compra"), "compra entra por Compras, não pela conversa");
+  const r2 = await continuar(r1.pergunta.acaoId, "motivoEntrada", "recebimento");
+  assert.equal(r2.tipo, "confirmacao");
+  const linhas = Object.fromEntries(r2.confirmacao.linhas.map((l) => [l.rotulo, l.valor]));
+  assert.deepEqual([linhas.Produto, linhas.Local, linhas.Quantidade, linhas.Saldo], ["Picanha", "Cozinha", "3 kg", "12,5 → 15,5 kg"]);
+  assert.equal(rpcChamadas.length, 0, "nada é gravado antes de confirmar");
+  const r3 = await servicoAcoes.confirmar({ acaoId: r2.confirmacao.acaoId });
+  assert.equal(r3.texto, "Entrada registrada.");
+  const a = rpcChamadas[0];
+  assert.deepEqual([a.p_unidade_id, a.p_estoque_id, a.p_insumo_id, a.p_tipo, a.p_motivo, a.p_quantidade], ["loja-a", EST_COZINHA, PICANHA, "entrada", "recebimento", 3]);
+  assert.equal(db.dados.estoque_itens.find((i) => i.insumo_id === PICANHA).quantidade_atual, 15.5);
+});
+
+test("Chegaram 2 garrafas de óleo: embalagem do cadastro, origem deduzida do texto", async () => {
+  const { pedir, servicoAcoes, rpcChamadas } = await montar();
+  const r = await pedir("Chegaram 2 garrafas de óleo");
+  assert.equal(r.tipo, "confirmacao", JSON.stringify(r.pergunta || r.texto));
+  const linhas = Object.fromEntries(r.confirmacao.linhas.map((l) => [l.rotulo, l.valor]));
+  assert.match(linhas.Quantidade, /^2 garrafa\(s\) de 0,9 L = 1,8 L$/);
+  assert.match(linhas.Motivo, /Recebimento/);
+  await servicoAcoes.confirmar({ acaoId: r.confirmacao.acaoId });
+  assert.equal(rpcChamadas[0].p_quantidade, 1.8);
+  assert.equal(rpcChamadas[0].p_unidade_informada, "garrafa");
+});
+
+test("entrada em dúvida pergunta: unidade e local", async () => {
+  const tabelas = tabelasPadrao();
+  tabelas.estoques.push({ id: "e0000000-0000-4000-8000-000000000009", unidade_id: "loja-a", nome: "Bar", status: "ativo" });
+  const { pedir, continuar, rpcChamadas } = await montar({ tabelas });
+  const r1 = await pedir("Recebi 4 de picanha");
+  assert.equal(r1.pergunta.campo, "unidade", "4 sem unidade: kg ou g?");
+  assert.deepEqual(r1.pergunta.opcoes.map((o) => o.id), ["kg", "g"], "picanha a granel: sem opção de embalagem");
+  const r2 = await continuar(r1.pergunta.acaoId, "unidade", "kg");
+  assert.equal(r2.tipo, "confirmacao", "picanha já está na Cozinha: entra lá");
+  const r3 = await pedir("Recebi 1 kg de picanha suína");
+  assert.equal(r3.pergunta.campo, "estoqueId", "produto sem local e dois locais: pergunta onde entra");
+  assert.deepEqual(r3.pergunta.opcoes.map((o) => o.rotulo), ["Cozinha", "Bar"]);
+  assert.equal(rpcChamadas.length, 0);
+});
+
+test("pergunta sobre entrada não vira ação", async () => {
+  const { pedir } = await montar();
+  const r = await pedir("Quanto chegou de picanha?");
+  assert.notEqual(r.interpretacao.intencao, "estoque.registrar_entrada");
 });

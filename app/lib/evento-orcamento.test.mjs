@@ -309,3 +309,44 @@ test("divisão do prato: 700 g em porções de 100 g; 1 porção dividida por pe
   // 14 pessoas × 1 porção de 100 g = 2 pratos = R$ 140
   assert.equal(Math.round(resumoDoOrcamento(orc, []).cmv), 140);
 });
+
+test("ticket por pessoa: mesa de R$ 100 para 50 pessoas = R$ 2 por pessoa, sem sobra", async () => {
+  const { resumoDoOrcamento } = await import("./evento-orcamento.mjs");
+  const ing = (preco) => [{ nome: "x", quantidade: "1", unidade_uso: "un", tamanho_embalagem: "1", unidade_embalagem: "un", preco_embalagem: String(preco) }];
+  const orc = { tipo: "ticket", sobra_pct: 10, cliente: { convidados: 50 },
+    cardapio: [
+      { id: "a", secao: "lanche", origem: "exclusiva", nome: "Bolo", quantidade_total: "2", ingredientes: ing(30) },
+      // item que veio do buffet (por pessoa) passa a contar pela quantidade da mesa
+      { id: "b", secao: "lanche", origem: "exclusiva", nome: "Suco", medida: "porcao", por_pessoa: "1", quantidade_total: "4", ingredientes: ing(10) },
+    ], financeiro: {} };
+  const r = resumoDoOrcamento(orc, []);
+  assert.equal(Math.round(r.cmv), 100);
+  assert.equal(r.cmvPorPessoa, 2);
+});
+
+test("bases do cardápio: salva comidas ou bebidas e aplica em outro evento", async () => {
+  const { baseDoCardapio, aplicarBase, itensParaBase, orcamentoVazio } = await import("./evento-orcamento.mjs");
+  const orc = { ...orcamentoVazio(), tipo: "buffet", cardapio: [
+    { id: "a", secao: "buffet", nome: "Arroz", por_pessoa: "0,5" },
+    { id: "b", secao: "buffet", nome: "Frango", por_pessoa: "1" },
+    { id: "c", secao: "bar", nome: "Suco", por_pessoa: "1" },
+  ] };
+  assert.equal(itensParaBase(orc, "bebidas").length, 1);
+  const buffet = baseDoCardapio(orc, { nome: "Buffet da casa", tipo: "buffet" });
+  assert.equal(buffet.itens.length, 2);
+  assert.notEqual(buffet.itens[0].id, "a");
+  const bebidas = baseDoCardapio(orc, { nome: "", tipo: "bebidas" });
+  assert.equal(bebidas.nome, "Bebidas base");
+
+  // Evento ticket: as comidas vão para "Comidas" em quantidade fechada.
+  const ticket = { ...orcamentoVazio(), tipo: "ticket", cardapio: [{ id: "x", secao: "bar", nome: "Café" }] };
+  const t1 = aplicarBase(ticket, buffet);
+  assert.equal(t1.cardapio.length, 3);
+  assert.deepEqual(t1.cardapio.slice(1).map((i) => [i.secao, i.medida]), [["lanche", "total"], ["lanche", "total"]]);
+  // Substituir bebidas troca só o bar.
+  const t2 = aplicarBase(t1, bebidas, { substituir: true });
+  assert.deepEqual(t2.cardapio.map((i) => i.nome), ["Arroz", "Frango", "Suco"]);
+  // Aplicar duas vezes não repete ids.
+  const t3 = aplicarBase(t2, bebidas);
+  assert.equal(new Set(t3.cardapio.map((i) => i.id)).size, t3.cardapio.length);
+});

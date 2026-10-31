@@ -156,8 +156,18 @@ export function interpretarPorRegras(texto) {
 
   const q = extrairQuantidade(ps);
   let produto = null;
-  if (escolhida?.id === "estoque.registrar_perda" || escolhida?.id === "compras.criar") {
+  if (escolhida?.id === "estoque.registrar_perda" || escolhida?.id === "estoque.registrar_entrada" || escolhida?.id === "compras.criar") {
     produto = extrairProduto(ps, q.fim >= 0 ? q.fim + 1 : posicaoDoGatilho(ps, escolhida));
+  } else if (escolhida?.id === "compras.ultimo_preco") {
+    // "quanto paguei na picanha da última vez": tira as palavras do pedido e o produto é o que sobra
+    const RUIDO = new Set(["quanto", "qual", "o", "a", "preco", "valor", "paguei", "pagamos", "comprei", "compramos", "por", "ultima", "ultimo", "vez", "compra", "da", "de", "do", "na", "no", "em", "foi", "que"]);
+    const resto = ps.filter((w) => !RUIDO.has(w));
+    produto = resto.length ? resto.join(" ") : null;
+  } else if (escolhida?.id === "fichas.preparo") {
+    // "como faz o vatapá baiano?": tira as palavras do pedido e o prato é o que sobra
+    const RUIDO = new Set(["como", "faz", "fazer", "se", "faco", "prepara", "preparar", "preparo", "modo", "de", "do", "da", "dos", "das", "o", "a", "os", "as", "um", "uma", "receita", "ficha", "tecnica", "ingredientes", "que", "vai", "no", "na", "qual", "quais", "e", "me", "mostra", "mostre", "passa", "manda", "voce", "sabe", "quero", "ver"]);
+    const resto = ps.filter((w) => !RUIDO.has(w));
+    produto = resto.length ? resto.slice(0, 6).join(" ") : null;
   } else if (escolhida?.id === "estoque.saldo_produto" || escolhida?.id === "produto.explicar_variacao" || escolhida?.id === "compras.total") {
     // em "por que ... aumentou", o produto nunca vem depois do verbo
     const verboVar = escolhida.id === "produto.explicar_variacao" ? ps.findIndex((w) => VERBOS_VARIACAO.has(w)) : -1;

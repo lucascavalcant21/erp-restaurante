@@ -62,3 +62,68 @@ test("máquina de lavar da cozinha e do bar ficam na área Limpeza", () => {
   assert.equal(areaDoLocal({ nome: "Máquina de lavar do Bar", slug: "maquina-bar", tipo: "limpeza" }), "limpeza");
 });
 
+
+test("fechados, abertos e geladas: estado do local, locais que faltam e destino", async () => {
+  const { estadoDoLocal, locaisDeEstadoQueFaltam, destinoDoEstado, subareaDoLocal } = await import("./estoque-areas.mjs");
+  const bar = { id: "b", nome: "Bar", tipo: "bebidas" };
+  const coz = { id: "c", nome: "Cozinha", tipo: "alimentos" };
+  const pre = { id: "p", nome: "Pré-preparos da Cozinha" };
+  assert.equal(estadoDoLocal(bar), "fechado");
+  assert.equal(estadoDoLocal(coz), "fechado");
+  assert.equal(estadoDoLocal(pre), null);
+  assert.deepEqual(locaisDeEstadoQueFaltam([bar, coz, pre]).map((l) => l.slug), ["abertos-cozinha", "abertos-bar", "expositor-bar"]);
+  const exp = { id: "x", nome: "Expositor do Bar (gelada)", tipo: "bebidas" };
+  const abBar = { id: "ab", nome: "Abertos do Bar", tipo: "bebidas" };
+  assert.equal(subareaDoLocal(exp), "expositor");
+  assert.equal(estadoDoLocal(exp), "gelada");
+  assert.equal(estadoDoLocal(abBar), "aberto");
+  const todos = [bar, coz, exp, abBar];
+  assert.deepEqual(locaisDeEstadoQueFaltam(todos).map((l) => l.slug), ["abertos-cozinha"]);
+  assert.equal(destinoDoEstado(todos, bar, "gelada").id, "x");
+  assert.equal(destinoDoEstado(todos, coz, "aberto"), null);
+});
+
+test("grupos do estoque: carne vermelha separa bovina e suína; bar por tipo de bebida", async () => {
+  const { grupoDoEstoque } = await import("./estoque-areas.mjs");
+  const g = (nome, categoria, area = "cozinha") => grupoDoEstoque({ nome, categoria, area });
+  assert.equal(g("Picanha", "Carne vermelha"), "vermelha");
+  assert.equal(g("Costelinha suína", "Carne vermelha"), "suina");
+  assert.equal(g("Bacon em cubos", "Carne vermelha"), "suina");
+  assert.equal(g("Tomate", "Hortifrúti"), "hortifruti");
+  assert.equal(g("Cebola roxa", "Outros"), "hortifruti");
+  assert.equal(g("Camarão rosa", "Frutos do mar"), "peixes");
+  assert.equal(g("Filhote", "Peixe"), "peixes");
+  assert.equal(g("Peito de frango", "Aves"), "aves");
+  assert.equal(g("Queijo coalho", "Laticínios"), "outros");
+  assert.equal(g("Farinha de rosca", "Empanamentos e farinhas"), "secos");
+  assert.equal(g("Molho shoyu", "Molhos e caldos"), "liquidos");
+  assert.equal(g("Óleo de soja", "Líquidos"), "liquidos");
+  assert.equal(g("Heineken long neck", "Cervejas", "bar"), "cervejas");
+  assert.equal(g("Cachaça Seleta", "cachaça", "bar"), "destilados");
+  assert.equal(g("Coca-Cola lata", "Refrigerantes", "bar"), "refrigerantes");
+  assert.equal(g("Polpa de cupuaçu", "polpa", "bar"), "polpas");
+  assert.equal(g("Xarope de gengibre", "xaropes", "bar"), "xaropes");
+  assert.equal(g("Água com gás", "Água", "bar"), "aguas");
+});
+
+test("grupos: o nome claro vence a categoria trocada", async () => {
+  const { grupoDoEstoque } = await import("./estoque-areas.mjs");
+  const g = (nome, categoria, area = "cozinha") => grupoDoEstoque({ nome, categoria, area });
+  assert.equal(g("Retalho suíno", "Hortifrúti"), "suina");
+  assert.equal(g("Pimenta calabresa", "Secos"), "secos");
+  assert.equal(g("Calabresa", "Secos"), "suina");
+  assert.equal(g("Charque", "Secos"), "vermelha");
+  assert.equal(g("King crab inteiro", "Outros"), "peixes");
+  assert.equal(g("Graviola", "Outros"), "hortifruti");
+  assert.equal(g("Ovo", "Outros"), "outros");
+  assert.equal(g("Tucupi", "Outros"), "liquidos");
+  assert.equal(g("Absolut", "Cervejas", "bar"), "destilados");
+  assert.equal(g("Hortelã", "Destilados", "bar"), "hortifruti");
+  assert.equal(g("Suco de limão", "suco", "bar"), "limao");
+  assert.equal(g("Canudo de papel", "Outros", "bar"), "descartaveis");
+  assert.equal(g("Batata frita", "Petiscos"), "petiscos");
+  assert.equal(g("Monin maçã verde", "Destilados", "bar"), "xaropes");
+  assert.equal(g("Poupa buriti", "Vinhos", "bar"), "polpas");
+  assert.equal(g("Água tônica", "Água", "bar"), "refrigerantes");
+  assert.equal(g("Velho barreiro", "Sem categoria", "bar"), "destilados");
+});

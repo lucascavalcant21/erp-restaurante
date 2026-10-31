@@ -31,93 +31,93 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   }, [pathname]);
 
   const podeInteligencia = !!sessao && (!sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view"));
+  // Menu reorganizado (pedido do dono, 29/10/2026): cada área com o que é
+  // dela e nomes curtos, para caber inteiro na tela. Financeiro, Eventos e
+  // Marmitaria têm a própria barra de áreas, então não têm submenu aqui.
   const modules = [
-    ...(podeInteligencia ? [{
-      id: "inteligencia",
-      label: "Inteligência",
-      href: "/dashboard/inteligencia"
-    }] : []),
+    ...(podeInteligencia ? [{ id: "inteligencia", label: "Inteligência", href: "/dashboard/inteligencia" }] : []),
     {
-      id: "green-dot",
-      label: "Green Dot Assist",
-      href: "/dashboard/assistente"
+      id: "vendas", label: "Vendas", href: "/dashboard/vendas",
+      submodules: [
+        { label: "PDV e vendas", href: "/dashboard/vendas" },
+        { label: "Mesas e salão", href: "/dashboard/salao/mesas" },
+        { label: "Pedidos online", href: "/dashboard/salao/online" },
+        { label: "Delivery", href: "/dashboard/delivery" },
+        { label: "Tela da cozinha (KDS)", href: "/dashboard/cozinha/kds" },
+        { label: "Clientes", href: "/dashboard/clientes" },
+      ],
     },
     {
-      id: "operacao",
-      label: "PDV",
-      href: "/dashboard/operacao/inteligente",
+      id: "cozinha", label: "Cozinha", href: "/dashboard/cozinha",
       submodules: [
-        // é a Central Operacional (checklists/processos), não a inteligência do Héfisto
-        { label: "Green Dot Assist (Tablet IA)", href: "/dashboard/assistente" },
-        { label: "Central operacional", href: "/dashboard/operacao/inteligente" },
-        { label: "Controles & Checklists", href: "/dashboard/operacao/controles" },
-        { label: "Produtos de limpeza", href: "/dashboard/operacao/materiais/limpeza" },
-        { label: "Produtos da máquina de lavar", href: "/dashboard/operacao/materiais/maquina" },
-        { label: "Embalagens (estoque)", href: "/dashboard/operacao/materiais/embalagens" },
-        { label: "Limpeza", href: "/dashboard/operacao/limpeza" },
-        { label: "Manutenção", href: "/dashboard/operacao/manutencao" }
-      ]
+        { label: "Painel da cozinha", href: "/dashboard/cozinha" },
+        { label: "Fichas técnicas", href: "/dashboard/operacao/fichas" },
+        { label: "Produção do dia", href: "/dashboard/operacao/producao" },
+        { label: "Guia de montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
+        { label: "Etiquetas", href: "/dashboard/operacao/etiquetas" },
+        { label: "Validades", href: "/dashboard/operacao/validade" },
+        { label: "Green Dot Assist (tablet)", href: "/dashboard/assistente" },
+      ],
     },
     {
-      id: "cardapio",
-      label: "Cardápio",
-      href: "/dashboard/operacao/fichas",
+      id: "estoque", label: "Estoque", href: "/dashboard/operacao/estoque",
       submodules: [
-        { label: "Cadastro de Ingredientes", href: "/dashboard/operacao/ingredientes" },
-        { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas" },
-        { label: "Cardápio Digital", href: "/dashboard/operacao/cardapio" },
-        { label: "Campanhas IA (Experience)", href: "/dashboard/experience/campanhas" },
-        { label: "Intelligence (Experience)", href: "/dashboard/experience/intelligence" },
-        { label: "Produção Diária", href: "/dashboard/operacao/producao" },
-        { label: "Engenharia de Menu", href: "/dashboard/operacao/engenharia" }
-      ]
-    },
-    {
-      id: "estoque",
-      label: "Operacional",
-      href: "/dashboard/operacao/estoque",
-      submodules: [
-        // Uma área só: saldo e contagem são abas dentro de Estoque.
         { label: "Estoque", href: "/dashboard/operacao/estoque" },
-        { label: "Compras e Custo Médio", href: "/dashboard/operacao/estoque/compras" },
-        { label: "CMV Real", href: "/dashboard/operacao/estoque/cmv" },
-        { label: "Cotações e Compras", href: "/dashboard/operacao/compras" },
-        { label: "Recebimento de Notas", href: "/dashboard/operacao/notas" },
+        { label: "Produtos e ingredientes", href: "/dashboard/operacao/ingredientes" },
+        { label: "Compras e custo médio", href: "/dashboard/operacao/estoque/compras" },
+        { label: "Cotações e pedidos", href: "/dashboard/operacao/compras" },
+        { label: "Entrada de notas", href: "/dashboard/operacao/notas" },
         { label: "Fornecedores", href: "/dashboard/operacao/fornecedores" },
-        { label: "Impressão de Etiquetas", href: "/dashboard/operacao/etiquetas" }
-      ]
+        { label: "CMV real", href: "/dashboard/operacao/estoque/cmv" },
+        { label: "Embalagens", href: "/dashboard/operacao/materiais/embalagens" },
+      ],
     },
     {
-      id: "eventos",
-      label: "Eventos",
-      href: "/dashboard/reservas-eventos"
-    },
-    {
-      id: "rh",
-      label: "RH",
-      href: "/dashboard/rh",
+      id: "cardapio", label: "Cardápio", href: "/dashboard/operacao/cardapio",
       submodules: [
-        { label: "Painel do RH", href: "/dashboard/rh" },
-        { label: "Ponto e Espelho", href: "/dashboard/rh/ponto" },
-        { label: "Gestão de Extras", href: "/dashboard/rh/extra" },
-        { label: "Treinamentos", href: "/dashboard/treinamentos" }
-      ]
+        { label: "Cardápio digital", href: "/dashboard/operacao/cardapio" },
+        { label: "Engenharia de cardápio", href: "/dashboard/operacao/engenharia" },
+        { label: "Campanhas", href: "/dashboard/experience/campanhas" },
+        { label: "Experiência do cliente", href: "/dashboard/experience/intelligence" },
+      ],
     },
     {
-      // Sem submenu: as áreas do financeiro ficam na barra do próprio módulo
-      // (app/dashboard/financeiro/layout.js), como na Marmitaria.
-      id: "financeiro",
-      label: "Financeiro",
-      href: "/dashboard/financeiro"
+      id: "operacao", label: "Operação", href: "/dashboard/operacao/inteligente",
+      submodules: [
+        { label: "Central operacional", href: "/dashboard/operacao/inteligente" },
+        { label: "Controles e checklists", href: "/dashboard/operacao/controles" },
+        { label: "Limpeza", href: "/dashboard/operacao/limpeza" },
+        { label: "Produtos de limpeza", href: "/dashboard/operacao/materiais/limpeza" },
+        { label: "Máquina de lavar", href: "/dashboard/operacao/materiais/maquina" },
+        { label: "Manutenção", href: "/dashboard/operacao/manutencao" },
+      ],
     },
+    { id: "eventos", label: "Eventos", href: "/dashboard/reservas-eventos" },
+    { id: "marmitaria", label: "Marmitaria", href: "/dashboard/marmitaria" },
     {
-      // Sem submenu: as seis áreas da marmitaria ficam na barra do próprio
-      // módulo. Duas listas (aqui e lá) era a duplicidade que confundia.
-      id: "marmitaria",
-      label: "Marmitaria & Delivery",
-      href: "/dashboard/marmitaria"
-    }
+      id: "rh", label: "Equipe", href: "/dashboard/rh",
+      submodules: [
+        { label: "Painel da equipe", href: "/dashboard/rh" },
+        { label: "Ponto e espelho", href: "/dashboard/rh/ponto" },
+        { label: "Extras e banco de horas", href: "/dashboard/rh/extra" },
+        { label: "Janta dos funcionários", href: "/dashboard/rh/cardapio-funcionarios" },
+        { label: "Treinamentos", href: "/dashboard/treinamentos" },
+      ],
+    },
+    { id: "financeiro", label: "Financeiro", href: "/dashboard/financeiro" },
   ];
+
+  // A área ativa é a do link mais específico que casa com a tela (o KDS fica
+  // em /cozinha/kds mas é de Vendas; Compras do estoque não é Cotações).
+  const rotaDe = (href) => href.split("?")[0];
+  const casa = (href) => pathname === rotaDe(href) || pathname.startsWith(`${rotaDe(href)}/`);
+  const ativoId = (() => {
+    let melhor = null; let tam = -1;
+    for (const m of modules) for (const h of [m.href, ...(m.submodules || []).map((x) => x.href)]) {
+      if (casa(h) && rotaDe(h).length > tam) { melhor = m.id; tam = rotaDe(h).length; }
+    }
+    return melhor;
+  })();
 
   // Filtra módulos caso seja um App dedicado com rotas restritas
   const modulosVisiveis = modules
@@ -147,8 +147,8 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   return (
     <>
       <header className="bg-hf-menu border-b border-hf-menu-border text-hf-menu-text sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "var(--erp-safe-top)" }}>
-        <div className="h-16 flex items-center justify-between px-4 lg:px-8 w-full">
-        <div className="flex items-center gap-4 lg:gap-6 h-full">
+        <div className="h-14 flex items-center justify-between gap-3 px-4 lg:px-6 w-full">
+        <div className="flex items-center gap-4 lg:gap-5 h-full min-w-0">
           {/* HAMBURGER MOBILE */}
           <button 
             onClick={() => setMobileDrawerOpen(true)} 
@@ -161,21 +161,21 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             <div className="w-8 h-8 bg-hf-accent rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
               <span className="text-hf-accent-fg font-black text-lg">H</span>
             </div>
-            <span className="font-black tracking-tight text-xl hidden sm:block">Héfisto</span>
+            <span className="font-black tracking-tight text-xl hidden sm:block xl:hidden 2xl:block">Héfisto</span>
           </Link>
 
           {/* BADGE DE APP DEDICADO / ESTAÇÃO */}
           {sessao?.is_app && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               {sessao.app_nome || `App ${sessao.login}`}
             </div>
           )}
 
           {/* NAVEGAÇÃO DESKTOP COM SUBMENUS */}
-          <nav className="hidden xl:flex items-center h-full gap-2">
+          <nav className="hidden xl:flex items-center h-full gap-0.5">
             {modulosVisiveis.map((mod) => {
-              const isActive = pathname.startsWith(mod.href) || (mod.id === "rh" && pathname.includes("/rh"));
+              const isActive = ativoId === mod.id;
               const isHovered = hoveredModule === mod.id;
               // Eventos é uma tela só, sem submenu. Ler mod.submodules nele
               // derrubava o app inteiro só de passar o mouse no menu.
@@ -191,7 +191,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                   <Link 
                     href={mod.href} 
                     aria-current={isActive ? "page" : undefined}
-                    className={`h-full px-3 flex items-center gap-1 text-[13px] font-bold whitespace-nowrap transition-colors border-b-2 mt-[2px] ${isActive ? 'text-hf-menu-text border-hf-menu-accent' : 'text-hf-menu-muted border-transparent hover:text-hf-menu-text hover:bg-hf-menu-hover'}`}
+                    className={`h-full px-2.5 2xl:px-3 flex items-center gap-1 text-[13px] font-bold whitespace-nowrap transition-colors border-b-2 mt-[2px] ${isActive ? 'text-hf-menu-accent border-hf-menu-accent' : 'text-hf-menu-muted border-transparent hover:text-hf-menu-text hover:bg-hf-menu-hover'}`}
                   >
                     {mod.label}
                     {temSubmenu && <ChevronDown size={12} className={`opacity-50 transition-transform ${isHovered ? 'rotate-180' : ''}`} />}
@@ -217,8 +217,8 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           </nav>
         </div>
 
-        <div className="flex items-center gap-3 md:gap-4 shrink-0">
-          <button onClick={onOpenSearch} aria-label="Abrir a Central de Comando" className="hidden md:flex items-center gap-3 bg-hf-menu-hover hover:border-hf-menu-muted border border-hf-menu-border transition-colors rounded-xl px-3.5 py-2 w-44 lg:w-60 2xl:w-80 group text-left">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          <button onClick={onOpenSearch} aria-label="Abrir a Central de Comando" className="hidden md:flex xl:hidden 2xl:flex items-center gap-3 bg-hf-menu-hover hover:border-hf-menu-muted border border-hf-menu-border transition-colors rounded-xl px-3.5 py-2 w-44 lg:w-60 2xl:w-72 group text-left">
             <Search size={16} className="text-hf-menu-muted group-hover:text-hf-menu-text transition-colors shrink-0" />
             <span className="text-sm font-medium text-hf-menu-muted truncate flex-1">Pesquisar ou comandar…</span>
             <kbd className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold text-hf-menu-muted bg-hf-menu px-1.5 py-0.5 rounded border border-hf-menu-border font-sans">
@@ -226,7 +226,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             </kbd>
           </button>
 
-          <button onClick={onOpenSearch} aria-label="Abrir a Central de Comando" className="md:hidden w-11 h-11 rounded-xl bg-hf-menu-hover flex items-center justify-center text-hf-menu-text border border-hf-menu-border">
+          <button onClick={onOpenSearch} aria-label="Abrir a Central de Comando" className="md:hidden xl:flex 2xl:hidden w-11 h-11 rounded-xl bg-hf-menu-hover flex items-center justify-center text-hf-menu-text border border-hf-menu-border">
             <Search size={18} />
           </button>
 
@@ -307,7 +307,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                 </div>
                 <span className="font-black tracking-tight text-xl text-hf-menu-text">Héfisto</span>
                 {sessao?.is_app && (
-                  <span className="text-3xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold uppercase">
+                  <span className="text-3xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold uppercase">
                     App
                   </span>
                 )}
@@ -320,7 +320,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
               {modulosVisiveis.map((mod) => {
                 const isExpanded = expandedMobileModule === mod.id;
-                const isActive = pathname.startsWith(mod.href) || (mod.id === "rh" && pathname.includes("/rh"));
+                const isActive = ativoId === mod.id;
                 
                 // Sem submenu não há o que expandir: o botão vira o próprio
                 // link. Antes ele expandia uma lista inexistente e quebrava.

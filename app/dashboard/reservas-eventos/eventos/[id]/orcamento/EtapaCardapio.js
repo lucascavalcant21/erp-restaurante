@@ -7,7 +7,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { Search, ChefHat, Wine, FlaskConical, ChevronDown, ChevronUp, UtensilsCrossed, Soup, Sparkles, Ticket } from "lucide-react";
 import {
-  TIPOS_EVENTO, SECOES, UNIDADES, tipoDoEvento, ingredienteVazio, custoDaFichaExclusiva, novoId,
+  TIPOS_EVENTO, SECOES, UNIDADES, tipoDoEvento, ingredienteVazio, custoDaFichaExclusiva, novoId, TIPOS_BASE, tipoDaBase, itensParaBase,
 } from "../../../../../lib/evento-orcamento.mjs";
 import { custoPorcaoDaFicha } from "../../../../../lib/evento-financeiro.mjs";
 import { tipoFichaDe, setorId } from "../../../../../lib/ficha-modelo.mjs";
@@ -207,7 +207,7 @@ function EditorExclusiva({ item, alterarItem }) {
   );
 }
 
-function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, ehBar, onVincular }) {
+function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, ehBar, onVincular, mesaFechada = false }) {
   const exclusiva = item.origem === "exclusiva";
   // Ordem do dono (28/10/2026): 1 nome do prato, 2 receita, 3 porção.
   const semReceita = !!item.receita_pendente;
@@ -245,8 +245,8 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
       <div className={`mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-stretch ${semReceita ? "hidden" : ""}`}>
         <div className="col-span-2 rounded-xl bg-slate-50 p-2.5 sm:col-span-1">
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? "Quantidade no evento" : ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : item.dividido ? `Porções de ${item.divisaoG} g por pessoa` : "Porções por pessoa"}</span>
-            {(
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{item.emTotal ? (mesaFechada ? "Quantidade na mesa" : "Quantidade no evento") : ehBar ? "Doses por pessoa" : item.emGramas ? "Gramas por pessoa" : item.dividido ? `Porções de ${item.divisaoG} g por pessoa` : "Porções por pessoa"}</span>
+            {!mesaFechada && (
               <span className="inline-flex rounded-lg bg-white p-0.5 ring-1 ring-slate-200" role="radiogroup" aria-label="Medir por">
                 {/* "total": quantidade fechada para o evento (2 bolos, 30 sanduíches, 1 suco de 2 L) */}
                 {(ehBar ? [["porcao", "por pessoa"], ["total", "total"]] : [["porcao", "porções"], ["g", "gramas"], ["total", "total"]]).map(([m, rot]) => {
@@ -319,7 +319,7 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
   );
 }
 
-export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
+export function EtapaCardapio({ orc, setOrc, resumo, fichas, bases = [], onSalvarBase, onUsarBase, onApagarBase }) {
   const tipo = tipoDoEvento(orc.tipo);
   const [buscando, setBuscando] = useState(null); // seção com a busca aberta
   const [vinculando, setVinculando] = useState(null); // prato (id) escolhendo a ficha técnica
@@ -358,6 +358,22 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
             ? "Cada pessoa recebe 1 porção de cada item. Se houver opções à escolha (ex.: 2 pratos principais), use 0,5 em cada."
             : "Um item só: informe quanto vai por pessoa."}
       </p>
+      {onSalvarBase && <BasesDoCardapio orc={orc} bases={bases} onSalvar={onSalvarBase} onUsar={onUsarBase} onApagar={onApagarBase} />}
+      {/* Ticket por pessoa: monta a mesa e diz quantas pessoas comem dela. */}
+      {tipo.quantidadeFechada && (
+        <Cartao titulo="Mesa do evento" descricao="Monte a mesa com os pratos e diga quantas pessoas vão comer dela. Não importa quanto cada um come: o custo da mesa é dividido por todos.">
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="w-48 text-[11px] font-bold uppercase tracking-wide text-slate-600">Quantas pessoas vão comer?
+              <Numero valor={orc.cliente?.convidados ?? ""} onChange={(v) => setOrc((o) => ({ ...o, cliente: { ...o.cliente, convidados: v } }))} sufixo="pessoas" aria-label="Quantas pessoas vão comer" />
+            </label>
+            <div className="grid flex-1 grid-cols-3 gap-2 text-center">
+              <div className="min-w-0 rounded-xl bg-slate-50 p-2 sm:p-2.5"><p className="text-[10px] font-bold uppercase text-slate-500 sm:text-[11px]">Custo da mesa</p><p className="truncate text-sm font-black tabular-nums text-slate-900 sm:text-lg">{fmtReais(resumo.cmv)}</p></div>
+              <div className="min-w-0 rounded-xl bg-slate-50 p-2 sm:p-2.5"><p className="text-[10px] font-bold uppercase text-slate-500 sm:text-[11px]">Pessoas</p><p className="truncate text-sm font-black tabular-nums text-slate-900 sm:text-lg">{resumo.convidados || "—"}</p></div>
+              <div className="min-w-0 rounded-xl bg-emerald-50 p-2 sm:p-2.5"><p className="text-[10px] font-bold uppercase text-emerald-800 sm:text-[11px]">Custo por pessoa</p><p className="truncate text-sm font-black tabular-nums text-emerald-900 sm:text-lg">{resumo.convidados > 0 ? fmtReais(resumo.cmv / resumo.convidados) : "—"}</p></div>
+            </div>
+          </div>
+        </Cartao>
+      )}
       {tipo.secoes.map((s) => {
         const sec = SECOES[s];
         const itens = resumo.itens.filter((i) => i.secao === s);
@@ -369,7 +385,7 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
             <ul className="space-y-3">
               {itens.map((i) => (
                 <Fragment key={i.id}>
-                  <LinhaItem item={i} convidados={resumo.convidados} ehBar={s === "bar"} onVincular={() => setVinculando(vinculando === i.id ? null : i.id)}
+                  <LinhaItem item={i} convidados={resumo.convidados} ehBar={s === "bar"} mesaFechada={!!tipo.quantidadeFechada} onVincular={() => setVinculando(vinculando === i.id ? null : i.id)}
                     alterarItem={(m) => alterarItem(i.id, m)} remover={() => remover(i.id)} aberto={abertos.has(i.id)} alternar={() => alternar(i.id)} />
                   {vinculando === i.id && <li className="list-none"><BuscaFicha fichas={fichas} setor={sec.setor} onEscolher={(f) => vincularFicha(i.id, f)} onFechar={() => setVinculando(null)} /></li>}
                 </Fragment>
@@ -425,11 +441,83 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
               ) : <p className="text-xs font-semibold text-slate-500">Informe as pessoas e os itens para ver o custo por pessoa.</p>}
             </div>
           </div>
-          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto (não vale para itens em quantidade fechada). Entra no custo e na lista de compras." className="mt-4 max-w-xs">
+{!tipo.quantidadeFechada && (          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto (não vale para itens em quantidade fechada). Entra no custo e na lista de compras." className="mt-4 max-w-xs">
             <Numero valor={orc.sobra_pct} onChange={(v) => setOrc((o) => ({ ...o, sobra_pct: v }))} sufixo="%" />
-          </Campo>
+          </Campo>)}
         </Cartao>
       )}
     </div>
+  );
+}
+
+/* Bases do cardápio (pedido do dono, 29/10/2026): buffet base, mesa de
+ * comidas e bebidas base. Salva quantas quiser e põe em qualquer evento. */
+function BasesDoCardapio({ orc, bases, onSalvar, onUsar, onApagar }) {
+  const [filtro, setFiltro] = useState("todas");
+  const [salvando, setSalvando] = useState(null); // tipo da base sendo salva
+  const [nome, setNome] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const lista = bases.filter((b) => filtro === "todas" || b.tipo === filtro);
+  const chip = (ativo) => `h-9 rounded-full border px-3 text-xs font-bold transition ${ativo ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`;
+  const salvar = async () => {
+    setOcupado(true);
+    const ok = await onSalvar(nome, salvando);
+    setOcupado(false);
+    if (ok) { setSalvando(null); setNome(""); }
+  };
+  return (
+    <Cartao titulo="Bases do cardápio" descricao="Buffet base, mesa de comidas e bebidas que você usa sempre. Salve quantas quiser e coloque em qualquer evento; equipe e preço não mudam.">
+      <div className="flex flex-wrap items-center gap-2">
+        {[["todas", `Todas (${bases.length})`], ...TIPOS_BASE.map((t) => [t.id, `${t.rotulo} (${bases.filter((b) => b.tipo === t.id).length})`])].map(([id, rot]) => (
+          <button key={id} type="button" className={chip(filtro === id)} onClick={() => setFiltro(id)}>{rot}</button>
+        ))}
+      </div>
+      {lista.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-600">{bases.length ? "Nenhuma base desse tipo." : "Nenhuma base ainda. Monte o cardápio abaixo e salve as comidas ou as bebidas como base."}</p>
+      ) : (
+        <ul className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {lista.map((b) => {
+            const Icone = tipoDaBase(b.tipo).grupo === "bebida" ? Wine : ChefHat;
+            return (
+              <li key={b.id} className="rounded-2xl border border-slate-200 bg-white p-3">
+                <div className="flex items-start gap-2">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><Icone size={18} /></span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black text-slate-900">{b.nome}</p>
+                    <p className="text-xs text-slate-500">{tipoDaBase(b.tipo).rotulo} · {(b.itens || []).length} item(ns)</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-slate-600">{(b.itens || []).map((i) => i.nome).filter(Boolean).join(", ")}</p>
+                  </div>
+                  <BotaoRemover rotulo={`Apagar base ${b.nome}`} onClick={() => onApagar?.(b)} />
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => onUsar?.(b, false)} className="h-9 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700">Adicionar ao cardápio</button>
+                  <button type="button" onClick={() => { if (window.confirm(`Trocar as ${tipoDaBase(b.tipo).grupo === "bebida" ? "bebidas" : "comidas"} deste evento pela base “${b.nome}”?`)) onUsar?.(b, true); }} className="h-9 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50">Trocar</button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="mt-4 border-t border-slate-100 pt-3">
+        {salvando ? (
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="min-w-[220px] flex-1 text-[11px] font-bold uppercase tracking-wide text-slate-600">Nome da {tipoDaBase(salvando).rotulo.toLowerCase()}
+              <input autoFocus value={nome} onChange={(e) => setNome(e.target.value)} placeholder={tipoDaBase(salvando).rotulo} className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-medium normal-case text-slate-900" />
+            </label>
+            <span className="text-xs text-slate-500">{itensParaBase(orc, salvando).length} item(ns) do cardápio</span>
+            <button type="button" disabled={ocupado} onClick={salvar} className="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white disabled:opacity-60">{ocupado ? "Salvando…" : "Salvar base"}</button>
+            <button type="button" onClick={() => setSalvando(null)} className="h-11 rounded-xl px-3 text-sm font-bold text-slate-600">Cancelar</button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold uppercase text-slate-500">Salvar este cardápio como</span>
+            {TIPOS_BASE.map((t) => {
+              const n = itensParaBase(orc, t.id).length;
+              return <button key={t.id} type="button" disabled={!n} onClick={() => { setSalvando(t.id); setNome(""); }} className={`${chip(false)} disabled:opacity-40`} title={n ? "" : "Sem pratos desse tipo no cardápio"}>+ {t.rotulo}</button>;
+            })}
+          </div>
+        )}
+      </div>
+    </Cartao>
   );
 }

@@ -15,7 +15,9 @@
 // banco; nenhuma mensagem interna do banco na resposta. Módulo sem Next: o
 // banco entra por parâmetro, para dar para testar.
 
-import { montarCardapioPublico, juntarProdutosEFichas, taxaDeEntrega, linhasDoCombo } from "../cardapio-digital.mjs";
+import { montarCardapioPublico, juntarProdutosEFichas, totalDoCarrinho, precoDaLinha, linhasDoCombo, cardapioDoCanal, canalDoPedido, aplicarFotosDaMontagem } from "../cardapio-digital.mjs";
+import { trocoEmReais } from "../troco.mjs";
+import { cpfValido, UFS } from "../cpf.mjs";
 import {
   cashbackUsavel, descontoDoCadastro, normalizarFidelidade, normalizarTelefone, saldoDoCliente, STATUS_CONCLUIDO, validarCadastro,
 } from "../fidelidade.mjs";
@@ -94,6 +96,7 @@ export async function carregarCardapio({ db, unidade, agora = new Date() }) {
     // Sempre filtrado pela unidade: ficha de outra loja nunca entra, mesmo
     // que um produto aponte para ela.
     const rF = await emLotes(fichaIds, (lote) => selecionar((c) => db.from("fichas_tecnicas").select(c).eq("unidade_id", unidade).in("id", lote), [
+      "id, nome_comercial, nome_receita, descricao_comercial, categoria, departamento, ativo, status, alergenicos_pode_conter",
       "id, nome_comercial, descricao_comercial, categoria, departamento, ativo, status, alergenicos_pode_conter",
       "id, categoria, departamento",
       "id",
@@ -116,7 +119,11 @@ export async function carregarCardapio({ db, unidade, agora = new Date() }) {
     config = params.cardapio_digital;
   }
 
-  const juntos = juntarProdutosEFichas(produtos, fichas, alergenicos, {
+  // Foto do prato que está só na Montagem (mesmo nome). Sem a tabela, segue sem.
+  const rM = await db.from("montagem").select("nome, foto_url").eq("unidade_id", unidade).not("foto_url", "is", null);
+  const comFotos = aplicarFotosDaMontagem(produtos, { fichas, fichasComFoto, montagens: rM.error ? [] : rM.data || [] });
+
+  const juntos = juntarProdutosEFichas(comFotos, fichas, alergenicos, {
     fichasComFoto,
     fotoDaFicha: (id) => fotoDaFichaUrl(unidade, id),
   });
@@ -195,7 +202,10 @@ export async function lerFotoPublica({ db, unidade, produto }) {
   }
 }
 
-const TIPOS_PEDIDO = ["delivery", "qrcode"];
+const TIPOS_PEDIDO = ["delivery", "retirada", "qrcode"];
+const FORMAS = ["dinheiro", "cartao", "pix", "vale"];
+// A mesma conta de troco da tela (o aviso) e do servidor (a trava).
+export { trocoEmReais };
 
 /**
  * Valida o pedido do cardápio. Só entram id e quantidade dos itens — preço
@@ -207,7 +217,7 @@ export function validarPedidoPublico(corpo) {
   if (!idValido(c.unidade)) return falha(400, "unidade_invalida", "Link inválido.");
   const cli = c.cliente && typeof c.cliente === "object" ? c.cliente : {};
   const tipo = TIPOS_PEDIDO.includes(cli.tipo) ? cli.tipo : null;
-  if (!tipo) return falha(400, "parametro_invalido", "Escolha delivery ou mesa.");
+  if (!tipo) return falha(400, "parametro_invalido", "Escolha entrega, retirada ou mesa.");
   let nome = texto(cli.nome, 80);
   if (!nome || nome.length < 2) return falha(400, "parametro_invalido", "Digite seu nome.");
   const mesa = texto(cli.mesa, 10);
@@ -217,8 +227,14 @@ export function validarPedidoPublico(corpo) {
   if (tel.length || !telefoneOpcional) {
     if (tel.length < 10 || tel.length > 13) return falha(400, "parametro_invalido", "Digite seu WhatsApp com DDD.");
   }
+  const cpf = cli.cpf ? cpfValido(cli.cpf) : "";
+  if (cli.cpf && !cpf) return falha(400, "parametro_invalido", "CPF inválido.");
   const endereco = texto(cli.endereco, 300);
   if (tipo === "delivery" && !endereco) return falha(400, "parametro_invalido", "Digite seu endereço.");
+  // Forma de pagamento (entrega e retirada). Se a loja aceita essa forma,
+  // quem confere é criarPedidoPublico (precisa da configuração da loja).
+  const pagamento = tipo !== "qrcode" && FORMAS.includes(cli.pagamento) ? cli.pagamento : null;
+  if (tipo !== "qrcode" && cli.pagamento != null && !pagamento) return falha(400, "parametro_invalido", "Forma de pagamento inválida.");
   if (mesa) nome = `[MESA ${mesa}] ${nome}`;
 
   const itens = Array.isArray(c.itens) ? c.itens : [];
@@ -229,7 +245,16 @@ export function validarPedidoPublico(corpo) {
     if (!idValido(String(it?.id ?? "")) || !Number.isInteger(qtd) || qtd < 1 || qtd > 50) {
       return falha(400, "parametro_invalido", "Item inválido no carrinho.");
     }
-    limpos.push({ id: String(it.id), quantidade: qtd, observacao: texto(it.observacao, 200) || "" });
+    // Complementos: { grupoId: [opcaoId] } só com ids válidos; quem confere preço e regra é o criarPedidoPublico.
+    let opcoes = null;
+    if (it?.opcoes && typeof it.opcoes === "object" && !Array.isArray(it.opcoes)) {
+      const pares = Object.entries(it.opcoes).slice(0, 12);
+      if (pares.some(([g, l]) => !idValido(g) || !Array.isArray(l) || l.length > 40 || l.some((o) => !idValido(String(o))))) {
+        return falha(400, "parametro_invalido", "Complemento inválido no carrinho.");
+      }
+      opcoes = Object.fromEntries(pares.map(([g, l]) => [g, l.map(String)]));
+    }
+    limpos.push({ id: String(it.id), quantidade: qtd, observacao: texto(it.observacao, 200) || "", ...(opcoes ? { opcoes } : {}) });
   }
   // Cashback da fidelidade: o cliente só diz "quero usar" e manda os pedidos
   // que este aparelho fez (a prova). Quanto usar, o servidor decide.
@@ -242,7 +267,8 @@ export function validarPedidoPublico(corpo) {
     ok: true,
     pedido: {
       unidade: c.unidade, tipo, nome, mesa: mesa || null, telefone: tel.length ? texto(cli.telefone, 20) : null,
-      endereco: tipo === "delivery" ? endereco : null, troco: texto(cli.troco, 20), itens: limpos, cashback,
+      endereco: tipo === "delivery" ? endereco : null, troco: !pagamento || pagamento === "dinheiro" ? texto(cli.troco, 20) : "",
+      pagamento, itens: limpos, cashback, ...(cpf ? { cpf } : {}),
     },
   };
 }
@@ -261,9 +287,23 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       if (carga.status === 404) return falha(404, "unidade_invalida", "Link inválido.");
       return falha(503, "indisponivel", "Não foi possível enviar agora.");
     }
-    const { cardapio, loja } = carga;
-    if (pedido.tipo === "delivery" && loja.delivery_aberto === false) {
+    const { loja } = carga;
+    // Entrou com CPF (tablet/QR): o telefone da ficha vale para o DESCONTO e a fidelidade.
+    // Ele nunca volta para a tela. Sem a FIDELIDADE-3, o pedido segue sem.
+    if (pedido.cpf && !pedido.telefone) {
+      const { data, error } = await db.rpc("fidelidade_cliente_do_cpf", { p_unidade: pedido.unidade, p_cpf: pedido.cpf });
+      if (!error && data?.ok && data.tel) pedido = { ...pedido, telefone: data.tel };
+    }
+    // Só vale o que o canal do pedido mostra (prato desligado no canal não entra).
+    const cardapio = cardapioDoCanal(carga.cardapio, canalDoPedido(pedido.tipo));
+    if ((pedido.tipo === "delivery" || pedido.tipo === "retirada") && loja.delivery_aberto === false) {
       return falha(409, "loja_fechada", "O delivery está fechado no momento.");
+    }
+    if (pedido.tipo === "retirada" && !cardapio.entrega?.retirada) {
+      return falha(409, "retirada_desligada", "A loja não está aceitando retirada agora.");
+    }
+    if (pedido.pagamento && !(cardapio.entrega?.formas || []).includes(pedido.pagamento)) {
+      return falha(409, "pagamento_indisponivel", "Esta forma de pagamento não está disponível. Escolha outra.");
     }
 
     const desde = new Date(agora - 10 * 60 * 1000).toISOString();
@@ -279,22 +319,32 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
     if (pedido.itens.some((i) => !preco.has(i.id))) {
       return falha(409, "item_indisponivel", "Um item do carrinho não está mais disponível. Atualize o cardápio.");
     }
+    // Complementos: a mesma regra da tela (precoDaLinha). Prato com escolha
+    // obrigatória (tamanho) sem a escolha, ou opção que esgotou, volta para o cliente.
+    const linhaDe = new Map();
+    for (const [n, i] of pedido.itens.entries()) {
+      const prod = cardapio.produtos.find((p) => p.id === i.id);
+      if (!prod?.grupos?.length && !i.opcoes) continue;
+      const l = precoDaLinha(prod, i.opcoes || {});
+      if (!l.ok) return falha(409, "opcao_invalida", `Confira as escolhas de "${prod.nome}": alguma opção mudou ou falta escolher.`);
+      linhaDe.set(n, l);
+    }
 
-    // Mínimo e grátis-acima do dono: a mesma conta que a página mostra (taxaDeEntrega).
-    const subtotal = centavos(pedido.itens.reduce((s, i) => s + preco.get(i.id) * i.quantidade, 0));
-    const regras = taxaDeEntrega(subtotal, cardapio, pedido.tipo);
+    // Mínimo e grátis-acima do dono: a mesma conta que a página mostra.
+    // Promoções de pedido ("pegue X, leve Y", frete grátis) entram na mesma conta da tela.
+    const regras = totalDoCarrinho(pedido.itens, cardapio, { tipo: pedido.tipo });
     if (regras.falta_minimo > 0) {
       return falha(409, "pedido_minimo", `O pedido mínimo para entrega é R$ ${cardapio.entrega.pedido_minimo.toFixed(2).replace(".", ",")}.`);
     }
-    const taxa = regras.taxa;
-    const bruto = centavos(subtotal + taxa);
+    const descontoPromo = regras.desconto_promocoes;
+    const bruto = regras.total;
 
     // Desconto do cadastro pelo QR: o banco diz se este telefone tem e quanto
     // (primeiro pedido ou todos, validade). Sem a migração, não há desconto.
     let descontoCadastro = 0;
     if (pedido.telefone && carga.fidelidade?.ativo && carga.fidelidade.cadastro?.ativo) {
       const { data: pct, error: eD } = await db.rpc("fidelidade_desconto_cadastro", { p_unidade: pedido.unidade, p_telefone: pedido.telefone });
-      if (!eD && Number(pct) > 0) descontoCadastro = descontoDoCadastro(subtotal, pct);
+      if (!eD && Number(pct) > 0) descontoCadastro = descontoDoCadastro(regras.base_cadastro, pct);
     }
 
     // Cashback: telefone provado por pedido concluído deste aparelho, saldo do
@@ -312,8 +362,13 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       if (!(cashbackUsado > 0)) return falha(409, "cashback_sem_saldo", "Não há cashback disponível agora. Envie sem ele.");
     }
     const total = centavos(bruto - descontoCadastro - cashbackUsado);
-    const desconto = centavos(descontoCadastro + cashbackUsado);
-    const origem = [descontoCadastro > 0 ? "cadastro" : "", cashbackUsado > 0 ? "cashback" : ""].filter(Boolean).join("+");
+    const desconto = centavos(descontoPromo + descontoCadastro + cashbackUsado);
+    const origem = [descontoPromo > 0 ? "promocao" : "", descontoCadastro > 0 ? "cadastro" : "", cashbackUsado > 0 ? "cashback" : ""].filter(Boolean).join("+");
+    // Troco para menos que o total não serve para nada: o cliente corrige antes.
+    const troco = pedido.pagamento === "dinheiro" ? trocoEmReais(pedido.troco) : null;
+    if (troco != null && troco < total) {
+      return falha(409, "troco_menor", `O troco precisa ser para R$ ${total.toFixed(2).replace(".", ",")} ou mais.`);
+    }
 
     const { data: criado, error: eI } = await db.from("pedidos").insert([{
       unidade_id: pedido.unidade,
@@ -323,6 +378,7 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       cliente_telefone: pedido.telefone,
       endereco_entrega: pedido.endereco,
       troco_para: pedido.troco,
+      ...(pedido.pagamento ? { forma_pagamento: pedido.pagamento } : {}),
       valor_total: total,
       // Só com desconto: sem a FIDELIDADE-1 estas colunas não existem (e aí não há desconto).
       ...(desconto > 0 ? { desconto, desconto_origem: origem } : {}),
@@ -332,13 +388,16 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
     // Combo: cobra o preço do combo e manda cada prato para a cozinha/bar
     // (uma linha por prato, o valor repartido; soma = preço do combo).
     const porIdCardapio = new Map(cardapio.produtos.map((p) => [p.id, p]));
-    const linhas = pedido.itens.flatMap((i) => {
+    const linhas = pedido.itens.flatMap((i, n) => {
       const prod = porIdCardapio.get(i.id);
       if (prod?.combo) {
         const obs = [`Combo: ${prod.nome}`, i.observacao].filter(Boolean).join(" · ").slice(0, 200);
         return linhasDoCombo(prod, i.quantidade).map((l) => ({ ...l, observacao: obs }));
       }
-      return [{ produto_id: i.id, quantidade: i.quantidade, valor_unitario: preco.get(i.id), observacao: i.observacao }];
+      // Com complementos: o preço da linha já com eles, e a cozinha lê as escolhas na observação.
+      const l = linhaDe.get(n);
+      const obs = [l?.texto, i.observacao].filter(Boolean).join(" · ").slice(0, 200);
+      return [{ produto_id: i.id, quantidade: i.quantidade, valor_unitario: l ? l.preco : preco.get(i.id), observacao: obs }];
     });
     const { error: eItens } = await db.from("pedidos_itens").insert(linhas.map((l) => ({
       pedido_id: criado.id,
@@ -364,7 +423,7 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       }
     }
     return {
-      ok: true, id: criado.id, total, taxa, cashback: cashbackUsado, desconto: descontoCadastro,
+      ok: true, id: criado.id, total, taxa: regras.taxa, cashback: cashbackUsado, desconto: descontoCadastro,
       itens: pedido.itens.map((i) => ({ id: i.id, quantidade: i.quantidade, preco: preco.get(i.id) })),
     };
   } catch {
@@ -450,6 +509,60 @@ async function saldoNoLivro({ db, unidade, telefone, cfg }) {
 }
 
 /**
+ * Área do cliente (ClienteArea / Minha fidelidade): nome, pedidos concluídos
+ * deste telefone com o que economizou em cada um e o código do prêmio de
+ * cartão completo. Só para o telefone que o próprio aparelho provou. Cada
+ * parte que faltar no banco volta vazia, sem derrubar o resto.
+ */
+async function areaDoCliente({ db, unidade, telefone, cfg, cartoes }) {
+  const saida = { nome: "", cliente_desde: null, pedidos: [], totais: { pedidos: 0, pago: 0, desconto: 0, cashback_usado: 0 }, premios: {} };
+  try {
+    const fim = telefone.slice(-4);
+    const [rC, rP, rM] = await Promise.all([
+      db.from("clientes").select("nome, tel, cadastro_em, created_at").eq("unidade_id", unidade).ilike("tel", `%${fim}`).limit(50),
+      db.from("pedidos").select("id, created_at, tipo_pedido, valor_total, desconto, status, cliente_telefone")
+        .eq("unidade_id", unidade).ilike("cliente_telefone", `%${fim}%`).in("status", [...STATUS_CONCLUIDO]).order("created_at", { ascending: false }).limit(200),
+      db.from("fidelidade_movimentos").select("tipo, selos, valor, pedido_id").eq("unidade_id", unidade).eq("cliente_tel", telefone).not("pedido_id", "is", null).limit(2000),
+    ]);
+    const cli = (rC.data || []).find((c) => normalizarTelefone(c.tel) === telefone);
+    if (cli) { saida.nome = String(cli.nome || "").split(" ")[0]; saida.cliente_desde = cli.cadastro_em || cli.created_at || null; }
+    const meus = (rP.data || []).filter((p) => normalizarTelefone(p.cliente_telefone) === telefone);
+    const porPedido = new Map();
+    for (const m of rM.data || []) {
+      const x = porPedido.get(m.pedido_id) || { selos: 0, cashback: 0, usado: 0 };
+      if (m.tipo === "selo") x.selos += Number(m.selos) || 0;
+      if (m.tipo === "cashback") x.cashback += Number(m.valor) || 0;
+      if (m.tipo === "cashback_uso") x.usado += -(Number(m.valor) || 0);
+      porPedido.set(m.pedido_id, x);
+    }
+    const ultimos = meus.slice(0, 10);
+    const rI = ultimos.length ? await db.from("pedidos_itens").select("pedido_id, produto_id, quantidade").in("pedido_id", ultimos.map((p) => p.id)) : { data: [] };
+    const itens = new Map();
+    for (const i of rI.data || []) (itens.get(i.pedido_id) || itens.set(i.pedido_id, []).get(i.pedido_id)).push({ id: String(i.produto_id), quantidade: Number(i.quantidade) || 0 });
+    for (const p of meus) {
+      const f = porPedido.get(p.id) || { selos: 0, cashback: 0, usado: 0 };
+      saida.totais.pedidos += 1;
+      saida.totais.pago = centavos(saida.totais.pago + (Number(p.valor_total) || 0));
+      saida.totais.desconto = centavos(saida.totais.desconto + Math.max(0, (Number(p.desconto) || 0) - f.usado));
+      saida.totais.cashback_usado = centavos(saida.totais.cashback_usado + f.usado);
+    }
+    saida.pedidos = ultimos.map((p) => {
+      const f = porPedido.get(p.id) || { selos: 0, cashback: 0, usado: 0 };
+      return { id: p.id, em: p.created_at, tipo: p.tipo_pedido || "", total: centavos(Number(p.valor_total) || 0), economizou: centavos(Number(p.desconto) || 0),
+        cashback: centavos(f.cashback), selos: f.selos, itens: itens.get(p.id) || [] };
+    });
+    // Cartão completo: o código que a equipe confere (FIDELIDADE-2). Sem a migração, fica sem código.
+    for (const c of normalizarFidelidade(cfg).cartoes) {
+      if (!(cartoes?.[c.id]?.completos > 0)) continue;
+      const { data, error } = await db.rpc("fidelidade_gerar_premio", { p_unidade: unidade, p_telefone: telefone, p_cartao: c.id });
+      if (error) break;
+      if (data?.ok) saida.premios[c.id] = { codigo: data.codigo, valido_ate: data.valido_ate, completo_em: data.completo_em };
+    }
+  } catch { /* área parcial: o saldo continua valendo */ }
+  return saida;
+}
+
+/**
  * Saldo de fidelidade deste aparelho. Sem pedido concluído: só as regras
  * (o cardápio já mostra). Livro ainda não criado no banco: disponivel=false.
  */
@@ -466,7 +579,8 @@ export async function lerFidelidadePublica({ db, unidade, ids }) {
     const s = await saldoNoLivro({ db, unidade, telefone: prova.telefone, cfg });
     if (!s.ok) return s;
     if (!s.disponivel) return { ok: true, ativo: true, identificado: true, disponivel: false, final: prova.telefone.slice(-4) };
-    return { ok: true, ativo: true, identificado: true, disponivel: true, final: prova.telefone.slice(-4), cartoes: s.saldo.cartoes, cashback: s.saldo.cashback };
+    const area = await areaDoCliente({ db, unidade, telefone: prova.telefone, cfg, cartoes: s.saldo.cartoes });
+    return { ok: true, ativo: true, identificado: true, disponivel: true, final: prova.telefone.slice(-4), cartoes: s.saldo.cartoes, cashback: s.saldo.cashback, ...area };
   } catch {
     return falha(503, "indisponivel", "Indisponível no momento.");
   }
@@ -507,6 +621,70 @@ export async function cadastrarClientePublico({ db, unidade, corpo }) {
       return falha(503, "indisponivel", "Cadastro indisponível no momento.");
     }
     return { ok: true, desconto_pct: cfg.cadastro.desconto_pct, aplica: cfg.cadastro.aplica, final: c.telefone.slice(-4) };
+  } catch {
+    return falha(503, "indisponivel", "Cadastro indisponível no momento.");
+  }
+}
+
+// ─── ENTRAR / CADASTRAR PELO CPF (tablet da mesa e QR) ───────────────────────
+//
+// O CPF acha a ficha do cliente (FIDELIDADE-3). Para a tela volta só o
+// primeiro nome e o DESCONTO que ele ganha; o telefone fica no servidor.
+
+const ERROS_CPF = {
+  nome: "Digite seu nome completo.", cpf: "Confira o CPF.", telefone: "Digite seu WhatsApp com DDD.", aniversario: "Confira a data de nascimento.",
+  uf: "Escolha o estado.", cidade: "Digite o município.", bairro: "Digite o bairro.", aceite: "Para se cadastrar, aceite o uso dos seus dados.",
+};
+
+async function descontoDoCliente(db, unidade, tel) {
+  const { data, error } = await db.rpc("fidelidade_desconto_cadastro", { p_unidade: unidade, p_telefone: tel });
+  return !error && Number(data) > 0 ? Number(data) : 0;
+}
+
+export async function entrarPorCpf({ db, unidade, cpf }) {
+  if (!idValido(unidade)) return falha(404, "nao_encontrado", "Link inválido.");
+  const d = cpfValido(cpf);
+  if (!d) return { ...falha(400, "cpf", ERROS_CPF.cpf), campo: "cpf" };
+  try {
+    const { data, error } = await db.rpc("fidelidade_cliente_do_cpf", { p_unidade: unidade, p_cpf: d });
+    if (error) return FUNCAO_FALTANDO.test(error.message || "") ? falha(503, "cpf_indisponivel", "Entrar com CPF ainda não está disponível.") : falha(503, "indisponivel", "Indisponível no momento.");
+    if (!data?.ok) return { ok: true, encontrado: false };
+    return { ok: true, encontrado: true, nome: String(data.nome || "").trim().split(/\s+/)[0], desconto_pct: await descontoDoCliente(db, unidade, data.tel) };
+  } catch {
+    return falha(503, "indisponivel", "Indisponível no momento.");
+  }
+}
+
+export async function cadastrarPorCpf({ db, unidade, corpo }) {
+  if (!idValido(unidade)) return falha(404, "nao_encontrado", "Link inválido.");
+  const c = corpo && typeof corpo === "object" ? corpo : {};
+  const nome = texto(c.nome, 80);
+  const cpf = cpfValido(c.cpf);
+  const tel = soDigitos(c.telefone);
+  const nasc = /^\d{4}-\d{2}-\d{2}$/.test(String(c.aniversario || "")) ? String(c.aniversario) : "";
+  const uf = UFS.includes(String(c.uf || "").toUpperCase()) ? String(c.uf).toUpperCase() : "";
+  const cidade = texto(c.cidade, 80);
+  const bairro = texto(c.bairro, 80);
+  const erro = (campo) => ({ ...falha(400, campo, ERROS_CPF[campo]), campo });
+  if (!nome || nome.split(/\s+/).length < 2) return erro("nome");
+  if (!cpf) return erro("cpf");
+  if (!nasc || nasc > new Date().toISOString().slice(0, 10) || nasc < "1900-01-01") return erro("aniversario");
+  if (!uf) return erro("uf");
+  if (!cidade) return erro("cidade");
+  if (!bairro) return erro("bairro");
+  if (tel.length < 10 || tel.length > 13) return erro("telefone");
+  if (c.aceite !== true) return erro("aceite");
+  try {
+    const { error } = await db.rpc("fidelidade_cadastrar_cpf", {
+      p_unidade: unidade, p_nome: nome, p_cpf: cpf, p_telefone: tel, p_aniversario: nasc, p_uf: uf, p_cidade: cidade, p_bairro: bairro, p_novidades: c.novidades === true,
+    });
+    if (error) {
+      if (FUNCAO_FALTANDO.test(error.message || "")) return falha(503, "cpf_indisponivel", "O cadastro com CPF ainda não está disponível.");
+      if (/CPF inválido/i.test(error.message || "")) return erro("cpf");
+      return falha(503, "indisponivel", "Cadastro indisponível no momento.");
+    }
+    const r = await entrarPorCpf({ db, unidade, cpf });
+    return r.ok ? { ok: true, nome: r.nome || nome.split(/\s+/)[0], desconto_pct: r.desconto_pct || 0 } : r;
   } catch {
     return falha(503, "indisponivel", "Cadastro indisponível no momento.");
   }

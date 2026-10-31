@@ -10,6 +10,7 @@ import { fmtBRL } from "../../../components/ui";
 import { comFecharImpressao } from "../../../lib/imprimir";
 import { salvarCargo, removerCargo, atualizarColaborador, registrarPromocaoColaborador } from "../../../lib/rh";
 import CampoDecimal from "../../../components/CampoDecimal";
+import { solicitarTransicao, decidirTransicao } from "../../../lib/vinculos-dados";
 
 // ── CERTIFICADO OFICIAL DE PROMOÇÃO (PDF LANDSCAPE) ──────────────────────────
 export const imprimirCertificadoPromocao = (colaboradorNome, cargoAnterior, cargoNovo, remuneralTotal, unidadeInfo) => {
@@ -302,10 +303,11 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
     const taxa = Number(cargoAlocar.taxa_servico) || Number(f?.taxa_servico_mes) || 0;
     const remTotal = salarioBase + va + taxa;
 
-    // 1. Atualizar cadastro do colaborador
+    // 1. Cargo e benefícios no cadastro. O salário NÃO muda direto: vai como
+    // alteração salarial do vínculo (aprovação + histórico), igual ao prontuário.
+    // Antes o cadastro mudava e o vínculo ficava com o salário antigo.
     const { error } = await atualizarColaborador(funcSelecionadoId, {
       cargo: cargoAlocar.nome,
-      salario: salarioBase,
       vale_alimentacao: va,
       taxa_servico_mes: taxa
     });
@@ -315,18 +317,36 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
       return alert("Erro ao promover/alocar colaborador: " + error);
     }
 
+    let avisoSalario = "";
+    if (Number(salarioBase) > 0 && Number(salarioBase) !== Number(salarioAnterior)) {
+      const hojeLocal = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
+      const pedido = await solicitarTransicao({
+        colaboradorId: f.id, tipo: "alteracao_salarial", vigencia: hojeLocal,
+        dados: { salario: Number(salarioBase) }, motivo: motivoPromocao || `Promoção para ${cargoAlocar.nome}`,
+      });
+      if (pedido.error) avisoSalario = `O salário não mudou: ${pedido.error}`;
+      else {
+        const decisao = await decidirTransicao(pedido.id, true, "Aprovado na promoção (Cargos)");
+        avisoSalario = decisao.error
+          ? "O novo salário ficou aguardando aprovação no prontuário (aba Contratos)."
+          : "";
+      }
+    }
+
     // 2. Registrar no Histórico de Promoções (Item 3)
     const hist = await registrarPromocaoColaborador({
       colaborador_id: f.id,
       unidade_id: f.unidade_id || unidadeAtiva,
       cargo_anterior: cargoAnterior,
       cargo_novo: cargoAlocar.nome,
+      // o salário entra no histórico pela aprovação do vínculo
       salario_anterior: salarioAnterior,
-      salario_novo: salarioBase,
+      salario_novo: salarioAnterior,
       motivo: motivoPromocao,
       responsavel: "Gestão"
     });
     if (hist.error) alert("O cadastro foi atualizado, mas a promoção não entrou no histórico: " + hist.error);
+    if (avisoSalario) alert(avisoSalario);
 
     setSaving(false);
     setModalAlocar(false);

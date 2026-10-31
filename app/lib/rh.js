@@ -45,11 +45,6 @@ export async function inserirColaborador(colab) {
   return { data, error: error?.message, colunasIgnoradas };
 }
 
-export async function removerColaborador(id) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const { error } = await supabase.from("colaboradores").delete().eq("id", id);
-  return { error: error?.message };
-}
 
 // ─── DESLIGAMENTO (arquivo de ex-funcionários) ───────────────────────────────
 // Não apaga: marca como inativo e guarda data/motivo/tipo. A vida (ponto,
@@ -189,7 +184,6 @@ export async function removerDocumento(docId, url_arquivo) {
 export async function fetchFuncionarios() { return { data: [], error: null }; }
 
 export const inserirFuncionario = inserirColaborador;
-export const removerFuncionario = removerColaborador;
 export const atualizarFuncionario = async (id, dados) => {
   if (!isSupabaseReady()) return { data: null, error: "Offline", colunasIgnoradas: [] };
   let res = await supabase.from("colaboradores").update(dados).eq("id", id).select().single();
@@ -202,46 +196,6 @@ export const atualizarFuncionario = async (id, dados) => {
 };
 export const atualizarColaborador = atualizarFuncionario;
 
-// Escala: grava a ordem e/ou a área do colaborador (arrastar para reordenar e
-// mover entre áreas). Se as colunas `ordem_escala`/`area_escala` ainda não
-// existirem, o retry as remove (no-op) até rodar a migração.
-export async function atualizarEscalaColab(id, campos) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const c = { ...campos };
-  let { error } = await supabase.from("colaboradores").update(c).eq("id", id);
-  error = await colabRetrySemColuna(error, async () => {
-    const r = await supabase.from("colaboradores").update(c).eq("id", id); return r.error;
-  }, c);
-  return { error: error?.message };
-}
-export async function atualizarOrdemEscala(id, ordem_escala) {
-  return atualizarEscalaColab(id, { ordem_escala });
-}
-
-// Escalas salvas (mais recentes primeiro) — para rever/reimprimir dias passados
-export async function fetchEscalasDia(unidadeId, limite = 30) {
-  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
-  const { data, error } = await supabase.from("escalas_dia")
-    .select("*").eq("unidade_id", unidadeId)
-    .order("data", { ascending: false }).limit(limite);
-  return { data: data || [], error: error?.message };
-}
-
-// Salva a foto da escala do dia (1 registro por unidade+data; regrava se já existir)
-export async function salvarEscalaDia(unidadeId, dataDia, escala) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const { data: exist } = await supabase.from("escalas_dia")
-    .select("id").eq("unidade_id", unidadeId).eq("data", dataDia).limit(1);
-  if (exist && exist.length) {
-    const { error } = await supabase.from("escalas_dia").update({ escala }).eq("id", exist[0].id);
-    return { error: error?.message, atualizada: true };
-  }
-  const { error } = await supabase.from("escalas_dia").insert([{ unidade_id: unidadeId, data: dataDia, escala }]);
-  return { error: error?.message };
-}
-
-export async function fetchPontoMes(unidadeId, mesAno) { return { data: [], error: null }; }
-export async function registrarPonto(dados) { return { data: null, error: null }; }
 
 export const CARGOS_PADRAO_INICIAIS = [
   { id: "cfg-1", nome: "Auxiliar de Cozinha 1", departamento: "Cozinha", nivel: "Auxiliar I", salario_base: 1600, vale_alimentacao: 300, taxa_servico: 200, descricao: "Apoio no pré-preparo, higienização de insumos e organização da praça.", requisitos: ["Sem experiência prévia necessária", "Vontade de aprender e trabalho em equipe", "Pontualidade e cumprimento de higienização"] },
@@ -346,21 +300,8 @@ export async function removerCargo(id) {
   return { error: error?.message };
 }
 
-// ── Liberação de ponto do EXTRA/FREELANCER por dia ─────────────────────────────
-// O gerente libera a diária de um dia; só então o extra pode bater o ponto.
-export async function liberarPontoDia(colaboradorId, unidadeId, data, valorDiaria) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const payload = { colaborador_id: colaboradorId, unidade_id: unidadeId, data, valor_diaria: Number(valorDiaria) || 0 };
-  const { error } = await supabase.from("rh_ponto_liberado").insert([payload]);
-  return { error: error?.message };
-}
-export async function fetchLiberacoesDia(unidadeId, data) {
-  if (!isSupabaseReady()) return { data: [] };
-  let q = supabase.from("rh_ponto_liberado").select("*").eq("data", data);
-  if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
-  const { data: d, error } = await q;
-  return { data: d || [], error: error?.message };
-}
+// ── Liberações antigas de diária do extra (só leitura no histórico do extra) ──
+// A tabela rh_ponto_liberado não existe em produção: a leitura volta vazia.
 export async function fetchLiberacoesColab(colaboradorId, limite = 90) {
   if (!isSupabaseReady()) return { data: [] };
   const { data, error } = await supabase.from("rh_ponto_liberado").select("*").eq("colaborador_id", colaboradorId).order("data", { ascending: false }).limit(limite);

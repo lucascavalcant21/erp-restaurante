@@ -60,7 +60,9 @@ const LISTAS = {
   producoes: { label: "Tarefas e produções", icon: ClipboardList, fetch: fetchProducoes, insert: inserirProducao, remove: removerProducao,
     campos: [{ k: "titulo", label: "Tarefa" }, { k: "descricao", label: "Descrição" }, { k: "periodo", label: "Período", select: ["dia", "semana"] }],
     titulo: (x) => x.titulo, sub: (x) => `${x.periodo === "semana" ? "Semanal" : "Diária"} · ${x.status || "pendente"}` },
-  holerites: { label: "Holerites", icon: DollarSign, fetch: fetchHolerites, insert: inserirHolerite, remove: removerHolerite, upload: true,
+  // Holerite nasce do Fechar folha (um por pessoa e mês). Lançar à mão aqui criava
+  // outro para o mesmo mês: a lista fica só de consulta.
+  holerites: { label: "Holerites", icon: DollarSign, fetch: fetchHolerites, insert: inserirHolerite, remove: null, somenteLeitura: true, upload: true,
     campos: [{ k: "mes", label: "Mês (1-12)", num: true }, { k: "ano", label: "Ano", num: true }, { k: "bruto", label: "Bruto (R$)", num: true }, { k: "liquido", label: "Líquido (R$)", num: true }],
     titulo: (x) => `${String(x.mes).padStart(2, "0")}/${x.ano}`, sub: (x) => `Líquido ${fmtBRL(x.liquido)}` },
   cursos: { label: "Cursos e treinamentos", icon: GraduationCap, fetch: fetchCursos, insert: inserirCurso, remove: removerCurso, upload: true,
@@ -163,7 +165,7 @@ function ListaDoProntuario({ chave, func, podeEditar, opcoesDinamicas, onAviso }
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <SectionLabel>{lista.label}</SectionLabel>
-        {podeEditar && <Btn variant="primary" className="!h-8 text-2xs no-print" onClick={() => setModal(true)}>+ Novo</Btn>}
+        {podeEditar && !lista.somenteLeitura && <Btn variant="primary" className="!h-8 text-2xs no-print" onClick={() => setModal(true)}>+ Novo</Btn>}
       </div>
       {itens === null ? <EmptyState icon={lista.icon} title="Carregando..." /> : itens.length === 0 ? (
         <EmptyState icon={lista.icon} title={`Nenhum registro em ${lista.label.toLowerCase()}`} />
@@ -380,7 +382,7 @@ export default function ProntuarioColaboradorPage() {
                 {func.motivo_desligamento && <Linha rotulo="Motivo" valor={func.motivo_desligamento} />}
               </Card>
             )}
-            <ListaDoProntuario chave="historico" func={func} podeEditar={podeEditar} opcoesDinamicas={opcoesDinamicas} onAviso={setAviso} />
+            {/* O histórico de mudanças fica só na aba Histórico (antes aparecia aqui também). */}
           </div>
         )}
 

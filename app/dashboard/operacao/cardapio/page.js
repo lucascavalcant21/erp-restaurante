@@ -10,7 +10,7 @@
 // mesas para o "Experience", que mostrava pratos de demonstração (B-028).
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Eye, Loader2, Save, UtensilsCrossed, X, ExternalLink } from "lucide-react";
+import { Check, Eye, Loader2, Save, UtensilsCrossed, X, ExternalLink } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { PageBody, PageHeader } from "../../../components/ui";
 import {
@@ -169,13 +169,15 @@ export default function CardapioEditorPage() {
 
   return (
     <>
-      <PageHeader title="Cardápio" subtitle="Produtos, posição, descrição, combos, promoções e descontos do cardápio da mesa (QR Code) e do delivery." icon={UtensilsCrossed} back={false}>
+      <PageHeader title="Cardápio" subtitle="Cardápio da mesa (QR Code) e do delivery." icon={UtensilsCrossed} back={false}>
         <a href={caminhoDoCardapio(unidadeAtiva)} target="_blank" rel="noreferrer"
-          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-4 text-sm font-bold text-hf-text hover:bg-hf-elevated">
+          className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-4 text-sm font-bold text-hf-text hover:bg-hf-elevated md:flex-none">
           <ExternalLink size={16} /> Abrir cardápio
         </a>
-        <Botao onClick={salvar} disabled={!mudou || salvando || !config}>
-          {salvando ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {salvando ? "Salvando…" : mudou ? "Salvar" : "Tudo salvo"}
+        {/* Salvo: botão claro e legível (o verde apagado deixava o texto branco sumido). */}
+        <Botao onClick={salvar} disabled={!mudou || salvando || !config} variante={mudou || salvando ? "primario" : "secundario"}
+          className={`flex-1 md:flex-none ${mudou || salvando ? "" : "disabled:opacity-100"}`}>
+          {salvando ? <Loader2 size={16} className="animate-spin" /> : mudou ? <Save size={16} /> : <Check size={16} className="text-hf-accent" />} {salvando ? "Salvando…" : mudou ? "Salvar" : "Tudo salvo"}
         </Botao>
       </PageHeader>
       <PageBody>
@@ -186,10 +188,13 @@ export default function CardapioEditorPage() {
         ) : (
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
             <div className="min-w-0 space-y-4">
-              <div role="tablist" aria-label="Partes do cardápio" className="flex flex-wrap gap-1 rounded-xl bg-hf-elevated p-1">
+              {/* No celular as abas correm numa linha só (arrasta para o lado); a aba escolhida vem para a vista. */}
+              <div role="tablist" aria-label="Partes do cardápio"
+                className="-mx-3 flex snap-x gap-1 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:rounded-xl sm:bg-hf-elevated sm:p-1 [&::-webkit-scrollbar]:hidden">
                 {ABAS.map((a) => (
-                  <button key={a.id} type="button" role="tab" aria-selected={aba === a.id} onClick={() => setAba(a.id)}
-                    className={`min-h-[40px] flex-auto whitespace-nowrap rounded-lg px-3 text-sm font-semibold transition ${aba === a.id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2 hover:text-hf-text"}`}>
+                  <button key={a.id} type="button" role="tab" aria-selected={aba === a.id}
+                    onClick={(e) => { setAba(a.id); e.currentTarget.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }}
+                    className={`min-h-[40px] flex-none snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition sm:flex-auto sm:rounded-lg sm:border-0 sm:px-3 ${aba === a.id ? "border-hf-accent bg-hf-accent text-hf-accent-fg sm:bg-hf-surface sm:text-hf-text sm:shadow-sm" : "border-hf-border bg-hf-surface text-hf-text-2 hover:text-hf-text sm:bg-transparent"}`}>
                     {a.rotulo}
                   </button>
                 ))}

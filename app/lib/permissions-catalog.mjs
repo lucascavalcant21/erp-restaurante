@@ -232,7 +232,7 @@ export const PERMISSION_MODULES = [
     pages: [
       { id: "events", label: "Eventos", route: "/dashboard/eventos", actions: [...CRUD, "approve", "cancel", "view_values", "view_costs", "print", "export"] },
       // Orçamento rápido por pessoa: vê custo das fichas e cria o evento (27/10/2026).
-      { id: "quick_budget", label: "Orçamento rápido por pessoa", route: "/dashboard/reservas-eventos/rapido", actions: ["view", "create", "view_costs"] },
+      { id: "quick_budget", label: "Simulador do evento (mesa, buffet, bar, equipe)", route: "/dashboard/reservas-eventos/rapido", actions: ["view", "create", "view_costs"] },
       { id: "budget", label: "Eventos e Reservas", route: "/dashboard/reservas-eventos/eventos", actions: [...CRUD, "approve", "reject", "view_values", "view_costs", "print"] },
       { id: "operation", label: "Eventos na operação", route: "/dashboard/operacao/eventos", actions: [...CRUD, "confirm", "cancel"] },
       // Cobre por prefixo /dashboard/reservas-eventos/agenda, /reservas e

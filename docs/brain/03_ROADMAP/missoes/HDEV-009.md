@@ -1,7 +1,7 @@
 ---
 id: HDEV-009
 titulo: Orçamento universal de eventos: modalidades combinadas (mesa, buffet, coffee, bar, equipe), visão interna e do cliente, PDF/WhatsApp, versões e pacotes
-status: BACKLOG
+status: IN_PROGRESS
 prioridade: 1
 dependencias: []
 bloqueadores: []
@@ -43,6 +43,16 @@ Um único modelo profissional de proposta para TODAS as modalidades de evento do
 
 - O PDF de referência ("Orçamento Lucas - 130 pax - Confraternização - VI - Menu I") não está no repositório: enviar o arquivo para copiar a organização exata (ou confirmar que a lista de seções acima basta).
 - Logo do Seldeestrela em boa resolução para a capa.
+
+## Feito (etapa 1 — simulador, 31/10/2026)
+
+- **Simulador do evento** em Eventos & Reservas → Simulador (rota /rapido, substitui o Orçamento rápido).
+  - Liga e desliga Mesa montada, Buffet, Bar e Equipe.
+  - Fichas por categoria com ✓; quantidade fechada na mesa, porções ou doses por pessoa no buffet e no bar.
+  - Resultado ao vivo: custo por modalidade, total, por convidado, faturamento, saldo e margem.
+  - "Continuar para precificação" cria o evento com o orçamento montado.
+- Contas em app/lib/evento-simulador.mjs (custo = ficha técnica, o mesmo do orçamento do evento). 5 testes, incluindo o simulador e o orçamento do evento dando o mesmo custo.
+- TESTADO EM MOCK no navegador: mesa R$ 172 fixa; bar R$ 60 → R$ 120 com 20 → 40 convidados; evento criado com itens, equipe e preço por pessoa.
 
 ## Critério de pronto
 

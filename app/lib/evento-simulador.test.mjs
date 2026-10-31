@@ -84,3 +84,25 @@ test("simulação vazia começa com a mesa montada ligada", () => {
   assert.equal(normalizarSimulacao({ modalidades: {} }).modalidades.mesa.ativa, true);
   assert.equal(normalizarSimulacao({ modalidades: { mesa: { ativa: false } } }).modalidades.mesa.ativa, false);
 });
+
+// ── prato próprio na mesa montada ────────────────────────────────────────────
+import { ingredienteDoInsumo, pratoProprioVazio } from "./evento-simulador.mjs";
+
+test("prato próprio: ingrediente do cadastro (preço do produto) + ingrediente digitado; segue para o evento", () => {
+  const carneCad = { id: "carne", nome: "Carne moída", unidade_medida: "kg", preco_normalizado: 40 };
+  const ingCad = { ...ingredienteDoInsumo(carneCad), quantidade: "100", unidade_uso: "g" };           // 0,1 kg × 40 = R$ 4,00
+  assert.deepEqual([ingCad.insumo_id, ingCad.preco_embalagem, ingCad.tamanho_embalagem, ingCad.unidade_embalagem], ["carne", "40", "1", "kg"]);
+  const proprio = { nome: "Massa caseira", preco_embalagem: "10", tamanho_embalagem: "1", unidade_embalagem: "kg", quantidade: "50", unidade_uso: "g", aproveitamento_pct: 100 }; // R$ 0,50
+  const prato = { ...pratoProprioVazio(), nome: "Pastel de carne", quantidade: "30", ingredientes: [ingCad, proprio] };
+  const s = normalizarSimulacao({ convidados: "20", modalidades: { mesa: { ativa: true, itens: [prato, { ficha_id: "bol", quantidade: "10" }] } } });
+  const r = calcularSimulacao(s, FICHAS);
+  const linha = r.partes[0].linhas[0];
+  assert.equal(linha.nome, "Pastel de carne");
+  assert.equal(linha.custoPorcao, 4.5);
+  assert.equal(linha.custo, 135, "30 pastéis × R$ 4,50");
+  const orc = orcamentoDaSimulacao(s, FICHAS);
+  assert.equal(orc.cardapio[0].origem, "exclusiva");
+  assert.equal(orc.cardapio[0].medida, "total");
+  const it = itensDoOrcamento(orc, FICHAS)[0];
+  assert.equal(Math.round(it.custoTotalFixo * 100) / 100, 135, "o evento recebe o mesmo custo do prato próprio");
+});

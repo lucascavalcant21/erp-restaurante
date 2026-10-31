@@ -15,9 +15,16 @@
 // "Continuar para precificação" vira o orçamento do evento (orcamentoVazio +
 // cardápio + equipe + extras), onde entram imposto, maquininha e meta.
 // Sem custo na ficha → item marcado e o total vira ESTIMATIVA, nunca zero inventado.
+//
+// PRATO PRÓPRIO na mesa montada (pedido do dono, 31/10/2026): além de pegar um
+// prato das fichas, dá para criar um prato ali mesmo, com ingredientes do
+// cadastro (preço vem do produto) ou ingredientes próprios digitados. É a
+// "ficha exclusiva" do orçamento do evento (custoDaFichaExclusiva): mesmo
+// formato, mesma conta, e ela segue para o evento ao precificar.
 
 import { custoPorcaoDaFicha } from "./evento-financeiro.mjs";
-import { orcamentoVazio } from "./evento-orcamento.mjs";
+import { orcamentoVazio, custoDaFichaExclusiva, ingredienteVazio } from "./evento-orcamento.mjs";
+import { precoNormalizadoDoInsumo } from "./ingredientes-utils.mjs";
 
 const num = (v) => { const x = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(x) && x > 0 ? x : 0; };
 const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
@@ -47,7 +54,9 @@ export function normalizarSimulacao(s) {
   const base = simulacaoVazia();
   if (!s || typeof s !== "object") return base;
   const m = s.modalidades || {};
-  const itens = (x) => (Array.isArray(x?.itens) ? x.itens : []).filter((i) => i && i.ficha_id).map((i) => ({ id: i.id || novoId(), ficha_id: i.ficha_id, quantidade: i.quantidade ?? "", por_pessoa: i.por_pessoa ?? "" }));
+  const itens = (x) => (Array.isArray(x?.itens) ? x.itens : []).filter((i) => i && (i.ficha_id || i.origem === "exclusiva")).map((i) => (i.origem === "exclusiva"
+    ? { id: i.id || novoId(), origem: "exclusiva", nome: String(i.nome || ""), ingredientes: Array.isArray(i.ingredientes) ? i.ingredientes : [], quantidade: i.quantidade ?? "", por_pessoa: i.por_pessoa ?? "" }
+    : { id: i.id || novoId(), ficha_id: i.ficha_id, quantidade: i.quantidade ?? "", por_pessoa: i.por_pessoa ?? "" }));
   return {
     nome: String(s.nome || ""), convidados: s.convidados ?? "", preco_por_pessoa: s.preco_por_pessoa ?? "", outros_custos: s.outros_custos ?? "",
     modalidades: {
@@ -69,11 +78,12 @@ export function calcularSimulacao(sim, fichas = []) {
   const convidados = num(s.convidados);
   let semCusto = 0;
   const linhaDaFicha = (i, modo) => {
-    const ficha = porId.get(i.ficha_id) || null;
-    const custoPorcao = ficha ? (custoPorcaoDaFicha(ficha, fichas) || 0) : 0;
+    const exclusiva = i.origem === "exclusiva";
+    const ficha = exclusiva ? null : porId.get(i.ficha_id) || null;
+    const custoPorcao = exclusiva ? custoDaFichaExclusiva(i.ingredientes).custoPorcao : ficha ? (custoPorcaoDaFicha(ficha, fichas) || 0) : 0;
     const qtd = modo === "mesa" ? num(i.quantidade) : num(i.por_pessoa) * convidados;
     if (!(custoPorcao > 0) && qtd > 0) semCusto += 1;
-    return { id: i.id, ficha_id: i.ficha_id, nome: ficha?.nome_receita || "Ficha removida", custoPorcao: r2(custoPorcao), porcoes: Math.round(qtd * 100) / 100, custo: r2(custoPorcao * qtd), semCusto: !(custoPorcao > 0) };
+    return { id: i.id, ficha_id: i.ficha_id || null, exclusiva, nome: exclusiva ? (i.nome || "Prato próprio") : ficha?.nome_receita || "Ficha removida", custoPorcao: r2(custoPorcao), porcoes: Math.round(qtd * 100) / 100, custo: r2(custoPorcao * qtd), semCusto: !(custoPorcao > 0) };
   };
   const partes = [];
   for (const m of MODALIDADES) {
@@ -114,6 +124,9 @@ export function orcamentoDaSimulacao(sim, fichas = [], params = {}) {
   const orc = orcamentoVazio(params);
   orc.tipo = "buffet";
   const item = (i, extra) => {
+    if (i.origem === "exclusiva") {
+      return { id: novoId(), origem: "exclusiva", nome: i.nome || "Prato próprio", descricao: "", ingredientes: i.ingredientes.map((g) => ({ ...g })), receita_pendente: false, ...extra };
+    }
     const f = porId.get(i.ficha_id);
     return { id: novoId(), origem: "ficha", ficha_id: i.ficha_id, nome: f?.nome_receita || "", descricao: "", custo_porcao_gravado: f ? (custoPorcaoDaFicha(f, fichas) || 0) : 0, ...extra };
   };
@@ -128,3 +141,14 @@ export function orcamentoDaSimulacao(sim, fichas = [], params = {}) {
   if (num(s.preco_por_pessoa)) orc.financeiro.preco_por_pessoa = num(s.preco_por_pessoa);
   return orc;
 }
+
+/** Ingrediente do cadastro para o prato próprio: preço do produto por kg, L ou unidade. */
+export function ingredienteDoInsumo(insumo) {
+  const u = String(insumo?.unidade_medida || "").toLowerCase();
+  const familia = ["kg", "g"].includes(u) ? ["kg", "g"] : ["l", "ml"].includes(u) ? ["L", "ml"] : ["un", "un"];
+  const preco = precoNormalizadoDoInsumo(insumo);
+  return { ...ingredienteVazio(), insumo_id: insumo?.id || null, nome: insumo?.nome || "", preco_embalagem: preco > 0 ? String(Math.round(preco * 100) / 100) : "", tamanho_embalagem: "1", unidade_embalagem: familia[0], unidade_uso: familia[1] };
+}
+
+/** Prato próprio vazio (mesa montada). */
+export const pratoProprioVazio = () => ({ id: novoId(), origem: "exclusiva", nome: "", ingredientes: [], quantidade: "10", por_pessoa: "" });

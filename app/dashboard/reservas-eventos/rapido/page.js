@@ -13,11 +13,12 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Loader2, Minus, Plus, Search, Trash2 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
-import { fetchFichas } from "../../../lib/operacao";
+import { fetchFichas, fetchInsumos } from "../../../lib/operacao";
 import { fetchParamsDaCasa, PARAMS_PADRAO } from "../../../lib/parametros";
 import { catalogoDeFichas, filtrarCatalogo } from "../../../lib/evento-rapido.mjs";
-import { MODALIDADES, simulacaoVazia, calcularSimulacao, orcamentoDaSimulacao } from "../../../lib/evento-simulador.mjs";
-import { resumoDoOrcamento, camposDoEventoParaGravar, mensagemErroEvento } from "../../../lib/evento-orcamento.mjs";
+import { MODALIDADES, simulacaoVazia, calcularSimulacao, orcamentoDaSimulacao, ingredienteDoInsumo, pratoProprioVazio } from "../../../lib/evento-simulador.mjs";
+import { resumoDoOrcamento, camposDoEventoParaGravar, mensagemErroEvento, custoDaFichaExclusiva, ingredienteVazio, UNIDADES } from "../../../lib/evento-orcamento.mjs";
+import { casaBusca } from "../../../lib/busca.mjs";
 
 const brl = (v) => (v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 const fmtQ = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
@@ -45,11 +46,73 @@ function Contador({ valor, onChange, passo, rotulo, sufixo }) {
   );
 }
 
+// Prato próprio da mesa montada: ingredientes do cadastro (preço do produto) ou digitados
+function PratoProprio({ prato, insumos, linha, onMudar, onRemover }) {
+  const [busca, setBusca] = useState("");
+  const custo = custoDaFichaExclusiva(prato.ingredientes);
+  const achados = busca.trim().length >= 2 ? insumos.filter((i) => casaBusca(i.nome, busca)).slice(0, 6) : [];
+  const mudarIng = (id, campos) => onMudar((p) => { const g = p.ingredientes.find((x) => x.id === id); if (g) Object.assign(g, campos); });
+  const campo = "h-10 min-w-0 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent";
+  return (
+    <div className="rounded-2xl border border-hf-border bg-hf-elevated/60 p-4">
+      <div className="flex items-center gap-2">
+        <input value={prato.nome} onChange={(e) => onMudar((p) => { p.nome = e.target.value; })} placeholder="Nome do prato (ex.: Pastel de carne)" aria-label="Nome do prato próprio" className={`${campo} h-11 w-full text-base font-black`} />
+        <button type="button" onClick={onRemover} aria-label={`Remover ${prato.nome || "prato próprio"}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-hf-muted hover:text-hf-danger"><Trash2 size={16} /></button>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {prato.ingredientes.map((g) => {
+          const unUso = g.insumo_id ? (g.unidade_embalagem === "kg" ? ["g", "kg"] : g.unidade_embalagem === "L" ? ["ml", "L"] : ["un"]) : UNIDADES;
+          const lc = custo.linhas.find((l) => l.id === g.id);
+          return (
+            <li key={g.id} className="rounded-2xl bg-hf-surface p-3">
+              <div className="flex items-center gap-2">
+                {g.insumo_id
+                  ? <p className="min-w-0 flex-1 truncate text-sm font-bold text-hf-text">{g.nome} <span className="font-normal text-hf-muted">· do cadastro, {g.preco_embalagem ? `R$ ${g.preco_embalagem}/${g.unidade_embalagem}` : "sem preço"}</span></p>
+                  : <input value={g.nome} onChange={(e) => mudarIng(g.id, { nome: e.target.value })} placeholder="Ingrediente próprio" aria-label="Nome do ingrediente próprio" className={`${campo} flex-1`} />}
+                <span className="text-sm font-bold tabular-nums text-hf-text">{lc?.custo ? brl(lc.custo) : "—"}</span>
+                <button type="button" onClick={() => onMudar((p) => { p.ingredientes = p.ingredientes.filter((x) => x.id !== g.id); })} aria-label={`Remover ${g.nome || "ingrediente"}`} className="text-hf-muted hover:text-hf-danger"><Trash2 size={15} /></button>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-hf-text-2">
+                {!g.insumo_id && <>
+                  <span>Embalagem R$</span><input inputMode="decimal" value={g.preco_embalagem} onChange={(e) => mudarIng(g.id, { preco_embalagem: e.target.value })} placeholder="12,00" aria-label="Preço da embalagem" className={`${campo} w-20`} />
+                  <span>de</span><input inputMode="decimal" value={g.tamanho_embalagem} onChange={(e) => mudarIng(g.id, { tamanho_embalagem: e.target.value })} placeholder="1" aria-label="Tamanho da embalagem" className={`${campo} w-16`} />
+                  <select value={g.unidade_embalagem} onChange={(e) => mudarIng(g.id, { unidade_embalagem: e.target.value })} aria-label="Unidade da embalagem" className={`${campo} w-16 px-2`}>{UNIDADES.map((u) => <option key={u}>{u}</option>)}</select>
+                </>}
+                <span>Usa</span><input inputMode="decimal" value={g.quantidade} onChange={(e) => mudarIng(g.id, { quantidade: e.target.value })} placeholder="100" aria-label={`Quantidade de ${g.nome || "ingrediente"} por unidade do prato`} className={`${campo} w-20`} />
+                <select value={g.unidade_uso} onChange={(e) => mudarIng(g.id, { unidade_uso: e.target.value })} aria-label="Unidade usada" className={`${campo} w-16 px-2`}>{unUso.map((u) => <option key={u}>{u}</option>)}</select>
+                <span>por unidade</span>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="relative mt-3">
+        <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-hf-muted" />
+        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Ingrediente do cadastro (ex.: carne moída)" aria-label="Buscar ingrediente do cadastro" className={`${campo} w-full pl-9`} />
+        {achados.length > 0 && (
+          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-2xl border border-hf-border bg-hf-surface shadow-lg">
+            {achados.map((i) => (
+              <li key={i.id}><button type="button" onClick={() => { onMudar((p) => { p.ingredientes.push({ ...ingredienteDoInsumo(i), quantidade: "" }); }); setBusca(""); }} className="w-full px-4 py-2 text-left text-sm hover:bg-hf-elevated">{i.nome} <span className="text-hf-muted">· {i.unidade_medida}</span></button></li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <button type="button" onClick={() => onMudar((p) => { p.ingredientes.push(ingredienteVazio()); })} className="mt-2 text-sm font-bold text-hf-accent">+ Ingrediente próprio</button>
+      {custo.problemas.length > 0 && <p className="mt-2 text-xs text-hf-warning">{custo.problemas.join(" · ")}</p>}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-hf-border pt-3">
+        <Contador valor={prato.quantidade} onChange={(v) => onMudar((p) => { p.quantidade = v; })} passo={PASSO.mesa.passo} rotulo={`unidades de ${prato.nome || "prato próprio"}`} sufixo="unidades no total" />
+        <span className="text-sm font-bold tabular-nums text-hf-text">{brl(custo.custoPorcao)} cada{linha ? ` · ${brl(linha.custo)}` : ""}</span>
+      </div>
+    </div>
+  );
+}
+
 // Uma modalidade de fichas (mesa, buffet ou bar): categorias com ✓ por ficha e a quantidade dos marcados
-function ModalidadeFichas({ mod, dado, grupos, onAlternar, onQuantidade, parte }) {
+function ModalidadeFichas({ mod, dado, grupos, onAlternar, onQuantidade, parte, insumos = [], onPratoProprio, onMudarProprio, onRemoverProprio }) {
   const [busca, setBusca] = useState("");
   const lista = useMemo(() => filtrarCatalogo(grupos, { busca }), [grupos, busca]);
-  const marcados = new Map(dado.itens.map((i) => [i.ficha_id, i]));
+  const marcados = new Map(dado.itens.filter((i) => i.ficha_id).map((i) => [i.ficha_id, i]));
+  const proprios = dado.itens.filter((i) => i.origem === "exclusiva");
   const campo = mod.campo;
   return (
     <section className="rounded-3xl border border-hf-border bg-hf-surface p-5">
@@ -96,6 +159,19 @@ function ModalidadeFichas({ mod, dado, grupos, onAlternar, onQuantidade, parte }
           </div>
         ))}
       </div>
+      {onPratoProprio && (
+        <div className="mt-4 space-y-3 border-t border-hf-border pt-4">
+          <div className="flex items-baseline justify-between">
+            <h3 className="text-[15px] font-black text-hf-text">Pratos próprios</h3>
+            <span className="text-xs text-hf-muted">com ingredientes do cadastro ou seus</span>
+          </div>
+          {proprios.map((pr) => (
+            <PratoProprio key={pr.id} prato={pr} insumos={insumos} linha={parte?.linhas.find((l) => l.id === pr.id)}
+              onMudar={(fn) => onMudarProprio(pr.id, fn)} onRemover={() => onRemoverProprio(pr.id)} />
+          ))}
+          <button type="button" onClick={onPratoProprio} className="flex h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-dashed border-hf-border text-sm font-black text-hf-text-2 hover:border-hf-accent hover:text-hf-accent"><Plus size={16} /> Criar prato meu</button>
+        </div>
+      )}
     </section>
   );
 }
@@ -104,6 +180,7 @@ export default function SimuladorDoEvento() {
   const router = useRouter();
   const { unidadeAtiva, sessao } = useERP();
   const [fichas, setFichas] = useState([]);
+  const [insumos, setInsumos] = useState([]);
   const [params, setParams] = useState(PARAMS_PADRAO);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -115,9 +192,10 @@ export default function SimuladorDoEvento() {
     let ativo = true;
     (async () => {
       setCarregando(true);
-      const [rF, rP] = await Promise.all([fetchFichas(unidadeAtiva), fetchParamsDaCasa(unidadeAtiva)]);
+      const [rF, rP, rI] = await Promise.all([fetchFichas(unidadeAtiva), fetchParamsDaCasa(unidadeAtiva), fetchInsumos(unidadeAtiva)]);
       if (!ativo) return;
       setFichas(rF.data || []);
+      setInsumos(rI.data || []);
       setParams({ ...PARAMS_PADRAO, ...(rP.data || {}) });
       setErro(rF.error && rF.error !== "Offline" ? "Não foi possível ler as fichas técnicas agora." : "");
       setCarregando(false);
@@ -191,7 +269,13 @@ export default function SimuladorDoEvento() {
 
         {MODALIDADES.filter((m) => m.campo && sim.modalidades[m.id].ativa).map((m) => (
           <ModalidadeFichas key={m.id} mod={m} dado={sim.modalidades[m.id]} grupos={m.id === "bar" ? catalogo.bar : catalogo.cozinha}
-            onAlternar={(it) => alternarFicha(m.id, it)} onQuantidade={(fid, v) => quantidade(m.id, fid, v)} parte={parteDe(m.id)} />
+            onAlternar={(it) => alternarFicha(m.id, it)} onQuantidade={(fid, v) => quantidade(m.id, fid, v)} parte={parteDe(m.id)}
+            {...(m.id === "mesa" ? {
+              insumos,
+              onPratoProprio: () => mudar((s) => { s.modalidades.mesa.itens.push(pratoProprioVazio()); }),
+              onMudarProprio: (id, fn) => mudar((s) => { const p = s.modalidades.mesa.itens.find((x) => x.id === id); if (p) fn(p); }),
+              onRemoverProprio: (id) => mudar((s) => { s.modalidades.mesa.itens = s.modalidades.mesa.itens.filter((x) => x.id !== id); }),
+            } : {})} />
         ))}
 
         {sim.modalidades.equipe.ativa && (

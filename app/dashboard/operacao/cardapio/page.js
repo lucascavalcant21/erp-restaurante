@@ -232,7 +232,7 @@ export default function CardapioEditorPage() {
                 {ABAS.map((a) => (
                   <button key={a.id} type="button" role="tab" aria-selected={aba === a.id}
                     onClick={(e) => { trocarAba(a.id); e.currentTarget.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }}
-                    className={`min-h-[40px] flex-none snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition sm:flex-auto sm:rounded-lg sm:border-0 sm:px-3 ${aba === a.id ? "border-hf-accent bg-hf-accent text-hf-accent-fg sm:bg-hf-surface sm:text-hf-text sm:shadow-sm" : "border-hf-border bg-hf-surface text-hf-text-2 hover:text-hf-text sm:bg-transparent"}`}>
+                    className={`min-h-[40px] flex-none snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition sm:rounded-lg sm:border-0 sm:px-3 ${aba === a.id ? "border-hf-accent bg-hf-accent text-hf-accent-fg sm:bg-hf-surface sm:text-hf-text sm:shadow-sm" : "border-hf-border bg-hf-surface text-hf-text-2 hover:text-hf-text sm:bg-transparent"}`}>
                     {a.rotulo}
                   </button>
                 ))}

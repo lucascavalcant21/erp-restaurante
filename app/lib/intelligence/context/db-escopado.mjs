@@ -41,6 +41,9 @@ export class ErroDeFonte extends Error {
 /**
  * Tabelas que a inteligência pode ler. tenant=true: tem unidade_id e é
  * filtrada/conferida. tenant=false: catálogo global (sem dado de cliente).
+ * pai: tabela-filha sem unidade_id (ex.: ingredientes da ficha). Só pode ser
+ * lida filtrando `coluna` por IDs que ESTE banco escopado já devolveu da
+ * tabela-pai (que é tenant); cada linha devolvida é conferida de novo.
  */
 export const TABELAS = Object.freeze({
   fin_faturamento_diario: { tenant: true, rotulo: "Faturamento diário informado" },
@@ -61,6 +64,9 @@ export const TABELAS = Object.freeze({
   fornecedores: { tenant: true, rotulo: "Fornecedores" },
   etiquetas: { tenant: true, rotulo: "Etiquetas de validade" },
   config_sistema: { tenant: true, rotulo: "Resultado do mês (valores informados pelo dono)" },
+  fichas_tecnicas: { tenant: true, rotulo: "Fichas técnicas" },
+  fichas_etapas: { tenant: true, rotulo: "Etapas do preparo" },
+  fichas_ingredientes: { tenant: false, pai: { tabela: "fichas_tecnicas", coluna: "ficha_id" }, rotulo: "Ingredientes da ficha" },
   fin_categorias: { tenant: false, rotulo: "Plano de contas" },
 });
 
@@ -73,6 +79,11 @@ function comUnidade(cols) {
   const c = String(cols ?? "*").trim() || "*";
   if (c === "*" || /(^|[\s,])unidade_id([\s,]|$)/.test(c) || /(^|,)\s*\*\s*(,|$)/.test(c)) return c;
   return `${c}, unidade_id`;
+}
+
+function comColuna(cols, coluna) {
+  const c = String(cols ?? "*").trim() || "*";
+  return c === "*" || new RegExp(`(^|[\\s,])${coluna}([\\s,]|$)`).test(c) ? c : `${c}, ${coluna}`;
 }
 
 function resumirArgs(args) {
@@ -92,6 +103,13 @@ export function criarDbEscopado(db, escopo) {
   exigirEscopo(escopo);
   if (!db || typeof db.from !== "function") throw new Error("Banco indisponível para a inteligência.");
   const consultas = [];
+  // IDs já devolvidos por tabelas tenant (conferidos): a tabela-filha só lê estes.
+  const vistos = new Map();
+  const lembrar = (tabela, linhas) => {
+    if (!vistos.has(tabela)) vistos.set(tabela, new Set());
+    for (const l of linhas) if (l?.id != null) vistos.get(tabela).add(String(l.id));
+  };
+  const doPai = (meta, v) => vistos.get(meta.pai.tabela)?.has(String(v)) === true;
 
   function embrulhar(builder, registro, meta) {
     return new Proxy(builder, {
@@ -105,6 +123,14 @@ export function criarDbEscopado(db, escopo) {
           return () => { throw new Error(`Operação "${String(prop)}" não permitida na leitura da inteligência.`); };
         }
         return (...args) => {
+          if (meta.pai && (prop === "eq" || prop === "in") && args[0] === meta.pai.coluna) {
+            const valores = prop === "in" ? args[1] : [args[1]];
+            if (!Array.isArray(valores) || !valores.length || !valores.every((v) => doPai(meta, v))) {
+              registro.erro = "isolamento";
+              throw new ErroDeIsolamento(registro.tabela);
+            }
+            registro.filtroDoPai = true;
+          }
           registro.filtros.push([prop, ...resumirArgs(args)]);
           return embrulhar(v.apply(alvo, args), registro, meta);
         };
@@ -129,6 +155,13 @@ export function criarDbEscopado(db, escopo) {
           throw new ErroDeIsolamento(registro.tabela);
         }
       }
+      lembrar(registro.tabela, linhas);
+    }
+    if (meta.pai) {
+      if (!registro.filtroDoPai || linhas.some((l) => !doPai(meta, l?.[meta.pai.coluna]))) {
+        registro.erro = "isolamento";
+        throw new ErroDeIsolamento(registro.tabela);
+      }
     }
     registro.linhas = linhas.length;
     return r;
@@ -141,7 +174,7 @@ export function criarDbEscopado(db, escopo) {
       if (!meta) throw new Error(`Tabela "${tabela}" fora da lista de leitura da inteligência.`);
       return {
         select(cols = "*", opcoes) {
-          const colunas = meta.tenant ? comUnidade(cols) : cols;
+          const colunas = meta.tenant ? comUnidade(cols) : meta.pai ? comColuna(cols, meta.pai.coluna) : cols;
           const registro = { tabela, fonte: meta.rotulo, colunas: String(colunas).slice(0, 300), filtros: [], linhas: null, erro: null };
           consultas.push(registro);
           let q = db.from(tabela).select(colunas, opcoes);

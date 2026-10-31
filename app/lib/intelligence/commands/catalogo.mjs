@@ -137,6 +137,11 @@ export const INTENCOES = Object.freeze([
     frases: [["por que", "porque", "pq", "motivo"], ["cmv", "custo da mercadoria"]], peso: 8,
   },
   {
+    id: "fichas.preparo", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Ficha técnica de um prato ou drink: ingredientes, quantidades e modo de preparo (ex.: 'como faz o vatapá?', 'ficha do risoto', 'ingredientes da caipirinha').",
+    frases: [["como faz", "como fazer", "como se faz", "como faco", "como prepara", "como preparar", "modo de preparo", "receita do", "receita da", "receita de", "ficha do", "ficha da", "ficha de", "ficha tecnica", "ingredientes do", "ingredientes da", "o que vai no", "o que vai na", "preparo do", "preparo da"]], peso: 6,
+  },
+  {
     id: "rh.escala_dia", tipo: "pergunta", agentes: ["rh"],
     descricao: "Escala do dia: quem trabalha hoje (ou amanhã), em que horário e quem está de folga.",
     frases: [["escala", "quem trabalha", "quem esta trabalhando", "quem vem", "quem entra", "quem esta de folga", "quem folga", "de folga hoje", "turno de hoje", "equipe de hoje", "equipe hoje"]], peso: 7,

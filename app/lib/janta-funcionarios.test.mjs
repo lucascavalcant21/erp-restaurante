@@ -30,3 +30,40 @@ test("sem número do dia vale o padrão; kg a partir de 1.000 g", () => {
   assert.equal(rotuloPeso(0), "—");
   assert.equal(normalizarJanta(null).dias.dom.pratos.length, 0);
 });
+
+// ── escala da janta: o número de pessoas sai da escala do dia ────────────────
+import { escalaDaJanta, pessoasDaJanta, dataDoDia } from "./janta-funcionarios.mjs";
+
+const equipe = [
+  { id: "a", nome: "Ana", status: "ativo", dias_trabalho: "1,2,3,4,5", horario_entrada: "15:00", horario_saida: "23:00" },
+  { id: "b", nome: "Bia", status: "ativo", dias_trabalho: "1,3", horario_entrada: "16:00", horario_saida: "00:00" },
+  { id: "c", nome: "Caio", status: "ativo", dias_trabalho: "1", horario_entrada: "17:00", horario_saida: "23:00", janta_ofertada: false },
+  { id: "d", nome: "Davi", status: "desligado", dias_trabalho: "1", horario_entrada: "17:00", horario_saida: "23:00" },
+];
+
+test("dataDoDia: próxima data daquele dia da semana, hoje inclusive", () => {
+  assert.equal(dataDoDia("sab", "2026-10-31"), "2026-10-31"); // sábado
+  assert.equal(dataDoDia("seg", "2026-10-31"), "2026-11-02");
+  assert.equal(dataDoDia("sex", "2026-10-31"), "2026-11-06");
+});
+
+test("escala da janta: quem trabalha, menos folga, menos quem não janta, menos quem foi tirado, mais extras", () => {
+  const j = normalizarJanta({ dias: { seg: { fora: ["b"], extras: "2", pratos: [] } } });
+  const folgas = [{ colaborador_id: "a", data_folga: "2026-11-02" }];
+  const e = escalaDaJanta(j, "seg", { colaboradores: equipe, folgas, hojeIso: "2026-10-31" });
+  assert.equal(e.data, "2026-11-02");
+  assert.deepEqual(e.jantam.map((p) => p.nome), []);
+  assert.deepEqual(e.tirados.map((p) => p.nome), ["Bia"]);
+  assert.deepEqual(e.semJanta.map((p) => p.nome), ["Caio"]);
+  assert.deepEqual(e.folgas.map((p) => p.nome), ["Ana"]);
+  assert.deepEqual(pessoasDaJanta(j, "seg", e), { total: 2, origem: "escala" }, "só os 2 extras");
+});
+
+test("pessoas da janta: digitado vence; sem escala usa o padrão; sem nada, sem dado", () => {
+  const e = escalaDaJanta(normalizarJanta(null), "qua", { colaboradores: equipe, folgas: [], hojeIso: "2026-10-31" });
+  assert.deepEqual(e.jantam.map((p) => p.nome), ["Ana", "Bia"]);
+  assert.deepEqual(pessoasDaJanta(normalizarJanta(null), "qua", e), { total: 2, origem: "escala" });
+  assert.deepEqual(pessoasDaJanta(normalizarJanta({ dias: { qua: { pessoas: "9" } } }), "qua", e), { total: 9, origem: "manual" });
+  assert.deepEqual(pessoasDaJanta(normalizarJanta({ pessoas_padrao: 7 }), "dom", { jantam: [], extras: 0 }), { total: 7, origem: "padrao" });
+  assert.deepEqual(pessoasDaJanta(normalizarJanta(null), "dom", { jantam: [], extras: 0 }), { total: 0, origem: "sem_dado" });
+});

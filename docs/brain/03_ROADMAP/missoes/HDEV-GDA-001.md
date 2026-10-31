@@ -2,7 +2,7 @@
 id: HDEV-GDA-001
 titulo: Green Dot Assist vira o assistente único do Héfisto (perguntas, ações e voz)
 fase: HI-07
-status: BACKLOG
+status: IN_PROGRESS
 prioridade: 1
 dependencias: []
 bloqueadores: []
@@ -10,7 +10,7 @@ tentativas: 0
 sem_progresso: 0
 mesma_falha: 0
 ultima_falha: ""
-atualizado_em: 2026-10-29
+atualizado_em: 2026-10-31
 ---
 
 # HDEV-GDA-001 — Green Dot Assist: o assistente que sabe tudo do restaurante
@@ -55,9 +55,9 @@ atualizado_em: 2026-10-29
 
 ## Critério de pronto (por fase)
 
-- [ ] Fase 1 — NÃO VALIDADO
-- [ ] Fase 2 — NÃO VALIDADO
-- [ ] Fase 3 — NÃO VALIDADO
+- [ ] Fase 1 — feita (PR #203): Green Dot → Héfisto, tempo (Open-Meteo), Haiku para entender e Sonnet para criar. TESTADO EM MOCK · NÃO VALIDADO com dado real.
+- [ ] Fase 2 — parcial: lucro líquido, ticket médio, último preço (PR #204); **escala do dia/amanhã** (`rh.escala_dia`, `metrics/rh.mjs`: cadastro do colaborador + `rh_folgas_esporadicas`, permissão `escala`). O Green Dot deixou de mostrar escala e "pico de demanda" fixos (eram dados de exemplo). **Ficha e modo de preparo** (`fichas.preparo`, `metrics/fichas.mjs`): ingredientes com quantidade legível, bases da casa e etapas em ordem, sem custo; permissão `fichas`. Ingredientes só de ficha já conferida da unidade (regra `pai` no banco escopado). No Green Dot, a ficha real da casa vem antes das receitas de referência. TESTADO EM MOCK. Falta: eventos e marmitas da semana, delivery.
+- [ ] Fase 3 — parcial: **entrada no estoque** (`stock.registerEntry`, `actions/registrar-entrada.mjs`): mesma RPC `estoque_movimentar` da tela; pergunta produto, local, unidade/embalagem e origem quando não tem certeza; compra fica em Compras. TESTADO EM MOCK. Falta: cadastro de produto, etiqueta, rascunho de evento, rascunho de promoção.
 - [ ] Fase 4 — NÃO VALIDADO
 - [ ] Fase 5 — NÃO VALIDADO
 - [ ] Fase 6 — NÃO VALIDADO

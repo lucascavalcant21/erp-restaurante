@@ -98,21 +98,25 @@ const MODULOS = {
         { label: "Resultado do mês", desc: "Custos fixos, variáveis e lucro", href: "/dashboard/financeiro/resultado", icon: PieChart },
         { label: "CMV", desc: "Custo de mercadoria", href: "/dashboard/financeiro/cmv", icon: Calculator },
         { label: "Dados fiscais", desc: "Cadastros e obrigações", href: "/dashboard/gestao/fiscal", icon: ShieldCheck },
+        // Entradas de estoque do mês: compra de mercadoria, não RH.
+        { label: "Compras do Mês", desc: "Quanto entrou de mercadoria", href: "/dashboard/rh/gastos-admin", icon: ShoppingCart },
       ]},
     ],
   },
   rh: {
     title: "RH", subtitle: "Quem trabalha, quanto bateu ponto e quanto recebe", icon: Users,
     columns: [
-      { title: "Jornada e folha", subtitle: "Ponto, pagamento e compras do mês", icon: UserRoundCheck, accent: "#e11d48", items: [
+      { title: "Jornada e folha", subtitle: "Ponto, escala, extras e pagamento", icon: UserRoundCheck, accent: "#e11d48", items: [
         { label: "Painel de RH", desc: "Equipe e indicadores", href: "/dashboard/rh", icon: LayoutDashboard },
-        { label: "Ponto", desc: "Jornada e registros", href: "/dashboard/rh/ponto", icon: UserRoundCheck },
+        { label: "Ponto", desc: "Relógio de ponto da equipe", href: "/dashboard/rh/ponto", icon: UserRoundCheck },
+        { label: "Corrigir Ponto", desc: "Ajustes, folgas e justificativas", href: "/dashboard/rh/ponto/corrigir", icon: Clock },
+        { label: "Escala da Semana", desc: "Quem trabalha cada dia", href: "/dashboard/rh?aba=escala", icon: CalendarCheck },
+        { label: "Extras", desc: "Cadastro, diárias e recibos", href: "/dashboard/rh/extra", icon: UserRoundCheck },
         { label: "Folha de Pagamento", desc: "Fechamento e valores", href: "/dashboard/rh/fechamento", icon: ReceiptText },
-        { label: "Compras do Mês", desc: "Quanto entrou de mercadoria", href: "/dashboard/rh/gastos-admin", icon: Calculator },
       ]},
       { title: "Pessoas", subtitle: "Cargos, organograma e contratação", icon: Users, accent: "#7c3aed", items: [
         { label: "Cargos & Carreiras", desc: "Funções e salários", href: "/dashboard/rh/cargos", icon: Award },
-        { label: "Portal do Colaborador", desc: "Acesso da equipe", href: "/dashboard/rh?aba=quadro", icon: Users, countKey: "colaboradores" },
+        { label: "Quadro de Funcionários", desc: "Perfil, ações e prontuário", href: "/dashboard/rh?aba=quadro", icon: Users, countKey: "colaboradores" },
         { label: "Organograma", desc: "Estrutura e lideranças", href: "/dashboard/rh/organograma", icon: Network },
         { label: "Guia de Funções", desc: "A rotina de cada função, hora a hora", href: "/dashboard/rh/funcoes", icon: Clock },
         { label: "Recrutamento", desc: "Vagas e candidatos", href: "/dashboard/rh/recrutamento", icon: BriefcaseBusiness },

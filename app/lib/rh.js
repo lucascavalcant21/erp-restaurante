@@ -1,8 +1,10 @@
 import { supabase, isSupabaseReady } from "./supabase.js";
 import { criarContasPagarEmLote } from "./contas-pagar.mjs";
 import { enviarArquivoRH, removerArquivoRH } from "./rh-arquivos.js";
-import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
+import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados, opcoesDaCasa } from "./jornada-calculo.mjs";
 import { buscarColaboradores } from "./colaboradores-acesso.mjs";
+import { fetchConvencaoAtiva } from "./trabalhista/convencoes-dados.js";
+import { regrasDaCompetencia } from "./trabalhista/regras-competencia.mjs";
 export { horarioDoDia } from "./jornada-semana.mjs";
 
 // Equipe da unidade: nome/cargo/horários para todos; CPF, salário etc. só para
@@ -43,11 +45,6 @@ export async function inserirColaborador(colab) {
   return { data, error: error?.message, colunasIgnoradas };
 }
 
-export async function removerColaborador(id) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const { error } = await supabase.from("colaboradores").delete().eq("id", id);
-  return { error: error?.message };
-}
 
 // ─── DESLIGAMENTO (arquivo de ex-funcionários) ───────────────────────────────
 // Não apaga: marca como inativo e guarda data/motivo/tipo. A vida (ponto,
@@ -73,11 +70,7 @@ export async function registrarAvisoPrevio(id, { inicio_aviso, dias_aviso = 30, 
     tipo_aviso_previo: tipo_aviso || "Trabalhado",
     motivo_desligamento: motivo || null,
   };
-  let { error } = await supabase.from("colaboradores").update(campos).eq("id", id);
-  error = await colabRetrySemColuna(error, async () => {
-    const r = await supabase.from("colaboradores").update(campos).eq("id", id); return r.error;
-  }, campos);
-  return { error: error?.message };
+  return gravarAviso(id, campos);
 }
 
 export async function cancelarAvisoPrevio(id) {
@@ -89,11 +82,26 @@ export async function cancelarAvisoPrevio(id) {
     dias_aviso_previo: null,
     tipo_aviso_previo: null,
   };
-  let { error } = await supabase.from("colaboradores").update(campos).eq("id", id);
-  error = await colabRetrySemColuna(error, async () => {
-    const r = await supabase.from("colaboradores").update(campos).eq("id", id); return r.error;
-  }, campos);
-  return { error: error?.message };
+  return gravarAviso(id, campos);
+}
+
+// Aviso prévio sem as colunas dele não está salvo. Antes o retry descartava
+// todas e a tela confirmava um aviso que nunca foi gravado (RH-B1-1). E sem o
+// .select() a RLS podia barrar o UPDATE e ainda assim voltar "sucesso".
+async function gravarAviso(id, campos) {
+  const ignoradas = [];
+  const tentar = async () => {
+    const r = await supabase.from("colaboradores").update(campos).eq("id", id).select("id");
+    tentar.linhas = r.data;
+    return r.error;
+  };
+  const error = await colabRetrySemColuna(await tentar(), tentar, campos, ignoradas);
+  if (error) return { error: error.message };
+  if (ignoradas.length) {
+    return { error: `O banco não tem as colunas do aviso prévio (${ignoradas.join(", ")}). Rode db/RH_B1_1_COLUNAS_DO_CADASTRO.sql.` };
+  }
+  if (!tentar.linhas?.length) return { error: "O banco não confirmou a gravação (sem permissão para alterar este colaborador)." };
+  return { error: null };
 }
 
 export async function reativarColaborador(id) {
@@ -176,7 +184,6 @@ export async function removerDocumento(docId, url_arquivo) {
 export async function fetchFuncionarios() { return { data: [], error: null }; }
 
 export const inserirFuncionario = inserirColaborador;
-export const removerFuncionario = removerColaborador;
 export const atualizarFuncionario = async (id, dados) => {
   if (!isSupabaseReady()) return { data: null, error: "Offline", colunasIgnoradas: [] };
   let res = await supabase.from("colaboradores").update(dados).eq("id", id).select().single();
@@ -189,46 +196,6 @@ export const atualizarFuncionario = async (id, dados) => {
 };
 export const atualizarColaborador = atualizarFuncionario;
 
-// Escala: grava a ordem e/ou a área do colaborador (arrastar para reordenar e
-// mover entre áreas). Se as colunas `ordem_escala`/`area_escala` ainda não
-// existirem, o retry as remove (no-op) até rodar a migração.
-export async function atualizarEscalaColab(id, campos) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const c = { ...campos };
-  let { error } = await supabase.from("colaboradores").update(c).eq("id", id);
-  error = await colabRetrySemColuna(error, async () => {
-    const r = await supabase.from("colaboradores").update(c).eq("id", id); return r.error;
-  }, c);
-  return { error: error?.message };
-}
-export async function atualizarOrdemEscala(id, ordem_escala) {
-  return atualizarEscalaColab(id, { ordem_escala });
-}
-
-// Escalas salvas (mais recentes primeiro) — para rever/reimprimir dias passados
-export async function fetchEscalasDia(unidadeId, limite = 30) {
-  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
-  const { data, error } = await supabase.from("escalas_dia")
-    .select("*").eq("unidade_id", unidadeId)
-    .order("data", { ascending: false }).limit(limite);
-  return { data: data || [], error: error?.message };
-}
-
-// Salva a foto da escala do dia (1 registro por unidade+data; regrava se já existir)
-export async function salvarEscalaDia(unidadeId, dataDia, escala) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const { data: exist } = await supabase.from("escalas_dia")
-    .select("id").eq("unidade_id", unidadeId).eq("data", dataDia).limit(1);
-  if (exist && exist.length) {
-    const { error } = await supabase.from("escalas_dia").update({ escala }).eq("id", exist[0].id);
-    return { error: error?.message, atualizada: true };
-  }
-  const { error } = await supabase.from("escalas_dia").insert([{ unidade_id: unidadeId, data: dataDia, escala }]);
-  return { error: error?.message };
-}
-
-export async function fetchPontoMes(unidadeId, mesAno) { return { data: [], error: null }; }
-export async function registrarPonto(dados) { return { data: null, error: null }; }
 
 export const CARGOS_PADRAO_INICIAIS = [
   { id: "cfg-1", nome: "Auxiliar de Cozinha 1", departamento: "Cozinha", nivel: "Auxiliar I", salario_base: 1600, vale_alimentacao: 300, taxa_servico: 200, descricao: "Apoio no pré-preparo, higienização de insumos e organização da praça.", requisitos: ["Sem experiência prévia necessária", "Vontade de aprender e trabalho em equipe", "Pontualidade e cumprimento de higienização"] },
@@ -267,49 +234,33 @@ export async function fetchCargos(unidadeId) {
   }
 }
 
+// Promoção entra no histórico do colaborador (rh_historico), o mesmo que o
+// prontuário mostra em "Histórico de mudanças". Antes ia para
+// rh_historico_promocoes e, na falha, para colaboradores.historico_promocoes —
+// nenhuma das duas existe no banco, e o erro era engolido: nenhuma promoção
+// ficou registrada (RH-B1).
 export async function registrarPromocaoColaborador(dados) {
-  if (!isSupabaseReady()) return { error: null };
-  const payload = {
-    colaborador_id: dados.colaborador_id,
-    colaborador_nome: dados.colaborador_nome,
-    cargo_anterior: dados.cargo_anterior || "Sem cargo",
-    cargo_novo: dados.cargo_novo,
-    salario_anterior: Number(dados.salario_anterior) || 0,
-    salario_novo: Number(dados.salario_novo) || 0,
-    vale_alimentacao: Number(dados.vale_alimentacao) || 0,
-    taxa_servico: Number(dados.taxa_servico) || 0,
-    data_promocao: new Date().toISOString(),
-    responsavel: dados.responsavel || "Gestão",
-    motivo: dados.motivo || "Evolução no Plano de Carreiras"
-  };
-  try {
-    let { error } = await supabase.from("rh_historico_promocoes").insert([payload]);
-    if (error) {
-      const { data: colab } = await supabase.from("colaboradores").select("historico_promocoes").eq("id", dados.colaborador_id).single();
-      const hist = Array.isArray(colab?.historico_promocoes) ? colab.historico_promocoes : [];
-      hist.push(payload);
-      await supabase.from("colaboradores").update({ historico_promocoes: hist }).eq("id", dados.colaborador_id);
-    }
-  } catch (e) {
-    console.warn("Fallback histórico promoção:", e);
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!dados?.colaborador_id || !dados?.unidade_id) return { error: "Faltam o colaborador ou a unidade da promoção." };
+  const hoje = dataLocalHoje();
+  const obs = [dados.motivo || "Plano de carreiras", dados.responsavel ? `por ${dados.responsavel}` : ""].filter(Boolean).join(" · ");
+  const linhas = [];
+  if ((dados.cargo_anterior || "") !== (dados.cargo_novo || "")) {
+    linhas.push({ tipo_evento: "cargo", valor_antigo: dados.cargo_anterior || null, valor_novo: dados.cargo_novo || "—" });
   }
-  return { error: null };
+  if (Number(dados.salario_anterior) !== Number(dados.salario_novo)) {
+    linhas.push({ tipo_evento: "salario", valor_antigo: dados.salario_anterior != null ? String(dados.salario_anterior) : null, valor_novo: String(Number(dados.salario_novo) || 0) });
+  }
+  if (!linhas.length) return { error: null };
+  const { error } = await supabase.from("rh_historico").insert(linhas.map((l) => ({
+    ...l, func_id: dados.colaborador_id, unidade_id: dados.unidade_id, data: hoje, observacao: obs,
+  })));
+  return { error: error?.message || null };
 }
 
-export async function fetchHistoricoPromocoes(colaboradorId) {
-  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
-  try {
-    const { data, error } = await supabase.from("rh_historico_promocoes").select("*").eq("colaborador_id", colaboradorId).order("data_promocao", { ascending: false });
-    if (!error && data && data.length > 0) return { data };
-    
-    const { data: colab } = await supabase.from("colaboradores").select("historico_promocoes").eq("id", colaboradorId).single();
-    if (colab?.historico_promocoes && Array.isArray(colab.historico_promocoes)) {
-      return { data: colab.historico_promocoes };
-    }
-  } catch (e) {
-    console.warn("Erro ao buscar histórico promoção:", e);
-  }
-  return { data: [] };
+function dataLocalHoje() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export async function salvarCargo(cargo, unidadeId) {
@@ -349,21 +300,8 @@ export async function removerCargo(id) {
   return { error: error?.message };
 }
 
-// ── Liberação de ponto do EXTRA/FREELANCER por dia ─────────────────────────────
-// O gerente libera a diária de um dia; só então o extra pode bater o ponto.
-export async function liberarPontoDia(colaboradorId, unidadeId, data, valorDiaria) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const payload = { colaborador_id: colaboradorId, unidade_id: unidadeId, data, valor_diaria: Number(valorDiaria) || 0 };
-  const { error } = await supabase.from("rh_ponto_liberado").insert([payload]);
-  return { error: error?.message };
-}
-export async function fetchLiberacoesDia(unidadeId, data) {
-  if (!isSupabaseReady()) return { data: [] };
-  let q = supabase.from("rh_ponto_liberado").select("*").eq("data", data);
-  if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
-  const { data: d, error } = await q;
-  return { data: d || [], error: error?.message };
-}
+// ── Liberações antigas de diária do extra (só leitura no histórico do extra) ──
+// A tabela rh_ponto_liberado não existe em produção: a leitura volta vazia.
 export async function fetchLiberacoesColab(colaboradorId, limite = 90) {
   if (!isSupabaseReady()) return { data: [] };
   const { data, error } = await supabase.from("rh_ponto_liberado").select("*").eq("colaborador_id", colaboradorId).order("data", { ascending: false }).limit(limite);
@@ -613,7 +551,7 @@ export async function inserirBancoHoras(unidadeId, colaboradorId, dataDia, minut
 // Soma só os CRÉDITOS do banco (excessos de intervalo são ocorrências)
 export function somaMinutosBanco(lancamentos) {
   return (lancamentos || [])
-    .filter(b => b.tipo !== "excesso")
+    .filter(b => !b.tipo || b.tipo === "credito")
     .reduce((s, b) => s + (Number(b.minutos) || 0), 0);
 }
 
@@ -629,7 +567,7 @@ export async function removerBancoHoras(id) {
 // Mora em jornada-calculo.mjs: é o código que decide quanto a casa paga, e lá
 // ele roda sem Supabase, com testes que cobrem a faixa noturna, a hora ficta e
 // a tolerância. Rode com: node app/lib/jornada-calculo.test.mjs
-export { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados };
+export { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados, opcoesDaCasa };
 
 // ─── FERIADOS DA UNIDADE ─────────────────────────────────────────────────────
 export async function fetchFeriados(unidadeId, mesAno = null) {
@@ -806,7 +744,7 @@ export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
   const dataFinal = `${mesAno}-${ultimoDia.toString().padStart(2, '0')}`;
 
   let queryPonto = supabase.from("registro_ponto")
-    .select("colaborador_id, data_referencia")
+    .select("colaborador_id, data_referencia, hora_entrada, hora_saida, hora_saida_intervalo, hora_retorno_intervalo")
     .gte("data_referencia", dataInicial)
     .lte("data_referencia", dataFinal);
     
@@ -817,20 +755,46 @@ export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
   const { data: pontos } = await queryPonto;
   const pontosSeguros = pontos || [];
 
-  // 3. Busca Vales Pendentes
+  // 3. Busca Vales Pendentes (da unidade; fim do mês no horário de Brasília)
   let queryVales = supabase.from("rh_consumo_funcionarios")
     .select("*")
     .eq("forma_pagamento", "Desconto em Folha")
     .eq("status_pagamento", "Pendente")
-    .lte("data_consumo", dataFinal + "T23:59:59Z");
+    .lte("data_consumo", dataFinal + "T23:59:59-03:00");
+  if (unidadeId && unidadeId !== "matriz") queryVales = queryVales.eq("unidade_id", unidadeId);
 
   const { data: vales } = await queryVales;
   const valesSeguros = vales || [];
 
-  const resumo = colaboradores.map(c => {
+  // 4. Adicionais do ponto, pela regra da competência (CLT ou convenção ativa)
+  // e pelas regras da casa (opcoesDaCasa): noturno, hora extra e feriado não
+  // compensado entram como acréscimo sugerido, editável.
+  const [{ data: feriadosMes }, convencao, { data: folgasUnidade }] = await Promise.all([
+    fetchFeriados(unidadeId, mesAno),
+    fetchConvencaoAtiva(unidadeId).catch(() => null),
+    fetchAllFolgasDaUnidade(unidadeId),
+  ]);
+  const { regras } = regrasDaCompetencia(mesAno, { convencao });
+
+  // Na folha entram só os contratados que estavam na casa no mês. Antes vinham
+  // todos: desligado com salário cheio, e extra (que não bate ponto, é pago
+  // pelo recibo) com R$ 0 — e um valor zerado barra o lote inteiro em Contas a
+  // Pagar, então a folha não fechava (RH-B1).
+  const naFolha = colaboradores.filter(c => {
+    if (c.tipo_contrato === "Freelancer") return false;
+    if ((c.status || "ativo") !== "inativo") return true;
+    return Boolean(c.data_desligamento) && String(c.data_desligamento).slice(0, 10) >= dataInicial;
+  });
+
+  const resumo = naFolha.map(c => {
     const diasTrabalhados = new Set(pontosSeguros.filter(p => p.colaborador_id === c.id).map(p => p.data_referencia)).size;
     const meusVales = valesSeguros.filter(v => v.funcionario_id === c.id);
-    const totalVales = meusVales.reduce((acc, v) => acc + Number(v.valor_final), 0);
+    // valor_desconto é o que o funcionário paga (cardápio menos o desconto da casa).
+    // A coluna valor_final não existe: a soma dava NaN e zerava o líquido.
+    const totalVales = meusVales.reduce((acc, v) => acc + (Number(v.valor_desconto ?? v.valor_original) || 0), 0);
+    const ad = calcularAdicionaisMes(pontosSeguros.filter(p => p.colaborador_id === c.id), c.salario, feriadosMes || [],
+      opcoesDaCasa(c, { folgas: folgasUnidade || [], regras }));
+    const desligadoNoMes = (c.status || "ativo") === "inativo" ? String(c.data_desligamento).slice(0, 10) : null;
 
     const isFreelancer = c.tipo_contrato === "Freelancer";
     const salarioBaseNumber = Number(c.salario || 0);
@@ -851,7 +815,17 @@ export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
       dias_trabalhados: diasTrabalhados,
       base_calculada: baseCalculada,
       total_vales_pendentes: totalVales,
-      vales_detalhes: meusVales
+      vales_detalhes: meusVales,
+      // Desligado durante o mês: entra com o salário cheio para o RH ajustar o
+      // proporcional à mão (a rescisão não é calculada aqui).
+      desligado_em: desligadoNoMes,
+      adicionais: {
+        regra: regras.id === "clt" ? "CLT" : "Convenção coletiva",
+        noturno: ad.valorNoturno, min_noturno: ad.minNoturno, noturno_pct: regras.noturnoPct,
+        feriado: ad.valorFeriado, min_feriado: ad.minFeriado, feriado_pct: regras.feriadoPct,
+        extra: ad.valorExtra, min_extra: ad.minExtra, extra_pct: regras.extraPct,
+      },
+      acrescimos_sugeridos: Math.round(((ad.valorNoturno || 0) + (ad.valorFeriado || 0) + (ad.valorExtra || 0)) * 100) / 100,
     };
   });
 
@@ -897,7 +871,9 @@ export async function fecharFolhaMensal(unidadeId, mesAno, pagamentos) {
   if (erroConsultaContas) return { error: erroConsultaContas.message };
 
   const descricoesExistentes = new Set((contasExistentes || []).map(c => c.descricao));
-  const contasParaInserir = pagamentos.filter(p => !descricoesExistentes.has(`Salário ${mesStr}/${anoStr} - ${p.nome}`)).map(p => ({
+  // Líquido zerado (vales cobriram o salário) gera holerite, mas não conta a
+  // pagar: valor zero barra o lote inteiro.
+  const contasParaInserir = pagamentos.filter(p => Number(p.valor_liquido) > 0 && !descricoesExistentes.has(`Salário ${mesStr}/${anoStr} - ${p.nome}`)).map(p => ({
     unidade_id: unidadeId,
     descricao: `Salário ${mesStr}/${anoStr} - ${p.nome}`,
     valor: Number(p.valor_liquido),
@@ -905,7 +881,7 @@ export async function fecharFolhaMensal(unidadeId, mesAno, pagamentos) {
     competencia: mesAno,
     categoria_codigo: 'pessoal_salarios',
     // chave por colaborador e mês: refazer o fechamento não duplica
-    chave_idempotencia: `folha:${unidadeId}:${mesAno}:${p.func_id || p.nome}`,
+    chave_idempotencia: `folha:${unidadeId}:${mesAno}:${p.colaborador_id || p.func_id || p.nome}`,
   }));
 
   // Camada única de contas a pagar: valida tudo e grava numa só operação

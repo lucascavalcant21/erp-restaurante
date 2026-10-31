@@ -7,30 +7,29 @@ import { useERP } from "../../context/ERPContext";
 import RhNav from "./RhNav";
 import VisaoColaboradores from "./VisaoColaboradores";
 import VisaoSemana from "./VisaoSemana";
+import PainelRH from "./PainelRH";
 import {
-  fetchColaboradores, inserirColaborador, removerColaborador, atualizarColaborador, 
+  fetchColaboradores, inserirColaborador, atualizarColaborador,
   fetchDocumentos, uploadDocumentoRH, removerDocumento,
-  fetchCargos, fetchHistoricoPromocoes,
+  fetchCargos,
   fetchAllFolgasDaUnidade, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica,
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
   fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
-  fetchAtestados, salvarAtestado, removerAtestado, anexarArquivoAtestado,
-  fetchReunioesColab, inserirReuniaoColab, removerReuniaoColab,
-  fetchTreinamentosColab, inserirTreinamentoColab, removerTreinamentoColab,
-  fetchFeriados, inserirFeriado, removerFeriado,
-  liberarPontoDia, fetchLiberacoesColab, removerLiberacao,
+  fetchFeriados, inserirFeriado, removerFeriado, fetchAtestadosUnidade,
+  fetchLiberacoesColab, removerLiberacao,
   salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo, anexarFotoReciboAssinado,
   desligarColaborador, registrarAvisoPrevio, cancelarAvisoPrevio
 } from "../../lib/rh";
-import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto, fetchPontoDoDia } from "../../lib/ponto";
+import { fetchPontoHoje, fetchPontosMesUnidade, fetchHistoricoPontoCompleto, fetchPontoDoDia } from "../../lib/ponto";
 import { domingosParaFolga, folgasDeDomingoNoMes, avisosDaFolga, dataCurta } from "../../lib/folgas-domingo.mjs";
-import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
+import { situacaoDoPonto, atestadoNaData } from "../../lib/ponto-status.mjs";
+import { TOLERANCIA_MARCACAO_MIN } from "../../lib/jornada-calculo.mjs";
 import { situacaoExperiencia, emExperiencia, faseContratoCalculada, situacaoAvisoPrevio, tempoDeCasa, aniversario, aniversariantesDoMes, fraseAniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
-import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
+import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin, opcoesDaCasa } from "../../lib/rh";
 import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../lib/mascaras.mjs";
-import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
+import { salvarConta, fetchLancamentos } from "../../lib/financeiro";
 import { hojeLocal, novaChave } from "../../lib/contas-pagar.mjs";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchProdutos } from "../../lib/vendas";
@@ -47,7 +46,6 @@ import { fmtBRL } from "../../components/ui";
 import { comFecharImpressao } from "../../lib/imprimir";
 import { imprimirReciboExtra } from "../../lib/recibo-extra";
 import { abrirArquivoRH } from "../../lib/rh-arquivos";
-import BancoTalentos from "./components/BancoTalentos";
 import PlanoCargos, { imprimirCertificadoPromocao } from "./components/PlanoCargos";
 import CampoDecimal from "../../components/CampoDecimal";
 import { formularioDeEdicao, validarCadastro, progressoCadastro, acharDuplicado } from "../../lib/colaborador-cadastro.mjs";
@@ -91,6 +89,7 @@ export default function RHPage() {
   const [convencao, setConvencao] = useState(null);
   useEffect(() => { fetchConvencaoAtiva(unidadeAtiva).then(setConvencao); }, [unidadeAtiva]);
   const [folgasUnidade, setFolgasUnidade] = useState([]);       // p/ relatório de faltas
+  const [atestadosMes, setAtestadosMes] = useState([]);         // atestado não é falta
   const [paramsSis, setParamsSis] = useState(PARAMS_PADRAO);     // parâmetros ajustáveis
   useEffect(() => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchParams(unidadeAtiva).then(r => setParamsSis(r.data)); }, [unidadeAtiva]);
   const [lancamentos, setLancamentos] = useState([]);             // p/ faturamento do mês (CMO %)
@@ -162,16 +161,9 @@ export default function RHPage() {
   const [fichaDados, setFichaDados] = useState(dadosReciboVazios);
   const [salvandoRecibo, setSalvandoRecibo] = useState(false);
 
-  // Liberar o ponto do extra/freelancer para hoje (com a diária combinada).
-  const dataHojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
-  const liberarPontoHoje = async (f) => {
-    const bruto = prompt(`Liberar o ponto de HOJE para ${f.nome}.\n\nValor da diária combinada (R$):`, f?.salario ? String(f.salario) : "");
-    if (bruto === null) return;
-    const valor = parseFloat(String(bruto).replace(",", ".")) || 0;
-    const { error } = await liberarPontoDia(f.id, unidadeAtiva, dataHojeISO(), valor);
-    if (error) return alert(/rh_ponto_liberado/.test(error) ? "Rode o SQL da tabela rh_ponto_liberado (te passei no chat)." : "Erro ao liberar: " + error);
-    alert(`Ponto liberado para ${f.nome} hoje. Diária: ${fmtBRL(valor)}. Ele já pode bater o ponto.`);
-  };
+  // "Liberar ponto de hoje" do extra saiu (RH-B1): a tabela rh_ponto_liberado
+  // não existe no banco e os dois relógios tiram os extras da lista — a
+  // liberação não tinha onde gravar nem efeito. Extra é controlado pelo recibo.
 
   // Histórico diário do extra: cada dia liberado (diária) + total.
   const [modalDiarias, setModalDiarias] = useState(null);
@@ -192,14 +184,6 @@ export default function RHPage() {
       erroRecibos: recibos.error || "",
       loading: false,
     });
-  };
-
-  // Trajetória / Linha do Tempo de Carreira
-  const [modalCarreira, setModalCarreira] = useState(null); // { func, lista, loading }
-  const abrirHistoricoCarreira = async (f) => {
-    setModalCarreira({ func: f, lista: [], loading: true });
-    const data = await fetchHistoricoPromocoes(f.id);
-    setModalCarreira({ func: f, lista: data || [], loading: false });
   };
 
   const abrirModalFicha = (f) => {
@@ -441,8 +425,9 @@ export default function RHPage() {
 
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
-    const mesAtual = new Date().toISOString().slice(0, 7);
-    const [resRh, resPonto, resCargos, resBanco, resVales, resPontosMes, resFeriadosMes, resFolgas] = await Promise.all([
+    const _hj = new Date();
+    const mesAtual = `${_hj.getFullYear()}-${String(_hj.getMonth() + 1).padStart(2, "0")}`;
+    const [resRh, resPonto, resCargos, resBanco, resVales, resPontosMes, resFeriadosMes, resFolgas, resAtestados] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
       fetchCargos(unidadeAtiva),
@@ -451,7 +436,9 @@ export default function RHPage() {
       fetchPontosMesUnidade(unidadeAtiva, mesAtual),
       fetchFeriados(unidadeAtiva, mesAtual),
       fetchAllFolgasDaUnidade(unidadeAtiva),
+      fetchAtestadosUnidade(unidadeAtiva, { desde: `${mesAtual}-01` }),
     ]);
+    setAtestadosMes(resAtestados.data || []);
     const resLanc = await fetchLancamentos(unidadeAtiva);
     setLancamentos(resLanc.data || []);
 
@@ -474,55 +461,48 @@ export default function RHPage() {
   // ── Relatório do mês: faltas e atrasos dos fixos + extras por dia ──────────
   const imprimirFaltasAtrasos = () => {
     const hoje = new Date();
-    const mesAtual = hoje.toISOString().slice(0, 7);
+    const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
     const diaHoje = hoje.getDate();
+    const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
     const ativos = funcionarios.filter(f => (f.status || "ativo") !== "inativo");
     const fixos = ativos.filter(f => f.tipo_contrato !== "Freelancer");
-    const extras = ativos.filter(f => f.tipo_contrato === "Freelancer");
 
     const dataStr = (d) => `${mesAtual}-${String(d).padStart(2, "0")}`;
     const pontoDe = (fid, dStr) => pontosMesUnidade.find(p => p.colaborador_id === fid && p.data_referencia === dStr);
     const temFolga = (fid, dStr) => folgasUnidade.some(fl => fl.colaborador_id === fid && String(fl.data_folga).slice(0, 10) === dStr);
+    const emMin = (hhmm) => { const [h, m] = String(hhmm).split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 
+    // Regras (RH-B2): dia antes da admissão não é falta; atestado não é falta;
+    // hoje só vira falta depois da entrada + tolerância; horário por dia da
+    // semana vale; atraso usa a mesma tolerância do relógio (CLT art. 58 §1º).
     const linhasFixos = fixos.map(f => {
       const dias = String(f.dias_trabalho || "").split(",").map(s => s.trim()).filter(Boolean);
-      let previstos = 0, presencas = 0, faltas = [], atrasos = 0, minAtraso = 0;
+      const admissao = String(f.data_admissao || "").slice(0, 10);
+      const atestadosDele = atestadosMes.filter(a => a.colaborador_id === f.id);
+      let previstos = 0, presencas = 0, faltas = [], atrasos = 0, minAtraso = 0, atestados = 0;
       for (let d = 1; d <= diaHoje; d++) {
         const dt = new Date(hoje.getFullYear(), hoje.getMonth(), d);
-        if (dias.length && !dias.includes(String(dt.getDay()))) continue; // folga semanal
         const dStr = dataStr(d);
+        if (admissao && dStr < admissao) continue;
+        if (dias.length && !dias.includes(String(dt.getDay()))) continue; // folga semanal
         if (temFolga(f.id, dStr)) continue; // folga programada
-        previstos++;
+        const prevStr = horarioDoDia(f, dt.getDay()).entrada;
         const p = pontoDe(f.id, dStr);
-        if (!p || !p.hora_entrada) { faltas.push(d); continue; }
+        if (d === diaHoje && !p?.hora_entrada && (!prevStr || minAgora <= emMin(prevStr) + TOLERANCIA_MARCACAO_MIN)) continue; // turno ainda não começou
+        previstos++;
+        if (!p || !p.hora_entrada) {
+          if (atestadoNaData(atestadosDele, dStr)) { atestados++; continue; }
+          faltas.push(d); continue;
+        }
         presencas++;
-        // Atraso: entrada gravada depois da prevista (a tolerância já ajusta por dentro)
-        const prevStr = dt.getDay() === 0 ? (f.horario_dom_entrada || f.horario_entrada) : f.horario_entrada;
         if (prevStr) {
-          const [hh, mm] = prevStr.split(":").map(Number);
-          const prev = new Date(dt); prev.setHours(hh || 0, mm || 0, 0, 0);
+          const prev = new Date(dt); prev.setHours(0, emMin(prevStr), 0, 0);
           const atrasoMin = Math.round((new Date(p.hora_entrada).getTime() - prev.getTime()) / 60000);
-          if (atrasoMin >= 1) { atrasos++; minAtraso += atrasoMin; }
+          if (atrasoMin > TOLERANCIA_MARCACAO_MIN) { atrasos++; minAtraso += atrasoMin; }
         }
       }
-      return { f, previstos, presencas, faltas, atrasos, minAtraso };
+      return { f, previstos, presencas, faltas, atrasos, minAtraso, atestados };
     }).sort((a, b) => (b.faltas.length - a.faltas.length) || (b.minAtraso - a.minAtraso));
-
-    // Extras por dia: quem bateu ponto em cada dia × diária
-    const linhasExtras = [];
-    for (let d = 1; d <= diaHoje; d++) {
-      const dStr = dataStr(d);
-      const doDia = extras.filter(f => pontoDe(f.id, dStr));
-      if (!doDia.length) continue;
-      linhasExtras.push({
-        dia: `${String(d).padStart(2, "0")}/${String(hoje.getMonth() + 1).padStart(2, "0")}`,
-        qtd: doDia.length,
-        nomes: doDia.map(f => f.nome.split(" ")[0]).join(", "),
-        custo: doDia.reduce((s, f) => s + (Number(f.salario) || 0), 0),
-      });
-    }
-    const totalDiarias = linhasExtras.reduce((s, l) => s + l.qtd, 0);
-    const totalCustoExtras = linhasExtras.reduce((s, l) => s + l.custo, 0);
 
     const mesNome = hoje.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Faltas e Atrasos — ${mesNome}</title>
@@ -546,32 +526,25 @@ export default function RHPage() {
       </style></head><body>
       <div class="head">
         <div><div class="tag">Relatório de Presença — RH</div><h1>${mesNome}</h1></div>
-        <div class="meta">${unidadeAtiva ? "" : ""}até ${hoje.toLocaleDateString("pt-BR")}<br/>${fixos.length} fixo(s) · ${extras.length} extra(s)</div>
+        <div class="meta">${unidadeAtiva ? "" : ""}até ${hoje.toLocaleDateString("pt-BR")}<br/>${fixos.length} fixo(s)</div>
       </div>
 
       <h2>Faltas e Atrasos — Equipe Fixa</h2>
       <table>
-        <thead><tr><th>Colaborador</th><th>Função</th><th>Dias previstos</th><th>Presenças</th><th>Faltas</th><th>Dias das faltas</th><th>Atrasos</th><th>Min. de atraso</th></tr></thead>
+        <thead><tr><th>Colaborador</th><th>Função</th><th>Dias previstos</th><th>Presenças</th><th>Faltas</th><th>Dias das faltas</th><th>Atestados</th><th>Atrasos</th><th>Min. de atraso</th></tr></thead>
         <tbody>
           ${linhasFixos.map(l => `<tr>
             <td><b>${l.f.nome}</b></td><td>${l.f.cargo || ""}</td>
             <td class="c">${l.previstos}</td><td class="c">${l.presencas}</td>
             <td class="c ${l.faltas.length ? "falta" : ""}">${l.faltas.length}</td>
             <td>${l.faltas.map(d => String(d).padStart(2, "0")).join(", ") || "—"}</td>
+            <td class="c">${l.atestados || "—"}</td>
             <td class="c">${l.atrasos}</td><td class="c">${l.minAtraso > 0 ? l.minAtraso + " min" : "—"}</td>
-          </tr>`).join("") || '<tr><td colspan="8">Nenhum fixo ativo.</td></tr>'}
+          </tr>`).join("") || '<tr><td colspan="9">Nenhum fixo ativo.</td></tr>'}
         </tbody>
       </table>
 
-      <h2>Extras por Dia (diárias pelo ponto)</h2>
-      <table>
-        <thead><tr><th>Dia</th><th>Qtd extras</th><th>Quem</th><th>Custo (diárias)</th></tr></thead>
-        <tbody>
-          ${linhasExtras.map(l => `<tr><td class="c">${l.dia}</td><td class="c">${l.qtd}</td><td>${l.nomes}</td><td class="r">${fmtBRL(l.custo)}</td></tr>`).join("") || '<tr><td colspan="4">Nenhum extra bateu ponto no mês.</td></tr>'}
-          ${linhasExtras.length ? `<tr class="tot"><td>TOTAL</td><td class="c">${totalDiarias} diária(s)</td><td></td><td class="r">${fmtBRL(totalCustoExtras)}</td></tr>` : ""}
-        </tbody>
-      </table>
-      <p style="font-size:9px;color:#94a3b8;margin-top:8px">Falta = dia de trabalho previsto sem batida de ponto (desconta folgas semanais e programadas). Atraso = entrada gravada após o horário; a tolerância legal já é aplicada na marcação. Gerado em ${new Date().toLocaleString("pt-BR")}.</p>
+      <p style="font-size:9px;color:#94a3b8;margin-top:8px">Falta = dia de trabalho previsto, a partir da admissão, sem batida de entrada e sem atestado (desconta folgas semanais e marcadas; hoje só conta depois do horário de entrada). Atraso = entrada mais de ${TOLERANCIA_MARCACAO_MIN} min depois do horário do dia (CLT art. 58 §1º). Extras ficam fora: são pagos por recibo. Gerado em ${new Date().toLocaleString("pt-BR")}.</p>
       </body></html>`;
     const win = window.open("", "_blank", "width=980,height=1000");
     if (win) { win.document.write(comFecharImpressao(html)); win.document.close(); setTimeout(() => win.print(), 400); }
@@ -588,7 +561,7 @@ export default function RHPage() {
     const base = fixo + va + taxa; // remuneração cheia
     const meusPontos = pontosMesUnidade.filter(p => p.colaborador_id === f.id);
     const { regras } = regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao });
-    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual, { contratadaDoDia: (d) => jornadaContratadaMin(f, d), regras });
+    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual, opcoesDaCasa(f, { folgas: folgasUnidade, regras }));
     const descontos = valesPendentes
       .filter(v => v.funcionario_id === f.id)
       .reduce((s, v) => s + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0);
@@ -719,7 +692,7 @@ export default function RHPage() {
   const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
   // Só créditos contam para as 8h — "excesso" (passou do intervalo) é ocorrência
   const totalBancoDe = (colabId) => bancoHoras
-    .filter(b => b.colaborador_id === colabId && b.tipo !== "excesso")
+    .filter(b => b.colaborador_id === colabId && (!b.tipo || b.tipo === "credito"))
     .reduce((s, b) => s + (Number(b.minutos) || 0), 0);
 
   const abrirModalBanco = (f) => {
@@ -758,7 +731,7 @@ export default function RHPage() {
   // Compensar o banco com uma folga: registra a folga e zera os créditos do mês
   const [compensarData, setCompensarData] = useState("");
   const compensarBanco = async () => {
-    const creditos = bancoHoras.filter(b => b.colaborador_id === funcBanco.id && b.tipo !== "excesso");
+    const creditos = bancoHoras.filter(b => b.colaborador_id === funcBanco.id && (!b.tipo || b.tipo === "credito"));
     const total = creditos.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
     if (total <= 0) return alert("Não há créditos para compensar.");
     if (!compensarData) return alert("Escolha a data da folga compensatória.");
@@ -769,58 +742,6 @@ export default function RHPage() {
     alert(`Pronto: folga registrada e ${fmtMin(total)} compensadas. O banco de ${funcBanco.nome.split(" ")[0]} voltou a zero.`);
     setModalBanco(false);
     carregar();
-  };
-
-  // Lança a folha do mês no Financeiro: fixo + vale alimentação + taxa de
-  // serviço + adicional noturno e horas extras calculados do ponto (CLT)
-  const lancarFolhaMes = async () => {
-    const fixos = funcionarios.filter(f => f.tipo_contrato !== "Freelancer" && (f.status || "ativo") !== "inativo" && Number(f.salario) > 0);
-    if (!fixos.length) return alert("Nenhum funcionário fixo com salário cadastrado.");
-    const agora = new Date();
-    const mesISO = agora.toISOString().slice(0, 7);
-    const mesKey = `${String(agora.getMonth() + 1).padStart(2, "0")}/${agora.getFullYear()}`;
-    const prox = new Date(agora.getFullYear(), agora.getMonth() + 1, 5);
-    const venc = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, "0")}-05`;
-
-    // Monta a folha completa de cada um antes de confirmar
-    const { data: feriadosMes } = await fetchFeriados(unidadeAtiva, mesISO);
-    const folha = [];
-    for (const f of fixos) {
-      const { data: pontos } = await fetchPontosMes(f.id, mesISO);
-      const { regras } = regrasDaCompetencia(mesISO, { convencao });
-      const ad = calcularAdicionaisMes(pontos || [], f.salario, feriadosMes || [], { contratadaDoDia: (d) => jornadaContratadaMin(f, d), regras });
-      const fixo = Number(f.salario) || 0;
-      const va = Number(f.vale_alimentacao) || 0;
-      const taxa = Number(f.taxa_servico_mes) || 0;
-      const total = fixo + va + taxa + ad.valorNoturno + ad.valorExtra + ad.valorFeriado;
-      folha.push({ f, fixo, va, taxa, ad, total });
-    }
-    const totalGeral = folha.reduce((s, x) => s + x.total, 0);
-    const resumo = folha.map(x =>
-      `${x.f.nome.split(" ")[0]}: ${fmtBRL(x.total)} (fixo ${fmtBRL(x.fixo)}${x.va ? ` + VA ${fmtBRL(x.va)}` : ""}${x.taxa ? ` + taxa ${fmtBRL(x.taxa)}` : ""}${x.ad.valorNoturno ? ` + noturno ${fmtBRL(x.ad.valorNoturno)}` : ""}${x.ad.valorExtra ? ` + extra ${fmtBRL(x.ad.valorExtra)}` : ""}${x.ad.valorFeriado ? ` + feriado ${fmtBRL(x.ad.valorFeriado)}` : ""})`
-    ).join("\n");
-    if (!confirm(`Lançar a folha de ${mesKey}?\n\n${resumo}\n\nTOTAL: ${fmtBRL(totalGeral)}\nCada um vira uma conta a pagar (mão de obra), venc. 05/${String(prox.getMonth() + 1).padStart(2, "0")}. Quem já foi lançado no mês não duplica.`)) return;
-
-    const { data: contasExistentes } = await fetchContas(unidadeAtiva, "");
-    const jaLancadas = new Set((contasExistentes || []).map(c => c.descricao));
-    let ok = 0, pulados = 0;
-    const falhas = [];
-    for (const x of folha) {
-      const descricao = `Folha ${mesKey}: ${x.f.nome} - ${x.f.cargo || "—"}`;
-      if (jaLancadas.has(descricao)) { pulados++; continue; }
-      // Conta nasce pendente (contas-pagar.mjs); o pagamento é registrado em Contas a Pagar.
-      // Chave por colaborador e mês: relançar a folha não duplica.
-      const { error } = await salvarConta({
-        unidade_id: unidadeAtiva,
-        descricao,
-        valor: Math.round(x.total * 100) / 100,
-        data_vencimento: venc,
-        competencia: `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`,
-        categoria_codigo: "pessoal_salarios",
-      }, { chave: `folha-rh:${unidadeAtiva}:${mesKey}:${x.f.id}`, origem_tipo: "FOLHA" });
-      if (error) falhas.push(`${x.f.nome}: ${error}`); else ok++;
-    }
-    alert(`Folha lançada: ${ok} conta(s) criada(s)${pulados ? ` · ${pulados} já estavam lançadas` : ""}${falhas.length ? `\n\n${falhas.length} NÃO foram lançadas:\n${falhas.join("\n")}` : ""}.`);
   };
 
   // ── Ler a ficha do EXTRA preenchida à mão (foto) via IA e anexar ──────────
@@ -1333,137 +1254,9 @@ export default function RHPage() {
     else carregar();
   };
 
-  // Central de Ocorrências e Documentos do Colaborador (Lugar Exclusivo)
-  const [modalOcorrencias, setModalOcorrencias] = useState(false);
-  const [funcOcorrencias, setFuncOcorrencias] = useState(null);
-  const [abaOcorrencia, setAbaOcorrencia] = useState("atestados"); // 'atestados' | 'advertencias' | 'reunioes' | 'treinamentos' | 'documentos'
-  const [listaAtestados, setListaAtestados] = useState([]);
-  const [listaAdvertencias, setListaAdvertencias] = useState([]);
-  const [listaReunioes, setListaReunioes] = useState([]);
-  const [listaTreinamentos, setListaTreinamentos] = useState([]);
-  const [loadingOcorrencias, setLoadingOcorrencias] = useState(false);
-
-  // Forms da Central de Ocorrências
-  const [atestedoForm, setAtestadoForm] = useState({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null, parcial: false });
-  const [advFormNovo, setAdvFormNovo] = useState({ data: new Date().toISOString().split("T")[0], tipo: "Advertência Escrita", motivo: "" });
-  const [reuniaoForm, setReuniaoForm] = useState({ data: new Date().toISOString().split("T")[0], titulo: "", resumo: "", participantes: "" });
-  const [treinoForm, setTreinoForm] = useState({ data: new Date().toISOString().split("T")[0], nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
-
-  const abrirOcorrencias = async (f, aba = "atestados") => {
-    setFuncOcorrencias(f);
-    setAbaOcorrencia(aba);
-    setModalOcorrencias(true);
-    const hj = new Date().toISOString().split("T")[0];
-    setAtestadoForm({ data_inicio: hj, dias: "1", cid: "", medico: "", motivo: "", arquivo: null });
-    setAdvFormNovo({ data: hj, tipo: "Advertência Escrita", motivo: "" });
-    setReuniaoForm({ data: hj, titulo: "", resumo: "", participantes: f.nome });
-    setTreinoForm({ data: hj, nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
-
-    await recarregarOcorrencias(f.id);
-  };
-
-  const recarregarOcorrencias = async (colabId) => {
-    setLoadingOcorrencias(true);
-    const [rAtest, rAdv, rReun, rTrein] = await Promise.all([
-      fetchAtestados(colabId),
-      fetchAdvertenciasColab(colabId),
-      fetchReunioesColab(colabId),
-      fetchTreinamentosColab(colabId),
-    ]);
-    setListaAtestados(rAtest.data || []);
-    setListaAdvertencias(rAdv.data || []);
-    setListaReunioes(rReun.data || []);
-    setListaTreinamentos(rTrein.data || []);
-    setLoadingOcorrencias(false);
-  };
-
-  const handleSalvarAtestado = async (e) => {
-    e.preventDefault();
-    if (!atestedoForm.data_inicio) return alert("Informe a data de início do atestado.");
-    const ini = new Date(`${atestedoForm.data_inicio}T12:00:00`);
-    const dias = (Number(atestedoForm.dias) || 1) - 1;
-    const fimDate = new Date(ini.getTime() + Math.max(0, dias) * 86400000);
-    const data_fim = fimDate.toISOString().split("T")[0];
-
-    let arquivoUrl = null;
-    if (atestedoForm.arquivo) {
-      const up = await anexarArquivoAtestado(funcOcorrencias.id, atestedoForm.arquivo);
-      if (up.error) return alert("Erro ao enviar anexo: " + up.error);
-      arquivoUrl = up.url;
-    }
-
-    const payload = {
-      unidade_id: unidadeAtiva,
-      colaborador_id: funcOcorrencias.id,
-      data_inicio: atestedoForm.data_inicio,
-      data_fim,
-      cid: atestedoForm.cid || null,
-      medico: atestedoForm.medico || null,
-      motivo: atestedoForm.motivo || null,
-      arquivo_url: arquivoUrl,
-    };
-
-    const { error } = await salvarAtestado(payload);
-    if (error) return alert("Erro ao salvar atestado: " + error);
-    alert(`Atestado médico de ${atestedoForm.dias} dia(s) registrado! O ponto do colaborador será abonado automaticamente no período.`);
-    setAtestadoForm({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null, parcial: false });
-    recarregarOcorrencias(funcOcorrencias.id);
-  };
-
-  const handleSalvarAdvNovo = async (e) => {
-    e.preventDefault();
-    if (!advFormNovo.motivo) return alert("Informe o motivo da advertência.");
-    const payload = {
-      colaborador_id: funcOcorrencias.id,
-      data: advFormNovo.data,
-      tipo: advFormNovo.tipo,
-      motivo: advFormNovo.motivo,
-    };
-    const { error } = await inserirAdvertencia(payload);
-    if (error) return alert("Erro: " + error);
-    setAdvFormNovo({ data: new Date().toISOString().split("T")[0], tipo: "Advertência Escrita", motivo: "" });
-    recarregarOcorrencias(funcOcorrencias.id);
-  };
-
-  const handleSalvarReuniao = async (e) => {
-    e.preventDefault();
-    if (!reuniaoForm.titulo) return alert("Informe o título/pauta da reunião.");
-    const payload = {
-      colaborador_id: funcOcorrencias.id,
-      data: reuniaoForm.data,
-      titulo: reuniaoForm.titulo,
-      resumo: reuniaoForm.resumo,
-      participantes: reuniaoForm.participantes,
-    };
-    const { error } = await inserirReuniaoColab(payload);
-    if (error) return alert("Erro: " + error);
-    setReuniaoForm({ data: new Date().toISOString().split("T")[0], titulo: "", resumo: "", participantes: funcOcorrencias.nome });
-    recarregarOcorrencias(funcOcorrencias.id);
-  };
-
-  const handleSalvarTreino = async (e) => {
-    e.preventDefault();
-    if (!treinoForm.nome_curso) return alert("Informe o nome do treinamento/curso.");
-    const payload = {
-      colaborador_id: funcOcorrencias.id,
-      data: treinoForm.data,
-      nome_curso: treinoForm.nome_curso,
-      instituicao: treinoForm.instituicao,
-      carga_horaria: treinoForm.carga_horaria,
-      vencimento: treinoForm.vencimento || null,
-    };
-    const { error } = await inserirTreinamentoColab(payload);
-    if (error) return alert("Erro: " + error);
-    setTreinoForm({ data: new Date().toISOString().split("T")[0], nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
-    recarregarOcorrencias(funcOcorrencias.id);
-  };
-
-  const handleRemover = async (id) => {
-    if(confirm("Apagar DEFINITIVAMENTE este funcionário e toda a vida dele?\n\nPara manter o histórico, use 'Desligar' — ele vai para o arquivo de ex-funcionários.")) {
-      await removerColaborador(id);
-      carregar();
-    }
-  };
+  // "Apagar definitivamente" saiu (RH-B1): o DELETE em colaboradores apaga em
+  // cascata o registro_ponto, as folgas, o banco de horas e as advertências —
+  // registro de ponto é obrigação legal. Quem sai da casa é desligado.
 
   const calcularProgresso = (f) => {
      if (f.tipo_contrato !== "Fixo" || !f.data_admissao) return null;
@@ -1477,9 +1270,9 @@ export default function RHPage() {
      const av = situacaoAvisoPrevio(f, hj);
      if (av) {
         if (av.concluido) {
-           badges.push({ text: `⚠️ Aviso Prévio Concluído (${av.diasTotal}d) · Finalizar Desligamento`, color: 'text-rose-800 bg-rose-100 border-rose-300 font-black animate-pulse' });
+           badges.push({ text: `Aviso Prévio Concluído (${av.diasTotal}d) · Finalizar Desligamento`, color: 'text-rose-800 bg-rose-100 border-rose-300 font-black animate-pulse' });
         } else {
-           badges.push({ text: `⚠️ Cumprindo Aviso Prévio (${av.diasTotal} dias) · Faltam ${av.diasRestantes} dia(s) (Término ${av.fimPrevisto.toLocaleDateString("pt-BR")})`, color: 'text-amber-800 bg-amber-100 border-amber-300 font-bold' });
+           badges.push({ text: `Cumprindo Aviso Prévio (${av.diasTotal} dias) · Faltam ${av.diasRestantes} dia(s) (Término ${av.fimPrevisto.toLocaleDateString("pt-BR")})`, color: 'text-amber-800 bg-amber-100 border-amber-300 font-bold' });
         }
      }
      
@@ -1705,367 +1498,32 @@ export default function RHPage() {
       <RhNav />
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
-      {abaModulo === "quadro" && <VisaoColaboradores onEditar={abrirModalEdicao} onNovo={abrirModalNovo} onDesligar={abrirDesligamento} versao={versaoQuadro} />}
+      {abaModulo === "quadro" && <VisaoColaboradores onEditar={abrirModalEdicao} onNovo={abrirModalNovo} onDesligar={abrirDesligamento} versao={versaoQuadro}
+        // O menu de ações (banco de horas, folgas, vales, advertências, documentos)
+        // ficou sem botão quando a lista da Visão Geral saiu: abre pelo perfil do Quadro.
+        onAcoes={(c) => { setAbaMenuAcoes("trabalho"); setMenuAcoes(funcionarios.find((x) => x.id === c.id) || c); }} />}
       {abaModulo === "escala" && <VisaoSemana />}
       {abaModulo === "visao" && (
-      <>
-          {/* HEADER: título + destaque; barra de ferramentas em linha própria, sem estourar */}
-          <div className="pt-4 sm:pt-5 pb-5 px-4 sm:px-6 max-w-5xl mx-auto">
-             <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-accent-soft text-accent-strong flex items-center justify-center border border-emerald-100/80 shadow-sm shrink-0">
-                     <Users size={24} />
-                  </div>
-                  <div>
-                     <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-fg">RH & Equipe</h1>
-                     <p className="text-xs font-semibold text-fg mt-0.5">Gestão de Colaboradores e Pessoas · {unidadeInfo?.nome || "Unidade"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                   
-                   <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-accent text-accent-fg px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent transition-colors shadow-md shadow-emerald-600/20">
-                  <UserPlus size={16} /> Novo funcionário
-               </button>
-               <button onClick={() => router.push("/dashboard/rh/extra")} className="flex items-center gap-2 bg-card text-accent-strong border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent-soft transition-colors">
-                  <UserPlus size={16} /> Cadastro de extras
-               </button>
-               <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-card text-accent-strong border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent-soft transition-colors">
-                  <ClipboardList size={16} /> Fechar folha
-               </button>
-               <button onClick={() => { setAbaAtiva("Freelancer"); abrirModalFicha(null); }} className="flex items-center gap-2 bg-card text-accent-strong border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent-soft transition-colors">
-                  <Printer size={16} /> Recibos de extras
-               </button>
-            </div>
-         </div>
-
-         {/* Ferramentas secundárias: linha própria, compactas, com quebra */}
-         <div className="flex items-center gap-2 flex-wrap mt-4">
-            <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-1.5 bg-card text-accent-strong border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-accent-soft transition-colors">
-               <CreditCard size={14} /> Lançar Folha (mês)
+        <>
+          <PainelRH
+            unidadeAtiva={unidadeAtiva} unidadeInfo={unidadeInfo} funcionarios={funcionarios}
+            pontosHoje={pontosHoje} folgasUnidade={folgasUnidade} atestadosMes={atestadosMes}
+            pontosMesUnidade={pontosMesUnidade} lancamentos={lancamentos} paramsSis={paramsSis}
+            convencao={convencao} previsaoDe={previsaoDe}
+            onNovo={abrirModalNovo} onFaltas={imprimirFaltasAtrasos} onFeriados={abrirModalFeriados}
+            onAfd={exportarAFD} baixandoAfd={baixandoAfd}
+            onReciboExtra={() => abrirModalFicha(null)}
+            onAcoes={(c) => { setAbaMenuAcoes("trabalho"); setMenuAcoes(funcionarios.find((x) => x.id === c.id) || c); }}
+          />
+          {/* Ler recibo preenchido (IA): mesmo fluxo de antes, agora sempre à mão. */}
+          <div className="mx-auto max-w-5xl px-4 pb-4 sm:px-6">
+            <input ref={inputFichaExtraRef} type="file" accept="image/*" onChange={lerFichaExtraFoto} className="hidden" />
+            <button type="button" onClick={() => inputFichaExtraRef.current?.click()} disabled={lendoFichaExtra}
+              title="Foto de um recibo de extra preenchido: a IA lê os dados e anexa a foto ao cadastro"
+              className="flex min-h-10 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-white disabled:opacity-60">
+              {lendoFichaExtra ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Ler recibo de extra preenchido (IA)
             </button>
-            <button onClick={imprimirFaltasAtrasos} title="Faltas e atrasos dos fixos + extras por dia (mês atual)" className="flex items-center gap-1.5 bg-card text-rose-700 border border-rose-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
-               <Clock size={14} /> Faltas e Atrasos
-            </button>
-            <button onClick={abrirModalFeriados} title="Feriado trabalhado sem folga compensatória paga em dobro (Lei 605/49; CCT Foz cl. 17: compensar no mês ou em até 30 dias)" className="flex items-center gap-1.5 bg-card text-rose-600 border border-line px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
-               <CalendarDays size={14} /> Feriados
-            </button>
-            <button
-               type="button"
-               onClick={exportarAFD}
-               disabled={baixandoAfd}
-               title="Arquivo Fonte de Dados do ponto (Portaria 671/2021)"
-               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors border ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-card text-subtle border-line" : "bg-card text-fg-soft border-line hover:bg-white"} disabled:opacity-60`}>
-               <FileText size={14} /> {baixandoAfd ? "Exportando..." : "Exportar AFD"}
-            </button>
-            {abaAtiva === "Freelancer" && (
-               <>
-               <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-1.5 bg-card text-amber-700 border border-amber-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-amber-50 transition-colors">
-                  <Printer size={14} /> Recibo de Trabalho Extra
-               </button>
-               <input ref={inputFichaExtraRef} type="file" accept="image/*" onChange={lerFichaExtraFoto} className="hidden" />
-               <button onClick={() => inputFichaExtraRef.current?.click()} disabled={lendoFichaExtra}
-                  title="Tire a foto de um recibo preenchido: a IA lê os dados, cadastra o extra e anexa a foto como documento"
-                  className="flex items-center gap-1.5 bg-card text-accent-strong border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-accent-soft transition-colors disabled:opacity-60">
-                  {lendoFichaExtra ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Ler Recibo Preenchido (IA)
-               </button>
-               </>
-            )}
-         </div>
-
-         {/* ── RESUMO CMO: folha fixa + gasto com extras + % sobre o faturamento ── */}
-         {(() => {
-            const mes = new Date().toISOString().slice(0, 7);
-            const ativos = funcionarios.filter(f => (f.status || "ativo") !== "inativo");
-            const fixos = ativos.filter(f => f.tipo_contrato !== "Freelancer");
-            const extras = ativos.filter(f => f.tipo_contrato === "Freelancer");
-            // Remuneração cheia: fixo + vale alimentação + taxa de serviço
-            const folhaFixa = fixos.reduce((s, f) => s + (Number(f.salario) || 0) + (Number(f.vale_alimentacao) || 0) + (Number(f.taxa_servico_mes) || 0), 0);
-            // Extras: diária × dias efetivamente trabalhados no mês (pelo ponto)
-            const gastoExtras = extras.reduce((s, f) => {
-               const dias = new Set(pontosMesUnidade.filter(p => p.colaborador_id === f.id).map(p => p.data_referencia)).size;
-               return s + dias * (Number(f.salario) || 0);
-            }, 0);
-            // Gasto POR DIA: fixos = salário rateado pelos dias da escala;
-            // extras = diárias de quem bateu ponto hoje
-            const fixosDia = fixos.reduce((s, f) => {
-               const n = (f.dias_trabalho || "").split(",").filter(Boolean).length;
-               return s + (n ? (Number(f.salario) || 0) / (n * 4.345) : 0);
-            }, 0);
-            const idsPontoHoje = new Set(pontosHoje.map(p => p.colaborador_id));
-            const extrasDiaHoje = extras.filter(f => idsPontoHoje.has(f.id)).reduce((s, f) => s + (Number(f.salario) || 0), 0);
-            const total = folhaFixa + gastoExtras;
-            const fat = lancamentos
-               .filter(l => l.tipo === "entrada" && String(l.data || "").slice(0, 7) === mes)
-               .reduce((s, l) => s + (Number(l.valor) || 0), 0);
-            // Fica EM BRANCO até o faturamento do mês ser lançado de verdade
-            // (abaixo de R$ 1.000 trata como ainda não informado — evita %
-            // absurdo com lançamentos de teste). Ao lançar, o % aparece sozinho.
-            const FAT_MINIMO = paramsSis.faturamento_minimo_cmo;
-            const pct = fat >= FAT_MINIMO ? (total / fat) * 100 : null;
-            if (!ativos.length) return null;
-            const aniv = aniversariantesDoMes(ativos, new Date());
-            const trabalhandoAgora = new Set(pontosHoje.map(p => p.colaborador_id)).size;
-                        const emExperiencia = fixos.filter(f => String(f.status_contrato || "").toLowerCase().includes("experi")).length;
-            const incompletos = ativos.filter(f => !f.data_admissao || !f.cpf).length;
-            const cards = [
-               { 
-                 rot: "Funcionários", val: ativos.length, sub: `${fixos.length} fixos · ${extras.length} extras`,
-                 render: () => (
-                    <div className="space-y-4">
-                       {[["Fixos", fixos], ["Extras", extras]].map(([rot, lista]) => (
-                          <div key={rot}>
-                             <p className="mb-2 text-xs font-black uppercase tracking-wider text-subtle">{rot} ({lista.length})</p>
-                             {lista.length ? <ul className="space-y-2 text-sm">
-                                {lista.map(f => <li key={f.id} className="flex justify-between border-b border-line pb-2"><span className="font-bold text-fg">{f.nome}</span><span className="text-subtle">{rot === "Extras" ? `${fmtBRL(f.salario)} / diária` : f.cargo || f.tipo_contrato}</span></li>)}
-                             </ul> : <p className="text-sm text-subtle">Nenhum.</p>}
-                          </div>
-                       ))}
-                    </div>
-                 )
-               },
-               {
-                 rot: "Bateram ponto hoje", val: trabalhandoAgora, sub: "presença registrada",
-                 render: () => {
-                     const pres = pontosHoje.map(p => {
-                         const f = ativos.find(x => x.id === p.colaborador_id);
-                         return f ? { f, e: p.hora_entrada } : null;
-                     }).filter(Boolean);
-                     if (!pres.length) return <p className="text-sm font-bold text-subtle text-center py-4">Nenhum ponto registrado hoje.</p>;
-                     return <ul className="space-y-2 text-sm">
-                       {pres.map((x, i) => <li key={i} className="flex justify-between border-b border-line pb-2"><span className="font-bold text-fg">{x.f.nome}</span><span className="text-subtle">Entrou às {x.e.slice(0, 5)}</span></li>)}
-                     </ul>
-                 }
-               },
-               {
-                 rot: "Custo de Hoje", val: fmtBRL(fixosDia + extrasDiaHoje), sub: `${fmtBRL(fixosDia)} (fixos) + ${fmtBRL(extrasDiaHoje)} (extras)`,
-                 render: () => (
-                     <div>
-                        <p className="text-xs font-medium text-subtle mb-4">Rateio do salário fixo (pelos dias trabalhados na semana) somado ao custo exato das diárias extras de quem bateu ponto hoje.</p>
-                        <h4 className="font-black text-accent mt-4 mb-2">Fixos ({fmtBRL(fixosDia)})</h4>
-                        <ul className="space-y-2 text-sm">
-                           {fixos.map(f => {
-                               const n = (f.dias_trabalho || "").split(",").filter(Boolean).length;
-                               const rateio = n ? (Number(f.salario) || 0) / (n * 4.345) : 0;
-                               if (rateio === 0) return null;
-                               return <li key={f.id} className="flex justify-between border-b border-line pb-1"><span className="text-fg">{f.nome}</span><span className="font-bold text-fg-soft">{fmtBRL(rateio)}</span></li>;
-                           })}
-                        </ul>
-                        <h4 className="font-black text-amber-600 mt-6 mb-2">Extras de hoje ({fmtBRL(extrasDiaHoje)})</h4>
-                        {extras.filter(f => idsPontoHoje.has(f.id)).length === 0 ? <p className="text-xs font-bold text-subtle">Nenhum extra bateu ponto hoje.</p> : (
-                        <ul className="space-y-2 text-sm">
-                           {extras.filter(f => idsPontoHoje.has(f.id)).map(f => (
-                               <li key={f.id} className="flex justify-between border-b border-line pb-1"><span className="text-fg">{f.nome}</span><span className="font-bold text-fg-soft">{fmtBRL(f.salario)}</span></li>
-                           ))}
-                        </ul>
-                        )}
-                     </div>
-                 )
-               },
-               {
-                 rot: "Média da Semana", val: fmtBRL(total / 4.345), sub: "estimativa do mês",
-                 render: () => (
-                     <p className="text-sm font-medium text-subtle">Este valor representa a média simples do Custo Total Mensal dividido por 4,345 semanas. Inclui a folha fixa integral e os gastos com extras (projeção baseada nos dias já trabalhados).</p>
-                 )
-               },
-               {
-                 rot: "Folha prevista (Mês)", val: fmtBRL(folhaFixa), sub: `${fixos.length} fixos · salário+VA+taxa`,
-                 render: () => (
-                    <ul className="space-y-2 text-sm">
-                        {fixos.map(f => {
-                            const totM = (Number(f.salario) || 0) + (Number(f.vale_alimentacao) || 0) + (Number(f.taxa_servico_mes) || 0);
-                            return <li key={f.id} className="flex justify-between border-b border-line pb-1"><span className="text-fg">{f.nome}</span><span className="font-bold text-fg-soft">{fmtBRL(totM)}</span></li>;
-                        })}
-                    </ul>
-                 )
-               },
-               {
-                 rot: "Aniversariantes", val: aniv.itens.length, sub: aniv.itens.length ? `em ${aniv.mes}` : `ninguém em ${aniv.mes}`,
-                 render: () => (
-                    <div className="space-y-3">
-                       {aniv.itens.length === 0 ? <p className="text-sm font-bold text-subtle text-center py-2">Ninguém faz aniversário em {aniv.mes}.</p> : (
-                          <ul className="space-y-2 text-sm">
-                             {aniv.itens.map(it => (
-                                <li key={it.colaborador.id} className="flex justify-between gap-3 border-b border-line pb-2">
-                                   <span className={`font-bold ${it.ehHoje ? "text-accent" : "text-fg"}`}>{it.ehHoje ? "🎂 " : ""}{it.colaborador.nome}</span>
-                                   <span className="text-subtle text-right">{it.diaMes} · {it.ehHoje ? "faz" : it.jaFez ? "fez" : "vai fazer"} {it.vaiFazer} anos</span>
-                                </li>
-                             ))}
-                          </ul>
-                       )}
-                       {aniv.semData > 0 && <p className="text-xs font-medium text-amber-800">{aniv.semData} de {aniv.ativos} colaboradores ativos estão sem data de nascimento no cadastro: o aviso não os inclui.</p>}
-                    </div>
-                 )
-               },
-               {
-                 rot: "CMO Total", val: fmtBRL(total), sub: pct === null ? "esperando faturamento" : `${pct.toFixed(1)}% do faturamento`,
-                 render: () => (
-                     <p className="text-sm font-medium text-subtle">Soma total da Folha Fixa e Gasto com Extras no mês corrente, comparado ao Faturamento de Entradas lançado em Finanças.</p>
-                 )
-               }
-            ];
-            return (
-               <>
-               {aniv.itens.filter(it => !it.jaFez).length > 0 && (
-                  <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                     <p className="text-3xs font-bold uppercase tracking-wider text-emerald-700">Aniversários de {aniv.mes}</p>
-                     <ul className="mt-1 space-y-0.5 font-semibold">{aniv.itens.filter(it => !it.jaFez).map(it => <li key={it.colaborador.id}>{it.ehHoje ? "🎂 " : ""}{fraseAniversario(it)}</li>)}</ul>
-                  </div>
-               )}
-               <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 relative">
-                  {cards.map(c => (
-                     <div key={c.rot} onClick={() => setDetalheKpi(c)} className="bg-card rounded-2xl border border-line shadow-sm px-3 py-2.5 cursor-pointer hover:border-emerald-300 hover:shadow-md transition-all active:scale-95">
-                        <p className="text-3xs font-bold uppercase tracking-wider text-subtle leading-tight">{c.rot}</p>
-                        <p className="text-lg font-black text-accent mt-0.5">{c.val}</p>
-                        <p className="text-3xs font-bold text-subtle truncate">{c.sub}</p>
-                     </div>
-                  ))}
-               </div>
-               </>
-            );
-         })()}
-
-         {(() => {
-            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-            const alertas = [];
-            funcionarios.filter(f => !ehInativo(f) && f.tipo_contrato !== "Freelancer").forEach(f => {
-               if (!f.data_admissao) {
-                  alertas.push({ id: f.id, nome: f.nome, texto: "Sem data de admissão", nivel: "erro" });
-                  return;
-               }
-               const adm = new Date(`${f.data_admissao}T12:00:00`); adm.setHours(0, 0, 0, 0);
-               const diasDesdeAdmissao = Math.floor((hoje - adm) / 86400000);
-               if (f.status_contrato?.startsWith("Experiência")) {
-                  const fc = faseContratoCalculada(f);
-                  if (fc && !fc.ehDefinitivo) {
-                     const faltam = fc.diasRestantesPeriodo;
-                     if (faltam <= 15) {
-                        alertas.push({ 
-                           id: f.id, 
-                           nome: f.nome, 
-                           texto: faltam < 0 ? `Experiência vencida há ${Math.abs(faltam)} dia(s)` : fc.detalhe, 
-                           nivel: faltam <= 5 ? "erro" : "aviso" 
-                        });
-                     }
-                  }
-               } else {
-                  const aniversario = new Date(adm); aniversario.setFullYear(hoje.getFullYear());
-                  if (aniversario < hoje) aniversario.setFullYear(hoje.getFullYear() + 1);
-                  const faltam = Math.floor((aniversario - hoje) / 86400000);
-                  if (faltam <= 45) alertas.push({ id: f.id, nome: f.nome, texto: `Aniversário de admissão em ${faltam} dia(s) — revisar férias`, nivel: "info" });
-               }
-            });
-            return null; // Ocultado a pedido do usuario (ja existe no quadro)
-         })()}
-      </div>
-
-      {/* Modal de Detalhe do KPI */}
-      {detalheKpi && (
-         <div className="fixed inset-0 z-[120] flex justify-center items-center p-4 bg-slate-900/60 backdrop-blur-sm" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }} onClick={() => setDetalheKpi(null)}>
-            <div className="bg-card w-full max-w-lg rounded-[32px] p-6 shadow-2xl relative animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-               <button onClick={() => setDetalheKpi(null)} className="absolute right-6 top-6 p-2 bg-slate-100 rounded-full hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition-colors"><X size={18}/></button>
-               <h3 className="font-black text-2xl mb-1 text-slate-800">{detalheKpi.rot}</h3>
-               <p className="text-xs font-bold text-subtle uppercase tracking-widest mb-6">{detalheKpi.val}</p>
-               <div className="max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin">
-                  {detalheKpi.render && detalheKpi.render()}
-               </div>
-            </div>
-         </div>
-      )}
-
-      {/* Composição da equipe + Ações rápidas */}
-      {funcionarios.length > 0 && (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-4">
-         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_1.4fr] gap-3">
-            {/* Donut de composição */}
-            {(() => {
-               const todos = funcionarios;
-               const total = todos.length || 1;
-               const inativos = todos.filter(f => ehInativo(f)).length;
-               const ativos = todos.filter(f => !ehInativo(f));
-               const extras = ativos.filter(f => f.tipo_contrato === "Freelancer").length;
-               const exp = ativos.filter(f => f.tipo_contrato !== "Freelancer" && String(f.status_contrato || "").toLowerCase().includes("experi")).length;
-               const fixos = ativos.length - extras - exp;
-               const segs = [
-                  { rot: "Fixos ativos", n: fixos, cor: "#059669" },
-                  { rot: "Em experiência", n: exp, cor: "#6ee7b7" },
-                  { rot: "Extras", n: extras, cor: "#94a3b8" },
-                  { rot: "Inativos", n: inativos, cor: "#cbd5e1" },
-               ].filter(s => s.n > 0);
-               let acc = 0;
-               const stops = segs.map(s => { const ini = (acc / total) * 360; acc += s.n; const fim = (acc / total) * 360; return `${s.cor} ${ini}deg ${fim}deg`; }).join(", ");
-               return (
-                  <div className="bg-card rounded-2xl border border-line shadow-sm p-4 flex items-center gap-4">
-                     <div className="relative w-24 h-24 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops || "#e2e8f0 0deg 360deg"})` }}>
-                        <div className="absolute inset-[14px] rounded-full bg-card flex flex-col items-center justify-center">
-                           <span className="text-xl font-black text-slate-800 leading-none">{todos.length}</span>
-                           <span className="text-3xs font-bold uppercase tracking-wider text-subtle">Total</span>
-                        </div>
-                     </div>
-                     <div className="min-w-0 flex-1">
-                        <p className="text-3xs font-bold uppercase tracking-widest text-subtle mb-2">Composição da equipe</p>
-                        <div className="space-y-1">
-                           {segs.map(s => (
-                              <div key={s.rot} className="flex items-center gap-2 text-xs">
-                                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.cor }} />
-                                 <span className="font-bold text-slate-900 flex-1 truncate">{s.rot}</span>
-                                 <span className="font-black text-slate-800">{s.n}</span>
-                                 <span className="text-subtle font-bold w-10 text-right">{Math.round((s.n / total) * 100)}%</span>
-                              </div>
-                           ))}
-                        </div>
-                     </div>
-                  </div>
-               );
-            })()}
-
-            {/* Ações rápidas */}
-            <div className="bg-card rounded-2xl border border-line shadow-sm p-4">
-               <p className="text-3xs font-bold uppercase tracking-widest text-subtle mb-2.5">Ações rápidas</p>
-               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                     { icon: Printer, rot: "Recibo de extra", on: () => { setAbaAtiva("Freelancer"); abrirModalFicha(null); } },
-                     { icon: ClipboardList, rot: "Fechar folha", on: () => router.push('/dashboard/rh/fechamento') },
-                     { icon: Clock, rot: "Faltas e atrasos", on: () => imprimirFaltasAtrasos() },
-                     { icon: CalendarDays, rot: "Feriados", on: () => abrirModalFeriados() },
-                     { icon: Users, rot: "Organograma", on: () => router.push('/dashboard/rh/organograma') },
-                     { icon: Award, rot: "Cargos", on: () => setAbaAtiva("Cargos & Carreiras") },
-                     { icon: LogOut, rot: "Ex-funcionários", on: () => router.push('/dashboard/rh?aba=quadro') },
-                  ].map(a => (
-                     <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-line bg-white hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
-                        <a.icon size={18} className="text-success" />
-                        <span className="text-3xs font-bold text-slate-900 leading-tight">{a.rot}</span>
-                     </button>
-                  ))}
-               </div>
-            </div>
-         </div>
-      </div>
-      )}
-
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
-
-         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none mb-4">
-            {[["Cargos & Carreiras", "Cargos & Carreiras"]].map(([id, rot]) => (
-               <button key={id} onClick={() => setAbaAtiva(id)}
-                  className={`px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-accent text-accent-fg shadow-lg shadow-emerald-600/20" : "bg-card text-fg border border-line hover:bg-white"}`}>
-                  {rot}
-               </button>
-            ))}
-         </div>
-
-         {abaAtiva === "Cargos & Carreiras" ? (
-            <PlanoCargos
-               cargos={cargos}
-               funcionarios={funcionarios}
-               unidadeAtiva={unidadeAtiva}
-               unidadeInfo={unidadeInfo}
-               onRecarregar={() => carregar(true)}
-            />
-         ) : abaAtiva === "Banco de Talentos" ? (
-            <BancoTalentos unidadeAtiva={unidadeAtiva} />
-         ) : null}
-
-      </div>
+          </div>
         </>
       )}
 
@@ -2125,15 +1583,16 @@ export default function RHPage() {
                         Banco de Horas
                      </Acao>
                      <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas e Domingos</Acao>
-                     <Acao icon={Award} cor="text-emerald-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Carreira e promoções</Acao>
+                     <Acao icon={Award} cor="text-emerald-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => router.push(`/dashboard/rh/funcionario/${f.id}`))}>Prontuário (carreira e histórico)</Acao>
                   </div>}
 
                   {abaMenuAcoes === "financeiro" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                      <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 group-hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))} extra={(() => { const t = valesPendentes.filter(v => v.funcionario_id === f.id).reduce((sm, v) => sm + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0); return t > 0 ? <span className="shrink-0 text-3xs font-bold text-teal-700">{fmtBRL(t)}</span> : null; })()}>Consumo / Vales</Acao>
-                     <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
+                     {/* Salário do fixo vai pelo Fechar folha (chave por mês, não duplica).
+                         O "Lançar Salário" avulso criava outra conta a cada clique. */}
                      {f.tipo_contrato === "Freelancer" && (
                         <>
-                          <Acao icon={CheckCircle} cor="text-zinc-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
+                          <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar Diária</Acao>
                           <Acao icon={Clock} cor="text-fg-soft" onClick={() => ir(() => abrirHistoricoDiarias(f))}>Histórico completo do extra</Acao>
                         </>
                      )}
@@ -2160,10 +1619,9 @@ export default function RHPage() {
 
                   {abaMenuAcoes === "gestao" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                      <Acao icon={FileText} cor="text-red-600" bg="bg-red-50 group-hover:bg-red-100" onClick={() => ir(() => abrirModalAdv(f))}>Advertências</Acao>
-                     {abaAtiva !== "Ex-funcionários" && (
+                     {!ehInativo(f) && (
                         <Acao icon={LogOut} cor="text-orange-600" bg="bg-orange-50 group-hover:bg-orange-100" onClick={() => ir(() => abrirDesligamento(f))}>Desligar e arquivar</Acao>
                      )}
-                     <Acao icon={Trash2} cor="text-fg" onClick={() => ir(() => handleRemover(f.id))}>Apagar definitivamente</Acao>
                   </div>}
                </div>
                <div className="flex shrink-0 items-center justify-between border-t border-line bg-card px-3 py-2 sm:px-4 sm:py-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
@@ -2533,33 +1991,30 @@ export default function RHPage() {
                         </div>
                         <div>
                            <label className="text-xs font-bold text-emerald-700 uppercase tracking-widest block mb-1">Fase do Contrato</label>
+                           {/* Mudança de fase de quem já está cadastrado passa pelo vínculo, com
+                               aprovação e histórico (prontuário > Contratos). Antes este campo e os
+                               botões gravavam direto no cadastro: o contrato ficava diferente do
+                               vínculo, e "Não renovar" nem chegava a ser salvo (RH-B2). */}
+                           {editandoId ? (
+                              <div className="flex min-h-12 items-center rounded-xl border border-line bg-card px-4 font-bold text-fg-soft">{novoFunc.status_contrato || "não informado"}</div>
+                           ) : (
                            <select value={novoFunc.status_contrato} onChange={e=>setNovoFunc({...novoFunc, status_contrato: e.target.value})} className="w-full p-4 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-600 text-fg-soft appearance-none">
                               <option value="Experiência 45">Experiência (45 + 45 dias)</option>
                               <option value="Experiência 30">Experiência (30 + 60 dias)</option>
                               <option value="Definitivo">Contrato Definitivo</option>
                            </select>
+                           )}
                            {(() => {
                               const info = faseContratoCalculada(novoFunc);
-                              const decisao = !info.ehDefinitivo && info.diasRestantesPeriodo !== null && info.diasRestantesPeriodo <= 5;
                               return (
                                  <div className="mt-2 flex flex-col gap-2">
                                     <p className="text-xs font-bold text-zinc-700 bg-zinc-100/80 p-2.5 rounded-xl border border-zinc-200">
-                                       ℹ️ {info.fase}: {info.detalhe}
+                                       {info.fase}: {info.detalhe}
                                     </p>
-                                    {decisao && (
-                                       <div className="flex flex-wrap gap-2 mt-1">
-                                          {info.periodo === 1 && (
-                                             <button type="button" onClick={() => alert("O contrato já passa automaticamente para o 2º período amanhã caso você não encerre hoje.")} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-3xs rounded-lg border border-zinc-200 transition-colors">
-                                                ✅ Renovar para 2º Período
-                                             </button>
-                                          )}
-                                          <button type="button" onClick={() => setNovoFunc({...novoFunc, status_contrato: "Definitivo"})} className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-3xs rounded-lg border border-emerald-200 transition-colors">
-                                             🌟 Transformar em Fixo
-                                          </button>
-                                          <button type="button" onClick={() => { if(confirm("Deseja realmente marcar o funcionário como Inativo (desligado)?")) setNovoFunc({...novoFunc, status: "inativo"}) }} className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-3xs rounded-lg border border-rose-200 transition-colors">
-                                             ❌ Não Renovar (Desligar)
-                                          </button>
-                                       </div>
+                                    {editandoId && (
+                                       <button type="button" onClick={() => { setModalNovo(false); router.push(`/dashboard/rh/funcionario/${editandoId}?aba=contratos`); }} className="self-start px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-3xs rounded-lg border border-emerald-200 transition-colors">
+                                          Prorrogar, efetivar ou mudar contrato no prontuário
+                                       </button>
                                     )}
                                  </div>
                               );
@@ -3186,7 +2641,7 @@ export default function RHPage() {
                                 </div>
 
                                 <div className="text-xs space-y-1">
-                                  <p className="font-bold text-slate-800">🛠️ Função exercida: <span className="text-emerald-800">{funcNome}</span></p>
+                                  <p className="font-bold text-slate-800">Função exercida: <span className="text-emerald-800">{funcNome}</span></p>
                                   <p className="font-medium text-slate-900">⏰ Horário de trabalho: <b>{hEntrada} às {hSaida}</b></p>
                                   {(vDin > 0 || vPix > 0) && (
                                     <p className="font-bold text-slate-800">
@@ -3349,7 +2804,7 @@ export default function RHPage() {
                {/* Se o funcionário já está cumprindo aviso */}
                {(funcDeslig.em_aviso_previo || funcDeslig.status_aviso === "cumprindo_aviso") && (
                   <div className="mb-4 rounded-2xl border-2 border-amber-200 bg-amber-50 p-4">
-                     <p className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">⚠️ Atualmente Cumprindo Aviso Prévio</p>
+                     <p className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">Atualmente Cumprindo Aviso Prévio</p>
                      <p className="text-xs text-amber-800 font-medium">Início em <b>{funcDeslig.inicio_aviso_previo ? new Date(funcDeslig.inicio_aviso_previo + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</b> ({funcDeslig.dias_aviso_previo || 30} dias contratados).</p>
                      <div className="mt-3 flex gap-2">
                         <button type="button" onClick={() => handleCancelarAviso(funcDeslig)} className="py-2 px-3 bg-card border border-amber-300 text-amber-900 font-bold text-xs rounded-xl hover:bg-amber-100">Cancelar Aviso</button>
@@ -3401,7 +2856,7 @@ export default function RHPage() {
                            const faltam = Math.ceil((fim - hj) / 86400000);
                            return (
                               <div className="bg-card border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-900">
-                                 📅 Término previsto do aviso: <b>{fim.toLocaleDateString("pt-BR")}</b>
+                                 Término previsto do aviso: <b>{fim.toLocaleDateString("pt-BR")}</b>
                                  {faltam > 0 ? <span className="block mt-0.5 text-amber-700">· Faltam <b>{faltam} dia(s)</b> de trabalho</span> : <span className="block mt-0.5 text-rose-700">· Prazo de aviso já finalizado!</span>}
                               </div>
                            );
@@ -3442,238 +2897,6 @@ export default function RHPage() {
                      </button>
                   </div>
                </form>
-            </div>
-         </div>
-      )}
-
-      {/* MODAL: CENTRAL EXCLUSIVA DE OCORRÊNCIAS & DOCUMENTOS */}
-      {modalOcorrencias && funcOcorrencias && (
-         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 0.75rem)" }}>
-            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-3xl p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4 flex flex-col max-h-[calc(100dvh-var(--erp-safe-top,2.75rem)-1.5rem)]">
-               <div className="flex flex-wrap justify-between items-center gap-2 mb-4 shrink-0">
-                  <div>
-                     <h2 className="font-black text-2xl text-slate-800">Central de Ocorrências & Documentos</h2>
-                     <p className="text-sm font-bold text-fg mt-0.5">{funcOcorrencias.nome} · {funcOcorrencias.cargo || "Sem cargo"}</p>
-                  </div>
-                  <button onClick={() => setModalOcorrencias(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
-               </div>
-
-               {/* ABAS */}
-               <div className="flex gap-1.5 border-b border-line overflow-x-auto shrink-0 mb-4 pb-1">
-                  {[
-                     { id: "atestados", rotulo: "🏥 Atestados Médicos", count: listaAtestados.length },
-                     { id: "advertencias", rotulo: "⚠️ Advertências", count: listaAdvertencias.length },
-                     { id: "reunioes", rotulo: "🤝 Reuniões & Feedbacks", count: listaReunioes.length },
-                     { id: "treinamentos", rotulo: "🎓 Treinamentos", count: listaTreinamentos.length },
-                  ].map(tab => (
-                     <button key={tab.id} type="button" onClick={() => setAbaOcorrencia(tab.id)} className={`px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 flex items-center gap-1.5 ${abaOcorrencia === tab.id ? "bg-slate-900 text-white shadow-sm" : "bg-card text-slate-900 hover:bg-slate-200"}`}>
-                        <span>{tab.rotulo}</span>
-                        {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-3xs ${abaOcorrencia === tab.id ? "bg-slate-700 text-white" : "bg-slate-200 text-fg-soft"}`}>{tab.count}</span>}
-                     </button>
-                  ))}
-               </div>
-
-               <div className="flex-1 overflow-y-auto pr-1">
-                  {loadingOcorrencias ? (
-                     <div className="py-12 text-center font-bold text-subtle">Carregando histórico do colaborador...</div>
-                  ) : (
-                     <>
-                        {/* ABA 1: ATESTADOS MÉDICOS */}
-                        {abaOcorrencia === "atestados" && (
-                           <div className="space-y-4">
-                              <form onSubmit={handleSalvarAtestado} className="bg-zinc-100/70 border border-zinc-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-900">Novo Atestado Médico</p>
-                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Início do Afastamento</label>
-                                       <input type="date" value={atestedoForm.data_inicio} onChange={e=>setAtestadoForm({...atestedoForm, data_inicio: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Qtd Dias Afastado</label>
-                                       <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-slate-800 text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">CID (Opcional)</label>
-                                       <input type="text" placeholder="Ex: Z76.5, J11" value={atestedoForm.cid} onChange={e=>setAtestadoForm({...atestedoForm, cid: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                 </div>
-
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Médico / CRM (Opcional)</label>
-                                       <input type="text" placeholder="Ex: Dr. Carlos CRM 12345" value={atestedoForm.medico} onChange={e=>setAtestadoForm({...atestedoForm, medico: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
-                                       <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-900 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800 cursor-pointer"/>
-                                    </div>
-                                 </div>
-
-                                 <button type="submit" className="w-full py-3 bg-emerald-800 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
-                                    Registrar Atestado e Abonar Ponto Automático
-                                 </button>
-                              </form>
-
-                              <div className="space-y-2">
-                                 {listaAtestados.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhum atestado médico cadastrado para este colaborador.</p>
-                                 ) : listaAtestados.map(a => (
-                                    <div key={a.id} className="p-3 bg-card border border-line rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
-                                       <div>
-                                          <p className="font-bold text-slate-800 text-xs">{a.parcial ? "🏥 Atestado de Horas (Parcial)" : "🏥 Atestado Médico"} · {new Date(a.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")} até {new Date((a.data_fim || a.data_inicio) + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                                          <p className="text-2xs font-bold text-zinc-800 mt-0.5">{a.cid ? `CID: ${a.cid} · ` : ""}{a.medico ? `Dr(a). ${a.medico}` : "Ausência Abonada"}</p>
-                                       </div>
-                                       <div className="flex items-center gap-2">
-                                          {a.arquivo_url && (
-                                             <a href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("atestado", a.id); }} className="py-1.5 px-3 bg-zinc-100 border border-zinc-200 text-zinc-800 font-bold text-2xs rounded-xl hover:bg-zinc-100">Ver Anexo</a>
-                                          )}
-                                          <button type="button" onClick={async () => { if(confirm("Excluir este atestado?")) { await removerAtestado(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
-                                       </div>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {/* ABA 2: ADVERTÊNCIAS */}
-                        {abaOcorrencia === "advertencias" && (
-                           <div className="space-y-4">
-                              <form onSubmit={handleSalvarAdvNovo} className="bg-rose-50/70 border border-rose-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-rose-900">Nova Advertência Disciplinar</p>
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Data da Ocorrência</label>
-                                       <input type="date" value={advFormNovo.data} onChange={e=>setAdvFormNovo({...advFormNovo, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-rose-500"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Tipo de Medida</label>
-                                       <select value={advFormNovo.tipo} onChange={e=>setAdvFormNovo({...advFormNovo, tipo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-rose-500">
-                                          <option value="Advertência Verbal">Advertência Verbal</option>
-                                          <option value="Advertência Escrita">Advertência Escrita</option>
-                                          <option value="Suspensão (1 dia)">Suspensão (1 dia)</option>
-                                          <option value="Suspensão (3 dias)">Suspensão (3 dias)</option>
-                                       </select>
-                                    </div>
-                                 </div>
-                                 <div>
-                                    <label className="text-3xs font-bold text-fg uppercase block mb-1">Motivo / Descrição Detalhada</label>
-                                    <textarea rows={2} placeholder="Ex: atraso reiterado, não uso de EPI..." value={advFormNovo.motivo} onChange={e=>setAdvFormNovo({...advFormNovo, motivo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-rose-500 resize-none"/>
-                                 </div>
-                                 <button type="submit" className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
-                                    Registrar Advertência
-                                 </button>
-                              </form>
-
-                              <div className="space-y-2">
-                                 {listaAdvertencias.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhuma advertência disciplinar para este colaborador.</p>
-                                 ) : listaAdvertencias.map(a => (
-                                    <div key={a.id} className="p-3 bg-card border border-line rounded-2xl flex items-center justify-between gap-2 shadow-sm">
-                                       <div>
-                                          <span className="text-3xs font-bold uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">{a.tipo || "Advertência"}</span>
-                                          <p className="font-bold text-slate-800 text-xs mt-1">{a.motivo || a.descricao}</p>
-                                          <p className="text-3xs font-bold text-subtle mt-0.5">{a.data ? new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</p>
-                                       </div>
-                                       <button type="button" onClick={async () => { if(confirm("Excluir registro?")) { await removerAdvertencia(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {/* ABA 3: REUNIÕES & FEEDBACKS */}
-                        {abaOcorrencia === "reunioes" && (
-                           <div className="space-y-4">
-                              <form onSubmit={handleSalvarReuniao} className="bg-zinc-100/70 border border-zinc-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-900">Registrar Reunião ou Feedback (1-on-1)</p>
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Data</label>
-                                       <input type="date" value={reuniaoForm.data} onChange={e=>setReuniaoForm({...reuniaoForm, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Título / Pauta da Reunião</label>
-                                       <input type="text" placeholder="Ex: Avaliação de 30 dias, Alinhamento de metas" value={reuniaoForm.titulo} onChange={e=>setReuniaoForm({...reuniaoForm, titulo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
-                                    </div>
-                                 </div>
-                                 <div>
-                                    <label className="text-3xs font-bold text-fg uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
-                                    <textarea rows={3} placeholder="Pontos fortes, pontos a melhorar, metas combinadas..." value={reuniaoForm.resumo} onChange={e=>setReuniaoForm({...reuniaoForm, resumo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-emerald-600 resize-none"/>
-                                 </div>
-                                 <button type="submit" className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
-                                    Registrar Reunião
-                                 </button>
-                              </form>
-
-                              <div className="space-y-2">
-                                 {listaReunioes.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhuma reunião ou feedback registrado.</p>
-                                 ) : listaReunioes.map(r => (
-                                    <div key={r.id} className="p-3 bg-card border border-line rounded-2xl flex justify-between gap-2 shadow-sm">
-                                       <div>
-                                          <p className="font-bold text-slate-800 text-xs">🤝 {r.titulo} · {new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                                          <p className="text-xs text-slate-900 mt-1 font-medium whitespace-pre-line">{r.resumo}</p>
-                                       </div>
-                                       <button type="button" onClick={async () => { if(confirm("Excluir reunião?")) { await removerReuniaoColab(r.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {/* ABA 4: TREINAMENTOS */}
-                        {abaOcorrencia === "treinamentos" && (
-                           <div className="space-y-4">
-                              <form onSubmit={handleSalvarTreino} className="bg-emerald-50/70 border border-emerald-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-emerald-900">Registrar Treinamento / Certificado</p>
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Nome do Curso / Treinamento</label>
-                                       <input type="text" placeholder="Ex: Higiene ANVISA, Atendimento ao Cliente" value={treinoForm.nome_curso} onChange={e=>setTreinoForm({...treinoForm, nome_curso: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Instituição / Instrutor</label>
-                                       <input type="text" placeholder="Ex: SENAC, Interno, Chef" value={treinoForm.instituicao} onChange={e=>setTreinoForm({...treinoForm, instituicao: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
-                                    </div>
-                                 </div>
-                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Data Conclusão</label>
-                                       <input type="date" value={treinoForm.data} onChange={e=>setTreinoForm({...treinoForm, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Carga Horária</label>
-                                       <input type="text" placeholder="Ex: 8 horas" value={treinoForm.carga_horaria} onChange={e=>setTreinoForm({...treinoForm, carga_horaria: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
-                                    </div>
-                                    <div>
-                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Vencimento (Opcional)</label>
-                                       <input type="date" value={treinoForm.vencimento} onChange={e=>setTreinoForm({...treinoForm, vencimento: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
-                                    </div>
-                                 </div>
-                                 <button type="submit" className="w-full py-3 bg-accent hover:bg-accent text-accent-fg font-bold text-xs rounded-xl shadow-sm transition-colors">
-                                    Registrar Treinamento
-                                 </button>
-                              </form>
-
-                              <div className="space-y-2">
-                                 {listaTreinamentos.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhum treinamento registrado para este colaborador.</p>
-                                 ) : listaTreinamentos.map(t => (
-                                    <div key={t.id} className="p-3 bg-card border border-line rounded-2xl flex justify-between gap-2 shadow-sm">
-                                       <div>
-                                          <p className="font-bold text-slate-800 text-xs">🎓 {t.nome_curso} {t.carga_horaria ? `(${t.carga_horaria})` : ""}</p>
-                                          <p className="text-2xs font-bold text-fg mt-0.5">{t.instituicao ? `Instituição: ${t.instituicao} · ` : ""}Concluído em {new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                                          {t.vencimento && <p className="text-3xs font-bold text-amber-700 mt-0.5">Reciclagem prevista: {new Date(t.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</p>}
-                                       </div>
-                                       <button type="button" onClick={async () => { if(confirm("Excluir treinamento?")) { await removerTreinamentoColab(t.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-                     </>
-                  )}
-               </div>
             </div>
          </div>
       )}
@@ -3727,7 +2950,7 @@ export default function RHPage() {
       {/* MODAL: BANCO DE HORAS (intervalo não tirado; limite 8h/mês) */}
       {modalBanco && funcBanco && (() => {
          const lancs = bancoHoras.filter(b => b.colaborador_id === funcBanco.id);
-         const total = lancs.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+         const total = lancs.filter(b => !b.tipo || b.tipo === "credito").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
          const pct = Math.min(100, (total / BANCO_LIMITE_MIN) * 100);
          const critico = total >= BANCO_LIMITE_MIN;
          const alerta = total >= BANCO_ALERTA_MIN;
@@ -3796,6 +3019,8 @@ export default function RHPage() {
                               {b.data ? b.data.split("-").reverse().join("/") : "—"} ·{" "}
                               {b.tipo === "excesso"
                                  ? <span className="text-amber-700">passou {fmtMin(Number(b.minutos) || 0)} do intervalo</span>
+                                 : b.tipo === "intervalo_curto"
+                                 ? <span className="text-subtle">intervalo curto (só anotação, não é crédito)</span>
                                  : <span className="text-zinc-700">{fmtMin(Number(b.minutos) || 0)}</span>}
                            </p>
                            {b.observacao && <p className="text-2xs font-medium text-subtle truncate">{b.observacao}</p>}
@@ -3887,11 +3112,12 @@ export default function RHPage() {
                      </div>
 
                      <div>
-                        <label className="text-xs font-bold text-slate-700 uppercase tracking-widest block mb-1">Folga Extra (Feriado ou Outro)</label>
-                        <p className="text-xs font-medium text-slate-500 mb-2">Qualquer data, inclusive uma que já passou (pede confirmação).</p>
-                        <div className="flex gap-2">
-                           <input type="date" value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 min-w-0 p-3 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
-                           <button onClick={() => handleAdicionarFolga(novaFolgaData, "Extra / Feriado")} className="bg-emerald-600 text-white px-4 font-bold rounded-xl hover:bg-emerald-700 transition-colors">Adicionar</button>
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-widest block mb-1">Outra folga</label>
+                        <p className="text-xs font-medium text-slate-500 mb-2">Qualquer data, inclusive uma que já passou (pede confirmação). Folga que compensa um feriado trabalhado, marcada em até 30 dias, tira o pagamento em dobro daquele feriado.</p>
+                        <div className="flex flex-wrap gap-2">
+                           <input type="date" value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 min-w-[150px] p-3 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
+                           <button onClick={() => handleAdicionarFolga(novaFolgaData, "Folga avulsa")} className="bg-emerald-600 text-white px-4 py-3 font-bold rounded-xl hover:bg-emerald-700 transition-colors">Folga avulsa</button>
+                           <button onClick={() => handleAdicionarFolga(novaFolgaData, "Compensação de feriado")} className="bg-white border border-emerald-600 text-emerald-700 px-4 py-3 font-bold rounded-xl hover:bg-emerald-50 transition-colors">Compensa feriado</button>
                         </div>
                      </div>
                   </div>

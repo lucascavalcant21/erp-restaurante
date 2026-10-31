@@ -7,6 +7,9 @@
   box-sizing: border-box;
   min-height: 100%;
   flex-grow: 1;
+  /* Sem isto a faixa do menu no celular (uma linha só) esticava o painel inteiro para o lado. */
+  min-width: 0;
+  max-width: 100%;
   background: var(--cd-branco);
   color: var(--cd-texto);
   display: flex;
@@ -79,6 +82,54 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+/* Celular: o menu vira uma faixa que corre para o lado, em cima do conteúdo. */
+@media (max-width: 760px) {
+  .menu {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+    flex-direction: row;
+    gap: 6px;
+    padding: 10px 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--cd-borda);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .menu::-webkit-scrollbar {
+    display: none;
+  }
+  .marca {
+    display: none;
+  }
+  .menuItem,
+  .menuItem:hover,
+  .menuItem:visited {
+    flex-shrink: 0;
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--cd-borda);
+    background: var(--cd-branco);
+    white-space: nowrap;
+  }
+  .menuAtual,
+  .menuAtual:hover {
+    border-color: var(--cd-principal);
+    background: var(--cd-principal);
+    color: var(--cd-branco);
+  }
+  /* A tela aberta vem primeiro na faixa, sempre à vista. */
+  .menuAtual {
+    order: -1;
+  }
+  .conteudo {
+    flex-basis: 100%;
+    padding: 16px;
+    gap: 14px;
+  }
 }
 .topo {
   display: flex;
@@ -242,6 +293,45 @@
 .secaoQtd {
   font-size: 12px;
   color: var(--cd-texto-suave);
+}
+/* Celular: categorias numa faixa de botões que corre para o lado; ordenar fica no computador. */
+@media (max-width: 760px) {
+  .secoes {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+    flex-direction: row;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .secoes::-webkit-scrollbar {
+    display: none;
+  }
+  .secoesRotulo,
+  .alca {
+    display: none;
+  }
+  .secao {
+    width: auto;
+    flex-shrink: 0;
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--cd-borda);
+    white-space: nowrap;
+  }
+  .secaoAtual {
+    border-color: var(--cd-principal);
+    background: var(--cd-principal);
+    color: var(--cd-branco);
+  }
+  .secaoAtual .secaoQtd {
+    color: var(--cd-branco);
+  }
 }
 
 /* Produtos da seção */

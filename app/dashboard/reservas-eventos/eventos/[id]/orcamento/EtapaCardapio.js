@@ -367,9 +367,9 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas, bases = [], onSalva
               <Numero valor={orc.cliente?.convidados ?? ""} onChange={(v) => setOrc((o) => ({ ...o, cliente: { ...o.cliente, convidados: v } }))} sufixo="pessoas" aria-label="Quantas pessoas vão comer" />
             </label>
             <div className="grid flex-1 grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-slate-50 p-2.5"><p className="text-[11px] font-bold uppercase text-slate-500">Custo da mesa</p><p className="text-lg font-black tabular-nums text-slate-900">{fmtReais(resumo.cmv)}</p></div>
-              <div className="rounded-xl bg-slate-50 p-2.5"><p className="text-[11px] font-bold uppercase text-slate-500">Pessoas</p><p className="text-lg font-black tabular-nums text-slate-900">{resumo.convidados || "—"}</p></div>
-              <div className="rounded-xl bg-emerald-50 p-2.5"><p className="text-[11px] font-bold uppercase text-emerald-800">Custo por pessoa</p><p className="text-lg font-black tabular-nums text-emerald-900">{resumo.convidados > 0 ? fmtReais(resumo.cmv / resumo.convidados) : "—"}</p></div>
+              <div className="min-w-0 rounded-xl bg-slate-50 p-2 sm:p-2.5"><p className="text-[10px] font-bold uppercase text-slate-500 sm:text-[11px]">Custo da mesa</p><p className="truncate text-sm font-black tabular-nums text-slate-900 sm:text-lg">{fmtReais(resumo.cmv)}</p></div>
+              <div className="min-w-0 rounded-xl bg-slate-50 p-2 sm:p-2.5"><p className="text-[10px] font-bold uppercase text-slate-500 sm:text-[11px]">Pessoas</p><p className="truncate text-sm font-black tabular-nums text-slate-900 sm:text-lg">{resumo.convidados || "—"}</p></div>
+              <div className="min-w-0 rounded-xl bg-emerald-50 p-2 sm:p-2.5"><p className="text-[10px] font-bold uppercase text-emerald-800 sm:text-[11px]">Custo por pessoa</p><p className="truncate text-sm font-black tabular-nums text-emerald-900 sm:text-lg">{resumo.convidados > 0 ? fmtReais(resumo.cmv / resumo.convidados) : "—"}</p></div>
             </div>
           </div>
         </Cartao>

@@ -17,7 +17,7 @@ const TOM_VEREDITO = { ok: "", baixa: s.promoVereditoBaixa, prejuizo: s.promoVer
 const TOM_LUCRO = { ok: "", baixa: s.promoLucroBaixo, prejuizo: s.promoLucroRuim };
 
 export default function PainelPromocoes({
-  nomeLoja = "", lista = [], resumo = [], form, setForm, editando = null, produtos = [], categorias = [], custos = {},
+  semMenu = false, nomeLoja = "", lista = [], resumo = [], form, setForm, editando = null, produtos = [], categorias = [], custos = {},
   metaPct = 0, taxaEntrega = 0, pctCadastro = 0, fotoDe = () => "", salvando = false, erro = "", aviso = "",
   onNova, onEditar, onAtivar, onSalvar, onExcluir, linkCombos = "#", itensMenu,
 }) {
@@ -52,7 +52,7 @@ export default function PainelPromocoes({
 
   return (
     <div className={s.raiz}>
-      <MenuPainel atual="promocoes" nomeLoja={nomeLoja} itens={itensMenu} />
+      {semMenu ? null : <MenuPainel atual="promocoes" nomeLoja={nomeLoja} itens={itensMenu} />}
       <main className={s.conteudo}>
         <div className={s.topo}>
           <h1 className={s.titulo}>Promoções e descontos</h1>

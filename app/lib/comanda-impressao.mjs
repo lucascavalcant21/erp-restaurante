@@ -53,7 +53,7 @@ function corpoDaVia(ticket, { setor = "cozinha", unidade = "", agora = new Date(
   const itens = (ticket?.itens || []).map((i) => `
     <div class="item"><span class="q">${esc(i.quantidade)}x</span> ${esc(i.nome)}${i.observacao ? `<div class="obs">OBS: ${esc(i.observacao)}</div>` : ""}</div>`).join("");
   return `<div class="via">
-<div class="c g">${esc(titulos[setor] || titulos.cozinha)}${ticket?.acrescimo ? " · ACRÉSCIMO" : ""}</div>
+<div class="c g">${ticket?.entrega ? "PRONTO · ENTREGAR" : esc(titulos[setor] || titulos.cozinha)}${ticket?.acrescimo ? " · ACRÉSCIMO" : ""}</div>
 <div class="c l">${esc(ticket?.origem || "")}${ticket?.identificacao ? ` · ${esc(ticket.identificacao)}` : ""}</div>
 ${ticket?.cliente ? `<div class="c l">${esc(ticket.cliente)}</div>` : ""}
 <div class="c l">#${esc(String(ticket?.id || "").slice(0, 4).toUpperCase())} · ${esc(hora)}</div>

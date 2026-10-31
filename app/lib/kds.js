@@ -68,7 +68,7 @@ export async function fetchFilaKDS(unidadeId, setor = "cozinha") {
   const { data, error } = await supabase
     .from("pedidos_itens")
     .select(`
-      id, pedido_id, quantidade, observacao, status_kds, created_at,
+      id, pedido_id, quantidade, observacao, status_kds, created_at, updated_at,
       produtos ( nome_produto, departamento ),
       pedidos!inner ( id, unidade_id, status, tipo_pedido, cliente_nome, identificacao, created_at )
     `)
@@ -92,6 +92,19 @@ export async function atualizarItemKDS(itemId, novoStatus) {
     .update({ status_kds: novoStatus, updated_at: new Date().toISOString() })
     .eq("id", itemId);
   if (error) console.error("[kds] atualizarItemKDS:", error.message);
+  return { error: error?.message || null };
+}
+
+/** Muda vários itens de uma vez (Iniciar preparo / Pronto no card do pedido). */
+export async function atualizarItensKDS(itemIds, novoStatus) {
+  if (!isSupabaseReady()) return { error: "Supabase não configurado" };
+  const ids = (itemIds || []).filter(Boolean);
+  if (!ids.length) return { error: null };
+  const { error } = await supabase
+    .from("pedidos_itens")
+    .update({ status_kds: novoStatus, updated_at: new Date().toISOString() })
+    .in("id", ids);
+  if (error) console.error("[kds] atualizarItensKDS:", error.message);
   return { error: error?.message || null };
 }
 

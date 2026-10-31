@@ -1,7 +1,7 @@
 // Fila do KDS: agrupamento por pedido, setor, estados e quando o pedido online fica pronto.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { montarFilaKDS, proximoStatusKDS, setorDoProduto, origemDoPedido, pedidoFicaPronto } from "./kds-fila.mjs";
+import { montarFilaKDS, proximoStatusKDS, setorDoProduto, origemDoPedido, pedidoFicaPronto, etapaDoTicket, cronometroKDS, localDoTicket, clienteDoTicket, partesDoItem, quadroKDS, tempoMedioKDS } from "./kds-fila.mjs";
 
 const ped = (id, extra = {}) => ({ id, unidade_id: "u1", status: "aberto", tipo_pedido: "salao", cliente_nome: null, identificacao: null, created_at: "2026-10-19T12:00:00Z", ...extra });
 const item = (id, pedido, departamento, status_kds = "pendente", extra = {}) => ({
@@ -64,4 +64,48 @@ test("pedido online fica pronto só quando nada mais está na fila; comanda do s
   assert.equal(pedidoFicaPronto(online, []), false);
   assert.equal(pedidoFicaPronto({ ...online, status: "saiu" }, [{ status_kds: "entregue" }]), false, "não volta pedido que já saiu");
   assert.equal(pedidoFicaPronto({ id: "S", tipo_pedido: "salao", status: "aberto" }, [{ status_kds: "entregue" }]), false, "a comanda segue aberta até o garçom fechar");
+});
+
+test("quadro: coluna pelo estado dos itens", () => {
+  const t = (...st) => ({ itens: st.map((status) => ({ status })) });
+  assert.equal(etapaDoTicket(t("pendente", "pendente")), "fila");
+  assert.equal(etapaDoTicket(t("pendente", "preparando")), "preparo");
+  assert.equal(etapaDoTicket(t("pronto", "pendente")), "preparo");
+  assert.equal(etapaDoTicket(t("pronto", "pronto")), "pronto");
+});
+
+test("cronômetro: verde até 10 min, amarelo até 15, depois atrasado com 4 níveis", () => {
+  assert.deepEqual(cronometroKDS(192), { texto: "03:12", cor: "ok", atraso: 0, nivel: 0 });
+  assert.equal(cronometroKDS(12 * 60 + 5).cor, "atencao");
+  assert.deepEqual(cronometroKDS(21 * 60), { texto: "21:00", cor: "atrasado", atraso: 6, nivel: 2 });
+  assert.equal(cronometroKDS(15 * 60).nivel, 1);
+  assert.equal(cronometroKDS(60 * 60).nivel, 4);
+});
+
+test("local: mesa do QR vem do nome; salão pela identificação", () => {
+  assert.equal(localDoTicket({ cliente: "[MESA 12] Ana", tipo_pedido: "qrcode" }), "Mesa 12");
+  assert.equal(clienteDoTicket({ cliente: "[MESA 12] Ana" }), "Ana");
+  assert.equal(localDoTicket({ identificacao: "05.01", tipo_pedido: "salao" }), "Mesa 05.01");
+  assert.equal(localDoTicket({ identificacao: "Mesa 1.02" }), "Mesa 1.02");
+  assert.equal(localDoTicket({ tipo_pedido: "delivery" }), "Delivery");
+});
+
+test("item: complementos, SEM, viagem, alergia e obs separados", () => {
+  const r = partesDoItem("PARA VIAGEM · Ponto: Ao ponto · Sem: Cebola, Alho · Molho à parte · ALERGIA: crustáceos");
+  assert.equal(r.viagem, true);
+  assert.deepEqual(r.mods, ["Ao ponto", "SEM cebola", "SEM alho"]);
+  assert.equal(r.obs, "Molho à parte");
+  assert.deepEqual(r.alergia, ["ALERGIA: crustáceos"]);
+  assert.deepEqual(partesDoItem(null), { viagem: false, alergia: [], mods: [], obs: "" });
+});
+
+test("prioridade: atrasados numerados do mais antigo, no topo da coluna; prontos fora", () => {
+  const agora = Date.parse("2026-10-30T20:00:00Z");
+  const tk = (id, min, st) => ({ id, created_at: new Date(agora - min * 60000).toISOString(), itens: [{ status: st, updated_at: new Date(agora - 60000).toISOString() }] });
+  const q = quadroKDS([tk("a", 3, "pendente"), tk("b", 21, "pendente"), tk("c", 26, "preparando"), tk("d", 12, "preparando"), tk("e", 40, "pronto")], agora);
+  assert.deepEqual(q.fila.map((t) => [t.id, t.prioridade]), [["b", 2], ["a", null]]);
+  assert.deepEqual(q.preparo.map((t) => [t.id, t.prioridade]), [["c", 1], ["d", null]]);
+  assert.equal(q.pronto[0].prioridade, null);
+  assert.equal(q.prioridades, 2);
+  assert.equal(tempoMedioKDS(q), 16);
 });

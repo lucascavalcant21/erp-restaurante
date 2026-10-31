@@ -19,7 +19,7 @@ const soDigitos = (v) => String(v || "").replace(/\D/g, "");
 const fmtTel = (v) => soDigitos(v).slice(0, 11)
   .replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
 
-const classeCampo = "h-12 w-full rounded-xl border border-slate-300 bg-card px-3.5 text-base font-semibold text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15";
+const classeCampo = "h-12 w-full rounded-xl border border-slate-300 bg-card px-3.5 text-base font-semibold text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-hf-accent/15";
 
 function Campo({ label, children }) {
   return (
@@ -286,7 +286,7 @@ export default function PaginaPublicaVagas() {
             </Campo>
             <Campo label="Experiência profissional">
               <textarea required value={form.experiencia} onChange={e => set("experiencia", e.target.value)} rows={4}
-                className="w-full rounded-xl border border-slate-300 bg-card p-3.5 text-base font-medium text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15"
+                className="w-full rounded-xl border border-slate-300 bg-card p-3.5 text-base font-medium text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-hf-accent/15"
                 placeholder="Onde já trabalhou, por quanto tempo e o que fazia." />
             </Campo>
           </div>

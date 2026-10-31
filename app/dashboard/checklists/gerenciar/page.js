@@ -908,7 +908,7 @@ function GerenciarChecklistsContent() {
                               placeholder="O que deve ser feito?"
                               value={it.texto}
                               onChange={e => mudaTarefa(it.id, { texto: e.target.value })}
-                              className="w-full rounded-xl border border-line bg-card p-3 text-base font-bold text-fg outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                              className="w-full rounded-xl border border-line bg-card p-3 text-base font-bold text-fg outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/30"
                             />
                           </div>
                           <button onClick={() => removeTarefa(it.id)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-card text-subtle ring-1 ring-slate-200 transition-colors hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-200 mt-1" aria-label={`Remover tarefa ${i + 1}`}><Trash2 size={16} /></button>

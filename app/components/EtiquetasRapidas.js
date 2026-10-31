@@ -945,7 +945,7 @@ export default function EtiquetasRapidas() {
               type="text" 
               value={nomeNovaLista} 
               onChange={e => setNomeNovaLista(e.target.value)} 
-              className="mb-6 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 font-bold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              className="mb-6 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 font-bold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/20"
               placeholder="Ex: Produção Manhã"
             />
             <div className="flex items-center gap-3">

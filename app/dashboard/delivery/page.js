@@ -213,7 +213,7 @@ export default function DeliveryKanbanPage() {
          <div className="flex items-center gap-4">
             <div className="relative hidden md:block">
                <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg" />
-               <input type="text" placeholder="Buscar pedido ou cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-12 pr-4 py-3 bg-card rounded-xl text-slate-800 font-bold text-sm w-64 outline-none focus:ring-2 focus:ring-emerald-500 transition-all" />
+               <input type="text" placeholder="Buscar pedido ou cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-12 pr-4 py-3 bg-card rounded-xl text-slate-800 font-bold text-sm w-64 outline-none focus:ring-2 focus:ring-hf-accent transition-all" />
             </div>
             <button onClick={() => setAbaConfig(true)} className="px-5 py-3 bg-card border-2 border-line hover:border-slate-300 hover:bg-white text-slate-900 font-black rounded-xl transition-all shadow-sm flex items-center gap-2">
                <Settings size={18} /> Ajustes

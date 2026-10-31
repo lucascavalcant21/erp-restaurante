@@ -866,7 +866,7 @@ export default function SaloesMesasPage() {
                 <div className="mb-4">
                    <label className="block text-xs font-bold text-fg uppercase mb-2">Fundo Inicial (Em Gaveta)</label>
                    <CampoDecimal required value={fundoCaixa} onChange={e => setFundoCaixa(e.target.value)}
-                     className="w-full bg-white border border-line rounded-xl px-4 py-3 font-black text-2xl text-success outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0,00" autoFocus />
+                     className="w-full bg-white border border-line rounded-xl px-4 py-3 font-black text-2xl text-success outline-none focus:ring-2 focus:ring-hf-accent" placeholder="0,00" autoFocus />
                 </div>
                 <div className="flex gap-3 mt-6">
                    <button type="button" onClick={() => setModalAbrir(false)} className="flex-1 py-3 text-fg font-bold hover:bg-card rounded-xl">Voltar</button>
@@ -1305,7 +1305,7 @@ export default function SaloesMesasPage() {
                <div className="space-y-4">
                   <div>
                      <label className="block text-xs font-bold text-fg uppercase mb-2">Produto do Cardápio</label>
-                     <select value={produtoSel} onChange={e => { setProdutoSel(e.target.value); setModsLancarMesa([]); }} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-emerald-500">
+                     <select value={produtoSel} onChange={e => { setProdutoSel(e.target.value); setModsLancarMesa([]); }} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-hf-accent">
                         <option value="">-- Selecione --</option>
                         {produtos.map(p => (
                            <option key={p.id} value={p.id}>{p.nome_produto} - {fmtBRL(p.preco_venda||p.preco||0)}</option>
@@ -1333,11 +1333,11 @@ export default function SaloesMesasPage() {
 
                   <div>
                      <label className="block text-xs font-bold text-fg uppercase mb-2">Quantidade</label>
-                     <input type="number" min="1" value={qtdLancamento} onChange={e => setQtdLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-emerald-500" />
+                     <input type="number" min="1" value={qtdLancamento} onChange={e => setQtdLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-hf-accent" />
                   </div>
                   <div>
                      <label className="block text-xs font-bold text-fg uppercase mb-2">Observação (Ex: Sem cebola)</label>
-                     <input type="text" value={obsLancamento} onChange={e => setObsLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-medium text-fg-soft outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Opcional..." />
+                     <input type="text" value={obsLancamento} onChange={e => setObsLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-medium text-fg-soft outline-none focus:ring-2 focus:ring-hf-accent" placeholder="Opcional..." />
                      {observacoesPadrao.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
                            {observacoesPadrao.map(o => (

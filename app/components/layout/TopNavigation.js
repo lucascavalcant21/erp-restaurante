@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Search, Sparkles, User, Settings, LogOut, ChevronDown, Menu, X, ChevronRight, Bell } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { hasPermission } from "../../lib/permissions-catalog.mjs";
+import { menuPrincipal, areaDaRota } from "../../lib/menu-principal.mjs";
 
 export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   const pathname = usePathname();
@@ -31,96 +32,12 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   }, [pathname]);
 
   const podeInteligencia = !!sessao && (!sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view"));
-  // Menu reorganizado (pedido do dono, 29/10/2026): cada área com o que é
-  // dela e nomes curtos, para caber inteiro na tela. Financeiro, Eventos e
-  // Marmitaria têm a própria barra de áreas, então não têm submenu aqui.
-  const modules = [
-    ...(podeInteligencia ? [{ id: "inteligencia", label: "Inteligência", href: "/dashboard/inteligencia" }] : []),
-    {
-      id: "vendas", label: "Vendas", href: "/dashboard/vendas",
-      submodules: [
-        { label: "PDV e vendas", href: "/dashboard/vendas" },
-        { label: "Mesas e salão", href: "/dashboard/salao/mesas" },
-        { label: "Pedidos online", href: "/dashboard/salao/online" },
-        { label: "Delivery", href: "/dashboard/delivery" },
-        { label: "Tela da cozinha (KDS)", href: "/dashboard/cozinha/kds" },
-        { label: "Clientes", href: "/dashboard/clientes" },
-      ],
-    },
-    {
-      id: "cozinha", label: "Cozinha", href: "/dashboard/cozinha",
-      submodules: [
-        { label: "Painel da cozinha", href: "/dashboard/cozinha" },
-        { label: "Fichas técnicas", href: "/dashboard/operacao/fichas" },
-        { label: "Produção do dia", href: "/dashboard/operacao/producao" },
-        { label: "Guia de montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
-        { label: "Etiquetas", href: "/dashboard/operacao/etiquetas" },
-        { label: "Validades", href: "/dashboard/operacao/validade" },
-        { label: "Green Dot Assist (tablet)", href: "/dashboard/assistente" },
-      ],
-    },
-    {
-      id: "estoque", label: "Estoque", href: "/dashboard/operacao/estoque",
-      submodules: [
-        { label: "Estoque", href: "/dashboard/operacao/estoque" },
-        { label: "Produtos e ingredientes", href: "/dashboard/operacao/ingredientes" },
-        { label: "Compras e custo médio", href: "/dashboard/operacao/estoque/compras" },
-        { label: "Cotações e pedidos", href: "/dashboard/operacao/compras" },
-        { label: "Entrada de notas", href: "/dashboard/operacao/notas" },
-        { label: "Fornecedores", href: "/dashboard/operacao/fornecedores" },
-        { label: "CMV real", href: "/dashboard/operacao/estoque/cmv" },
-        { label: "Embalagens", href: "/dashboard/operacao/materiais/embalagens" },
-      ],
-    },
-    {
-      id: "cardapio", label: "Cardápio", href: "/dashboard/operacao/cardapio",
-      submodules: [
-        { label: "Cardápio digital", href: "/dashboard/operacao/cardapio" },
-        { label: "Produtos e canais", href: "/dashboard/operacao/cardapio/produtos" },
-        { label: "Promoções e descontos", href: "/dashboard/operacao/cardapio/promocoes" },
-        { label: "Fidelidade e selos", href: "/dashboard/operacao/cardapio/fidelidade" },
-        { label: "Engenharia de cardápio", href: "/dashboard/operacao/engenharia" },
-        { label: "Campanhas", href: "/dashboard/experience/campanhas" },
-        { label: "Experiência do cliente", href: "/dashboard/experience/intelligence" },
-      ],
-    },
-    {
-      id: "operacao", label: "Operação", href: "/dashboard/operacao/inteligente",
-      submodules: [
-        { label: "Central operacional", href: "/dashboard/operacao/inteligente" },
-        { label: "Controles e checklists", href: "/dashboard/operacao/controles" },
-        { label: "Limpeza", href: "/dashboard/operacao/limpeza" },
-        { label: "Produtos de limpeza", href: "/dashboard/operacao/materiais/limpeza" },
-        { label: "Máquina de lavar", href: "/dashboard/operacao/materiais/maquina" },
-        { label: "Manutenção", href: "/dashboard/operacao/manutencao" },
-      ],
-    },
-    { id: "eventos", label: "Eventos", href: "/dashboard/reservas-eventos" },
-    { id: "marmitaria", label: "Marmitaria", href: "/dashboard/marmitaria" },
-    {
-      id: "rh", label: "Equipe", href: "/dashboard/rh",
-      submodules: [
-        { label: "Painel da equipe", href: "/dashboard/rh" },
-        { label: "Ponto e espelho", href: "/dashboard/rh/ponto" },
-        { label: "Extras e banco de horas", href: "/dashboard/rh/extra" },
-        { label: "Janta dos funcionários", href: "/dashboard/rh/cardapio-funcionarios" },
-        { label: "Treinamentos", href: "/dashboard/treinamentos" },
-      ],
-    },
-    { id: "financeiro", label: "Financeiro", href: "/dashboard/financeiro" },
-  ];
+  // A lista do menu mora em app/lib/menu-principal.mjs (a mesma do "voltar" das telas).
+  const modules = menuPrincipal({ podeInteligencia });
 
   // A área ativa é a do link mais específico que casa com a tela (o KDS fica
   // em /cozinha/kds mas é de Vendas; Compras do estoque não é Cotações).
-  const rotaDe = (href) => href.split("?")[0];
-  const casa = (href) => pathname === rotaDe(href) || pathname.startsWith(`${rotaDe(href)}/`);
-  const ativoId = (() => {
-    let melhor = null; let tam = -1;
-    for (const m of modules) for (const h of [m.href, ...(m.submodules || []).map((x) => x.href)]) {
-      if (casa(h) && rotaDe(h).length > tam) { melhor = m.id; tam = rotaDe(h).length; }
-    }
-    return melhor;
-  })();
+  const ativoId = areaDaRota(pathname, modules)?.id || null;
 
   // Filtra módulos caso seja um App dedicado com rotas restritas
   const modulosVisiveis = modules

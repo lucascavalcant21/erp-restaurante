@@ -9,8 +9,14 @@ Para testar e publicar, siga `hefisto-entrega`.
 
 ## Padrão visual
 
-- **Paleta clara, sem fundo preto.** Use só os tokens `hf-*` (`app/globals.css` + `tailwind.config.js`): `bg-hf-bg`, `bg-hf-surface`, `text-hf-text`, `text-hf-muted`, `border-hf-border`, `bg-hf-accent` (verde), `hf-warning`, `hf-danger`.
-- Não use cor solta escura (`bg-zinc-900`, `bg-black`, `slate-9xx`) como fundo, nem azul/índigo/violeta.
+- **Design system branco e dourado (decisão do dono, 31/10/2026).** Use só os tokens `hf-*` (`app/globals.css` + `tailwind.config.js`):
+  - fundo e cards brancos: `bg-hf-bg`, `bg-hf-surface`, `bg-hf-elevated` (#F7F7F8);
+  - texto e borda: `text-hf-text`, `text-hf-muted`, `border-hf-border`;
+  - dourado principal `bg-hf-accent`, com texto `text-hf-accent-fg` (escuro). `text-hf-accent` já sai no dourado escuro legível;
+  - menu grafite `bg-hf-menu`;
+  - estados: `hf-success` (verde, só positivo), `hf-warning`, `hf-danger`.
+- `emerald-*` no código é a escala DOURADA (identidade). Para positivo use `hf-success`. Não use cor solta (hex), azul/índigo/violeta nem fundo escuro fora do menu.
+- O menu (`app/lib/menu-principal.mjs`) é a fonte única: tela nova entra lá, não em painel paralelo.
 - **Mobile-first:**
   - 390 px (iPhone) e 820 px (tablet) sem rolagem lateral;
   - ação principal com pelo menos 44–48 px de altura;

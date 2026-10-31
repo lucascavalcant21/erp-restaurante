@@ -171,7 +171,7 @@ function FormScanner({ onSalvar, onCancelar }) {
                 <TextInput className="py-1.5 text-sm" type="date" value={vencimento} onChange={e => setVencimento(e.target.value)} />
               </Field>
               <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-success focus:ring-emerald-500"
+                <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-success focus:ring-hf-accent"
                   checked={jaPaga} onChange={(e) => setJaPaga(e.target.checked)} />
                 <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Esta nota já está paga</span>
               </label>
@@ -191,13 +191,13 @@ function FormScanner({ onSalvar, onCancelar }) {
             <p className="text-3xs font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>Automações Inteligentes</p>
             
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-success focus:ring-emerald-500" 
+              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-success focus:ring-hf-accent" 
                 checked={lancarFinanceiro} onChange={(e) => setLancarFinanceiro(e.target.checked)} />
               <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Lançar pendência no Financeiro (Contas a Pagar)</span>
             </label>
             
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-success focus:ring-emerald-500" 
+              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-success focus:ring-hf-accent" 
                 checked={alimentarEstoque} onChange={(e) => setAlimentarEstoque(e.target.checked)} />
               <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Dar entrada automática dos itens no Estoque</span>
             </label>

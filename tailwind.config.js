@@ -8,7 +8,19 @@ module.exports = {
   ],
   theme: {
     extend: {
+      // Texto/ícone "text-hf-accent" sobre branco usa o dourado ESCURO (contraste 5,9:1);
+      // fundo, borda e anel continuam no dourado #C5A15A.
+      textColor: { hf: { accent: "rgb(var(--hf-accent-text) / <alpha-value>)" } },
       colors: {
+        // ── Design system branco e dourado (pedido do dono, 31/10/2026) ──
+        // O "emerald" das telas antigas era a cor de identidade (botões, abas, links):
+        // agora é a escala dourada, de uma vez em todo o app. Verde de ESTADO positivo
+        // (entrada, pago, saudável) usa hf-success / green-*, que continuam verdes.
+        // Tons 600+ aceitam texto branco por cima (600: 4,6:1 · 700: 6,4:1).
+        emerald: {
+          50: "#FBF8F1", 100: "#F5EEDC", 200: "#EBDCB8", 300: "#DEC58F", 400: "#D1B06F",
+          500: "#C5A15A", 600: "#957231", 700: "#7A5C1E", 800: "#5F4716", 900: "#45330F", 950: "#2B200A",
+        },
         // ── Marca (mantida) ───────────────────────────────────────────
         brand: {
           50:  "#edfbf3",
@@ -71,6 +83,7 @@ module.exports = {
           "muted":         "rgb(var(--hf-muted) / <alpha-value>)",
           "accent":        "rgb(var(--hf-accent) / <alpha-value>)",
           "accent-fg":     "rgb(var(--hf-accent-fg) / <alpha-value>)",
+          "accent-text":   "rgb(var(--hf-accent-text) / <alpha-value>)",
           "success":       "rgb(var(--hf-success) / <alpha-value>)",
           "warning":       "rgb(var(--hf-warning) / <alpha-value>)",
           "danger":        "rgb(var(--hf-danger) / <alpha-value>)",

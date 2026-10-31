@@ -50,3 +50,9 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 30/10/2026 | Estoque por categorias do dono (cozinha e bar) | Feito · TESTADO EM MOCK (dados reais copiados) |
 | 30/10/2026 | Cadastro: kg, unidade e porção; ficha/marmita por unidade ou porção | Feito · TESTADO EM MOCK + testes |
 | 30/10/2026 | Janta dos funcionários por dia, gramas por pessoa e preparo | Feito · TESTADO EM MOCK |
+| 31/10/2026 | Orçamento universal para todas as modalidades de evento, com modalidades combinadas, visão interna × cliente, PDF/WhatsApp, versões e pacotes Econômico/Intermediário/Premium | Missão HDEV-009 (BACKLOG). Falta o PDF de referência no repositório |
+| 31/10/2026 | App todo no estilo branco e dourado (menu #202124, cards, botões, simuladores) | Missão HDEV-010. Etapa 1 feita (tokens, dourado, menu escuro) · TESTADO EM MOCK |
+| 31/10/2026 | "Tela que não está no meu menu" (painel /dashboard/modulo/cozinha) | Feito: menu é a fonte única; painéis antigos abrem a página do menu · TESTADO EM MOCK |
+| 31/10/2026 | Green Dot no celular com visual de WhatsApp | Feito (PR #208) · TESTADO EM MOCK, em produção |
+| 31/10/2026 | Janta dos funcionários: organizar, gramas por pessoa, ficha muda com quem janta no dia, escala da janta e ficha da janta | Feito: escala da janta pelo cadastro do RH + folgas (marca/desmarca, extras, número fixo), ficha com totais automáticos e impressão; atalho no RH · TESTADO EM MOCK (macarrão 120 g: 3 pessoas = 360 g → 2 = 240 g) |
+| 31/10/2026 | Visual dos simuladores (pílulas, círculos ✓, resultado limpo) em fundo branco; simuladores de evento primeiro | Decisão do dono: branco com esse estilo; simulador de eventos (buffet, mesa, bar, equipe) é a próxima entrega (HDEV-009) |

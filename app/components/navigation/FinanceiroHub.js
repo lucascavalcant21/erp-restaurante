@@ -47,7 +47,7 @@ function Card({ titulo, icone: Icone, valor, tom = "neutro", linhas = [], estado
   const interativo = onClick ? { role: "button", tabIndex: 0, onClick, onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } } : {};
   return (
     <div {...interativo}
-      className={`group flex min-w-0 flex-col gap-2 rounded-2xl border bg-hf-surface p-3.5 sm:p-4 text-left shadow-card transition-all duration-200 ${alerta && !semValor(estado) ? "border-rose-300" : "border-zinc-200/80"} ${onClick ? "cursor-pointer outline-none hover:border-emerald-500/50 hover:shadow-hover hf-card-interactive focus-visible:ring-2 focus-visible:ring-emerald-600/40" : ""}`}>
+      className={`group flex min-w-0 flex-col gap-2 rounded-2xl border bg-hf-surface p-3.5 sm:p-4 text-left shadow-card transition-all duration-200 ${alerta && !semValor(estado) ? "border-rose-300" : "border-zinc-200/80"} ${onClick ? "cursor-pointer outline-none hover:border-emerald-500/50 hover:shadow-hover hf-card-interactive focus-visible:ring-2 focus-visible:ring-hf-accent/40" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-[11px] font-bold uppercase tracking-wider text-hf-text-2">{titulo}</span>
         {Icone && <Icone size={16} className={`shrink-0 ${alerta && !semValor(estado) ? "text-hf-danger" : "text-hf-muted"}`} />}

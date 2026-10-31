@@ -104,7 +104,7 @@ export default function PortalExtras() {
   }
 
   const rotulo = "text-xs font-black uppercase tracking-wider text-muted";
-  const campo = "h-12 w-full rounded-xl border border-slate-300 bg-card px-3.5 text-base font-semibold text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15";
+  const campo = "h-12 w-full rounded-xl border border-slate-300 bg-card px-3.5 text-base font-semibold text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-hf-accent/15";
 
   return (
     <div className="min-h-screen bg-hf-bg pb-16">

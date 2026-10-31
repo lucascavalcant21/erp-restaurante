@@ -26,7 +26,7 @@ import {
   ShoppingBag, Tag, Truck, WifiOff, X, Check, Phone, MapPin, Gift, BellRing, Megaphone,
 } from "lucide-react";
 import {
-  aplicarNome, cardapioDoCanal, canalDoPedido, conferirCarrinho, filtrarProdutos, formatarPreco, localizarCardapio, precoDaLinha, primeiroNome, saudacao, totalDoCarrinho,
+  aplicarNome, cardapioDoCanal, canalDoPedido, conferirCarrinho, filtrarProdutos, formatarPreco, itemNoHorario, localizarCardapio, precoDaLinha, primeiroNome, saudacao, totalDoCarrinho,
 } from "../../lib/cardapio-digital.mjs";
 import { IDIOMAS, TEXTOS_PADRAO, detectarIdioma, infoIdioma, t } from "../../lib/cardapio-idiomas.mjs";
 import { Abertura, Aviso, Folha, Foto, ItemCartao, ItemLista, Miniatura, Preco, Selos } from "./partes";
@@ -350,7 +350,9 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   const destaques = useMemo(() => (cardapio?.produtos || []).filter((p) => p.destaque).slice(0, 12), [cardapio]);
   const slides = useMemo(() => {
     if (!cardapio) return [];
-    if (cardapio.banner?.length) return cardapio.banner;
+    // Programação do dono: o banner só passa nos dias e no horário marcados.
+    const noAr = (cardapio.banner || []).filter((b) => itemNoHorario(b));
+    if (noAr.length) return noAr;
     return cardapio.tema.capa_url ? [{ id: "capa", tipo: "imagem", url: cardapio.tema.capa_url, titulo: "", texto: "", acao: null }] : [];
   }, [cardapio]);
   const filtrando = Boolean(busca.trim() || selos.length || promoAberta);
@@ -447,8 +449,8 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       return novo;
     });
     if (etapa === "enviado") setEtapa("carrinho");
-    setAviso({ texto: T("no_pedido", { prato: p.nome }), acao: largo ? null : { rotulo: T("ver_pedido"), fazer: () => setFolha("pedido") } });
-  }, [porId, previa, etapa, largo, T, abrirPrato]);
+    // Sem faixa de confirmação (dono, 31/10/2026): a sacola verde embaixo já mostra o item entrando.
+  }, [porId, previa, etapa, abrirPrato]);
 
   // Cada linha do carrinho tem uma chave: o prato, ou o prato + as escolhas (tamanho, adicionais).
   const alterarQtd = (id, delta) => setCarrinho((c) => c.map((i) => ((i.linha || i.id) === id ? { ...i, quantidade: Math.max(1, Math.min(50, i.quantidade + delta)) } : i)));
@@ -678,9 +680,11 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
 
   return (
     <div className={`${s.raiz} ${modo === "mesa" ? s.modoMesa : s.modoDelivery} ${celular && modo === "mesa" ? s.comNav : ""}`} style={estilo} data-fonte={tema.fonte} lang={infoIdioma(lingua).lang} data-cardapio="">
-      {modo === "delivery" ? (
+      {modo === "delivery" || !tabletNovo ? (
         <TemaCardapio cor={tema.cor_primaria} loja={tema}>
           <DeliveryInicio
+            mesa={mesa} onChamar={mesa ? () => setFolha("atendimento") : undefined}
+            onConvite={mesa && cardapio.fidelidade ? () => setEntrarAberto("cpf") : undefined}
             cardapio={cardapio} idioma={lingua} carrinho={carrinho} totalSacola={totalCarrinho.total || 0}
             offline={estado === "offline" ? T("sem_internet", { hora: cacheEm ? hora(cacheEm) : "—" }) : ""}
             secaoAtiva={secaoAtiva} busca={busca} buscaAberta={buscaAberta} onBusca={setBusca}
@@ -964,12 +968,12 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       ) : null}
       </>)}
 
-      {folha === "pedido" && tabletNovo && etapa === "enviado" ? (
+      {folha === "pedido" && modo === "mesa" && etapa === "enviado" ? (
         <TemaCardapio cor={tema.cor_primaria} loja={tema}>
           <TabletEnviado cardapio={cardapio} idioma={lingua} mesa={mesa} nome={primeiroNome(form.nome)} resultado={resultado || {}}
             onVoltar={() => { setEtapa("carrinho"); setFolha(""); }} />
         </TemaCardapio>
-      ) : folha === "pedido" && tabletNovo ? (
+      ) : folha === "pedido" && modo === "mesa" ? (
         <TemaCardapio cor={tema.cor_primaria} loja={tema}>
           <TabletCarrinho cardapio={cardapio} idioma={lingua} mesa={mesa} carrinho={carrinho} nome={form.nome}
             onNome={(v) => setForm((f) => ({ ...f, nome: v }))} erro={erroEnvio} enviando={enviando} onFechar={() => setFolha("")}

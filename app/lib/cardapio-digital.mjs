@@ -617,19 +617,25 @@ export function normalizarBanner(lista) {
   for (const [i, b] of (Array.isArray(lista) ? lista : []).entries()) {
     if (r.length >= LIMITES.banner) break;
     const url = limparUrl(b?.url);
-    if (!url) continue;
+    // "prato": o banner é um prato do cardápio (foto, nome e preço vêm dele; o toque abre o prato).
+    const prato = b?.tipo === "prato" && idValido(b?.acao?.id);
+    if (!url && !prato) continue;
     let id = idValido(b?.id) ? b.id : `midia-${i + 1}`;
     if (usados.has(id)) id = `${id}-${i + 1}`;
     usados.add(id);
     const tipoAcao = ACOES_BANNER.some((a) => a.id && a.id === b?.acao?.tipo) ? b.acao.tipo : "";
+    // Programação: dias da semana e horário em que o banner aparece (vazio = sempre).
+    const dias = [...new Set((Array.isArray(b?.horario?.dias_semana) ? b.horario.dias_semana : []).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
+    const h = { dias_semana: dias.length === 7 ? [] : dias, hora_inicio: hora(b?.horario?.hora_inicio), hora_fim: hora(b?.horario?.hora_fim) };
     r.push({
       id,
-      tipo: b?.tipo === "video" ? "video" : "imagem",
-      url,
+      tipo: prato ? "prato" : b?.tipo === "video" ? "video" : "imagem",
+      url: prato ? "" : url,
       poster_url: b?.tipo === "video" ? limparUrl(b?.poster_url) : "",
       titulo: texto(b?.titulo, 60),
       texto: texto(b?.texto, 120),
-      acao: tipoAcao && idValido(b?.acao?.id) ? { tipo: tipoAcao, id: b.acao.id } : null,
+      acao: prato ? { tipo: "produto", id: b.acao.id } : tipoAcao && idValido(b?.acao?.id) ? { tipo: tipoAcao, id: b.acao.id } : null,
+      ...(h.dias_semana.length || h.hora_inicio || h.hora_fim ? { horario: h } : {}),
     });
   }
   return r;
@@ -1308,7 +1314,15 @@ export function montarCardapioPublico({ unidade = {}, produtos = [], config, fid
     promocao: new Set(promocoes.map((p) => p.id)),
     produto: ids,
   };
-  const banner = cfg.banner.map((b) => ({ ...b, acao: b.acao && alvos[b.acao.tipo]?.has(b.acao.id) ? b.acao : null }));
+  const porIdLista = new Map(lista.map((p) => [p.id, p]));
+  const banner = cfg.banner.flatMap((b) => {
+    if (b.tipo !== "prato") return [{ ...b, acao: b.acao && alvos[b.acao.tipo]?.has(b.acao.id) ? b.acao : null }];
+    // Banner de prato: só com o prato no ar e com foto; o resto vem do próprio prato.
+    const p = porIdLista.get(b.acao.id);
+    const foto = p?.imagem_url || p?.midias?.find((m) => m.tipo === "foto" && m.url)?.url || "";
+    if (!p || !foto) return [];
+    return [{ ...b, tipo: "imagem", url: foto, titulo: b.titulo || p.nome, texto: b.texto || formatarPreco(p.preco), prato: true }];
+  });
 
   // Traduções só do que está no ar (nada de nome de prato escondido saindo por aqui).
   const ativos = { produtos: ids, categorias: alvos.categoria, promocoes: alvos.promocao, banner: new Set(banner.map((b) => b.id)) };

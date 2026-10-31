@@ -385,3 +385,18 @@ test("Wi-Fi dos clientes: QR no padrão WIFI, com escape; sem rede não aparece"
   assert.deepEqual(normalizarWifi({ senha: "so senha" }), { rede: "", senha: "" });
   assert.deepEqual(normalizarConfigCardapio({}).wifi, { rede: "", senha: "" });
 });
+
+test("Salvar do editor não apaga o que a aba nova gravou: só vai o que o editor mexeu", async () => {
+  const { mesclarConfigCardapio } = await import("./cardapio-digital.mjs");
+  const promo = { id: "p1", titulo: "Happy hour", tipo: "desconto", produto_ids: ["x"], desconto_pct: 10, ativa: true };
+  const base = { tema: { cor_primaria: "#14532D" }, promocoes: [] };
+  const banco = { tema: { cor_primaria: "#14532D" }, promocoes: [promo] }; // a aba Promoções gravou depois
+  const editado = { tema: { cor_primaria: "#1F5FBF" }, promocoes: [] }; // o editor só trocou a cor
+  const r = mesclarConfigCardapio(banco, base, editado);
+  assert.equal(r.tema.cor_primaria.toUpperCase(), "#1F5FBF");
+  assert.equal(r.promocoes.length, 1);
+  assert.equal(r.promocoes[0].id, "p1");
+  // Se o editor também mexeu nas promoções, vale o do editor.
+  const r2 = mesclarConfigCardapio(banco, base, { ...editado, promocoes: [{ ...promo, id: "p2", titulo: "Almoço" }] });
+  assert.deepEqual(r2.promocoes.map((x) => x.id), ["p2"]);
+});

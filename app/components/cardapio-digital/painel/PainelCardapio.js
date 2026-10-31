@@ -15,7 +15,7 @@ import s from "./painel.module.css";
 const ROTULO_COLUNA = { tablet: "TABLET", qr: "QR", delivery: "DELIVERY" };
 
 export default function PainelCardapio({
-  nomeLoja, categorias = [], categoriaAtiva, onCategoria, linhas = [], titulo, resumo, canal = "todos", onCanal,
+  semMenu = false, nomeLoja, categorias = [], categoriaAtiva, onCategoria, linhas = [], titulo, resumo, canal = "todos", onCanal,
   busca = "", onBusca, onLigar, onEsgotado, onOrdenar, ocupados = new Set(), links = {}, aviso, erro, itensMenu,
 }) {
   const [arraste, setArraste] = useState(null); // { de, para }
@@ -37,7 +37,7 @@ export default function PainelCardapio({
 
   return (
     <div className={s.raiz}>
-      <MenuPainel atual="cardapio" nomeLoja={nomeLoja} itens={itensMenu} />
+      {semMenu ? null : <MenuPainel atual="cardapio" nomeLoja={nomeLoja} itens={itensMenu} />}
       <main className={s.conteudo}>
         <div className={s.topo}>
           <h1 className={s.titulo}>Cardápio</h1>

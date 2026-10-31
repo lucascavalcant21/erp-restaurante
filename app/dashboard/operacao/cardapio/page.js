@@ -32,23 +32,33 @@ import Idiomas from "../../../components/cardapio-digital/editor/Idiomas";
 import Entrega from "../../../components/cardapio-digital/editor/Entrega";
 import Fidelidade from "../../../components/cardapio-digital/editor/Fidelidade";
 import Previa from "../../../components/cardapio-digital/editor/Previa";
+import AbaProdutos from "../../../components/cardapio-digital/painel/AbaProdutos";
+import AbaPromocoes from "../../../components/cardapio-digital/painel/AbaPromocoes";
+import AbaFidelidade from "../../../components/cardapio-digital/painel/AbaFidelidade";
 
 // O que vende primeiro (pedido do dono, 27/10/2026: "um painel chamado
 // Cardápio onde ponho combos, promoções e descontos, posição dos produtos e
 // descrição"); a aparência e o resto depois.
+// Uma tela só (dono, 30/10/2026: "tudo em uma mesma tela, sem ter várias
+// telas"). As abas marcadas com `direto` são os painéis novos, que gravam
+// sozinhos no banco; as outras usam o Salvar lá em cima.
 const ABAS = [
-  { id: "pratos", rotulo: "Produtos e posição" },
+  { id: "produtos", rotulo: "Produtos e canais", direto: true },
+  { id: "pratos", rotulo: "Posição e descrição" },
   { id: "combos", rotulo: "Combos" },
-  { id: "promocoes", rotulo: "Promoções e descontos" },
+  { id: "promocoes", rotulo: "Promoções", direto: true },
+  { id: "promocoes-mais", rotulo: "Promoções: imagem e datas" },
   { id: "secoes", rotulo: "Seções" },
   { id: "aparencia", rotulo: "Aparência" },
-  { id: "abertura", rotulo: "Abertura" },
+  { id: "abertura", rotulo: "Banners" },
   { id: "textos", rotulo: "Conversa e textos" },
   { id: "idiomas", rotulo: "Idiomas" },
   { id: "entrega", rotulo: "Entrega" },
-  { id: "fidelidade", rotulo: "Fidelidade" },
-  { id: "qr", rotulo: "Link e QR Code" },
+  { id: "fidelidade", rotulo: "Fidelidade", direto: true },
+  { id: "fidelidade-regras", rotulo: "Cartões e cadastro" },
+  { id: "qr", rotulo: "Link, QR e Wi-Fi" },
 ];
+const DIRETO = new Set(ABAS.filter((a) => a.direto).map((a) => a.id));
 const VAZIO = { fichas: {}, produtos: {}, unidade: {} };
 const fichaAtiva = (f) => f.ativo !== false && (!f.status || ["ativa", "ativo"].includes(String(f.status).toLowerCase()));
 
@@ -59,7 +69,7 @@ export default function CardapioEditorPage() {
   const [config, setConfig] = useState(null);
   const [salvo, setSalvo] = useState("");
   const [pendentes, setPendentes] = useState(VAZIO);
-  const [aba, setAba] = useState("pratos");
+  const [aba, setAba] = useState("produtos");
   // O painel novo (Cardápio → Produtos) abre o editor já na aba certa: ?aba=promocoes.
   useEffect(() => {
     const pedida = new URLSearchParams(window.location.search).get("aba");
@@ -69,6 +79,14 @@ export default function CardapioEditorPage() {
   const [resultado, setResultado] = useState(null);
   const [previaAberta, setPreviaAberta] = useState(false);
   const [idiomaPrevia, setIdiomaPrevia] = useState("pt");
+  // Altura do aparelho da prévia: o que sobra da tela tirando topo e botões da prévia (entre 360 e 720).
+  const [alturaPrevia, setAlturaPrevia] = useState(620);
+  useEffect(() => {
+    const medir = () => setAlturaPrevia(Math.max(360, Math.min(720, window.innerHeight - 330)));
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, []);
   const [fidelidade, setFidelidade] = useState(null);
   const [fidelidadeSalva, setFidelidadeSalva] = useState("");
 
@@ -138,12 +156,27 @@ export default function CardapioEditorPage() {
   const salvar = async () => {
     setSalvando(true);
     setResultado(null);
-    const r = await salvarEditorCardapio(unidadeAtiva, { config, fichas: pendentes.fichas, produtos: pendentes.produtos, unidade: pendentes.unidade, fidelidade });
+    const r = await salvarEditorCardapio(unidadeAtiva, {
+      config, base: JSON.parse(salvo || "{}"), fichas: pendentes.fichas, produtos: pendentes.produtos, unidade: pendentes.unidade,
+      fidelidade, fidelidadeBase: JSON.parse(fidelidadeSalva || "{}"),
+    });
     setSalvando(false);
     if (r.erros.length) { setResultado({ ok: false, texto: r.erros.join(" ") }); return; }
     setResultado({ ok: true, texto: "Salvo. O cardápio dos clientes já está assim." });
     setPendentes(VAZIO);
     await carregar();
+  };
+
+  // Painel que grava direto x rascunho do editor: com mudança sem salvar, salva
+  // antes de abrir o painel; ao voltar do painel, o editor relê o banco (o que
+  // o painel gravou aparece aqui e o Salvar não passa por cima).
+  const [avisoAba, setAvisoAba] = useState("");
+  const trocarAba = (id) => {
+    if (id === aba) return;
+    if (DIRETO.has(id) && mudou) { setAvisoAba("Salve as mudanças antes de abrir esta aba: ela grava direto no cardápio."); return; }
+    setAvisoAba("");
+    if (DIRETO.has(aba) && !mudou) carregar();
+    setAba(id);
   };
 
   const criarProduto = async (ficha, preco) => {
@@ -172,7 +205,12 @@ export default function CardapioEditorPage() {
       <PageHeader title="Cardápio" subtitle="Cardápio da mesa (QR Code) e do delivery." icon={UtensilsCrossed} back={false}>
         <a href={caminhoDoCardapio(unidadeAtiva)} target="_blank" rel="noreferrer"
           className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-4 text-sm font-bold text-hf-text hover:bg-hf-elevated md:flex-none">
-          <ExternalLink size={16} /> Abrir cardápio
+          <ExternalLink size={16} /> Delivery
+        </a>
+        {/* A mesa de verdade, sem pedir (prévia): para ver como o cliente vê pelo QR. */}
+        <a href={`${caminhoDoCardapio(unidadeAtiva, { mesa: "1" })}&previa=1`} target="_blank" rel="noreferrer"
+          className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-4 text-sm font-bold text-hf-text hover:bg-hf-elevated md:flex-none">
+          <ExternalLink size={16} /> Mesa (QR)
         </a>
         {/* Salvo: botão claro e legível (o verde apagado deixava o texto branco sumido). */}
         <Botao onClick={salvar} disabled={!mudou || salvando || !config} variante={mudou || salvando ? "primario" : "secundario"}
@@ -186,19 +224,23 @@ export default function CardapioEditorPage() {
         {!dados || !config ? (
           !erro ? <p className="flex items-center gap-2 text-sm text-hf-muted"><Loader2 size={16} className="animate-spin" /> Carregando o cardápio…</p> : null
         ) : (
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+          <div className={`grid gap-6 ${DIRETO.has(aba) ? "" : "xl:grid-cols-[minmax(0,1fr)_400px]"}`}>
             <div className="min-w-0 space-y-4">
               {/* No celular as abas correm numa linha só (arrasta para o lado); a aba escolhida vem para a vista. */}
               <div role="tablist" aria-label="Partes do cardápio"
                 className="-mx-3 flex snap-x gap-1 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:rounded-xl sm:bg-hf-elevated sm:p-1 [&::-webkit-scrollbar]:hidden">
                 {ABAS.map((a) => (
                   <button key={a.id} type="button" role="tab" aria-selected={aba === a.id}
-                    onClick={(e) => { setAba(a.id); e.currentTarget.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }}
+                    onClick={(e) => { trocarAba(a.id); e.currentTarget.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }}
                     className={`min-h-[40px] flex-none snap-start whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition sm:flex-auto sm:rounded-lg sm:border-0 sm:px-3 ${aba === a.id ? "border-hf-accent bg-hf-accent text-hf-accent-fg sm:bg-hf-surface sm:text-hf-text sm:shadow-sm" : "border-hf-border bg-hf-surface text-hf-text-2 hover:text-hf-text sm:bg-transparent"}`}>
                     {a.rotulo}
                   </button>
                 ))}
               </div>
+              {avisoAba ? <Aviso tipo="alerta">{avisoAba}</Aviso> : null}
+              {aba === "produtos" ? <AbaProdutos /> : null}
+              {aba === "promocoes" ? <AbaPromocoes /> : null}
+              {aba === "fidelidade" ? <AbaFidelidade /> : null}
               {aba === "aparencia" ? <Aparencia config={config} mudar={mudar} unidadeId={unidadeAtiva} /> : null}
               {aba === "abertura" ? <Abertura config={config} mudar={mudar} unidadeId={unidadeAtiva} opcoes={opcoesBanner} /> : null}
               {aba === "secoes" ? <Secoes config={config} mudar={mudar} unidadeId={unidadeAtiva} produtos={juntos} /> : null}
@@ -207,22 +249,24 @@ export default function CardapioEditorPage() {
                   pendentes={pendentes} setPendentes={mudarPendentes} fichasSemProduto={fichasSemProduto} onCriarProduto={criarProduto} />
               ) : null}
               {aba === "combos" ? <Combos config={config} mudar={mudar} unidadeId={unidadeAtiva} produtos={juntos} /> : null}
-              {aba === "promocoes" ? <Promocoes config={config} mudar={mudar} unidadeId={unidadeAtiva} produtos={juntos} /> : null}
+              {aba === "promocoes-mais" ? <Promocoes config={config} mudar={mudar} unidadeId={unidadeAtiva} produtos={juntos} /> : null}
               {aba === "textos" ? <Textos config={config} mudar={mudar} /> : null}
               {aba === "idiomas" ? (
                 <Idiomas config={config} mudar={mudar} produtos={cardapio?.produtos || []} categorias={categorias}
                   idiomaPrevia={idiomaPrevia} setIdiomaPrevia={setIdiomaPrevia} />
               ) : null}
               {aba === "entrega" ? <Entrega config={config} mudar={mudar} unidade={dados.unidade} pendenteUnidade={pendentes.unidade} setUnidade={setUnidade} /> : null}
-              {aba === "fidelidade" && fidelidade ? (
+              {aba === "fidelidade-regras" && fidelidade ? (
                 <Fidelidade fidelidade={fidelidade} setFidelidade={mudarFidelidade} produtos={cardapio?.produtos || []}
                   livroFidelidade={dados.livroFidelidade} unidadeId={unidadeAtiva} nomeLoja={dados.unidade.nome} />
               ) : null}
               {aba === "qr" ? <QrCodes unidadeId={unidadeAtiva} nomeLoja={dados.unidade.nome} mesasDoBanco={dados.mesas} config={config} mudar={mudar} /> : null}
             </div>
-            <aside className="hidden xl:block">
-              <div className="sticky top-24">
-                <Previa unidadeId={unidadeAtiva} cardapio={cardapio} alturaMax={620} idioma={idiomaPrevia} onIdioma={setIdiomaPrevia} />
+            <aside className={DIRETO.has(aba) ? "hidden" : "hidden xl:block"}>
+              {/* A prévia acompanha a rolagem, mas nunca passa da altura da tela: o aparelho encolhe para caber e,
+                  se ainda sobrar, a coluna rola por dentro (antes a parte de baixo ficava inalcançável). */}
+              <div className="sticky top-24 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain pb-2">
+                <Previa unidadeId={unidadeAtiva} cardapio={cardapio} alturaMax={alturaPrevia} idioma={idiomaPrevia} onIdioma={setIdiomaPrevia} />
               </div>
             </aside>
           </div>

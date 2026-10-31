@@ -748,6 +748,24 @@ export function normalizarEntrega(e = {}) {
   };
 }
 
+/**
+ * Salvar do editor sem apagar o que outra aba gravou: parte por parte
+ * (tema, promoções, itens…), o que o editor não mexeu desde que abriu fica
+ * como está no banco; o que mexeu, vale o do editor.
+ * @param {object} banco config gravada agora
+ * @param {object} base config que o editor carregou
+ * @param {object} editado config do editor
+ */
+export function mesclarConfigCardapio(banco, base, editado) {
+  const n = (v) => JSON.stringify(v ?? null);
+  const b = normalizarConfigCardapio(banco);
+  const o = normalizarConfigCardapio(base);
+  const e = normalizarConfigCardapio(editado);
+  const final = {};
+  for (const k of Object.keys(e)) final[k] = n(e[k]) === n(o[k]) ? b[k] : e[k];
+  return normalizarConfigCardapio(final);
+}
+
 /** Tudo o que o dono salvou, limpo. Campo ruim volta ao padrão; nada quebra. */
 export function normalizarConfigCardapio(raw) {
   const c = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};

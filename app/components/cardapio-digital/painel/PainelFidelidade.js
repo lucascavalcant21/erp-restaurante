@@ -14,7 +14,7 @@ const quando = (iso) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", 
 const dia = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 export default function PainelFidelidade({
-  nomeLoja = "", itensMenu, codigo = "", onCodigo, onValidar, resultado = null, onConfirmar, ocupado = false,
+  semMenu = false, nomeLoja = "", itensMenu, codigo = "", onCodigo, onValidar, resultado = null, onConfirmar, ocupado = false,
   regras, setRegras, onSalvarRegras, regrasMudaram = false, cartoes = [], numeros = {}, retiradas = [], premiosLigados = true,
   ligado = false, erro = "", aviso = "", linkCartoes = "#",
 }) {
@@ -29,7 +29,7 @@ export default function PainelFidelidade({
 
   return (
     <div className={s.raiz}>
-      <MenuPainel atual="fidelidade" nomeLoja={nomeLoja} itens={itensMenu} />
+      {semMenu ? null : <MenuPainel atual="fidelidade" nomeLoja={nomeLoja} itens={itensMenu} />}
       <main className={s.conteudo}>
         <div className={s.topo}><h1 className={s.titulo}>Fidelidade e selos</h1></div>
         {erro ? <div role="alert" className={s.erro}>{erro}</div> : null}

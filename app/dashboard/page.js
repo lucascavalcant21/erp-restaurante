@@ -62,7 +62,7 @@ const Delta = memo(function Delta({ atual, anterior, rotulo }) {
     <>
       <span
         className={`whitespace-nowrap font-bold ${
-          sobe ? "text-emerald-700" : "text-rose-700"
+          sobe ? "text-hf-success" : "text-rose-700"
         }`}
       >
         <Seta size={14} aria-hidden className="-mt-0.5 inline" /> {pctComSinal.format(v)}
@@ -102,11 +102,11 @@ export default function InicioPage() {
       <section className="relative overflow-hidden rounded-3xl border border-zinc-200/80 bg-hf-surface px-6 py-7 shadow-card sm:px-8 sm:py-8">
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-emerald-500/15 blur-3xl"
+          className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-hf-accent/20 blur-3xl"
         />
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-emerald-700">
+            <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-hf-accent">
               {saudacaoTexto || "\u00a0"}
             </p>
             <h1 className="mt-1 truncate text-2xl sm:text-4xl font-black tracking-tight text-hf-text">
@@ -121,11 +121,11 @@ export default function InicioPage() {
             <button
               onClick={carregar}
               disabled={atualizando}
-              className="inline-flex items-center gap-2 rounded-xl border border-zinc-200/80 bg-zinc-50 px-3.5 py-2 text-xs sm:text-sm font-bold text-hf-text shadow-xs transition hover:bg-zinc-100 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-200/80 bg-zinc-50 px-3.5 py-2 text-xs sm:text-sm font-bold text-hf-text shadow-xs transition hover:bg-zinc-100 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent"
             >
               <RefreshCw
                 size={14}
-                className={atualizando ? "animate-spin text-emerald-700" : "text-hf-text-2"}
+                className={atualizando ? "animate-spin text-hf-accent" : "text-hf-text-2"}
                 aria-hidden
               />
               {dados?.em
@@ -238,8 +238,8 @@ export default function InicioPage() {
                     <>
                       <ValorIndicador>Em dia</ValorIndicador>
                       <DetalheIndicador>
-                        <span className="inline-flex items-center gap-1 font-semibold text-emerald-800">
-                          <CheckCircle2 size={13} className="text-emerald-700" aria-hidden />{" "}
+                        <span className="inline-flex items-center gap-1 font-semibold text-hf-success">
+                          <CheckCircle2 size={13} className="text-hf-success" aria-hidden />{" "}
                           Nada vencido nem vencendo hoje
                         </span>
                       </DetalheIndicador>
@@ -401,7 +401,7 @@ export default function InicioPage() {
                       {f.motivo}{" "}
                       <Link
                         href={ROTAS_DASHBOARD.lancarFaturamento}
-                        className="font-bold text-emerald-700 hover:underline"
+                        className="font-bold text-hf-accent hover:underline"
                       >
                         Lançar o faturamento do dia
                       </Link>
@@ -413,7 +413,7 @@ export default function InicioPage() {
                       Nenhum faturamento lançado nos últimos 7 dias.{" "}
                       <Link
                         href={ROTAS_DASHBOARD.lancarFaturamento}
-                        className="font-bold text-emerald-700 hover:underline"
+                        className="font-bold text-hf-accent hover:underline"
                       >
                         Lançar o faturamento do dia
                       </Link>

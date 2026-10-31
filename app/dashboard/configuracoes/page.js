@@ -618,7 +618,7 @@ export default function ConfiguracoesPage() {
 
   if (loading) return <div className="p-6"><SkeletonList /></div>;
 
-  const inputCls = "w-full bg-white border border-line rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none";
+  const inputCls = "w-full bg-white border border-line rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-hf-accent focus:border-emerald-500 transition-all outline-none";
   const labelCls = "block text-xs font-bold text-fg mb-1.5 uppercase";
 
   return (

@@ -6,6 +6,10 @@
 // Guardado em config_sistema.params.janta_funcionarios:
 //   { pessoas_padrao, dias: { seg: { pessoas, pratos: [{ id, nome, preparo,
 //     itens: [{ id, nome, insumo_id, g_pessoa }] }] }, … } }
+//
+// Quantas pessoas jantam no dia: o dono INFORMA o número de cada dia (31/10/2026:
+// "não precisa puxar do RH, eu só falo quantas pessoas"); sem número no dia,
+// vale o padrão. A ficha do dia muda sozinha com esse número.
 // A conta é determinística: total = gramas por pessoa × pessoas. Custo só
 // com produto ligado ao cadastro e com preço (senão DADOS INSUFICIENTES).
 

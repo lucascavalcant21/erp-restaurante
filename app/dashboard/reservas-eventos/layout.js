@@ -16,8 +16,8 @@ const BASE = "/dashboard/reservas-eventos";
 const FUNIL = `${BASE}/eventos`;
 
 const AREAS = [
-  // Orçamento por pessoa em um minuto: fichas da cozinha e do bar (27/10/2026).
-  { href: `${BASE}/rapido`, rotulo: "Orçamento rápido", curto: "Orçar", icone: Calculator },
+  // Simulador do evento: mesa montada + buffet + bar + equipe, resultado na hora (31/10/2026).
+  { href: `${BASE}/rapido`, rotulo: "Simulador", curto: "Simular", icone: Calculator },
   { href: FUNIL, rotulo: "Funil de eventos", curto: "Funil", icone: BookOpen, ativo: (p) => p === BASE || p === FUNIL },
   { href: `${BASE}/agenda`, rotulo: "Agenda", curto: "Agenda", icone: CalendarDays },
   { href: `${BASE}/reservas`, rotulo: "Reservas de mesa", curto: "Reservas", icone: UtensilsCrossed },

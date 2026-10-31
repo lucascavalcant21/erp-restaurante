@@ -1074,12 +1074,12 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
         }`}
       >
         {/* BARRA DE TOPO: avatar, nome e status, como no WhatsApp */}
-        <header className="h-14 px-2 sm:px-4 bg-[#1E4D3B] text-white flex items-center gap-2 shrink-0 z-20 shadow-sm">
+        <header className="h-14 px-2 sm:px-4 bg-hf-menu text-hf-menu-text flex items-center gap-2 shrink-0 z-20 shadow-sm">
           <div className="relative shrink-0">
             <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/30">
-              <Sparkles size={19} className="fill-white" />
+              <Sparkles size={19} className="fill-hf-accent text-hf-accent" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#25D366] ring-2 ring-[#1E4D3B]" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#25D366] ring-2 ring-[#202124]" />
           </div>
           <div className="min-w-0 flex-1 leading-tight">
             <h1 className="text-[15px] font-bold truncate">Green Dot</h1>
@@ -1199,7 +1199,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
               <p className="text-[15px] leading-snug">
                 Oi! Sou o <strong>Green Dot</strong>. Pergunte do jeito que você falaria com um colega: lucro, estoque, escala, fichas, equipamentos, limpeza… Também dá para falar pelo microfone.
               </p>
-              <button onClick={() => setMostrarAtalhos((v) => !v)} className="mt-2 text-[13px] font-bold text-[#027EB5]">
+              <button onClick={() => setMostrarAtalhos((v) => !v)} className="mt-2 text-[13px] font-bold text-hf-accent">
                 {mostrarAtalhos ? "Esconder atalhos" : "Ver todos os atalhos"}
               </button>
               <span className="gd-hora">{horaCurta(Date.now())}</span>
@@ -1453,7 +1453,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
                 <button
                   key={a.rotulo}
                   onClick={() => processarPergunta(a.pergunta)}
-                  className="shrink-0 px-3 py-1.5 rounded-full bg-white border border-[#D1D7DB] text-[13px] font-semibold text-[#1E4D3B] active:scale-95 transition"
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-white border border-[#D1D7DB] text-[13px] font-semibold text-hf-accent active:scale-95 transition"
                 >
                   {a.rotulo}
                 </button>
@@ -1482,7 +1482,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
                 <button
                   onClick={() => processarPergunta()}
                   aria-label="Enviar"
-                  className="w-12 h-12 rounded-full bg-[#1E4D3B] hover:bg-[#163B2D] text-white flex items-center justify-center shrink-0 shadow-sm active:scale-95 transition"
+                  className="w-12 h-12 rounded-full bg-hf-accent hover:brightness-95 text-hf-accent-fg flex items-center justify-center shrink-0 shadow-sm active:scale-95 transition"
                 >
                   <SendHorizontal size={21} />
                 </button>
@@ -1491,7 +1491,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
                   type="button"
                   onClick={alternarMicrofone}
                   aria-label={ouvindo ? "Parar de ouvir" : "Falar pelo microfone"}
-                  className={`w-12 h-12 rounded-full text-white flex items-center justify-center shrink-0 shadow-sm active:scale-95 transition ${ouvindo ? "bg-red-600 animate-pulse" : "bg-[#1E4D3B] hover:bg-[#163B2D]"}`}
+                  className={`w-12 h-12 rounded-full text-white flex items-center justify-center shrink-0 shadow-sm active:scale-95 transition ${ouvindo ? "bg-red-600 animate-pulse" : "bg-hf-accent !text-hf-accent-fg hover:brightness-95"}`}
                 >
                   {ouvindo ? <MicOff size={21} /> : <Mic size={21} />}
                 </button>

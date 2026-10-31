@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { CheckCircle2, Loader2, Plus, Save, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../../lib/mascaras.mjs";
 
-const INPUT = "mt-1.5 h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
+const INPUT = "mt-1.5 h-11 w-full rounded-xl border border-line bg-card px-3.5 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/30";
 
 function Campo({ label, children, largo = false }) {
   return <label className={largo ? "sm:col-span-2" : ""}><span className="text-xs font-bold text-slate-600">{label} <b className="text-rose-500">*</b></span>{children}</label>;

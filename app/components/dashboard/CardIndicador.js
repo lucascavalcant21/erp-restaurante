@@ -6,7 +6,7 @@ import { ArrowUpRight, AlertTriangle } from "lucide-react";
 
 const TONS = {
   neutro: "bg-zinc-100 text-zinc-700",
-  verde: "bg-emerald-50 text-emerald-800",
+  verde: "bg-hf-success/10 text-hf-success",
   alerta: "bg-amber-50 text-amber-800",
   perigo: "bg-rose-50 text-rose-800",
 };
@@ -25,7 +25,7 @@ function CardIndicadorComponent({
   return (
     <Link
       href={href}
-      className="group relative flex min-h-[132px] flex-col justify-between rounded-2xl border border-zinc-200/80 bg-hf-surface p-4 shadow-card transition-all duration-200 sm:min-h-[148px] sm:p-5 hover:border-emerald-500/50 hover:shadow-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+      className="group relative flex min-h-[132px] flex-col justify-between rounded-2xl border border-zinc-200/80 bg-hf-surface p-4 shadow-card transition-all duration-200 sm:min-h-[148px] sm:p-5 hover:border-hf-accent/60 hover:shadow-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent focus-visible:ring-offset-2"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
@@ -43,7 +43,7 @@ function CardIndicadorComponent({
         <ArrowUpRight
           size={18}
           aria-hidden
-          className="hidden shrink-0 text-zinc-300 transition-colors duration-200 group-hover:text-emerald-700 sm:block"
+          className="hidden shrink-0 text-zinc-300 transition-colors duration-200 group-hover:text-hf-accent sm:block"
         />
       </div>
 

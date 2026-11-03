@@ -169,6 +169,7 @@ const T = {
   wifi_rede: { pt: "Rede:", en: "Network:", es: "Red:", it: "Rete:", fr: "Réseau :", zh: "网络：", ja: "ネットワーク：", ko: "네트워크:" },
   wifi_senha: { pt: "Senha:", en: "Password:", es: "Contraseña:", it: "Password:", fr: "Mot de passe :", zh: "密码：", ja: "パスワード：", ko: "비밀번호:" },
   wifi_aberta: { pt: "rede aberta, sem senha", en: "open network, no password", es: "red abierta, sin contraseña", it: "rete aperta, senza password", fr: "réseau ouvert, sans mot de passe", zh: "开放网络，无需密码", ja: "パスワード不要", ko: "비밀번호 없음" },
+  garcom_curto: { pt: "Garçom", en: "Waiter", es: "Mesero", it: "Cameriere", fr: "Serveur", zh: "服务员", ja: "スタッフ", ko: "직원 호출" },
   adicionar: { pt: "+ Adicionar", en: "+ Add", es: "+ Agregar", it: "+ Aggiungi", fr: "+ Ajouter", zh: "+ 添加", ja: "+ 追加", ko: "+ 담기" },
   agora_nao: { pt: "Agora não", en: "Not now", es: "Ahora no", it: "Non ora", fr: "Pas maintenant", zh: "暂不需要", ja: "今はいい", ko: "다음에" },
   total: { pt: "Total", en: "Total", es: "Total", it: "Totale", fr: "Total", zh: "合计", ja: "合計", ko: "합계" },

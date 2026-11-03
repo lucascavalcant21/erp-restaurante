@@ -38,8 +38,10 @@ export default function DeliveryInicio({
   secaoAtiva, busca = "", buscaAberta = false, onBusca, onAbrirBusca, onFecharBusca, resultados = [], filtrando = false,
   onAbrirPrato, onIrSecao, onAbrirSacola, onAbrirIdiomas, temIdiomas, onAbrirInfo, temInfo, onAjuda, temAjuda,
   onAbrirPedidos, qtdPedidos = 0, onAbrirDescontos, temDescontos, linkCadastro, visitante = true, podePedir = true,
-  banners = null,
+  banners = null, mesa = "", onChamar, onConvite,
 }) {
+  // Mesa pelo QR no celular usa esta mesma tela: no lugar de aberto/entrega,
+  // o número da mesa e o garçom; o convite abre a entrada por CPF (QREntrar).
   const T = (k, v) => textoDelivery(idioma, k, v);
   const { unidade, tema } = cardapio;
   const ent = cardapio.entrega || {};
@@ -81,22 +83,32 @@ export default function DeliveryInicio({
           </div>
           <div className={s.lojaTextos}>
             <h1 className={s.lojaNome}>{unidade.nome}</h1>
-            <span className={`${s.status} ${aberto ? "" : s.statusFechado}`}>
-              <span className={s.statusPonto} aria-hidden="true" />
-              {aberto ? T("aberto") : T("fechado")}{unidade.horario ? ` · ${unidade.horario}` : ""}
-            </span>
+            {mesa ? (
+              <span className={s.status}><span className={s.statusPonto} aria-hidden="true" />{T("mesa_n", { n: mesa })}</span>
+            ) : (
+              <span className={`${s.status} ${aberto ? "" : s.statusFechado}`}>
+                <span className={s.statusPonto} aria-hidden="true" />
+                {aberto ? T("aberto") : T("fechado")}{unidade.horario ? ` · ${unidade.horario}` : ""}
+              </span>
+            )}
           </div>
           {temInfo ? (
             <button type="button" className={s.info} onClick={onAbrirInfo}><Icone nome="info" tamanho={16} />{T("info")}</button>
           ) : null}
         </div>
-        <div className={s.entrega}>
-          <span className={unidade.taxa_entrega > 0 ? "" : s.entregaForte}>
-            {unidade.taxa_entrega > 0 ? T("taxa", { valor: formatarPreco(unidade.taxa_entrega, idioma) }) : T("entrega_gratis")}
-          </span>
-          {ent.tempo_min && ent.tempo_max ? <span>{T("tempo", { min: ent.tempo_min, max: ent.tempo_max })}</span> : null}
-          {ent.pedido_minimo > 0 ? <span>{T("minimo", { valor: formatarPreco(ent.pedido_minimo, idioma) })}</span> : null}
-        </div>
+        {mesa ? (
+          onChamar ? (
+            <button type="button" className={s.chamar} onClick={onChamar}><Icone nome="sino" tamanho={18} />{T("chamar_garcom")}</button>
+          ) : null
+        ) : (
+          <div className={s.entrega}>
+            <span className={unidade.taxa_entrega > 0 ? "" : s.entregaForte}>
+              {unidade.taxa_entrega > 0 ? T("taxa", { valor: formatarPreco(unidade.taxa_entrega, idioma) }) : T("entrega_gratis")}
+            </span>
+            {ent.tempo_min && ent.tempo_max ? <span>{T("tempo", { min: ent.tempo_min, max: ent.tempo_max })}</span> : null}
+            {ent.pedido_minimo > 0 ? <span>{T("minimo", { valor: formatarPreco(ent.pedido_minimo, idioma) })}</span> : null}
+          </div>
+        )}
       </div>
 
       <div className={s.corpo}>
@@ -104,7 +116,7 @@ export default function DeliveryInicio({
 
         {convite ? (
           <ConviteDesconto
-            layout="celular" idioma={idioma} percentual={convite.percentual} href={linkCadastro}
+            layout="celular" idioma={idioma} percentual={convite.percentual} href={onConvite ? undefined : linkCadastro} onClick={onConvite}
             rotulo={T("para_casa")} titulo={T("cadastre_ganhe")} acao={T("quero")}
             texto={[convite.todos ? T("todos_pedidos") : T("primeiro_pedido"), convite.pontos ? T("ponto") : ""].filter(Boolean).join(" · ")}
             rotuloAcessivel={`${T("cadastre_ganhe")} ${convite.percentual}`}
@@ -172,7 +184,8 @@ export default function DeliveryInicio({
             <BarraNavegacao itens={[
               { rotulo: T("inicio"), icone: "casa", atual: true, onClick: () => window.scrollTo({ top: 0, behavior: "smooth" }) },
               { rotulo: T("pedidos"), icone: "pedidos", onClick: onAbrirPedidos, contador: qtdPedidos || undefined },
-              ...(temDescontos ? [{ rotulo: T("descontos"), icone: "descontos", onClick: onAbrirDescontos }] : []),
+              ...(mesa && onChamar ? [{ rotulo: T("garcom_curto"), icone: "sino", onClick: onChamar }] : []),
+              ...(!mesa && temDescontos ? [{ rotulo: T("descontos"), icone: "descontos", onClick: onAbrirDescontos }] : []),
             ]} />
           </div>
         </div>

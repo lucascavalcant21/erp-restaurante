@@ -1294,7 +1294,7 @@ function EstoqueRunner() {
                         value={filtros.busca}
                         onChange={e => setFiltros({ ...filtros, busca: e.target.value })}
                         placeholder="Buscar por nome, marca ou código..."
-                        className="h-10 w-full rounded-xl border border-slate-300 bg-card pl-10 pr-3 text-xs font-bold text-fg shadow-xs transition-all focus:border-emerald-600 focus:bg-card focus:outline-none focus:ring-2 focus:ring-emerald-500/20 placeholder:text-subtle"
+                        className="h-10 w-full rounded-xl border border-slate-300 bg-card pl-10 pr-3 text-xs font-bold text-fg shadow-xs transition-all focus:border-emerald-600 focus:bg-card focus:outline-none focus:ring-2 focus:ring-hf-accent/20 placeholder:text-subtle"
                       />
                     </label>
                     <select value={filtros.categoria} onChange={e => setFiltros({ ...filtros, categoria: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-card px-3 text-xs font-bold text-fg-soft">{categorias.map(v => <option key={v}>{v}</option>)}</select>

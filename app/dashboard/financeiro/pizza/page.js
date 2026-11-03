@@ -396,7 +396,7 @@ export default function PizzaDoLucroPage() {
     <div className="min-h-screen bg-hf-bg pb-16">
       <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6">
         <div className="flex flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/modulo/financeiro")}
+          <button onClick={() => router.push("/dashboard/financeiro")}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"
             aria-label="Voltar ao módulo Financeiro">
             <ArrowLeft size={19} />

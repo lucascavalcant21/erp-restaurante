@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   UserPlus, ClipboardList, Printer, Clock, CalendarDays, FileText, Users, Award,
-  AlertTriangle, CheckCircle2, ChevronRight, CalendarHeart, Network,
+  AlertTriangle, CheckCircle2, ChevronRight, CalendarHeart, Network, UtensilsCrossed,
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 import { horarioDoDia, fetchRecibosPrestacaoUnidade } from "../../lib/rh";
@@ -207,6 +207,7 @@ export default function PainelRH({
         <BotaoSec icon={Clock} onClick={onFaltas}>Faltas e atrasos</BotaoSec>
         <BotaoSec icon={CalendarDays} onClick={onFeriados}>Feriados</BotaoSec>
         <BotaoSec icon={FileText} onClick={onAfd} disabled={baixandoAfd}>{baixandoAfd ? "Exportando..." : "Exportar AFD"}</BotaoSec>
+        <BotaoSec icon={UtensilsCrossed} onClick={() => router.push("/dashboard/rh/cardapio-funcionarios")}>Janta dos funcionários</BotaoSec>
         <BotaoSec icon={Award} onClick={() => router.push("/dashboard/rh/cargos")}>Cargos</BotaoSec>
         <BotaoSec icon={Network} onClick={() => router.push("/dashboard/rh/organograma")}>Organograma</BotaoSec>
       </div>

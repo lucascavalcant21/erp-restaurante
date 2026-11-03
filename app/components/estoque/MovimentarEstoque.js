@@ -390,7 +390,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
               <button type="button" aria-label="Menos 1" onClick={() => setForm((f) => ({ ...f, qtd: String(Math.max(0, (Number(String(f.qtd).replace(",", ".")) || 0) - 1)).replace(".", ",") }))}
                 className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-hf-border bg-hf-surface text-hf-text shadow-xs active:scale-[0.97]"><Minus size={22} /></button>
               <input id="qtd-estoque" inputMode="decimal" autoFocus value={form.qtd} onChange={(e) => setForm({ ...form, qtd: e.target.value })} placeholder="0"
-                className="h-16 min-w-0 flex-1 rounded-2xl border border-zinc-200/80 bg-hf-surface px-3 text-center text-3xl font-black outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/30 shadow-xs" />
+                className="h-16 min-w-0 flex-1 rounded-2xl border border-zinc-200/80 bg-hf-surface px-3 text-center text-3xl font-black outline-none focus:border-emerald-600 focus:ring-2 focus:ring-hf-accent/30 shadow-xs" />
               <button type="button" aria-label="Mais 1" onClick={() => setForm((f) => ({ ...f, qtd: String((Number(String(f.qtd).replace(",", ".")) || 0) + 1).replace(".", ",") }))}
                 className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-hf-border bg-hf-surface text-hf-text shadow-xs active:scale-[0.97]"><Plus size={22} /></button>
             </div>

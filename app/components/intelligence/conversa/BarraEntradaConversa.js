@@ -60,7 +60,7 @@ const BarraEntradaConversa = memo(function BarraEntradaConversa({
           }}
           placeholder={ouvindo ? "Ouvindo… pode falar" : "Pergunte qualquer coisa sobre sua empresa..."}
           aria-label="Pergunte ao Héfisto"
-          className="max-h-32 min-h-[54px] min-w-0 flex-1 resize-none rounded-2xl border border-hf-border-strong bg-hf-surface px-3.5 py-2.5 text-[15px] leading-snug text-hf-text shadow-xs transition focus:border-hf-accent focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          className="max-h-32 min-h-[54px] min-w-0 flex-1 resize-none rounded-2xl border border-hf-border-strong bg-hf-surface px-3.5 py-2.5 text-[15px] leading-snug text-hf-text shadow-xs transition focus:border-hf-accent focus:outline-none focus:ring-2 focus:ring-hf-accent/20"
         />
         {vozOk && (
           <button

@@ -222,7 +222,7 @@
   outline: none;
 }
 .formNome input:focus { border-color: var(--c-primaria); }
-.link { border: 0; background: none; padding: 10px 2px; min-height: 44px; color: var(--c-destaque); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.link { border: 0; background: none; padding: 10px 2px; min-height: 44px; color: var(--c-destaque); font-weight: 600; text-decoration: none; }
 
 /* ── botões ───────────────────────────────────────────────────────── */
 .primario {
@@ -557,7 +557,7 @@ textarea.campo { height: auto; min-height: 76px; padding: 10px 14px; resize: ver
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
   animation: sobe 0.2s ease-out;
 }
-.toast button { border: 0; background: none; color: inherit; font-weight: 700; text-decoration: underline; min-height: 36px; padding: 0 6px; }
+.toast button { border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 999px; background: rgba(255, 255, 255, 0.12); color: inherit; font-weight: 700; min-height: 36px; padding: 0 14px; }
 
 .painelPedido { display: none; }
 .painelVazio { padding: 30px 18px; color: var(--c-suave); display: grid; gap: 8px; }
@@ -674,7 +674,7 @@ textarea.campo { height: auto; min-height: 76px; padding: 10px 14px; resize: ver
 .lojaLogo { width: 84px; height: 84px; border-radius: 999px; object-fit: cover; display: block; margin: -60px auto 10px; border: 4px solid var(--c-cartao); background: var(--c-cartao); }
 .lojaNome { font-family: var(--fonte-titulo); font-size: 1.6rem; line-height: 1.12; margin: 0; font-weight: 600; text-wrap: balance; }
 .lojaLinha { margin: 6px 0 0; font-size: 0.88rem; color: var(--c-suave); display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; align-items: center; }
-.lojaLinha button { border: 0; background: none; padding: 6px 2px; min-height: 36px; color: var(--c-destaque); font-weight: 650; text-decoration: underline; text-underline-offset: 3px; }
+.lojaLinha button { border: 0; background: none; padding: 6px 2px; min-height: 36px; color: var(--c-destaque); font-weight: 650; text-decoration: none; }
 .status { font-weight: 700; font-size: 0.88rem; margin-top: 6px; }
 .statusAberto { color: #1f7a3f; }
 .statusFechado { color: #b42318; }

@@ -723,7 +723,7 @@ export default function AppsConfigPage() {
                           type="checkbox"
                           checked={ativo}
                           onChange={() => {}}
-                          className="mt-1 h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          className="mt-1 h-4 w-4 rounded text-emerald-600 focus:ring-hf-accent cursor-pointer"
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800">

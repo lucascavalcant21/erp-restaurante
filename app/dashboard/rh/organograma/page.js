@@ -210,7 +210,7 @@ export default function OrganogramaCorporativoPage() {
                     value={busca}
                     onChange={e => setBusca(e.target.value)}
                     placeholder="Pesquisar funcionário..."
-                    className="w-full pl-12 pr-4 py-4 bg-hf-elevated border border-hf-border rounded-2xl text-hf-text font-bold placeholder-hf-muted focus:ring-2 focus:ring-emerald-500 outline-none backdrop-blur-sm"
+                    className="w-full pl-12 pr-4 py-4 bg-hf-elevated border border-hf-border rounded-2xl text-hf-text font-bold placeholder-hf-muted focus:ring-2 focus:ring-hf-accent outline-none backdrop-blur-sm"
                   />
                </div>
                <button onClick={imprimirOrganograma} title="Imprimir organograma" className="shrink-0 flex items-center gap-2 bg-hf-elevated hover:bg-hf-border border border-hf-border text-hf-text font-bold px-4 py-4 rounded-2xl transition-colors">

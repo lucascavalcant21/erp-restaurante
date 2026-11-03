@@ -23,7 +23,7 @@ Ele não espera um prompt novo se existe missão READY e não há bloqueio crít
 **Para liberar uma missão do backlog:** `npm run hefisto:missoes -- pronta HDEV-00X`.
 
 <!-- hefisto-agent:indice:inicio -->
-_Gerado por `npm run hefisto:missoes` em 2026-10-27 23:34 UTC. Edite as missões em `missoes/`, não esta tabela._
+_Gerado por `npm run hefisto:missoes` em 2026-10-31 02:48 UTC. Edite as missões em `missoes/`, não esta tabela._
 
 **Próxima automática:** nenhuma missão READY sem bloqueio
 
@@ -32,6 +32,7 @@ _Gerado por `npm run hefisto:missoes` em 2026-10-27 23:34 UTC. Edite as missões
 |---|---|---|---|---|---|---|
 | [[HDEV-001]] | Concluir HEFISTO INTELLIGENCE HI-02 no ambiente mais real disponível | IN_PROGRESS | 1 | – | BLQ-001, BLQ-002, BLQ-003, BLQ-004, BLQ-007 | 0 |
 | [[HDEV-EST-001]] | Estoque — reconstrução e unificação (tela única, unidades, painel) | VALIDATING | 1 | – | aprovacao-merge, aprovacao-EST_UNI_1 | 1 |
+| [[HDEV-GDA-001]] | Green Dot Assist vira o assistente único do Héfisto (perguntas, ações e voz) | IN_PROGRESS | 1 | – | – | 0 |
 | [[HDEV-RH-001]] | Reestruturação do RH, contratos e ciclo de vida do colaborador | IN_PROGRESS | 1 | – | – | 0 |
 | [[HEXP-001]] | Héfisto Experience — O Restaurante na Palma da Mão | IN_PROGRESS | 1 | – | – | 1 |
 

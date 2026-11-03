@@ -222,7 +222,7 @@ export default function CRMPage() {
               placeholder="Buscar cliente..." 
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-line rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full md:w-64"
+              className="pl-9 pr-4 py-2 border border-line rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-hf-accent w-full md:w-64"
             />
           </div>
         </div>

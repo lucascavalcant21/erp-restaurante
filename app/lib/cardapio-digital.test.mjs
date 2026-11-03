@@ -400,3 +400,21 @@ test("Salvar do editor não apaga o que a aba nova gravou: só vai o que o edito
   const r2 = mesclarConfigCardapio(banco, base, { ...editado, promocoes: [{ ...promo, id: "p2", titulo: "Almoço" }] });
   assert.deepEqual(r2.promocoes.map((x) => x.id), ["p2"]);
 });
+
+test("banner: prato no carrossel e programação por dia e horário", async () => {
+  const { normalizarBanner, itemNoHorario } = await import("./cardapio-digital.mjs");
+  const [prato, foto, semNada] = normalizarBanner([
+    { tipo: "prato", acao: { id: "picanha" }, horario: { dias_semana: [5], hora_inicio: "18:00", hora_fim: "23:00" } },
+    { tipo: "imagem", url: "https://x.supabase.co/a.jpg", acao: { tipo: "categoria", id: "grelhados" } },
+    { tipo: "imagem", url: "" },
+  ]);
+  assert.equal(prato.tipo, "prato");
+  assert.deepEqual(prato.acao, { tipo: "produto", id: "picanha" });
+  assert.deepEqual(prato.horario, { dias_semana: [5], hora_inicio: "18:00", hora_fim: "23:00" });
+  assert.equal(foto.horario, undefined);
+  assert.equal(semNada, undefined);
+  // Sexta 20h em São Paulo passa; sábado 20h não.
+  assert.equal(itemNoHorario(prato, new Date("2026-10-30T23:00:00Z")), true);
+  assert.equal(itemNoHorario(prato, new Date("2026-10-31T23:00:00Z")), false);
+  assert.equal(itemNoHorario(foto), true);
+});

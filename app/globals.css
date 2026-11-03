@@ -95,16 +95,16 @@ body {
    sem valor e herdam a cor escura do texto).
    ═══════════════════════════════════════════════════════════════ */
 :root {
-  --elevated:   #F1F5F9; /* hover de linhas, fundo alternativo */
+  --elevated:   #F7F7F8; /* hover de linhas, fundo alternativo */
 
-  --line:       #E2E8F0; /* bordas */
+  --line:       #E5E7EB; /* bordas */
   --line-soft:  #F1F5F9;
 
-  /* Ação: verde da marca */
-  --accent:        #047857;
-  --accent-strong: #036249;
-  --accent-fg:     #FFFFFF;
-  --accent-soft:   rgba(4,120,87,0.14);
+  /* Ação: dourado da marca (design system branco e dourado, 31/10/2026) */
+  --accent:        #C5A15A;
+  --accent-strong: #7A5C1E;
+  --accent-fg:     #202124;
+  --accent-soft:   rgba(197,161,90,0.16);
 
   /* Status */
   --success-strong: #047857;
@@ -437,37 +437,45 @@ textarea *,
   -webkit-touch-callout: default !important;
 }
 
-/* ═══ IDENTIDADE HÉFISTO (clara) — tokens hf-* ════════════════════════════
-   Fundo cinza claro + cards brancos com sombra + grafite + verde Héfisto. Sem fundo preto (pedido do
-   dono, 2026-10-11). Vermelho e âmbar SÓ para estado real (vencido, crítico,
-   negativo / atenção). Sem azul de identidade.
+/* ═══ IDENTIDADE HÉFISTO — design system "branco e dourado" (pedido do dono, 31/10/2026) ═══
+   Fundo branco, cards brancos com borda #E5E7EB e sombra (profundidade), blocos internos
+   e hover em #F7F7F8, texto #252525, menu grafite #202124 e DOURADO #C5A15A como cor
+   principal (botões, seleção, item ativo). Dourado com texto ESCURO por cima (6,7:1);
+   texto dourado sobre branco usa o dourado escuro --hf-accent-text (#7A5C1E, 5,9:1).
+   Verde fica só como estado "positivo/entrada"; vermelho e âmbar SÓ para estado real.
    Canais RGB para o Tailwind aceitar opacidade: bg-hf-danger/10.
    Uso: bg-hf-bg (página) · bg-hf-surface (card) · bg-hf-elevated (dentro do
-   card, hover, menus) · border-hf-border · text-hf-text / -text-2 / -muted.
-   Contraste (WCAG) sobre hf-surface: text 17:1 · text-2 7,7:1 · muted 4,8:1
-   (muted só para informação terciária). */
+   card, hover) · border-hf-border · text-hf-text / -text-2 / -muted.
+   Contraste (WCAG) sobre o branco: text 15:1 · text-2 7,7:1 · muted 4,8:1. */
 :root {
-  --hf-bg:            232 234 238;/* #E8EAEE página: cinza claro que destaca os cards (pedido do dono, 2026-10-27; antes amarelo #FEF7DC) */
-  --hf-surface:       255 255 255;/* #FFFFFF card */
-  --hf-elevated:      244 244 245;/* #F4F4F5 menu, hover, bloco interno */
-  --hf-border:        228 228 231;/* #E4E4E7 borda padrão */
-  --hf-border-strong: 212 212 216;/* #D4D4D8 hover/foco neutro */
-  --hf-text:          24 24 27;   /* #18181B principal */
+  --hf-bg:            255 255 255;/* #FFFFFF página */
+  --hf-surface:       255 255 255;/* #FFFFFF card (com borda e sombra) */
+  --hf-elevated:      247 247 248;/* #F7F7F8 bloco interno, hover, linha de tabela */
+  --hf-border:        229 231 235;/* #E5E7EB borda padrão */
+  --hf-border-strong: 209 213 219;/* #D1D5DB hover/foco neutro */
+  --hf-text:          37 37 37;   /* #252525 principal */
   --hf-text-2:        82 82 91;   /* #52525B secundário */
   --hf-muted:         113 113 122;/* #71717A terciário */
-  --hf-accent:        4 120 87;   /* #047857 verde Héfisto: ação principal, seleção */
-  --hf-accent-fg:     255 255 255;/* #FFFFFF texto sobre o verde */
+  --hf-accent:        197 161 90; /* #C5A15A dourado: ação principal, seleção */
+  --hf-accent-fg:     32 33 36;   /* #202124 texto sobre o dourado */
+  --hf-accent-text:   122 92 30;  /* #7A5C1E dourado escuro: texto/ícone dourado sobre branco */
   --hf-success:       4 120 87;   /* #047857 entrada, positivo, saudável */
   --hf-warning:       180 83 9;   /* #B45309 atenção, pendência */
   --hf-danger:        185 28 28;  /* #B91C1C vencido, crítico, negativo */
-  /* Menu (barra superior e gaveta do celular): preto, pedido do dono (2026-10-13) */
-  /* Menu claro com o verde da casa (pedido do dono, 29/10/2026: "mude esse visual e essa cor"). */
-  --hf-menu:          255 255 255;/* #FFFFFF fundo do menu */
-  --hf-menu-hover:    243 244 246;/* #F3F4F6 item em foco, botões do menu */
-  --hf-menu-border:   229 231 235;/* #E5E7EB divisórias */
-  --hf-menu-text:     17 24 39;   /* #111827 texto */
-  --hf-menu-muted:    75 85 99;   /* #4B5563 texto secundário (7:1 sobre o branco) */
-  --hf-menu-accent:   4 120 87;   /* #047857 verde: item ativo */
+  /* Menu grafite com o dourado da casa (pedido do dono, 31/10/2026: "menu #202124"). */
+  --hf-menu:          32 33 36;   /* #202124 fundo do menu */
+  --hf-menu-hover:    48 49 52;   /* #303134 item em foco, botões do menu */
+  --hf-menu-border:   60 64 67;   /* #3C4043 divisórias */
+  --hf-menu-text:     241 243 244;/* #F1F3F4 texto (15:1) */
+  --hf-menu-muted:    189 193 198;/* #BDC1C6 texto secundário (9:1) */
+  --hf-menu-accent:   197 161 90; /* #C5A15A dourado: item ativo */
+}
+
+/* Botão dourado escrito em branco (telas antigas: "bg-hf-accent text-white") fica com o texto
+   escuro do design system: branco sobre dourado não passa no contraste. */
+[class~="bg-hf-accent"]:is([class~="text-white"], [class~="text-hf-surface"]),
+[class~="bg-hf-accent"] :is([class~="text-white"]) {
+  color: rgb(var(--hf-accent-fg));
 }
 
 /* ═══ CARDS COM PROFUNDIDADE ═════════════════════════════════════════════

@@ -30,3 +30,4 @@ test("sem número do dia vale o padrão; kg a partir de 1.000 g", () => {
   assert.equal(rotuloPeso(0), "—");
   assert.equal(normalizarJanta(null).dias.dom.pratos.length, 0);
 });
+

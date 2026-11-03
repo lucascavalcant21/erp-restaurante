@@ -5,7 +5,7 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../../context/ERPContext";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
-import { fetchFolgasEsporadicas, fetchFeriados, fetchAtestados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho, refazerEspelho } from "../../../../lib/rh";
+import { fetchFolgasEsporadicas, fetchFeriados, fetchAtestados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, opcoesDaCasa, fetchEspelhoFechado, fecharEspelho, refazerEspelho } from "../../../../lib/rh";
 import { Printer, ArrowLeft, Download, Clock3, Edit3 } from "lucide-react";
 import { fetchConvencaoAtiva } from "../../../../lib/trabalhista/convencoes-dados";
 import { regrasDaCompetencia } from "../../../../lib/trabalhista/regras-competencia.mjs";
@@ -530,11 +530,10 @@ export default function EspelhoDePonto() {
             // entradaDoDia: quem bate antes do turno não ganha hora extra por
             // ter chegado cedo. A batida real continua no espelho e no livro;
             // o corte é só na conta.
-            const dias = calcularAdicionaisPorDia(pontos, feriadosMes, {
-              regras: rgEsp,
-              contratadaDoDia: (d) => jornadaContratadaMin(colaborador, d),
+            const dias = calcularAdicionaisPorDia(pontos, feriadosMes, opcoesDaCasa(colaborador, {
+              folgas: folgasEsporadicas, regras: rgEsp,
               entradaDoDia: (d) => entradaContratadaDoDia(colaborador, d),
-            });
+            }));
             if (!dias.length) return null;
             const tot = dias.reduce((a, d) => ({ e: a.e + d.minExtra, n: a.n + d.minNoturno, f: a.f + d.minFeriado }), { e: 0, n: 0, f: 0 });
             const fmtM = (m) => m > 0 ? `${m} min` : "—";

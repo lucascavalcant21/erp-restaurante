@@ -162,12 +162,16 @@ export default function CorrigirPontoPage() {
     return () => { ativo = false; };
   }, [colabId, data, tipo]);
 
-  // Auto-detecta saída na madrugada se o usuário digitar 00:xx até 05:xx
+  // Saída no dia seguinte quando ela é de madrugada ou antes da entrada — e
+  // volta a ser no mesmo dia quando não é. Antes só ligava, nunca desligava:
+  // corrigir uma saída de 00:30 para 23:38 deixava a marca ligada e gravava a
+  // saída um dia depois (jornada de 32h em 16/10/2026).
   useEffect(() => {
-    if (saida && Number(saida.slice(0, 2)) < 6) {
-      setPassouMeiaNoite(true);
-    }
-  }, [saida]);
+    if (!saida) return;
+    const madrugada = Number(saida.slice(0, 2)) < 6;
+    const antesDaEntrada = Boolean(entrada) && saida < entrada;
+    setPassouMeiaNoite(madrugada || antesDaEntrada);
+  }, [saida, entrada]);
 
   const colaboradorSelecionado = useMemo(
     () => colaboradores.find((c) => String(c.id) === String(colabId)) || null,
@@ -232,6 +236,16 @@ export default function CorrigirPontoPage() {
     }
     if (!colabId) return setAviso({ erro: true, msg: "Escolha o colaborador." });
     if (!data) return setAviso({ erro: true, msg: "Informe a data." });
+
+    // Jornada impossível não entra no livro: saída antes da entrada (o banco
+    // tem 6 dias assim) ou mais de 16h seguidas, que é sinal de dia trocado.
+    if (!apenasLimpar && entrada && saida) {
+      const [eh, em] = entrada.split(":").map(Number);
+      const [sh, sm] = saida.split(":").map(Number);
+      const dur = (sh * 60 + sm) + (passouMeiaNoite ? 1440 : 0) - (eh * 60 + em);
+      if (dur <= 0) return setAviso({ erro: true, msg: "A saída ficou antes da entrada. Se a saída foi depois da meia-noite, marque \"Saída na madrugada do dia seguinte\"." });
+      if (dur > 16 * 60 && !confirm(`A jornada ficaria com ${Math.floor(dur / 60)}h${String(dur % 60).padStart(2, "0")}. Confere a data da saída?\n\nOK grava assim mesmo; Cancelar volta para corrigir.`)) return;
+    }
 
     const autor = sessao?.nome || sessao?.user?.email || sessao?.email || "Gerência";
 

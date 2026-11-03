@@ -318,6 +318,11 @@ export default function SimuladorDoEvento() {
               <input inputMode="decimal" value={sim.preco_por_pessoa} onChange={(e) => mudar((s) => { s.preco_por_pessoa = e.target.value; })} placeholder="80" className={`${pilula} mt-1.5`} />
             </label>
           </div>
+          {sim.modalidades.mesa.ativa && (
+            <label className="mt-3 block text-sm font-bold text-hf-text">Preço da mesa montada (pacote fechado, R$)
+              <input inputMode="decimal" value={sim.preco_mesa} onChange={(e) => mudar((s) => { s.preco_mesa = e.target.value; })} placeholder="900" className={`${pilula} mt-1.5`} />
+            </label>
+          )}
           <label className="mt-3 block text-sm font-bold text-hf-text">Outros custos (R$)
             <input inputMode="decimal" value={sim.outros_custos} onChange={(e) => mudar((s) => { s.outros_custos = e.target.value; })} placeholder="0" className={`${pilula} mt-1.5`} />
           </label>
@@ -339,7 +344,7 @@ export default function SimuladorDoEvento() {
               <div><p className="text-xs text-hf-text-2">Saldo por pessoa</p><p className={`text-2xl font-black tabular-nums ${saldoCor}`}>{brl(r.saldoPorConvidado)}{r.margemPct != null ? <span className="ml-1 text-sm">({fmtQ(r.margemPct)}%)</span> : null}</p></div>
             </div>
             <p className="mt-3 text-xs leading-relaxed text-hf-muted">
-              {r.natureza}: custos das fichas técnicas{r.semCusto ? ` (${r.semCusto} item(ns) sem custo na ficha, conta incompleta)` : ""}. Mesa montada não cresce com os convidados: o custo só se divide. Ainda sem imposto, maquininha e meta — isso entra na precificação.
+              {r.natureza}: custos das fichas técnicas{r.semCusto ? ` (${r.semCusto} item(ns) sem custo na ficha, conta incompleta)` : ""}. Mesa montada não cresce com os convidados e é vendida como pacote: o preço dela soma inteiro no faturamento. Ainda sem imposto, maquininha e meta — isso entra na precificação.
             </p>
           </div>
 

@@ -39,7 +39,7 @@ export const MODALIDADES = Object.freeze([
 
 export function simulacaoVazia() {
   return {
-    nome: "", convidados: "", preco_por_pessoa: "", outros_custos: "",
+    nome: "", convidados: "", preco_por_pessoa: "", preco_mesa: "", outros_custos: "",
     modalidades: {
       mesa: { ativa: true, itens: [] },
       buffet: { ativa: false, itens: [] },
@@ -58,7 +58,7 @@ export function normalizarSimulacao(s) {
     ? { id: i.id || novoId(), origem: "exclusiva", nome: String(i.nome || ""), ingredientes: Array.isArray(i.ingredientes) ? i.ingredientes : [], quantidade: i.quantidade ?? "", por_pessoa: i.por_pessoa ?? "" }
     : { id: i.id || novoId(), ficha_id: i.ficha_id, quantidade: i.quantidade ?? "", por_pessoa: i.por_pessoa ?? "" }));
   return {
-    nome: String(s.nome || ""), convidados: s.convidados ?? "", preco_por_pessoa: s.preco_por_pessoa ?? "", outros_custos: s.outros_custos ?? "",
+    nome: String(s.nome || ""), convidados: s.convidados ?? "", preco_por_pessoa: s.preco_por_pessoa ?? "", preco_mesa: s.preco_mesa ?? "", outros_custos: s.outros_custos ?? "",
     modalidades: {
       mesa: { ativa: m.mesa ? !!m.mesa.ativa : true, itens: itens(m.mesa) },
       buffet: { ativa: !!m.buffet?.ativa, itens: itens(m.buffet) },
@@ -99,8 +99,10 @@ export function calcularSimulacao(sim, fichas = []) {
   }
   const outros = num(s.outros_custos);
   const custoTotal = r2(partes.reduce((t, p) => t + p.custo, 0) + outros);
+  // Mesa montada vendida como PACOTE FECHADO (pedido do dono): soma inteira no faturamento.
   const preco = num(s.preco_por_pessoa);
-  const faturamento = preco && convidados ? r2(preco * convidados) : null;
+  const precoMesa = s.modalidades.mesa.ativa ? num(s.preco_mesa) : 0;
+  const faturamento = (preco && convidados) || precoMesa ? r2((preco && convidados ? preco * convidados : 0) + precoMesa) : null;
   const saldo = faturamento != null ? r2(faturamento - custoTotal) : null;
   return {
     convidados, partes, outros: r2(outros), custoTotal,
@@ -122,7 +124,7 @@ export function orcamentoDaSimulacao(sim, fichas = [], params = {}) {
   const s = normalizarSimulacao(sim);
   const porId = new Map((fichas || []).map((f) => [f.id, f]));
   const orc = orcamentoVazio(params);
-  orc.tipo = "buffet";
+  orc.tipo = "combinado";
   const item = (i, extra) => {
     if (i.origem === "exclusiva") {
       return { id: novoId(), origem: "exclusiva", nome: i.nome || "Prato próprio", descricao: "", ingredientes: i.ingredientes.map((g) => ({ ...g })), receita_pendente: false, ...extra };
@@ -131,7 +133,7 @@ export function orcamentoDaSimulacao(sim, fichas = [], params = {}) {
     return { id: novoId(), origem: "ficha", ficha_id: i.ficha_id, nome: f?.nome_receita || "", descricao: "", custo_porcao_gravado: f ? (custoPorcaoDaFicha(f, fichas) || 0) : 0, ...extra };
   };
   const m = s.modalidades;
-  if (m.mesa.ativa) for (const i of m.mesa.itens) orc.cardapio.push(item(i, { secao: "buffet", medida: "total", quantidade_total: String(num(i.quantidade) || 1), por_pessoa: "1" }));
+  if (m.mesa.ativa) for (const i of m.mesa.itens) orc.cardapio.push(item(i, { secao: "mesa", medida: "total", quantidade_total: String(num(i.quantidade) || 1), por_pessoa: "1" }));
   if (m.buffet.ativa) for (const i of m.buffet.itens) orc.cardapio.push(item(i, { secao: "buffet", por_pessoa: String(num(i.por_pessoa) || 1) }));
   if (m.bar.ativa) for (const i of m.bar.itens) orc.cardapio.push(item(i, { secao: "bar", por_pessoa: String(num(i.por_pessoa) || 1) }));
   if (m.equipe.ativa) for (const l of m.equipe.linhas) orc.equipe.push({ id: novoId(), area: "Salão", funcao: l.funcao, nome: "", quantidade: String(l.quantidade || "1"), modo: "diaria", horas: "", valor: String(l.valor || "") });
@@ -139,6 +141,7 @@ export function orcamentoDaSimulacao(sim, fichas = [], params = {}) {
   orc.cliente.nome_evento = s.nome;
   orc.cliente.convidados = num(s.convidados);
   if (num(s.preco_por_pessoa)) orc.financeiro.preco_por_pessoa = num(s.preco_por_pessoa);
+  if (m.mesa.ativa && num(s.preco_mesa)) orc.financeiro.preco_mesa = num(s.preco_mesa);
   return orc;
 }
 

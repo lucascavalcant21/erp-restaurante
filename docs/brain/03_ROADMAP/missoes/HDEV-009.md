@@ -54,6 +54,18 @@ Um único modelo profissional de proposta para TODAS as modalidades de evento do
 - Contas em app/lib/evento-simulador.mjs (custo = ficha técnica, o mesmo do orçamento do evento). 5 testes, incluindo o simulador e o orçamento do evento dando o mesmo custo.
 - TESTADO EM MOCK no navegador: mesa R$ 172 fixa; bar R$ 60 → R$ 120 com 20 → 40 convidados; evento criado com itens, equipe e preço por pessoa.
 
+## Feito (etapa 2 — orçamento do evento, 03/11/2026)
+
+- Tipo **Combinado**: Mesa montada + Buffet + Bar no mesmo evento.
+- Seção Mesa montada sempre em quantidade fechada.
+- **Mesa vendida como pacote fechado** (decisão do dono): `financeiro.preco_mesa` entra inteiro na receita.
+  - O sugerido por pessoa desconta o pacote; há um pacote sugerido pela meta.
+  - A proposta mostra "Mesa montada (pacote fechado)".
+  - Pendência pede o pacote, não o valor por pessoa, quando só há mesa.
+- Ficha exclusiva do evento com **ingrediente do cadastro** (preço do produto) além do ingrediente próprio.
+- Simulador cria o evento como Combinado, com a mesa na seção própria e o pacote.
+- TESTADO EM MOCK no navegador: pacote R$ 900 do simulador → evento Combinado → cardápio com o pacote → financeiro com "Mesa montada (pacote) R$ 900".
+
 ## Critério de pronto
 
 - [ ] Evento com 2+ modalidades calcula cada uma e soma sem duplicar recurso — testes

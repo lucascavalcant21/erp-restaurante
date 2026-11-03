@@ -5,7 +5,7 @@ import {
   orcamentoVazio, orcamentoDoEvento, custoDaFichaExclusiva, itensDoOrcamento, resumoDoOrcamento,
   pendenciasDoOrcamento, cardapioParaCliente, textoDoOrcamento, listaDeComprasDoOrcamento, camposDoEventoParaGravar, secaoDoItem,
   custoDaPessoa, realizadoDoEvento, historicoDoCliente, conflitosDeEquipe, sugestoesDeEquipe, indicadoresDoFunil, modeloDoOrcamento, aplicarModelo, copiaDoOrcamento,
-  bancoSemOrcamento, erroDeColunaDeEventos, mensagemErroEvento, MSG_BANCO_EVENTOS,
+  bancoSemOrcamento, erroDeColunaDeEventos, mensagemErroEvento, MSG_BANCO_EVENTOS, linhasDeValor,
 } from "./evento-orcamento.mjs";
 import { custoPorcaoDaFicha } from "./evento-financeiro.mjs";
 
@@ -349,4 +349,42 @@ test("bases do cardápio: salva comidas ou bebidas e aplica em outro evento", as
   // Aplicar duas vezes não repete ids.
   const t3 = aplicarBase(t2, bebidas);
   assert.equal(new Set(t3.cardapio.map((i) => i.id)).size, t3.cardapio.length);
+});
+
+// ── Combinado: mesa montada (pacote fechado) + buffet + bar ──────────────────
+test("combinado: mesa em quantidade fechada, pacote na receita, preço por pessoa sugerido desconta o pacote", () => {
+  const orc = orcamentoVazio({});
+  orc.tipo = "combinado";
+  orc.cliente.convidados = 20;
+  orc.cardapio = [
+    { id: "m1", secao: "mesa", origem: "ficha", ficha_id: "prato", nome: "Carne de sol", por_pessoa: "1" },   // sem medida: vira total
+    { id: "b1", secao: "buffet", origem: "ficha", ficha_id: "prato", nome: "Carne de sol", por_pessoa: "1" },
+  ];
+  const itens = itensDoOrcamento(orc, FICHAS);
+  assert.equal(itens[0].emTotal, true, "na mesa montada o item é quantidade fechada");
+  assert.equal(itens[1].emTotal, false);
+  const cp = custoPorcaoDaFicha(prato, FICHAS);
+  orc.financeiro.meta_lucro_pct = 20;
+  const sem = resumoDoOrcamento(orc, FICHAS);
+  orc.financeiro.preco_mesa = 300;
+  const com = resumoDoOrcamento(orc, FICHAS);
+  assert.equal(com.receita, 300, "sem preço por pessoa, a receita é o pacote");
+  assert.equal(Math.round(com.custoMesa * 100) / 100, Math.round(cp * 100) / 100);
+  assert.ok(com.precoSugeridoPorPessoa < sem.precoSugeridoPorPessoa, "o pacote cobre parte: por pessoa sugerido cai");
+  orc.financeiro.preco_por_pessoa = 10;
+  const r = resumoDoOrcamento(orc, FICHAS);
+  assert.equal(r.receita, 500);
+  assert.ok(linhasDeValor(r).some((l) => /Mesa montada \(pacote fechado\): R\$ 300,00/.test(l)));
+  assert.ok(r.precoSugeridoMesa > 0, "sugere o pacote que chega na meta");
+});
+
+test("pendências: só mesa montada pede o pacote, não o valor por pessoa", () => {
+  const orc = orcamentoVazio({});
+  orc.tipo = "combinado"; orc.cliente.convidados = 10; orc.cliente.cliente_nome = "Ana"; orc.cliente.data_evento = "2026-12-01";
+  orc.cardapio = [{ id: "m1", secao: "mesa", origem: "ficha", ficha_id: "prato", nome: "Carne de sol", quantidade_total: "5" }];
+  let p = pendenciasDoOrcamento(orc, resumoDoOrcamento(orc, FICHAS), { hojeIso: "2026-11-03" });
+  assert.ok(p.some((x) => /pacote/.test(x)) && !p.some((x) => /Valor por pessoa/.test(x)), p.join(" | "));
+  orc.financeiro.preco_mesa = 500;
+  p = pendenciasDoOrcamento(orc, resumoDoOrcamento(orc, FICHAS), { hojeIso: "2026-11-03" });
+  assert.ok(!p.some((x) => /pacote|Valor por pessoa/.test(x)), p.join(" | "));
 });

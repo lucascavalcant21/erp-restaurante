@@ -134,7 +134,7 @@ export default function MesasPDVPage() {
                 placeholder="Buscar Mesa..." 
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="pl-12 pr-4 py-3 bg-card rounded-2xl text-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500 w-full lg:w-64 transition-all"
+                className="pl-12 pr-4 py-3 bg-card rounded-2xl text-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-hf-accent w-full lg:w-64 transition-all"
               />
             </div>
             <button onClick={() => carregar(true)} className="w-12 h-12 rounded-2xl bg-card border border-line text-fg hover:bg-white hover:text-success flex items-center justify-center transition-colors shadow-sm active:scale-95">

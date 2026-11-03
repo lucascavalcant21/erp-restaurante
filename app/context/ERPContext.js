@@ -7,6 +7,7 @@ import { fetchEtiquetas } from "../lib/etiquetas";
 import { fetchUnidades, unidadeDaSessao, podeVerTodas, getUnidade } from "../lib/unidades";
 import { lerSessao } from "../lib/auth";
 import { iniciarTempoReal } from "../lib/realtime";
+import { inicioDaArea } from "../lib/menu-principal.mjs";
 
 const UNIDADE_KEY = "erp_unidade_ativa";
 const MAX_NOTIFICACOES_MEMORIA = 150;
@@ -14,29 +15,6 @@ const MS_POR_DIA = 86400000;
 
 const ERPContext = createContext(null);
 
-function menuDoModuloAtual(pathname = "", departamento = "") {
-  const dept = String(departamento || "").toLowerCase();
-  if (["cozinha", "bar", "salao"].includes(dept)) return `/dashboard/modulo/${dept}`;
-  if (pathname.startsWith("/dashboard/financeiro")) return "/dashboard/modulo/financeiro";
-  if (pathname.startsWith("/dashboard/rh")) return "/dashboard/modulo/rh";
-  if (
-    pathname.startsWith("/dashboard/gestao")
-    || pathname.startsWith("/dashboard/rede")
-    || pathname.startsWith("/dashboard/configuracoes")
-    || pathname.startsWith("/dashboard/relatorios")
-  ) return "/dashboard/modulo/gestao";
-  if (
-    pathname.startsWith("/dashboard/salao")
-    || pathname.startsWith("/dashboard/mesas")
-    || pathname.startsWith("/dashboard/delivery")
-  ) return "/dashboard/modulo/salao";
-  if (
-    pathname.startsWith("/dashboard/cozinha")
-    || pathname.startsWith("/dashboard/kds")
-    || pathname.startsWith("/dashboard/operacao")
-  ) return "/dashboard/modulo/cozinha";
-  return "/dashboard";
-}
 
 /**
  * Constrói notificações de estoque e validade em passagem única O(N),
@@ -116,10 +94,8 @@ export function ERPProvider({ children }) {
 
   const abrirMenu = useCallback(() => {
     setMegaMenuOpen(false);
-    const dept = typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("dept")
-      : "";
-    router.push(menuDoModuloAtual(pathname, dept));
+    // volta para a página da área no menu principal (a mesma lista do topo)
+    router.push(inicioDaArea(pathname));
   }, [pathname, router]);
 
   const fecharMenu = useCallback(() => setMegaMenuOpen(false), []);

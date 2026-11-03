@@ -43,7 +43,7 @@ export const RespostaLivreForm = memo(function RespostaLivreForm({ pergunta, onE
         disabled={desabilitado}
         inputMode={numerico ? "decimal" : "text"}
         placeholder={numerico ? "Ex.: 2,5" : "Digite aqui"}
-        className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-hf-border-strong bg-hf-surface px-3.5 text-[15px] text-hf-text focus:border-hf-accent focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+        className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-hf-border-strong bg-hf-surface px-3.5 text-[15px] text-hf-text focus:border-hf-accent focus:outline-none focus:ring-2 focus:ring-hf-accent/20"
       />
       <BotaoConversa type="submit" tipo="primario" disabled={desabilitado || !valor.trim()}>
         OK

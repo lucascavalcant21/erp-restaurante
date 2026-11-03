@@ -30,7 +30,7 @@ function PainelDashboardComponent({
         {href && (
           <Link
             href={href}
-            className="inline-flex shrink-0 items-center gap-1 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-bold text-emerald-700 transition hover:bg-emerald-50 hover:text-emerald-800"
+            className="inline-flex shrink-0 items-center gap-1 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-bold text-hf-accent transition hover:bg-hf-accent/10"
           >
             {acao} <ChevronRight size={15} aria-hidden />
           </Link>

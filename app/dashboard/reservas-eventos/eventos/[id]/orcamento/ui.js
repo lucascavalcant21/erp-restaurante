@@ -24,7 +24,7 @@ export function Cartao({ titulo, descricao, acoes, children, className = "" }) {
   );
 }
 
-const baseInput = "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
+const baseInput = "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/30";
 
 export function Campo({ rotulo, ajuda, children, className = "" }) {
   return (

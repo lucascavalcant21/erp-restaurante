@@ -65,3 +65,12 @@ Somente-consulta perdeu esse acesso.
 - **Correção de RLS crítico:** colaboradores, registro de ponto e tabelas multiempresa. Ver [[HDEV-008]] e BLQ-005.
 - **Merge do PR #127 para produção:** BLQ-004.
 - **Rotina noturna na nuvem:** custo por rodada definido em `scripts/hefisto-agent/config.json` (`--max-budget-usd`).
+
+## DP — Design system branco e dourado (31/10/2026, decisão do dono)
+
+Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10 (menu claro e verde):
+- menu grafite #202124;
+- dourado #C5A15A como cor principal (botões, seleção, item ativo), com texto escuro por cima;
+- fundo e cards brancos, blocos internos #F7F7F8, bordas #E5E7EB, texto #252525;
+- verde só para estado positivo; vermelho e âmbar só para estado real.
+- O menu do topo é a fonte única das telas (app/lib/menu-principal.mjs).

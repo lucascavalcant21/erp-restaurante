@@ -44,9 +44,9 @@ export const PainelProximosEventos = memo(function PainelProximosEventos({
             <li key={e.id}>
               <Link
                 href={`/dashboard/reservas-eventos/eventos/${e.id}`}
-                className="group flex items-center gap-3.5 rounded-xl border border-zinc-200/60 bg-hf-surface p-3 transition-all duration-200 hover:border-emerald-500/40 hover:bg-emerald-50/20 hover:shadow-sm"
+                className="group flex items-center gap-3.5 rounded-xl border border-zinc-200/60 bg-hf-surface p-3 transition-all duration-200 hover:border-hf-accent/50 hover:bg-hf-accent/5 hover:shadow-sm"
               >
-                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-zinc-100/90 text-center leading-none transition-colors group-hover:bg-emerald-100/60">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-zinc-100/90 text-center leading-none transition-colors group-hover:bg-hf-accent/15">
                   <span>
                     <span className="block text-base font-black text-hf-text">
                       {e.dataIso.slice(8, 10)}
@@ -57,7 +57,7 @@ export const PainelProximosEventos = memo(function PainelProximosEventos({
                   </span>
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block line-clamp-2 text-xs sm:text-sm font-bold leading-snug text-hf-text group-hover:text-emerald-900">
+                  <span className="block line-clamp-2 text-xs sm:text-sm font-bold leading-snug text-hf-text group-hover:text-hf-accent">
                     {e.nome || e.cliente_nome || "Evento sem título"}
                   </span>
                   <span className="block truncate text-xs font-medium text-hf-text-2">
@@ -108,12 +108,12 @@ export const PainelReservasHoje = memo(function PainelReservasHoje({
             <li key={r.id}>
               <Link
                 href={ROTAS_DASHBOARD.eventos}
-                className="group flex items-center gap-3 py-2.5 text-xs sm:text-sm transition-colors hover:text-emerald-800"
+                className="group flex items-center gap-3 py-2.5 text-xs sm:text-sm transition-colors hover:text-hf-accent"
               >
-                <span className="w-12 shrink-0 font-black tabular-nums text-hf-text group-hover:text-emerald-700">
+                <span className="w-12 shrink-0 font-black tabular-nums text-hf-text group-hover:text-hf-accent">
                   {String(r.horario || "").slice(0, 5)}
                 </span>
-                <span className="min-w-0 flex-1 truncate font-semibold text-hf-text group-hover:text-emerald-900">
+                <span className="min-w-0 flex-1 truncate font-semibold text-hf-text group-hover:text-hf-accent">
                   {r.cliente_nome || "Cliente sem nome"}
                 </span>
                 <span className="shrink-0 font-medium text-hf-text-2">

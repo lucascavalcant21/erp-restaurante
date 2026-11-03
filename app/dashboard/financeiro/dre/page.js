@@ -142,7 +142,7 @@ export default function DreGerencialPage() {
           <label className="flex flex-col gap-1 text-xs font-bold text-hf-text-2">
             Mês
             <input type="month" value={mes} max={hojeIso().slice(0, 7)} onChange={(e) => e.target.value && setMes(e.target.value)}
-              className="h-11 rounded-xl border-0 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-400" />
+              className="h-11 rounded-xl border-0 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-hf-accent" />
           </label>
         </div>
       </section>

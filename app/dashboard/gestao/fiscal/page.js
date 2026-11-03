@@ -125,7 +125,7 @@ export default function ConfiguracoesFiscaisPage() {
                 value={dadosLoja.cnpj}
                 onChange={e => setDadosLoja({...dadosLoja, cnpj: mascaraCpfCnpj(e.target.value)})}
                 placeholder="00.000.000/0001-00"
-                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/30 transition-all"
               />
             </div>
             
@@ -134,7 +134,7 @@ export default function ConfiguracoesFiscaisPage() {
               <select 
                 value={dadosLoja.regime_tributario}
                 onChange={e => setDadosLoja({...dadosLoja, regime_tributario: e.target.value})}
-                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/30 transition-all"
               >
                 <option value="Simples Nacional">Simples Nacional</option>
                 <option value="Lucro Presumido">Lucro Presumido</option>
@@ -149,7 +149,7 @@ export default function ConfiguracoesFiscaisPage() {
                 value={dadosLoja.inscricao_estadual}
                 onChange={e => setDadosLoja({...dadosLoja, inscricao_estadual: e.target.value})}
                 placeholder="Isento ou Número"
-                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/30 transition-all"
               />
             </div>
 
@@ -160,7 +160,7 @@ export default function ConfiguracoesFiscaisPage() {
                 value={dadosLoja.inscricao_municipal}
                 onChange={e => setDadosLoja({...dadosLoja, inscricao_municipal: e.target.value})}
                 placeholder="Opcional"
-                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/30 transition-all"
               />
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function ConfiguracoesFiscaisPage() {
                 value={dadosLoja.endereco_fiscal}
                 onChange={e => setDadosLoja({...dadosLoja, endereco_fiscal: e.target.value})}
                 placeholder="Rua Exemplo, 123, Bairro - Cidade/UF - CEP"
-                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/30 transition-all"
               />
             </div>
             
@@ -192,7 +192,7 @@ export default function ConfiguracoesFiscaisPage() {
                 value={dadosLoja.codigo_ibge}
                 onChange={e => setDadosLoja({...dadosLoja, codigo_ibge: e.target.value})}
                 placeholder="Ex: 3550308 (São Paulo)"
-                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/30 transition-all"
               />
             </div>
           </div>
@@ -214,7 +214,7 @@ export default function ConfiguracoesFiscaisPage() {
                 onChange={e => setDadosLoja({...dadosLoja, token_nfe: e.target.value})}
                 placeholder={tokenSalvo ? "Token salvo. Digite só para trocar" : "Cole o token de integração"}
                 autoComplete="new-password"
-                className="w-full bg-hf-surface border border-hf-border rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-hf-text"
+                className="w-full bg-hf-surface border border-hf-border rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/20 transition-all text-hf-text"
               />
               <p className="text-xs text-subtle mt-2">
                 {tokenSalvo === true ? "Token configurado. Por segurança ele não é exibido." : tokenSalvo === false ? "Nenhum token salvo." : "Deixe em branco para manter o token atual."}
@@ -226,7 +226,7 @@ export default function ConfiguracoesFiscaisPage() {
               <select 
                 value={dadosLoja.ambiente_nfe}
                 onChange={e => setDadosLoja({...dadosLoja, ambiente_nfe: e.target.value})}
-                className="w-full bg-hf-surface border border-hf-border rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-hf-text"
+                className="w-full bg-hf-surface border border-hf-border rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-hf-accent/20 transition-all text-hf-text"
               >
                 <option value="Homologacao">Homologação (Testes Sem Valor Fiscal)</option>
                 <option value="Producao">Produção (Com Valor Fiscal)</option>

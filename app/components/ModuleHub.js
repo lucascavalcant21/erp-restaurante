@@ -23,8 +23,8 @@ import { lerSessao } from "../lib/auth";
 
 const norm = (s) => Array.from(String(s || "").toLowerCase().normalize("NFD")).filter((c) => { const k = c.charCodeAt(0); return k < 0x300 || k > 0x36f; }).join("");
 
-// Verde único da marca para TODAS as colunas de todos os módulos.
-const VERDE = "#059669";
+// Dourado da marca (design system branco e dourado) para TODAS as colunas de todos os módulos.
+const VERDE = "#7A5C1E";
 
 export default function ModuleHub({ config, counts = {} }) {
   const router = useRouter();
@@ -69,7 +69,7 @@ export default function ModuleHub({ config, counts = {} }) {
         <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {ModuloIcon && (
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--accent-soft, #ecfdf5)", color: "var(--accent-strong, #047857)" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F5EEDC", color: "#7A5C1E" }}>
                 <ModuloIcon size={20} />
               </div>
             )}

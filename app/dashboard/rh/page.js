@@ -1735,6 +1735,9 @@ export default function RHPage() {
                <button onClick={() => { setAbaAtiva("Freelancer"); abrirModalFicha(null); }} className="flex items-center gap-2 bg-card text-accent-strong border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent-soft transition-colors">
                   <Printer size={16} /> Recibos de extras
                </button>
+               <button onClick={() => router.push("/dashboard/rh/cardapio-funcionarios")} className="flex items-center gap-2 bg-card text-accent-strong border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent-soft transition-colors">
+                  <UtensilsCrossed size={16} /> Janta dos funcionários
+               </button>
             </div>
          </div>
 

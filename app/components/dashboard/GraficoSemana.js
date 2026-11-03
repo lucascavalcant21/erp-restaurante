@@ -12,7 +12,7 @@ const brlCompacto = new Intl.NumberFormat("pt-BR", {
 
 const COR_BARRA = {
   passado: "#94a3b8", // Slate 400
-  hoje: "#047857",    // Emerald 700 (Brand Accent)
+  hoje: "#C5A15A",    // dourado da marca
 };
 
 const ddmm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
@@ -49,7 +49,7 @@ function GraficoSemanaComponent({ dias = [], destaque }) {
               key={d.iso}
               tabIndex={0}
               aria-label={texto}
-              className="group relative flex h-full flex-1 cursor-default flex-col items-center justify-end rounded-t-lg outline-none transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-emerald-600"
+              className="group relative flex h-full flex-1 cursor-default flex-col items-center justify-end rounded-t-lg outline-none transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-hf-accent"
             >
               {rotular && (
                 <span
@@ -96,7 +96,7 @@ function GraficoSemanaComponent({ dias = [], destaque }) {
             }`}
           >
             {d.hoje ? (
-              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800 font-bold">
+              <span className="rounded-full bg-hf-success/10 px-2 py-0.5 text-hf-success font-bold">
                 Hoje
               </span>
             ) : (

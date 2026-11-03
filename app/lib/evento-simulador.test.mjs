@@ -67,7 +67,8 @@ test("continuar para precificação: o orçamento do evento dá o mesmo custo de
   assert.equal(orc.cliente.convidados, 40);
   assert.equal(orc.cliente.nome_evento, "Confraternização");
   assert.equal(orc.financeiro.preco_por_pessoa, 80);
-  assert.deepEqual(orc.cardapio.map((i) => [i.secao, i.medida || "pp"]), [["buffet", "total"], ["buffet", "pp"], ["bar", "pp"]]);
+  assert.equal(orc.tipo, "combinado");
+  assert.deepEqual(orc.cardapio.map((i) => [i.secao, i.medida || "pp"]), [["mesa", "total"], ["buffet", "pp"], ["bar", "pp"]]);
   assert.equal(orc.equipe.length, 1);
   assert.equal(orc.extras[0].valor, "100");
   const itens = itensDoOrcamento(orc, FICHAS);
@@ -105,4 +106,19 @@ test("prato próprio: ingrediente do cadastro (preço do produto) + ingrediente 
   assert.equal(orc.cardapio[0].medida, "total");
   const it = itensDoOrcamento(orc, FICHAS)[0];
   assert.equal(Math.round(it.custoTotalFixo * 100) / 100, 135, "o evento recebe o mesmo custo do prato próprio");
+});
+
+test("mesa como pacote fechado: soma no faturamento do simulador e na receita do evento", () => {
+  const s = normalizarSimulacao({ convidados: "40", preco_por_pessoa: "50", preco_mesa: "900",
+    modalidades: { mesa: { ativa: true, itens: [{ ficha_id: "bol", quantidade: "50" }] }, buffet: { ativa: true, itens: [{ ficha_id: "arr", por_pessoa: "1" }] } } });
+  const r = calcularSimulacao(s, FICHAS);
+  assert.equal(r.faturamento, 40 * 50 + 900);
+  const so = calcularSimulacao({ ...s, preco_por_pessoa: "", modalidades: { mesa: s.modalidades.mesa } }, FICHAS);
+  assert.equal(so.faturamento, 900, "só a mesa: o faturamento é o pacote");
+  const orc = orcamentoDaSimulacao(s, FICHAS);
+  assert.equal(orc.financeiro.preco_mesa, 900);
+  const rr = resumoDoOrcamento(orc, FICHAS);
+  assert.equal(rr.receita, 2900);
+  assert.equal(rr.precoMesa, 900);
+  assert.ok(rr.custoMesa > 0);
 });

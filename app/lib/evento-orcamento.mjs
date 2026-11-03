@@ -26,9 +26,15 @@ export const SECOES = {
   bar: { id: "bar", rotulo: "Bar e drinks", setor: "bar" },
   unico: { id: "unico", rotulo: "Item do evento", setor: null },
   lanche: { id: "lanche", rotulo: "Comidas", setor: "cozinha" },
+  // Mesa montada (pedido do dono, 31/10/2026): produtos em quantidade FECHADA
+  // (não cresce com convidados) e vendida como PACOTE FECHADO (financeiro.preco_mesa).
+  mesa: { id: "mesa", rotulo: "Mesa montada", setor: "cozinha", fechada: true },
 };
 
 export const TIPOS_EVENTO = [
+  // Combinado (31/10/2026): mesa montada + buffet + bar no mesmo evento, cada parte
+  // com a sua conta, numa proposta só. Seção vazia não aparece para o cliente.
+  { id: "combinado", rotulo: "Combinado", ajuda: "Mesa montada (pacote fechado), buffet por pessoa e bar no mesmo evento. Deixe vazia a parte que não tiver.", secoes: ["mesa", "buffet", "bar"] },
   { id: "buffet", rotulo: "Buffet", ajuda: "Vários pratos servidos à vontade. Você diz quanto cada convidado come de cada um.", secoes: ["buffet", "bar"] },
   { id: "alacarte", rotulo: "À la carte", ajuda: "Menu em etapas: entrada, prato principal, sobremesa e bar. Deixe vazia a etapa que não tiver.", secoes: ["entrada", "principal", "sobremesa", "bar"] },
   // Ticket por pessoa (pedido do dono, 28/10/2026, no lugar de "Uma coisa só"):
@@ -219,9 +225,11 @@ export function itensDoOrcamento(orc = {}, fichas = []) {
   // Ticket por pessoa: a mesa é montada em quantidade fechada; não importa
   // quanto cada um come (pedido do dono, 28/10/2026: "gastei 100 reais, são
   // 50 pessoas, custo por pessoa 2 reais").
+  // Na seção "Mesa montada" (tipo Combinado) também: quantidade fechada.
   const mesaFechada = !!tipoDoEvento(orc.tipo).quantidadeFechada;
   return (orc.cardapio || []).map((item0) => {
-    const item = mesaFechada && item0.medida !== "total" ? { ...item0, medida: "total", quantidade_total: item0.quantidade_total ?? "1" } : item0;
+    const fechada = mesaFechada || !!SECOES[secaoDoItem(item0, orc.tipo)]?.fechada;
+    const item = fechada && item0.medida !== "total" ? { ...item0, medida: "total", quantidade_total: item0.quantidade_total ?? "1" } : item0;
     const secao = secaoDoItem(item, orc.tipo);
     let custoPorcao = 0; let aoVivo = false; let problemas = [];
     let ficha = null;
@@ -316,7 +324,12 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
   const precoPorPessoa = pos(fin.preco_por_pessoa);
   const pc = fin.preco_crianca || { modo: "pct", valor: 50 };
   const precoCrianca = r2(pc.modo === "valor" ? pos(pc.valor) : precoPorPessoa * pos(pc.valor) / 100);
-  const receitaBruta = r2(precoPorPessoa * adultos + precoCrianca * criancas);
+  // Mesa montada vendida como pacote fechado: entra inteira na receita, fora do "por pessoa".
+  const temMesa = itens.some((i) => i.secao === "mesa");
+  const precoMesa = temMesa ? pos(fin.preco_mesa) : 0;
+  const custoMesa = r2(itens.filter((i) => i.secao === "mesa").reduce((t, i) => t + i.custoTotalFixo, 0));
+  const receitaPorPessoa = r2(precoPorPessoa * adultos + precoCrianca * criancas);
+  const receitaBruta = r2(receitaPorPessoa + precoMesa);
   const desconto = r2(Math.min(receitaBruta, fin.desconto?.modo === "pct" ? receitaBruta * pos(fin.desconto?.valor) / 100 : pos(fin.desconto?.valor)));
   const receita = r2(receitaBruta - desconto);
   const impostoPct = pos(fin.imposto_pct);
@@ -346,8 +359,19 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
     const fixoCriancas = pc.modo === "valor" ? pos(pc.valor) * criancas : 0;
     const pesoAdulto = adultos + (pc.modo === "valor" ? 0 : criancas * pos(pc.valor) / 100);
     if (!(pesoAdulto > 0)) return null;
-    const p = (bruta - fixoCriancas) / pesoAdulto;
+    const p = (bruta - fixoCriancas - precoMesa) / pesoAdulto; // o pacote da mesa já cobre parte
     return p > 0 ? Math.ceil(p * 100) / 100 : null; // arredonda para cima: nunca abaixo da meta
+  };
+
+  // Preço do pacote da mesa que, com o preço por pessoa atual, chega na meta.
+  const pacotePara = (meta) => {
+    const sobra = 100 - pctSobrePreco - meta;
+    if (!temMesa || !(fixos > 0) || !(sobra > 0)) return null;
+    const descPct = fin.desconto?.modo === "pct" ? Math.min(pos(fin.desconto?.valor), 99.99) / 100 : 0;
+    const alvo = fixos / (sobra / 100);
+    const bruta = descPct ? alvo / (1 - descPct) : alvo + (fin.desconto?.modo === "pct" ? 0 : pos(fin.desconto?.valor));
+    const v = bruta - receitaPorPessoa;
+    return v > 0 ? Math.ceil(v) : null;
   };
 
   const pct = (v) => percentualDe(v, receita);
@@ -373,6 +397,8 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
   return {
     convidados, adultos, criancas, pessoasConsumo, sobraPct: pos(orc.sobra_pct), itens, dre,
     precoCrianca, receitaBruta, desconto,
+    temMesa, precoMesa, custoMesa, receitaPorPessoa,
+    precoSugeridoMesa: pacotePara(metaPct), precoMinimoMesa: pacotePara(0),
     precoMedioPorPessoa: convidados > 0 && receita > 0 ? r2(receita / convidados) : null,
     cmv, cmvComida, cmvBebida, equipe, pessoasEquipe, extras, extrasPorCategoria,
     imposto, maquininha, comissoes, comissoesTotal, prolabore,
@@ -563,8 +589,11 @@ export function pendenciasDoOrcamento(orc = {}, r, { hojeIso, etapa, recebido = 
   if (!(r.convidados > 0)) lista.push("Número de pessoas não informado.");
   if (!c.cliente_nome) lista.push("Nome do cliente não informado.");
   if (!c.data_evento) lista.push("Data do evento não definida.");
-  if (!(r.precoPorPessoa > 0)) lista.push("Valor por pessoa não definido.");
-  if (r.prejuizo) lista.push("O valor por pessoa não cobre os custos do evento.");
+  // Mesa montada é pacote fechado: o valor por pessoa só falta se houver itens por pessoa.
+  const temPorPessoa = (r.itens || []).some((i) => i.secao !== "mesa");
+  if (temPorPessoa && !(r.precoPorPessoa > 0)) lista.push("Valor por pessoa não definido.");
+  if (r.temMesa && !(r.precoMesa > 0)) lista.push("Preço da mesa montada (pacote) não definido.");
+  if (r.prejuizo) lista.push(r.temMesa ? "O valor cobrado não cobre os custos do evento." : "O valor por pessoa não cobre os custos do evento.");
   else if (r.receita > 0 && !r.meta.atingida && r.meta.pct > 0) lista.push("O lucro líquido está abaixo da meta.");
   if (c.data_evento && hojeIso && c.data_evento < hojeIso && !["FINALIZADO", "CANCELADO"].includes(etapa)) lista.push("A data já passou e o evento não foi finalizado no funil.");
   const pendente = r2(r.receita - recebido);
@@ -590,7 +619,9 @@ const fmtData = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T12:00:00`)
 
 // Linhas de valor que o cliente vê: por pessoa, criança, desconto e total.
 export function linhasDeValor(r) {
-  const l = [`Valor por pessoa: ${fmtR(r.precoPorPessoa)}`];
+  const l = [];
+  if (r.precoPorPessoa > 0) l.push(`Valor por pessoa: ${fmtR(r.precoPorPessoa)}`);
+  if (r.precoMesa > 0) l.push(`Mesa montada (pacote fechado): ${fmtR(r.precoMesa)}`);
   if (r.criancas > 0) l.push(`Crianças (${r.criancas}): ${fmtR(r.precoCrianca)} cada`);
   if (r.desconto > 0) l.push(`Desconto: −${fmtR(r.desconto)}`);
   if (r.convidados) l.push(`Total para ${r.convidados} pessoas: ${fmtR(r.receita)}`);
@@ -611,7 +642,7 @@ export function textoDoOrcamento(orc = {}, r, { casa = "" } = {}) {
   ].filter(Boolean);
   linhas.push(info.join("\n"));
   for (const g of cardapioParaCliente(orc)) linhas.push(`*${g.rotulo}*\n${g.itens.map((i) => `• ${i.nome}${i.descricao ? ` — ${i.descricao}` : ""}`).join("\n")}`);
-  if (r.precoPorPessoa > 0) linhas.push(linhasDeValor(r).map((l, i) => (i === 0 ? `*${l}*` : l)).join("\n"));
+  if (r.precoPorPessoa > 0 || r.precoMesa > 0) linhas.push(linhasDeValor(r).map((l, i) => (i === 0 ? `*${l}*` : l)).join("\n"));
   if (c.forma_pagamento) linhas.push(`Forma de pagamento: ${c.forma_pagamento}`);
   const val = pos(orc.proposta?.validade_dias);
   if (val > 0) linhas.push(`Orçamento válido por ${val} dias.`);

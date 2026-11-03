@@ -44,11 +44,20 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
         </div>
         {!(r.convidados > 0) && <p className="mt-3 flex items-center gap-2 text-sm font-bold text-amber-700"><Info size={16} /> Informe quantas pessoas (etapa Cliente) para calcular o valor sugerido.</p>}
         <div className="mt-5 grid gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4 sm:grid-cols-2">
-          <Campo rotulo="Valor por pessoa que vou passar ao cliente">
-            <Numero valor={f.preco_por_pessoa} onChange={(v) => mudar({ preco_por_pessoa: v })} prefixo="R$" placeholder="0,00" className="[&_input]:h-14 [&_input]:text-xl [&_input]:font-black" />
-          </Campo>
+          <div className="space-y-3">
+            <Campo rotulo={r.temMesa ? "Valor por pessoa (buffet e bar)" : "Valor por pessoa que vou passar ao cliente"}>
+              <Numero valor={f.preco_por_pessoa} onChange={(v) => mudar({ preco_por_pessoa: v })} prefixo="R$" placeholder="0,00" className="[&_input]:h-14 [&_input]:text-xl [&_input]:font-black" />
+            </Campo>
+            {/* Mesa montada vendida como pacote fechado (pedido do dono, 03/11/2026). */}
+            {r.temMesa && (
+              <Campo rotulo="Mesa montada (pacote fechado)" ajuda={`Custo da mesa ${fmtReais(r.custoMesa)}${r.precoSugeridoMesa ? ` · para a meta, ${fmtReais(r.precoSugeridoMesa)}` : ""}`}>
+                <Numero valor={f.preco_mesa} onChange={(v) => mudar({ preco_mesa: v })} prefixo="R$" placeholder="0,00" className="[&_input]:h-14 [&_input]:text-xl [&_input]:font-black" />
+              </Campo>
+            )}
+          </div>
           <div className="space-y-1 self-center">
             {r.criancas > 0 && <LinhaValor rotulo={`${r.adultos} adultos + ${r.criancas} crianças (${fmtReais(r.precoCrianca)} cada)`} valor={fmtReais(r.receitaBruta)} />}
+            {r.precoMesa > 0 && <LinhaValor rotulo="Mesa montada (pacote)" valor={fmtReais(r.precoMesa)} />}
             {r.desconto > 0 && <LinhaValor rotulo="Desconto" valor={`−${fmtReais(r.desconto)}`} />}
             <LinhaValor rotulo={`Total${r.convidados ? ` (${r.convidados} pessoas)` : ""}`} valor={fmtReais(r.receita)} />
             <LinhaValor forte rotulo="Meu lucro líquido" valor={r.receita > 0 ? vp(r.lucro, r.lucroPct) : "—"}

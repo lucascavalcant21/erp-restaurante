@@ -17,7 +17,7 @@ import { EtapaEquipe, EtapaExtras, EtapaCliente } from "./orcamento/EtapasCadast
 import { EtapaFinanceiro, EtapaDRE, EtapaProposta, EtapaPagamentos } from "./orcamento/EtapasFinanceiras";
 import { supabase } from "../../../../lib/supabase";
 import { useERP } from "../../../../context/ERPContext";
-import { fetchFichas } from "../../../../lib/operacao";
+import { fetchFichas, fetchInsumos } from "../../../../lib/operacao";
 import { fetchParamsDaCasa, PARAMS_PADRAO, fetchModelosEvento, adicionarModeloEvento, removerModeloEvento, fetchBasesEvento, adicionarBaseEvento, removerBaseEvento } from "../../../../lib/parametros";
 import { FUNIL_ETAPAS, rotuloEtapa, normalizarEtapa } from "../../../../lib/evento-financeiro.mjs";
 import {
@@ -69,6 +69,7 @@ export default function EventoPage() {
   const [evento, setEvento] = useState(null);
   const [orc, setOrc] = useState(null);
   const [fichas, setFichas] = useState([]);
+  const [insumos, setInsumos] = useState([]); // ingredientes do cadastro para o prato próprio
   const [carregando, setCarregando] = useState(true);
   const [etapa, setEtapa] = useState("tipo");
   const [gravacao, setGravacao] = useState({ estado: "salvo", erro: "" });
@@ -108,6 +109,7 @@ export default function EventoPage() {
       }
       if (!ativo) return;
       setFichas(resFichas.data || []);
+      fetchInsumos(unidadeAtiva).then((r) => { if (ativo) setInsumos(r.data || []); });
       setOutrosEventos(resOutros.error ? [] : resOutros.data || []);
       setModelos(resModelos.data || []);
       fetchBasesEvento(unidadeAtiva).then((r) => { if (ativo) setBases(r.data || []); });
@@ -269,7 +271,7 @@ export default function EventoPage() {
     pagamentos: recebido > 0,
     compras: false,
   };
-  const props = { orc, setOrc, resumo, fichas };
+  const props = { orc, setOrc, resumo, fichas, insumos };
   // Sem cardápio não há custo: o lucro seria a receita inteira (100%), que é
   // número inventado. Mostra "—" e o que falta.
   const temCusto = resumo.itens.length > 0;

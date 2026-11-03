@@ -71,7 +71,11 @@ export const MENU_PRINCIPAL = Object.freeze([
     id: "rh", label: "Equipe", href: "/dashboard/rh",
     submodules: [
       { label: "Painel da equipe", href: "/dashboard/rh" },
+      { label: "Quadro de funcionários", href: "/dashboard/rh?aba=quadro" },
+      { label: "Escala da semana", href: "/dashboard/rh?aba=escala" },
       { label: "Ponto e espelho", href: "/dashboard/rh/ponto" },
+      { label: "Corrigir ponto", href: "/dashboard/rh/ponto/corrigir" },
+      { label: "Fechar folha", href: "/dashboard/rh/fechamento" },
       { label: "Extras e banco de horas", href: "/dashboard/rh/extra" },
       { label: "Janta dos funcionários", href: "/dashboard/rh/cardapio-funcionarios" },
       { label: "Treinamentos", href: "/dashboard/treinamentos" },

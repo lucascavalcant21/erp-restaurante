@@ -5,7 +5,7 @@
 
 import {
   minutosNoturnosRelogio, comHoraFicta, minutosTrabalhados, aplicarTolerancia,
-  jornadaContratadaMin, calcularAdicionaisPorDia, calcularAdicionaisMes,
+  jornadaContratadaMin, calcularAdicionaisPorDia, calcularAdicionaisMes, opcoesDaCasa,
 } from "./jornada-calculo.mjs";
 
 let falhas = 0;
@@ -245,6 +245,44 @@ const vazio = calcularAdicionaisMes([], SALARIO, []);
 conferir("mes vazio: minutos zerados", vazio.minNoturno + vazio.minExtra + vazio.minFeriado, 0);
 conferir("mes vazio: valores zerados", vazio.valorNoturno + vazio.valorExtra + vazio.valorFeriado, 0);
 conferir("sem argumento nao quebra", calcularAdicionaisMes().valorExtra, 0);
+
+// ── Regras da casa (dono, 19/10/2026) ───────────────────────────────────────
+// Intervalo de 30 min num turno de 8h contratadas com 1h de intervalo: a
+// pessoa ficou 30 min a mais no trabalho, mas isso não vira hora extra.
+const intervaloCurto = [{
+  data_referencia: "2026-10-06",
+  hora_entrada: em("2026-10-06T15:40"), hora_saida_intervalo: em("2026-10-06T18:00"),
+  hora_retorno_intervalo: em("2026-10-06T18:30"), hora_saida: em("2026-10-07T00:40"),
+}];
+conferir("intervalo curto: sem a regra, os 30 min viram extra",
+  calcularAdicionaisPorDia(intervaloCurto, [], { contratadaDoDia: () => 480 })[0]?.minExtra, 30);
+conferir("intervalo curto: com a regra, não há extra",
+  calcularAdicionaisPorDia(intervaloCurto, [], { contratadaDoDia: () => 480, intervaloContratadoDoDia: () => 60 })
+    .reduce((s, d) => s + d.minExtra, 0), 0);
+// Ficou 1h além do horário e tirou o intervalo inteiro: a extra continua.
+const ficouMais = [{
+  data_referencia: "2026-10-06",
+  hora_entrada: em("2026-10-06T15:40"), hora_saida_intervalo: em("2026-10-06T18:00"),
+  hora_retorno_intervalo: em("2026-10-06T19:00"), hora_saida: em("2026-10-07T01:40"),
+}];
+conferir("intervalo inteiro + 1h depois: 60 min de extra",
+  calcularAdicionaisPorDia(ficouMais, [], { contratadaDoDia: () => 480, intervaloContratadoDoDia: () => 60 })[0]?.minExtra, 60);
+// Feriado com folga de compensação: não paga o dobro; sem folga, paga.
+const noFeriado = [{ data_referencia: "2026-10-12", hora_entrada: em("2026-10-12T15:40"), hora_saida: em("2026-10-12T23:40") }];
+conferir("feriado sem compensação: conta o dia",
+  calcularAdicionaisPorDia(noFeriado, ["2026-10-12"])[0]?.minFeriado > 0, "true");
+conferir("feriado compensado com folga: não conta",
+  calcularAdicionaisPorDia(noFeriado, ["2026-10-12"], { feriadoCompensado: (d) => d === "2026-10-12" })
+    .reduce((s, d) => s + d.minFeriado, 0), 0);
+
+// opcoesDaCasa: só "Compensação de feriado" em até 30 dias tira o dobro.
+const colabCasa = { id: "a", horario_entrada: "15:40", horario_saida: "00:00", tempo_intervalo: 60 };
+const comp = (descricao, data) => opcoesDaCasa(colabCasa, { folgas: [{ colaborador_id: "a", data_folga: data, descricao }] }).feriadoCompensado("2026-10-12");
+conferir("compensação marcada em 10 dias", comp("Compensação de feriado", "2026-10-22"), "true");
+conferir("compensação depois de 30 dias não vale", comp("Compensação de feriado", "2026-11-20"), "false");
+conferir("folga genérica 'Extra / Feriado' não compensa", comp("Extra / Feriado", "2026-10-20"), "false");
+conferir("folga de outra pessoa não compensa",
+  opcoesDaCasa(colabCasa, { folgas: [{ colaborador_id: "b", data_folga: "2026-10-20", descricao: "Compensação de feriado" }] }).feriadoCompensado("2026-10-12"), "false");
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

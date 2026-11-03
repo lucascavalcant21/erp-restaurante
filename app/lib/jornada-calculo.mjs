@@ -141,6 +141,13 @@ export function minutosTrabalhados(reg, horarioEntrada = null) {
   return Math.round(Math.max(0, total));
 }
 
+// Minutos de intervalo efetivamente tirados no dia (0 se não bateu as duas).
+export function intervaloTiradoMin(reg) {
+  if (!reg?.hora_saida_intervalo || !reg?.hora_retorno_intervalo) return 0;
+  const d = (new Date(reg.hora_retorno_intervalo).getTime() - new Date(reg.hora_saida_intervalo).getTime()) / MIN;
+  return d > 0 ? Math.round(d) : 0;
+}
+
 // Aplica a tolerância a uma diferença.
 //
 // Ultrapassado o limite, conta o período INTEIRO e não só o excedente — é o que
@@ -196,6 +203,13 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
     // como antes, contando da batida — nenhuma tela quebra por não passar.
     entradaDoDia = null,
     regras = REGRAS_CLT,
+    // Regra da casa (dono, 19/10/2026): voltar antes do fim do intervalo não
+    // muda o salário. Com o intervalo contratado informado, o tempo que a
+    // pessoa deixou de tirar não conta como hora extra. Sem ele, como antes.
+    intervaloContratadoDoDia = null,
+    // Regra da casa (CCT Foz cl. 17): feriado compensado com folga em até 30
+    // dias não é pago em dobro. Devolve true para o dia compensado.
+    feriadoCompensado = null,
   } = opcoes;
   const faixa = { inicioH: regras.noturnoInicioH, fimH: regras.noturnoFimH, naoNoturnoSeInicioAposH: regras.naoNoturnoSeInicioAposH };
   const faixaLegal = { inicioH: NOTURNO_INICIO_H, fimH: NOTURNO_FIM_H, naoNoturnoSeInicioAposH: regras.naoNoturnoSeInicioAposH };
@@ -227,7 +241,13 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
     let minExtra = 0;
     const contratada = contratadaDoDia ? contratadaDoDia(data) : null;
     if (Number.isFinite(contratada) && contratada > 0) {
-      const excedente = trabalhado - contratada;
+      let paraExtra = trabalhado;
+      const intervaloContratado = intervaloContratadoDoDia ? Number(intervaloContratadoDoDia(data)) : NaN;
+      if (Number.isFinite(intervaloContratado) && intervaloContratado > 0) {
+        const tirado = intervaloTiradoMin(reg);
+        paraExtra -= Math.max(0, intervaloContratado - tirado);
+      }
+      const excedente = paraExtra - contratada;
       if (excedente > 0) {
         minExtra = aplicarTolerancia(excedente, toleranciaMin, tetoDiaMin).minutos;
       }
@@ -235,7 +255,7 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
 
     // Feriado trabalhado: o dia inteiro é pago com adicional (CLT art. 9º da
     // Lei 605/49 — trabalho em feriado sem folga compensatória, em dobro).
-    const minFeriado = feriadosSet.has(data) ? trabalhado : 0;
+    const minFeriado = feriadosSet.has(data) && !(feriadoCompensado && feriadoCompensado(data)) ? trabalhado : 0;
 
     // Estourou o teto do art. 59: os minutos continuam devidos, mas o dia
     // precisa aparecer para quem monta a escala — senão a irregularidade só
@@ -347,4 +367,27 @@ export function minutosAteOTurno(horarioEntrada, agora = new Date()) {
   const falta = inicio - atual;
   if (falta <= 0) return 0;
   return falta <= ANTECIPACAO_MAXIMA_BLOQUEADA_MIN ? falta : 0;
+}
+
+// Opções de cálculo com as regras da casa (dono, 19/10/2026), para toda tela
+// que mostra ou paga adicionais usar a mesma conta:
+//  · hora extra é paga na folha (o relógio não manda mais para o banco);
+//  · voltar antes do fim do intervalo não muda o salário;
+//  · feriado trabalhado é pago em dobro, salvo folga de compensação ("Compensação
+//    de feriado") marcada em até 30 dias depois (CCT Foz cl. 17).
+export function opcoesDaCasa(colaborador, { folgas = [], regras, entradaDoDia } = {}) {
+  const minhas = (folgas || []).filter(f => !f?.colaborador_id || f.colaborador_id === colaborador?.id);
+  const compensacoes = minhas
+    // Só a folga marcada como compensação ("Compensação de feriado"); a antiga
+    // "Extra / Feriado" era genérica e não prova compensação.
+    .filter(f => /compensa/i.test(String(f?.descricao || "")) && /feriado/i.test(String(f?.descricao || "")))
+    .map(f => String(f.data_folga).slice(0, 10));
+  const somaDias = (iso, n) => { const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  return {
+    ...(regras ? { regras } : {}),
+    ...(entradaDoDia ? { entradaDoDia } : {}),
+    contratadaDoDia: (d) => jornadaContratadaMin(colaborador, d),
+    intervaloContratadoDoDia: () => Number(colaborador?.tempo_intervalo) || 0,
+    feriadoCompensado: (d) => compensacoes.some(c => c > d && c <= somaDias(d, 30)),
+  };
 }

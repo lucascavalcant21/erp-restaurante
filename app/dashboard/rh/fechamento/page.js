@@ -12,7 +12,7 @@ export default function FechamentoFolhaPage() {
   const { abrirMenu } = useERP();
   const { unidadeAtiva } = useERP();
   
-  const [mesAno, setMesAno] = useState(new Date().toISOString().substring(0,7)); // yyyy-MM
+  const [mesAno, setMesAno] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }); // yyyy-MM, no fuso local
   const [loading, setLoading] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [pagamentos, setPagamentos] = useState([]);
@@ -24,7 +24,8 @@ export default function FechamentoFolhaPage() {
     
     // Inicializar os campos editáveis
     const pags = data.map(c => {
-      const acrescimos = 0;
+      // Noturno, hora extra e feriado vêm do ponto; o RH pode mudar o valor no campo.
+      const acrescimos = Number(c.acrescimos_sugeridos) || 0;
       const vales = Number(c.total_vales_pendentes) || 0;
       const descontos_manuais = 0;
       const liquido = c.base_calculada + acrescimos - vales - descontos_manuais;
@@ -130,7 +131,7 @@ export default function FechamentoFolhaPage() {
             <div className="bg-zinc-100 border border-zinc-200 p-4 rounded-xl flex gap-3 text-zinc-800 text-sm mb-6 font-medium">
                <Info size={20} className="shrink-0"/>
                <p>
-                  <strong>Regras aplicadas:</strong> Funcionários fixos recebem o Salário Fixo. Freelancers recebem o Salário (Diária) multiplicado pelos dias em que bateram ponto no mês selecionado. O vencimento no financeiro será gerado automaticamente para o 5º dia útil do mês seguinte.
+                  <strong>Regras aplicadas:</strong> Entram os contratados que estavam na casa no mês, com o salário fixo; os vales com desconto em folha saem do líquido. Extras ficam fora: são pagos pelo recibo de cada diária. Quem foi desligado no mês aparece marcado para você ajustar o proporcional. Adicional noturno, hora extra e feriado trabalhado vêm do ponto em Acréscimos (dá para mudar o valor). Voltar antes do fim do intervalo não vira hora extra. Feriado com folga "Compensa feriado" marcada em até 30 dias não é pago em dobro. O vencimento no financeiro será gerado automaticamente para o 5º dia útil do mês seguinte.
                </p>
             </div>
 
@@ -166,6 +167,9 @@ export default function FechamentoFolhaPage() {
                                  <span className={`text-3xs uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mt-1 ${p.tipo_contrato === 'Freelancer' ? 'bg-amber-100 text-amber-700' : 'bg-card text-slate-900'}`}>
                                     {p.tipo_contrato} {p.tipo_contrato === 'Freelancer' && `(${fmtBRL(p.salario_cadastrado)}/dia)`}
                                  </span>
+                                 {p.desligado_em && (
+                                    <span className="block mt-1 text-3xs font-bold text-amber-800">Desligado em {p.desligado_em.split("-").reverse().join("/")}: ajuste o proporcional</span>
+                                 )}
                               </td>
                               
                               <td className="py-4 text-center">
@@ -186,6 +190,14 @@ export default function FechamentoFolhaPage() {
                                     placeholder="0,00"
                                     className="w-24 text-right p-2 bg-card border border-line rounded-lg outline-none focus:border-emerald-600 text-success font-bold"
                                  />
+                                 {p.adicionais && (p.adicionais.min_noturno > 0 || p.adicionais.min_feriado > 0 || p.adicionais.min_extra > 0) && (
+                                    <div className="mt-1 text-3xs font-semibold text-subtle leading-snug">
+                                       {p.adicionais.min_noturno > 0 && <div>Noturno {p.adicionais.noturno_pct}%: {fmtBRL(p.adicionais.noturno)}</div>}
+                                       {p.adicionais.min_feriado > 0 && <div>Feriado +{p.adicionais.feriado_pct}%: {fmtBRL(p.adicionais.feriado)}</div>}
+                                       {p.adicionais.min_extra > 0 && <div>Hora extra {Math.round(p.adicionais.min_extra / 6) / 10}h +{p.adicionais.extra_pct}%: {fmtBRL(p.adicionais.extra)}</div>}
+                                       <div>Regra: {p.adicionais.regra}</div>
+                                    </div>
+                                 )}
                               </td>
 
                               <td className="py-4 text-right relative group/vale cursor-help">
@@ -198,7 +210,7 @@ export default function FechamentoFolhaPage() {
                                        {p.vales_detalhes.map(v => (
                                           <div key={v.id} className="flex justify-between border-b border-slate-700 pb-1 mb-1 last:border-0 last:mb-0">
                                              <span className="truncate pr-2">{v.descricao}</span>
-                                             <span>{fmtBRL(v.valor_final)}</span>
+                                             <span>{fmtBRL(v.valor_desconto ?? v.valor_original)}</span>
                                           </div>
                                        ))}
                                     </div>

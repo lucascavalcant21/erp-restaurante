@@ -25,7 +25,7 @@ const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const api = path.join(raiz, "app", "api");
 const PROTEGIDAS = [
   ...fs.readdirSync(api).filter((d) => d.startsWith("ia-")),
-  "hefisto", "ocr", "saas/export", "fiscal/emitir",
+  "hefisto", "ocr", "saas/export", "fiscal/emitir", "dashboard/experience/intelligence", "apps/audit",
 ];
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "http://supabase.teste";
@@ -74,7 +74,7 @@ test("toda tela que chama essas rotas manda a sessão", () => {
       if (f.isDirectory()) { if (f.name !== "api" && f.name !== "node_modules") varrer(p); continue; }
       if (!/\.(m?js)$/.test(f.name) || f.name.endsWith(".test.mjs")) continue;
       const s = fs.readFileSync(p, "utf8");
-      const re = /\bfetch\(\s*["'`]\/api\/(ia-[a-z-]+|hefisto|ocr|saas\/export|fiscal\/emitir)\b/g;
+      const re = /\bfetch\(\s*["'`]\/api\/(ia-[a-z-]+|hefisto|ocr|saas\/export|fiscal\/emitir|dashboard\/experience\/intelligence|apps\/audit)\b/g;
       for (const m of s.matchAll(re)) achados.push(`${path.relative(raiz, p)} → /api/${m[1]}`);
     }
   };
@@ -117,4 +117,20 @@ test("chamados do salão (S-29): GET e PATCH sem sessão → 401; antes liam e a
     body: JSON.stringify({ chamadoId: "x", novoStatus: "concluido" }),
   });
   assert.equal((await mod.PATCH(patch, params)).status, 401);
+});
+
+test("registro de acessos (S-34): ler sem sessão → 401, sem tocar no banco", async () => {
+  const mod = await import(pathToFileURL(path.join(api, "apps/audit", "route.js")).href);
+  chamadasExternas.length = 0;
+  const r = await mod.GET(new Request("http://app.teste/api/apps/audit?unidade=seldeestrela"));
+  assert.equal(r.status, 401);
+  assert.deepEqual(chamadasExternas, []);
+});
+
+test("métricas da Experience (S-33): unidade na URL sem sessão → 401", async () => {
+  const mod = await import(pathToFileURL(path.join(api, "dashboard/experience/intelligence", "route.js")).href);
+  chamadasExternas.length = 0;
+  const r = await mod.GET(new Request("http://app.teste/api/dashboard/experience/intelligence?unidade=seldeestrela"));
+  assert.equal(r.status, 401);
+  assert.deepEqual(chamadasExternas, []);
 });

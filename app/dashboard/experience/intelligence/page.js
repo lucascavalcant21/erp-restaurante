@@ -1,5 +1,6 @@
 "use client";
 
+import { fetchComSessao } from "../../../lib/api-sessao";
 import React, { useState, useEffect } from "react";
 import {
   Sparkles,
@@ -44,7 +45,7 @@ export default function ExperienceIntelligencePage() {
     setCarregando(true);
     setErro(null);
     try {
-      const res = await fetch(`/api/dashboard/experience/intelligence?unidade=${encodeURIComponent(unidadeId)}&dias=${periodo}`);
+      const res = await fetchComSessao(`/api/dashboard/experience/intelligence?unidade=${encodeURIComponent(unidadeId)}&dias=${periodo}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.erro || "Falha ao carregar inteligência.");
       setDados(json.metricas);

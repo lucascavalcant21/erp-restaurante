@@ -1,3 +1,4 @@
+import { fetchComSessao } from "./api-sessao";
 import { supabase, isSupabaseReady } from "./supabase";
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -497,7 +498,7 @@ export async function registrarLogAcesso(dados) {
 
   // Tenta enviar para a rota da API server-side para capturar IP real do request
   try {
-    fetch("/api/apps/audit", {
+    fetchComSessao("/api/apps/audit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(log),
@@ -510,7 +511,7 @@ export async function registrarLogAcesso(dados) {
 export async function fetchLogsAcesso(unidadeId = "matriz") {
   // 1. Tenta carregar da rota API server-side
   try {
-    const res = await fetch(`/api/apps/audit?unidade=${unidadeId || "matriz"}`);
+    const res = await fetchComSessao(`/api/apps/audit?unidade=${unidadeId || "matriz"}`);
     if (res.ok) {
       const json = await res.json();
       if (Array.isArray(json.logs) && json.logs.length) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { ArrowLeft, Bluetooth, CheckCircle2, ChefHat, FolderOpen, GlassWater, Maximize2, Mic, Minus, Plus, Printer, RefreshCw, Save, Search, Tag, Trash2, UserRound, X, XCircle, List, ChevronRight, ChevronDown } from "lucide-react";
 import { useERP } from "../context/ERPContext";
@@ -247,8 +247,11 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x
 
 export default function EtiquetasRapidas() {
   const router = useRouter();
-  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
-  const [setor, setSetor] = useState("");
+  const { unidadeAtiva, unidadeInfo, sessao, abrirMenu } = useERP();
+  // Quem chega pelo card do Bar ou da Cozinha já escolheu o setor (?dept=).
+  const dept = useSearchParams().get("dept");
+  const setorDaUrl = dept === "cozinha" || dept === "bar" ? dept : "";
+  const [setor, setSetor] = useState(setorDaUrl);
   const [funcionarios, setFuncionarios] = useState([]);
   const [responsavelId, setResponsavelId] = useState("");
   const [produtos, setProdutos] = useState([]);
@@ -429,6 +432,7 @@ export default function EtiquetasRapidas() {
   function voltar() {
     if (item) return setItem(null);
     if (responsavelId) { setResponsavelId(""); setFila([]); return; }
+    if (setorDaUrl) { abrirMenu(); return; }
     if (setor) { setSetor(""); setBusca(""); return; }
     router.back();
   }

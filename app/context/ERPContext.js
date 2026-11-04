@@ -8,6 +8,7 @@ import { fetchUnidades, unidadeDaSessao, podeVerTodas, getUnidade } from "../lib
 import { lerSessao } from "../lib/auth";
 import { iniciarTempoReal } from "../lib/realtime";
 import { inicioDaArea } from "../lib/menu-principal.mjs";
+import { lerOrigem } from "../lib/universo-origem";
 
 const UNIDADE_KEY = "erp_unidade_ativa";
 const MAX_NOTIFICACOES_MEMORIA = 150;
@@ -94,8 +95,8 @@ export function ERPProvider({ children }) {
 
   const abrirMenu = useCallback(() => {
     setMegaMenuOpen(false);
-    // volta para a página da área no menu principal (a mesma lista do topo)
-    router.push(inicioDaArea(pathname));
+    // a tela de cards do universo de origem, ou a página da área no menu
+    router.push(inicioDaArea(pathname, { search: window.location.search, origem: lerOrigem() }));
   }, [pathname, router]);
 
   const fecharMenu = useCallback(() => setMegaMenuOpen(false), []);

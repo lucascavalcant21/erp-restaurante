@@ -24,7 +24,7 @@ const diffMinutos = (iso) => {
 };
 
 export default function KDSPage() {
-  const { unidadeAtiva, unidadeInfo } = useERP();
+  const { unidadeAtiva, unidadeInfo, abrirMenu } = useERP();
   const router = useRouter();
   
   const [pedidos, setPedidos] = useState([]);
@@ -36,7 +36,12 @@ export default function KDSPage() {
   // Setor da tela (cozinha, bar ou tudo); lembrado neste aparelho.
   const [setor, setSetor] = useState("cozinha");
   useEffect(() => {
-    try { const s = localStorage.getItem("kds-setor"); if (["cozinha", "bar", "todos"].includes(s)) setSetor(s); } catch { /* segue */ }
+    // O card do Bar abre com ?setor=bar; sem isso, vale o último setor deste aparelho.
+    try {
+      const daUrl = new URLSearchParams(window.location.search).get("setor");
+      const s = daUrl || localStorage.getItem("kds-setor");
+      if (["cozinha", "bar", "todos"].includes(s)) setSetor(s);
+    } catch { /* segue */ }
   }, []);
   const [painelImpressao, setPainelImpressao] = useState(false);
   const impressao = useImpressaoKds({ unidadeId: unidadeAtiva, setor, unidadeNome: unidadeInfo?.nome || "" });
@@ -131,7 +136,7 @@ export default function KDSPage() {
       {/* HEADER DO KDS */}
       <div className="px-3 sm:px-6 pb-3 sm:pb-4 bg-hf-surface border-b border-hf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm z-50" style={{ paddingTop: "calc(var(--erp-safe-top, 0px) + 0.75rem)" }}>
          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <button onClick={() => router.push("/dashboard")} className="p-2.5 sm:p-3 shrink-0 bg-hf-elevated hover:bg-hf-border text-fg hover:text-hf-text rounded-xl transition-colors active:scale-95">
+            <button onClick={() => abrirMenu()} aria-label="Voltar" className="p-2.5 sm:p-3 shrink-0 bg-hf-elevated hover:bg-hf-border text-fg hover:text-hf-text rounded-xl transition-colors active:scale-95">
                <ArrowLeft size={24} />
             </button>
             

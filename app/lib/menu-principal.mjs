@@ -6,30 +6,95 @@
 // está no meu menu"). Menu reorganizado em 29/10/2026: cada área com o que é
 // dela e nomes curtos. Financeiro, Eventos e Marmitaria têm a própria barra de
 // áreas, então não têm submenu aqui.
+//
+// Cozinha, Bar e Salão são "universos" (pedido do dono, 03/11/2026): o clique no
+// menu abre uma tela de cards só daquela área, e o voltar de qualquer card
+// retorna a ela. Os cards ficam aqui, em `secoes`, pela mesma regra da lista
+// única. `icone` é o nome de um ícone do lucide-react (UniversoArea.js).
 
 export const MENU_PRINCIPAL = Object.freeze([
 { id: "inteligencia", label: "Inteligência", href: "/dashboard/inteligencia", exigeInteligencia: true },
   {
-    id: "vendas", label: "Vendas", href: "/dashboard/vendas",
-    submodules: [
-      { label: "PDV e vendas", href: "/dashboard/vendas" },
-      { label: "Mesas e salão", href: "/dashboard/salao/mesas" },
-      { label: "Pedidos online", href: "/dashboard/salao/online" },
-      { label: "Delivery", href: "/dashboard/delivery" },
-      { label: "Tela da cozinha (KDS)", href: "/dashboard/cozinha/kds" },
-      { label: "Clientes", href: "/dashboard/clientes" },
+    id: "cozinha", label: "Cozinha", href: "/dashboard/cozinha", icone: "ChefHat",
+    titulo: "Cozinha", subtitulo: "Tudo o que a cozinha usa no dia a dia",
+    secoes: [
+      { titulo: "Hoje", cards: [
+        { label: "Produção do dia", desc: "Lotes e preparos de hoje", href: "/dashboard/operacao/producao?dept=cozinha", icone: "Flame" },
+        { label: "Tela da cozinha (KDS)", desc: "Pedidos em preparo", href: "/dashboard/cozinha/kds?setor=cozinha", icone: "MonitorPlay" },
+        { label: "Etiquetas", desc: "Imprimir etiquetas de produção", href: "/dashboard/operacao/etiquetas?dept=cozinha", icone: "Tag" },
+        { label: "Validades", desc: "O que vence primeiro", href: "/dashboard/operacao/validade", icone: "CalendarClock" },
+        { label: "Memorando de amanhã", desc: "O que deixar pronto", href: "/dashboard/operacao/producao/memorando", icone: "ClipboardList" },
+      ] },
+      { titulo: "Receitas", cards: [
+        { label: "Fichas técnicas", desc: "Receitas, rendimento e custo", href: "/dashboard/operacao/fichas?dept=cozinha", icone: "BookOpen" },
+        { label: "Guia de montagem", desc: "Fotos e passo a passo", href: "/dashboard/operacao/montagem?dept=cozinha", icone: "Layers" },
+        { label: "Green Dot Assist", desc: "Assistente de bancada no tablet", href: "/dashboard/assistente", icone: "Sparkles" },
+      ] },
+      { titulo: "Estoque e compras", cards: [
+        { label: "Estoque da cozinha", desc: "Entrada e retirada", href: "/dashboard/operacao/estoque?area=cozinha", icone: "Package" },
+        { label: "Ingredientes", desc: "Produtos usados nas receitas", href: "/dashboard/operacao/ingredientes?dept=cozinha", icone: "Carrot" },
+        { label: "Lista de compras", desc: "Cotações e pedidos", href: "/dashboard/operacao/compras", icone: "ShoppingCart" },
+      ] },
+      { titulo: "Rotina da equipe", cards: [
+        { label: "Checklist operacional", desc: "Abertura e fechamento", href: "/dashboard/operacao/rotina?dept=cozinha&tipo=operacional", icone: "CheckSquare" },
+        { label: "Checklist de limpeza", desc: "Limpeza da cozinha", href: "/dashboard/operacao/rotina?dept=cozinha&tipo=limpeza", icone: "SprayCan" },
+        { label: "Controles", desc: "Temperaturas e registros", href: "/dashboard/operacao/controles", icone: "Thermometer" },
+        { label: "Treinamentos", desc: "Trilhas da cozinha", href: "/dashboard/salao/treinamento?dept=cozinha", icone: "GraduationCap" },
+        { label: "Guias de uso", desc: "Equipamentos e produtos", href: "/dashboard/operacao/guias", icone: "FileText" },
+      ] },
     ],
   },
   {
-    id: "cozinha", label: "Cozinha", href: "/dashboard/cozinha",
-    submodules: [
-      { label: "Painel da cozinha", href: "/dashboard/cozinha" },
-      { label: "Fichas técnicas", href: "/dashboard/operacao/fichas" },
-      { label: "Produção do dia", href: "/dashboard/operacao/producao" },
-      { label: "Guia de montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
-      { label: "Etiquetas", href: "/dashboard/operacao/etiquetas" },
-      { label: "Validades", href: "/dashboard/operacao/validade" },
-      { label: "Green Dot Assist (tablet)", href: "/dashboard/assistente" },
+    id: "bar", label: "Bar", href: "/dashboard/bar", icone: "GlassWater",
+    titulo: "Bar", subtitulo: "Tudo o que o bar usa no dia a dia",
+    secoes: [
+      { titulo: "Hoje", cards: [
+        { label: "Produção do dia", desc: "Bases, xaropes e preparos", href: "/dashboard/operacao/producao?dept=bar", icone: "Flame" },
+        { label: "Tela do bar (KDS)", desc: "Pedidos em preparo", href: "/dashboard/cozinha/kds?setor=bar", icone: "MonitorPlay" },
+        { label: "Etiquetas", desc: "Imprimir etiquetas do bar", href: "/dashboard/operacao/etiquetas?dept=bar", icone: "Tag" },
+        { label: "Validades", desc: "O que vence primeiro", href: "/dashboard/operacao/validade", icone: "CalendarClock" },
+        { label: "Memorando de amanhã", desc: "O que deixar pronto", href: "/dashboard/operacao/producao/memorando", icone: "ClipboardList" },
+      ] },
+      { titulo: "Drinks", cards: [
+        { label: "Fichas de drinks", desc: "Receitas, rendimento e custo", href: "/dashboard/operacao/fichas?dept=bar", icone: "BookOpen" },
+        { label: "Guia de montagem", desc: "Fotos e passo a passo", href: "/dashboard/operacao/montagem?dept=bar", icone: "Layers" },
+        { label: "Criação de drinks", desc: "Novos produtos de venda", href: "/dashboard/operacao/produtos?dept=bar", icone: "PlusCircle" },
+        { label: "Engenharia de cardápio", desc: "Margem e giro dos drinks", href: "/dashboard/operacao/engenharia?dept=bar", icone: "BarChart" },
+        { label: "Cardápio digital", desc: "Drinks e QR Code", href: "/dashboard/operacao/cardapio", icone: "QrCode" },
+      ] },
+      { titulo: "Estoque e compras", cards: [
+        { label: "Estoque do bar", desc: "Entrada e retirada", href: "/dashboard/operacao/estoque?area=bar", icone: "Package" },
+        { label: "Produtos do bar", desc: "Bebidas e insumos", href: "/dashboard/operacao/ingredientes?dept=bar", icone: "Wine" },
+        { label: "Lista de compras", desc: "Cotações e pedidos", href: "/dashboard/operacao/compras", icone: "ShoppingCart" },
+      ] },
+      { titulo: "Rotina da equipe", cards: [
+        { label: "Checklist operacional", desc: "Abertura e fechamento", href: "/dashboard/operacao/rotina?dept=bar&tipo=operacional", icone: "CheckSquare" },
+        { label: "Checklist de limpeza", desc: "Limpeza do bar", href: "/dashboard/operacao/rotina?dept=bar&tipo=limpeza", icone: "SprayCan" },
+        { label: "Treinamentos", desc: "Trilhas do bar", href: "/dashboard/salao/treinamento?dept=bar", icone: "GraduationCap" },
+        { label: "Guias de uso", desc: "Equipamentos e produtos", href: "/dashboard/operacao/guias", icone: "FileText" },
+      ] },
+    ],
+  },
+  {
+    id: "salao", label: "Salão", href: "/dashboard/salao", icone: "Store",
+    titulo: "Salão", subtitulo: "Tudo o que o salão usa no dia a dia",
+    secoes: [
+      { titulo: "Atendimento", cards: [
+        { label: "Mesas e salão", desc: "Comandas e ocupação", href: "/dashboard/salao/mesas", icone: "UtensilsCrossed" },
+        { label: "Pedidos online", desc: "Pedidos do cardápio e QR Code", href: "/dashboard/salao/online", icone: "Smartphone" },
+        { label: "Delivery", desc: "Entregas em andamento", href: "/dashboard/delivery", icone: "Bike" },
+        { label: "Clientes", desc: "Cadastro e relacionamento", href: "/dashboard/clientes", icone: "Users" },
+      ] },
+      { titulo: "Estoque", cards: [
+        { label: "Estoque do salão", desc: "Entrada e retirada", href: "/dashboard/operacao/estoque?area=salao", icone: "Package" },
+      ] },
+      { titulo: "Rotina da equipe", cards: [
+        { label: "Checklist operacional", desc: "Abertura e conferência", href: "/dashboard/operacao/rotina?dept=salao&tipo=operacional", icone: "CheckSquare" },
+        { label: "Checklist de limpeza", desc: "Limpeza do salão", href: "/dashboard/operacao/rotina?dept=salao&tipo=limpeza", icone: "SprayCan" },
+        { label: "Observações", desc: "Observações padrão dos pedidos", href: "/dashboard/operacao/observacoes", icone: "MessageSquareText" },
+        { label: "Treinamentos", desc: "Trilhas do salão", href: "/dashboard/salao/treinamento?dept=salao", icone: "GraduationCap" },
+        { label: "Guias de uso", desc: "Equipamentos e produtos", href: "/dashboard/operacao/guias", icone: "FileText" },
+      ] },
     ],
   },
   {
@@ -50,6 +115,7 @@ export const MENU_PRINCIPAL = Object.freeze([
     submodules: [
       { label: "Cardápio digital", href: "/dashboard/operacao/cardapio" },
       { label: "Engenharia de cardápio", href: "/dashboard/operacao/engenharia" },
+      { label: "Clientes", href: "/dashboard/clientes" },
       { label: "Campanhas", href: "/dashboard/experience/campanhas" },
       { label: "Experiência do cliente", href: "/dashboard/experience/intelligence" },
     ],
@@ -91,37 +157,92 @@ export function menuPrincipal({ podeInteligencia = false } = {}) {
 
 const rotaDe = (href) => String(href || "").split("?")[0];
 
+const buscaDe = (href) => String(href || "").split("?")[1] || "";
+const casaRota = (p, r) => p === r || p.startsWith(`${r}/`);
+// As telas compartilhadas recebem o setor por ?dept= ou ?area= (Estoque).
+const setorDe = (busca) => {
+  const q = new URLSearchParams(String(busca || "").replace(/^\?/, ""));
+  return q.get("dept") || q.get("area") || null;
+};
+
+/** Todos os cards de um universo, sem as seções. */
+export const cardsDaArea = (area) => (area?.secoes || []).flatMap((s) => s.cards);
+
+/** Só Cozinha, Bar e Salão: as áreas que têm tela de cards. */
+export const UNIVERSOS = Object.freeze(MENU_PRINCIPAL.filter((m) => m.secoes));
+export const universoPorId = (id) => UNIVERSOS.find((u) => u.id === id) || null;
+
 /**
  * Área do menu dona da tela: a do link mais específico que casa com a rota
- * (o KDS fica em /cozinha/kds mas é de Vendas; Compras do estoque não é Cotações).
+ * (Compras do estoque não é Cotações). Os links do menu vêm primeiro; os cards
+ * dos universos só decidem telas que o menu não lista.
  */
 export function areaDaRota(pathname, modulos = MENU_PRINCIPAL) {
   const p = String(pathname || "");
-  let melhor = null; let tam = -1;
-  for (const m of modulos) {
-    for (const h of [m.href, ...(m.submodules || []).map((x) => x.href)]) {
-      const r = rotaDe(h);
-      if ((p === r || p.startsWith(`${r}/`)) && r.length > tam) { melhor = m; tam = r.length; }
+  const buscar = (hrefsDe) => {
+    let melhor = null; let tam = -1;
+    for (const m of modulos) {
+      for (const h of hrefsDe(m)) {
+        const r = rotaDe(h);
+        if (casaRota(p, r) && r.length > tam) { melhor = m; tam = r.length; }
+      }
     }
-  }
-  return melhor;
+    return melhor;
+  };
+  return buscar((m) => [m.href, ...(m.submodules || []).map((x) => x.href)])
+    || buscar((m) => cardsDaArea(m).map((x) => x.href));
+}
+
+// A mesma tela serve mais de um setor. Um card com setor só vale para aquele
+// setor: "Estoque" aberto pelo menu do topo não é o "Estoque do bar".
+function cardCasa(card, pathname, search) {
+  const r = rotaDe(card.href);
+  const p = String(pathname || "");
+  if (!casaRota(p, r)) return false;
+  const doCard = setorDe(buscaDe(card.href));
+  if (!doCard) return true;
+  const daTela = setorDe(search);
+  return daTela ? daTela === doCard : p !== r;
+}
+
+/**
+ * Universo em que a tela está. `origem` é o universo aberto por último neste
+ * aparelho: é o que decide telas sem setor, como Validades, que servem Cozinha
+ * e Bar. Sem origem (link direto), vale o setor da URL e depois o menu.
+ */
+export function universoDaRota(pathname, search = "", origem = null) {
+  const p = String(pathname || "");
+  const hub = UNIVERSOS.find((u) => u.href === p);
+  if (hub) return hub;
+  const daOrigem = universoPorId(origem);
+  if (daOrigem && cardsDaArea(daOrigem).some((c) => cardCasa(c, p, search))) return daOrigem;
+  const doSetor = universoPorId(setorDe(search));
+  if (doSetor && cardsDaArea(doSetor).some((c) => cardCasa(c, p, search))) return doSetor;
+  const area = areaDaRota(p);
+  return area?.secoes ? area : null;
 }
 
 // Antigos painéis /dashboard/modulo/<x>: cada um abre a área do menu equivalente.
 const PAINEL_ANTIGO = Object.freeze({
   cozinha: "/dashboard/cozinha",
-  bar: "/dashboard/operacao/fichas?dept=bar",
-  salao: "/dashboard/salao/mesas",
+  bar: "/dashboard/bar",
+  salao: "/dashboard/salao",
   financeiro: "/dashboard/financeiro",
   rh: "/dashboard/rh",
   gestao: "/dashboard/operacao/inteligente",
 });
 export const destinoDoPainelAntigo = (modulo) => PAINEL_ANTIGO[String(modulo || "").toLowerCase()] || "/dashboard";
 
-/** Para onde o botão "voltar/menu" de uma tela leva: a página da área dela no menu. */
-export function inicioDaArea(pathname) {
-  const area = areaDaRota(pathname);
+/**
+ * Para onde o botão "voltar/menu" de uma tela leva: a tela de cards do universo
+ * de onde ela foi aberta ou, fora deles, a página da área dela no menu.
+ */
+export function inicioDaArea(pathname, { search = "", origem = null } = {}) {
+  const p = String(pathname || "");
+  const universo = universoDaRota(p, search, origem);
+  if (universo && universo.href !== p) return universo.href;
+  const area = areaDaRota(p);
   if (!area) return "/dashboard";
   // já está na página da área: volta ao início do app
-  return rotaDe(area.href) === String(pathname || "") ? "/dashboard" : area.href;
+  return rotaDe(area.href) === p ? "/dashboard" : area.href;
 }

@@ -167,7 +167,7 @@ export function menuVisivel(modulos, pode) {
   };
   return modulos
     .map((m) => (m.submodules ? { ...m, submodules: m.submodules.filter((s) => liberado(s.href)) } : m))
-    .filter((m) => liberado(m.href) || m.submodules?.length > 0 || cardsDaArea(m).some((c) => liberado(c.href)));
+    .filter((m) => liberado(m.href) || m.submodules?.length > 0 || cardsDaArea(m).filter(cardAbreUniverso).some((c) => liberado(c.href)));
 }
 
 const rotaDe = (href) => String(href || "").split("?")[0];
@@ -180,6 +180,10 @@ const setorDe = (busca) => {
   return q.get("dept") || q.get("area") || null;
 };
 
+// O estoque é uma tela só, separada por ?area=. Poder movimentar o estoque do bar
+// não pode abrir os universos da Cozinha e do Salão só por causa desse card.
+const cardAbreUniverso = (card) => !/[?&]area=/.test(card.href);
+
 /** Todos os cards de um universo, sem as seções. */
 export const cardsDaArea = (area) => (area?.secoes || []).flatMap((s) => s.cards);
 
@@ -191,7 +195,7 @@ export const universoPorId = (id) => UNIVERSOS.find((u) => u.id === id) || null;
 export function universoLiberado(pathname, pode) {
   const universo = UNIVERSOS.find((u) => u.href === pathname);
   if (!universo) return false;
-  return cardsDaArea(universo).some((c) => {
+  return cardsDaArea(universo).filter(cardAbreUniverso).some((c) => {
     const [rota, busca = ""] = c.href.split("?");
     return !!pode(rota, busca);
   });

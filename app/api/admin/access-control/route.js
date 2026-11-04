@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../lib/server/supabase-server.mjs";
+import { contaRapidaPorId } from "../../../lib/contas-rapidas.mjs";
+import { perfilDaContaRapida, unidadeDaContaRapida } from "../../../lib/server/conta-rapida.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -156,11 +158,33 @@ export async function GET(request) {
   });
 }
 
+async function criarConta(db, actor, actorRecord, input, scopes) {
+  const authEmail = loginEmail(input.login);
+  const { data: created, error: createError } = await db.auth.admin.createUser({
+    email: authEmail,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: { nome: clean(input.nome), login: clean(input.login).toLowerCase(), papel: input.tipo_acesso || "funcionario" },
+  });
+  if (createError) return { erro: createError.message };
+  const payload = { ...userPayload(input, actor.id, !!actorRecord?.super_admin), auth_user_id: created.user.id };
+  const { data: user, error } = await db.from("usuarios_erp")
+    .update(payload).eq("auth_user_id", created.user.id).select().single();
+  if (error) {
+    await db.auth.admin.deleteUser(created.user.id);
+    throw error;
+  }
+  await replaceScopes(db, user.id, scopes);
+  await audit(db, actor.id, "usuario", user.id, "criado", null, user);
+  return { user };
+}
+
 export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { return json({ error: "Dados inválidos." }, 400); }
   const permissionByAction = {
     "create-user": "configuracoes.users.create",
+    "create-quick-account": "configuracoes.users.create",
     "update-user": "configuracoes.users.edit",
     "set-user-status": "configuracoes.users.edit",
     "reset-password": "configuracoes.users.settings",
@@ -188,29 +212,41 @@ export async function POST(request) {
           .eq("codigo", input.profile_code).eq("is_current", true).maybeSingle();
         input.perfil_id = foundProfile.data?.id || null;
       }
-      const authEmail = loginEmail(input.login);
-      const { data: created, error: createError } = await db.auth.admin.createUser({
-        email: authEmail,
-        password: input.password,
-        email_confirm: true,
-        user_metadata: { nome: clean(input.nome), login: clean(input.login).toLowerCase(), papel: input.tipo_acesso || "funcionario" },
-      });
-      if (createError) return json({ error: createError.message }, 400);
-      const payload = { ...userPayload(input, actor.id, !!actorRecord?.super_admin), auth_user_id: created.user.id };
-      const { data: user, error } = await db.from("usuarios_erp")
-        .update(payload).eq("auth_user_id", created.user.id).select().single();
-      if (error) {
-        await db.auth.admin.deleteUser(created.user.id);
-        throw error;
-      }
-      await replaceScopes(db, user.id, body.scopes || []);
+      const criada = await criarConta(db, actor, actorRecord, input, body.scopes || []);
+      if (criada.erro) return json({ error: criada.erro }, 400);
+      const { user } = criada;
       await replacePermissions(db, "usuario_permissoes", "usuario_id", user.id, body.allowPermissions || [], "allow");
       if ((body.denyPermissions || []).length) {
         const rows = [...new Set(body.denyPermissions)].map((permission_key) => ({ usuario_id: user.id, permission_key, effect: "deny" }));
         await db.from("usuario_permissoes").insert(rows);
       }
-      await audit(db, actor.id, "usuario", user.id, "criado", null, user);
       return json({ user }, 201);
+    }
+
+    if (body.action === "create-quick-account") {
+      const modelo = contaRapidaPorId(body.modelo);
+      if (!modelo) return json({ error: "Escolha uma função válida." }, 400);
+      if (!clean(body.nome) || !clean(body.login)) return json({ error: "Nome e login são obrigatórios." }, 400);
+      if (!/^[a-z0-9._@+-]+$/i.test(clean(body.login))) return json({ error: "O login contém caracteres não permitidos." }, 400);
+      if (clean(body.password).length < 8) return json({ error: "A senha temporária deve ter ao menos 8 caracteres." }, 400);
+      const unidade = await unidadeDaContaRapida(db, actorRecord);
+      if (!unidade) return json({ error: "Não foi possível definir a unidade. Use Novo usuário e escolha a unidade." }, 400);
+      const perfil = await perfilDaContaRapida(db, modelo, {
+        autorId: actor.id,
+        gravarPermissoes: (id) => replacePermissions(db, "perfil_permissoes", "perfil_id", id, modelo.permissoes),
+        auditar: (id, depois) => audit(db, actor.id, "perfil", id, "criado", null, depois),
+      });
+      const setor = modelo.setor
+        ? (await db.from("setores").select("id").eq("nome", modelo.setor).limit(1).maybeSingle()).data
+        : null;
+      const criada = await criarConta(db, actor, actorRecord, {
+        nome: body.nome, login: body.login, password: body.password,
+        unidade_principal_id: unidade.id, setor_principal_id: setor?.id || null, cargo: modelo.nome,
+        perfil_id: perfil.id, tipo_acesso: modelo.tipoAcesso || "funcionario",
+        pagina_inicial: modelo.paginaInicial, exigir_troca_senha: modelo.trocarSenha !== false,
+      }, [{ empresa_id: unidade.empresa_id, unidade_id: unidade.id, setor_id: setor?.id || null, data_scope: "setor" }]);
+      if (criada.erro) return json({ error: criada.erro }, 400);
+      return json({ user: criada.user }, 201);
     }
 
     if (body.action === "update-user") {

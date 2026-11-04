@@ -267,6 +267,17 @@ export const STATUS_FICHA = [
 // Falha para o lado aberto onde o controle de acesso ainda não foi ligado
 // (`gerenciado` falso), igual ao guarda de rota do painel — senão ninguém veria
 // custo nenhum nessas instalações.
+// Ver, editar e imprimir são separados de propósito: a chefe de bar consulta a
+// ficha, mas só altera com a permissão do dono. Instalação sem controle de
+// acesso (`gerenciado` falso) segue aberta, igual ao custo abaixo.
+const permissaoDaFicha = (sessao, departamento, acoes) => {
+  if (!sessao?.gerenciado) return true;
+  const setor = departamento === "bar" ? "bar" : "cozinha";
+  return acoes.some((acao) => hasPermission(sessao, `fichas.recipes.${acao}`) || hasPermission(sessao, `${setor}.recipes.${acao}`));
+};
+export const podeEditarFicha = (sessao, departamento) => permissaoDaFicha(sessao, departamento, ["edit", "create"]);
+export const podeImprimirFicha = (sessao, departamento) => permissaoDaFicha(sessao, departamento, ["print"]);
+
 export function podeVerCustosFicha(sessao, departamento) {
   if (!sessao?.gerenciado) return true;
   return hasPermission(sessao, permissionKey("fichas", "recipes", "view_costs"))

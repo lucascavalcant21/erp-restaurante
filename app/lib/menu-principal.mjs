@@ -19,15 +19,15 @@ export const MENU_PRINCIPAL = Object.freeze([
     titulo: "Cozinha", subtitulo: "Tudo o que a cozinha usa no dia a dia",
     secoes: [
       { titulo: "Hoje", cards: [
-        { label: "Produção do dia", desc: "Lotes e preparos de hoje", href: "/dashboard/operacao/producao?dept=cozinha", icone: "Flame" },
-        { label: "Tela da cozinha (KDS)", desc: "Pedidos em preparo", href: "/dashboard/cozinha/kds?setor=cozinha", icone: "MonitorPlay" },
+        { label: "Produção do dia", desc: "Lotes e preparos de hoje", href: "/dashboard/operacao/producao?dept=cozinha", icone: "CookingPot" },
+        { label: "Tela da cozinha (KDS)", desc: "Pedidos em preparo", href: "/dashboard/cozinha/kds?setor=cozinha", icone: "ConciergeBell" },
         { label: "Etiquetas", desc: "Imprimir etiquetas de produção", href: "/dashboard/operacao/etiquetas?dept=cozinha", icone: "Tag" },
-        { label: "Validades", desc: "O que vence primeiro", href: "/dashboard/operacao/validade", icone: "CalendarClock" },
-        { label: "Memorando de amanhã", desc: "O que deixar pronto", href: "/dashboard/operacao/producao/memorando", icone: "ClipboardList" },
+        { label: "Validades", desc: "O que vence primeiro", href: "/dashboard/operacao/validade", icone: "Hourglass" },
+        { label: "Memorando de amanhã", desc: "O que deixar pronto", href: "/dashboard/operacao/producao/memorando", icone: "StickyNote" },
       ] },
       { titulo: "Receitas", cards: [
         { label: "Fichas técnicas", desc: "Receitas, rendimento e custo", href: "/dashboard/operacao/fichas?dept=cozinha", icone: "BookOpen" },
-        { label: "Guia de montagem", desc: "Fotos e passo a passo", href: "/dashboard/operacao/montagem?dept=cozinha", icone: "Layers" },
+        { label: "Guia de montagem", desc: "Fotos e passo a passo", href: "/dashboard/operacao/montagem?dept=cozinha", icone: "Salad" },
         { label: "Green Dot Assist", desc: "Assistente de bancada no tablet", href: "/dashboard/assistente", icone: "Sparkles" },
       ] },
       { titulo: "Estoque e compras", cards: [
@@ -49,18 +49,18 @@ export const MENU_PRINCIPAL = Object.freeze([
     titulo: "Bar", subtitulo: "Tudo o que o bar usa no dia a dia",
     secoes: [
       { titulo: "Hoje", cards: [
-        { label: "Produção do dia", desc: "Bases, xaropes e preparos", href: "/dashboard/operacao/producao?dept=bar", icone: "Flame" },
-        { label: "Tela do bar (KDS)", desc: "Pedidos em preparo", href: "/dashboard/cozinha/kds?setor=bar", icone: "MonitorPlay" },
+        { label: "Produção do dia", desc: "Bases, xaropes e preparos", href: "/dashboard/operacao/producao?dept=bar", icone: "Coqueteleira" },
+        { label: "Tela do bar (KDS)", desc: "Pedidos em preparo", href: "/dashboard/cozinha/kds?setor=bar", icone: "ConciergeBell" },
         { label: "Etiquetas", desc: "Imprimir etiquetas do bar", href: "/dashboard/operacao/etiquetas?dept=bar", icone: "Tag" },
-        { label: "Validades", desc: "O que vence primeiro", href: "/dashboard/operacao/validade", icone: "CalendarClock" },
-        { label: "Memorando de amanhã", desc: "O que deixar pronto", href: "/dashboard/operacao/producao/memorando", icone: "ClipboardList" },
+        { label: "Validades", desc: "O que vence primeiro", href: "/dashboard/operacao/validade", icone: "Hourglass" },
+        { label: "Memorando de amanhã", desc: "O que deixar pronto", href: "/dashboard/operacao/producao/memorando", icone: "StickyNote" },
       ] },
       { titulo: "Drinks", cards: [
-        { label: "Fichas de drinks", desc: "Receitas, rendimento e custo", href: "/dashboard/operacao/fichas?dept=bar", icone: "BookOpen" },
-        { label: "Guia de montagem", desc: "Fotos e passo a passo", href: "/dashboard/operacao/montagem?dept=bar", icone: "Layers" },
-        { label: "Criação de drinks", desc: "Novos produtos de venda", href: "/dashboard/operacao/produtos?dept=bar", icone: "PlusCircle" },
-        { label: "Engenharia de cardápio", desc: "Margem e giro dos drinks", href: "/dashboard/operacao/engenharia?dept=bar", icone: "BarChart" },
-        { label: "Cardápio digital", desc: "Drinks e QR Code", href: "/dashboard/operacao/cardapio", icone: "QrCode" },
+        { label: "Fichas de drinks", desc: "Receitas, rendimento e custo", href: "/dashboard/operacao/fichas?dept=bar", icone: "Martini" },
+        { label: "Guia de montagem", desc: "Fotos e passo a passo", href: "/dashboard/operacao/montagem?dept=bar", icone: "Citrus" },
+        { label: "Criação de drinks", desc: "Novos produtos de venda", href: "/dashboard/operacao/produtos?dept=bar", icone: "WandSparkles" },
+        { label: "Engenharia de cardápio", desc: "Margem e giro dos drinks", href: "/dashboard/operacao/engenharia?dept=bar", icone: "Star" },
+        { label: "Cardápio digital", desc: "Drinks e QR Code", href: "/dashboard/operacao/cardapio", icone: "Smartphone" },
       ] },
       { titulo: "Estoque e compras", cards: [
         { label: "Estoque do bar", desc: "Entrada e retirada", href: "/dashboard/operacao/estoque?area=bar", icone: "Package" },
@@ -155,6 +155,21 @@ export function menuPrincipal({ podeInteligencia = false } = {}) {
   return MENU_PRINCIPAL.filter((m) => !m.exigeInteligencia || podeInteligencia);
 }
 
+/**
+ * Menu de quem tem acesso limitado: só as áreas que a pessoa pode abrir. A
+ * chefe de bar vê Bar, não uma lista de portas que a mandam de volta. `pode`
+ * recebe o caminho e a busca (o guarda de rotas usa a mesma regra).
+ */
+export function menuVisivel(modulos, pode) {
+  const liberado = (href) => {
+    const [rota, busca = ""] = String(href).split("?");
+    return !!pode(rota, busca);
+  };
+  return modulos
+    .map((m) => (m.submodules ? { ...m, submodules: m.submodules.filter((s) => liberado(s.href)) } : m))
+    .filter((m) => liberado(m.href) || m.submodules?.length > 0 || cardsDaArea(m).some((c) => liberado(c.href)));
+}
+
 const rotaDe = (href) => String(href || "").split("?")[0];
 
 const buscaDe = (href) => String(href || "").split("?")[1] || "";
@@ -171,6 +186,16 @@ export const cardsDaArea = (area) => (area?.secoes || []).flatMap((s) => s.cards
 /** Só Cozinha, Bar e Salão: as áreas que têm tela de cards. */
 export const UNIVERSOS = Object.freeze(MENU_PRINCIPAL.filter((m) => m.secoes));
 export const universoPorId = (id) => UNIVERSOS.find((u) => u.id === id) || null;
+
+/** A tela de cards abre para quem pode usar ao menos um dos cards dela. */
+export function universoLiberado(pathname, pode) {
+  const universo = UNIVERSOS.find((u) => u.href === pathname);
+  if (!universo) return false;
+  return cardsDaArea(universo).some((c) => {
+    const [rota, busca = ""] = c.href.split("?");
+    return !!pode(rota, busca);
+  });
+}
 
 /**
  * Área do menu dona da tela: a do link mais específico que casa com a rota

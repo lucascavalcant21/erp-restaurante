@@ -1,7 +1,7 @@
 // Menu principal: uma lista só para o topo, o "voltar" e os painéis antigos.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MENU_PRINCIPAL, UNIVERSOS, cardsDaArea, menuPrincipal, areaDaRota, universoDaRota, inicioDaArea, destinoDoPainelAntigo } from "./menu-principal.mjs";
+import { MENU_PRINCIPAL, UNIVERSOS, cardsDaArea, menuPrincipal, menuVisivel, universoLiberado, areaDaRota, universoDaRota, inicioDaArea, destinoDoPainelAntigo } from "./menu-principal.mjs";
 import { pagesForRoute } from "./permissions-catalog.mjs";
 
 test("Inteligência só aparece para quem pode", () => {
@@ -76,4 +76,25 @@ test("uma origem antiga não prende telas de fora do universo", () => {
   assert.equal(universoDaRota("/dashboard/operacao/estoque", "", "bar"), null, "Estoque do menu não é o Estoque do bar");
   assert.equal(universoDaRota("/dashboard/operacao/fichas", "?dept=cozinha", "bar").id, "cozinha", "o setor da URL vence a origem");
   assert.equal(universoDaRota("/dashboard/bar/producao", "", "cozinha").id, "bar");
+});
+
+test("conta limitada só vê no menu as áreas que pode abrir", () => {
+  const pode = (rota, busca) => rota === "/dashboard/bar" || (rota === "/dashboard/operacao/fichas" && busca === "dept=bar");
+  assert.deepEqual(menuVisivel(MENU_PRINCIPAL, pode).map((m) => m.id), ["bar"]);
+  assert.deepEqual(menuVisivel(MENU_PRINCIPAL, () => false), []);
+  assert.equal(menuVisivel(MENU_PRINCIPAL, () => true).length, MENU_PRINCIPAL.length);
+});
+
+test("submenu mostra só as telas liberadas", () => {
+  const pode = (rota) => rota === "/dashboard/rh/ponto";
+  const [equipe] = menuVisivel(MENU_PRINCIPAL, pode);
+  assert.equal(equipe.id, "rh");
+  assert.deepEqual(equipe.submodules.map((s) => s.label), ["Ponto e espelho"]);
+});
+
+test("tela de cards abre para quem pode usar algum card dela", () => {
+  const pode = (rota, busca) => rota === "/dashboard/operacao/fichas" && busca === "dept=bar";
+  assert.equal(universoLiberado("/dashboard/bar", pode), true);
+  assert.equal(universoLiberado("/dashboard/salao", pode), false);
+  assert.equal(universoLiberado("/dashboard/financeiro", () => true), false);
 });

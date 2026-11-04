@@ -3,6 +3,7 @@ import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { lerSessao, encerrarSessao } from "../lib/auth";
 import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog.mjs";
+import { universoLiberado } from "../lib/menu-principal.mjs";
 import { HefistoPageContextProvider } from "../context/HefistoPageContext";
 import TopNavigation from "../components/layout/TopNavigation";
 import { Loader2 } from "lucide-react";
@@ -17,7 +18,8 @@ function ProtecaoPermissao({ sessao, children }) {
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const deveVerificar = !!sessao?.gerenciado || !!sessao?.is_app;
-  const permitido = !deveVerificar || canAccessRoute(sessao, pathname, search);
+  const permitido = !deveVerificar || canAccessRoute(sessao, pathname, search)
+    || universoLiberado(pathname, (rota, busca) => canAccessRoute(sessao, rota, busca));
 
   useEffect(() => {
     if (!deveVerificar || permitido) return;

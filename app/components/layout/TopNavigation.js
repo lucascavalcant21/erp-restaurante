@@ -3,8 +3,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Sparkles, User, Settings, LogOut, ChevronDown, Menu, X, ChevronRight, Bell } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { hasPermission } from "../../lib/permissions-catalog.mjs";
-import { menuPrincipal, areaDaRota, universoDaRota, cardsDaArea } from "../../lib/menu-principal.mjs";
+import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
+import { homeDoUsuario } from "../../lib/auth";
+import { menuPrincipal, menuVisivel, universoLiberado, areaDaRota, universoDaRota, cardsDaArea } from "../../lib/menu-principal.mjs";
 import { lerOrigem, limparOrigem } from "../../lib/universo-origem";
 
 // App dedicado não abre a tela de cards: as telas liberadas viram submenu.
@@ -37,7 +38,11 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
   const podeInteligencia = !!sessao && (!sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view"));
   // A lista do menu mora em app/lib/menu-principal.mjs (a mesma do "voltar" das telas).
-  const modules = menuPrincipal({ podeInteligencia });
+  const todosOsModulos = menuPrincipal({ podeInteligencia });
+  // Conta com perfil só enxerga as áreas dela. App dedicado tem filtro próprio abaixo.
+  const modules = sessao?.gerenciado && !sessao?.is_app
+    ? menuVisivel(todosOsModulos, (rota, busca) => canAccessRoute(sessao, rota, busca) || universoLiberado(rota, (r, b) => canAccessRoute(sessao, r, b)))
+    : todosOsModulos;
 
   // A área ativa é a do universo aberto (Validades vinda do Bar acende Bar) ou,
   // fora deles, a do link mais específico que casa com a tela.
@@ -88,7 +93,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             <Menu size={24} />
           </button>
 
-          <Link href={sessao?.is_app ? (sessao.pagina_inicial || "/dashboard") : "/dashboard"} className="flex items-center gap-2 shrink-0 group">
+          <Link href={sessao?.is_app || sessao?.gerenciado ? homeDoUsuario(sessao) : "/dashboard"} className="flex items-center gap-2 shrink-0 group">
             <div className="w-8 h-8 bg-hf-accent rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
               <span className="text-hf-accent-fg font-black text-lg">H</span>
             </div>

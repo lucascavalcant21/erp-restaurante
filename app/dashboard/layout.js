@@ -3,9 +3,11 @@ import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { lerSessao, encerrarSessao } from "../lib/auth";
 import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog.mjs";
+import { universoLiberado } from "../lib/menu-principal.mjs";
 import { HefistoPageContextProvider } from "../context/HefistoPageContext";
 import TopNavigation from "../components/layout/TopNavigation";
 import { Loader2 } from "lucide-react";
+import BarraUniverso from "../components/navigation/BarraUniverso";
 import CommandCenterModal from "../components/navigation/CommandCenterModal";
 import PainelHefisto from "../components/intelligence/PainelHefisto";
 import { addRecentRoute } from "../lib/user-preferences.js";
@@ -16,7 +18,8 @@ function ProtecaoPermissao({ sessao, children }) {
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const deveVerificar = !!sessao?.gerenciado || !!sessao?.is_app;
-  const permitido = !deveVerificar || canAccessRoute(sessao, pathname, search);
+  const permitido = !deveVerificar || canAccessRoute(sessao, pathname, search)
+    || universoLiberado(pathname, (rota, busca) => canAccessRoute(sessao, rota, busca));
 
   useEffect(() => {
     if (!deveVerificar || permitido) return;
@@ -101,6 +104,7 @@ export default function DashboardLayout({ children }) {
       <div className="erp-app-shell fixed inset-0 flex flex-col w-full h-[100dvh] min-h-0 bg-hf-bg overflow-hidden overscroll-none print:static print:bg-card print:block print:h-auto print:min-h-0 font-sans">
         
         <TopNavigation sessao={sessao} onSair={sair} onOpenSearch={() => setCommandCenterOpen(true)} />
+        <Suspense fallback={null}><BarraUniverso /></Suspense>
 
         <main className="erp-main-scroll flex-1 w-full max-w-[1920px] mx-auto overflow-y-auto overflow-x-hidden overscroll-none custom-scrollbar relative print:overflow-visible print:block bg-hf-bg">
           <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-900"><Loader2 className="animate-spin text-emerald-600 mr-2" />Carregando módulo...</div>}>

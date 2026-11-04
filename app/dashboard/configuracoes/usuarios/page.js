@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Ban, CheckCircle2, Copy, Eye, History, KeyRound, Loader2, Lock,
-  Pencil, Plus, Search, ShieldCheck, Trash2, UserRound, X,
+  Pencil, Plus, Search, ShieldCheck, Trash2, UserRound, X, Zap,
 } from "lucide-react";
+import ContaRapida from "../../../components/access-control/ContaRapida";
 import PermissionBuilder from "../../../components/access-control/PermissionBuilder";
 import { accessCommand, avatarInitials, fetchAccessBootstrap, formatLastAccess } from "../../../lib/access-control";
 import { allPermissionKeys, permissionMatches } from "../../../lib/permissions-catalog.mjs";
@@ -181,7 +182,8 @@ export default function UsuariosAcessosPage() {
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white"><ShieldCheck size={23}/></div>
           <div><p className="text-xs font-bold uppercase tracking-[.16em] text-success">Configurações</p><h1 className="text-2xl font-black text-slate-800">Usuários e acessos</h1><p className="text-sm text-fg">Login, escopos, segurança e permissões individuais.</p></div>
         </div>
-        <button onClick={() => openForm()} className="flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-black text-accent-fg shadow-lg shadow-emerald-200"><Plus size={17}/> Novo usuário</button>
+        <div className="flex flex-wrap gap-2"><button onClick={() => setModal("rapida")} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-black text-accent-fg"><Zap size={17} aria-hidden="true"/> Conta rápida</button>
+        <button onClick={() => openForm()} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-card px-5 py-3 text-sm font-black text-fg"><Plus size={17}/> Novo usuário</button></div>
       </header>
 
       {error && <div className="mb-4 flex items-center justify-between rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}<button onClick={() => setError("")}><X size={16}/></button></div>}
@@ -229,6 +231,8 @@ export default function UsuariosAcessosPage() {
         </div>
         {!users.length && <div className="p-12 text-center text-sm font-bold text-subtle">Nenhum usuário encontrado.</div>}
       </div>
+
+      {modal==="rapida" && <ContaRapida onFechar={()=>setModal(null)} onCriada={load}/>}
 
       {modal==="form" && <Modal title={form.id?"Editar usuário":"Novo usuário"} subtitle="Dados pessoais, vínculo, escopo e políticas de segurança." onClose={()=>setModal(null)}>
         <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">

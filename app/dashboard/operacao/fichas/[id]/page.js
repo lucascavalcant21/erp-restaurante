@@ -28,7 +28,7 @@ import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../../lib/f
 import { baixarPdfDeHtml } from "../../../../lib/pdf";
 import { logoSeldeestrelaSVG } from "../../../../lib/marca";
 import {
-  TIPOS_FICHA, tipoFichaDe, estiloDoTipo, dadosDaFicha, podeVerCustosFicha, categoriasDoTipo,
+  TIPOS_FICHA, tipoFichaDe, estiloDoTipo, dadosDaFicha, podeVerCustosFicha, podeEditarFicha, podeImprimirFicha, categoriasDoTipo,
   comCustoDeEmbalagens, custoPorPorcaoDaFicha, textoDeInstrucoes, ingredientesDaFicha, linhasDeArmazenamento, textoRendimento,
   textoRendimentoPrato,
   validadePrincipal, STATUS_FICHA,
@@ -119,7 +119,8 @@ export default function FichaTecnicaPage() {
     // Código FT: se ainda não tem, gera agora.
     let codigo = data.codigo;
     if (!codigo) {
-      const r = await garantirCodigoFicha(unidade, data.id, data.codigo);
+      // Gerar o código grava na ficha: quem só consulta vê a ficha como ela está.
+      const r = podeEditarFicha(sessao, data.departamento) ? await garantirCodigoFicha(unidade, data.id, data.codigo) : { codigo: data.codigo, error: null };
       if (r.codigo) codigo = r.codigo;
     }
     const daLista = fichasComCusto.find(f => f.id === data.id);
@@ -145,6 +146,8 @@ export default function FichaTecnicaPage() {
   const cfg = TIPOS_FICHA[tipo];
   const IconeTipo = ICONE_DO_TIPO[tipo];
   const podeVerCustos = podeVerCustosFicha(sessao, ficha?.departamento);
+  const podeEditar = podeEditarFicha(sessao, ficha?.departamento);
+  const podeImprimir = podeImprimirFicha(sessao, ficha?.departamento);
 
   const dados = useMemo(
     () => (ficha ? dadosDaFicha(ficha, { todasFichas, complementos, mostrarCustos: podeVerCustos }) : null),
@@ -336,9 +339,9 @@ export default function FichaTecnicaPage() {
         <button onClick={voltarParaLista} className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-slate-900 hover:bg-card">
           <ArrowLeft size={16} /> {cfg.rotuloPlural}
         </button>
-        <button onClick={() => setEditorAberto(true)} className="flex items-center gap-2 rounded-xl bg-[color:var(--tipo)] px-4 py-2 text-sm font-black text-[color:var(--tipo-fg)]">
+        {podeEditar && <button onClick={() => setEditorAberto(true)} className="flex items-center gap-2 rounded-xl bg-[color:var(--tipo)] px-4 py-2 text-sm font-black text-[color:var(--tipo-fg)]">
           <Edit3 size={15} /> Editar {tipo === "prato" ? "prato" : "pré-preparo"}
-        </button>
+        </button>}
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5">
@@ -357,15 +360,15 @@ export default function FichaTecnicaPage() {
 
       <div className="flex flex-wrap gap-1.5">
         <AcaoBtn icone={ChefHat} onClick={() => setModoCozinha(true)}>Modo cozinha</AcaoBtn>
-        <AcaoBtn icone={Printer} onClick={imprimir}>Imprimir</AcaoBtn>
-        <AcaoBtn icone={FileDown} onClick={gerarPdf}>PDF</AcaoBtn>
-        <AcaoBtn icone={GitBranch} onClick={novaVersao} carregando={criandoVersao}>Nova versão</AcaoBtn>
+        {podeImprimir && <AcaoBtn icone={Printer} onClick={imprimir}>Imprimir</AcaoBtn>}
+        {podeImprimir && <AcaoBtn icone={FileDown} onClick={gerarPdf}>PDF</AcaoBtn>}
+        {podeEditar && <AcaoBtn icone={GitBranch} onClick={novaVersao} carregando={criandoVersao}>Nova versão</AcaoBtn>}
         <AcaoBtn icone={History} onClick={abrirVersoes}>Versões</AcaoBtn>
-        <AcaoBtn icone={Copy} onClick={duplicar} carregando={duplicando}>Duplicar</AcaoBtn>
+        {podeEditar && <AcaoBtn icone={Copy} onClick={duplicar} carregando={duplicando}>Duplicar</AcaoBtn>}
         {tipo === "pre_preparo" ? <AcaoBtn icone={QrCode} onClick={gerarEtiqueta}>Etiqueta</AcaoBtn> : null}
-        <AcaoBtn icone={Power} onClick={alternarStatus}>{status === "ativa" ? "Inativar" : "Reativar"}</AcaoBtn>
+        {podeEditar && <AcaoBtn icone={Power} onClick={alternarStatus}>{status === "ativa" ? "Inativar" : "Reativar"}</AcaoBtn>}
         {podeVerCustos ? <AcaoBtn icone={Sparkles} onClick={() => setAssistenteAberto(true)}>Assistente de custo</AcaoBtn> : null}
-        <AcaoBtn icone={BookOpen} onClick={() => setModalExperiencia(true)}>Experiência do Prato (Discover)</AcaoBtn>
+        {podeEditar && <AcaoBtn icone={BookOpen} onClick={() => setModalExperiencia(true)}>Experiência do Prato (Discover)</AcaoBtn>}
       </div>
 
       {aviso ? (
@@ -454,7 +457,7 @@ export default function FichaTecnicaPage() {
         />
       ) : null}
 
-      {editorAberto ? (
+      {editorAberto && podeEditar ? (
         <EditorFicha key={ficha.id} tipo={tipo} departamento={ficha.departamento} ficha={{ ...ficha, fichas_ingredientes: ficha.fichas_ingredientes || [] }}
           produto={produto} paramsSistema={paramsSistema}
           fichas={todasFichas} insumos={insumos} embalagens={embalagens}

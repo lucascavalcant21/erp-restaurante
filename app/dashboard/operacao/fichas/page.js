@@ -52,6 +52,7 @@ import CardFicha from "./componentes/CardFicha";
 import { resumoFinanceiroDaFicha, produtosComPrecoSalvo } from "../../../lib/ficha-financeiro.mjs";
 import { METODOS_BAR, metodoBar, fetchComplementosDeFichas } from "../../../lib/ficha-tecnica";
 import { hasPermission, permissionKey } from "../../../lib/permissions-catalog.mjs";
+import { podeEditarFicha, podeImprimirFicha } from "../../../lib/ficha-modelo.mjs";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
@@ -344,6 +345,8 @@ function FichasRunner() {
   const podeVerCustos = !sessao?.gerenciado
     || hasPermission(sessao, permissionKey("fichas", "recipes", "view_costs"))
     || hasPermission(sessao, permissionKey(deptUrl === "bar" ? "bar" : "cozinha", "recipes", "view_costs"));
+  const podeEditarFichas = podeEditarFicha(sessao, deptUrl);
+  const podeImprimirFichas = podeImprimirFicha(sessao, deptUrl);
   const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(false);
   const [acoesCardAberto, setAcoesCardAberto] = useState("");
   
@@ -903,6 +906,7 @@ function FichasRunner() {
 
   // Arrastar para reordenar: reposiciona o item arrastado antes do alvo e grava a ordem
   const reordenar = async (arrastadoId, alvoId) => {
+    if (!podeEditarFichas) return;
     if (!arrastadoId || arrastadoId === alvoId) return;
     const ids = filtradas.map(f => f.id);
     const from = ids.indexOf(arrastadoId), to = ids.indexOf(alvoId);
@@ -918,6 +922,7 @@ function FichasRunner() {
   };
 
   const abrirNova = () => {
+    if (!podeEditarFichas) return;
     const criandoPreparo = modoFicha === "preparos";
     const categoriaInicial = criandoPreparo
       ? (deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR[0] : CATEGORIAS_PREPARO_COZINHA[0])
@@ -989,6 +994,7 @@ function FichasRunner() {
   };
 
   const abrirEditar = (ficha) => {
+    if (!podeEditarFichas) return;
     setAutoSoma(false);
     const produtoFicha = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
     setForm({
@@ -1322,6 +1328,7 @@ function FichasRunner() {
   };
 
   const handleSalvar = async (criarOutra = false) => {
+    if (!podeEditarFichas) return;
     if (salvandoFicha) return;
     if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
     if(!form.rendimento_porcoes) return alert("Digite o rendimento");
@@ -1561,6 +1568,7 @@ function FichasRunner() {
   const limparSelecaoLote = () => setSelecionadas([]);
 
   const excluirImediatamente = async (lista = fichasSelecionadas) => {
+    if (!podeEditarFichas) return;
     if (!lista.length) return;
     setProcessandoLote(true);
     setMensagemLote("");
@@ -2500,13 +2508,13 @@ function FichasRunner() {
                 <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-fg outline-none placeholder:font-medium placeholder:text-subtle" />
                 {busca && <button onClick={() => setBusca("")} className="text-subtle hover:text-fg-soft" title="Limpar busca"><X size={16} /></button>}
               </label>
-              <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-accent-soft px-4 text-sm font-black text-accent-strong shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
-              <button onClick={abrirOpcaoNovo} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20 hover:bg-accent"><Plus size={18} /> {modoFicha === "preparos" ? "Criar receita" : deptUrl === "bar" ? "Criar drink" : "Criar prato"}</button>
+              {podeEditarFichas && <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-accent-soft px-4 text-sm font-black text-accent-strong shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>}
+              {podeEditarFichas && <button onClick={abrirOpcaoNovo} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20 hover:bg-accent"><Plus size={18} /> {modoFicha === "preparos" ? "Criar receita" : deptUrl === "bar" ? "Criar drink" : "Criar prato"}</button>}
             </div>
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-line bg-transparent p-2">
-            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card"><Printer size={14} /> Livro de receitas</button>
-            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para baixar."); baixarPdfFichas(selecionadas.length ? fichas.filter(f => selecionadas.includes(f.id)) : fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card"><Download size={14} /> Baixar PDF</button>
+            {podeImprimirFichas && <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card"><Printer size={14} /> Livro de receitas</button>}
+            {podeImprimirFichas && <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para baixar."); baixarPdfFichas(selecionadas.length ? fichas.filter(f => selecionadas.includes(f.id)) : fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card"><Download size={14} /> Baixar PDF</button>}
             {podeVerCustos && <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card"><Calculator size={14} /> Custos e CMV</button>}
             {podeVerCustos && (
               <button onClick={() => setVerPizza(v => !v)} title="Mostra em cada ficha para onde vai cada real da venda"
@@ -2514,9 +2522,9 @@ function FichasRunner() {
                 <PieChart size={14} /> {verPizza ? "Ver números" : "Pizza do lucro"}
               </button>
             )}
-            <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
+            {podeEditarFichas && <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>}
             <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
-            <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card disabled:opacity-50">{importandoCardapio ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Importar cardápio</button>
+            {podeEditarFichas && <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card disabled:opacity-50">{importandoCardapio ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Importar cardápio</button>}
           </div>
         </div>
       </header>
@@ -2704,9 +2712,11 @@ function FichasRunner() {
                {modoFicha === "preparos" ? "Categorias de preparos" : deptUrl === "bar" ? "Categorias de bebidas e drinks" : "Categorias de pratos"}
                <span className="rounded-full bg-card px-2 py-0.5 text-3xs text-fg">{categoriasDisponiveis.length}</span>
              </button>
+             {podeEditarFichas && (
              <button type="button" onClick={() => setModalCategorias(true)} className={`flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-bold text-accent-fg ${modoFicha === "preparos" ? "bg-amber-700 hover:bg-amber-800" : "bg-accent hover:opacity-90"}`}>
                <FolderPlus size={15} /> <span className="hidden sm:inline">Gerenciar</span>
              </button>
+             )}
            </div>
          {!categoriasRecolhidas && <div className="flex flex-wrap items-center justify-center gap-2 py-1">
             {categoriasDisponiveis.map(cat => {
@@ -2756,11 +2766,11 @@ function FichasRunner() {
                  <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="xl:hidden p-2 rounded-lg bg-card text-fg"><X size={16}/></button>
                </div>
                <div className="flex flex-wrap gap-2 xl:flex-1 xl:justify-end">
-                 <button onClick={() => abrirPreviaImpressao("imprimir")} className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs font-bold text-accent-fg hover:opacity-90"><Printer size={15}/> Imprimir</button>
-                 <button onClick={() => abrirPreviaImpressao("livro")} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-transparent"><BookOpen size={15}/> Gerar livro</button>
-                 <button onClick={() => { const lista = fichas.filter(f => selecionadas.includes(f.id)); if (lista.length) baixarPdfFichas(lista); }} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-transparent"><FileDown size={15}/> Exportar PDF</button>
-                 <button onClick={duplicarFichasSelecionadas} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-transparent disabled:opacity-50"><Copy size={15}/> Duplicar</button>
-                  <button onClick={() => excluirImediatamente()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> {processandoLote ? "Excluindo..." : "Excluir"}</button>
+                 {podeImprimirFichas && <button onClick={() => abrirPreviaImpressao("imprimir")} className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs font-bold text-accent-fg hover:opacity-90"><Printer size={15}/> Imprimir</button>}
+                 {podeImprimirFichas && <button onClick={() => abrirPreviaImpressao("livro")} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-transparent"><BookOpen size={15}/> Gerar livro</button>}
+                 {podeImprimirFichas && <button onClick={() => { const lista = fichas.filter(f => selecionadas.includes(f.id)); if (lista.length) baixarPdfFichas(lista); }} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-transparent"><FileDown size={15}/> Exportar PDF</button>}
+                 {podeEditarFichas && <button onClick={duplicarFichasSelecionadas} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-transparent disabled:opacity-50"><Copy size={15}/> Duplicar</button>}
+                  {podeEditarFichas && <button onClick={() => excluirImediatamente()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> {processandoLote ? "Excluindo..." : "Excluir"}</button>}
                  <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="hidden xl:flex p-2 rounded-lg bg-card text-fg hover:text-slate-800"><X size={16}/></button>
                </div>
              </div>
@@ -2812,10 +2822,10 @@ function FichasRunner() {
                        acoes={(
                          <>
                            <button
-                             onClick={() => abrirEditar(f)}
+                             onClick={() => (podeEditarFichas ? abrirEditar(f) : abrirFicha(f))}
                              className="h-9 px-4 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition-colors flex items-center"
                            >
-                             Editar
+                             {podeEditarFichas ? "Editar" : "Ver ficha"}
                            </button>
                            <button
                              onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)}
@@ -2828,13 +2838,13 @@ function FichasRunner() {
                            {acoesCardAberto === f.id && (
                              <div className="absolute right-0 top-11 z-[60] w-48 bg-card border border-line rounded-2xl shadow-xl p-1.5 flex flex-col gap-1">
                                <button onClick={() => { setAcoesCardAberto(""); abrirFicha(f); }} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><BookOpen size={14}/> Ver Ficha</button>
-                               <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><LayoutList size={14}/> Engenharia</button>
+                               <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}?dept=${f.departamento || deptUrl || "cozinha"}`)} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><LayoutList size={14}/> Engenharia</button>
                                {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><CheckSquare2 size={14}/> Montagem</button>}
                                <button onClick={() => abrirSimulacao(f)} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><Calculator size={14}/> Simular Custos</button>
-                               <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><Printer size={14}/> Imprimir Ficha</button>
-                               <button onClick={() => { setAcoesCardAberto(""); baixarPdfFichas([f]); }} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><FileDown size={14}/> Baixar PDF</button>
-                               <div className="h-px w-full bg-line-soft my-0.5"></div>
-                               <button onClick={() => excluirImediatamente([f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 font-bold text-xs text-left flex items-center gap-2"><Trash2 size={14}/> Excluir Receita</button>
+                               {podeImprimirFichas && <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><Printer size={14}/> Imprimir Ficha</button>}
+                               {podeImprimirFichas && <button onClick={() => { setAcoesCardAberto(""); baixarPdfFichas([f]); }} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><FileDown size={14}/> Baixar PDF</button>}
+                               {podeEditarFichas && <div className="h-px w-full bg-line-soft my-0.5"></div>}
+                               {podeEditarFichas && <button onClick={() => excluirImediatamente([f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 font-bold text-xs text-left flex items-center gap-2"><Trash2 size={14}/> Excluir Receita</button>}
                              </div>
                            )}
                          </>
@@ -3115,12 +3125,12 @@ function FichasRunner() {
                      <div className="flex items-center gap-2 shrink-0">
                         {!f.eh_base && (
                            <>
-                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} title="Imprimir" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-900 hover:border-emerald-400 flex items-center justify-center"><Printer size={17} /></button>
-                              <button onClick={() => abrirPreviaImpressao("pdf", [f])} title="Gerar PDF" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-900 hover:border-emerald-400 flex items-center justify-center"><Download size={17} /></button>
+                              {podeImprimirFichas && <button onClick={() => abrirPreviaImpressao("imprimir", [f])} title="Imprimir" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-900 hover:border-emerald-400 flex items-center justify-center"><Printer size={17} /></button>}
+                              {podeImprimirFichas && <button onClick={() => abrirPreviaImpressao("pdf", [f])} title="Gerar PDF" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-900 hover:border-emerald-400 flex items-center justify-center"><Download size={17} /></button>}
                               <button onClick={() => abrirSimulacao(f)} title="Simular rendimento" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-900 hover:border-emerald-400 flex items-center justify-center"><Calculator size={17} /></button>
                            </>
                         )}
-                        <button onClick={() => { fechar(); abrirEditar(f); }} className="inline-flex items-center gap-2 rounded-xl bg-accent hover:bg-accent text-accent-fg font-black text-sm px-4 h-10 shadow-sm"><Edit3 size={16} /> Editar ficha</button>
+                        {podeEditarFichas && <button onClick={() => { fechar(); abrirEditar(f); }} className="inline-flex items-center gap-2 rounded-xl bg-accent hover:bg-accent text-accent-fg font-black text-sm px-4 h-10 shadow-sm"><Edit3 size={16} /> Editar ficha</button>}
                      </div>
                   </div>
 
@@ -3158,7 +3168,7 @@ function FichasRunner() {
                                     </div>
                                  ))}
                               </div>
-                              <div onClick={() => { fechar(); abrirEditar(f); }} className="w-full sm:w-40 h-32 sm:h-auto shrink-0 rounded-2xl overflow-hidden bg-card border border-line cursor-pointer relative group">
+                              <div onClick={() => { if (podeEditarFichas) { fechar(); abrirEditar(f); } }} className="w-full sm:w-40 h-32 sm:h-auto shrink-0 rounded-2xl overflow-hidden bg-card border border-line cursor-pointer relative group">
                                  {f.imagem ? (
                                     <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
                                  ) : (
@@ -3220,7 +3230,7 @@ function FichasRunner() {
                                  </tbody>
                               </table>
                            </div>
-                           <button onClick={() => { fechar(); abrirEditar(f); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 text-accent-strong font-black text-sm px-4 py-2.5 hover:bg-accent-soft"><Plus size={16} /> Adicionar ingrediente</button>
+                           {podeEditarFichas && <button onClick={() => { fechar(); abrirEditar(f); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 text-accent-strong font-black text-sm px-4 py-2.5 hover:bg-accent-soft"><Plus size={16} /> Adicionar ingrediente</button>}
                            {podeVerCustos && (
                            <div className="mt-4 pt-3 border-t border-line flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-sm">
                               <span className="text-fg font-bold">Custo total da receita: <b className="text-accent font-black">{fmtBRL(custoTotal)}</b></span>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useERP } from "../context/ERPContext";
+import { canAccessRoute } from "../lib/permissions-catalog.mjs";
 import {
   ArrowLeft, ArrowRight, Beaker, BookOpen, ChefHat, ClipboardList, GlassWater,
   Boxes, CalendarCheck, ChevronDown, Factory, FileInput, Layers3,
@@ -70,7 +71,10 @@ export default function RecipeWorkspace({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { abrirMenu } = useERP();
+  const { abrirMenu, sessao } = useERP();
+  // A troca Cozinha/Bar só aparece para quem pode abrir os dois setores.
+  const podeSetor = (dept) => !sessao?.gerenciado || canAccessRoute(sessao, pathname, `dept=${dept}`);
+  const trocaSetor = podeSetor("cozinha") && podeSetor("bar");
   const [fluxoAberto, setFluxoAberto] = useState(false);
   const setor = dept === "bar" ? "bar" : "cozinha";
   const bar = setor === "bar";
@@ -99,7 +103,7 @@ export default function RecipeWorkspace({
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <div className="flex items-center rounded-xl bg-elevated p-0.5 border border-slate-200/80">
+                {trocaSetor && <div className="flex items-center rounded-xl bg-elevated p-0.5 border border-slate-200/80">
                   <button
                     type="button"
                     onClick={() => router.push(`${pathname}?dept=cozinha`)}
@@ -114,7 +118,7 @@ export default function RecipeWorkspace({
                   >
                     🍹 Bar
                   </button>
-                </div>
+                </div>}
                 {Number.isFinite(Number(total)) && (
                   <span className="rounded-full bg-elevated px-2.5 py-0.5 text-3xs font-bold text-slate-600">
                     {total} cadastrado{Number(total) === 1 ? "" : "s"}

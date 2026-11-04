@@ -262,3 +262,18 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
   - Depois: 0 linhas na tabela (nada ficou).
 - **Chave:** banco:db/CHAMADOS_1_MESA.sql
 
+### APR-016 · PENDENTE
+
+- **Missão:** contas por função (pedido do dono, 04/11/2026): consultar a ficha técnica sem poder alterar
+- **Ação:** Aplicar db/security/SEC_FICHAS_1_EDICAO_POR_PERMISSAO.sql no Supabase real
+  - fichas, ingredientes, montagem e tabelas ligadas: ler continua igual; criar, alterar e apagar passam a exigir permissão de ficha, montagem, cardápio ou marmita
+- **Ambiente:** supabase (produção)
+- **Risco:** HIGH (muda RLS de 9 tabelas)
+- **Motivo:** hoje qualquer usuário da unidade grava fichas pela API do banco, mesmo sem botão na tela (conferido em 04/11/2026)
+- **Impacto:** 11 das 16 contas usam o perfil Somente consulta e deixam de gravar fichas. Antes de aplicar, confirmar se alguma delas edita fichas hoje e trocar o perfil se precisar
+- **Rollback:** db/security/SEC_FICHAS_1_ROLLBACK.sql (só com decisão do dono)
+- **Evidências:** PGlite 7/7 (`app/lib/sec-fichas-1.test.mjs`): consulta não grava, permissão continua gravando, outra unidade fora, preflight, rollback
+- **Impressão digital esperada:** b300bf3a8f1a004da40d3eaf2f104a2a
+- **Comando/alteração:** `Rodar o arquivo inteiro. O select do fim deve devolver b300bf3a8f1a004da40d3eaf2f104a2a.`
+- **Status:** PENDENTE
+- **Criado em:** 2026-11-04

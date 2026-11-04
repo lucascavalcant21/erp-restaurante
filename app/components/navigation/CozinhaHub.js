@@ -22,7 +22,8 @@ import {
   HubListItem
 } from "./HubPrimitives";
 
-export default function CozinhaHub({ onVerGestaoCompleta }) {
+// `embutido`: dentro do universo da Cozinha, que já tem cabeçalho e cards próprios.
+export default function CozinhaHub({ onVerGestaoCompleta, embutido = false }) {
   const router = useRouter();
   const { sessao, unidadeAtiva, unidadeInfo } = useERP();
 
@@ -152,11 +153,11 @@ export default function CozinhaHub({ onVerGestaoCompleta }) {
   const isRefreshing = loadingProducao || loadingEstoque || loadingChecklists;
 
   return (
-    <div className="min-h-screen bg-hf-bg text-hf-text font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8">
+    <div className={embutido ? "bg-hf-bg text-hf-text font-sans" : "min-h-screen bg-hf-bg text-hf-text font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8"}>
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* CABEÇALHO PADRONIZADO */}
-        <HubHeader
+        {!embutido && <HubHeader
           icon={ChefHat}
           domainTag="Ambiente Operacional"
           unitName={unidadeInfo?.nome || "Cozinha Central"}
@@ -186,7 +187,7 @@ export default function CozinhaHub({ onVerGestaoCompleta }) {
               </HubActionButton>
             ) : null
           }
-        />
+        />}
 
         {/* LAYOUT EM GRID LANDSCAPE / PORTRAIT DA OPERAÇÃO */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -486,7 +487,7 @@ export default function CozinhaHub({ onVerGestaoCompleta }) {
             )}
 
             {/* SEÇÃO 6: FERRAMENTAS COMPLEMENTARES DA COZINHA */}
-            <div className="space-y-3 pt-2">
+            {!embutido && <div className="space-y-3 pt-2">
               <HubSectionHeader
                 title="Ferramentas da Cozinha"
               />
@@ -540,7 +541,7 @@ export default function CozinhaHub({ onVerGestaoCompleta }) {
                   <p className="text-[10px] text-hf-text-2">Aferição Anvisa</p>
                 </button>
               </div>
-            </div>
+            </div>}
 
           </div>
 

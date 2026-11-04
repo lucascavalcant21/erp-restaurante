@@ -3,8 +3,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Sparkles, User, Settings, LogOut, ChevronDown, Menu, X, ChevronRight, Bell } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { hasPermission } from "../../lib/permissions-catalog.mjs";
-import { menuPrincipal, areaDaRota } from "../../lib/menu-principal.mjs";
+import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
+import { homeDoUsuario } from "../../lib/auth";
+import { menuPrincipal, menuVisivel, universoLiberado, areaDaRota, universoDaRota, cardsDaArea } from "../../lib/menu-principal.mjs";
+import { lerOrigem, limparOrigem } from "../../lib/universo-origem";
+
+// App dedicado não abre a tela de cards: as telas liberadas viram submenu.
+const linksDoApp = (mod) => mod.submodules || cardsDaArea(mod);
 
 export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   const pathname = usePathname();
@@ -33,11 +38,19 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
   const podeInteligencia = !!sessao && (!sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view"));
   // A lista do menu mora em app/lib/menu-principal.mjs (a mesma do "voltar" das telas).
-  const modules = menuPrincipal({ podeInteligencia });
+  const todosOsModulos = menuPrincipal({ podeInteligencia });
+  // Conta com perfil só enxerga as áreas dela. App dedicado tem filtro próprio abaixo.
+  const modules = sessao?.gerenciado && !sessao?.is_app
+    ? menuVisivel(todosOsModulos, (rota, busca) => canAccessRoute(sessao, rota, busca) || universoLiberado(rota, (r, b) => canAccessRoute(sessao, r, b)))
+    : todosOsModulos;
 
-  // A área ativa é a do link mais específico que casa com a tela (o KDS fica
-  // em /cozinha/kds mas é de Vendas; Compras do estoque não é Cotações).
-  const ativoId = areaDaRota(pathname, modules)?.id || null;
+  // A área ativa é a do universo aberto (Validades vinda do Bar acende Bar) ou,
+  // fora deles, a do link mais específico que casa com a tela.
+  const [universoId, setUniversoId] = useState(null);
+  useEffect(() => {
+    setUniversoId(universoDaRota(pathname, window.location.search, lerOrigem())?.id || null);
+  }, [pathname]);
+  const ativoId = universoId || areaDaRota(pathname, modules)?.id || null;
 
   // Filtra módulos caso seja um App dedicado com rotas restritas
   const modulosVisiveis = modules
@@ -46,26 +59,29 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       const rotas = sessao.allowed_routes || [];
       const rotaMod = mod.href.split("?")[0];
       const matchMod = rotas.some((r) => r.split("?")[0] === rotaMod || r.startsWith(rotaMod));
-      const submodulesValidos = (mod.submodules || []).filter((sub) => {
+      const submodulesValidos = linksDoApp(mod).filter((sub) => {
         const rSub = sub.href.split("?")[0];
         return rotas.some((r) => r.split("?")[0] === rSub || r.startsWith(rSub));
       });
       return matchMod || submodulesValidos.length > 0;
     })
     .map((mod) => {
-      if (!sessao?.is_app || !mod.submodules) return mod;
+      if (!sessao?.is_app || !linksDoApp(mod).length) return mod;
       const rotas = sessao.allowed_routes || [];
       return {
         ...mod,
-        submodules: mod.submodules.filter((sub) => {
+        submodules: linksDoApp(mod).filter((sub) => {
           const rSub = sub.href.split("?")[0];
           return rotas.some((r) => r.split("?")[0] === rSub || r.startsWith(rSub));
         }),
       };
     });
 
+  // Quem navega pelo menu saiu do universo; a tela de cards marca a origem de novo.
+  const aoClicarNoMenu = (e) => { if (e.target.closest?.("a")) limparOrigem(); };
+
   return (
-    <>
+    <div className="contents" onClickCapture={aoClicarNoMenu}>
       <header className="bg-hf-menu border-b border-hf-menu-border text-hf-menu-text sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "var(--erp-safe-top)" }}>
         <div className="h-14 flex items-center justify-between gap-3 px-4 lg:px-6 w-full">
         <div className="flex items-center gap-4 lg:gap-5 h-full min-w-0">
@@ -77,7 +93,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             <Menu size={24} />
           </button>
 
-          <Link href={sessao?.is_app ? (sessao.pagina_inicial || "/dashboard") : "/dashboard"} className="flex items-center gap-2 shrink-0 group">
+          <Link href={sessao?.is_app || sessao?.gerenciado ? homeDoUsuario(sessao) : "/dashboard"} className="flex items-center gap-2 shrink-0 group">
             <div className="w-8 h-8 bg-hf-accent rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
               <span className="text-hf-accent-fg font-black text-lg">H</span>
             </div>
@@ -283,6 +299,6 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

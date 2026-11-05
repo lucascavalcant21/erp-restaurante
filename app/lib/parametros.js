@@ -365,3 +365,16 @@ export async function fetchJantaFuncionarios(unidadeId) {
   return { data: data?.[0]?.params?.janta_funcionarios || null, error: null };
 }
 export const salvarJantaFuncionarios = (unidadeId, janta) => salvarParams(unidadeId, { janta_funcionarios: janta });
+
+// Modelo da proposta de evento para o cliente (condições gerais, empresa,
+// assinatura, pagamento). Um só para a casa, usado em todas as propostas.
+// Sem logo próprio, usa o logo do Cardápio digital.
+export async function fetchModeloProposta(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: null, logoCardapio: "", error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: null, logoCardapio: "", error: error.message };
+  const params = data?.[0]?.params || {};
+  const cd = params.cardapio_digital || {};
+  return { data: params.proposta_eventos || null, logoCardapio: cd.tema?.logo_url || cd.logo_url || "", error: null };
+}
+export const salvarModeloProposta = (unidadeId, modelo) => salvarParams(unidadeId, { proposta_eventos: modelo });

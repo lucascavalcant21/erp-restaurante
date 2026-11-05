@@ -66,6 +66,19 @@ Um único modelo profissional de proposta para TODAS as modalidades de evento do
 - Simulador cria o evento como Combinado, com a mesa na seção própria e o pacote.
 - TESTADO EM MOCK no navegador: pacote R$ 900 do simulador → evento Combinado → cardápio com o pacote → financeiro com "Mesa montada (pacote) R$ 900".
 
+## Feito (etapa 3 — proposta para o cliente, 05/11/2026)
+
+- PDF de referência recebido (coffee break 40 pax, de outra empresa): copiada só a organização.
+- Etapa "Orçamento" reescrita (`EtapaProposta.js` + `app/lib/evento-proposta.mjs`, 4 testes):
+  - cabeçalho com logo (do modelo ou do Cardápio digital) e fotos das fichas;
+  - datas de solicitação e envio; informações do evento (com decorador);
+  - cardápio por parte com quantidade + item por categoria; serviços inclusos;
+  - total (detalhado ou só o total) e condições gerais do modelo da casa;
+  - pagamento com entrada/restante calculados; assinatura e aceite.
+- Modelo da casa em `config_sistema.params.proposta_eventos`, editável na própria etapa.
+- TESTADO EM MOCK: PDF A4 gerado pelo navegador, 3 páginas.
+- Falta: versões da proposta e pacotes Econômico/Intermediário/Premium; logo e dados reais do Seldeestrela (o dono preenche no modelo).
+
 ## Critério de pronto
 
 - [ ] Evento com 2+ modalidades calcula cada uma e soma sem duplicar recurso — testes

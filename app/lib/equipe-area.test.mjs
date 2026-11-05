@@ -1,7 +1,7 @@
 // Quem aparece em cada área — no ponto e no estoque. Regra errada aqui faz o
 // cozinheiro assinar retirada do bar e o chefe de cozinha aparecer em três
 // listas, então vale teste com a equipe real da casa.
-import { equipeDaArea, ehDeAlgumSetor } from "./equipe-area.mjs";
+import { areaDoFuncionario, equipeDaArea, equipeParaEtiquetar, ehDeAlgumSetor } from "./equipe-area.mjs";
 
 const equipe = [
   { nome: "Larissa da Silva Uhe", cargo: "Chef de Garçom" },
@@ -68,6 +68,20 @@ for (const area of ["cozinha", "bar", "salao", "limpeza"]) {
 }
 conferir("sem a marca, chef de garcom nao vai para a cozinha",
   String(equipeDaArea([...equipe, { nome: "Rita Salao", cargo: "Chef de Garcom" }], "cozinha").some(c => c.nome === "Rita Salao")), "false");
+
+// Etiquetas: a lista é a equipe ativa inteira, sem filtro de área nem de contrato.
+const casa = [
+  { nome: "Ana", cargo: "Cozinheira", tipo_contrato: "Freelancer", status: "ativo" },
+  { nome: "Bia", cargo: "Bartender", tipo_contrato: "Fixo", status: "ativo" },
+  { nome: "Caio", cargo: "Garçom", tipo_contrato: "Fixo", status: "ativo" },
+  { nome: "Duda", cargo: "Garçom", tipo_contrato: "Fixo", status: "inativo" },
+  { nome: "Eva", cargo: "Garçom", tipo_contrato: "Fixo", status: "ativo", data_desligamento: "2026-10-01" },
+];
+conferir("etiquetas: toda a equipe ativa, inclusive freelancer", nomes(equipeParaEtiquetar(casa)), "Ana, Bia, Caio");
+conferir("etiquetas: lista vazia nao quebra", String(equipeParaEtiquetar(undefined).length), "0");
+conferir("bartender etiqueta pelo bar", areaDoFuncionario(casa[1]), "bar");
+conferir("cozinheira etiqueta pela cozinha", areaDoFuncionario(casa[0]), "cozinha");
+conferir("sem pessoa, cozinha", areaDoFuncionario(undefined), "cozinha");
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

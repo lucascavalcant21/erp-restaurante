@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
-import { ArrowLeft, Bluetooth, CheckCircle2, ChefHat, FolderOpen, GlassWater, Maximize2, Mic, Minus, Plus, Printer, RefreshCw, Save, Search, Tag, Trash2, UserRound, X, XCircle, List, ChevronRight, ChevronDown } from "lucide-react";
+import { ArrowLeft, Bluetooth, CheckCircle2, ChefHat, FolderOpen, Maximize2, Mic, Minus, Plus, Printer, RefreshCw, Save, Search, Tag, Trash2, UserRound, X, XCircle, List, ChevronRight, ChevronDown } from "lucide-react";
 import { useERP } from "../context/ERPContext";
 import { fetchEstoque } from "../lib/estoque";
 import { fetchProdutos } from "../lib/vendas";
@@ -13,7 +13,7 @@ import { CONSERVACAO, criarEtiqueta, excluirListaEtiquetas, fetchListasEtiquetas
 import { fetchValidadesEtiqueta, fetchPerfisEtiquetas } from "../lib/parametros";
 import { imprimirHtml } from "../lib/imprimir";
 import { criarEscuta, vozDisponivel } from "../lib/hefisto-voz";
-import { equipeDaArea } from "../lib/equipe-area.mjs";
+import { areaDoFuncionario, equipeParaEtiquetar } from "../lib/equipe-area.mjs";
 import { registrarAuditoria } from "../lib/hefisto-acoes";
 import { conectarImpressoraBluetooth, imprimirEtiquetasBluetooth } from "../lib/impressaoTermica";
 import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb, imprimirFilaMdk022Usb } from "../lib/impressaoMdk022";
@@ -48,6 +48,7 @@ function layoutNomeDaPrevia(nomes, dim, escala, rodape) {
   return layoutNome(ctx, w, h, { nomes, escala, rodape });
 }
 
+const AREAS = ["cozinha", "bar"];
 const chaveListasLocais = (unidadeId, setor) => `hefisto_listas_etiquetas_${unidadeId || "sem-unidade"}_${setor || "todos"}`;
 
 function lerListasLocais(unidadeId, setor) {
@@ -248,10 +249,10 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x
 export default function EtiquetasRapidas() {
   const router = useRouter();
   const { unidadeAtiva, unidadeInfo, sessao, abrirMenu } = useERP();
-  // Quem chega pelo card do Bar ou da Cozinha já escolheu o setor (?dept=).
+  // Não há mais escolha de área: abre em "quem está etiquetando" e mostra os
+  // produtos da cozinha e do bar juntos. O ?dept= dos cards só define o lote.
   const dept = useSearchParams().get("dept");
   const setorDaUrl = dept === "cozinha" || dept === "bar" ? dept : "";
-  const [setor, setSetor] = useState(setorDaUrl);
   const [funcionarios, setFuncionarios] = useState([]);
   const [responsavelId, setResponsavelId] = useState("");
   const [produtos, setProdutos] = useState([]);
@@ -333,7 +334,8 @@ export default function EtiquetasRapidas() {
   const [statusMdk, setStatusMdk] = useState("");
   const [detalhesMdk, setDetalhesMdk] = useState(null);
   const [mostrarDetalhesMdk, setMostrarDetalhesMdk] = useState(false);
-  const [perfilFisico, setPerfilFisico] = useState(null);
+  const [perfisImpressora, setPerfisImpressora] = useState([]);
+  const [buscaPessoa, setBuscaPessoa] = useState("");
 
   // Novos states UX
   const [recentesIds, setRecentesIds] = useState(() => { try { return JSON.parse(localStorage.getItem("hefisto_etq_recentes") || "[]"); } catch { return []; } });
@@ -342,32 +344,35 @@ export default function EtiquetasRapidas() {
   const [listasRecolhidas, setListasRecolhidas] = useState(true);
 
   const responsavel = funcionarios.find(pessoa => String(pessoa.id) === String(responsavelId));
+  const setor = setorDaUrl || areaDoFuncionario(responsavel);
+  const perfilFisico = perfisImpressora.find(p => p.setor === setor) || null;
   const totalEtiquetas = fila.reduce((total, produto) => total + Math.max(1, Math.floor(numero(produto.copias))), 0);
 
   const carregarBase = useCallback(async () => {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setCarregando(false); return; }
     const [colaboradores, validades, perfisRes] = await Promise.all([fetchColaboradores(unidadeAtiva), fetchValidadesEtiqueta(unidadeAtiva), fetchPerfisEtiquetas(unidadeAtiva)]);
-    setFuncionarios(equipeDaArea(colaboradores.data || [], setor));
+    setFuncionarios(equipeParaEtiquetar(colaboradores.data));
     setCategorias(validades.data || []);
-    const listaPerfis = perfisRes?.data || [];
-    setPerfilFisico(listaPerfis.find(p => p.setor === setor) || null);
-  }, [unidadeAtiva, setor]);
+    setPerfisImpressora(perfisRes?.data || []);
+  }, [unidadeAtiva]);
   useEffect(() => { carregarBase(); }, [carregarBase]);
 
   const carregarListas = useCallback(async () => {
-    if (!unidadeAtiva || unidadeAtiva === "todas" || !setor) return setListasSalvas([]);
-    const remotas = await fetchListasEtiquetas(unidadeAtiva, setor, 30);
-    const locais = lerListasLocais(unidadeAtiva, setor);
+    if (!unidadeAtiva || unidadeAtiva === "todas") return setListasSalvas([]);
+    const remotas = await fetchListasEtiquetas(unidadeAtiva, null, 30);
+    const locais = AREAS.flatMap(area => lerListasLocais(unidadeAtiva, area));
     const mapa = new Map([...(remotas.data || []), ...locais].map(lista => [String(lista.id), lista]));
     setListasSalvas([...mapa.values()].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)));
-  }, [setor, unidadeAtiva]);
+  }, [unidadeAtiva]);
   useEffect(() => { carregarListas(); }, [carregarListas]);
 
   useEffect(() => {
-    if (!setor || !unidadeAtiva || unidadeAtiva === "todas") return;
+    if (!unidadeAtiva || unidadeAtiva === "todas") return;
     let ativo = true; setCarregando(true);
-    Promise.all([fetchEstoque(unidadeAtiva, setor), fetchProdutos(unidadeAtiva, setor), fetchFichas(unidadeAtiva, setor)]).then(([estoque, cardapio, fichas]) => {
+    Promise.all(AREAS.map(area => Promise.all([fetchEstoque(unidadeAtiva, area), fetchProdutos(unidadeAtiva, area), fetchFichas(unidadeAtiva, area)]))).then((areas) => {
       if (!ativo) return;
+      const juntar = (i) => ({ data: areas.flatMap(area => area[i].data || []) });
+      const [estoque, cardapio, fichas] = [juntar(0), juntar(1), juntar(2)];
       const mapa = new Map();
       (estoque.data || []).forEach(produto => {
         if (!produto.nome) return;
@@ -387,7 +392,7 @@ export default function EtiquetasRapidas() {
       setCarregando(false);
     });
     return () => { ativo = false; };
-  }, [setor, unidadeAtiva]);
+  }, [unidadeAtiva]);
 
   // Aplicar Filtros Novos (Todos, Recentes, Favoritos, Ingredientes, Preparos)
   const visiveis = useMemo(() => {
@@ -433,7 +438,6 @@ export default function EtiquetasRapidas() {
     if (item) return setItem(null);
     if (responsavelId) { setResponsavelId(""); setFila([]); return; }
     if (setorDaUrl) { abrirMenu(); return; }
-    if (setor) { setSetor(""); setBusca(""); return; }
     router.back();
   }
 
@@ -540,7 +544,7 @@ export default function EtiquetasRapidas() {
     if (String(listaParaExcluir) !== String(lista.id)) return setListaParaExcluir(lista.id);
     setListaParaExcluir(null);
     if (String(lista.id).startsWith("local:")) {
-      gravarListasLocais(unidadeAtiva, setor, lerListasLocais(unidadeAtiva, setor).filter(i => String(i.id) !== String(lista.id)));
+      AREAS.forEach(area => gravarListasLocais(unidadeAtiva, area, lerListasLocais(unidadeAtiva, area).filter(i => String(i.id) !== String(lista.id))));
     } else { await excluirListaEtiquetas(lista.id); }
     await carregarListas();
   }
@@ -592,33 +596,9 @@ export default function EtiquetasRapidas() {
 
   if (!unidadeAtiva || unidadeAtiva === "todas") return <div className="etq-vazio"><Tag size={56} /><h1>Escolha uma loja</h1></div>;
 
-  // TELA 1: ÁREA
-  if (!setor) return (
-    <div className="ux-app">
-      <style>{ESTILOS}</style>
-      <header className="ux-header-simples">
-        <button onClick={voltar}><ArrowLeft size={20} /> Voltar</button>
-        <button onClick={telaCheia}><Maximize2 size={19} /> Tela cheia</button>
-      </header>
-      <main className="ux-area-main">
-        <Tag size={42} color="var(--cor-brand)" />
-        <h1>Etiquetas</h1>
-        <p>Escolha onde você está trabalhando</p>
-        <div className="ux-area-grid">
-          <button className="ux-btn-cozinha" onClick={() => setSetor("cozinha")}>
-            <ChefHat size={32} /> <strong>Cozinha</strong>
-            <span>Produtos e pré-preparos</span>
-          </button>
-          <button className="ux-btn-bar" onClick={() => setSetor("bar")}>
-            <GlassWater size={32} /> <strong>Bar</strong>
-            <span>Bebidas e pré-preparos</span>
-          </button>
-        </div>
-      </main>
-    </div>
-  );
-
-  // TELA 2: FUNCIONÁRIO
+  // TELA 1: QUEM ESTÁ ETIQUETANDO
+  const termoPessoa = buscaPessoa.trim().toLocaleLowerCase("pt-BR");
+  const pessoasVisiveis = termoPessoa ? funcionarios.filter(f => String(f.nome || "").toLocaleLowerCase("pt-BR").includes(termoPessoa)) : funcionarios;
   if (!responsavel) return (
     <div className="ux-app">
       <style>{ESTILOS}</style>
@@ -627,17 +607,17 @@ export default function EtiquetasRapidas() {
       </header>
       <main className="ux-pessoas-main">
         <h1>Quem está etiquetando?</h1>
-        <p className="ux-subtitle">{setor === "bar" ? "Bar" : "Cozinha"}</p>
-        
+
         <div className="ux-busca-pessoa">
            <Search size={20} />
-           <input placeholder="Buscar funcionário..." />
+           <input placeholder="Buscar funcionário..." aria-label="Buscar funcionário" value={buscaPessoa} onChange={e => setBuscaPessoa(e.target.value)} />
         </div>
 
         {carregando ? <div className="etq-sem"><RefreshCw className="animate-spin"/> Carregando...</div> : 
         <div className="ux-pessoas-grid">
-          {funcionarios.map(f => (
-            <button key={f.id} onClick={() => setResponsavelId(String(f.id))}>
+          {!pessoasVisiveis.length && <div className="etq-sem">Nenhum funcionário encontrado.</div>}
+          {pessoasVisiveis.map(f => (
+            <button key={f.id} onClick={() => { setResponsavelId(String(f.id)); setBuscaPessoa(""); }}>
               <div className="ux-avatar"><UserRound size={22}/></div>
               <div className="ux-pessoa-info">
                 <strong>{f.nome}</strong>
@@ -650,7 +630,7 @@ export default function EtiquetasRapidas() {
     </div>
   );
 
-  // TELA 3: PRODUTOS (MAIN)
+  // TELA 2: PRODUTOS (MAIN)
   return (
     <div className="ux-app">
       <style>{ESTILOS}</style>
@@ -658,7 +638,7 @@ export default function EtiquetasRapidas() {
         <div className="ux-header-left">
           <button onClick={voltar}><ArrowLeft size={20} /></button>
           <div className="ux-header-title">
-            <strong>ETIQUETAS • {setor.toUpperCase()}</strong>
+            <strong>ETIQUETAS</strong>
             <span>Responsável: <b>{responsavel.nome}</b> <span className="ux-trocar" onClick={() => setResponsavelId("")}>Trocar</span></span>
           </div>
         </div>

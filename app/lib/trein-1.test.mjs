@@ -241,3 +241,22 @@ test("preflight não roda de novo; rollback tira tudo e impressão fica estável
   assert.equal((await pg.query("select count(*)::int n from perfil_permissoes")).rows[0].n, 0);
   await pg.exec(MIGRACAO);
 });
+
+test("TREIN-2: os rascunhos reais carregam, ficam invisíveis e podem ser aprovados", { skip: pular }, async () => {
+  const pg = await banco();
+  await pg.exec("delete from trein_trilhas; delete from trein_modulos; insert into unidades values ('seldeestrela', 'Sel de Estrela');");
+  await pg.exec("update usuarios_erp set unidade = 'seldeestrela' where unidade = 'casa'; update acessos set unidade = 'seldeestrela' where unidade = 'casa';");
+  const sql = ler("TREIN_2_RASCUNHOS.sql");
+  await pg.exec(sql);
+  const n = (await pg.query("select (select count(*)::int from trein_modulos) m, (select count(*)::int from trein_aulas) a, (select count(*)::int from trein_trilhas) t, (select count(*)::int from trein_gabaritos) g, (select count(*)::int from trein_questoes) q")).rows[0];
+  assert.equal(n.t, 10);
+  assert.ok(n.m >= 30 && n.a >= 50 && n.q >= 100);
+  assert.equal(n.g, n.q);
+  await pg.exec(sql); // rodar de novo não duplica
+  assert.equal((await pg.query("select count(*)::int n from trein_aulas")).rows[0].n, n.a);
+  assert.equal((await como(pg, novato, "select id from trein_aulas")).length, 0, "equipe não vê rascunho");
+  const higiene = await id(pg, "trein_modulos", "g-higiene");
+  await como(pg, dono, "select trein_aprovar_modulo($1, true)", [higiene]);
+  assert.ok((await como(pg, novato, "select id from trein_aulas")).length >= 4);
+  await nega(como(pg, dono, "select trein_aprovar_modulo($1, true)", [await id(pg, "trein_modulos", "g-casa")]), /PREENCHER/);
+});

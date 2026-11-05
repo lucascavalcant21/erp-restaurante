@@ -15,6 +15,8 @@ Depois que o cliente sai, a mesa volta ao padrão o mais rápido possível.
 
 [PREENCHER: mapa das mesas e setores da casa.]`, [
       prova("Por que decorar o número das mesas?", ["Para entregar o pedido certo sem perguntar", "Para limpar menos", "Não é necessário"], 0, "Saber a mesa evita erro e demora."),
+      prova("O que fazer antes de abrir o salão?", ["Seguir o checklist de abertura", "Esperar o primeiro cliente", "Só acender as luzes"], 0, "O checklist garante que nada foi esquecido."),
+      situacao("Faltando 5 minutos para abrir, você vê uma cadeira quebrada em uma mesa reservada.", ["Deixar como está", "Trocar a cadeira e avisar o líder", "Esconder o defeito com uma almofada"], 1, "Segurança do cliente primeiro. O líder precisa saber do defeito."),
     ]),
   ]),
 
@@ -109,6 +111,109 @@ Se o cliente for mal-educado, mantenha o tom, respire e, se for preciso, chame o
     ]),
   ]),
 
+  modulo("s-mesas", "salao", 318, "Como montar as mesas", "A mesa pronta para receber o cliente.", [
+    aula("s-mes-1", "A mesa padrão", 6, `
+Uma mesa bem montada mostra cuidado antes do primeiro pedido.
+
+Antes de montar:
+- limpe e seque o tampo;
+- confira se a mesa não balança;
+- alinhe as cadeiras;
+- confira toalha ou jogo americano, sem manchas.
+
+A posição clássica dos itens:
+- garfo à esquerda do prato;
+- faca à direita, com o fio voltado para o prato;
+- colher, quando houver, à direita da faca;
+- copo de água acima da ponta da faca;
+- taça de vinho ao lado do copo de água, quando fizer parte do serviço;
+- guardanapo limpo e dobrado.
+
+Talheres e taças são pegos pelo cabo e pela haste. Confira contra a luz antes de colocar na mesa.
+
+[PREENCHER: o padrão de mesa da casa: louça, guardanapo, itens fixos e foto da mesa pronta.]`, [
+      prova("Onde fica o garfo na posição clássica?", ["À esquerda do prato", "À direita do prato", "Em cima do prato"], 0, "Garfo à esquerda, faca e colher à direita."),
+      prova("Para que lado fica o fio da faca?", ["Para fora", "Para o prato", "Para cima"], 1, "O fio fica voltado para o prato."),
+      situacao("A mesa está pronta, mas a taça tem uma marca de dedo.", ["Deixar assim", "Trocar ou polir antes de abrir", "Virar a marca para o outro lado"], 1, "A taça é a primeira coisa que o cliente vê de perto."),
+    ]),
+    aula("s-mes-2", "Reposição entre clientes", 5, `
+Entre um cliente e outro, a mesa volta ao padrão.
+
+1. Retire tudo da mesa.
+2. Limpe tampo e cadeiras, inclusive os farelos do assento.
+3. Remonte a mesa com itens limpos.
+4. Alinhe as cadeiras.
+5. Avise que a mesa está liberada.
+
+Faça isso rápido e sem barulho. Quem está nas outras mesas não precisa ouvir talheres caindo.
+
+Em mesa para mais pessoas, confira o número de lugares da reserva antes de montar.`, [
+      prova("O que limpar além do tampo?", ["Nada", "As cadeiras, inclusive o assento", "Só o chão"], 1, "Farelo no assento é a primeira coisa que o próximo cliente sente."),
+    ]),
+  ]),
+
+  modulo("s-bebidas", "salao", 335, "Como servir vinho e outras bebidas", "O serviço correto de cada bebida à mesa.", [
+    aula("s-beb-1", "Servir vinho", 7, `
+Sequência do serviço de vinho:
+1. Apresente a garrafa a quem pediu, com o rótulo à vista, e confirme nome e safra.
+2. Sobre o aparador ou a mesa, corte a cápsula abaixo da borda do gargalo.
+3. Use o saca-rolhas sem girar a garrafa e tire a rolha sem barulho.
+4. Limpe o gargalo com um guardanapo.
+5. Sirva uma pequena dose para quem pediu provar.
+6. Com a aprovação, sirva as outras pessoas e termine em quem provou.
+7. Sirva sem encher a taça: cerca de um terço, para o vinho poder respirar.
+8. Ao terminar, gire de leve a garrafa para não pingar.
+
+Segure a garrafa pelo corpo, sem cobrir o rótulo, e não encoste o gargalo na taça.
+
+Temperaturas de referência:
+- espumantes: de 6 °C a 8 °C;
+- brancos e rosés: de 8 °C a 12 °C;
+- tintos leves: de 12 °C a 14 °C;
+- tintos encorpados: de 16 °C a 18 °C.
+
+Se o cliente disser que o vinho está com defeito ou cheiro ruim, não discuta. Chame o líder.`, [
+      prova("Quem prova o vinho primeiro?", ["A pessoa mais velha", "Quem pediu o vinho", "Quem estiver mais perto"], 1, "Quem pediu aprova, e por último completa a própria taça."),
+      prova("Quanto servir na taça?", ["Até a borda", "Cerca de um terço", "Apenas uma gota"], 1, "Taça com espaço deixa o aroma aparecer."),
+      prova("Qual é a temperatura de referência para espumantes?", ["De 6 °C a 8 °C", "De 16 °C a 18 °C", "Temperatura ambiente"], 0, "Espumantes são servidos bem gelados."),
+      situacao("O cliente prova e diz que o vinho está com gosto de mofo.", ["Explicar que vinho é assim mesmo", "Retirar, pedir desculpas e chamar o líder", "Provar na frente dele para discordar"], 1, "O líder conduz a troca. Não discuta."),
+    ]),
+    aula("s-beb-2", "Abrir espumante com segurança", 4, `
+Rolha de espumante sob pressão pode machucar.
+
+1. Mantenha a garrafa bem gelada e sem agitar.
+2. Tire a cápsula e solte a gaiola, sempre com o polegar sobre a rolha.
+3. Incline a garrafa e nunca aponte para ninguém.
+4. Segure a rolha e gire a garrafa devagar.
+5. Deixe a rolha sair com um suspiro, sem estouro.
+6. Sirva aos poucos, em duas etapas, para a espuma não transbordar.`, [
+      prova("O que girar ao abrir o espumante?", ["A garrafa, segurando a rolha", "Só a rolha, com força", "Nada: basta puxar"], 0, "Assim você controla a saída da rolha."),
+      situacao("Um colega quer estourar o espumante para animar a mesa.", ["Deixar", "Abrir com controle, sem apontar para ninguém", "Sacudir antes"], 1, "A rolha pode ferir alguém."),
+    ]),
+    aula("s-beb-3", "Água, refrigerante, cerveja e café", 5, `
+Água e refrigerante:
+- abra na mesa ou traga com o lacre à vista;
+- pergunte se quer gelo e limão;
+- sirva pela direita do cliente, com o copo na mesa.
+
+Cerveja:
+- use copo limpo e seco;
+- incline o copo e endireite no final para formar colarinho;
+- ofereça a segunda antes de a garrafa acabar.
+
+Café:
+- sirva quente, com a asa da xícara à direita do cliente;
+- leve açúcar e adoçante sem precisar pedir.
+
+Não encha o copo até a boca. Reponha antes de esvaziar. Bebida alcoólica segue as regras de serviço responsável.
+
+[PREENCHER: as bebidas da casa que têm serviço especial, como cachaças e bebidas regionais.]`, [
+      prova("Como servir cerveja no copo?", ["Com o copo inclinado, endireitando no final", "Com o copo reto desde o início", "De bem alto, para fazer espuma"], 0, "Assim o colarinho fica no ponto."),
+      prova("De que lado fica a asa da xícara?", ["À direita do cliente", "À esquerda do cliente", "Para a frente"], 0, "A maioria pega com a direita."),
+      situacao("Você percebe que o copo de água de um cliente está quase vazio.", ["Esperar ele chamar", "Oferecer mais antes de esvaziar", "Trocar a mesa de setor"], 1, "Serviço bom se antecipa."),
+    ]),
+  ]),
+
   modulo("s-cardapio", "salao", 340, "Cardápio e venda", "Conhecer e sugerir, sem empurrar.", [
     aula("s-car-1", "Vender é ajudar a escolher", 6, `
 Você vende melhor quando sabe do que está falando.
@@ -120,6 +225,7 @@ Você vende melhor quando sabe do que está falando.
 - Ofereça a bebida que combina, a entrada para dividir e a sobremesa no fim.
 
 Nunca empurre o item mais caro. Cliente que se sente enganado não volta.`, [
+      prova("O que você precisa saber sobre cada prato?", ["Só o preço", "O que é, como vem e para quem combina", "Só o nome"], 1, "Com isso, você ajuda o cliente a escolher."),
       prova("Qual é a melhor sugestão?", ["A do prato mais caro, sempre", "A que combina com o que o cliente disse", "A que sobrou na cozinha"], 1, "Boa sugestão parte do cliente."),
       situacao("O cliente pergunta sobre um prato que você nunca provou.", ["Inventar uma descrição", "Dizer o que sabe pela ficha e pedir ajuda se preciso", "Dizer para escolher outro"], 1, "Nunca invente. Use a ficha ou chame quem sabe."),
     ]),

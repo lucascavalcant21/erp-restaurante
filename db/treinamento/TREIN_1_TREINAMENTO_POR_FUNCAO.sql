@@ -99,6 +99,7 @@ create table public.trein_aulas (
   titulo text not null,
   conteudo text not null default '',
   video_url text,
+  cenas jsonb check (cenas is null or jsonb_typeof(cenas) = 'array'),
   duracao_minutos integer not null default 5 check (duracao_minutos between 1 and 240),
   fontes text not null default '',
   atualizado_por uuid references public.usuarios_erp(id),
@@ -562,8 +563,10 @@ begin
   if nullif(btrim(coalesce(p_video_url, '')), '') is not null and p_video_url !~ '^https://' then
     raise exception 'O vídeo precisa de um link https.';
   end if;
+  -- Texto novo invalida as falas antigas: o boneco nunca diz outra coisa.
   update public.trein_aulas
      set titulo = btrim(p_titulo), conteudo = p_conteudo, video_url = nullif(btrim(coalesce(p_video_url, '')), ''),
+         cenas = case when conteudo = p_conteudo then cenas end,
          duracao_minutos = greatest(1, least(240, coalesce(p_duracao, 5))),
          atualizado_por = public.trein_meu_usuario(), updated_at = now()
    where id = p_aula;
@@ -585,6 +588,149 @@ begin
   end if;
   update public.trein_questoes set enunciado = btrim(p_enunciado), opcoes = p_opcoes where id = p_questao;
   update public.trein_gabaritos set correta = p_correta, explicacao = coalesce(p_explicacao, '') where questao_id = p_questao;
+end $$;
+
+-- Falas do boneco, escritas à mão ou sugeridas pela IA e revisadas aqui.
+create function public.trein_salvar_cenas(p_aula uuid, p_cenas jsonb)
+returns void language plpgsql security definer set search_path to 'public'
+as $$
+declare
+  v_unidade text;
+begin
+  select unidade_id into v_unidade from public.trein_aulas where id = p_aula;
+  if v_unidade is null then raise exception 'Aula não encontrada.'; end if;
+  perform public.trein_exigir('treinamento.content.edit', v_unidade);
+  if p_cenas is not null and (jsonb_typeof(p_cenas) <> 'array' or jsonb_array_length(p_cenas) > 60) then
+    raise exception 'Falas inválidas.';
+  end if;
+  update public.trein_aulas set cenas = p_cenas, atualizado_por = public.trein_meu_usuario(), updated_at = now() where id = p_aula;
+end $$;
+
+-- Criar conteúdo novo. Tudo nasce como rascunho. A unidade é conferida na permissão.
+create function public.trein_criar_modulo(p_unidade_id text, p_area text, p_titulo text, p_descricao text)
+returns uuid language plpgsql security definer set search_path to 'public'
+as $$
+declare
+  v_id uuid;
+begin
+  perform public.trein_exigir('treinamento.content.edit', p_unidade_id);
+  if btrim(coalesce(p_titulo, '')) = '' then raise exception 'Dê um nome ao módulo.'; end if;
+  insert into public.trein_modulos (unidade_id, chave, area, titulo, descricao, ordem)
+  values (p_unidade_id, 'novo-' || gen_random_uuid(), p_area, btrim(p_titulo), coalesce(p_descricao, ''),
+          (select coalesce(max(ordem), 0) + 10 from public.trein_modulos where unidade_id = p_unidade_id))
+  returning id into v_id;
+  return v_id;
+end $$;
+
+create function public.trein_salvar_modulo(p_modulo uuid, p_titulo text, p_descricao text)
+returns void language plpgsql security definer set search_path to 'public'
+as $$
+declare
+  v_unidade text;
+begin
+  select unidade_id into v_unidade from public.trein_modulos where id = p_modulo;
+  if v_unidade is null then raise exception 'Módulo não encontrado.'; end if;
+  perform public.trein_exigir('treinamento.content.edit', v_unidade);
+  if btrim(coalesce(p_titulo, '')) = '' then raise exception 'Dê um nome ao módulo.'; end if;
+  update public.trein_modulos set titulo = btrim(p_titulo), descricao = coalesce(p_descricao, '') where id = p_modulo;
+end $$;
+
+create function public.trein_criar_aula(p_modulo uuid, p_titulo text, p_conteudo text)
+returns uuid language plpgsql security definer set search_path to 'public'
+as $$
+declare
+  v public.trein_modulos;
+  v_id uuid;
+begin
+  select * into v from public.trein_modulos where id = p_modulo and tipo = 'aulas';
+  if not found then raise exception 'Módulo não encontrado.'; end if;
+  perform public.trein_exigir('treinamento.content.edit', v.unidade_id);
+  if btrim(coalesce(p_titulo, '')) = '' or btrim(coalesce(p_conteudo, '')) = '' then
+    raise exception 'Preencha o título e o conteúdo.';
+  end if;
+  insert into public.trein_aulas (unidade_id, modulo_id, chave, ordem, titulo, conteudo, atualizado_por)
+  values (v.unidade_id, v.id, 'novo-' || gen_random_uuid(),
+          (select coalesce(max(ordem), 0) + 1 from public.trein_aulas where modulo_id = v.id),
+          btrim(p_titulo), p_conteudo, public.trein_meu_usuario())
+  returning id into v_id;
+  return v_id;
+end $$;
+
+create function public.trein_criar_questao(p_aula uuid, p_tipo text, p_enunciado text, p_opcoes jsonb, p_correta integer, p_explicacao text)
+returns uuid language plpgsql security definer set search_path to 'public'
+as $$
+declare
+  v public.trein_aulas;
+  v_id uuid;
+begin
+  select * into v from public.trein_aulas where id = p_aula;
+  if not found then raise exception 'Aula não encontrada.'; end if;
+  perform public.trein_exigir('treinamento.content.edit', v.unidade_id);
+  if p_tipo not in ('prova','situacao') or btrim(coalesce(p_enunciado, '')) = ''
+    or jsonb_typeof(p_opcoes) is distinct from 'array' or jsonb_array_length(p_opcoes) not between 2 and 6
+    or p_correta is null or p_correta < 0 or p_correta >= jsonb_array_length(p_opcoes) then
+    raise exception 'Confira a pergunta, as opções e a resposta certa.';
+  end if;
+  insert into public.trein_questoes (unidade_id, modulo_id, aula_id, chave, tipo, ordem, enunciado, opcoes)
+  values (v.unidade_id, v.modulo_id, v.id, 'novo-' || gen_random_uuid(), p_tipo,
+          (select coalesce(max(ordem), 0) + 1 from public.trein_questoes where aula_id = v.id), btrim(p_enunciado), p_opcoes)
+  returning id into v_id;
+  insert into public.trein_gabaritos (questao_id, unidade_id, correta, explicacao)
+  values (v_id, v.unidade_id, p_correta, coalesce(p_explicacao, ''));
+  return v_id;
+end $$;
+
+-- Remover só em rascunho: módulo aprovado pode ter progresso de alguém.
+create function public.trein_remover_aula(p_aula uuid)
+returns void language plpgsql security definer set search_path to 'public'
+as $$
+declare
+  v_unidade text;
+  v_status text;
+begin
+  select a.unidade_id, m.status into v_unidade, v_status
+    from public.trein_aulas a join public.trein_modulos m on m.id = a.modulo_id where a.id = p_aula;
+  if v_unidade is null then raise exception 'Aula não encontrada.'; end if;
+  perform public.trein_exigir('treinamento.content.edit', v_unidade);
+  if v_status <> 'rascunho' then raise exception 'Volte o módulo para rascunho antes de remover.'; end if;
+  delete from public.trein_questoes where aula_id = p_aula;
+  delete from public.trein_aulas where id = p_aula;
+end $$;
+
+create function public.trein_remover_questao(p_questao uuid)
+returns void language plpgsql security definer set search_path to 'public'
+as $$
+declare
+  v_unidade text;
+  v_status text;
+begin
+  select q.unidade_id, m.status into v_unidade, v_status
+    from public.trein_questoes q join public.trein_modulos m on m.id = q.modulo_id where q.id = p_questao;
+  if v_unidade is null then raise exception 'Questão não encontrada.'; end if;
+  perform public.trein_exigir('treinamento.content.edit', v_unidade);
+  if v_status <> 'rascunho' then raise exception 'Volte o módulo para rascunho antes de remover.'; end if;
+  delete from public.trein_questoes where id = p_questao;
+end $$;
+
+-- Colocar ou tirar um módulo de uma trilha. Módulo e trilha precisam ser da mesma unidade.
+create function public.trein_ligar_modulo(p_modulo uuid, p_trilha uuid, p_ligar boolean)
+returns void language plpgsql security definer set search_path to 'public'
+as $$
+declare
+  v_unidade text;
+begin
+  select m.unidade_id into v_unidade
+    from public.trein_modulos m join public.trein_trilhas t on t.id = p_trilha and t.unidade_id = m.unidade_id
+   where m.id = p_modulo;
+  if v_unidade is null then raise exception 'Módulo ou trilha não encontrados.'; end if;
+  perform public.trein_exigir('treinamento.content.edit', v_unidade);
+  if p_ligar then
+    insert into public.trein_trilha_modulos (trilha_id, modulo_id, unidade_id, ordem)
+    values (p_trilha, p_modulo, v_unidade, (select coalesce(max(ordem), 0) + 1 from public.trein_trilha_modulos where trilha_id = p_trilha))
+    on conflict do nothing;
+  else
+    delete from public.trein_trilha_modulos where trilha_id = p_trilha and modulo_id = p_modulo;
+  end if;
 end $$;
 
 -- Aula com [PREENCHER ...] não vai para a equipe.
@@ -701,6 +847,14 @@ grant execute on function public.trein_gabarito_do_modulo(uuid) to authenticated
 grant execute on function public.trein_salvar_aula(uuid, text, text, text, integer) to authenticated;
 grant execute on function public.trein_salvar_questao(uuid, text, jsonb, integer, text) to authenticated;
 grant execute on function public.trein_aprovar_modulo(uuid, boolean) to authenticated;
+grant execute on function public.trein_salvar_cenas(uuid, jsonb) to authenticated;
+grant execute on function public.trein_criar_modulo(text, text, text, text) to authenticated;
+grant execute on function public.trein_salvar_modulo(uuid, text, text) to authenticated;
+grant execute on function public.trein_criar_aula(uuid, text, text) to authenticated;
+grant execute on function public.trein_criar_questao(uuid, text, text, jsonb, integer, text) to authenticated;
+grant execute on function public.trein_remover_aula(uuid) to authenticated;
+grant execute on function public.trein_remover_questao(uuid) to authenticated;
+grant execute on function public.trein_ligar_modulo(uuid, uuid, boolean) to authenticated;
 
 /* ── Permissões ───────────────────────────────────────────────────────────── */
 

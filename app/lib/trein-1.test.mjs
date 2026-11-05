@@ -260,3 +260,28 @@ test("TREIN-2: os rascunhos reais carregam, ficam invisíveis e podem ser aprova
   assert.ok((await como(pg, novato, "select id from trein_aulas")).length >= 4);
   await nega(como(pg, dono, "select trein_aprovar_modulo($1, true)", [await id(pg, "trein_modulos", "g-casa")]), /PREENCHER/);
 });
+
+test("Estúdio: criar conteúdo novo, salvar falas e ligar a uma trilha", { skip: pular }, async () => {
+  const ctx = await preparar();
+  await nega(como(ctx.pg, lider, "select trein_criar_modulo('casa', 'bar', 'Vinhos', '')"), /permissão/);
+  await nega(como(ctx.pg, outro, "select trein_criar_modulo('casa', 'bar', 'Vinhos', '')"), /permissão/);
+  const m = (await como(ctx.pg, dono, "select trein_criar_modulo('casa', 'bar', 'Vinhos', 'Serviço') as id"))[0].id;
+  const a = (await como(ctx.pg, dono, "select trein_criar_aula($1, 'Abrir', 'Corte a cápsula.') as id", [m]))[0].id;
+  const qs = [];
+  for (const e of ["a", "b", "c"]) qs.push((await como(ctx.pg, dono, `select trein_criar_questao($1, 'prova', '${e}', '["x","y"]'::jsonb, 1, 'porque') as id`, [a]))[0].id);
+  await nega(como(ctx.pg, dono, "select trein_criar_questao($1, 'prova', 'z', '[\"x\"]'::jsonb, 0, '')", [a]), /Confira/);
+  await como(ctx.pg, dono, "select trein_salvar_cenas($1, '[{\"fala\":\"Corte\"}]'::jsonb)", [a]);
+  await nega(como(ctx.pg, novato, "select trein_salvar_cenas($1, null)", [a]), /permissão/);
+  await como(ctx.pg, dono, "select trein_salvar_aula($1, 'Abrir', 'Corte a cápsula.', null, 5)", [a]);
+  assert.ok((await ctx.pg.query("select cenas from trein_aulas where id = $1", [a])).rows[0].cenas, "texto igual mantém as falas");
+  await como(ctx.pg, dono, "select trein_salvar_aula($1, 'Abrir', 'Texto novo.', null, 5)", [a]);
+  assert.equal((await ctx.pg.query("select cenas from trein_aulas where id = $1", [a])).rows[0].cenas, null, "texto novo invalida as falas");
+  await como(ctx.pg, dono, "select trein_ligar_modulo($1, $2, true)", [m, ctx.trilha]);
+  await nega(como(ctx.pg, outro, "select trein_ligar_modulo($1, $2, false)", [m, ctx.trilha]), /permissão/);
+  await como(ctx.pg, dono, "select trein_aprovar_modulo($1, true)", [m]);
+  await nega(como(ctx.pg, dono, "select trein_remover_aula($1)", [a]), /rascunho/);
+  await como(ctx.pg, dono, "select trein_aprovar_modulo($1, false)", [m]);
+  await como(ctx.pg, dono, "select trein_remover_questao($1)", [qs[0]]);
+  await como(ctx.pg, dono, "select trein_remover_aula($1)", [a]);
+  assert.equal((await ctx.pg.query("select count(*)::int n from trein_gabaritos where questao_id = any($1)", [qs])).rows[0].n, 0);
+});

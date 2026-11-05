@@ -16,11 +16,6 @@ import IfoodSincronizacao from "../../../components/integracoes/IfoodSincronizac
 import { MODELOS_CANAL, PLATAFORMAS_PADRAO, normalizarCanal, validarCanal, encargosDaConfig, ENCARGOS_LEGAIS } from "../../../lib/marmitaria/nucleo.mjs";
 import { custosEmbutidos } from "../../../lib/marmitaria/cardapio.mjs";
 
-const RATEAVEIS = [
-  ["ocupacao_aluguel", "Aluguel"], ["ocupacao_condominio", "Condomínio"], ["utilidades_energia", "Energia"], ["utilidades_agua", "Água"],
-  ["utilidades_gas", "Gás"], ["utilidades_internet", "Internet e telefone"], ["adm_sistemas", "Sistemas"], ["adm_contabilidade", "Contabilidade"],
-  ["marketing", "Marketing"], ["manutencao", "Manutenção"], ["limpeza", "Limpeza"],
-];
 const SUGESTOES_FIXAS = ["Aluguel", "Luz", "Água", "Gás", "Telefone", "Internet", "Pró-labore", "Materiais de limpeza", "Contador", "Sistemas"];
 const vazio = (v) => v === null || v === undefined ? "" : String(v).replace(".", ",");
 // Taxa em branco é "não configurado"; só a comissão do balcão nasce zerada.
@@ -186,20 +181,6 @@ export default function ConfiguracoesPage() {
           <Campo rotulo="Provisão de 13º (%)" dica="1/12 do salário"><CampoNumero valor={cfg.encargos.provisao_13_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, provisao_13_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.provisao_13_pct).replace(".", ",")} /></Campo>
           <Campo rotulo="Provisão de férias + 1/3 (%)" dica="1/12 × 4/3 do salário"><CampoNumero valor={cfg.encargos.provisao_ferias_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, provisao_ferias_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.provisao_ferias_pct).replace(".", ",")} /></Campo>
         </div>
-      </Secao>
-
-      <Secao titulo="Despesas compartilhadas com o restaurante" subtitulo="Contas com centro de custo Geral/Administrativo (ou sem centro). Conta com centro Marmitaria entra 100%; de Cozinha, Bar, Salão ou Eventos não entra.">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Campo rotulo="% padrão para a marmitaria" dica="Vale para a categoria sem % próprio. Vazio = 0% e aviso no DRE."><CampoNumero valor={cfg.rateio.padrao_pct} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, padrao_pct: v } })} placeholder="não configurado" /></Campo>
-          {RATEAVEIS.map(([cod, rot]) => (
-            <Campo key={cod} rotulo={`${rot} (%)`}><CampoNumero valor={cfg.rateio.por_categoria[cod] ?? ""} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, por_categoria: { ...cfg.rateio.por_categoria, [cod]: v } } })} placeholder="usa o padrão" /></Campo>
-          ))}
-        </div>
-        <label className="mt-3 flex min-h-[44px] items-center gap-2 text-sm text-hf-text-2">
-          <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={cfg.centros_diretos.includes("delivery")}
-            onChange={(e) => setCfg({ ...cfg, centros_diretos: e.target.checked ? [...new Set([...cfg.centros_diretos, "delivery"])] : cfg.centros_diretos.filter((x) => x !== "delivery") })} />
-          Contas com centro de custo “Delivery” também são da marmitaria (100%)
-        </label>
       </Secao>
 
       <Secao titulo="iFood" subtitulo="Conexão com a sua loja no iFood. As taxas ficam em Plataformas e taxas.">

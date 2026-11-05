@@ -1,6 +1,6 @@
 "use client";
 
-// Cozinha da marmitaria: a tela do tablet. Mostra o que tem no estoque, o que
+// Produção do dia: a tela do tablet da cozinha. Mostra o que tem no estoque, o que
 // já está produzido e o que precisa ser produzido hoje e amanhã. Produzir baixa
 // os ingredientes e dá entrada no estoque de produção (marmitaria_produzir_preparo).
 // Fica sob /estoque para herdar a mesma permissão de rota.
@@ -185,7 +185,7 @@ export default function CozinhaPage() {
       )}
       {produzindo && <Produzir key={`${produzindo.ficha_id}-${produzindo.para}`} inicial={produzindo} onFechar={() => setProduzindo(null)} aoProduzir={async () => { setProduzindo(null); await Promise.all([recarregar(), carregarDia()]); }} />}
       {retirando && <RetirarProduto key={retirando.id} item={retirando} onFechar={() => setRetirando(null)} />}
-      {!produzindo && !semProducao && <div className="flex justify-end"><Botao type="button" onClick={() => setProduzindo({ para: hoje })}>Nova produção</Botao></div>}
+      {!produzindo && !semProducao && <div className="flex justify-end"><Botao type="button" disabled={!base.prePreparos.length} onClick={() => setProduzindo({ para: hoje })}>Nova produção</Botao></div>}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Plano titulo="Produzir hoje" dia={hoje} linhas={planilha.hoje} onAdicionar={adicionar} onMudar={mudar} onRemover={remover} onProduzir={setProduzindo} />

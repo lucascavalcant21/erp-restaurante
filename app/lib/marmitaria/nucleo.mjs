@@ -639,6 +639,8 @@ const FORA = new Set(["mercadoria", "investimento", "distribuicao", "perda_estoq
  */
 export function contasDaMarmitaria(contas = [], mes, { centrosDiretos = ["marmitaria"], rateio = {} } = {}) {
   const diretos = new Set(centrosDiretos.map((c) => String(c).toLowerCase()));
+  // Unidade só da marmitaria: toda conta é dela, sem rateio.
+  const unidadePropria = diretos.has("*");
   const padrao = rateio?.padrao_pct === undefined || rateio?.padrao_pct === null || rateio?.padrao_pct === "" ? null : Math.max(0, Math.min(100, parseNumero(rateio.padrao_pct)));
   const porCat = rateio?.por_categoria || {};
   const out = [];
@@ -647,7 +649,7 @@ export function contasDaMarmitaria(contas = [], mes, { centrosDiretos = ["marmit
     if (String(c?.competencia_efetiva || "").slice(0, 7) !== mes) continue;
     const centro = String(c.centro_custo_codigo || "").toLowerCase();
     let fracao = 0; let criterio;
-    if (diretos.has(centro)) { fracao = 1; criterio = "direta"; }
+    if (unidadePropria || diretos.has(centro)) { fracao = 1; criterio = "direta"; }
     else if (CENTROS_COMPARTILHADOS.has(centro)) {
       const especifico = porCat[c.categoria_codigo];
       const p = especifico === undefined || especifico === null || especifico === "" ? padrao : Math.max(0, Math.min(100, parseNumero(especifico)));

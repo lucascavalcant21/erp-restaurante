@@ -72,3 +72,7 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | Estoques separados de embalagens e limpeza, por unidade e ml | Feito em PR rascunho · TESTADO EM MOCK |
 | 05/11/2026 | Markup em %, preço abrindo CMV, CMO por funcionário, custos fixos por conta; contas mapeadas em Configurações | Feito em PR rascunho · TESTADO EM MOCK |
 | 05/11/2026 | Processos de montagem de cada marmita: embalagens que servem, montagem, fritura, descanso, fechamento, saco kraft, grampos e motoboy | Feito em PR rascunho · TESTADO EM MOCK |
+| 05/11/2026 | Motor de Lucro: algoritmo próprio, no servidor | Etapa 1 em PR rascunho · TESTADO EM MOCK. Regras; aprendizado depende de vendas |
+| 05/11/2026 | Marmitaria como empresa separada | Ensaio no banco real, desfeito: 330 produtos, 39 pré-preparos e 1 marmita copiam sem perder vínculo. Aguarda dados da empresa e decisão do dono |
+| 05/11/2026 | Marmitaria com cadastros e fichas próprios, começando vazia, com uma senha para entrar e sair | Feito em PR rascunho · TESTADO EM MOCK. Depende da MARM-UNIDADE-1 |
+| 05/11/2026 | Barra da marmitaria na ordem: painel geral, cadastro de ingredientes, compras, estoque, produções e produção do dia | Feito em PR rascunho · TESTADO EM MOCK |

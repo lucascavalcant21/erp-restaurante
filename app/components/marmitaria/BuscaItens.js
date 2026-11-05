@@ -1,9 +1,8 @@
 "use client";
 
-// Busca universal da marmita: pré-preparos e ingredientes do estoque geral
-// (os mesmos das fichas do restaurante — nada é copiado), ou embalagens.
-// Ingrediente novo nasce no cadastro do sistema; pré-preparo e embalagem podem
-// ser criados aqui, sem sair da ficha.
+// Busca da marmita: pré-preparos e produtos do cadastro da marmitaria, ou embalagens.
+// Tudo é da própria marmitaria: produto, pré-preparo e embalagem podem ser
+// criados aqui, sem sair da ficha.
 
 import { useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
@@ -15,7 +14,7 @@ import { casaBusca } from "../../lib/busca.mjs";
 export const ehEmbalagem = (i) => String(i?.departamento || "").toLowerCase() === "embalagens"
   || /embalag/i.test(String(i?.categoria || "")) || String(i?.tipo || "").toLowerCase() === "embalagem";
 
-export default function BuscaItens({ base, modo = "ingrediente", filtroInicial = "", onEscolher, onCriarPrePreparo, onCriarEmbalagem, excluir = [] }) {
+export default function BuscaItens({ base, modo = "ingrediente", filtroInicial = "", onEscolher, onCriarIngrediente, onCriarPrePreparo, onCriarEmbalagem, excluir = [] }) {
   const [termo, setTermo] = useState(filtroInicial);
   const usoPorInsumo = useMemo(() => {
     const m = new Map();
@@ -73,9 +72,9 @@ export default function BuscaItens({ base, modo = "ingrediente", filtroInicial =
           </button>
         ) : (
           <>
-            <a href="/dashboard/operacao/ingredientes?dept=cozinha" className="inline-flex min-h-[40px] items-center rounded-lg px-3 text-sm font-semibold text-hf-text-2 hover:bg-hf-elevated">
-              Ingrediente novo vai no cadastro do sistema
-            </a>
+            <button type="button" onClick={() => onCriarIngrediente?.(textoCriar)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg px-3 text-sm font-semibold text-hf-accent hover:bg-hf-accent/5">
+              <Plus size={15} /> Novo ingrediente{textoCriar ? ` “${textoCriar}”` : ""}
+            </button>
             {onCriarPrePreparo && (
               <button type="button" onClick={() => onCriarPrePreparo?.(textoCriar)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg px-3 text-sm font-semibold text-hf-accent hover:bg-hf-accent/5">
                 <Plus size={15} /> Novo pré-preparo{textoCriar ? ` “${textoCriar}”` : ""}

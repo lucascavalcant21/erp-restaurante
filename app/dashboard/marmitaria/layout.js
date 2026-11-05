@@ -1,26 +1,34 @@
 "use client";
 
-// Marmitaria & Delivery: doze áreas, uma barra só. O menu de cima leva para
+// Marmitaria & Delivery: quatorze áreas, uma barra só, na ordem do trabalho:
+// comprar, guardar, produzir e vender. O menu de cima leva para
 // cá sem submenu (a navegação do módulo mora aqui), e o que é secundário vira
 // aba dentro de cada área.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useERP } from "../../context/ERPContext";
 import { MarmitariaProvider, useMarmitaria } from "../../components/marmitaria/contexto";
+import { EntrarNaMarmitaria, SairDaMarmitaria } from "../../components/marmitaria/PortaDaMarmitaria";
+import { UNIDADE_MARMITARIA } from "../../lib/marmitaria/acesso.mjs";
 import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 
 // "curto" é o rótulo no celular: quatro por linha cabem sem quebrar.
+const FICHA = "/dashboard/marmitaria/marmitas";
+const ESTOQUE = "/dashboard/marmitaria/estoque";
 const AREAS = [
-  { href: "/dashboard/marmitaria", rotulo: "Visão geral", curto: "Geral", exato: true },
-  { href: "/dashboard/marmitaria/marmitas", rotulo: "Ficha técnica", curto: "Ficha", exceto: ["/dashboard/marmitaria/marmitas/cardapio", "/dashboard/marmitaria/marmitas/embalagens", "/dashboard/marmitaria/marmitas/lucro", "/dashboard/marmitaria/marmitas/processos"] },
-  { href: "/dashboard/marmitaria/marmitas/processos", rotulo: "Processos" },
-  { href: "/dashboard/marmitaria/marmitas/embalagens", rotulo: "Embalagens", curto: "Embal." },
-  { href: "/dashboard/marmitaria/marmitas/cardapio", rotulo: "Cardápio" },
-  { href: "/dashboard/marmitaria/marmitas/lucro", rotulo: "Painel de lucro", curto: "Lucro" },
-  { href: "/dashboard/marmitaria/estoque/compras", rotulo: "Compras" },
-  { href: "/dashboard/marmitaria/estoque", rotulo: "Estoque", exceto: ["/dashboard/marmitaria/estoque/compras", "/dashboard/marmitaria/estoque/cozinha"] },
-  { href: "/dashboard/marmitaria/estoque/cozinha", rotulo: "Cozinha" },
+  { href: "/dashboard/marmitaria", rotulo: "Painel geral", curto: "Painel", exato: true },
+  { href: `${FICHA}/produtos`, rotulo: "Ingredientes", curto: "Ingred." },
+  { href: `${FICHA}/embalagens`, rotulo: "Embalagens", curto: "Embal." },
+  { href: `${ESTOQUE}/compras`, rotulo: "Compras" },
+  { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`] },
+  { href: `${ESTOQUE}/producoes`, rotulo: "Produções" },
+  { href: `${ESTOQUE}/cozinha`, rotulo: "Produção do dia", curto: "Do dia" },
+  { href: FICHA, rotulo: "Ficha técnica", curto: "Ficha", exceto: [`${FICHA}/cardapio`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/processos`, `${FICHA}/produtos`] },
+  { href: `${FICHA}/processos`, rotulo: "Processos" },
+  { href: `${FICHA}/cardapio`, rotulo: "Cardápio" },
+  { href: `${FICHA}/lucro`, rotulo: "Painel de lucro", curto: "Lucro" },
   { href: "/dashboard/marmitaria/funcionarios", rotulo: "Funcionários", curto: "Equipe" },
   { href: "/dashboard/marmitaria/financeiro", rotulo: "Financeiro" },
   { href: "/dashboard/marmitaria/configuracoes", rotulo: "Configurações", curto: "Ajustes" },
@@ -36,13 +44,22 @@ function Estado() {
 
 export default function MarmitariaLayout({ children }) {
   const pathname = usePathname() || "";
+  const { unidadeAtiva } = useERP();
+  const atual = typeof unidadeAtiva === "object" ? unidadeAtiva?.id : unidadeAtiva;
+  // A marmitaria é outra unidade: fora dela, a tela pede a senha.
+  if (atual !== UNIDADE_MARMITARIA) {
+    return <div className="min-h-full bg-hf-bg px-4 pb-16 pt-8"><EntrarNaMarmitaria /></div>;
+  }
   return (
     <MarmitariaProvider>
       <div className="min-h-full bg-hf-bg">
         <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-4 sm:px-6">
-          <header className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-hf-accent">Operação</p>
-            <h1 className="text-xl font-black text-hf-text sm:text-2xl">Marmitaria &amp; Delivery</h1>
+          <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-hf-accent">Operação</p>
+              <h1 className="text-xl font-black text-hf-text sm:text-2xl">Marmitaria &amp; Delivery</h1>
+            </div>
+            <SairDaMarmitaria />
           </header>
           <nav aria-label="Áreas da marmitaria" className="mb-4 grid grid-cols-4 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:inline-flex sm:max-w-full sm:flex-wrap">
             {AREAS.map((a) => {

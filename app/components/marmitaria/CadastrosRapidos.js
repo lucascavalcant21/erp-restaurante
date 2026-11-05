@@ -10,6 +10,7 @@ import { Trash2, X } from "lucide-react";
 import { criarProduto, salvarPrePreparo, novaChave } from "../../lib/marmitaria/dados";
 import { custoDaMarmita, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import BuscaItens from "./BuscaItens";
+import { quantidadeParaTela } from "../../lib/marmitaria/formulario.mjs";
 import { Botao, Campo, CampoNumero, inputCls, brl, Aviso, lerNumero } from "./ui";
 
 function Painel({ titulo, onFechar, children }) {
@@ -27,7 +28,7 @@ function Painel({ titulo, onFechar, children }) {
 const UNIDADES = [["kg", "kg"], ["g", "g"], ["l", "L"], ["ml", "ml"], ["un", "unidade"]];
 
 export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nomeInicial = "", rotuloSalvar = "Cadastrar e usar", onCriado, onFechar }) {
-  const [f, setF] = useState({ nome: nomeInicial, unidade: embalagem ? "un" : limpeza ? "ml" : "kg", preco: "", tamanho: embalagem ? "1" : "1", exclusivo: false });
+  const [f, setF] = useState({ nome: nomeInicial, unidade: embalagem ? "un" : limpeza ? "ml" : "kg", preco: "", tamanho: "1" });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
   const preco = lerNumero(f.preco);
@@ -44,7 +45,7 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
     try {
       const r = await criarProduto({
         unidadeId, nome: f.nome, unidade_medida: f.unidade, preco_embalagem: preco, tamanho_embalagem: tamanho,
-        departamento: embalagem ? "embalagens" : limpeza ? "limpeza" : f.exclusivo ? "marmitaria" : "cozinha",
+        departamento: embalagem ? "embalagens" : limpeza ? "limpeza" : "marmitaria",
         categoria: embalagem ? "Embalagens da marmitaria" : limpeza ? "Limpeza da marmitaria" : "",
       });
       if (r.error) setErro(r.error);
@@ -71,12 +72,6 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
         </div>
       </div>
       {porUnidade !== null && <p className="mt-2 text-xs text-hf-muted">Custo: {brl(porUnidade)} por {f.unidade === "un" ? "unidade" : f.unidade}.</p>}
-      {!embalagem && !limpeza && (
-        <label className="mt-3 flex min-h-[44px] items-center gap-2 text-sm text-hf-text-2">
-          <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={f.exclusivo} onChange={(e) => setF({ ...f, exclusivo: e.target.checked })} />
-          Só da marmitaria (desmarcado: fica no estoque geral, compartilhado com a cozinha)
-        </label>
-      )}
       {erro && <Aviso tipo="alerta" className="mt-3">{erro}</Aviso>}
       <div className="mt-3 flex justify-end gap-2">
         <Botao variante="secundario" onClick={onFechar} type="button">Cancelar</Botao>
@@ -86,10 +81,14 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
   );
 }
 
-export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", onCriado, onFechar }) {
-  const [id] = useState(() => novaChave());
-  const [f, setF] = useState({ nome: nomeInicial, rendimento: "", unidade: "kg", setor: "cozinha", validade: "" });
-  const [itens, setItens] = useState([]);
+export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null, onCriado, onFechar }) {
+  const [id] = useState(() => ficha?.id || novaChave());
+  const [f, setF] = useState(() => ({ nome: ficha?.nome_receita || nomeInicial, rendimento: ficha?.rendimento_porcoes ? String(ficha.rendimento_porcoes).replace(".", ",") : "",
+    unidade: String(ficha?.rendimento_unidade || "kg").toLowerCase(), setor: ficha?.departamento || "cozinha", validade: ficha?.validade_dias ? String(ficha.validade_dias) : "" }));
+  const [itens, setItens] = useState(() => (ficha?.fichas_ingredientes || []).filter((i) => i.insumo_id).map((i) => {
+    const t = quantidadeParaTela(i.quantidade, String(base.insumos.get(i.insumo_id)?.unidade_medida || "un").toLowerCase());
+    return { key: novaChave(), insumo_id: i.insumo_id, qtd: t.qtd, un: t.un };
+  }));
   const [buscando, setBuscando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
@@ -104,9 +103,9 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", onCriado, on
   async function salvar() {
     if (salvando) return;
     setErro(null);
-    if (f.nome.trim().length < 2) return setErro("Informe o nome do pré-preparo.");
+    if (f.nome.trim().length < 2) return setErro("Informe o nome do subproduto.");
     if (!(rend > 0)) return setErro("Informe quanto o lote rende.");
-    if (!itens.length) return setErro("Adicione os ingredientes do pré-preparo.");
+    if (!itens.length) return setErro("Adicione os ingredientes do subproduto.");
     if (convertidos.some((c) => !(c.quantidade > 0))) return setErro("Confira a quantidade e a unidade de cada ingrediente.");
     setSalvando(true);
     try {
@@ -123,7 +122,7 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", onCriado, on
   }
 
   return (
-    <Painel titulo="Novo pré-preparo" onFechar={onFechar}>
+    <Painel titulo={ficha ? `Editar ${ficha.nome_receita}` : "Novo subproduto"} onFechar={onFechar}>
       <div className="grid gap-3 sm:grid-cols-4">
         <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Ex.: Arroz branco cozido" /></Campo>
         <Campo rotulo="O lote rende"><CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" /></Campo>

@@ -367,3 +367,9 @@ test("período dos filtros: semana começa na segunda", () => {
   assert.deepEqual(periodo("mes", "2026-10-14"), { de: "2026-10-01", ate: "2026-10-14" });
   assert.deepEqual(periodo("personalizado", "2026-10-14", { de: "2026-10-20", ate: "2026-10-01" }), { de: "2026-10-01", ate: "2026-10-20" });
 });
+
+test("unidade só da marmitaria: toda conta entra inteira, sem rateio", async () => {
+  const { contasDaMarmitaria } = await import("./nucleo.mjs");
+  const contas = [{ competencia_efetiva: "2026-11-02", valor_original: 100, centro_custo_codigo: "geral", categoria_codigo: "ocupacao_aluguel" }, { competencia_efetiva: "2026-11-05", valor_original: 50, centro_custo_codigo: "" }];
+  assert.deepEqual(contasDaMarmitaria(contas, "2026-11", { centrosDiretos: ["*"] }).map((c) => [c.fracao, c.valorMarmitaria]), [[1, 100], [1, 50]]);
+});

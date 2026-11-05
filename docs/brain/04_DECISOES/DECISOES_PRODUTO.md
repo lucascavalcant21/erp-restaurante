@@ -114,4 +114,5 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - Começa vazia: cadastros e fichas próprios. Nada do restaurante é copiado ou movido. Substitui a decisão de usar o cadastro do sistema.
 - Uma senha só para entrar e sair, em `estoque_seguranca` (hash e bloqueio por tentativas). A trava de tela prende o aparelho; a proteção dos dados é a separação por unidade.
 - Funcionário precisa ter a unidade `marmitaria` como principal ou em `usuario_escopos`.
+- Na unidade própria, toda conta entra inteira no resultado da marmitaria (`centros_diretos = ["*"]`), sem rateio, e a compra recebida gera a conta a pagar dela. O PR #172 (outubro) tinha a mesma ideia, mas não foi mesclado e tem histórico separado.
 

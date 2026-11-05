@@ -10,7 +10,7 @@ import { supabase, isSupabaseReady } from "../supabase";
 import { fetchFichas, salvarInsumo } from "../operacao";
 import { calcularPrecoNormalizado } from "../ingredientes-utils.mjs";
 import { confirmarCompra, salvarRascunho } from "../compras-estoque.mjs";
-import { textoDaSenha } from "./acesso.mjs";
+import { UNIDADE_MARMITARIA, textoDaSenha } from "./acesso.mjs";
 import { vincularItemEstoque } from "../estoques-multiplos";
 import { transferirLancamento } from "../estoque-movimento-dados";
 import { novaChave } from "../estoque-movimento.mjs";
@@ -114,7 +114,7 @@ export async function carregarBase(unidadeId) {
     insumosLista, insumos, espelho,
     estoques: estR.data || [],
     itensEstoque: itensR.data || [],
-    config: configComResultado(normalizarConfig(configRow), parametrosDoResultado(resR?.data || {}, new Date().toISOString().slice(0, 7))),
+    config: configComResultado(comUnidadePropria(normalizarConfig(configRow), unidadeId), parametrosDoResultado(resR?.data || {}, new Date().toISOString().slice(0, 7))),
     configSalva: !!configRow,
   };
 }
@@ -131,6 +131,9 @@ export function normalizarConfig(row) {
     centros_diretos: Array.isArray(r.centros_diretos) && r.centros_diretos.length ? r.centros_diretos : ["marmitaria"],
   };
 }
+
+// A unidade própria não divide conta com o restaurante.
+const comUnidadePropria = (cfg, unidadeId) => (unidadeId === UNIDADE_MARMITARIA ? { ...cfg, centros_diretos: ["*"] } : cfg);
 
 export async function salvarConfig(unidadeId, cfg) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
@@ -277,7 +280,7 @@ export async function criarPedido({ unidadeId, itens, chegada, hoje, chave }) {
 }
 
 /** Conferiu: grava o que chegou de verdade e lança no estoque. Item com zero não chegou. */
-export async function receberPedido({ unidadeId, compra, linhas, hoje }) {
+export async function receberPedido({ unidadeId, compra, linhas, hoje, vencimento }) {
   const itens = linhas.filter((l) => Number(l.recebida) > 0).map((l) => ({
     insumo: l.insumo, quantidade: l.recebida, valor_total: l.valor, quantidade_pedida: l.item.quantidade_pedida_embalagens, valor_pedido: l.item.valor_pedido, estoque_id: l.item.estoque_id,
     lote: l.item.lote, validade: l.validade || l.item.validade,
@@ -285,8 +288,7 @@ export async function receberPedido({ unidadeId, compra, linhas, hoje }) {
   if (!itens.length) return { error: "Informe a quantidade que chegou." };
   const salvo = await salvarRascunho(supabase, { compra: { id: compra.id, unidade_id: unidadeId, data_compra: compra.data_compra, data_recebimento: hoje }, itens }, { hoje });
   if (salvo.error) return { error: mensagemErro(salvo.error) };
-  // A conta a pagar não é gerada aqui: ela cairia no financeiro do restaurante.
-  const r = await confirmarCompra(supabase, { compra_id: compra.id, gerar_conta_pagar: false });
+  const r = await confirmarCompra(supabase, { compra_id: compra.id, gerar_conta_pagar: true, data_vencimento: vencimento || hoje });
   return { error: r.error ? mensagemErro(r.error) : null };
 }
 

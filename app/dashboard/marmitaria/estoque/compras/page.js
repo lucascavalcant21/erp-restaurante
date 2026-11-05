@@ -93,6 +93,7 @@ function Receber({ pedido, aoReceber }) {
   const [linhas, setLinhas] = useState(() => pedido.itens.map((item) => ({
     item, insumo: base.insumos.get(item.insumo_id), pedida: Number(item.quantidade_pedida_embalagens ?? item.quantidade_embalagens) || 0, qtd: "", valor: texto(item.valor_total), validade: "",
   })));
+  const [vencimento, setVencimento] = useState(hojeIso());
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
   const mudar = (id, campos) => setLinhas((l) => l.map((x) => (x.item.id === id ? { ...x, ...campos } : x)));
@@ -102,7 +103,7 @@ function Receber({ pedido, aoReceber }) {
     if (linhas.some((l) => String(l.qtd).trim() === "")) return setErro("Informe o que chegou de cada produto. Se não chegou, coloque 0.");
     setSalvando(true); setErro(null);
     try {
-      const r = await receberPedido({ unidadeId, compra: pedido, hoje: hojeIso(), linhas: linhas.map((l) => ({ ...l, recebida: lerNumero(l.qtd), valor: lerNumero(l.valor) || 0 })) });
+      const r = await receberPedido({ unidadeId, compra: pedido, hoje: hojeIso(), vencimento, linhas: linhas.map((l) => ({ ...l, recebida: lerNumero(l.qtd), valor: lerNumero(l.valor) || 0 })) });
       if (r.error) { setErro(r.error); return; }
       await aoReceber();
     } finally { setSalvando(false); }
@@ -128,6 +129,7 @@ function Receber({ pedido, aoReceber }) {
           </div>
         );
       })}
+      <Campo rotulo="Vencimento da conta a pagar" className="max-w-[220px]"><input type="date" className={inputCls} value={vencimento} onChange={(e) => e.target.value && setVencimento(e.target.value)} /></Campo>
       {erro && <Aviso tipo="alerta">{erro}</Aviso>}
       <Botao type="button" onClick={lancar} disabled={salvando}>{salvando ? "Lançando…" : "Lançar no estoque"}</Botao>
     </div>

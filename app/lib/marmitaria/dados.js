@@ -179,7 +179,7 @@ export async function definirDisponibilidade(fichaId, ativo) {
  * Ingrediente ou embalagem novo pelo cadastro oficial (salvarInsumo): trava de
  * nome repetido, histórico de preço e vínculo no estoque vêm junto.
  */
-export async function criarProduto({ unidadeId, nome, unidade_medida, preco_embalagem, tamanho_embalagem, departamento = "marmitaria", categoria = "" }) {
+export async function criarProduto({ unidadeId, nome, marca = "", unidade_medida, preco_embalagem, tamanho_embalagem, departamento = "marmitaria", categoria = "" }) {
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
   const nomeLimpo = String(nome || "").trim();
   if (nomeLimpo.length < 2) return { error: "Informe o nome do produto." };
@@ -187,7 +187,7 @@ export async function criarProduto({ unidadeId, nome, unidade_medida, preco_emba
   const tamanho = Number(tamanho_embalagem) || 1;
   if (!(preco >= 0)) return { error: "Informe o preço de compra." };
   const r = await salvarInsumo({
-    unidade_id: unidadeId, nome: nomeLimpo, nome_interno: nomeLimpo, departamento,
+    unidade_id: unidadeId, nome: nomeLimpo, nome_interno: nomeLimpo, marca: String(marca || "").trim() || null, departamento,
     categoria: categoria || (departamento === "embalagens" ? "Embalagens" : "Marmitaria"),
     tipo: departamento === "embalagens" ? "embalagem" : departamento === "limpeza" ? "limpeza" : "ingrediente",
     unidade_medida, unidade_comercial: unidade_medida, tamanho_embalagem: tamanho,
@@ -213,14 +213,15 @@ export async function salvarDescricao(fichaId, descricao) {
 }
 
 /** Novo preço de compra de uma embalagem: passa pelo salvarInsumo para ficar no histórico de preço. */
-export async function atualizarPrecoEmbalagem({ id, unidade_medida, preco_embalagem, tamanho_embalagem }) {
+export async function atualizarPrecoEmbalagem({ id, marca, unidade_medida, preco_embalagem, tamanho_embalagem }) {
   const preco = Number(preco_embalagem);
   const tamanho = Number(tamanho_embalagem);
   if (!(preco >= 0)) return { error: "Informe o preço de compra." };
   if (!(tamanho > 0)) return { error: "Informe quanto vem na embalagem de compra." };
   // O preço normalizado vai junto: é ele que o custo das fichas lê primeiro.
   const r = await salvarInsumo({ id, custo_compra: preco, valor_embalagem: preco, tamanho_embalagem: tamanho,
-    preco_normalizado: calcularPrecoNormalizado(tamanho, unidade_medida, preco) }, { origem: "marmitaria" });
+    preco_normalizado: calcularPrecoNormalizado(tamanho, unidade_medida, preco),
+    ...(marca === undefined ? {} : { marca: String(marca || "").trim() || null }) }, { origem: "marmitaria" });
   return { error: r?.error ? mensagemErro(r.error) : null };
 }
 

@@ -20,6 +20,7 @@ function LinhaProduto({ item, saldo }) {
   const un = String(item.unidade_medida || "un").toLowerCase();
   const c = custoUnitarioEfetivoInsumo(item);
   const [aberto, setAberto] = useState(false);
+  const [marca, setMarca] = useState("");
   const [preco, setPreco] = useState("");
   const [tamanho, setTamanho] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -28,7 +29,7 @@ function LinhaProduto({ item, saldo }) {
     if (salvando) return;
     setSalvando(true);
     try {
-      const r = await atualizarPrecoEmbalagem({ id: item.id, unidade_medida: item.unidade_medida, preco_embalagem: lerNumero(preco), tamanho_embalagem: lerNumero(tamanho) });
+      const r = await atualizarPrecoEmbalagem({ id: item.id, marca, unidade_medida: item.unidade_medida, preco_embalagem: lerNumero(preco), tamanho_embalagem: lerNumero(tamanho) });
       if (r.error) { setErro(r.error); return; }
       setAberto(false);
       await recarregar();
@@ -37,15 +38,16 @@ function LinhaProduto({ item, saldo }) {
   return (
     <li className="py-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="min-w-0"><span className="block text-sm font-bold text-hf-text">{item.nome}</span><span className="block text-xs text-hf-muted">Em estoque: {num(saldo)} {un}</span></span>
+        <span className="min-w-0"><span className="block text-sm font-bold text-hf-text">{item.nome}</span>{item.marca && <span className="block text-xs text-hf-text-2">Marca: {item.marca}</span>}<span className="block text-xs text-hf-muted">Em estoque: {num(saldo)} {un}</span></span>
         <span className="flex shrink-0 items-center gap-3">
           <span className={`text-sm font-black tabular-nums ${c > 0 ? "text-hf-text" : "text-hf-warning"}`}>{c > 0 ? `${brl(c)}/${un}` : "Sem valor"}</span>
-          <button type="button" className="min-h-[40px] text-sm font-bold text-hf-accent hover:underline" onClick={() => { setPreco(String(item.valor_embalagem ?? item.custo_compra ?? "").replace(".", ",")); setTamanho(String(item.tamanho_embalagem || 1).replace(".", ",")); setErro(null); setAberto(!aberto); }}>{aberto ? "Fechar" : "Alterar"}</button>
+          <button type="button" className="min-h-[40px] text-sm font-bold text-hf-accent hover:underline" onClick={() => { setMarca(item.marca || ""); setPreco(String(item.valor_embalagem ?? item.custo_compra ?? "").replace(".", ",")); setTamanho(String(item.tamanho_embalagem || 1).replace(".", ",")); setErro(null); setAberto(!aberto); }}>{aberto ? "Fechar" : "Alterar"}</button>
         </span>
       </div>
       {aberto && (
         <div className="mt-3 rounded-xl bg-hf-elevated/60 p-3">
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <Campo rotulo="Marca" className="sm:col-span-3"><input className={inputCls} value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Opcional" /></Campo>
             <Campo rotulo="Preço pago na compra (R$)"><CampoNumero valor={preco} onChange={setPreco} placeholder="0,00" /></Campo>
             <Campo rotulo={`Quanto vem na compra (${un})`}><CampoNumero valor={tamanho} onChange={setTamanho} /></Campo>
             <Botao type="button" onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Botao>
@@ -61,7 +63,7 @@ export default function ProdutosPage() {
   const { base, carregando, unidadeId, recarregar } = useMarmitaria();
   const [novo, setNovo] = useState(false);
   const [busca, setBusca] = useState("");
-  const lista = useMemo(() => (base?.insumosLista || []).filter((i) => !i.ficha_tecnica_id && !ehEmbalagem(i) && !ehLimpeza(i) && (!busca.trim() || casaBusca(i.nome, busca)))
+  const lista = useMemo(() => (base?.insumosLista || []).filter((i) => !i.ficha_tecnica_id && !ehEmbalagem(i) && !ehLimpeza(i) && (!busca.trim() || casaBusca(`${i.nome} ${i.marca || ""}`, busca)))
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR")), [base, busca]);
 
   if (!base) return carregando ? <Cartao><p className="text-sm text-hf-muted">Carregando ingredientes…</p></Cartao> : null;
@@ -76,7 +78,7 @@ export default function ProdutosPage() {
       {novo && <NovoProduto unidadeId={unidadeId} rotuloSalvar="Cadastrar" onFechar={() => setNovo(false)} onCriado={async () => { await recarregar(); setNovo(false); }} />}
       <Secao titulo="Cadastro de ingredientes" subtitulo="O que a marmitaria compra e usa nas fichas."
         direita={!novo && <Botao onClick={() => setNovo(true)}><Plus size={16} /> Novo ingrediente</Botao>}>
-        <input className={`${inputCls} mb-1`} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar ingrediente" aria-label="Buscar ingrediente" />
+        <input className={`${inputCls} mb-1`} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar ingrediente ou marca" aria-label="Buscar ingrediente ou marca" />
         <ul className="divide-y divide-hf-border">
           {lista.map((i) => <LinhaProduto key={i.id} item={i} saldo={saldoDe(i)} />)}
         </ul>

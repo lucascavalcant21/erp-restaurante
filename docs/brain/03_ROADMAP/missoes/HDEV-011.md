@@ -4,7 +4,7 @@ titulo: Sistema de treinamento por função e área (Cozinha, Bar, Salão)
 status: VALIDATING
 prioridade: 1
 dependencias: []
-bloqueadores: [aprovacao-TREIN-1]
+bloqueadores: []
 tentativas: 0
 sem_progresso: 0
 mesma_falha: 0
@@ -22,7 +22,7 @@ Pedidos do dono (04/11/2026): cozinha com apresentação, pratos, montagem, coc�
 
 ## Critério de pronto
 
-- TREIN-1 e TREIN-2 aplicadas com a aprovação APR-017.
+- [x] TREIN-1 e TREIN-2 aplicadas com a aprovação APR-017 (05/11/2026, TESTADO NO SUPABASE REAL).
 - O dono revisou os rascunhos e preencheu as marcas [PREENCHER].
 - Uma pessoa real concluiu uma trilha, e o líder aprovou.
 - Fichas com modo de preparo e montagem escritos (0 de 97 pratos da cozinha e 0 de 30 itens do bar em 04/11/2026).

@@ -278,7 +278,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Status:** PENDENTE
 - **Criado em:** 2026-11-04
 
-### APR-017 · PENDENTE
+### APR-017 · EXECUTADO
 
 - **Missão:** HDEV-011
 - **Ação:** Aplicar db/treinamento/TREIN_1_TREINAMENTO_POR_FUNCAO.sql e depois db/treinamento/TREIN_2_RASCUNHOS.sql no Supabase real
@@ -289,7 +289,8 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Rollback:** db/treinamento/TREIN_1_ROLLBACK.sql (apaga conteúdo editado e progresso; testado no PGlite).
 - **Evidências:** TESTADO LOCAL: PGlite com o SQL real, cobrindo rascunho invisível, gabarito fechado, prova, limite de tentativas, escrita direta negada, isolamento entre unidades, líder não aprova a si mesmo, Estúdio, permissões, preflight, rollback e carga real dos rascunhos. NÃO VALIDADO no Supabase real.
 - **Comando/alteração:** `Rodar TREIN_1 inteiro, conferir a impressão 75b3c57a6eea304ca11e7cf6ec551775; rodar TREIN_2 e conferir a contagem. Depois mesclar o PR.`
-- **Status:** PENDENTE
+- **Status:** EXECUTADO
+- **Execução:** 05/11/2026, com aprovação do dono na conversa e no aviso do Supabase. TESTADO NO SUPABASE REAL: impressão 75b3c57a6eea304ca11e7cf6ec551775; 12 tabelas com RLS; 33 módulos (8 de pratos aprovados), 56 aulas, 136 questões e gabaritos, 10 trilhas, 119 ligações, 63 itens de prática; hash das aulas igual ao do código. Lido como funcionário real em transação desfeita: 8 módulos e 10 trilhas visíveis; gabarito, importação e escrita direta negados.
 - **Criado em:** 2026-11-05 01:00
 - **Chave:** migracao:db/treinamento/TREIN_1_TREINAMENTO_POR_FUNCAO.sql
 

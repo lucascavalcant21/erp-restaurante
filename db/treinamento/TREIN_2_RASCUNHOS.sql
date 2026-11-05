@@ -1,7 +1,7 @@
 /* TREIN-2 · RASCUNHOS DO TREINAMENTO
    ARQUIVO GERADO por scripts/treinamento/gerar-rascunhos.mjs. Não edite à mão.
 
-   STATUS: NÃO APLICADA. Aguarda APR-017, depois de TREIN_1_TREINAMENTO_POR_FUNCAO.sql.
+   STATUS: APLICADA em 05/11/2026, com a aprovação APR-017, depois de TREIN_1_TREINAMENTO_POR_FUNCAO.sql.
 
    FAZ: carrega trilhas, módulos, aulas e questões na unidade seldeestrela. Tudo
    entra como RASCUNHO, invisível para a equipe até o dono aprovar. Só os módulos

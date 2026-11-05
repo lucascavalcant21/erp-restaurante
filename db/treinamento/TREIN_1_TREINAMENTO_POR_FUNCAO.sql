@@ -1,6 +1,6 @@
 /* TREIN-1 · TREINAMENTO POR ÁREA E FUNÇÃO
 
-   STATUS: NÃO APLICADA. Aguarda a aprovação APR-017
+   STATUS: APLICADA em 05/11/2026, com a aprovação APR-017
    (docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md).
 
    POR QUÊ: o dono quer formar cada funcionário novo por área e função, com

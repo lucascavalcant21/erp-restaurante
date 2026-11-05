@@ -137,6 +137,14 @@ export const PERMISSION_MODULES = [
     ],
   },
   {
+    id: "treinamento", label: "Treinamento",
+    pages: [
+      { id: "my", label: "Meu treinamento", route: "/dashboard/treinamento", actions: ["view"] },
+      { id: "team", label: "Treinamento da equipe", route: "/dashboard/treinamento/equipe", actions: ["view", "create", "cancel", "approve"] },
+      { id: "content", label: "Héfisto Estúdio", route: "/dashboard/treinamento/estudio", actions: ["view", "edit", "approve"] },
+    ],
+  },
+  {
     id: "rh", label: "RH",
     pages: [
       { id: "overview", label: "Painel de RH", route: "/dashboard/rh", actions: ["view", "view_values", "export"] },

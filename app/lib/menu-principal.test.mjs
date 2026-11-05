@@ -98,3 +98,10 @@ test("tela de cards abre para quem pode usar algum card dela", () => {
   assert.equal(universoLiberado("/dashboard/salao", pode), false);
   assert.equal(universoLiberado("/dashboard/financeiro", () => true), false);
 });
+
+test("treinamento: volta ao universo de onde veio e, sem origem, não finge ser da Cozinha", () => {
+  assert.equal(universoDaRota("/dashboard/treinamento", "?area=bar", null)?.id, "bar");
+  assert.equal(universoDaRota("/dashboard/treinamento", "?area=salao", "salao")?.id, "salao");
+  assert.equal(universoDaRota("/dashboard/treinamento", "", null), null);
+  assert.equal(universoDaRota("/dashboard/treinamento/modulo/1", "?m=2", null), null);
+});

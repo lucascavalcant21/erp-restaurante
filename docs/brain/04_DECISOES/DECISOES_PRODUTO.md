@@ -74,3 +74,14 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - fundo e cards brancos, blocos internos #F7F7F8, bordas #E5E7EB, texto #252525;
 - verde só para estado positivo; vermelho e âmbar só para estado real.
 - O menu do topo é a fonte única das telas (app/lib/menu-principal.mjs).
+
+## DP — Marmitaria: ficha só com custo, preço no Cardápio (05/11/2026, decisão do dono)
+
+- **Ficha técnica** mostra só o custo (comida + embalagem). Preço, taxas e lucro ficam no **Cardápio**, por plataforma.
+- **Ingrediente novo** nasce só no cadastro do sistema. A marmitaria mantém o cadastro de **embalagens**.
+- **Lucro = o que o cliente paga − imposto − taxas da plataforma − custo da ficha − equipe − custos fixos.** Equipe e fixos são o valor do mês ÷ marmitas por mês (ESTIMATIVA); bebida e sobremesa não carregam essa parte.
+- Base da conta: o último mês fechado do DRE da marmitaria. O que o dono digita em Configurações vale sobre o sistema.
+- **Taxa em branco não é zero:** sem as taxas da plataforma, ou sem imposto definido, o Cardápio não mostra lucro.
+- **MEI:** imposto sobre venda 0%. O regime e os custos mensais ficam em `marmitaria_configuracoes.rateio` (jsonb), sem migração. Vale `regime = "mei"` e `tributos_pct = 0`.
+- Plataformas: iFood, 99 (`99food`), Keeta e Balcão; WhatsApp e outras entram por botão. Só a comissão do balcão nasce zerada.
+- Rotas novas ficam sob `/dashboard/marmitaria/marmitas/` para herdar a permissão `marmitaria.recipes`.

@@ -1,6 +1,6 @@
 "use client";
 
-// Marmitaria & Delivery: sete áreas, uma barra só. O menu de cima leva para
+// Marmitaria & Delivery: oito áreas, uma barra só. O menu de cima leva para
 // cá sem submenu (a navegação do módulo mora aqui), e o que é secundário vira
 // aba dentro de cada área.
 
@@ -13,8 +13,9 @@ import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 // "curto" é o rótulo no celular: quatro por linha cabem sem quebrar.
 const AREAS = [
   { href: "/dashboard/marmitaria", rotulo: "Visão geral", curto: "Geral", exato: true },
-  { href: "/dashboard/marmitaria/marmitas", rotulo: "Marmitas", exceto: "/dashboard/marmitaria/marmitas/combos" },
-  { href: "/dashboard/marmitaria/marmitas/combos", rotulo: "Combos" },
+  { href: "/dashboard/marmitaria/marmitas", rotulo: "Ficha técnica", curto: "Ficha", exceto: ["/dashboard/marmitaria/marmitas/cardapio", "/dashboard/marmitaria/marmitas/embalagens"] },
+  { href: "/dashboard/marmitaria/marmitas/embalagens", rotulo: "Embalagens" },
+  { href: "/dashboard/marmitaria/marmitas/cardapio", rotulo: "Cardápio" },
   { href: "/dashboard/marmitaria/estoque", rotulo: "Estoque e produção", curto: "Estoque" },
   { href: "/dashboard/marmitaria/funcionarios", rotulo: "Funcionários", curto: "Equipe" },
   { href: "/dashboard/marmitaria/financeiro", rotulo: "Financeiro" },
@@ -41,7 +42,7 @@ export default function MarmitariaLayout({ children }) {
           </header>
           <nav aria-label="Áreas da marmitaria" className="mb-4 grid grid-cols-4 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:inline-flex sm:max-w-full sm:flex-wrap">
             {AREAS.map((a) => {
-              const ativo = a.exato ? pathname === a.href : (pathname === a.href || pathname.startsWith(`${a.href}/`)) && !(a.exceto && pathname.startsWith(a.exceto));
+              const ativo = a.exato ? pathname === a.href : (pathname === a.href || pathname.startsWith(`${a.href}/`)) && !(a.exceto || []).some((x) => pathname.startsWith(x));
               return (
                 <Link key={a.href} href={a.href} aria-current={ativo ? "page" : undefined}
                   className={`flex min-h-[44px] items-center justify-center rounded-xl px-2 text-center text-sm font-semibold transition sm:min-h-[38px] sm:px-4 ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>

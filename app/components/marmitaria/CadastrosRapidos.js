@@ -1,7 +1,7 @@
 "use client";
 
-// Cadastro rápido dentro da marmita. Ingrediente e embalagem vão para o
-// cadastro geral pelo salvarInsumo (trava de nome repetido, histórico de
+// Cadastro rápido dentro da marmita. A embalagem vai para o cadastro geral
+// pelo salvarInsumo (trava de nome repetido, histórico de
 // preço, vínculo no estoque). Pré-preparo vai para a base compartilhada da
 // cozinha pela marmitaria_salvar_ficha — o restaurante passa a enxergá-lo.
 
@@ -26,7 +26,7 @@ function Painel({ titulo, onFechar, children }) {
 
 const UNIDADES = [["kg", "kg"], ["g", "g"], ["l", "L"], ["ml", "ml"], ["un", "unidade"]];
 
-export function NovoProduto({ unidadeId, embalagem = false, nomeInicial = "", onCriado, onFechar }) {
+export function NovoProduto({ unidadeId, embalagem = false, nomeInicial = "", rotuloSalvar = "Cadastrar e usar", onCriado, onFechar }) {
   const [f, setF] = useState({ nome: nomeInicial, unidade: embalagem ? "un" : "kg", preco: "", tamanho: embalagem ? "1" : "1", exclusivo: false });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
@@ -80,7 +80,7 @@ export function NovoProduto({ unidadeId, embalagem = false, nomeInicial = "", on
       {erro && <Aviso tipo="alerta" className="mt-3">{erro}</Aviso>}
       <div className="mt-3 flex justify-end gap-2">
         <Botao variante="secundario" onClick={onFechar} type="button">Cancelar</Botao>
-        <Botao onClick={salvar} disabled={salvando} type="button">{salvando ? "Salvando…" : "Cadastrar e usar"}</Botao>
+        <Botao onClick={salvar} disabled={salvando} type="button">{salvando ? "Salvando…" : rotuloSalvar}</Botao>
       </div>
     </Painel>
   );

@@ -119,9 +119,14 @@ export function custoDaMarmita({ itens = [], embalagens = [], fichas = [], insum
 // não presume comissão de ninguém.
 export const MODELOS_CANAL = [
   { id: "ifood", nome: "iFood", modalidade: "", comissao_base: "receita", pagamento_na_comissao: false },
+  { id: "99food", nome: "99", modalidade: "", comissao_base: "receita", pagamento_na_comissao: false },
+  { id: "keeta", nome: "Keeta", modalidade: "", comissao_base: "receita", pagamento_na_comissao: false },
+  { id: "balcao", nome: "Balcão", modalidade: "Retirada", comissao_base: "receita", pagamento_na_comissao: false, comissao_pct: 0 },
   { id: "whatsapp", nome: "WhatsApp", modalidade: "Entrega própria", comissao_base: "receita", pagamento_na_comissao: false },
-  { id: "balcao", nome: "Balcão", modalidade: "Retirada", comissao_base: "receita", pagamento_na_comissao: false },
 ];
+
+// As quatro formas de vender que o dono usa; o WhatsApp entra se ele quiser.
+export const PLATAFORMAS_PADRAO = ["ifood", "99food", "keeta", "balcao"];
 
 const CAMPOS_PCT = ["comissao_pct", "taxa_pagamento_pct", "promocao_pct"];
 const CAMPOS_RS = ["taxa_fixa_pedido", "entrega_subsidiada_pedido"];

@@ -8,6 +8,7 @@
 
 import { supabase, isSupabaseReady } from "../supabase";
 import { fetchFichas, salvarInsumo } from "../operacao";
+import { calcularPrecoNormalizado } from "../ingredientes-utils.mjs";
 import { vincularItemEstoque } from "../estoques-multiplos";
 import { transferirLancamento } from "../estoque-movimento-dados";
 import { novaChave } from "../estoque-movimento.mjs";
@@ -189,6 +190,30 @@ export async function criarProduto({ unidadeId, nome, unidade_medida, preco_emba
   }, { origem: "marmitaria" });
   if (r?.error) return { error: mensagemErro(r.error) };
   return { id: r?.id || null, error: null };
+}
+
+/** Novo preço de compra de uma embalagem: passa pelo salvarInsumo para ficar no histórico de preço. */
+export async function atualizarPrecoEmbalagem({ id, unidade_medida, preco_embalagem, tamanho_embalagem }) {
+  const preco = Number(preco_embalagem);
+  const tamanho = Number(tamanho_embalagem);
+  if (!(preco >= 0)) return { error: "Informe o preço de compra." };
+  if (!(tamanho > 0)) return { error: "Informe quanto vem na embalagem de compra." };
+  // O preço normalizado vai junto: é ele que o custo das fichas lê primeiro.
+  const r = await salvarInsumo({ id, custo_compra: preco, valor_embalagem: preco, tamanho_embalagem: tamanho,
+    preco_normalizado: calcularPrecoNormalizado(tamanho, unidade_medida, preco) }, { origem: "marmitaria" });
+  return { error: r?.error ? mensagemErro(r.error) : null };
+}
+
+/** Preço de um item numa plataforma. A unidade vem da sessão e a RLS confere. */
+export async function salvarPrecoNoCanal({ unidadeId, fichaId, canal, preco }) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
+  const valor = Number(preco);
+  if (!(valor > 0)) return { error: "Informe um preço maior que zero." };
+  const { error } = await supabase.from("marmitaria_precificacao_canais").upsert(
+    { unidade_id: unidadeId, ficha_id: fichaId, canal, preco_venda: valor, atualizado_em: new Date().toISOString() },
+    { onConflict: "unidade_id,ficha_id,canal" });
+  return { error: mensagemErro(error) };
 }
 
 // ─── Estoque da marmitaria ───────────────────────────────────────────────────

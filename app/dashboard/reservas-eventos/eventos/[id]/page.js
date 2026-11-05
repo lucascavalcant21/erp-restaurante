@@ -14,7 +14,8 @@ import { ArrowLeft, ArrowRight, Calendar, Users, Check, Loader2, CloudOff, Alert
 import ComprasTab from "./ComprasTab";
 import { EtapaTipo, EtapaCardapio } from "./orcamento/EtapaCardapio";
 import { EtapaEquipe, EtapaExtras, EtapaCliente } from "./orcamento/EtapasCadastro";
-import { EtapaFinanceiro, EtapaDRE, EtapaProposta, EtapaPagamentos } from "./orcamento/EtapasFinanceiras";
+import { EtapaFinanceiro, EtapaDRE, EtapaPagamentos } from "./orcamento/EtapasFinanceiras";
+import { EtapaProposta } from "./orcamento/EtapaProposta";
 import { supabase } from "../../../../lib/supabase";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas, fetchInsumos } from "../../../../lib/operacao";
@@ -353,7 +354,7 @@ export default function EventoPage() {
           {etapa === "cliente" && <EtapaCliente {...props} unidadeAtiva={unidadeAtiva} historico={historico} />}
           {etapa === "financeiro" && <EtapaFinanceiro {...props} />}
           {etapa === "dre" && <EtapaDRE {...props} recebido={recebido} />}
-          {etapa === "proposta" && <EtapaProposta {...props} casa={unidadeInfo?.nome || ""} eventoId={id} telefoneCasa={unidadeInfo?.telefone || ""} />}
+          {etapa === "proposta" && <EtapaProposta {...props} unidadeAtiva={unidadeAtiva} casa={unidadeInfo?.nome || ""} eventoId={id} telefoneCasa={unidadeInfo?.telefone || ""} criadoEm={evento?.created_at || null} />}
           {etapa === "pagamentos" && <EtapaPagamentos pagamentos={pagamentos} salvarPagamentos={salvarPagamentos} resumo={resumo} salvando={salvandoPag} />}
           {etapa === "compras" && compras && <ComprasTab lista={compras} valor={resumo.receita} nItens={resumo.itens.length} cmvCardapio={resumo.cmv} />}
 

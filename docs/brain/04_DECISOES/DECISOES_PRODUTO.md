@@ -125,3 +125,10 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - Na unidade própria, toda conta entra inteira no resultado da marmitaria (`centros_diretos = ["*"]`), sem rateio, e a compra recebida gera a conta a pagar dela. O PR #172 (outubro) tinha a mesma ideia, mas não foi mesclado e tem histórico separado.
 - **Acesso pela senha:** o dono passa a senha e não configura cada usuário. Com a senha certa, o usuário ativo da mesma empresa recebe o escopo da unidade `marmitaria`, que continua depois de sair. `hefisto_user_can` libera `estoque.*` só nessa unidade, menos segurança e cancelamento de compra. Quem tem a senha vê tudo da marmitaria, inclusive custos e DRE.
 
+## DP — Marmitaria: etiqueta no recebimento da compra (05/11/2026, decisão do dono)
+
+- Colocou validade e lançou no estoque: a etiqueta do produto sai junto. Sem validade, não sai etiqueta.
+- A etiqueta é registrada com quantidade 0, porque o estoque já recebeu pela compra e `criarEtiqueta` somaria de novo.
+- Saída: MDK-022 por USB se já estiver pareada, térmica Bluetooth se estiver conectada; senão, a impressão do aparelho.
+- O navegador só pede permissão de USB em um toque da pessoa. O primeiro pareamento é feito em "Imprimir de novo".
+- O iPhone não tem USB nem Bluetooth no navegador: de lá só sai por impressão do aparelho (AirPrint).

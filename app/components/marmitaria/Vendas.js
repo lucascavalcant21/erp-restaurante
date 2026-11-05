@@ -10,14 +10,15 @@ import { Trash2 } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import { Aviso, Botao, Campo, CampoNumero, Secao, SemDados, Selo, brl, inputCls, lerNumero, num } from "./ui";
 import { fetchVendas, salvarVenda, excluirVenda } from "../../lib/marmitaria/dados";
-import { resultadoPorCanal, resumoVendas } from "../../lib/marmitaria/nucleo.mjs";
+import { canalConfigurado, resultadoPorCanal, resumoVendas } from "../../lib/marmitaria/nucleo.mjs";
+import { canaisDisponiveis } from "../../lib/marmitaria/dia.mjs";
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
 const vazia = (canal = "") => ({ data: hoje(), canal, ficha_id: "", quantidade: "", valor_bruto: "", descontos: "", cancelamentos: "", comissao: "", taxa_pagamento: "", entrega_subsidiada: "", promocoes: "", tributos: "", observacao: "", taxasDoRepasse: false });
 
 export default function Vendas() {
   const { base, unidadeId } = useMarmitaria();
-  const canais = base.config.canais.filter((c) => c.ativo);
+  const canais = canaisDisponiveis(base.config);
   const [mes, setMes] = useState(hoje().slice(0, 7));
   const [lista, setLista] = useState([]);
   const [f, setF] = useState(() => vazia(canais[0]?.id || ""));
@@ -64,18 +65,20 @@ export default function Vendas() {
     } finally { setSalvando(false); }
   }
 
-  async function excluir(id) {
-    const r = await excluirVenda(id);
+  async function excluir(v) {
+    if (!window.confirm(`Excluir a venda de ${num(v.quantidade, 0)} marmita(s), no valor de ${brl(v.valor_bruto)}?`)) return;
+    const r = await excluirVenda(v.id);
     if (r.error) setMsg({ tipo: "alerta", texto: r.error }); else carregar();
   }
 
-  if (!canais.length) return <SemDados titulo="Configure os canais primeiro" motivo="As vendas são lançadas por canal (iFood, WhatsApp, Balcão)." href="/dashboard/marmitaria/configuracoes" acao="Configurar canais" />;
   const rv = resumoVendas(lista);
+  const faltamTaxas = canais.some((c) => !canalConfigurado(c));
   const nomeCanal = (id) => canais.find((c) => c.id === id)?.nome || base.config.canais.find((c) => c.id === id)?.nome || id;
 
   return (
     <div className="space-y-4">
       <Aviso>Integração com o iFood ainda não conectada: lance as vendas do dia aqui (do relatório do iFood e do caixa). Não lance as vendas da marmitaria também no faturamento diário do restaurante.</Aviso>
+      {faltamTaxas && <Aviso tipo="alerta">Há canal sem taxas cadastradas: a venda é lançada, mas o lucro fica incompleto. <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurar canais</a></Aviso>}
       <Secao titulo="Lançar vendas">
         <div className="grid gap-3 sm:grid-cols-4">
           <Campo rotulo="Data"><input type="date" className={inputCls} value={f.data} onChange={(e) => setF({ ...f, data: e.target.value })} /></Campo>
@@ -117,7 +120,7 @@ export default function Vendas() {
                     <td className="py-2 pr-2 text-right tabular-nums">{num(v.quantidade, 0)}</td>
                     <td className="py-2 pr-2 text-right tabular-nums">{brl(v.valor_bruto - v.descontos - v.cancelamentos)}</td>
                     <td className="py-2 pr-2 text-right tabular-nums">{brl(v.comissao + v.taxa_pagamento + v.outras_taxas)} {v.taxas_estimadas && <Selo natureza="estimado" />}</td>
-                    <td className="py-2 text-right">{v.fonte === "manual" && <button type="button" aria-label="Excluir lançamento" onClick={() => excluir(v.id)} className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-hf-muted hover:bg-hf-elevated hover:text-hf-danger"><Trash2 size={15} /></button>}</td>
+                    <td className="py-2 text-right">{v.fonte === "manual" && <button type="button" aria-label="Excluir lançamento" onClick={() => excluir(v)} className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-hf-muted hover:bg-hf-elevated hover:text-hf-danger"><Trash2 size={15} /></button>}</td>
                   </tr>
                 ))}
               </tbody>

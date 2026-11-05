@@ -236,6 +236,14 @@ export async function fetchProducoes(unidadeId, limite = 30) {
   return { data: data || [], error: mensagemErro(error) };
 }
 
+export async function fetchProducoesDoDia(unidadeId, dia) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { data: [] };
+  const { data, error } = await supabase.from("marmitaria_producao_lotes")
+    .select("id, ficha_id, quantidade_produzida, quantidade_perdas, data_producao, status")
+    .eq("unidade_id", unidadeId).eq("data_producao", dia);
+  return { data: data || [], error: mensagemErro(error) };
+}
+
 // ─── Vendas ──────────────────────────────────────────────────────────────────
 
 export async function fetchVendas(unidadeId, de, ate) {

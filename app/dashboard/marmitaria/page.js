@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMarmitaria } from "../../components/marmitaria/contexto";
 import { useDreMarmitaria } from "../../components/marmitaria/Dre";
+import DiaDaMarmitaria from "../../components/marmitaria/DiaDaMarmitaria";
 import { CheckCircle2, Circle } from "lucide-react";
 import { Abas, Aviso, Campo, Indicador, Secao, Selo, brl, inputCls, pctTxt, num } from "../../components/marmitaria/ui";
 import { fetchVendas, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../lib/marmitaria/dados";
@@ -90,6 +91,8 @@ export default function VisaoGeralPage() {
   const periodoTxt = filtro === "hoje" ? "hoje" : filtro === "semana" ? "nesta semana" : filtro === "mes" ? `em ${mesTxt}` : "no período";
   return (
     <div className="space-y-4">
+      <DiaDaMarmitaria />
+
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[280px] flex-1"><Abas abas={FILTROS} valor={filtro} onChange={setFiltro} /></div>
         {filtro === "personalizado" && (
@@ -163,7 +166,7 @@ export default function VisaoGeralPage() {
 
       {locais.length > 0 && (
         <Secao titulo="Alertas de estoque" subtitulo="Locais da marmitaria.">
-          {alertasEstoque.length ? <ul className="divide-y divide-hf-border">{alertasEstoque.slice(0, 12).map((a) => <li key={a.nome} className="flex justify-between gap-2 py-2 text-sm"><span className="min-w-0 truncate">{a.nome}</span><span className="shrink-0 font-semibold text-hf-warning">{a.motivo}</span></li>)}</ul>
+          {alertasEstoque.length ? <ul className="divide-y divide-hf-border">{alertasEstoque.slice(0, 12).map((a, i) => <li key={`${a.nome}-${i}`} className="flex justify-between gap-2 py-2 text-sm"><span className="min-w-0 truncate">{a.nome}</span><span className="shrink-0 font-semibold text-hf-warning">{a.motivo}</span></li>)}</ul>
             : <p className="text-sm text-hf-text-2">Nada zerado, vencendo ou abaixo do mínimo.</p>}
         </Secao>
       )}

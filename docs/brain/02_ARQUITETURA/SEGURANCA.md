@@ -49,3 +49,7 @@
 - Segredo nunca entra no chat, no código, em commit ou neste cérebro. Só o NOME da variável.
 - Tenant vem do banco, nunca do corpo da requisição.
 - Mudança de RLS, policy ou grant em produção é **ação crítica**: precisa de aprovação do dono e de transação com verificação. Ver [[REGRAS_DO_PROJETO]].
+
+## S-NFE-1 — Valor com cara de senha em `unidades.token_nfe` (05/11/2026)
+
+Na unidade `seldeestrela`, `token_nfe` parece conter uma senha pessoal, e `codigo_ibge` contém um e-mail: sinal de preenchimento automático do navegador na tela de dados fiscais. `anon` e `authenticated` não têm SELECT nessa coluna. O valor não fica registrado aqui. Limpar o campo e trocar a senha dependem do dono.

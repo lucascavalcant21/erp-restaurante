@@ -295,7 +295,7 @@ export const PERMISSION_MODULES = [
       // Seis áreas (14/10/2026). Os ids antigos que continuam servem às mesmas
       // funções; os que sumiram (pedidos, cardápio, precificação…) viraram abas.
       { id: "overview", label: "Visão Geral", route: "/dashboard/marmitaria", actions: [...VIEW_EXPORT, "view_values"] },
-      { id: "recipes", label: "Marmitas, cardápio e preços", route: "/dashboard/marmitaria/marmitas", actions: [...CRUD, "view_costs", "view_margin"] },
+      { id: "recipes", label: "Ficha técnica, embalagens, cardápio e preços", route: "/dashboard/marmitaria/marmitas", actions: [...CRUD, "view_costs", "view_margin"] },
       { id: "stock", label: "Estoque e Produção", route: "/dashboard/marmitaria/estoque", actions: [...CRUD, "transfer", "confirm", "view_costs"] },
       { id: "hr", label: "Funcionários e CMO", route: "/dashboard/marmitaria/funcionarios", actions: [...CRUD, "view_values"] },
       { id: "financial", label: "Financeiro, DRE e Simulador", route: "/dashboard/marmitaria/financeiro", actions: [...CRUD, "view_values", "view_margin", "export"] },

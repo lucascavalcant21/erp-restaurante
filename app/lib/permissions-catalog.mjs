@@ -137,6 +137,14 @@ export const PERMISSION_MODULES = [
     ],
   },
   {
+    id: "treinamento", label: "Treinamento",
+    pages: [
+      { id: "my", label: "Meu treinamento", route: "/dashboard/treinamento", actions: ["view"] },
+      { id: "team", label: "Treinamento da equipe", route: "/dashboard/treinamento/equipe", actions: ["view", "create", "cancel", "approve"] },
+      { id: "content", label: "Héfisto Estúdio", route: "/dashboard/treinamento/estudio", actions: ["view", "edit", "approve"] },
+    ],
+  },
+  {
     id: "rh", label: "RH",
     pages: [
       { id: "overview", label: "Painel de RH", route: "/dashboard/rh", actions: ["view", "view_values", "export"] },
@@ -295,7 +303,7 @@ export const PERMISSION_MODULES = [
       // Seis áreas (14/10/2026). Os ids antigos que continuam servem às mesmas
       // funções; os que sumiram (pedidos, cardápio, precificação…) viraram abas.
       { id: "overview", label: "Visão Geral", route: "/dashboard/marmitaria", actions: [...VIEW_EXPORT, "view_values"] },
-      { id: "recipes", label: "Marmitas, cardápio e preços", route: "/dashboard/marmitaria/marmitas", actions: [...CRUD, "view_costs", "view_margin"] },
+      { id: "recipes", label: "Ficha técnica, embalagens, cardápio e preços", route: "/dashboard/marmitaria/marmitas", actions: [...CRUD, "view_costs", "view_margin"] },
       { id: "stock", label: "Estoque e Produção", route: "/dashboard/marmitaria/estoque", actions: [...CRUD, "transfer", "confirm", "view_costs"] },
       { id: "hr", label: "Funcionários e CMO", route: "/dashboard/marmitaria/funcionarios", actions: [...CRUD, "view_values"] },
       { id: "financial", label: "Financeiro, DRE e Simulador", route: "/dashboard/marmitaria/financeiro", actions: [...CRUD, "view_values", "view_margin", "export"] },
@@ -376,6 +384,8 @@ function maisEspecificas(candidatas) {
 export function canAccessRoute(session, pathname, search = "") {
   if (!session) return false;
   if (session.papel === "admin" || session.super_admin || session.permissions === "*") return true;
+  // A marmitaria tem porta própria: quem tem a senha entra (decisão do dono, 05/11/2026).
+  if (pathname === "/dashboard/marmitaria" || String(pathname).startsWith("/dashboard/marmitaria/")) return true;
   if (session.is_app && Array.isArray(session.allowed_routes)) {
     return session.allowed_routes.some((r) => {
       const [path] = r.split("?");

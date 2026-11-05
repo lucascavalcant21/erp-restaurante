@@ -277,3 +277,32 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Comando/alteração:** `Rodar o arquivo inteiro. O select do fim deve devolver b300bf3a8f1a004da40d3eaf2f104a2a.`
 - **Status:** PENDENTE
 - **Criado em:** 2026-11-04
+
+### APR-017 · EXECUTADO
+
+- **Missão:** HDEV-011
+- **Ação:** Aplicar db/treinamento/TREIN_1_TREINAMENTO_POR_FUNCAO.sql e depois db/treinamento/TREIN_2_RASCUNHOS.sql no Supabase real
+- **Ambiente:** supabase (produção)
+- **Risco:** HIGH
+- **Motivo:** Cria tabelas, policies, funções e grants, e adiciona permissões aos perfis (CLAUDE.md: confirmação do dono).
+- **Impacto:** Só aditiva. 12 tabelas trein_* novas, com RLS por unidade; gabarito sem nenhum grant; escrita só por funções que conferem permissão. Todos os perfis menos Somente ponto e Contador ganham treinamento.my.view; Gerente geral ganha treinamento.*; Supervisor de cozinha ganha treinamento.team.*. Nenhuma linha existente muda. O conteúdo entra como rascunho, invisível para a equipe.
+- **Rollback:** db/treinamento/TREIN_1_ROLLBACK.sql (apaga conteúdo editado e progresso; testado no PGlite).
+- **Evidências:** TESTADO LOCAL: PGlite com o SQL real, cobrindo rascunho invisível, gabarito fechado, prova, limite de tentativas, escrita direta negada, isolamento entre unidades, líder não aprova a si mesmo, Estúdio, permissões, preflight, rollback e carga real dos rascunhos. NÃO VALIDADO no Supabase real.
+- **Comando/alteração:** `Rodar TREIN_1 inteiro, conferir a impressão 75b3c57a6eea304ca11e7cf6ec551775; rodar TREIN_2 e conferir a contagem. Depois mesclar o PR.`
+- **Status:** EXECUTADO
+- **Execução:** 05/11/2026, com aprovação do dono na conversa e no aviso do Supabase. TESTADO NO SUPABASE REAL: impressão 75b3c57a6eea304ca11e7cf6ec551775; 12 tabelas com RLS; 33 módulos (8 de pratos aprovados), 56 aulas, 136 questões e gabaritos, 10 trilhas, 119 ligações, 63 itens de prática; hash das aulas igual ao do código. Lido como funcionário real em transação desfeita: 8 módulos e 10 trilhas visíveis; gabarito, importação e escrita direta negados.
+- **Criado em:** 2026-11-05 01:00
+- **Chave:** migracao:db/treinamento/TREIN_1_TREINAMENTO_POR_FUNCAO.sql
+
+## APR-018 — MARM-PROD-1: produção de subprodutos da marmitaria
+
+**Executada em 05/11/2026 com autorização do dono.** TESTADO NO SUPABASE REAL em transação desfeita (compra recebida e produção). `db/marmitaria/MARM_PROD_1_PREPAROS.sql`. Aditiva: cria dois locais de estoque e uma função. Rollback em `db/marmitaria/MARM_PROD_1_ROLLBACK.sql`.
+
+## APR-019 — MARM-UNIDADE-1: unidade própria da marmitaria
+
+**Executada em 05/11/2026 com autorização do dono.** `db/marmitaria/MARM_UNIDADE_1_UNIDADE_PROPRIA.sql`. Aditiva: unidade `marmitaria`, vazia, com cinco estoques e as funções da senha. TESTADO NO SUPABASE REAL em transação desfeita (senha, cadastro e subproduto; usuário comum sem acesso). Rollback em `db/marmitaria/MARM_UNIDADE_1_ROLLBACK.sql`.
+
+
+## APR-020 — MARM-UNIDADE-2, 3 e 4: acesso à marmitaria pela senha
+
+**Executadas em 05/11/2026 com autorização do dono.** Com a senha, o usuário ativo da mesma empresa recebe o escopo da unidade `marmitaria`. `hefisto_user_can` e `fin_pode_acessar_unidade` mudaram só para essa unidade, `compras`, `compras_itens` e `contas_pagar` ganharam a policy `marmitaria_escopo`, e sete tabelas de estoque e pagamentos ganharam leitura por `marmitaria_escopo_ler`. TESTADO NO SUPABASE REAL em transação desfeita. Rollbacks em `db/marmitaria/`.

@@ -1,16 +1,17 @@
 "use client";
 
-// Cadastro rápido dentro da marmita. Ingrediente e embalagem vão para o
-// cadastro geral pelo salvarInsumo (trava de nome repetido, histórico de
+// Cadastro rápido dentro da marmita. A embalagem vai para o cadastro geral
+// pelo salvarInsumo (trava de nome repetido, histórico de
 // preço, vínculo no estoque). Pré-preparo vai para a base compartilhada da
 // cozinha pela marmitaria_salvar_ficha — o restaurante passa a enxergá-lo.
 
 import { useState } from "react";
 import { Trash2, X } from "lucide-react";
 import { criarProduto, salvarPrePreparo, novaChave } from "../../lib/marmitaria/dados";
-import { custoDaMarmita, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
+import { custoDaMarmita, custoPorUnidadeDoPacote, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import BuscaItens from "./BuscaItens";
-import { Botao, Campo, CampoNumero, inputCls, brl, Aviso, lerNumero } from "./ui";
+import { quantidadeParaTela } from "../../lib/marmitaria/formulario.mjs";
+import { Botao, Campo, CampoNumero, inputCls, brl, num, Aviso, lerNumero } from "./ui";
 
 function Painel({ titulo, onFechar, children }) {
   return (
@@ -26,8 +27,16 @@ function Painel({ titulo, onFechar, children }) {
 
 const UNIDADES = [["kg", "kg"], ["g", "g"], ["l", "L"], ["ml", "ml"], ["un", "unidade"]];
 
-export function NovoProduto({ unidadeId, embalagem = false, nomeInicial = "", onCriado, onFechar }) {
-  const [f, setF] = useState({ nome: nomeInicial, unidade: embalagem ? "un" : "kg", preco: "", tamanho: embalagem ? "1" : "1", exclusivo: false });
+/** Quanto sai cada unidade do pacote. Mostra as 4 casas para o arredondamento não esconder o valor. */
+export function CustoDaUnidade({ preco, unidades }) {
+  const custo = custoPorUnidadeDoPacote(preco, unidades);
+  if (custo === null) return null;
+  const exato = custo.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  return <p className="mt-2 rounded-lg bg-hf-elevated px-3 py-2 text-sm text-hf-text">Cada unidade sai a <strong>{brl(custo)}</strong> <span className="text-xs text-hf-muted">({brl(preco)} ÷ {num(unidades)} = {exato})</span></p>;
+}
+
+export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nomeInicial = "", rotuloSalvar = "Cadastrar e usar", onCriado, onFechar }) {
+  const [f, setF] = useState({ nome: nomeInicial, marca: "", unidade: embalagem ? "un" : limpeza ? "ml" : "kg", preco: "", tamanho: embalagem ? "" : "1" });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
   const preco = lerNumero(f.preco);
@@ -39,13 +48,13 @@ export function NovoProduto({ unidadeId, embalagem = false, nomeInicial = "", on
     setErro(null);
     if (f.nome.trim().length < 2) return setErro("Informe o nome.");
     if (preco === "" || preco < 0) return setErro("Informe o preço de compra.");
-    if (!(tamanho > 0)) return setErro("Informe quanto vem na embalagem de compra.");
+    if (!(tamanho > 0)) return setErro(embalagem ? "Informe quantas unidades vêm no pacote." : "Informe quanto vem na embalagem de compra.");
     setSalvando(true);
     try {
       const r = await criarProduto({
-        unidadeId, nome: f.nome, unidade_medida: f.unidade, preco_embalagem: preco, tamanho_embalagem: tamanho,
-        departamento: embalagem ? "embalagens" : f.exclusivo ? "marmitaria" : "cozinha",
-        categoria: embalagem ? "Embalagens da marmitaria" : "",
+        unidadeId, nome: f.nome, marca: f.marca, unidade_medida: f.unidade, preco_embalagem: preco, tamanho_embalagem: tamanho,
+        departamento: embalagem ? "embalagens" : limpeza ? "limpeza" : "marmitaria",
+        categoria: embalagem ? "Embalagens da marmitaria" : limpeza ? "Limpeza da marmitaria" : "",
       });
       if (r.error) setErro(r.error);
       else await onCriado(r.id, f.unidade);
@@ -55,41 +64,43 @@ export function NovoProduto({ unidadeId, embalagem = false, nomeInicial = "", on
   }
 
   return (
-    <Painel titulo={embalagem ? "Nova embalagem" : "Novo ingrediente"} onFechar={onFechar}>
+    <Painel titulo={embalagem ? "Nova embalagem" : limpeza ? "Novo produto de limpeza" : "Novo ingrediente"} onFechar={onFechar}>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} /></Campo>
-        <Campo rotulo="Preço pago na compra (R$)" dica="O valor da embalagem/pacote, como na nota.">
+        <Campo rotulo="Nome"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} /></Campo>
+        <Campo rotulo="Marca"><input className={inputCls} value={f.marca} onChange={(e) => setF({ ...f, marca: e.target.value })} placeholder="Opcional" /></Campo>
+        <Campo rotulo={embalagem ? "Preço do pacote (R$)" : "Preço pago na compra (R$)"} dica={embalagem ? "O valor pago, como na nota." : "O valor da embalagem/pacote, como na nota."}>
           <CampoNumero valor={f.preco} onChange={(v) => setF({ ...f, preco: v })} placeholder="0,00" />
         </Campo>
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Campo rotulo="Quanto vem nela"><CampoNumero valor={f.tamanho} onChange={(v) => setF({ ...f, tamanho: v })} /></Campo>
-          <Campo rotulo="Unidade">
-            <select className={inputCls} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })} disabled={embalagem}>
-              {UNIDADES.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-            </select>
-          </Campo>
-        </div>
+        {embalagem ? <Campo rotulo="Unidades no pacote"><CampoNumero valor={f.tamanho} onChange={(v) => setF({ ...f, tamanho: v })} placeholder="Ex.: 30" /></Campo> : (
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <Campo rotulo="Quanto vem nela"><CampoNumero valor={f.tamanho} onChange={(v) => setF({ ...f, tamanho: v })} /></Campo>
+            <Campo rotulo="Unidade">
+              <select className={inputCls} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })}>
+                {UNIDADES.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+              </select>
+            </Campo>
+          </div>
+        )}
       </div>
-      {porUnidade !== null && <p className="mt-2 text-xs text-hf-muted">Custo: {brl(porUnidade)} por {f.unidade === "un" ? "unidade" : f.unidade}.</p>}
-      {!embalagem && (
-        <label className="mt-3 flex min-h-[44px] items-center gap-2 text-sm text-hf-text-2">
-          <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={f.exclusivo} onChange={(e) => setF({ ...f, exclusivo: e.target.checked })} />
-          Só da marmitaria (desmarcado: fica no estoque geral, compartilhado com a cozinha)
-        </label>
-      )}
+      {embalagem ? <CustoDaUnidade preco={preco} unidades={tamanho} />
+        : porUnidade !== null && <p className="mt-2 text-xs text-hf-muted">Custo: {brl(porUnidade)} por {f.unidade === "un" ? "unidade" : f.unidade}.</p>}
       {erro && <Aviso tipo="alerta" className="mt-3">{erro}</Aviso>}
       <div className="mt-3 flex justify-end gap-2">
         <Botao variante="secundario" onClick={onFechar} type="button">Cancelar</Botao>
-        <Botao onClick={salvar} disabled={salvando} type="button">{salvando ? "Salvando…" : "Cadastrar e usar"}</Botao>
+        <Botao onClick={salvar} disabled={salvando} type="button">{salvando ? "Salvando…" : rotuloSalvar}</Botao>
       </div>
     </Painel>
   );
 }
 
-export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", onCriado, onFechar }) {
-  const [id] = useState(() => novaChave());
-  const [f, setF] = useState({ nome: nomeInicial, rendimento: "", unidade: "kg", setor: "cozinha", validade: "" });
-  const [itens, setItens] = useState([]);
+export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null, onCriado, onFechar }) {
+  const [id] = useState(() => ficha?.id || novaChave());
+  const [f, setF] = useState(() => ({ nome: ficha?.nome_receita || nomeInicial, rendimento: ficha?.rendimento_porcoes ? String(ficha.rendimento_porcoes).replace(".", ",") : "",
+    unidade: String(ficha?.rendimento_unidade || "kg").toLowerCase(), setor: ficha?.departamento || "cozinha", validade: ficha?.validade_dias ? String(ficha.validade_dias) : "" }));
+  const [itens, setItens] = useState(() => (ficha?.fichas_ingredientes || []).filter((i) => i.insumo_id).map((i) => {
+    const t = quantidadeParaTela(i.quantidade, String(base.insumos.get(i.insumo_id)?.unidade_medida || "un").toLowerCase());
+    return { key: novaChave(), insumo_id: i.insumo_id, qtd: t.qtd, un: t.un };
+  }));
   const [buscando, setBuscando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
@@ -104,9 +115,9 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", onCriado, on
   async function salvar() {
     if (salvando) return;
     setErro(null);
-    if (f.nome.trim().length < 2) return setErro("Informe o nome do pré-preparo.");
+    if (f.nome.trim().length < 2) return setErro("Informe o nome do subproduto.");
     if (!(rend > 0)) return setErro("Informe quanto o lote rende.");
-    if (!itens.length) return setErro("Adicione os ingredientes do pré-preparo.");
+    if (!itens.length) return setErro("Adicione os ingredientes do subproduto.");
     if (convertidos.some((c) => !(c.quantidade > 0))) return setErro("Confira a quantidade e a unidade de cada ingrediente.");
     setSalvando(true);
     try {
@@ -123,7 +134,7 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", onCriado, on
   }
 
   return (
-    <Painel titulo="Novo pré-preparo" onFechar={onFechar}>
+    <Painel titulo={ficha ? `Editar ${ficha.nome_receita}` : "Novo subproduto"} onFechar={onFechar}>
       <div className="grid gap-3 sm:grid-cols-4">
         <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Ex.: Arroz branco cozido" /></Campo>
         <Campo rotulo="O lote rende"><CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" /></Campo>

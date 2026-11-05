@@ -10,7 +10,7 @@ const fora = { id: "x", nome_receita: "Antiga", ativo: false, preco_venda: 20, p
 
 test("canais: sem cadastro usa os modelos sem taxa; com cadastro usa só os ativos", () => {
   const padrao = canaisDisponiveis({ canais: [] });
-  assert.deepEqual(padrao.map((c) => c.id), ["ifood", "whatsapp", "balcao"]);
+  assert.deepEqual(padrao.map((c) => c.id), ["ifood", "99food", "keeta", "balcao", "whatsapp"]);
   assert.equal(padrao[0].comissao_pct, null, "nenhuma taxa é presumida");
   const c = [normalizarCanal({ id: "balcao", nome: "Balcão" }), normalizarCanal({ id: "app", nome: "App", ativo: false })];
   assert.deepEqual(canaisDisponiveis({ canais: c }).map((x) => x.id), ["balcao"]);

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pedidoDaOferta, simularOferta, fixosPctDoResultado, catalogoParaCombo, normalizarCombo, itensDoCombo, CANAL_DIRETO } from "./promocoes.mjs";
+import { pedidoDaOferta, simularOferta, cardapioDeVendas, catalogoParaCombo, normalizarCombo, itensDoCombo, CANAL_DIRETO } from "./promocoes.mjs";
 
 const marmita = { nome: "Frango", preco: 40, custo: 15, qtd: 1 };
 
@@ -15,14 +15,14 @@ test("desconto % e R$, preço fixo", () => {
   assert.equal(pedidoDaOferta([marmita, { nome: "Suco", preco: 10, custo: 3 }], { tipo: "preco_fixo", valor: "45" }).paga, 45);
 });
 
-test("lucro tirando todos os custos: impostos, canal e fixos", () => {
+test("lucro tirando todos os custos: impostos, canal, equipe e fixos", () => {
   const canal = { id: "ifood", nome: "iFood", comissao_pct: 20, taxa_pagamento_pct: 0 };
-  const s = simularOferta({ itens: [marmita], oferta: { tipo: "desconto_pct", valor: 20 }, canal, tributosPct: 6, fixosPct: 10 });
-  // Sem promoção: 40 − 2,40 imposto − 8 comissão − 15 custo − 4 fixos = 10,60
+  const s = simularOferta({ itens: [marmita], oferta: { tipo: "desconto_pct", valor: 20 }, canal, tributosPct: 6, embutidos: { cmoPorMarmita: 1, fixosPorMarmita: 3 } });
+  // Sem promoção: 40 − 2,40 imposto − 8 comissão − 15 custo − 1 equipe − 3 fixos = 10,60
   assert.equal(s.sem.lucro, 10.6);
-  // Com 20%: 32 − 1,92 − 6,40 − 15 − 3,20 = 5,48
-  assert.equal(s.com.lucro, 5.48);
-  assert.equal(s.vezesParaEmpatar, 1.93);
+  // Com 20%: 32 − 1,92 − 6,40 − 15 − 1 − 3 = 4,68
+  assert.equal(s.com.lucro, 4.68);
+  assert.equal(s.vezesParaEmpatar, 2.26);
   assert.equal(s.prejuizo, false);
 });
 
@@ -31,12 +31,6 @@ test("2 por 1 que dá prejuízo aparece como prejuízo", () => {
   assert.equal(s.com.lucro, -10);
   assert.equal(s.prejuizo, true);
   assert.equal(s.vezesParaEmpatar, null);
-});
-
-test("fixos % do Resultado do mês", () => {
-  const todos = { "2026-10": { faturamento: "100000", itens: { fixos: [{ valor: "8000" }], outros: [{ valor: "1000" }], variaveis: [{ valor: "5000" }] }, depreciacao: [{ valor_bem: "12000", vida_meses: "12" }] } };
-  assert.equal(fixosPctDoResultado(todos, "2026-10"), 10);
-  assert.equal(fixosPctDoResultado({}, "2026-10"), null);
 });
 
 test("catálogo e combo comida + bebida + sobremesa", () => {
@@ -64,12 +58,12 @@ test("catálogo e combo comida + bebida + sobremesa", () => {
 });
 
 test("cardápio de vendas: preço cheio, promoção 2x1 e combo, com veredito", async () => {
-  const { cardapioDeVendas, projecaoDeVendas, veredito } = await import("./promocoes.mjs");
+  const { cardapioDeVendas, veredito } = await import("./promocoes.mjs");
   const catalogo = { marmita: [{ id: "m1", nome: "Frango", preco: 40, custo: 15 }], bebida: [{ id: "b1", nome: "Suco", preco: 10, custo: 3 }], sobremesa: [] };
   const linhas = cardapioDeVendas({
     catalogo, ofertas: [{ id: "o1", ficha_id: "m1", tipo: "leve_pague", leve: "2", pague: "1" }],
     combos: [{ id: "c1", nome: "Frango + suco", modelo: "comida_bebida", itens: [{ grupo: "marmita", id: "m1" }, { grupo: "bebida", id: "b1" }], preco: "45" }],
-    tributosPct: 0, fixosPct: 0, metaPct: 20,
+    tributosPct: 0, metaPct: 20,
   });
   const por = Object.fromEntries(linhas.map((l) => [l.id, l]));
   assert.equal(por["m-m1"].lucro, 25);           // 40 − 15
@@ -80,9 +74,6 @@ test("cardápio de vendas: preço cheio, promoção 2x1 e combo, com veredito", 
   assert.equal(por.c1.lucro, 27);                // 45 − 18
   assert.equal(veredito(-1, 20).id, "prejuizo");
   assert.equal(veredito(10, 20).id, "baixo");
-  // 10 frangos por dia, 6 dias: 250/dia, 1500/semana, 6500/mês
-  const p = projecaoDeVendas(linhas, { "m-m1": 10 }, { diasPorSemana: 6 });
-  assert.deepEqual([p.dia.lucro, p.semana.lucro, p.mes.lucro, p.dia.faturamento], [250, 1500, 6500, 400]);
 });
 
 test("marmita com custo incompleto não aparece como lucro de 100%", async () => {

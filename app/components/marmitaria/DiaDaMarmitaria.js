@@ -174,7 +174,7 @@ export default function DiaDaMarmitaria({ aoMudar }) {
       {p.semMarmita > 0 && <p className="mt-2 text-xs font-medium text-hf-text-2">{num(p.semMarmita, 0)} marmita(s) vendida(s) hoje sem identificar qual.</p>}
       {msg && <Aviso tipo={msg.tipo} className="mt-2">{msg.texto}</Aviso>}
       <div className="mt-3 flex flex-wrap gap-2 text-sm font-bold">
-        <Link href="/dashboard/marmitaria/estoque?aba=producao" className="inline-flex min-h-[44px] items-center rounded-xl border border-hf-border px-3 text-hf-text hover:bg-hf-elevated">Registrar produção</Link>
+        <Link href="/dashboard/marmitaria/estoque/producoes?aba=marmitas" className="inline-flex min-h-[44px] items-center rounded-xl border border-hf-border px-3 text-hf-text hover:bg-hf-elevated">Registrar produção</Link>
         <Link href="/dashboard/marmitaria/estoque" className="inline-flex min-h-[44px] items-center rounded-xl border border-hf-border px-3 text-hf-text hover:bg-hf-elevated">Planejar e comprar</Link>
         <Link href="/dashboard/marmitaria/financeiro?aba=vendas" className="inline-flex min-h-[44px] items-center rounded-xl border border-hf-border px-3 text-hf-text hover:bg-hf-elevated">Vendas detalhadas</Link>
       </div>

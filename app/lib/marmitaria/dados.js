@@ -8,6 +8,9 @@
 
 import { supabase, isSupabaseReady } from "../supabase";
 import { fetchFichas, salvarInsumo } from "../operacao";
+import { calcularPrecoNormalizado } from "../ingredientes-utils.mjs";
+import { confirmarCompra, salvarRascunho } from "../compras-estoque.mjs";
+import { UNIDADE_MARMITARIA, textoDaSenha } from "./acesso.mjs";
 import { vincularItemEstoque } from "../estoques-multiplos";
 import { transferirLancamento } from "../estoque-movimento-dados";
 import { novaChave } from "../estoque-movimento.mjs";
@@ -111,7 +114,7 @@ export async function carregarBase(unidadeId) {
     insumosLista, insumos, espelho,
     estoques: estR.data || [],
     itensEstoque: itensR.data || [],
-    config: configComResultado(normalizarConfig(configRow), parametrosDoResultado(resR?.data || {}, new Date().toISOString().slice(0, 7))),
+    config: configComResultado(comUnidadePropria(normalizarConfig(configRow), unidadeId), parametrosDoResultado(resR?.data || {}, new Date().toISOString().slice(0, 7))),
     configSalva: !!configRow,
   };
 }
@@ -128,6 +131,9 @@ export function normalizarConfig(row) {
     centros_diretos: Array.isArray(r.centros_diretos) && r.centros_diretos.length ? r.centros_diretos : ["marmitaria"],
   };
 }
+
+// A unidade própria não divide conta com o restaurante.
+const comUnidadePropria = (cfg, unidadeId) => (unidadeId === UNIDADE_MARMITARIA ? { ...cfg, centros_diretos: ["*"] } : cfg);
 
 export async function salvarConfig(unidadeId, cfg) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
@@ -173,7 +179,7 @@ export async function definirDisponibilidade(fichaId, ativo) {
  * Ingrediente ou embalagem novo pelo cadastro oficial (salvarInsumo): trava de
  * nome repetido, histórico de preço e vínculo no estoque vêm junto.
  */
-export async function criarProduto({ unidadeId, nome, unidade_medida, preco_embalagem, tamanho_embalagem, departamento = "cozinha", categoria = "" }) {
+export async function criarProduto({ unidadeId, nome, marca = "", unidade_medida, preco_embalagem, tamanho_embalagem, departamento = "marmitaria", categoria = "" }) {
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
   const nomeLimpo = String(nome || "").trim();
   if (nomeLimpo.length < 2) return { error: "Informe o nome do produto." };
@@ -181,14 +187,152 @@ export async function criarProduto({ unidadeId, nome, unidade_medida, preco_emba
   const tamanho = Number(tamanho_embalagem) || 1;
   if (!(preco >= 0)) return { error: "Informe o preço de compra." };
   const r = await salvarInsumo({
-    unidade_id: unidadeId, nome: nomeLimpo, nome_interno: nomeLimpo, departamento,
+    unidade_id: unidadeId, nome: nomeLimpo, nome_interno: nomeLimpo, marca: String(marca || "").trim() || null, departamento,
     categoria: categoria || (departamento === "embalagens" ? "Embalagens" : "Marmitaria"),
-    tipo: departamento === "embalagens" ? "embalagem" : "ingrediente",
+    tipo: departamento === "embalagens" ? "embalagem" : departamento === "limpeza" ? "limpeza" : "ingrediente",
     unidade_medida, unidade_comercial: unidade_medida, tamanho_embalagem: tamanho,
     custo_compra: preco, valor_embalagem: preco,
   }, { origem: "marmitaria" });
   if (r?.error) return { error: mensagemErro(r.error) };
   return { id: r?.id || null, error: null };
+}
+
+/** Mudanças de preço desde uma data: vêm do cadastro e do recebimento de compras. */
+export async function fetchHistoricoPrecos(unidadeId, desde) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { data: [] };
+  const { data, error } = await supabase.from("insumos_precos_historico").select("*").eq("unidade_id", unidadeId).gte("created_at", desde).order("created_at");
+  return { data: data || [], error: mensagemErro(error) };
+}
+
+/** Descrição que o cliente lê. Vai nos dois campos, como a marmitaria_salvar_ficha faz. */
+export async function salvarDescricao(fichaId, descricao) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const texto = String(descricao || "").trim() || null;
+  const { error } = await supabase.from("fichas_tecnicas").update({ descricao: texto, descricao_comercial: texto, atualizado_em: new Date().toISOString() }).eq("id", fichaId).eq("departamento", "marmitaria");
+  return { error: mensagemErro(error) };
+}
+
+/** Novo preço de compra de uma embalagem: passa pelo salvarInsumo para ficar no histórico de preço. */
+export async function atualizarPrecoEmbalagem({ id, marca, unidade_medida, preco_embalagem, tamanho_embalagem }) {
+  const preco = Number(preco_embalagem);
+  const tamanho = Number(tamanho_embalagem);
+  if (!(preco >= 0)) return { error: "Informe o preço de compra." };
+  if (!(tamanho > 0)) return { error: "Informe quanto vem na embalagem de compra." };
+  // O preço normalizado vai junto: é ele que o custo das fichas lê primeiro.
+  const r = await salvarInsumo({ id, custo_compra: preco, valor_embalagem: preco, tamanho_embalagem: tamanho,
+    preco_normalizado: calcularPrecoNormalizado(tamanho, unidade_medida, preco),
+    ...(marca === undefined ? {} : { marca: String(marca || "").trim() || null }) }, { origem: "marmitaria" });
+  return { error: r?.error ? mensagemErro(r.error) : null };
+}
+
+/** Preço de um item numa plataforma. A unidade vem da sessão e a RLS confere. */
+export async function salvarPrecoNoCanal({ unidadeId, fichaId, canal, preco }) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
+  const valor = Number(preco);
+  if (!(valor > 0)) return { error: "Informe um preço maior que zero." };
+  const { error } = await supabase.from("marmitaria_precificacao_canais").upsert(
+    { unidade_id: unidadeId, ficha_id: fichaId, canal, preco_venda: valor, atualizado_em: new Date().toISOString() },
+    { onConflict: "unidade_id,ficha_id,canal" });
+  return { error: mensagemErro(error) };
+}
+
+// ─── Senha da marmitaria ────────────────────────────────────────────────────
+
+export async function senhaFoiDefinida(unidadeId) {
+  if (!isSupabaseReady()) return false;
+  const { data, error } = await supabase.rpc("marmitaria_senha_definida", { p_unidade_id: unidadeId });
+  return error ? false : !!data;
+}
+
+const respostaDaSenha = ({ data, error }) => (error ? { error: mensagemErro(error) } : { error: data?.ok ? null : textoDaSenha(data?.erro) });
+
+export async function conferirSenha(unidadeId, senha) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  return respostaDaSenha(await supabase.rpc("marmitaria_conferir_senha", { p_unidade_id: unidadeId, p_senha: senha }));
+}
+
+export async function definirSenha(unidadeId, senha) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  return respostaDaSenha(await supabase.rpc("marmitaria_definir_senha", { p_unidade_id: unidadeId, p_senha: senha }));
+}
+
+// ─── Compras da marmitaria ──────────────────────────────────────────────────
+// Usam as compras oficiais: o pedido é um rascunho com a previsão de chegada e,
+// ao receber, compras_confirmar dá a entrada no estoque e atualiza o custo.
+
+export async function fetchPedidos(unidadeId, estoqueIds) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId) || !estoqueIds?.length) return { compras: [], itens: [] };
+  const it = await supabase.from("compras_itens").select("*").eq("unidade_id", unidadeId).in("estoque_id", estoqueIds);
+  if (it.error) return { compras: [], itens: [], error: mensagemErro(it.error) };
+  const ids = [...new Set((it.data || []).map((i) => i.compra_id))];
+  if (!ids.length) return { compras: [], itens: [] };
+  const c = await supabase.from("compras").select("*").in("id", ids);
+  return { compras: c.data || [], itens: it.data || [], error: mensagemErro(c.error) };
+}
+
+export async function criarPedido({ unidadeId, itens, chegada, hoje, chave }) {
+  const r = await salvarRascunho(supabase, {
+    compra: { unidade_id: unidadeId, data_compra: hoje, data_recebimento: chegada },
+    itens: itens.map((i) => ({ insumo: i.insumo, quantidade: i.quantidade, valor_total: i.valor, quantidade_pedida: i.quantidade, valor_pedido: i.valor, estoque_id: i.estoque_id })),
+    chave,
+  }, { hoje, aceitaPrevisao: true });
+  return { id: r.data?.id || null, error: r.error ? mensagemErro(r.error) : null };
+}
+
+/** Conferiu: grava o que chegou de verdade e lança no estoque. Item com zero não chegou. */
+export async function receberPedido({ unidadeId, compra, linhas, hoje, vencimento }) {
+  const itens = linhas.filter((l) => Number(l.recebida) > 0).map((l) => ({
+    insumo: l.insumo, quantidade: l.recebida, valor_total: l.valor, quantidade_pedida: l.item.quantidade_pedida_embalagens, valor_pedido: l.item.valor_pedido, estoque_id: l.item.estoque_id,
+    lote: l.item.lote, validade: l.validade || l.item.validade,
+  }));
+  if (!itens.length) return { error: "Informe a quantidade que chegou." };
+  const salvo = await salvarRascunho(supabase, { compra: { id: compra.id, unidade_id: unidadeId, data_compra: compra.data_compra, data_recebimento: hoje }, itens }, { hoje });
+  if (salvo.error) return { error: mensagemErro(salvo.error) };
+  const r = await confirmarCompra(supabase, { compra_id: compra.id, gerar_conta_pagar: true, data_vencimento: vencimento || hoje });
+  return { error: r.error ? mensagemErro(r.error) : null };
+}
+
+// ─── Cozinha da marmitaria ──────────────────────────────────────────────────
+
+export async function retirarDoEstoque({ unidadeId, estoqueId, insumoId, quantidadeSaldo, quantidade, unidade, motivo, chave }) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const { data, error } = await supabase.rpc("estoque_movimentar", {
+    p_unidade_id: unidadeId, p_estoque_id: estoqueId, p_insumo_id: insumoId, p_tipo: "saida", p_motivo: motivo, p_quantidade: quantidadeSaldo,
+    p_quantidade_informada: quantidade, p_unidade_informada: unidade, p_observacao: "Retirada na marmitaria", p_chave: chave,
+  });
+  if (error) return { error: mensagemErro(error) };
+  return { error: data?.ok === false ? data.erro || "Retirada recusada." : null };
+}
+
+export async function produzirPreparo(dados) {
+  if (!isSupabaseReady()) return { data: null, error: SEM_BANCO };
+  const { data, error } = await supabase.rpc("marmitaria_produzir_preparo", { p_dados: dados });
+  return { data, error: mensagemErro(error) };
+}
+
+export async function fetchPreparosDoDia(unidadeId, dia) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { data: [] };
+  const { data, error } = await supabase.from("marmitaria_producao_lotes").select("id, ficha_id, quantidade_produzida, data_producao, data_validade, rendimento_real_dados")
+    .eq("unidade_id", unidadeId).eq("tipo_demanda", "preparo").eq("data_producao", dia);
+  return { data: data || [], error: mensagemErro(error) };
+}
+
+const PLANO_COZINHA = "cozinha";
+
+export async function fetchPlanosDaCozinha(unidadeId, dias) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { data: [] };
+  const { data, error } = await supabase.from("marmitaria_planos_operacionais").select("id, data_planejada, dados_completos")
+    .eq("unidade_id", unidadeId).eq("periodo_tipo", PLANO_COZINHA).in("data_planejada", dias);
+  return { data: data || [], error: mensagemErro(error) };
+}
+
+export async function salvarPlanoDaCozinha({ id, unidadeId, dia, itens }) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const { error } = await supabase.from("marmitaria_planos_operacionais").upsert({
+    id, unidade_id: unidadeId, data_planejada: dia, periodo_tipo: PLANO_COZINHA, dados_completos: { itens }, updated_at: new Date().toISOString(),
+  });
+  return { error: mensagemErro(error) };
 }
 
 // ─── Estoque da marmitaria ───────────────────────────────────────────────────
@@ -201,6 +345,8 @@ export async function ativarEstoques(unidadeId) {
   const base = { unidade_id: unidadeId, status: "ativo", permissoes: [], controla_minimo: true, updated_at: agora };
   const { error } = await supabase.from("estoques").upsert([
     { ...base, nome: "Marmitaria", slug: ESTOQUE_MARMITARIA, tipo: "alimentos", descricao: "Insumos e pré-preparos da marmitaria", cor: "#047857", controla_validade: true, locais_internos: [], ordem: 20 },
+    { ...base, nome: "Limpeza da Marmitaria", slug: "limpeza-marmitaria", tipo: "limpeza", descricao: "Produtos de limpeza da marmitaria", cor: "#047857", controla_validade: false, locais_internos: [], ordem: 13 },
+    { ...base, nome: "Produção da Marmitaria", slug: "producao-marmitaria", tipo: "alimentos", descricao: "Subprodutos prontos da marmitaria", cor: "#047857", controla_validade: true, controla_minimo: false, locais_internos: [], ordem: 12 },
     { ...base, nome: "Embalagens da Marmitaria", slug: ESTOQUE_EMBALAGENS, tipo: "embalagens", descricao: "Marmitex, tampas, sacolas, talheres e etiquetas", cor: "#047857", controla_validade: false, locais_internos: [], ordem: 21 },
   ], { onConflict: "unidade_id,slug", ignoreDuplicates: true });
   return { error: mensagemErro(error) };

@@ -36,6 +36,15 @@ export function fatorSaldo(insumo) {
   return ehFracionavel(insumo) && ehUnidadeContavel(insumo.unidade_medida) ? Math.max(Number(insumo.tamanho_embalagem) || 1, 0.000001) : 1;
 }
 
+// Quanto sai cada unidade de um pacote. Sem preço ou sem quantidade não há conta.
+export function custoPorUnidadeDoPacote(preco, unidades) {
+  if (preco === "" || preco === null || preco === undefined) return null;
+  const p = Number(preco);
+  const u = Number(unidades);
+  if (!(p >= 0) || !(u > 0)) return null;
+  return p / u;
+}
+
 // Quantidade digitada (g, kg, ml, L, un) → unidade do cadastro do insumo ou do
 // rendimento do pré-preparo. Grandezas incompatíveis devolvem null.
 // pesos (opcional): { unidadeG, porcaoG } do cadastro, para digitar "3 un" ou
@@ -119,9 +128,14 @@ export function custoDaMarmita({ itens = [], embalagens = [], fichas = [], insum
 // não presume comissão de ninguém.
 export const MODELOS_CANAL = [
   { id: "ifood", nome: "iFood", modalidade: "", comissao_base: "receita", pagamento_na_comissao: false },
+  { id: "99food", nome: "99", modalidade: "", comissao_base: "receita", pagamento_na_comissao: false },
+  { id: "keeta", nome: "Keeta", modalidade: "", comissao_base: "receita", pagamento_na_comissao: false },
+  { id: "balcao", nome: "Balcão", modalidade: "Retirada", comissao_base: "receita", pagamento_na_comissao: false, comissao_pct: 0 },
   { id: "whatsapp", nome: "WhatsApp", modalidade: "Entrega própria", comissao_base: "receita", pagamento_na_comissao: false },
-  { id: "balcao", nome: "Balcão", modalidade: "Retirada", comissao_base: "receita", pagamento_na_comissao: false },
 ];
+
+// As quatro formas de vender que o dono usa; o WhatsApp entra se ele quiser.
+export const PLATAFORMAS_PADRAO = ["ifood", "99food", "keeta", "balcao"];
 
 const CAMPOS_PCT = ["comissao_pct", "taxa_pagamento_pct", "promocao_pct"];
 const CAMPOS_RS = ["taxa_fixa_pedido", "entrega_subsidiada_pedido"];
@@ -634,6 +648,8 @@ const FORA = new Set(["mercadoria", "investimento", "distribuicao", "perda_estoq
  */
 export function contasDaMarmitaria(contas = [], mes, { centrosDiretos = ["marmitaria"], rateio = {} } = {}) {
   const diretos = new Set(centrosDiretos.map((c) => String(c).toLowerCase()));
+  // Unidade só da marmitaria: toda conta é dela, sem rateio.
+  const unidadePropria = diretos.has("*");
   const padrao = rateio?.padrao_pct === undefined || rateio?.padrao_pct === null || rateio?.padrao_pct === "" ? null : Math.max(0, Math.min(100, parseNumero(rateio.padrao_pct)));
   const porCat = rateio?.por_categoria || {};
   const out = [];
@@ -642,7 +658,7 @@ export function contasDaMarmitaria(contas = [], mes, { centrosDiretos = ["marmit
     if (String(c?.competencia_efetiva || "").slice(0, 7) !== mes) continue;
     const centro = String(c.centro_custo_codigo || "").toLowerCase();
     let fracao = 0; let criterio;
-    if (diretos.has(centro)) { fracao = 1; criterio = "direta"; }
+    if (unidadePropria || diretos.has(centro)) { fracao = 1; criterio = "direta"; }
     else if (CENTROS_COMPARTILHADOS.has(centro)) {
       const especifico = porCat[c.categoria_codigo];
       const p = especifico === undefined || especifico === null || especifico === "" ? padrao : Math.max(0, Math.min(100, parseNumero(especifico)));

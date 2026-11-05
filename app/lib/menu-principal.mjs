@@ -39,7 +39,7 @@ export const MENU_PRINCIPAL = Object.freeze([
         { label: "Checklist operacional", desc: "Abertura e fechamento", href: "/dashboard/operacao/rotina?dept=cozinha&tipo=operacional", icone: "CheckSquare" },
         { label: "Checklist de limpeza", desc: "Limpeza da cozinha", href: "/dashboard/operacao/rotina?dept=cozinha&tipo=limpeza", icone: "SprayCan" },
         { label: "Controles", desc: "Temperaturas e registros", href: "/dashboard/operacao/controles", icone: "Thermometer" },
-        { label: "Treinamentos", desc: "Trilhas da cozinha", href: "/dashboard/salao/treinamento?dept=cozinha", icone: "GraduationCap" },
+        { label: "Treinamento", desc: "Aulas com os instrutores da cozinha", href: "/dashboard/treinamento?area=cozinha", icone: "GraduationCap" },
         { label: "Guias de uso", desc: "Equipamentos e produtos", href: "/dashboard/operacao/guias", icone: "FileText" },
       ] },
     ],
@@ -70,7 +70,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       { titulo: "Rotina da equipe", cards: [
         { label: "Checklist operacional", desc: "Abertura e fechamento", href: "/dashboard/operacao/rotina?dept=bar&tipo=operacional", icone: "CheckSquare" },
         { label: "Checklist de limpeza", desc: "Limpeza do bar", href: "/dashboard/operacao/rotina?dept=bar&tipo=limpeza", icone: "SprayCan" },
-        { label: "Treinamentos", desc: "Trilhas do bar", href: "/dashboard/salao/treinamento?dept=bar", icone: "GraduationCap" },
+        { label: "Treinamento", desc: "Aulas com os instrutores do bar", href: "/dashboard/treinamento?area=bar", icone: "GraduationCap" },
         { label: "Guias de uso", desc: "Equipamentos e produtos", href: "/dashboard/operacao/guias", icone: "FileText" },
       ] },
     ],
@@ -92,7 +92,7 @@ export const MENU_PRINCIPAL = Object.freeze([
         { label: "Checklist operacional", desc: "Abertura e conferência", href: "/dashboard/operacao/rotina?dept=salao&tipo=operacional", icone: "CheckSquare" },
         { label: "Checklist de limpeza", desc: "Limpeza do salão", href: "/dashboard/operacao/rotina?dept=salao&tipo=limpeza", icone: "SprayCan" },
         { label: "Observações", desc: "Observações padrão dos pedidos", href: "/dashboard/operacao/observacoes", icone: "MessageSquareText" },
-        { label: "Treinamentos", desc: "Trilhas do salão", href: "/dashboard/salao/treinamento?dept=salao", icone: "GraduationCap" },
+        { label: "Treinamento", desc: "Aulas com os instrutores do salão", href: "/dashboard/treinamento?area=salao", icone: "GraduationCap" },
         { label: "Guias de uso", desc: "Equipamentos e produtos", href: "/dashboard/operacao/guias", icone: "FileText" },
       ] },
     ],
@@ -144,7 +144,8 @@ export const MENU_PRINCIPAL = Object.freeze([
       { label: "Fechar folha", href: "/dashboard/rh/fechamento" },
       { label: "Extras e banco de horas", href: "/dashboard/rh/extra" },
       { label: "Janta dos funcionários", href: "/dashboard/rh/cardapio-funcionarios" },
-      { label: "Treinamentos", href: "/dashboard/treinamentos" },
+      { label: "Treinamento da equipe", href: "/dashboard/treinamento/equipe" },
+      { label: "Héfisto Estúdio", href: "/dashboard/treinamento/estudio" },
     ],
   },
   { id: "financeiro", label: "Financeiro", href: "/dashboard/financeiro" },
@@ -247,6 +248,8 @@ export function universoDaRota(pathname, search = "", origem = null) {
   if (daOrigem && cardsDaArea(daOrigem).some((c) => cardCasa(c, p, search))) return daOrigem;
   const doSetor = universoPorId(setorDe(search));
   if (doSetor && cardsDaArea(doSetor).some((c) => cardCasa(c, p, search))) return doSetor;
+  // O treinamento é de toda a casa: sem origem, não pertence a um universo.
+  if (casaRota(p, "/dashboard/treinamento")) return null;
   const area = areaDaRota(p);
   return area?.secoes ? area : null;
 }

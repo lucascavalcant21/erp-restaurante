@@ -7,6 +7,7 @@ import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs
 import { homeDoUsuario } from "../../lib/auth";
 import { menuPrincipal, menuVisivel, universoLiberado, areaDaRota, universoDaRota, cardsDaArea } from "../../lib/menu-principal.mjs";
 import { lerOrigem, limparOrigem } from "../../lib/universo-origem";
+import LogoHefisto from "./LogoHefisto";
 
 // App dedicado não abre a tela de cards: as telas liberadas viram submenu.
 const linksDoApp = (mod) => mod.submodules || cardsDaArea(mod);
@@ -94,9 +95,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           </button>
 
           <Link href={sessao?.is_app || sessao?.gerenciado ? homeDoUsuario(sessao) : "/dashboard"} className="flex items-center gap-2 shrink-0 group">
-            <div className="w-8 h-8 bg-hf-accent rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
-              <span className="text-hf-accent-fg font-black text-lg">H</span>
-            </div>
+            <LogoHefisto className="w-8 h-8 transform group-hover:rotate-12 transition-transform" />
             <span className="font-black tracking-tight text-xl hidden sm:block xl:hidden 2xl:block">Héfisto</span>
           </Link>
 
@@ -238,9 +237,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           <div className="relative w-80 max-w-[80vw] h-full bg-hf-menu border-r border-hf-menu-border flex flex-col shadow-2xl animate-in slide-in-from-left">
             <div className="flex items-center justify-between px-4 pb-4 border-b border-hf-menu-border" style={{ paddingTop: "calc(var(--erp-safe-top) + 0.75rem)" }}>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-hf-accent rounded-lg flex items-center justify-center">
-                  <span className="text-hf-accent-fg font-black text-lg">H</span>
-                </div>
+                <LogoHefisto />
                 <span className="font-black tracking-tight text-xl text-hf-menu-text">Héfisto</span>
                 {sessao?.is_app && (
                   <span className="text-3xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold uppercase">

@@ -198,6 +198,7 @@ export function cardapioDeVendas({ catalogo = { marmita: [], bebida: [], sobreme
       id, secao, nome, itens, oferta, sim: s,
       precoCheio: s.com.pedido?.cheio ?? null, precoPago: s.com.pedido?.paga ?? null,
       lucro: r.valido ? r.lucro : null, lucroPct: r.valido ? r.lucroPct : null, receita: r.valido ? r.receita : null,
+      markup: r.valido && !s.semCusto ? r.markup : null,
       veredito: veredito(r.valido ? r.lucroPct : null, metaPct, s.semCusto),
       ...extra,
     };

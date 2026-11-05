@@ -10,10 +10,11 @@ import { ArrowLeft, Check, ImagePlus, Trash2 } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import BuscaItens from "./BuscaItens";
 import { NovoProduto, NovoPrePreparo } from "./CadastrosRapidos";
-import { Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, inputCls, pctTxt } from "./ui";
+import { Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, markupTxt, inputCls, pctTxt } from "./ui";
 import { salvarMarmita, novaChave } from "../../lib/marmitaria/dados";
 import { atalhosDeQuantidade, catalogoDePrePreparos, custoDoForm, payloadDoForm, TAMANHOS, TIPOS_EMBALAGEM, unidadeDoItem } from "../../lib/marmitaria/formulario.mjs";
 import { precoSugerido, resultadoPorCanal, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
+import { markupDaMarmita } from "../../lib/marmitaria/dia.mjs";
 import { pesosDoInsumo } from "../../lib/ficha-calculos.mjs";
 import { CANAL_DIRETO } from "../../lib/marmitaria/promocoes.mjs";
 import { normalizarBusca } from "../../lib/ingredientes-utils.mjs";
@@ -331,7 +332,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
                         {r.valido && r.margemContribuicao !== null ? <>{brl(r.margemContribuicao)}<br /><span className="text-xs font-semibold">{pctTxt(r.margemContribuicaoPct)}</span></> : "—"}
                       </td>
                       <td className="py-2 pr-2 text-right tabular-nums">{r.valido ? pctTxt(r.cmvTecnicoPct) : "—"}</td>
-                      <td className="py-2 text-right tabular-nums">{r.valido && r.markup !== null ? `${r.markup.toLocaleString("pt-BR")}×` : "—"}</td>
+                      <td className="py-2 text-right text-base font-black tabular-nums">{markupTxt(markupDaMarmita(p, custo))}</td>
                     </tr>
                   );
                 })}

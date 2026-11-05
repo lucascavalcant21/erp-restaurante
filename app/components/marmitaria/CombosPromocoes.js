@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronUp, UtensilsCrossed, CupSoda, IceCreamCone, SlidersHorizontal } from "lucide-react";
 import { useMarmitaria } from "./contexto";
-import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, inputCls, pctTxt } from "./ui";
+import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, markupTxt, inputCls, pctTxt } from "./ui";
 import {
   CANAL_DIRETO, TIPOS_OFERTA, MODELOS_COMBO, ROTULO_GRUPO,
   simularOferta, fixosPctDoResultado, catalogoParaCombo, normalizarCombo, itensDoCombo,
@@ -211,6 +211,7 @@ function CardapioVendas({ linhas, vendas, mudarVenda, diasSemana, custos, onRemo
                           <p className="text-[11px] font-bold uppercase text-hf-muted">Lucro líquido por pedido</p>
                           <p className={`text-lg font-black tabular-nums ${l.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{l.lucro == null ? "—" : brl(l.lucro)} <span className="text-xs font-bold text-hf-text-2">{pctTxt(l.lucroPct)}</span></p>
                           <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-black ${VEREDITO_COR[l.veredito.id]}`}>{l.veredito.rotulo}</span>
+                          {l.markup != null && <span className="ml-2 text-xs font-bold text-hf-text-2">Markup {markupTxt(l.markup)}</span>}
                         </div>
                         <label className="text-[11px] font-bold uppercase text-hf-muted">Vendo/dia
                           <CampoNumero valor={vendas[l.id] ?? ""} onChange={(v) => mudarVenda(l.id, v)} placeholder="0" aria-label={`Vendas por dia de ${l.nome}`} />

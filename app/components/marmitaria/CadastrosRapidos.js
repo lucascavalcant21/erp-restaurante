@@ -27,7 +27,7 @@ function Painel({ titulo, onFechar, children }) {
 const UNIDADES = [["kg", "kg"], ["g", "g"], ["l", "L"], ["ml", "ml"], ["un", "unidade"]];
 
 export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nomeInicial = "", rotuloSalvar = "Cadastrar e usar", onCriado, onFechar }) {
-  const [f, setF] = useState({ nome: nomeInicial, unidade: embalagem ? "un" : limpeza ? "ml" : "kg", preco: "", tamanho: embalagem ? "1" : "1", exclusivo: false });
+  const [f, setF] = useState({ nome: nomeInicial, unidade: embalagem ? "un" : limpeza ? "ml" : "kg", preco: "", tamanho: "1" });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
   const preco = lerNumero(f.preco);
@@ -44,7 +44,7 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
     try {
       const r = await criarProduto({
         unidadeId, nome: f.nome, unidade_medida: f.unidade, preco_embalagem: preco, tamanho_embalagem: tamanho,
-        departamento: embalagem ? "embalagens" : limpeza ? "limpeza" : f.exclusivo ? "marmitaria" : "cozinha",
+        departamento: embalagem ? "embalagens" : limpeza ? "limpeza" : "marmitaria",
         categoria: embalagem ? "Embalagens da marmitaria" : limpeza ? "Limpeza da marmitaria" : "",
       });
       if (r.error) setErro(r.error);
@@ -55,7 +55,7 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
   }
 
   return (
-    <Painel titulo={embalagem ? "Nova embalagem" : limpeza ? "Novo produto de limpeza" : "Novo ingrediente"} onFechar={onFechar}>
+    <Painel titulo={embalagem ? "Nova embalagem" : limpeza ? "Novo produto de limpeza" : "Novo produto"} onFechar={onFechar}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} /></Campo>
         <Campo rotulo="Preço pago na compra (R$)" dica="O valor da embalagem/pacote, como na nota.">
@@ -71,12 +71,6 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
         </div>
       </div>
       {porUnidade !== null && <p className="mt-2 text-xs text-hf-muted">Custo: {brl(porUnidade)} por {f.unidade === "un" ? "unidade" : f.unidade}.</p>}
-      {!embalagem && !limpeza && (
-        <label className="mt-3 flex min-h-[44px] items-center gap-2 text-sm text-hf-text-2">
-          <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={f.exclusivo} onChange={(e) => setF({ ...f, exclusivo: e.target.checked })} />
-          Só da marmitaria (desmarcado: fica no estoque geral, compartilhado com a cozinha)
-        </label>
-      )}
       {erro && <Aviso tipo="alerta" className="mt-3">{erro}</Aviso>}
       <div className="mt-3 flex justify-end gap-2">
         <Botao variante="secundario" onClick={onFechar} type="button">Cancelar</Botao>

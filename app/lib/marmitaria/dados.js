@@ -10,6 +10,7 @@ import { supabase, isSupabaseReady } from "../supabase";
 import { fetchFichas, salvarInsumo } from "../operacao";
 import { calcularPrecoNormalizado } from "../ingredientes-utils.mjs";
 import { confirmarCompra, salvarRascunho } from "../compras-estoque.mjs";
+import { textoDaSenha } from "./acesso.mjs";
 import { vincularItemEstoque } from "../estoques-multiplos";
 import { transferirLancamento } from "../estoque-movimento-dados";
 import { novaChave } from "../estoque-movimento.mjs";
@@ -175,7 +176,7 @@ export async function definirDisponibilidade(fichaId, ativo) {
  * Ingrediente ou embalagem novo pelo cadastro oficial (salvarInsumo): trava de
  * nome repetido, histórico de preço e vínculo no estoque vêm junto.
  */
-export async function criarProduto({ unidadeId, nome, unidade_medida, preco_embalagem, tamanho_embalagem, departamento = "cozinha", categoria = "" }) {
+export async function criarProduto({ unidadeId, nome, unidade_medida, preco_embalagem, tamanho_embalagem, departamento = "marmitaria", categoria = "" }) {
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
   const nomeLimpo = String(nome || "").trim();
   if (nomeLimpo.length < 2) return { error: "Informe o nome do produto." };
@@ -230,6 +231,26 @@ export async function salvarPrecoNoCanal({ unidadeId, fichaId, canal, preco }) {
     { unidade_id: unidadeId, ficha_id: fichaId, canal, preco_venda: valor, atualizado_em: new Date().toISOString() },
     { onConflict: "unidade_id,ficha_id,canal" });
   return { error: mensagemErro(error) };
+}
+
+// ─── Senha da marmitaria ────────────────────────────────────────────────────
+
+export async function senhaFoiDefinida(unidadeId) {
+  if (!isSupabaseReady()) return false;
+  const { data, error } = await supabase.rpc("marmitaria_senha_definida", { p_unidade_id: unidadeId });
+  return error ? false : !!data;
+}
+
+const respostaDaSenha = ({ data, error }) => (error ? { error: mensagemErro(error) } : { error: data?.ok ? null : textoDaSenha(data?.erro) });
+
+export async function conferirSenha(unidadeId, senha) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  return respostaDaSenha(await supabase.rpc("marmitaria_conferir_senha", { p_unidade_id: unidadeId, p_senha: senha }));
+}
+
+export async function definirSenha(unidadeId, senha) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  return respostaDaSenha(await supabase.rpc("marmitaria_definir_senha", { p_unidade_id: unidadeId, p_senha: senha }));
 }
 
 // ─── Compras da marmitaria ──────────────────────────────────────────────────

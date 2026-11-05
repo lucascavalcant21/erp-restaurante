@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useMarmitaria } from "../../../../components/marmitaria/contexto";
 import RetirarProduto from "../../../../components/marmitaria/RetirarProduto";
+import { NovoPrePreparo } from "../../../../components/marmitaria/CadastrosRapidos";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, brl, inputCls, lerNumero, num } from "../../../../components/marmitaria/ui";
 import { fetchPedidos, fetchPlanosDaCozinha, fetchPreparosDoDia, novaChave, produzirPreparo, salvarPlanoDaCozinha } from "../../../../lib/marmitaria/dados";
 import { ESTOQUE_LIMPEZA, ESTOQUE_PRODUCAO, baixasDoPreparo, ehEstoqueDaMarmitaria, pedidosDaMarmitaria, planilhaDaCozinha, saldoProduzido, saldosDaMarmitaria, somarDias } from "../../../../lib/marmitaria/cozinha.mjs";
@@ -137,6 +138,7 @@ export default function CozinhaPage() {
   const [feitos, setFeitos] = useState([]);
   const [produzindo, setProduzindo] = useState(null);
   const [retirando, setRetirando] = useState(null);
+  const [novoSub, setNovoSub] = useState(false);
   const [erro, setErro] = useState(null);
   const estoques = useMemo(() => (base?.estoques || []).filter(ehEstoqueDaMarmitaria), [base]);
   const ids = estoques.map((e) => e.id).join();
@@ -185,7 +187,13 @@ export default function CozinhaPage() {
       )}
       {produzindo && <Produzir key={`${produzindo.ficha_id}-${produzindo.para}`} inicial={produzindo} onFechar={() => setProduzindo(null)} aoProduzir={async () => { setProduzindo(null); await Promise.all([recarregar(), carregarDia()]); }} />}
       {retirando && <RetirarProduto key={retirando.id} item={retirando} onFechar={() => setRetirando(null)} />}
-      {!produzindo && !semProducao && <div className="flex justify-end"><Botao type="button" onClick={() => setProduzindo({ para: hoje })}>Nova produção</Botao></div>}
+      {novoSub && <NovoPrePreparo unidadeId={unidadeId} base={base} onFechar={() => setNovoSub(false)} onCriado={async () => { await recarregar(); setNovoSub(false); }} />}
+      {!produzindo && !semProducao && !novoSub && (
+        <div className="flex flex-wrap justify-end gap-2">
+          <Botao variante="secundario" type="button" onClick={() => setNovoSub(true)}>Novo subproduto</Botao>
+          <Botao type="button" disabled={!base.prePreparos.length} onClick={() => setProduzindo({ para: hoje })}>Nova produção</Botao>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Plano titulo="Produzir hoje" dia={hoje} linhas={planilha.hoje} onAdicionar={adicionar} onMudar={mudar} onRemover={remover} onProduzir={setProduzindo} />

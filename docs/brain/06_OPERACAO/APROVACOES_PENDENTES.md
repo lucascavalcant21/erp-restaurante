@@ -281,3 +281,8 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 ## APR-018 — MARM-PROD-1: produção de subprodutos da marmitaria
 
 **Executada em 05/11/2026 com autorização do dono.** TESTADO NO SUPABASE REAL em transação desfeita (compra recebida e produção). `db/marmitaria/MARM_PROD_1_PREPAROS.sql`. Aditiva: cria dois locais de estoque e uma função. Rollback em `db/marmitaria/MARM_PROD_1_ROLLBACK.sql`.
+
+## APR-019 — MARM-UNIDADE-1: unidade própria da marmitaria
+
+**Executada em 05/11/2026 com autorização do dono.** `db/marmitaria/MARM_UNIDADE_1_UNIDADE_PROPRIA.sql`. Aditiva: unidade `marmitaria`, vazia, com cinco estoques e as funções da senha. TESTADO NO SUPABASE REAL em transação desfeita (senha, cadastro e subproduto; usuário comum sem acesso). Rollback em `db/marmitaria/MARM_UNIDADE_1_ROLLBACK.sql`.
+

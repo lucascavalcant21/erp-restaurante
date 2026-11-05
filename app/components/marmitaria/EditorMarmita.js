@@ -23,7 +23,7 @@ import { uploadFotoMontagem } from "../../lib/montagem";
 export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) {
   const { base, unidadeId, recarregar } = useMarmitaria();
   const [form, setForm] = useState(formInicial);
-  const [painel, setPainel] = useState(null); // busca-item | busca-emb | novo-prep | nova-emb
+  const [painel, setPainel] = useState(null); // busca-item | busca-emb | novo-prod | novo-prep | nova-emb
   const [textoNovo, setTextoNovo] = useState("");
   const [tipoEmb, setTipoEmb] = useState("marmitex");
   const [salvando, setSalvando] = useState(false);
@@ -141,7 +141,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
       </Secao>
 
       {/* B — ingredientes e pré-preparos */}
-      <Secao titulo="Ingredientes e pré-preparos" subtitulo="Vêm do cadastro do sistema: os mesmos do estoque e das fichas do restaurante."
+      <Secao titulo="Ingredientes e pré-preparos" subtitulo="Vêm do cadastro da marmitaria."
         direita={<p className="text-sm text-hf-text-2">Alimentos <b className="tabular-nums">{brl(custo.alimentos)}</b> · Pré-preparos <b className="tabular-nums">{brl(custo.prePreparos)}</b></p>}>
         {form.itens.length > 0 && (
           <ul className="divide-y divide-hf-border">
@@ -222,13 +222,18 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
           )}
           {painel === "busca-item" && (
             <BuscaItens base={base} excluir={form.itens.map((i) => i.insumo_id || i.subficha_id)} onEscolher={adicionarItem}
+              onCriarIngrediente={(t) => { setTextoNovo(t); setPainel("novo-prod"); }}
               onCriarPrePreparo={(t) => { setTextoNovo(t); setPainel("novo-prep"); }} />
+          )}
+          {painel === "novo-prod" && (
+            <NovoProduto unidadeId={unidadeId} nomeInicial={textoNovo} onFechar={() => setPainel(null)}
+              onCriado={async (id, unidade) => { await recarregar(); if (id) adicionarItem({ tipo: "ingrediente", id, unidade }); else setPainel(null); }} />
           )}
           {painel === "novo-prep" && (
             <NovoPrePreparo unidadeId={unidadeId} base={base} nomeInicial={textoNovo} onFechar={() => setPainel(null)}
               onCriado={async (id, unidade) => { await recarregar(); adicionarItem({ tipo: "pre_preparo", id, unidade }); }} />
           )}
-          {painel !== "busca-item" && painel !== "novo-prep" && (
+          {painel !== "busca-item" && painel !== "novo-prod" && painel !== "novo-prep" && (
             <Botao variante="secundario" type="button" onClick={() => setPainel("busca-item")}>+ Adicionar ingrediente ou pré-preparo</Botao>
           )}
         </div>

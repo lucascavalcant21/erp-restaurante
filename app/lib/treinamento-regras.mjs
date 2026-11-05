@@ -41,7 +41,7 @@ export const DEMONSTRACOES_DISPONIVEIS = ["maos", "fogo", "faca", "termometro", 
 const DEMONSTRACOES = [
   ["vinho", /vinho|espumante|taça|saca-rolhas|cerveja|rolha/i],
   ["mesa", /talher|garfo|mesa padrão|montar a mesa|monte a mesa|guardanapo|jogo americano/i],
-  ["maos", /lav[ea]|mãos|higiene pessoal/i],
+  ["maos", /lav[ea]|mãos|higiene|cabelo|touca|unhas|uniforme/i],
   ["fogo", /fogo|incêndio|gás|queimadura/i],
   ["faca", /faca|cortou|corte\b/i],
   ["termometro", /°C|temperatura|geladeira|freezer|congel|resfri/i],
@@ -85,7 +85,7 @@ export function cenasDaAula(conteudo, { maximoDeItens = 5 } = {}) {
     if (soltas.length) cenas.push({ texto: soltas.join(" "), itens: [] });
   }
   return cenas.map((c, i) => {
-    const fala = [c.texto, ...c.itens].filter(Boolean).join(". ").replace(/\.\.+/g, ".");
+    const fala = [c.texto, ...c.itens].filter(Boolean).join(". ").replace(/[;:]\./g, ".").replace(/\.\.+/g, ".");
     return { ...c, fala, demonstracao: demonstracaoDaCena(fala), gesto: FALAS[i % FALAS.length] };
   });
 }
@@ -204,4 +204,11 @@ export function mensagemDeErro(erro) {
   const texto = String(erro?.message || erro || "");
   if (/trein_|does not exist|schema cache|could not find/i.test(texto)) return "O treinamento ainda não foi ativado nesta unidade.";
   return texto || "Não foi possível concluir agora.";
+}
+
+/** Números que a IA escreveu e não estão no texto da aula. Número novo é recusado. */
+export function numerosForaDoTexto(cenas, fonte) {
+  const numeros = (t) => String(t || "").match(/\d+(?:[.,]\d+)?/g) || [];
+  const permitidos = new Set(numeros(fonte));
+  return [...new Set((cenas || []).flatMap((c) => numeros(c.fala)).filter((n) => !permitidos.has(n)))];
 }

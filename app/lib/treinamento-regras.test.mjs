@@ -101,3 +101,9 @@ test("prato: o boneco fala só o que está na ficha e admite o que falta", () =>
   assert.match(comPreparo.map((c) => c.fala).join(" "), /Doure o alho/);
   assert.match(cenasDoPrato({ departamento: "cozinha", nome_receita: "Tacacá" }, null, "preparar").at(-1).fala, /ainda não foi escrito/);
 });
+
+test("falas da IA: número que não está na aula é detectado", async () => {
+  const { numerosForaDoTexto } = await import("./treinamento-regras.mjs");
+  assert.deepEqual(numerosForaDoTexto([{ fala: "Mantenha acima de 60 °C por 6 horas" }], "acima de 60 °C, por no máximo 6 horas"), []);
+  assert.deepEqual(numerosForaDoTexto([{ fala: "Cozinhe por 45 minutos a 70 °C" }], "chega a 70 °C"), ["45"]);
+});

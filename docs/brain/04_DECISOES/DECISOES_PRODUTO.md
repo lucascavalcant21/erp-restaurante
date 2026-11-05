@@ -74,3 +74,13 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - fundo e cards brancos, blocos internos #F7F7F8, bordas #E5E7EB, texto #252525;
 - verde só para estado positivo; vermelho e âmbar só para estado real.
 - O menu do topo é a fonte única das telas (app/lib/menu-principal.mjs).
+
+## DP — Treinamento por função e Héfisto Estúdio (04/11/2026, decisão do dono)
+
+- Cada pessoa entra com a própria conta. O líder coloca a pessoa na trilha da função.
+- Aprovação em três etapas: aulas, prova com situações (80% ou mais, corrigida no banco) e avaliação prática do líder.
+- O conteúdo nasce como rascunho e só chega à equipe depois de aprovado no Héfisto Estúdio.
+- Os bonecos são personagens próprios. A voz é a do aparelho, sem custo por uso.
+- As falas da IA são sugestões: a IA só reescreve o texto da aula, e número que não está no texto é recusado.
+- Pratos e drinks mostram a ficha real. O Héfisto não inventa receita: sem preparo escrito, aparece como pendência.
+

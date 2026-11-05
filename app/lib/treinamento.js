@@ -1,6 +1,7 @@
 // Leitura e ações do treinamento. Tudo que grava passa por funções do banco:
 // permissão, unidade e correção da prova são conferidas lá (db/treinamento).
 import { supabase, isSupabaseReady } from "./supabase";
+import { fetchComSessao } from "./api-sessao";
 
 const rpc = async (nome, args) => {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
@@ -26,25 +27,29 @@ export async function fetchPratos(unidadeId, departamento) {
 }
 
 /** Tudo que a pessoa precisa para ver as próprias trilhas. A RLS filtra o resto. */
-export async function fetchMeuTreinamento(usuarioId) {
+export async function fetchMeuTreinamento() {
   if (!isSupabaseReady()) return { error: "Offline" };
+  const eu = await rpc("trein_meu_usuario", {});
+  if (eu.error) return { error: eu.error };
+  const usuarioId = eu.data;
   const matriculas = await lista(supabase.from("trein_matriculas").select("*").eq("usuario_id", usuarioId).neq("status", "cancelado").order("iniciado_em", { ascending: false }));
   if (matriculas.error) return { error: matriculas.error };
   const ids = matriculas.data.map((m) => m.id);
   const trilhaIds = matriculas.data.map((m) => m.trilha_id);
-  if (!ids.length) return { matriculas: [], trilhas: [], ligacoes: [], modulos: [], aulas: [], concluidas: [], tentativas: [] };
-  const [trilhas, ligacoes, modulos, aulas, concluidas, tentativas] = await Promise.all([
+  if (!ids.length) return { matriculas: [], trilhas: [], ligacoes: [], modulos: [], aulas: [], concluidas: [], tentativas: [], pratos: [] };
+  const [trilhas, ligacoes, modulos, aulas, concluidas, tentativas, pratos] = await Promise.all([
     lista(supabase.from("trein_trilhas").select("*").in("id", trilhaIds)),
     lista(supabase.from("trein_trilha_modulos").select("*").in("trilha_id", trilhaIds).order("ordem")),
     lista(supabase.from("trein_modulos").select("*").order("ordem")),
     lista(supabase.from("trein_aulas").select("*").order("ordem")),
     lista(supabase.from("trein_aulas_concluidas").select("*").in("matricula_id", ids)),
     lista(supabase.from("trein_tentativas").select("id, matricula_id, modulo_id, acertos, total, aprovada, criado_em").in("matricula_id", ids).order("criado_em", { ascending: false })),
+    lista(supabase.from("trein_pratos_validados").select("*").in("matricula_id", ids)),
   ]);
   return {
     matriculas: matriculas.data, trilhas: trilhas.data, ligacoes: ligacoes.data, modulos: modulos.data,
-    aulas: aulas.data, concluidas: concluidas.data, tentativas: tentativas.data,
-    error: trilhas.error || ligacoes.error || modulos.error || aulas.error || concluidas.error || tentativas.error,
+    aulas: aulas.data, concluidas: concluidas.data, tentativas: tentativas.data, pratos: pratos.data,
+    error: trilhas.error || ligacoes.error || modulos.error || aulas.error || concluidas.error || tentativas.error || pratos.error,
   };
 }
 
@@ -93,3 +98,25 @@ export const fetchGabarito = (modulo) => rpc("trein_gabarito_do_modulo", { p_mod
 export const salvarAula = (aula, { titulo, conteudo, video_url, duracao_minutos }) => rpc("trein_salvar_aula", { p_aula: aula, p_titulo: titulo, p_conteudo: conteudo, p_video_url: video_url || "", p_duracao: Number(duracao_minutos) || 5 });
 export const salvarQuestao = (questao, { enunciado, opcoes, correta, explicacao }) => rpc("trein_salvar_questao", { p_questao: questao, p_enunciado: enunciado, p_opcoes: opcoes, p_correta: Number(correta), p_explicacao: explicacao || "" });
 export const aprovarModulo = (modulo, aprovar) => rpc("trein_aprovar_modulo", { p_modulo: modulo, p_aprovar: aprovar });
+export const salvarCenas = (aula, cenas) => rpc("trein_salvar_cenas", { p_aula: aula, p_cenas: cenas });
+export const criarModulo = (unidade, area, titulo, descricao) => rpc("trein_criar_modulo", { p_unidade_id: unidade, p_area: area, p_titulo: titulo, p_descricao: descricao });
+export const salvarModulo = (modulo, titulo, descricao) => rpc("trein_salvar_modulo", { p_modulo: modulo, p_titulo: titulo, p_descricao: descricao });
+export const criarAula = (modulo, titulo, conteudo) => rpc("trein_criar_aula", { p_modulo: modulo, p_titulo: titulo, p_conteudo: conteudo });
+export const criarQuestao = (aula, tipo, { enunciado, opcoes, correta, explicacao }) => rpc("trein_criar_questao", { p_aula: aula, p_tipo: tipo, p_enunciado: enunciado, p_opcoes: opcoes, p_correta: Number(correta), p_explicacao: explicacao || "" });
+export const removerAula = (aula) => rpc("trein_remover_aula", { p_aula: aula });
+export const removerQuestao = (questao) => rpc("trein_remover_questao", { p_questao: questao });
+export const ligarModulo = (modulo, trilha, ligar) => rpc("trein_ligar_modulo", { p_modulo: modulo, p_trilha: trilha, p_ligar: ligar });
+
+export async function gerarFalasComIA(aulaId, instrucao = "") {
+  try {
+    const r = await fetchComSessao("/api/ia-treinamento-falas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aula_id: aulaId, instrucao }),
+    });
+    const json = await r.json().catch(() => ({}));
+    return r.ok ? { data: json.cenas, error: null } : { data: null, error: json.error || "Não foi possível gerar as falas." };
+  } catch {
+    return { data: null, error: "Sem conexão." };
+  }
+}

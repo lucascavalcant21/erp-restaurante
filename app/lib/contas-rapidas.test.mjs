@@ -19,6 +19,7 @@ test("nenhum modelo tem curinga nem dá edição, exclusão ou custo", () => {
   for (const c of CONTAS_RAPIDAS) {
     for (const p of c.permissoes) {
       assert.ok(!p.includes("*"), `${c.id}: ${p}`);
+      if (c.id === "chefe-bar" && p === "treinamento.team.approve") continue; // líder aprova a prática da equipe
       assert.ok(!/\.(edit|delete|view_costs|view_margin|view_values|settings|approve|adjust_stock)$/.test(p), `${c.id}: ${p}`);
     }
   }

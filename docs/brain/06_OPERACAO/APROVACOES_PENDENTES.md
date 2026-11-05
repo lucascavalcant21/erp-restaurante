@@ -277,3 +277,19 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Comando/alteração:** `Rodar o arquivo inteiro. O select do fim deve devolver b300bf3a8f1a004da40d3eaf2f104a2a.`
 - **Status:** PENDENTE
 - **Criado em:** 2026-11-04
+
+### APR-017 · PENDENTE
+
+- **Missão:** HDEV-011
+- **Ação:** Aplicar db/treinamento/TREIN_1_TREINAMENTO_POR_FUNCAO.sql e depois db/treinamento/TREIN_2_RASCUNHOS.sql no Supabase real
+- **Ambiente:** supabase (produção)
+- **Risco:** HIGH
+- **Motivo:** Cria tabelas, policies, funções e grants, e adiciona permissões aos perfis (CLAUDE.md: confirmação do dono).
+- **Impacto:** Só aditiva. 12 tabelas trein_* novas, com RLS por unidade; gabarito sem nenhum grant; escrita só por funções que conferem permissão. Todos os perfis menos Somente ponto e Contador ganham treinamento.my.view; Gerente geral ganha treinamento.*; Supervisor de cozinha ganha treinamento.team.*. Nenhuma linha existente muda. O conteúdo entra como rascunho, invisível para a equipe.
+- **Rollback:** db/treinamento/TREIN_1_ROLLBACK.sql (apaga conteúdo editado e progresso; testado no PGlite).
+- **Evidências:** TESTADO LOCAL: PGlite com o SQL real, cobrindo rascunho invisível, gabarito fechado, prova, limite de tentativas, escrita direta negada, isolamento entre unidades, líder não aprova a si mesmo, Estúdio, permissões, preflight, rollback e carga real dos rascunhos. NÃO VALIDADO no Supabase real.
+- **Comando/alteração:** `Rodar TREIN_1 inteiro, conferir a impressão 75b3c57a6eea304ca11e7cf6ec551775; rodar TREIN_2 e conferir a contagem. Depois mesclar o PR.`
+- **Status:** PENDENTE
+- **Criado em:** 2026-11-05 01:00
+- **Chave:** migracao:db/treinamento/TREIN_1_TREINAMENTO_POR_FUNCAO.sql
+

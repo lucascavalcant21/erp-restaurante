@@ -5,6 +5,8 @@
 // precisar de mais recebe depois, em Configurações > Perfis.
 const ESTOQUE_DIA_A_DIA = ["estoque.operation.view", "estoque.movements.view", "estoque.movements.create"];
 const ETIQUETAS = ["estoque.labels.view", "estoque.labels.create", "estoque.labels.print"];
+const TREINAMENTO = "treinamento.my.view";
+const LIDERAR_TREINAMENTO = ["treinamento.team.view", "treinamento.team.create", "treinamento.team.approve"];
 
 export const CONTAS_RAPIDAS = Object.freeze([
   {
@@ -17,7 +19,7 @@ export const CONTAS_RAPIDAS = Object.freeze([
     paginaInicial: "/dashboard/bar",
     pode: ["Ver as fichas de drinks", "Adicionar e retirar do estoque"],
     naoPode: ["Alterar fichas", "Ver custos"],
-    permissoes: ["bar.sector.view", "bar.recipes.view", ...ESTOQUE_DIA_A_DIA],
+    permissoes: ["bar.sector.view", "bar.recipes.view", ...ESTOQUE_DIA_A_DIA, TREINAMENTO, ...LIDERAR_TREINAMENTO],
   },
   {
     id: "equipe-bar",
@@ -29,7 +31,7 @@ export const CONTAS_RAPIDAS = Object.freeze([
     paginaInicial: "/dashboard/bar",
     pode: ["Ver as fichas de drinks", "Adicionar e retirar do estoque", "Imprimir fichas e etiquetas"],
     naoPode: ["Alterar fichas", "Ver custos"],
-    permissoes: ["bar.sector.view", "bar.recipes.view", "bar.recipes.print", ...ESTOQUE_DIA_A_DIA, ...ETIQUETAS],
+    permissoes: ["bar.sector.view", "bar.recipes.view", "bar.recipes.print", ...ESTOQUE_DIA_A_DIA, ...ETIQUETAS, TREINAMENTO],
   },
   {
     id: "equipe-cozinha",
@@ -41,7 +43,7 @@ export const CONTAS_RAPIDAS = Object.freeze([
     paginaInicial: "/dashboard/cozinha",
     pode: ["Ver as fichas técnicas", "Adicionar e retirar do estoque", "Imprimir fichas e etiquetas"],
     naoPode: ["Alterar fichas", "Ver custos"],
-    permissoes: ["cozinha.sector.view", "cozinha.recipes.view", "cozinha.recipes.print", ...ESTOQUE_DIA_A_DIA, ...ETIQUETAS],
+    permissoes: ["cozinha.sector.view", "cozinha.recipes.view", "cozinha.recipes.print", ...ESTOQUE_DIA_A_DIA, ...ETIQUETAS, TREINAMENTO],
   },
   {
     id: "somente-ponto",

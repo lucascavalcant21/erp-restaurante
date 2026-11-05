@@ -10,7 +10,7 @@ test("categoria define a parte do combo", () => {
   assert.equal(grupoDaCategoria("Sucos"), "bebida");
   assert.equal(grupoDaCategoria("Sobremesas"), "sobremesa");
   assert.equal(grupoDaCategoria(""), "marmita");
-  assert.deepEqual(ordenarCategorias(["Fit", "Sucos", "Marmitas de carne", "Sucos"]), ["Marmitas de carne", "Sucos", "Fit"]);
+  assert.deepEqual(ordenarCategorias(["Fit", "Sucos", "Marmitas de carne", "Marmitas de frango", "Sucos"]), ["Marmitas de frango", "Marmitas de carne", "Sucos", "Fit"]);
 });
 
 test("mês fechado anterior, inclusive na virada do ano", () => {

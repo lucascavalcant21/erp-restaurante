@@ -6,7 +6,7 @@
 
 import { MODELOS_CANAL, PLATAFORMAS_PADRAO, normalizarCanal, r2 } from "./nucleo.mjs";
 
-export const CATEGORIAS_FICHA = ["Marmitas de carne", "Marmitas de frango", "Sobremesas", "Refrigerantes", "Sucos"];
+export const CATEGORIAS_FICHA = ["Marmitas de frango", "Marmitas de carne", "Sobremesas", "Refrigerantes", "Sucos"];
 
 const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const preenchido = (v) => v !== null && v !== undefined && String(v).trim() !== "";

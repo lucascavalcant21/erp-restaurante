@@ -1108,7 +1108,7 @@ export const NAVIGATION_REGISTRY = [
     domain: "Marmitaria & Delivery",
     section: "Cardápio",
     icon: "Tag",
-    keywords: ["cardapio","precificacao","preco","markup","cmv","lucro","combos","promocao","promocoes","2 por 1","desconto","ifood","99","keeta"],
+    keywords: ["cardapio","modelo da loja","descricao","precificacao","preco","markup","cmv","lucro","combos","promocao","promocoes","2 por 1","desconto","ifood","99","keeta"],
     synonyms: ["montar combo","simular promocao","2x1","preco da marmita","compre um ganhe outro"],
     permission: "marmitaria.recipes.view",
     mobilePriority: 2,

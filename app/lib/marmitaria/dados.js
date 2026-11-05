@@ -192,6 +192,14 @@ export async function criarProduto({ unidadeId, nome, unidade_medida, preco_emba
   return { id: r?.id || null, error: null };
 }
 
+/** Descrição que o cliente lê. Vai nos dois campos, como a marmitaria_salvar_ficha faz. */
+export async function salvarDescricao(fichaId, descricao) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const texto = String(descricao || "").trim() || null;
+  const { error } = await supabase.from("fichas_tecnicas").update({ descricao: texto, descricao_comercial: texto, atualizado_em: new Date().toISOString() }).eq("id", fichaId).eq("departamento", "marmitaria");
+  return { error: mensagemErro(error) };
+}
+
 /** Novo preço de compra de uma embalagem: passa pelo salvarInsumo para ficar no histórico de preço. */
 export async function atualizarPrecoEmbalagem({ id, unidade_medida, preco_embalagem, tamanho_embalagem }) {
   const preco = Number(preco_embalagem);

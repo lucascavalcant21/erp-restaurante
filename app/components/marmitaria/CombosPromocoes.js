@@ -21,13 +21,14 @@ import { precoSugerido } from "../../lib/marmitaria/nucleo.mjs";
 import { precoPorMarkup } from "../../lib/marmitaria/dia.mjs";
 import { definirDisponibilidade, salvarPrecoNoCanal } from "../../lib/marmitaria/dados";
 import { useCustosEmbutidos } from "./useCustosEmbutidos";
+import ModeloDaLoja from "./ModeloDaLoja";
 import { custoPorcaoDaFicha } from "../../lib/evento-financeiro.mjs";
 import { fetchCombosMarmitaria, salvarCombosMarmitaria, fetchOfertasMarmitaria, salvarOfertasMarmitaria } from "../../lib/parametros";
 
 const chip = (ativo) => `h-10 rounded-xl border px-3 text-sm font-bold transition ${ativo ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border bg-hf-surface text-hf-text-2 hover:bg-hf-elevated"}`;
 
 export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
-  const [aba, setAba] = useState(["cardapio", "combos", "promocoes"].includes(abaInicial) ? abaInicial : "cardapio");
+  const [aba, setAba] = useState(["cardapio", "combos", "promocoes", "modelo"].includes(abaInicial) ? abaInicial : "cardapio");
   const { base, custos, unidadeId } = useMarmitaria();
   const canais = useMemo(() => canaisDoCardapio(base.config), [base]);
   const [canalId, setCanalId] = useState(canais[0].id);
@@ -95,10 +96,10 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
         </div>
       </section>
 
-      <Abas abas={[{ id: "cardapio", rotulo: "Itens" }, { id: "combos", rotulo: "Combos" }, { id: "promocoes", rotulo: "Promoções" }]} valor={aba} onChange={setAba} />
+      <Abas abas={[{ id: "cardapio", rotulo: "Itens" }, { id: "combos", rotulo: "Combos" }, { id: "promocoes", rotulo: "Promoções" }, { id: "modelo", rotulo: "Modelo da loja" }]} valor={aba} onChange={setAba} />
 
-      {linhas[0]?.falta && <Aviso tipo="alerta">{linhas[0].falta}: preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a> para ver o lucro.</Aviso>}
-      {!embutidos.completo && <Aviso>Equipe e custos fixos ainda não entram por completo (falta {embutidos.faltando.join(", ")}). Preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a>.</Aviso>}
+      {aba !== "modelo" && linhas[0]?.falta && <Aviso tipo="alerta">{linhas[0].falta}: preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a> para ver o lucro.</Aviso>}
+      {aba !== "modelo" && !embutidos.completo && <Aviso>Equipe e custos fixos ainda não entram por completo (falta {embutidos.faltando.join(", ")}). Preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a>.</Aviso>}
 
       {aba === "cardapio" && <CardapioVendas linhas={linhas} vendas={vendas} mudarVenda={mudarVenda} diasSemana={diasSemana} custos={custos} onEditar={onEditar} comum={comum} metaPct={metaPct}
         onRemoverOferta={(id) => gravarOfertas(ofertas.filter((o) => o.id !== id))} msg={msg} irPara={setAba} />}
@@ -137,7 +138,9 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
         </Secao>
       )}
 
-      <details className="group rounded-2xl border border-hf-border bg-hf-surface p-4">
+      {aba === "modelo" && <ModeloDaLoja linhas={linhas} canal={canal} onEditar={onEditar} />}
+
+      {aba !== "modelo" && <details className="group rounded-2xl border border-hf-border bg-hf-surface p-4">
         <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-black text-hf-text">
           <SlidersHorizontal size={16} className="text-hf-accent" /> Ajustes da conta
           <span className="ml-auto text-xs font-semibold text-hf-text-2">{ehMei(base.config) ? "MEI · " : ""}meta {metaPct === "" ? "—" : `${metaPct}%`} · {diasSemana || "—"} dias/semana</span>
@@ -151,7 +154,7 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
           <Campo rotulo="Meta de lucro (%)" dica="Acima dela: faz sentido. Para fixar, use Configurações."><CampoNumero valor={metaPct} onChange={setMetaPct} placeholder="ex.: 15" /></Campo>
           <Campo rotulo="Dias que vende por semana"><CampoNumero valor={diasSemana} onChange={setDiasSemana} /></Campo>
         </div>
-      </details>
+      </details>}
     </div>
   );
 }

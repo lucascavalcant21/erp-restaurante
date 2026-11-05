@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ehRotaDaMarmitaria, gravarEntrada, lerEntrada, limparEntrada, rotaBloqueada, senhaValida, textoDaSenha } from "./acesso.mjs";
+import { destinoDaSaida, ehRotaDaMarmitaria, gravarEntrada, lerEntrada, limparEntrada, rotaBloqueada, senhaValida, textoDaSenha } from "./acesso.mjs";
 
 const armazem = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) }; };
 
@@ -42,4 +42,12 @@ test("a porta da marmitaria abre para qualquer sessão; o resto segue a permiss�
   assert.equal(canAccessRoute(sessao, "/dashboard/marmitariax"), false);
   assert.equal(canAccessRoute(sessao, "/dashboard/financeiro"), false);
   assert.equal(canAccessRoute(null, "/dashboard/marmitaria"), false);
+});
+
+test("depois da senha, segue só para tela interna", () => {
+  assert.equal(destinoDaSaida("/dashboard/rh"), "/dashboard/rh");
+  assert.equal(destinoDaSaida("/dashboard/rh/extra?mes=11"), "/dashboard/rh/extra?mes=11");
+  assert.equal(destinoDaSaida("/dashboard/marmitaria"), "/dashboard");
+  assert.equal(destinoDaSaida("/dashboard/marmitaria/equipe"), "/dashboard");
+  for (const ruim of ["", null, "https://fora.com", "//fora.com", "/dashboard//fora.com", "/login", "/dashboardx"]) assert.equal(destinoDaSaida(ruim), "/dashboard");
 });

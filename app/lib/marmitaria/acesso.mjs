@@ -21,6 +21,16 @@ export function ehRotaDaMarmitaria(caminho) {
 /** Dentro da marmitaria, qualquer outra tela volta para ela. */
 export const rotaBloqueada = (dentro, caminho) => !!dentro && !ehRotaDaMarmitaria(caminho);
 
+/**
+ * Tela que a pessoa tentou abrir dentro da marmitaria. Depois da senha, ela segue
+ * para lá. Só aceita caminho interno: o valor vem da URL.
+ */
+export function destinoDaSaida(valor) {
+  const caminho = String(valor || "");
+  if (!/^\/dashboard(\/|\?|$)/.test(caminho) || caminho.includes("//") || caminho.includes("\\")) return "/dashboard";
+  return ehRotaDaMarmitaria(caminho.split("?")[0]) ? "/dashboard" : caminho;
+}
+
 export function lerEntrada(armazem) {
   try {
     const v = JSON.parse(armazem?.getItem(CHAVE) || "null");

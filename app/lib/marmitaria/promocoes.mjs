@@ -98,8 +98,12 @@ export function simularOferta({ itens = [], oferta = {}, canal = CANAL_DIRETO, t
 // ─── Combos ─────────────────────────────────────────────────────────────────
 
 export const MODELOS_COMBO = [
-  { id: "comida_bebida", rotulo: "Comida + bebida", grupos: ["marmita", "bebida"] },
-  { id: "comida_bebida_sobremesa", rotulo: "Comida + bebida + sobremesa", grupos: ["marmita", "bebida", "sobremesa"] },
+  { id: "comida_bebida", rotulo: "Comida + bebida", grupos: ["marmita", "bebida"], exemplo: "Ex.: marmita + refrigerante" },
+  { id: "comida_sobremesa", rotulo: "Comida + sobremesa", grupos: ["marmita", "sobremesa"], exemplo: "Ex.: marmita + pudim" },
+  { id: "comida_bebida_sobremesa", rotulo: "Comida + bebida + sobremesa", grupos: ["marmita", "bebida", "sobremesa"], exemplo: "Ex.: marmita + suco + pudim" },
+  { id: "sobremesa_bebida", rotulo: "Sobremesa + bebida", grupos: ["sobremesa", "bebida"], exemplo: "Ex.: pudim + suco" },
+  { id: "so_sobremesas", rotulo: "Só sobremesas", grupos: ["sobremesa", "sobremesa"], exemplo: "Ex.: pudim + mousse" },
+  { id: "so_bebidas", rotulo: "Só bebidas", grupos: ["bebida", "bebida"], exemplo: "Ex.: refrigerante + suco" },
 ];
 export const ROTULO_GRUPO = { marmita: "Comida", bebida: "Bebida", sobremesa: "Sobremesa" };
 
@@ -132,7 +136,8 @@ export function normalizarCombo(c = {}) {
     id: String(c.id || `combo-${Math.random().toString(36).slice(2, 9)}`),
     nome: String(c.nome || "").trim().slice(0, 80),
     modelo: modelo.id,
-    itens: modelo.grupos.map((g) => ({ grupo: g, id: (c.itens || []).find((i) => i.grupo === g)?.id || "" })),
+    // Por posição: "só sobremesas" tem duas vagas do mesmo grupo.
+    itens: modelo.grupos.map((g, i) => ({ grupo: g, id: (c.itens || [])[i]?.grupo === g ? c.itens[i].id : (c.itens || []).find((x) => x.grupo === g)?.id || "" })),
     preco: c.preco === "" || c.preco == null ? "" : String(c.preco),
   };
 }

@@ -192,6 +192,13 @@ export async function criarProduto({ unidadeId, nome, unidade_medida, preco_emba
   return { id: r?.id || null, error: null };
 }
 
+/** Mudanças de preço desde uma data: vêm do cadastro e do recebimento de compras. */
+export async function fetchHistoricoPrecos(unidadeId, desde) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { data: [] };
+  const { data, error } = await supabase.from("insumos_precos_historico").select("*").eq("unidade_id", unidadeId).gte("created_at", desde).order("created_at");
+  return { data: data || [], error: mensagemErro(error) };
+}
+
 /** Descrição que o cliente lê. Vai nos dois campos, como a marmitaria_salvar_ficha faz. */
 export async function salvarDescricao(fichaId, descricao) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };

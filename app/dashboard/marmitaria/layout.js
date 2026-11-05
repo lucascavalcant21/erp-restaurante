@@ -1,6 +1,6 @@
 "use client";
 
-// Marmitaria & Delivery: oito áreas, uma barra só. O menu de cima leva para
+// Marmitaria & Delivery: nove áreas, uma barra só. O menu de cima leva para
 // cá sem submenu (a navegação do módulo mora aqui), e o que é secundário vira
 // aba dentro de cada área.
 
@@ -10,12 +10,13 @@ import { MarmitariaProvider, useMarmitaria } from "../../components/marmitaria/c
 import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 
-// "curto" é o rótulo no celular: quatro por linha cabem sem quebrar.
+// "curto" é o rótulo no celular: três por linha cabem sem quebrar.
 const AREAS = [
   { href: "/dashboard/marmitaria", rotulo: "Visão geral", curto: "Geral", exato: true },
-  { href: "/dashboard/marmitaria/marmitas", rotulo: "Ficha técnica", curto: "Ficha", exceto: ["/dashboard/marmitaria/marmitas/cardapio", "/dashboard/marmitaria/marmitas/embalagens"] },
+  { href: "/dashboard/marmitaria/marmitas", rotulo: "Ficha técnica", curto: "Ficha", exceto: ["/dashboard/marmitaria/marmitas/cardapio", "/dashboard/marmitaria/marmitas/embalagens", "/dashboard/marmitaria/marmitas/lucro"] },
   { href: "/dashboard/marmitaria/marmitas/embalagens", rotulo: "Embalagens" },
   { href: "/dashboard/marmitaria/marmitas/cardapio", rotulo: "Cardápio" },
+  { href: "/dashboard/marmitaria/marmitas/lucro", rotulo: "Painel de lucro", curto: "Lucro" },
   { href: "/dashboard/marmitaria/estoque", rotulo: "Estoque e produção", curto: "Estoque" },
   { href: "/dashboard/marmitaria/funcionarios", rotulo: "Funcionários", curto: "Equipe" },
   { href: "/dashboard/marmitaria/financeiro", rotulo: "Financeiro" },
@@ -40,7 +41,7 @@ export default function MarmitariaLayout({ children }) {
             <p className="text-xs font-semibold uppercase tracking-wider text-hf-accent">Operação</p>
             <h1 className="text-xl font-black text-hf-text sm:text-2xl">Marmitaria &amp; Delivery</h1>
           </header>
-          <nav aria-label="Áreas da marmitaria" className="mb-4 grid grid-cols-4 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:inline-flex sm:max-w-full sm:flex-wrap">
+          <nav aria-label="Áreas da marmitaria" className="mb-4 grid grid-cols-3 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:inline-flex sm:max-w-full sm:flex-wrap">
             {AREAS.map((a) => {
               const ativo = a.exato ? pathname === a.href : (pathname === a.href || pathname.startsWith(`${a.href}/`)) && !(a.exceto || []).some((x) => pathname.startsWith(x));
               return (

@@ -85,3 +85,11 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - **MEI:** imposto sobre venda 0%. O regime e os custos mensais ficam em `marmitaria_configuracoes.rateio` (jsonb), sem migração. Vale `regime = "mei"` e `tributos_pct = 0`.
 - Plataformas: iFood, 99 (`99food`), Keeta e Balcão; WhatsApp e outras entram por botão. Só a comissão do balcão nasce zerada.
 - Rotas novas ficam sob `/dashboard/marmitaria/marmitas/` para herdar a permissão `marmitaria.recipes`.
+
+## DP — Marmitaria: modelo da loja e painel de lucro (05/11/2026, decisão do dono)
+
+- **Modelo da loja:** segue a ordem Mais pedidos, Combos, Marmitas de frango, Marmitas de carne, Sobremesas, Refrigerantes e Sucos. Mais pedidos sai só de vendas lançadas nos últimos 30 dias; sem venda, fica vazio.
+- **Mudança de custo:** compara o primeiro preço do histórico nos últimos 30 dias com o preço de hoje (`insumos_precos_historico`). O preço de venda fica igual, então a diferença de custo sai direto do lucro.
+- **Painel:** usa as mesmas linhas do Cardápio. "O que mais rendeu" = vendas reais × lucro de hoje (ESTIMATIVA).
+- **Sugestões:** testam as combinações com preço e custo, com o mesmo desconto sobre a soma. O alvo é a meta de lucro ou, sem meta, a média dos pratos. Combo sem marmita não carrega equipe nem custos fixos.
+

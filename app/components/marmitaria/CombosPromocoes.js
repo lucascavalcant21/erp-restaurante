@@ -7,36 +7,30 @@
 // cardapio.mjs. É simulação: nada grava venda. Combos e promoções ficam em
 // config_sistema; o preço de cada plataforma, em marmitaria_precificacao_canais.
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronUp, UtensilsCrossed, CupSoda, IceCreamCone, SlidersHorizontal } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, markupTxt, inputCls, lerNumero, pctTxt } from "./ui";
 import {
   TIPOS_OFERTA, MODELOS_COMBO, ROTULO_GRUPO,
-  simularOferta, catalogoParaCombo, normalizarCombo, itensDoCombo,
-  cardapioDeVendas, projecaoDeVendas, normalizarOferta, rotuloDaOferta,
+  simularOferta, normalizarCombo, itensDoCombo,
+  projecaoDeVendas, normalizarOferta, rotuloDaOferta,
 } from "../../lib/marmitaria/promocoes.mjs";
-import { canaisDoCardapio, ehMei, ordenarCategorias, rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
+import { ehMei, ordenarCategorias, rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
+import { melhorTroca } from "../../lib/marmitaria/painel-lucro.mjs";
 import { precoSugerido } from "../../lib/marmitaria/nucleo.mjs";
 import { precoPorMarkup } from "../../lib/marmitaria/dia.mjs";
 import { definirDisponibilidade, salvarPrecoNoCanal } from "../../lib/marmitaria/dados";
-import { useCustosEmbutidos } from "./useCustosEmbutidos";
+import { useCardapio } from "./useCardapio";
 import ModeloDaLoja from "./ModeloDaLoja";
-import { custoPorcaoDaFicha } from "../../lib/evento-financeiro.mjs";
-import { fetchCombosMarmitaria, salvarCombosMarmitaria, fetchOfertasMarmitaria, salvarOfertasMarmitaria } from "../../lib/parametros";
+import { salvarCombosMarmitaria, salvarOfertasMarmitaria } from "../../lib/parametros";
 
 const chip = (ativo) => `h-10 rounded-xl border px-3 text-sm font-bold transition ${ativo ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border bg-hf-surface text-hf-text-2 hover:bg-hf-elevated"}`;
 
 export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
   const [aba, setAba] = useState(["cardapio", "combos", "promocoes", "modelo"].includes(abaInicial) ? abaInicial : "cardapio");
   const { base, custos, unidadeId } = useMarmitaria();
-  const canais = useMemo(() => canaisDoCardapio(base.config), [base]);
-  const [canalId, setCanalId] = useState(canais[0].id);
-  const canal = canais.find((c) => c.id === canalId) || canais[0];
-  const embutidos = useCustosEmbutidos();
-  const [combos, setCombos] = useState([]);
-  const [ofertas, setOfertas] = useState([]);
-  const [metaPct, setMetaPct] = useState(base.config.margem_alvo_pct == null ? "" : String(base.config.margem_alvo_pct).replace(".", ","));
+  const { canais, canal, setCanalId, embutidos, combos, setCombos, ofertas, setOfertas, metaPct, setMetaPct, catalogo, comum, linhas, mudancas } = useCardapio();
   const [diasSemana, setDiasSemana] = useState("6");
   const chaveVendas = `hefisto:marmitaria:vendas-dia:${unidadeId}`;
   const [vendas, setVendas] = useState(() => { try { return JSON.parse(localStorage.getItem(chaveVendas) || "{}") || {}; } catch { return {}; } });
@@ -44,21 +38,6 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState(null);
 
-  useEffect(() => {
-    if (!unidadeId) return;
-    fetchCombosMarmitaria(unidadeId).then((r) => setCombos((r.data || []).map(normalizarCombo)));
-    fetchOfertasMarmitaria(unidadeId).then((r) => setOfertas((r.data || []).map(normalizarOferta)));
-  }, [unidadeId]);
-
-  const catalogo = useMemo(() => catalogoParaCombo({
-    marmitas: base.marmitas, custos, fichas: base.fichas,
-    custoFicha: (f) => { const c = custoPorcaoDaFicha(f, base.fichas); return c > 0 ? c : null; },
-    canalId: canal.id,
-  }), [base, custos, canal]);
-
-  const comum = { canal, tributosPct: base.config.tributos_pct, embutidos };
-  const linhas = useMemo(() => cardapioDeVendas({ catalogo, marmitas: base.marmitas, ofertas, combos, ...comum, metaPct: metaPct === "" ? null : metaPct }),
-    [catalogo, base.marmitas, ofertas, combos, canal, base.config.tributos_pct, embutidos, metaPct]); // eslint-disable-line react-hooks/exhaustive-deps
   async function gravarOfertas(lista) {
     setOfertas(lista);
     const r = await salvarOfertasMarmitaria(unidadeId, lista);
@@ -98,6 +77,7 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
 
       <Abas abas={[{ id: "cardapio", rotulo: "Itens" }, { id: "combos", rotulo: "Combos" }, { id: "promocoes", rotulo: "Promoções" }, { id: "modelo", rotulo: "Modelo da loja" }]} valor={aba} onChange={setAba} />
 
+      {aba !== "modelo" && mudancas.length > 0 && <Aviso tipo="alerta">{mudancas.length} {mudancas.length > 1 ? "custos mudaram" : "custo mudou"} nos últimos 30 dias e {mudancas.length > 1 ? "mexeram" : "mexeu"} no lucro. <a href="/dashboard/marmitaria/marmitas/lucro" className="font-bold underline">Ver no painel</a></Aviso>}
       {aba !== "modelo" && linhas[0]?.falta && <Aviso tipo="alerta">{linhas[0].falta}: preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a> para ver o lucro.</Aviso>}
       {aba !== "modelo" && !embutidos.completo && <Aviso>Equipe e custos fixos ainda não entram por completo (falta {embutidos.faltando.join(", ")}). Preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a>.</Aviso>}
 
@@ -114,11 +94,11 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
               <button key={m.id} type="button" onClick={() => novoCombo(m)}
                 className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-hf-accent/40 bg-hf-accent/5 p-4 text-left transition hover:border-hf-accent hover:bg-hf-accent/10">
                 <span className="flex shrink-0 -space-x-2">
-                  {m.grupos.map((g) => { const I = ICONE_GRUPO[g]; return <span key={g} className="grid h-10 w-10 place-items-center rounded-full border-2 border-hf-surface bg-hf-accent text-white"><I size={18} /></span>; })}
+                  {m.grupos.map((g, i) => { const I = ICONE_GRUPO[g]; return <span key={`${g}-${i}`} className="grid h-10 w-10 place-items-center rounded-full border-2 border-hf-surface bg-hf-accent text-white"><I size={18} /></span>; })}
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-black text-hf-text"><Plus size={14} className="mr-1 inline" />{m.rotulo}</span>
-                  <span className="block text-xs text-hf-text-2">{m.grupos.length === 3 ? "Ex.: marmita + suco + pudim" : "Ex.: marmita + refrigerante"}</span>
+                  <span className="block text-xs text-hf-text-2">{m.exemplo}</span>
                 </span>
               </button>
             ))}
@@ -386,6 +366,7 @@ function LinhaCombo({ combo, catalogo, comum, onChange, onRemover }) {
   const soma = itens ? itens.reduce((t, i) => t + (Number(i.preco) || 0), 0) : null;
   const s = itens && String(combo.preco).trim() ? simularOferta({ itens, oferta: { tipo: "preco_fixo", valor: combo.preco }, ...comum }) : null;
   const modelo = MODELOS_COMBO.find((m) => m.id === combo.modelo);
+  const troca = s && !s.semCusto ? melhorTroca({ itens, preco: combo.preco, catalogo, comum }) : null;
   return (
     <li className="rounded-2xl border border-hf-border p-3 sm:p-4">
       <div className="flex flex-wrap items-end gap-2">
@@ -393,9 +374,9 @@ function LinhaCombo({ combo, catalogo, comum, onChange, onRemover }) {
         <button type="button" onClick={onRemover} aria-label={`Remover ${combo.nome || "combo"}`} className="grid h-11 w-11 place-items-center rounded-xl border border-hf-border text-hf-text-2 hover:text-hf-danger"><Trash2 size={16} /></button>
       </div>
       <div className={`mt-3 grid gap-3 ${combo.itens.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-        {combo.itens.map((slot) => (
-          <Campo key={slot.grupo} rotulo={ROTULO_GRUPO[slot.grupo]}>
-            <select className={inputCls} value={slot.id} onChange={(e) => onChange({ ...combo, itens: combo.itens.map((x) => (x.grupo === slot.grupo ? { ...x, id: e.target.value } : x)) })}>
+        {combo.itens.map((slot, pos) => (
+          <Campo key={`${slot.grupo}-${pos}`} rotulo={ROTULO_GRUPO[slot.grupo]}>
+            <select className={inputCls} value={slot.id} onChange={(e) => onChange({ ...combo, itens: combo.itens.map((x, j) => (j === pos ? { ...x, id: e.target.value } : x)) })}>
               <option value="">Escolha…</option>
               {catalogo[slot.grupo].map((o) => <option key={o.id} value={o.id}>{o.nome}{o.preco ? ` · ${brl(o.preco)}` : ""}</option>)}
             </select>
@@ -412,6 +393,11 @@ function LinhaCombo({ combo, catalogo, comum, onChange, onRemover }) {
         )}
       </div>
       {s && <Comparacao s={s} rotuloCom="Combo" rotuloSem="Separado" rotuloLucro={rotuloDoLucro(comum.embutidos)} />}
+      {troca && (
+        <Aviso className="mt-3">Trocando {troca.sai.nome} por {troca.entra.nome}, no mesmo preço, sobram {brl(troca.ganho)} a mais por pedido.{" "}
+          <button type="button" className="font-bold underline" onClick={() => onChange({ ...combo, itens: combo.itens.map((x) => (x.id === troca.sai.id ? { ...x, id: troca.entra.id } : x)) })}>Trocar</button>
+        </Aviso>
+      )}
     </li>
   );
 }

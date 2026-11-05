@@ -31,6 +31,16 @@ export function destinoDaSaida(valor) {
   return ehRotaDaMarmitaria(caminho.split("?")[0]) ? "/dashboard" : caminho;
 }
 
+/**
+ * Unidade de quem está fora da marmitaria. Ela só abre pela senha: sem isso o
+ * administrador, que não tem unidade principal, caía nela por ser a primeira da
+ * lista, e o restaurante parecia sem funcionários.
+ */
+export function unidadeForaDaMarmitaria(unidades = [], ...preferidas) {
+  const existe = (id) => id && id !== UNIDADE_MARMITARIA && unidades.some((u) => u.id === id);
+  return preferidas.find(existe) || unidades.find((u) => u.id !== UNIDADE_MARMITARIA)?.id || preferidas.find(Boolean) || "";
+}
+
 export function lerEntrada(armazem) {
   try {
     const v = JSON.parse(armazem?.getItem(CHAVE) || "null");

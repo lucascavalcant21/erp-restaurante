@@ -9,7 +9,7 @@ import { LockKeyhole, LogOut } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { Aviso, Botao, Campo, Secao, inputCls } from "./ui";
 import { conferirSenha, definirSenha, senhaFoiDefinida } from "../../lib/marmitaria/dados";
-import { UNIDADE_MARMITARIA, destinoDaSaida, gravarEntrada, lerEntrada, limparEntrada, senhaValida } from "../../lib/marmitaria/acesso.mjs";
+import { UNIDADE_MARMITARIA, destinoDaSaida, gravarEntrada, lerEntrada, limparEntrada, senhaValida, unidadeForaDaMarmitaria } from "../../lib/marmitaria/acesso.mjs";
 
 const armazem = () => (typeof window === "undefined" ? null : window.localStorage);
 
@@ -68,7 +68,7 @@ export function EntrarNaMarmitaria() {
 }
 
 export function SairDaMarmitaria() {
-  const { setUnidadeAtiva } = useERP();
+  const { setUnidadeAtiva, unidades } = useERP();
   const router = useRouter();
   const pathname = usePathname();
   const [aberto, setAberto] = useState(false);
@@ -93,7 +93,8 @@ export function SairDaMarmitaria() {
       const anterior = lerEntrada(armazem())?.unidadeAnterior;
       limparEntrada(armazem());
       window.dispatchEvent(new CustomEvent("hefisto:marmitaria"));
-      if (anterior && anterior !== UNIDADE_MARMITARIA) setUnidadeAtiva(anterior);
+      const volta = unidadeForaDaMarmitaria(unidades, anterior);
+      if (volta && volta !== UNIDADE_MARMITARIA) setUnidadeAtiva(volta);
       router.replace(destinoDaSaida(destino));
     } finally { setOcupado(false); }
   }

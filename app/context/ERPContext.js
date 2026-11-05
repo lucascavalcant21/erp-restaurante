@@ -1,6 +1,6 @@
 "use client";
 
-import { UNIDADE_MARMITARIA, lerEntrada } from "../lib/marmitaria/acesso.mjs";
+import { UNIDADE_MARMITARIA, lerEntrada, unidadeForaDaMarmitaria } from "../lib/marmitaria/acesso.mjs";
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { fetchEstoque } from "../lib/estoque";
@@ -144,10 +144,9 @@ export function ERPProvider({ children }) {
           try {
             salva = typeof window !== "undefined" ? localStorage.getItem(chaveUsuario) : null;
           } catch (_) {}
-          const valida = unids.some(u => u.id === salva);
-          setUnidadeAtivaState(valida ? salva : padrao);
+          setUnidadeAtivaState(unidadeForaDaMarmitaria(unids, salva, padrao));
         } else {
-          setUnidadeAtivaState(padrao);
+          setUnidadeAtivaState(unidadeForaDaMarmitaria(unids, padrao));
         }
       } catch (err) {
         if (!vivo) return;

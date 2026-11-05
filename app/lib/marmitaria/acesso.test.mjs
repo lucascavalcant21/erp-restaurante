@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { destinoDaSaida, ehRotaDaMarmitaria, gravarEntrada, lerEntrada, limparEntrada, rotaBloqueada, senhaValida, textoDaSenha } from "./acesso.mjs";
+import { destinoDaSaida, unidadeForaDaMarmitaria, ehRotaDaMarmitaria, gravarEntrada, lerEntrada, limparEntrada, rotaBloqueada, senhaValida, textoDaSenha } from "./acesso.mjs";
 
 const armazem = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) }; };
 
@@ -50,4 +50,15 @@ test("depois da senha, segue só para tela interna", () => {
   assert.equal(destinoDaSaida("/dashboard/marmitaria"), "/dashboard");
   assert.equal(destinoDaSaida("/dashboard/marmitaria/equipe"), "/dashboard");
   for (const ruim of ["", null, "https://fora.com", "//fora.com", "/dashboard//fora.com", "/login", "/dashboardx"]) assert.equal(destinoDaSaida(ruim), "/dashboard");
+});
+
+test("fora da senha, nunca fica na marmitaria", () => {
+  const unidades = [{ id: "marmitaria" }, { id: "seldeestrela" }];
+  assert.equal(unidadeForaDaMarmitaria(unidades, "marmitaria", "marmitaria"), "seldeestrela");
+  assert.equal(unidadeForaDaMarmitaria(unidades, null, "marmitaria"), "seldeestrela");
+  assert.equal(unidadeForaDaMarmitaria(unidades, "seldeestrela"), "seldeestrela");
+  assert.equal(unidadeForaDaMarmitaria(unidades, "apagada", "seldeestrela"), "seldeestrela");
+  assert.equal(unidadeForaDaMarmitaria([...unidades, { id: "outra" }], "outra"), "outra");
+  assert.equal(unidadeForaDaMarmitaria([{ id: "marmitaria" }], "marmitaria"), "marmitaria");
+  assert.equal(unidadeForaDaMarmitaria([]), "");
 });

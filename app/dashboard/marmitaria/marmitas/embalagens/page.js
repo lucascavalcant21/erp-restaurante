@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Package, Plus } from "lucide-react";
 import { useMarmitaria } from "../../../../components/marmitaria/contexto";
 import { ehEmbalagem } from "../../../../components/marmitaria/BuscaItens";
-import { NovoProduto } from "../../../../components/marmitaria/CadastrosRapidos";
+import { CustoDaUnidade, NovoProduto } from "../../../../components/marmitaria/CadastrosRapidos";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, brl, inputCls, lerNumero, num } from "../../../../components/marmitaria/ui";
 import { ESTOQUE_EMBALAGENS, atualizarPrecoEmbalagem } from "../../../../lib/marmitaria/dados";
 import { fatorSaldo } from "../../../../lib/marmitaria/nucleo.mjs";
@@ -22,11 +22,13 @@ function LinhaEmbalagem({ item, usos, saldo, serve = [] }) {
   const [editando, setEditando] = useState(false);
   const [preco, setPreco] = useState("");
   const [tamanho, setTamanho] = useState("");
+  const [marca, setMarca] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
   const custo = custoUnitarioEfetivoInsumo(item);
 
   function abrir() {
+    setMarca(item.marca || "");
     setPreco(String(item.valor_embalagem ?? item.custo_compra ?? "").replace(".", ","));
     setTamanho(String(item.tamanho_embalagem || 1).replace(".", ","));
     setErro(null);
@@ -37,7 +39,7 @@ function LinhaEmbalagem({ item, usos, saldo, serve = [] }) {
     if (salvando) return;
     setSalvando(true);
     try {
-      const r = await atualizarPrecoEmbalagem({ id: item.id, unidade_medida: item.unidade_medida, preco_embalagem: lerNumero(preco), tamanho_embalagem: lerNumero(tamanho) });
+      const r = await atualizarPrecoEmbalagem({ id: item.id, marca, unidade_medida: item.unidade_medida, preco_embalagem: lerNumero(preco), tamanho_embalagem: lerNumero(tamanho) });
       if (r.error) { setErro(r.error); return; }
       setEditando(false);
       await recarregar();
@@ -50,6 +52,7 @@ function LinhaEmbalagem({ item, usos, saldo, serve = [] }) {
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-hf-elevated text-hf-muted"><Package size={18} /></span>
         <div className="min-w-0 flex-1">
           <p className="break-words text-sm font-bold text-hf-text">{item.nome}</p>
+          {item.marca && <p className="text-xs text-hf-text-2">Marca: {item.marca}</p>}
           <p className="text-xs text-hf-muted">Em estoque: {num(saldo)} · {usos ? `usada em ${usos} ficha${usos > 1 ? "s" : ""}` : "em nenhuma ficha"}</p>
           {serve.length > 0 && <p className="text-xs text-hf-text-2">Serve para: {serve.join(", ")}</p>}
         </div>
@@ -62,10 +65,12 @@ function LinhaEmbalagem({ item, usos, saldo, serve = [] }) {
       {editando && (
         <div className="mt-3 rounded-xl bg-hf-elevated/60 p-3">
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-            <Campo rotulo="Preço pago na compra (R$)"><CampoNumero valor={preco} onChange={setPreco} placeholder="0,00" /></Campo>
-            <Campo rotulo="Unidades nessa compra"><CampoNumero valor={tamanho} onChange={setTamanho} /></Campo>
+            <Campo rotulo="Marca" className="sm:col-span-3"><input className={inputCls} value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Opcional" /></Campo>
+            <Campo rotulo="Preço do pacote (R$)"><CampoNumero valor={preco} onChange={setPreco} placeholder="0,00" /></Campo>
+            <Campo rotulo="Unidades no pacote"><CampoNumero valor={tamanho} onChange={setTamanho} /></Campo>
             <Botao type="button" onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Botao>
           </div>
+          <CustoDaUnidade preco={lerNumero(preco)} unidades={lerNumero(tamanho)} />
           {erro && <Aviso tipo="alerta" className="mt-3">{erro}</Aviso>}
         </div>
       )}
@@ -84,7 +89,7 @@ export default function EmbalagensPage() {
     for (const f of base?.marmitas || []) for (const e of f.embalagens || []) m.set(e.insumo_id, (m.get(e.insumo_id) || 0) + 1);
     return m;
   }, [base]);
-  const lista = useMemo(() => (base?.insumosLista || []).filter(ehEmbalagem).filter((i) => !busca.trim() || casaBusca(i.nome, busca))
+  const lista = useMemo(() => (base?.insumosLista || []).filter(ehEmbalagem).filter((i) => !busca.trim() || casaBusca(`${i.nome} ${i.marca || ""}`, busca))
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR")), [base, busca]);
 
   if (!base) return carregando ? <Cartao><p className="text-sm text-hf-muted">Carregando embalagens…</p></Cartao> : null;

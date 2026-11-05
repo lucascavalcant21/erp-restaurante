@@ -8,10 +8,10 @@
 import { useState } from "react";
 import { Trash2, X } from "lucide-react";
 import { criarProduto, salvarPrePreparo, novaChave } from "../../lib/marmitaria/dados";
-import { custoDaMarmita, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
+import { custoDaMarmita, custoPorUnidadeDoPacote, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import BuscaItens from "./BuscaItens";
 import { quantidadeParaTela } from "../../lib/marmitaria/formulario.mjs";
-import { Botao, Campo, CampoNumero, inputCls, brl, Aviso, lerNumero } from "./ui";
+import { Botao, Campo, CampoNumero, inputCls, brl, num, Aviso, lerNumero } from "./ui";
 
 function Painel({ titulo, onFechar, children }) {
   return (
@@ -27,8 +27,16 @@ function Painel({ titulo, onFechar, children }) {
 
 const UNIDADES = [["kg", "kg"], ["g", "g"], ["l", "L"], ["ml", "ml"], ["un", "unidade"]];
 
+/** Quanto sai cada unidade do pacote. Mostra as 4 casas para o arredondamento não esconder o valor. */
+export function CustoDaUnidade({ preco, unidades }) {
+  const custo = custoPorUnidadeDoPacote(preco, unidades);
+  if (custo === null) return null;
+  const exato = custo.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  return <p className="mt-2 rounded-lg bg-hf-elevated px-3 py-2 text-sm text-hf-text">Cada unidade sai a <strong>{brl(custo)}</strong> <span className="text-xs text-hf-muted">({brl(preco)} ÷ {num(unidades)} = {exato})</span></p>;
+}
+
 export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nomeInicial = "", rotuloSalvar = "Cadastrar e usar", onCriado, onFechar }) {
-  const [f, setF] = useState({ nome: nomeInicial, unidade: embalagem ? "un" : limpeza ? "ml" : "kg", preco: "", tamanho: "1" });
+  const [f, setF] = useState({ nome: nomeInicial, marca: "", unidade: embalagem ? "un" : limpeza ? "ml" : "kg", preco: "", tamanho: embalagem ? "" : "1" });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
   const preco = lerNumero(f.preco);
@@ -40,11 +48,11 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
     setErro(null);
     if (f.nome.trim().length < 2) return setErro("Informe o nome.");
     if (preco === "" || preco < 0) return setErro("Informe o preço de compra.");
-    if (!(tamanho > 0)) return setErro("Informe quanto vem na embalagem de compra.");
+    if (!(tamanho > 0)) return setErro(embalagem ? "Informe quantas unidades vêm no pacote." : "Informe quanto vem na embalagem de compra.");
     setSalvando(true);
     try {
       const r = await criarProduto({
-        unidadeId, nome: f.nome, unidade_medida: f.unidade, preco_embalagem: preco, tamanho_embalagem: tamanho,
+        unidadeId, nome: f.nome, marca: f.marca, unidade_medida: f.unidade, preco_embalagem: preco, tamanho_embalagem: tamanho,
         departamento: embalagem ? "embalagens" : limpeza ? "limpeza" : "marmitaria",
         categoria: embalagem ? "Embalagens da marmitaria" : limpeza ? "Limpeza da marmitaria" : "",
       });
@@ -58,20 +66,24 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
   return (
     <Painel titulo={embalagem ? "Nova embalagem" : limpeza ? "Novo produto de limpeza" : "Novo ingrediente"} onFechar={onFechar}>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} /></Campo>
-        <Campo rotulo="Preço pago na compra (R$)" dica="O valor da embalagem/pacote, como na nota.">
+        <Campo rotulo="Nome"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} /></Campo>
+        <Campo rotulo="Marca"><input className={inputCls} value={f.marca} onChange={(e) => setF({ ...f, marca: e.target.value })} placeholder="Opcional" /></Campo>
+        <Campo rotulo={embalagem ? "Preço do pacote (R$)" : "Preço pago na compra (R$)"} dica={embalagem ? "O valor pago, como na nota." : "O valor da embalagem/pacote, como na nota."}>
           <CampoNumero valor={f.preco} onChange={(v) => setF({ ...f, preco: v })} placeholder="0,00" />
         </Campo>
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Campo rotulo="Quanto vem nela"><CampoNumero valor={f.tamanho} onChange={(v) => setF({ ...f, tamanho: v })} /></Campo>
-          <Campo rotulo="Unidade">
-            <select className={inputCls} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })} disabled={embalagem}>
-              {UNIDADES.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-            </select>
-          </Campo>
-        </div>
+        {embalagem ? <Campo rotulo="Unidades no pacote"><CampoNumero valor={f.tamanho} onChange={(v) => setF({ ...f, tamanho: v })} placeholder="Ex.: 30" /></Campo> : (
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <Campo rotulo="Quanto vem nela"><CampoNumero valor={f.tamanho} onChange={(v) => setF({ ...f, tamanho: v })} /></Campo>
+            <Campo rotulo="Unidade">
+              <select className={inputCls} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })}>
+                {UNIDADES.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+              </select>
+            </Campo>
+          </div>
+        )}
       </div>
-      {porUnidade !== null && <p className="mt-2 text-xs text-hf-muted">Custo: {brl(porUnidade)} por {f.unidade === "un" ? "unidade" : f.unidade}.</p>}
+      {embalagem ? <CustoDaUnidade preco={preco} unidades={tamanho} />
+        : porUnidade !== null && <p className="mt-2 text-xs text-hf-muted">Custo: {brl(porUnidade)} por {f.unidade === "un" ? "unidade" : f.unidade}.</p>}
       {erro && <Aviso tipo="alerta" className="mt-3">{erro}</Aviso>}
       <div className="mt-3 flex justify-end gap-2">
         <Botao variante="secundario" onClick={onFechar} type="button">Cancelar</Botao>

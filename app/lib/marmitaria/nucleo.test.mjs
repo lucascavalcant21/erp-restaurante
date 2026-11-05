@@ -373,3 +373,12 @@ test("unidade só da marmitaria: toda conta entra inteira, sem rateio", async ()
   const contas = [{ competencia_efetiva: "2026-11-02", valor_original: 100, centro_custo_codigo: "geral", categoria_codigo: "ocupacao_aluguel" }, { competencia_efetiva: "2026-11-05", valor_original: 50, centro_custo_codigo: "" }];
   assert.deepEqual(contasDaMarmitaria(contas, "2026-11", { centrosDiretos: ["*"] }).map((c) => [c.fracao, c.valorMarmitaria]), [[1, 100], [1, 50]]);
 });
+
+test("pacote: 23 reais com 30 unidades dá 0,7667 cada", async () => {
+  const { custoPorUnidadeDoPacote } = await import("./nucleo.mjs");
+  assert.equal(custoPorUnidadeDoPacote(23, 30).toFixed(4), "0.7667");
+  assert.equal(custoPorUnidadeDoPacote(0, 30), 0);
+  assert.equal(custoPorUnidadeDoPacote("", 30), null);
+  assert.equal(custoPorUnidadeDoPacote(23, 0), null);
+  assert.equal(custoPorUnidadeDoPacote(23, ""), null);
+});

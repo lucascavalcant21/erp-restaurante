@@ -85,3 +85,5 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | Compras: ao lançar no estoque com validade, imprimir a etiqueta do produto | Feito em PR rascunho · TESTADO EM MOCK. Impressora física NÃO VALIDADO |
 | 05/11/2026 | Compras: recebidos com unidade e "chegou 2,5 kg a mais do pedido" | Feito em PR rascunho · TESTADO EM MOCK |
 | 05/11/2026 | Nova logo do Héfisto: H com a perna mais longa, fazendo uma curva | Feito em PR rascunho · TESTADO LOCAL. Topo, menu e ícones do app |
+| 05/11/2026 | Tela de restaurar sessão: ícone novo, com a perna da logo se movendo feliz | Feito em PR rascunho · TESTADO LOCAL. Login também com a logo nova |
+| 05/11/2026 | Marmitaria: funcionário é criado na própria marmitaria, não vem do RH | Feito em PR rascunho · TESTADO EM MOCK e TESTADO NO SUPABASE REAL em transação desfeita |

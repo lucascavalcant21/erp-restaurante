@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { fazerLogin, homeDoUsuario, formatarParaEmailFantasma, lerSessao } from "../lib/auth";
-import { Loader2 } from "lucide-react";
+import LogoHefisto from "../components/layout/LogoHefisto";
 import { supabase, supabaseInitError, isSupabaseReady } from "../lib/supabase";
 
 // Guarda somente o nome de usuário. A senha e os tokens ficam a cargo do
@@ -118,16 +118,9 @@ export default function LoginPage() {
   if (verificandoSessao) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-hf-surface text-hf-text">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-gradient-to-br from-orange-500 to-amber-600 shadow-xl shadow-orange-500/20">
-          <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}>
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-        </div>
+        <LogoHefisto animada className="w-20 h-20 mb-4" />
         <p className="text-xl font-bold tracking-tight mb-2">Hefisto</p>
-        <div className="flex items-center gap-2 text-sm text-subtle font-medium">
-          <Loader2 size={16} className="animate-spin text-amber-700" />
-          <span>Restaurando sua sessão...</span>
-        </div>
+        <p className="text-sm text-subtle font-medium">Restaurando sua sessão...</p>
       </div>
     );
   }
@@ -135,11 +128,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-5 py-6" style={{ background: "var(--surface)", paddingTop: "calc(var(--erp-safe-top, 3.5rem) + 1rem)" }}>
       <div className="mb-8 flex flex-col items-center">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: "linear-gradient(135deg,#F97316,#EA580C)" }}>
-          <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2}>
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-        </div>
+        <LogoHefisto className="w-14 h-14 mb-4" />
         <p className="text-2xl font-bold tracking-tight" style={{ color: "var(--fg)" }}>Hefisto</p>
         <p className="text-sm font-medium mt-0.5" style={{ color: "var(--dim)" }}>Gestão inteligente para food service</p>
       </div>

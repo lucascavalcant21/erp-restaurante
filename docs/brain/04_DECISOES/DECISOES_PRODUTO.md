@@ -132,3 +132,10 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - Saída: MDK-022 por USB se já estiver pareada, térmica Bluetooth se estiver conectada; senão, a impressão do aparelho.
 - O navegador só pede permissão de USB em um toque da pessoa. O primeiro pareamento é feito em "Imprimir de novo".
 - O iPhone não tem USB nem Bluetooth no navegador: de lá só sai por impressão do aparelho (AirPrint).
+
+## DP — Marmitaria: funcionário nasce na marmitaria (05/11/2026, decisão do dono)
+
+- O funcionário é cadastrado na tela Equipe da marmitaria, na unidade `marmitaria`, com 100% do custo nela.
+- Continua na tabela oficial `colaboradores`, para ponto e recibos funcionarem. Não há cadastro paralelo.
+- Sai a alocação compartilhada com o restaurante nessa tela: são empresas separadas.
+- Cadastrar exige permissão de RH na unidade. Quem só entra com a senha da marmitaria não cria funcionário.

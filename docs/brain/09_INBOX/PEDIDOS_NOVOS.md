@@ -87,3 +87,5 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | Nova logo do Héfisto: H com a perna mais longa, fazendo uma curva | Feito em PR rascunho · TESTADO LOCAL. Topo, menu e ícones do app |
 | 05/11/2026 | Tela de restaurar sessão: ícone novo, com a perna da logo se movendo feliz | Feito em PR rascunho · TESTADO LOCAL. Login também com a logo nova |
 | 05/11/2026 | Marmitaria: funcionário é criado na própria marmitaria, não vem do RH | Feito em PR rascunho · TESTADO EM MOCK e TESTADO NO SUPABASE REAL em transação desfeita |
+| 05/11/2026 | Etiquetas: abrir direto em quem está etiquetando, sem mostrar áreas | Feito em PR rascunho · TESTADO EM MOCK. Causa do sumiço: o filtro de extras escondia quem está como Freelancer |
+| 05/11/2026 | RH "sumiu" e abria a marmitaria | Era a trava da marmitaria sem aviso. Agora pede a senha e segue para o RH · TESTADO EM MOCK |

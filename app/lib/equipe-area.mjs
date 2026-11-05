@@ -52,6 +52,18 @@ export function ehDeAlgumSetor(c) {
   return Object.values(PADROES_AREA).some(padrao => padrao.test(alvo));
 }
 
+/**
+ * Quem pode assinar uma etiqueta: toda a equipe ativa da unidade, sem separar por
+ * área. Inclui quem está como Freelancer: a maior parte da casa está cadastrada
+ * assim, e o filtro de extras escondia quase todos da lista.
+ */
+export const equipeParaEtiquetar = (colaboradores) =>
+  (colaboradores || []).filter((c) => c && !ehInativo(c) && !c.data_desligamento);
+
+/** Área de quem etiqueta, para o lote e a calibração da impressora. */
+export const areaDoFuncionario = (c) =>
+  PADROES_AREA.bar.test(`${semAcento(c?.cargo)} ${semAcento(c?.setor)}`) ? "bar" : "cozinha";
+
 export function equipeDaArea(colaboradores, area) {
   const ativos = (colaboradores || []).filter(c => c && !ehInativo(c) && !ehExtra(c));
   const chave = areaDe(area) || semAcento(area);

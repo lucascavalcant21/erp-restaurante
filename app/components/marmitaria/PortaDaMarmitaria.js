@@ -4,12 +4,12 @@
 // a senha aqui. A conferência é no banco, com bloqueio por tentativas.
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LockKeyhole, LogOut } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { Aviso, Botao, Campo, Secao, inputCls } from "./ui";
 import { conferirSenha, definirSenha, senhaFoiDefinida } from "../../lib/marmitaria/dados";
-import { UNIDADE_MARMITARIA, gravarEntrada, lerEntrada, limparEntrada, senhaValida } from "../../lib/marmitaria/acesso.mjs";
+import { UNIDADE_MARMITARIA, destinoDaSaida, gravarEntrada, lerEntrada, limparEntrada, senhaValida } from "../../lib/marmitaria/acesso.mjs";
 
 const armazem = () => (typeof window === "undefined" ? null : window.localStorage);
 
@@ -70,10 +70,18 @@ export function EntrarNaMarmitaria() {
 export function SairDaMarmitaria() {
   const { setUnidadeAtiva } = useERP();
   const router = useRouter();
+  const pathname = usePathname();
   const [aberto, setAberto] = useState(false);
+  const [destino, setDestino] = useState("");
   const [senha, setSenha] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState(null);
+
+  // Veio de outra tela (o botão do RH, por exemplo): já pede a senha.
+  useEffect(() => {
+    const pedido = new URLSearchParams(window.location.search).get("destino");
+    if (pedido) { setDestino(pedido); setAberto(true); }
+  }, [pathname]);
 
   async function sair() {
     if (ocupado) return;
@@ -86,17 +94,18 @@ export function SairDaMarmitaria() {
       limparEntrada(armazem());
       window.dispatchEvent(new CustomEvent("hefisto:marmitaria"));
       if (anterior && anterior !== UNIDADE_MARMITARIA) setUnidadeAtiva(anterior);
-      router.replace("/dashboard");
+      router.replace(destinoDaSaida(destino));
     } finally { setOcupado(false); }
   }
 
   if (!aberto) return <Botao variante="secundario" type="button" onClick={() => setAberto(true)}><LogOut size={16} /> Sair da marmitaria</Botao>;
   return (
     <div className="w-full rounded-2xl border border-hf-border bg-hf-surface p-3 sm:max-w-xs">
+      {destino && <p className="mb-2 text-sm font-semibold text-hf-text">Você está na Marmitaria. Para abrir outra área do sistema, saia com a senha.</p>}
       <CampoSenha rotulo="Senha para sair" valor={senha} onChange={setSenha} onEnter={sair} foco />
       {erro && <Aviso tipo="alerta" className="mt-2">{erro}</Aviso>}
       <div className="mt-2 flex gap-2">
-        <Botao variante="secundario" type="button" onClick={() => { setAberto(false); setErro(null); }}>Cancelar</Botao>
+        <Botao variante="secundario" type="button" onClick={() => { setAberto(false); setDestino(""); setErro(null); }}>Cancelar</Botao>
         <Botao type="button" onClick={sair} disabled={ocupado || !senha}>{ocupado ? "Conferindo…" : "Sair"}</Botao>
       </div>
     </div>

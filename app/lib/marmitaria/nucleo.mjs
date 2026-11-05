@@ -457,7 +457,7 @@ export function cmoMarmitaria({ alocacoes = [], colaboradores = [], recibos = []
   const avisos = [];
   for (const a of alocacoes.filter((x) => x.ativo !== false)) {
     const c = porId.get(a.colaborador_id);
-    if (!c) { avisos.push("Uma alocação aponta para colaborador que não existe mais no RH."); continue; }
+    if (!c) { avisos.push("Uma alocação aponta para funcionário que não existe mais."); continue; }
     if (!ativoColab(c)) { avisos.push(`${c.nome} está desligado(a) e continua alocado(a): revise.`); continue; }
     let fracao;
     if (a.tipo_alocacao === "exclusivo") fracao = 1;
@@ -466,7 +466,7 @@ export function cmoMarmitaria({ alocacoes = [], colaboradores = [], recibos = []
     let salario = 0, encargosV = 0, provisoes = 0, beneficios = 0, extras = 0;
     if (!ehExtra(c)) {
       salario = pos(c.salario);
-      if (!(salario > 0)) avisos.push(`${c.nome} está sem salário no cadastro do RH.`);
+      if (!(salario > 0)) avisos.push(`${c.nome} está sem salário no cadastro.`);
       encargosV = salario * (pct(enc.fgts_pct) + pct(enc.inss_patronal_pct));
       provisoes = salario * (pct(enc.provisao_13_pct) + pct(enc.provisao_ferias_pct)) * (1 + pct(enc.fgts_pct) + pct(enc.inss_patronal_pct));
       beneficios = pos(c.vale_alimentacao) + (c.usa_vale_transporte ? pos(c.vale_transporte_val) : 0);

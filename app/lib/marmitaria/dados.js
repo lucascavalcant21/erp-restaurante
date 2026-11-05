@@ -15,7 +15,7 @@ import { vincularItemEstoque } from "../estoques-multiplos";
 import { transferirLancamento } from "../estoque-movimento-dados";
 import { novaChave } from "../estoque-movimento.mjs";
 import { fetchContasPagar } from "../financeiro";
-import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../rh";
+import { fetchColaboradores, fetchRecibosPrestacaoUnidade, inserirColaborador } from "../rh";
 import { normalizarCanal } from "./nucleo.mjs";
 import { fetchResultadoMensal } from "../parametros";
 import { parametrosDoResultado, configComResultado } from "../resultado-mes.mjs";
@@ -462,7 +462,7 @@ export async function importarVendas(unidadeId, vendas) {
   return { error: mensagemErro(error) };
 }
 
-// ─── Funcionários (RH existente, sem cadastro duplicado) ─────────────────────
+// ─── Funcionários: cadastrados na própria marmitaria ─────────────────────────
 
 export async function carregarEquipe(unidadeId) {
   if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { error: SEM_BANCO };
@@ -479,6 +479,32 @@ export async function carregarEquipe(unidadeId) {
     rhConfig: rhCfg.data || null,
     error: [col.error, aloc.error && mensagemErro(aloc.error)].filter(Boolean).join(" · ") || null,
   };
+}
+
+/**
+ * Funcionário novo da marmitaria (pedido do dono, 05/11/2026): nasce aqui, na
+ * unidade da marmitaria, já com 100% do custo nela. Usa a tabela oficial do RH,
+ * então ponto e recibos valem para ele também.
+ */
+export async function criarFuncionario(unidadeId, f) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
+  const nome = String(f.nome || "").trim();
+  const cargo = String(f.cargo || "").trim();
+  if (nome.length < 2) return { error: "Informe o nome." };
+  if (!cargo) return { error: "Informe a função." };
+  const salario = Number(f.salario);
+  if (!(salario >= 0)) return { error: "Informe o salário." };
+  const vt = Number(f.vale_transporte) || 0;
+  const r = await inserirColaborador({
+    unidade_id: unidadeId, nome, cargo, salario, status: "ativo",
+    vale_alimentacao: Number(f.vale_alimentacao) || 0,
+    usa_vale_transporte: vt > 0, vale_transporte_val: vt > 0 ? vt : null,
+    data_admissao: f.data_admissao || null,
+  });
+  if (r.error) return { error: /row-level security|permission denied/i.test(r.error) ? "Só quem tem acesso ao RH pode cadastrar funcionário." : mensagemErro(r.error) };
+  const aloc = await salvarAlocacao(unidadeId, { colaborador_id: r.data.id, tipo_alocacao: "exclusivo", turno: f.turno });
+  return { id: r.data.id, error: aloc.error || null };
 }
 
 export async function salvarAlocacao(unidadeId, a) {

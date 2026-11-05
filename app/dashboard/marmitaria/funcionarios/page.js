@@ -1,23 +1,23 @@
 "use client";
 
-// CMO da marmitaria sobre o cadastro do RH: aqui só se diz QUEM trabalha na
-// marmitaria e QUANTO do tempo. Salário, VA e VT vêm do RH; a parte que não é
-// da marmitaria continua no restaurante (cada salário entra uma vez só).
+// Equipe da marmitaria: o funcionário é criado aqui, na unidade da marmitaria,
+// sem depender do RH do restaurante. Com o custo de cada um sai o CMO.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Indicador, Secao, SemDados, brl, inputCls, pctTxt, lerNumero } from "../../../components/marmitaria/ui";
-import { carregarEquipe, salvarAlocacao, fetchVendas } from "../../../lib/marmitaria/dados";
+import { carregarEquipe, criarFuncionario, salvarAlocacao, fetchVendas } from "../../../lib/marmitaria/dados";
 import { cmoMarmitaria, encargosDaConfig, resumoVendas, periodo } from "../../../lib/marmitaria/nucleo.mjs";
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
+const VAZIO = () => ({ nome: "", cargo: "", salario: "", vale_alimentacao: "", vale_transporte: "", data_admissao: hoje(), turno: "" });
 
 export default function FuncionariosPage() {
   const { base, unidadeId } = useMarmitaria();
   const [equipe, setEquipe] = useState(null);
   const [vendasMes, setVendasMes] = useState([]);
-  const [novo, setNovo] = useState({ colaborador_id: "", tipo_alocacao: "compartilhado", percentual_tempo: "", horas_por_semana: "", turno: "" });
+  const [novo, setNovo] = useState(VAZIO);
   const [msg, setMsg] = useState(null);
   const [salvando, setSalvando] = useState(false);
   const mes = hoje().slice(0, 7);
@@ -39,10 +39,20 @@ export default function FuncionariosPage() {
   const alocados = new Set(equipe.alocacoes.filter((a) => a.ativo !== false).map((a) => a.colaborador_id));
   const disponiveis = equipe.colaboradores.filter((c) => (c.status || "ativo") !== "inativo" && !c.data_desligamento && !alocados.has(c.id));
 
+  async function cadastrar() {
+    if (salvando) return;
+    setMsg(null);
+    setSalvando(true);
+    try {
+      const r = await criarFuncionario(unidadeId, { ...novo, salario: lerNumero(novo.salario), vale_alimentacao: lerNumero(novo.vale_alimentacao), vale_transporte: lerNumero(novo.vale_transporte) });
+      if (r.error) setMsg({ tipo: "alerta", texto: r.error });
+      if (r.id) { setNovo(VAZIO()); await carregar(); }
+    } finally { setSalvando(false); }
+  }
+
   async function gravar(a) {
     if (salvando) return;
     setMsg(null);
-    if (!a.colaborador_id) return setMsg({ tipo: "alerta", texto: "Escolha o funcionário." });
     if (a.tipo_alocacao !== "exclusivo") {
       const p = lerNumero(a.percentual_tempo); const h = lerNumero(a.horas_por_semana);
       if (enc.criterio === "horas" ? !(h > 0) : !(p > 0 && p <= 100)) return setMsg({ tipo: "alerta", texto: enc.criterio === "horas" ? "Informe as horas por semana na marmitaria." : "Informe o % do tempo na marmitaria (1 a 100)." });
@@ -51,7 +61,7 @@ export default function FuncionariosPage() {
     try {
       const r = await salvarAlocacao(unidadeId, { ...a, percentual_tempo: lerNumero(a.percentual_tempo), horas_por_semana: lerNumero(a.horas_por_semana) });
       if (r.error) setMsg({ tipo: "alerta", texto: r.error });
-      else { setNovo({ colaborador_id: "", tipo_alocacao: "compartilhado", percentual_tempo: "", horas_por_semana: "", turno: "" }); await carregar(); }
+      else await carregar();
     } finally { setSalvando(false); }
   }
 
@@ -90,35 +100,36 @@ export default function FuncionariosPage() {
               </tbody>
             </table>
           </div>
-        ) : <SemDados titulo="Nenhum funcionário alocado" motivo="Escolha abaixo quem trabalha na marmitaria. O cadastro é o do RH: nada é duplicado." />}
+        ) : <SemDados titulo="Nenhum funcionário alocado" motivo="Cadastre abaixo quem trabalha na marmitaria." />}
         {cmo?.avisos.map((a) => <Aviso key={a} tipo="alerta" className="mt-2">{a}</Aviso>)}
       </Secao>
 
-      <Secao titulo="Alocar funcionário" subtitulo="Exclusivo: 100% do custo na marmitaria. Compartilhado: só a fração informada; o resto fica no restaurante.">
-        {!equipe.colaboradores.length ? (
-          <SemDados titulo="Nenhum funcionário no RH" motivo="Cadastre a equipe no RH primeiro." href="/dashboard/rh" acao="Abrir o RH" />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-5">
-            <Campo rotulo="Funcionário" className="sm:col-span-2">
-              <select className={inputCls} value={novo.colaborador_id} onChange={(e) => setNovo({ ...novo, colaborador_id: e.target.value })}>
-                <option value="">Escolha…</option>
-                {disponiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` · ${c.cargo}` : ""}</option>)}
-              </select>
-            </Campo>
-            <Campo rotulo="Alocação">
-              <select className={inputCls} value={novo.tipo_alocacao} onChange={(e) => setNovo({ ...novo, tipo_alocacao: e.target.value })}>
-                <option value="compartilhado">Compartilhado</option><option value="exclusivo">Exclusivo</option>
-              </select>
-            </Campo>
-            {novo.tipo_alocacao === "compartilhado" && (enc.criterio === "horas"
-              ? <Campo rotulo="Horas por semana na marmitaria"><CampoNumero valor={novo.horas_por_semana} onChange={(v) => setNovo({ ...novo, horas_por_semana: v })} /></Campo>
-              : <Campo rotulo="% do tempo na marmitaria"><CampoNumero valor={novo.percentual_tempo} onChange={(v) => setNovo({ ...novo, percentual_tempo: v })} /></Campo>)}
-            <Campo rotulo="Turno / escala"><input className={inputCls} value={novo.turno} onChange={(e) => setNovo({ ...novo, turno: e.target.value })} placeholder="Ex.: seg a sex, 7h–15h" /></Campo>
-            <div className="flex items-end sm:col-span-5"><Botao onClick={() => gravar(novo)} disabled={salvando}>{salvando ? "Salvando…" : "Alocar"}</Botao></div>
+      <Secao titulo="Novo funcionário" subtitulo="Fica na equipe da marmitaria, com 100% do custo aqui.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo rotulo="Nome"><input className={inputCls} value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })} /></Campo>
+          <Campo rotulo="Função"><input className={inputCls} value={novo.cargo} onChange={(e) => setNovo({ ...novo, cargo: e.target.value })} placeholder="Ex.: Cozinheira" /></Campo>
+          <Campo rotulo="Salário do mês (R$)"><CampoNumero valor={novo.salario} onChange={(v) => setNovo({ ...novo, salario: v })} placeholder="0,00" /></Campo>
+          <Campo rotulo="Data de admissão"><input type="date" className={`${inputCls} min-w-0 max-w-full appearance-none`} value={novo.data_admissao} onChange={(e) => setNovo({ ...novo, data_admissao: e.target.value })} /></Campo>
+          <Campo rotulo="Vale-alimentação do mês (R$)"><CampoNumero valor={novo.vale_alimentacao} onChange={(v) => setNovo({ ...novo, vale_alimentacao: v })} placeholder="0,00" /></Campo>
+          <Campo rotulo="Vale-transporte do mês (R$)"><CampoNumero valor={novo.vale_transporte} onChange={(v) => setNovo({ ...novo, vale_transporte: v })} placeholder="0,00" /></Campo>
+          <Campo rotulo="Turno / escala" className="sm:col-span-2"><input className={inputCls} value={novo.turno} onChange={(e) => setNovo({ ...novo, turno: e.target.value })} placeholder="Ex.: seg a sex, 7h–15h" /></Campo>
+        </div>
+        <Botao className="mt-3" type="button" onClick={cadastrar} disabled={salvando}>{salvando ? "Salvando…" : "Cadastrar funcionário"}</Botao>
+        {disponiveis.length > 0 && (
+          <div className="mt-4 border-t border-hf-border pt-3">
+            <p className="text-xs font-semibold text-hf-text-2">Fora da equipe</p>
+            <ul className="divide-y divide-hf-border">
+              {disponiveis.map((c) => (
+                <li key={c.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span className="min-w-0"><span className="font-semibold text-hf-text">{c.nome}</span>{c.cargo ? <span className="text-hf-muted"> · {c.cargo}</span> : null}</span>
+                  <Botao variante="texto" type="button" onClick={() => gravar({ colaborador_id: c.id, tipo_alocacao: "exclusivo", ativo: true, turno: equipe.alocacoes.find((x) => x.colaborador_id === c.id)?.turno })}>Voltar</Botao>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
         {msg && <Aviso tipo={msg.tipo} className="mt-3">{msg.texto}</Aviso>}
-        <p className="mt-3 text-xs text-hf-muted">Horas extras e diárias: lançadas no RH (<Link href="/dashboard/rh/extra" className="font-semibold text-hf-accent">Gestão de Extras</Link>). Diárias pagas no mês entram aqui pela fração alocada.</p>
+        <p className="mt-3 text-xs text-hf-muted">Horas extras e diárias: lançadas em <Link href="/dashboard/rh/extra" className="font-semibold text-hf-accent">Gestão de Extras</Link>. Diárias pagas no mês entram aqui pela fração alocada.</p>
       </Secao>
     </div>
   );

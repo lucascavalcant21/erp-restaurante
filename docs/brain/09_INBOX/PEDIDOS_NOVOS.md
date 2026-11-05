@@ -72,3 +72,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | Estoques separados de embalagens e limpeza, por unidade e ml | Feito em PR rascunho · TESTADO EM MOCK |
 | 05/11/2026 | Markup em %, preço abrindo CMV, CMO por funcionário, custos fixos por conta; contas mapeadas em Configurações | Feito em PR rascunho · TESTADO EM MOCK |
 | 05/11/2026 | Processos de montagem de cada marmita: embalagens que servem, montagem, fritura, descanso, fechamento, saco kraft, grampos e motoboy | Feito em PR rascunho · TESTADO EM MOCK |
+| 05/11/2026 | Motor de Lucro: algoritmo próprio, no servidor | Etapa 1 em PR rascunho · TESTADO EM MOCK. Regras; aprendizado depende de vendas |

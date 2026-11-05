@@ -280,4 +280,4 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 
 ## APR-018 — MARM-PROD-1: produção de subprodutos da marmitaria
 
-Aplicar `db/marmitaria/MARM_PROD_1_PREPAROS.sql`. Aditiva: cria dois locais de estoque e uma função. Rollback em `db/marmitaria/MARM_PROD_1_ROLLBACK.sql`. Sem ela, a Cozinha planeja, mas não produz. TESTADO LOCAL com PGlite. NÃO VALIDADO no Supabase real.
+**Executada em 05/11/2026 com autorização do dono.** TESTADO NO SUPABASE REAL em transação desfeita (compra recebida e produção). `db/marmitaria/MARM_PROD_1_PREPAROS.sql`. Aditiva: cria dois locais de estoque e uma função. Rollback em `db/marmitaria/MARM_PROD_1_ROLLBACK.sql`.

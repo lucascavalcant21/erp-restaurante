@@ -560,3 +560,25 @@ textarea *,
 }
 .gd-sem-barra { scrollbar-width: none; }
 .gd-sem-barra::-webkit-scrollbar { display: none; }
+
+/* Logo do Héfisto carregando: a perna curva chuta e o H dá um pulinho junto. */
+@keyframes hf-perna-feliz {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-18deg); }
+  55% { transform: rotate(5deg); }
+  78% { transform: rotate(-11deg); }
+}
+@keyframes hf-logo-feliz {
+  0%, 55%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6%); }
+  78% { transform: translateY(-3%); }
+}
+.hf-logo-feliz { animation: hf-logo-feliz 1.1s ease-in-out infinite; }
+.hf-perna-feliz {
+  transform-box: view-box;
+  transform-origin: 41px 34px;
+  animation: hf-perna-feliz 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hf-logo-feliz, .hf-perna-feliz { animation: none; }
+}

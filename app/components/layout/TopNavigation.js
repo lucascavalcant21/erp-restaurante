@@ -95,7 +95,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           </button>
 
           <Link href={sessao?.is_app || sessao?.gerenciado ? homeDoUsuario(sessao) : "/dashboard"} className="flex items-center gap-2 shrink-0 group">
-            <LogoHefisto className="w-8 h-8 transform group-hover:rotate-12 transition-transform" />
+            <LogoHefisto animada className="w-8 h-8" />
             <span className="font-black tracking-tight text-xl hidden sm:block xl:hidden 2xl:block">Héfisto</span>
           </Link>
 

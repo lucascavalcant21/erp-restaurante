@@ -115,4 +115,5 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - Uma senha só para entrar e sair, em `estoque_seguranca` (hash e bloqueio por tentativas). A trava de tela prende o aparelho; a proteção dos dados é a separação por unidade.
 - Funcionário precisa ter a unidade `marmitaria` como principal ou em `usuario_escopos`.
 - Na unidade própria, toda conta entra inteira no resultado da marmitaria (`centros_diretos = ["*"]`), sem rateio, e a compra recebida gera a conta a pagar dela. O PR #172 (outubro) tinha a mesma ideia, mas não foi mesclado e tem histórico separado.
+- **Acesso pela senha:** o dono passa a senha e não configura cada usuário. Com a senha certa, o usuário ativo da mesma empresa recebe o escopo da unidade `marmitaria`, que continua depois de sair. `hefisto_user_can` libera `estoque.*` só nessa unidade, menos segurança e cancelamento de compra. Quem tem a senha vê tudo da marmitaria, inclusive custos e DRE.
 

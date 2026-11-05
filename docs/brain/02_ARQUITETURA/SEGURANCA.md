@@ -52,4 +52,4 @@
 
 ## S-NFE-1 — Valor com cara de senha em `unidades.token_nfe` (05/11/2026)
 
-Na unidade `seldeestrela`, `token_nfe` parece conter uma senha pessoal, e `codigo_ibge` contém um e-mail: sinal de preenchimento automático do navegador na tela de dados fiscais. `anon` e `authenticated` não têm SELECT nessa coluna. O valor não fica registrado aqui. Limpar o campo e trocar a senha dependem do dono.
+Na unidade `seldeestrela`, `token_nfe` parece conter uma senha pessoal, e `codigo_ibge` contém um e-mail: sinal de preenchimento automático do navegador na tela de dados fiscais. `anon` e `authenticated` não têm SELECT nessa coluna. O valor não fica registrado aqui. Campos limpos em 05/11/2026 com autorização do dono. Trocar a senha depende dele.

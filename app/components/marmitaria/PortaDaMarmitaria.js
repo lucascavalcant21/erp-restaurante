@@ -23,17 +23,18 @@ function CampoSenha({ rotulo, valor, onChange, onEnter, foco }) {
 }
 
 export function EntrarNaMarmitaria() {
-  const { unidades, unidadeAtiva, setUnidadeAtiva } = useERP();
-  const existe = (unidades || []).some((u) => u.id === UNIDADE_MARMITARIA);
+  const { unidadeAtiva, setUnidadeAtiva, recarregarUnidades } = useERP();
   const [definida, setDefinida] = useState(null);
   const [senha, setSenha] = useState("");
   const [repetir, setRepetir] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState(null);
 
-  useEffect(() => { if (existe) senhaFoiDefinida(UNIDADE_MARMITARIA).then(setDefinida); }, [existe]);
+  useEffect(() => { senhaFoiDefinida(UNIDADE_MARMITARIA).then(setDefinida); }, []);
 
-  function entrar() {
+  async function entrar() {
+    // A senha certa libera a unidade: a lista precisa ser lida de novo.
+    await recarregarUnidades();
     gravarEntrada(armazem(), typeof unidadeAtiva === "object" ? unidadeAtiva?.id : unidadeAtiva);
     setUnidadeAtiva(UNIDADE_MARMITARIA);
     window.dispatchEvent(new CustomEvent("hefisto:marmitaria"));
@@ -48,11 +49,10 @@ export function EntrarNaMarmitaria() {
       const r = definida === false ? await definirSenha(UNIDADE_MARMITARIA, senha) : await conferirSenha(UNIDADE_MARMITARIA, senha);
       setSenha("");
       if (r.error) { setErro(r.error); return; }
-      entrar();
+      await entrar();
     } finally { setOcupado(false); }
   }
 
-  if (!existe) return <Aviso tipo="alerta">Seu usuário ainda não tem acesso à marmitaria. Peça ao administrador.</Aviso>;
   return (
     <div className="mx-auto max-w-sm">
       <Secao titulo={definida === false ? "Crie a senha da marmitaria" : "Entrar na marmitaria"} subtitulo="A mesma senha vale para entrar e para sair.">

@@ -10,6 +10,7 @@ import { Trash2, X } from "lucide-react";
 import { criarProduto, salvarPrePreparo, novaChave } from "../../lib/marmitaria/dados";
 import { custoDaMarmita, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import BuscaItens from "./BuscaItens";
+import { quantidadeParaTela } from "../../lib/marmitaria/formulario.mjs";
 import { Botao, Campo, CampoNumero, inputCls, brl, Aviso, lerNumero } from "./ui";
 
 function Painel({ titulo, onFechar, children }) {
@@ -55,7 +56,7 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
   }
 
   return (
-    <Painel titulo={embalagem ? "Nova embalagem" : limpeza ? "Novo produto de limpeza" : "Novo produto"} onFechar={onFechar}>
+    <Painel titulo={embalagem ? "Nova embalagem" : limpeza ? "Novo produto de limpeza" : "Novo ingrediente"} onFechar={onFechar}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} /></Campo>
         <Campo rotulo="Preço pago na compra (R$)" dica="O valor da embalagem/pacote, como na nota.">
@@ -80,10 +81,14 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
   );
 }
 
-export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", onCriado, onFechar }) {
-  const [id] = useState(() => novaChave());
-  const [f, setF] = useState({ nome: nomeInicial, rendimento: "", unidade: "kg", setor: "cozinha", validade: "" });
-  const [itens, setItens] = useState([]);
+export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null, onCriado, onFechar }) {
+  const [id] = useState(() => ficha?.id || novaChave());
+  const [f, setF] = useState(() => ({ nome: ficha?.nome_receita || nomeInicial, rendimento: ficha?.rendimento_porcoes ? String(ficha.rendimento_porcoes).replace(".", ",") : "",
+    unidade: String(ficha?.rendimento_unidade || "kg").toLowerCase(), setor: ficha?.departamento || "cozinha", validade: ficha?.validade_dias ? String(ficha.validade_dias) : "" }));
+  const [itens, setItens] = useState(() => (ficha?.fichas_ingredientes || []).filter((i) => i.insumo_id).map((i) => {
+    const t = quantidadeParaTela(i.quantidade, String(base.insumos.get(i.insumo_id)?.unidade_medida || "un").toLowerCase());
+    return { key: novaChave(), insumo_id: i.insumo_id, qtd: t.qtd, un: t.un };
+  }));
   const [buscando, setBuscando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
@@ -98,9 +103,9 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", onCriado, on
   async function salvar() {
     if (salvando) return;
     setErro(null);
-    if (f.nome.trim().length < 2) return setErro("Informe o nome do pré-preparo.");
+    if (f.nome.trim().length < 2) return setErro("Informe o nome do subproduto.");
     if (!(rend > 0)) return setErro("Informe quanto o lote rende.");
-    if (!itens.length) return setErro("Adicione os ingredientes do pré-preparo.");
+    if (!itens.length) return setErro("Adicione os ingredientes do subproduto.");
     if (convertidos.some((c) => !(c.quantidade > 0))) return setErro("Confira a quantidade e a unidade de cada ingrediente.");
     setSalvando(true);
     try {
@@ -117,7 +122,7 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", onCriado, on
   }
 
   return (
-    <Painel titulo="Novo pré-preparo" onFechar={onFechar}>
+    <Painel titulo={ficha ? `Editar ${ficha.nome_receita}` : "Novo subproduto"} onFechar={onFechar}>
       <div className="grid gap-3 sm:grid-cols-4">
         <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Ex.: Arroz branco cozido" /></Campo>
         <Campo rotulo="O lote rende"><CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" /></Campo>

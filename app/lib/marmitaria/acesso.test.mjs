@@ -33,3 +33,13 @@ test("mensagem da senha em bom português", () => {
   assert.equal(textoDaSenha("Senha incorreto. O Senha ficou bloqueado por 15 minutos."), "Senha incorreta. A senha ficou bloqueada por 15 minutos.");
   assert.equal(textoDaSenha("Senha bloqueado por excesso de tentativas."), "Senha bloqueada por excesso de tentativas.");
 });
+
+test("a porta da marmitaria abre para qualquer sessão; o resto segue a permissão", async () => {
+  const { canAccessRoute } = await import("../permissions-catalog.mjs");
+  const sessao = { papel: "funcionario", permissions: [] };
+  assert.equal(canAccessRoute(sessao, "/dashboard/marmitaria"), true);
+  assert.equal(canAccessRoute(sessao, "/dashboard/marmitaria/estoque/cozinha"), true);
+  assert.equal(canAccessRoute(sessao, "/dashboard/marmitariax"), false);
+  assert.equal(canAccessRoute(sessao, "/dashboard/financeiro"), false);
+  assert.equal(canAccessRoute(null, "/dashboard/marmitaria"), false);
+});

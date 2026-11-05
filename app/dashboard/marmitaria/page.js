@@ -82,7 +82,7 @@ export default function VisaoGeralPage() {
     { feito: base.config.canais.length > 0, texto: "Canais de venda e taxas (iFood, WhatsApp, balcão)", href: "/dashboard/marmitaria/configuracoes", acao: "Configurar" },
     { feito: base.config.tributos_pct !== null, texto: "Alíquota de tributos", href: "/dashboard/marmitaria/configuracoes", acao: "Configurar" },
     { feito: base.config.margem_alvo_pct !== null, texto: "Margem-alvo (para sugerir preço)", href: "/dashboard/marmitaria/configuracoes", acao: "Configurar" },
-    { feito: locais.length > 0, texto: "Ativar o estoque da marmitaria (CMV real)", href: "/dashboard/marmitaria/estoque?aba=estoque", acao: "Ativar" },
+    { feito: locais.length > 0, texto: "Ativar o estoque da marmitaria (CMV real)", href: "/dashboard/marmitaria/estoque", acao: "Ativar" },
     { feito: !!doMes?.cmo.linhas.length, texto: "Alocar quem trabalha na marmitaria (CMO)", href: "/dashboard/marmitaria/funcionarios", acao: "Alocar" },
   ];
   const prontos = passos.filter((x) => x.feito).length;

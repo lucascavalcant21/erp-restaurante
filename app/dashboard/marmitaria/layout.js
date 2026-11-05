@@ -1,6 +1,7 @@
 "use client";
 
-// Marmitaria & Delivery: treze áreas, uma barra só. O menu de cima leva para
+// Marmitaria & Delivery: quatorze áreas, uma barra só, na ordem do trabalho:
+// comprar, guardar, produzir e vender. O menu de cima leva para
 // cá sem submenu (a navegação do módulo mora aqui), e o que é secundário vira
 // aba dentro de cada área.
 
@@ -14,17 +15,20 @@ import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 
 // "curto" é o rótulo no celular: quatro por linha cabem sem quebrar.
+const FICHA = "/dashboard/marmitaria/marmitas";
+const ESTOQUE = "/dashboard/marmitaria/estoque";
 const AREAS = [
-  { href: "/dashboard/marmitaria", rotulo: "Visão geral", curto: "Geral", exato: true },
-  { href: "/dashboard/marmitaria/marmitas", rotulo: "Ficha técnica", curto: "Ficha", exceto: ["/dashboard/marmitaria/marmitas/cardapio", "/dashboard/marmitaria/marmitas/embalagens", "/dashboard/marmitaria/marmitas/lucro", "/dashboard/marmitaria/marmitas/processos", "/dashboard/marmitaria/marmitas/produtos"] },
-  { href: "/dashboard/marmitaria/marmitas/produtos", rotulo: "Produtos" },
-  { href: "/dashboard/marmitaria/marmitas/processos", rotulo: "Processos" },
-  { href: "/dashboard/marmitaria/marmitas/embalagens", rotulo: "Embalagens", curto: "Embal." },
-  { href: "/dashboard/marmitaria/marmitas/cardapio", rotulo: "Cardápio" },
-  { href: "/dashboard/marmitaria/marmitas/lucro", rotulo: "Painel de lucro", curto: "Lucro" },
-  { href: "/dashboard/marmitaria/estoque/compras", rotulo: "Compras" },
-  { href: "/dashboard/marmitaria/estoque", rotulo: "Estoque", exceto: ["/dashboard/marmitaria/estoque/compras", "/dashboard/marmitaria/estoque/cozinha"] },
-  { href: "/dashboard/marmitaria/estoque/cozinha", rotulo: "Cozinha" },
+  { href: "/dashboard/marmitaria", rotulo: "Painel geral", curto: "Painel", exato: true },
+  { href: `${FICHA}/produtos`, rotulo: "Ingredientes", curto: "Ingred." },
+  { href: `${FICHA}/embalagens`, rotulo: "Embalagens", curto: "Embal." },
+  { href: `${ESTOQUE}/compras`, rotulo: "Compras" },
+  { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`] },
+  { href: `${ESTOQUE}/producoes`, rotulo: "Produções" },
+  { href: `${ESTOQUE}/cozinha`, rotulo: "Produção do dia", curto: "Do dia" },
+  { href: FICHA, rotulo: "Ficha técnica", curto: "Ficha", exceto: [`${FICHA}/cardapio`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/processos`, `${FICHA}/produtos`] },
+  { href: `${FICHA}/processos`, rotulo: "Processos" },
+  { href: `${FICHA}/cardapio`, rotulo: "Cardápio" },
+  { href: `${FICHA}/lucro`, rotulo: "Painel de lucro", curto: "Lucro" },
   { href: "/dashboard/marmitaria/funcionarios", rotulo: "Funcionários", curto: "Equipe" },
   { href: "/dashboard/marmitaria/financeiro", rotulo: "Financeiro" },
   { href: "/dashboard/marmitaria/configuracoes", rotulo: "Configurações", curto: "Ajustes" },

@@ -73,7 +73,7 @@ export default function BuscaItens({ base, modo = "ingrediente", filtroInicial =
         ) : (
           <>
             <button type="button" onClick={() => onCriarIngrediente?.(textoCriar)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg px-3 text-sm font-semibold text-hf-accent hover:bg-hf-accent/5">
-              <Plus size={15} /> Novo produto{textoCriar ? ` “${textoCriar}”` : ""}
+              <Plus size={15} /> Novo ingrediente{textoCriar ? ` “${textoCriar}”` : ""}
             </button>
             {onCriarPrePreparo && (
               <button type="button" onClick={() => onCriarPrePreparo?.(textoCriar)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg px-3 text-sm font-semibold text-hf-accent hover:bg-hf-accent/5">

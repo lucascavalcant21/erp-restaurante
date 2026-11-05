@@ -2,24 +2,27 @@
 
 // Estoque e produção da marmitaria sobre o estoque oficial do Héfisto:
 //   Planejar   quanto produzir → o que falta comprar (desconta o estoque)
-//   Estoque    os dois locais da marmitaria, com validade (FEFO) e mínimo;
-//              traz da cozinha por transferência (estoque_transferir)
+//   Estoque    os locais da marmitaria, com validade (FEFO) e mínimo. Aqui só se
+//              retira: a entrada vem de Compras e da Cozinha
 //   Pedidos    pedidos do iFood do dia: o que separar e (opcional) baixa por pedido
 //   Produção   registra o lote e baixa ingredientes, pré-preparos e
 //              embalagens numa transação (marmitaria_registrar_producao)
-// Entrada, retirada, perda e inventário usam a tela oficial do estoque.
+// Exclusivo da marmitaria: não lê nem baixa os estoques do restaurante.
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, SemDados, brl, inputCls, num, lerNumero } from "../../../components/marmitaria/ui";
-import { ativarEstoques, vincularProduto, transferir, registrarProducao, fetchProducoes, novaChave, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../../lib/marmitaria/dados";
+import { ativarEstoques, vincularProduto, registrarProducao, fetchProducoes, novaChave, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../../lib/marmitaria/dados";
 import PedidosIfood from "../../../components/marmitaria/PedidosIfood";
+import RetirarProduto from "../../../components/marmitaria/RetirarProduto";
+import { NovoProduto } from "../../../components/marmitaria/CadastrosRapidos";
+import { ESTOQUE_LIMPEZA, ESTOQUE_PRODUCAO, ROTULO_LOCAL, SLUGS_MARMITARIA, ehEstoqueDaMarmitaria } from "../../../lib/marmitaria/cozinha.mjs";
 import { necessidadeDeProducao, baixasDaProducao, fatorSaldo, paraUnidadeDoCadastro, unidadesCompativeis } from "../../../lib/marmitaria/nucleo.mjs";
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
-const ehDaMarmitaria = (e) => e.slug === ESTOQUE_MARMITARIA || e.slug === ESTOQUE_EMBALAGENS;
+const ehDaMarmitaria = ehEstoqueDaMarmitaria;
 const rotuloUn = (u) => (String(u).toLowerCase() === "l" ? "L" : u || "un");
 
 function useSaldos(base, estoquesIds) {
@@ -84,7 +87,7 @@ function SeletorEstoques({ estoques, marcados, onChange }) {
 function Planejar() {
   const { base } = useMarmitaria();
   const marmitas = base.marmitas.filter((m) => m.ativo !== false);
-  const padrao = base.estoques.filter((e) => ehDaMarmitaria(e) || e.slug === "pre-preparos-cozinha").map((e) => e.id);
+  const padrao = base.estoques.filter(ehDaMarmitaria).map((e) => e.id);
   const [estoquesSel, setEstoquesSel] = useState(padrao);
   const [qtds, setQtds] = useState({});
   const [copiado, setCopiado] = useState(false);
@@ -113,7 +116,7 @@ function Planejar() {
           ))}
         </div>
         <p className="mb-2 mt-4 text-xs font-semibold text-hf-text-2">Descontar o que já existe em:</p>
-        <SeletorEstoques estoques={base.estoques} marcados={estoquesSel} onChange={setEstoquesSel} />
+        <SeletorEstoques estoques={base.estoques.filter(ehDaMarmitaria)} marcados={estoquesSel} onChange={setEstoquesSel} />
       </Secao>
 
       {plano.length > 0 && (
@@ -153,8 +156,11 @@ function Estoque() {
   const { base, unidadeId, recarregar } = useMarmitaria();
   const [msg, setMsg] = useState(null);
   const [ocupado, setOcupado] = useState(false);
-  const [transf, setTransf] = useState(null);
+  const [retirando, setRetirando] = useState(null);
+  const [localSlug, setLocalSlug] = useState(ESTOQUE_MARMITARIA);
+  const [novoLimpeza, setNovoLimpeza] = useState(false);
   const locais = base.estoques.filter(ehDaMarmitaria);
+  const faltamLocais = locais.length > 0 && locais.length < SLUGS_MARMITARIA.length;
   const est = locais.find((e) => e.slug === ESTOQUE_MARMITARIA);
   const estEmb = locais.find((e) => e.slug === ESTOQUE_EMBALAGENS);
 
@@ -192,7 +198,7 @@ function Estoque() {
   if (!locais.length) {
     return (
       <Secao titulo="Estoque da marmitaria ainda não ativado">
-        <p className="text-sm text-hf-text-2">Cria dois locais no estoque oficial do Héfisto: <b>Marmitaria</b> (insumos e pré-preparos) e <b>Embalagens da Marmitaria</b>. Os produtos continuam os mesmos do cadastro geral; o que é da cozinha vem por transferência, e cada local tem saldo, validade e inventário próprios.</p>
+        <p className="text-sm text-hf-text-2">Cria os locais exclusivos da marmitaria: <b>Produtos</b>, <b>Embalagens</b>, <b>Limpeza</b> e <b>Produção</b>. Os produtos continuam os mesmos do cadastro geral; o que é da cozinha vem por transferência, e cada local tem saldo, validade e inventário próprios.</p>
         <Botao className="mt-3" onClick={ativar} disabled={ocupado}>{ocupado ? "Ativando…" : "Ativar estoque da marmitaria"}</Botao>
         {msg && <Aviso tipo={msg.tipo} className="mt-3">{msg.texto}</Aviso>}
       </Secao>
@@ -209,9 +215,16 @@ function Estoque() {
         </Aviso>
       )}
       {msg && <Aviso tipo={msg.tipo}>{msg.texto}</Aviso>}
-      <Aviso>Entrada, retirada, perda e inventário semanal: use a <Link href="/dashboard/operacao/estoque" className="font-semibold text-hf-accent">tela oficial do Estoque</Link> escolhendo o local “Marmitaria”. Compras entram por <Link href="/dashboard/operacao/compras" className="font-semibold text-hf-accent">Compras</Link>, destinando ao local da marmitaria.</Aviso>
-      {transf && <Transferir key={transf.chave} inicial={transf} onFechar={() => setTransf(null)} />}
-      {locais.map((e) => {
+      <Aviso>Aqui só se retira. O que entra vem de <Link href="/dashboard/marmitaria/estoque/compras" className="font-semibold text-hf-accent">Compras</Link> e da <Link href="/dashboard/marmitaria/estoque/cozinha" className="font-semibold text-hf-accent">Cozinha</Link>.</Aviso>
+      {faltamLocais && <Aviso tipo="alerta">Falta ativar parte do estoque.<Botao variante="texto" className="ml-2 min-h-0 px-1" onClick={ativar} disabled={ocupado}>{ocupado ? "Ativando…" : "Ativar agora"}</Botao></Aviso>}
+      <Abas abas={SLUGS_MARMITARIA.filter((s) => locais.some((e) => e.slug === s)).map((s) => ({ id: s, rotulo: ROTULO_LOCAL[s] }))} valor={localSlug} onChange={setLocalSlug} />
+      {retirando && <RetirarProduto key={retirando.id} item={retirando} onFechar={() => setRetirando(null)} />}
+      {novoLimpeza && <NovoProduto unidadeId={unidadeId} limpeza rotuloSalvar="Cadastrar" onFechar={() => setNovoLimpeza(false)} onCriado={async (id) => {
+        const local = locais.find((e) => e.slug === ESTOQUE_LIMPEZA);
+        if (id && local) await vincularProduto({ unidadeId, estoqueId: local.id, insumoId: id });
+        await recarregar(); setNovoLimpeza(false);
+      }} />}
+      {locais.filter((e) => e.slug === localSlug).map((e) => {
         const itens = base.itensEstoque.filter((i) => i.estoque_id === e.id).map((i) => {
           const ins = base.insumos.get(i.insumo_id);
           const saldo = (Number(i.quantidade_atual) || 0) / fatorSaldo(ins);
@@ -221,64 +234,23 @@ function Estoque() {
         }).sort((a, b) => (a.validade || "9999").localeCompare(b.validade || "9999") || String(a.ins?.nome).localeCompare(String(b.ins?.nome), "pt-BR"));
         return (
           <Secao key={e.id} titulo={e.nome} subtitulo={`${itens.length} produto(s) · ordenado por validade (primeiro a vencer, primeiro a sair)`}
-            direita={<Botao variante="secundario" onClick={() => setTransf({ chave: novaChave(), destino: e.id })}>Trazer de outro estoque</Botao>}>
+            direita={e.slug === ESTOQUE_LIMPEZA && !novoLimpeza ? <Botao variante="secundario" onClick={() => setNovoLimpeza(true)}>Novo produto de limpeza</Botao> : null}>
             {itens.length ? (
-              <Tabela cab={["Produto", "Saldo", "Mínimo", "Validade", "Situação"]}
+              <Tabela cab={["Produto", "Saldo", "Mínimo", "Validade", "Situação", ""]}
                 linhas={itens.map((i) => {
                   const un = rotuloUn(i.ins?.unidade_medida);
                   const sit = i.saldo <= 0 ? <span className="font-semibold text-hf-danger">Zerado</span>
                     : i.dias !== null && i.dias < 0 ? <span className="font-semibold text-hf-danger">Vencido</span>
                       : i.dias !== null && i.dias <= 2 ? <span className="font-semibold text-hf-warning">Vence em {i.dias} dia(s)</span>
                         : i.min !== null && i.saldo < i.min ? <span className="font-semibold text-hf-warning">Abaixo do mínimo</span> : "Normal";
-                  return [i.ins?.nome || "Produto", `${num(i.saldo)} ${un}`, i.min === null ? "—" : `${num(i.min)} ${un}`, i.validade ? new Date(`${i.validade}T12:00:00`).toLocaleDateString("pt-BR") : "—", sit];
+                  return [i.ins?.nome || "Produto", `${num(i.saldo)} ${un}`, i.min === null ? "—" : `${num(i.min)} ${un}`, i.validade ? new Date(`${i.validade}T12:00:00`).toLocaleDateString("pt-BR") : "—", sit,
+                    i.saldo > 0 ? <button type="button" onClick={() => setRetirando({ id: i.id, estoque_id: e.id, ins: i.ins, saldo: i.saldo })} className="min-h-[36px] font-bold text-hf-accent hover:underline">Retirar</button> : ""];
                 })} />
-            ) : <SemDados titulo="Local vazio" motivo="Inclua os produtos das marmitas ou traga da cozinha." />}
+            ) : <SemDados titulo="Local vazio" motivo="O que for recebido em Compras aparece aqui." />}
           </Secao>
         );
       })}
     </div>
-  );
-}
-
-function Transferir({ inicial, onFechar }) {
-  const { base, unidadeId, recarregar } = useMarmitaria();
-  const [f, setF] = useState({ origem: "", insumo: "", qtd: "", un: "" });
-  const [msg, setMsg] = useState(null);
-  const [salvando, setSalvando] = useState(false);
-  const origens = base.estoques.filter((e) => e.id !== inicial.destino);
-  const itensOrigem = base.itensEstoque.filter((i) => i.estoque_id === f.origem && Number(i.quantidade_atual) > 0)
-    .map((i) => ({ ...i, ins: base.insumos.get(i.insumo_id) })).filter((i) => i.ins).sort((a, b) => a.ins.nome.localeCompare(b.ins.nome, "pt-BR"));
-  const sel = itensOrigem.find((i) => i.insumo_id === f.insumo);
-  const unCad = String(sel?.ins?.unidade_medida || "un").toLowerCase();
-  const qCad = sel ? paraUnidadeDoCadastro(f.qtd, f.un || unCad, unCad) : null;
-  const qSaldo = qCad === null ? null : Math.round(qCad * fatorSaldo(sel?.ins) * 1000) / 1000;
-  const saldoCad = sel ? Number(sel.quantidade_atual) / fatorSaldo(sel.ins) : 0;
-
-  async function confirmar() {
-    if (salvando) return;
-    setMsg(null);
-    if (!sel) return setMsg("Escolha o estoque de origem e o produto.");
-    if (!(qSaldo > 0)) return setMsg("Informe a quantidade.");
-    if (qSaldo > Number(sel.quantidade_atual)) return setMsg(`A origem tem só ${num(saldoCad)} ${rotuloUn(unCad)}.`);
-    setSalvando(true);
-    try {
-      const r = await transferir({ unidadeId, origemId: f.origem, destinoId: inicial.destino, insumoId: sel.insumo_id, quantidadeSaldo: qSaldo, chave: inicial.chave });
-      if (r.error) setMsg(r.error); else { await recarregar(); onFechar(); }
-    } finally { setSalvando(false); }
-  }
-
-  return (
-    <Secao titulo="Trazer de outro estoque" subtitulo="Transferência registrada no histórico do estoque, com custo médio. Entra no CMV da marmitaria.">
-      <div className="grid gap-3 sm:grid-cols-4">
-        <Campo rotulo="De"><select className={inputCls} value={f.origem} onChange={(e) => setF({ origem: e.target.value, insumo: "", qtd: "", un: "" })}><option value="">Escolha…</option>{origens.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}</select></Campo>
-        <Campo rotulo="Produto"><select className={inputCls} value={f.insumo} onChange={(e) => { const i = itensOrigem.find((x) => x.insumo_id === e.target.value); setF({ ...f, insumo: e.target.value, un: unidadesCompativeis(i?.ins?.unidade_medida)[0] }); }} disabled={!f.origem}>
-          <option value="">{f.origem && !itensOrigem.length ? "Nada com saldo" : "Escolha…"}</option>{itensOrigem.map((i) => <option key={i.insumo_id} value={i.insumo_id}>{i.ins.nome}</option>)}</select></Campo>
-        <Campo rotulo="Quantidade" dica={sel ? `Disponível: ${num(saldoCad)} ${rotuloUn(unCad)}` : null}><CampoNumero valor={f.qtd} onChange={(v) => setF({ ...f, qtd: v })} /></Campo>
-        <Campo rotulo="Unidade"><select className={inputCls} value={f.un} onChange={(e) => setF({ ...f, un: e.target.value })} disabled={!sel}>{unidadesCompativeis(unCad).map((u) => <option key={u} value={u}>{rotuloUn(u)}</option>)}</select></Campo>
-      </div>
-      {msg && <Aviso tipo="alerta" className="mt-3">{msg}</Aviso>}
-      <div className="mt-3 flex justify-end gap-2"><Botao variante="secundario" onClick={onFechar}>Cancelar</Botao><Botao onClick={confirmar} disabled={salvando}>{salvando ? "Transferindo…" : "Transferir"}</Botao></div>
-    </Secao>
   );
 }
 
@@ -291,9 +263,9 @@ function Producao() {
   const [historico, setHistorico] = useState([]);
   useEffect(() => { if (unidadeId) fetchProducoes(unidadeId).then((r) => setHistorico(r.data || [])); }, [unidadeId, base]);
 
-  const prioridade = (e) => (ehDaMarmitaria(e) ? 0 : e.slug === "pre-preparos-cozinha" ? 1 : 2);
+  const prioridade = (e) => (e.slug === ESTOQUE_PRODUCAO ? 0 : 1);
   const saldos = useMemo(() => {
-    const porId = new Map(base.estoques.map((e) => [e.id, e]));
+    const porId = new Map(base.estoques.filter(ehDaMarmitaria).map((e) => [e.id, e]));
     const m = new Map();
     for (const it of base.itensEstoque) {
       const e = porId.get(it.estoque_id);
@@ -314,7 +286,7 @@ function Producao() {
   async function confirmar() {
     if (salvando || !calc) return;
     setMsg(null);
-    if (calc.faltas.length) return setMsg({ tipo: "alerta", texto: "Há item sem saldo suficiente: traga do estoque da cozinha ou lance a entrada antes." });
+    if (calc.faltas.length) return setMsg({ tipo: "alerta", texto: "Há item sem saldo suficiente no estoque da marmitaria." });
     setSalvando(true);
     try {
       const r = await registrarProducao({ lote_id: f.lote, unidade_id: unidadeId, ficha_id: marmita.id, quantidade: qtd, perdas: lerNumero(f.perdas) || 0, data: f.data,

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { baseDosCustos, canaisDoCardapio, custosEmbutidos, grupoDaCategoria, mesAnterior, ordenarCategorias, rotuloDoLucro } from "./cardapio.mjs";
+import { baseDosCustos, canaisDoCardapio, composicaoDoPreco, custosEmbutidos, grupoDaCategoria, mesAnterior, ordenarCategorias, rotuloDoLucro } from "./cardapio.mjs";
 import { cardapioDeVendas, catalogoParaCombo, pedidoDaOferta, simularOferta } from "./promocoes.mjs";
 import { canalConfigurado, normalizarCanal } from "./nucleo.mjs";
 
@@ -10,7 +10,7 @@ test("categoria define a parte do combo", () => {
   assert.equal(grupoDaCategoria("Sucos"), "bebida");
   assert.equal(grupoDaCategoria("Sobremesas"), "sobremesa");
   assert.equal(grupoDaCategoria(""), "marmita");
-  assert.deepEqual(ordenarCategorias(["Fit", "Sucos", "Marmitas de carne", "Sucos"]), ["Marmitas de carne", "Sucos", "Fit"]);
+  assert.deepEqual(ordenarCategorias(["Fit", "Sucos", "Marmitas de carne", "Marmitas de frango", "Sucos"]), ["Marmitas de frango", "Marmitas de carne", "Sucos", "Fit"]);
 });
 
 test("mês fechado anterior, inclusive na virada do ano", () => {
@@ -30,8 +30,8 @@ test("sem cadastro, as quatro plataformas aparecem sem taxa; balcão não tem co
 
 test("separa equipe de custo fixo no DRE do mês", () => {
   const dre = { linhas: [{ id: "operacionais", filhos: [{ rotulo: "CMO (mão de obra alocada)", valor: 2000 }, { rotulo: "Ocupação (inclui rateio)", valor: 700 }, { rotulo: "Outras despesas", valor: 300 }] }] };
-  assert.deepEqual(baseDosCustos({ dre, vendas: [{ quantidade: 300 }, { quantidade: 100 }] }), { cmoMes: 2000, fixosContasMes: 1000, vendidasMes: 400 });
-  assert.deepEqual(baseDosCustos(null), { cmoMes: 0, fixosContasMes: 0, vendidasMes: 0 });
+  assert.deepEqual(baseDosCustos({ dre, vendas: [{ quantidade: 300 }, { quantidade: 100 }] }), { cmoMes: 2000, cmoLinhas: [], fixosContasMes: 1000, vendidasMes: 400 });
+  assert.deepEqual(baseDosCustos(null), { cmoMes: 0, cmoLinhas: [], fixosContasMes: 0, vendidasMes: 0 });
 });
 
 test("equipe e fixos por marmita: conta do mês ÷ marmitas do mês", () => {
@@ -93,4 +93,19 @@ test("sem taxa da plataforma ou sem imposto não há lucro: taxa em branco não 
   const semImposto = cardapioDeVendas({ catalogo, canal: ifood, tributosPct: null })[0];
   assert.equal(semImposto.lucro, null);
   assert.equal(semImposto.falta, "Falta informar os impostos");
+});
+
+test("composição do preço: soma o preço e abre por funcionário e por conta", () => {
+  const embutidos = custosEmbutidos({ cmoMes: 1000, cmoLinhas: [{ nome: "Ana", valor: 600 }, { nome: "Bia", valor: 400 }], vendidasMes: 100,
+    config: { rateio: { custos_fixos: [{ nome: "Aluguel", valor: "300" }, { nome: "Luz", valor: 200 }, { nome: "Sem valor", valor: "" }] } } });
+  assert.deepEqual([embutidos.fixosMes, embutidos.cmoPorMarmita, embutidos.fixosPorMarmita], [500, 10, 5]);
+  const s = simularOferta({ itens: [{ preco: 100, custo: 25, grupo: "marmita", qtd: 1 }], oferta: { tipo: "nenhuma" }, canal: ifood, tributosPct: 0, embutidos });
+  const c = composicaoDoPreco({ linha: { sim: s }, custoFicha: { embalagens: 5 }, embutidos });
+  assert.equal(c.markupPct, 300);
+  const por = Object.fromEntries(c.linhas.map((l) => [l.id, l]));
+  assert.deepEqual([por.cmv.valor, por.embalagens.valor, por.cmo.pct, por.fixos.pct, por.taxas.valor, por.lucro.valor], [20, 5, 10, 5, 28, 32]);
+  assert.deepEqual(por.cmo.filhos, [{ rotulo: "Ana", valor: 6, pct: 6 }, { rotulo: "Bia", valor: 4, pct: 4 }]);
+  assert.deepEqual(por.fixos.filhos.map((f) => [f.rotulo, f.pct]), [["Aluguel", 3], ["Luz", 2]]);
+  assert.deepEqual(por.taxas.filhos.map((f) => f.rotulo), ["Comissão da plataforma", "Maquininha e pagamento", "Entrega"]);
+  assert.equal(c.linhas.reduce((t, l) => t + l.valor, 0), 100);
 });

@@ -128,14 +128,15 @@ export function resumoCompras(compras, itens, { insumoPorId = new Map(), fornece
 }
 
 // ─── Banco ───────────────────────────────────────────────────────────────────
-function validarCabecalho(c, hoje) {
+function validarCabecalho(c, hoje, aceitaPrevisao = false) {
   if (!unidadeValida(c?.unidade_id)) return "Selecione uma unidade.";
   if (!dataValida(c?.data_compra)) return "Informe a data da compra.";
   if (c.data_compra > hoje) return "A data da compra não pode ser futura.";
   if (c.data_recebimento) {
     if (!dataValida(c.data_recebimento)) return "Data de recebimento inválida.";
     if (c.data_recebimento < c.data_compra) return "O recebimento não pode ser antes da compra.";
-    if (c.data_recebimento > hoje) return "A data de recebimento não pode ser futura.";
+    // Pedido ainda sem chegar guarda a previsão aqui; ao receber, vira a data real.
+    if (c.data_recebimento > hoje && !aceitaPrevisao) return "A data de recebimento não pode ser futura.";
   }
   if (c.data_vencimento && !dataValida(c.data_vencimento)) return "Vencimento inválido.";
   for (const [k, rot] of [["valor_frete", "Frete"], ["valor_desconto", "Desconto"]]) {
@@ -149,9 +150,9 @@ function validarCabecalho(c, hoje) {
  * Salva (cria ou atualiza) um RASCUNHO com os itens. Os itens do rascunho são
  * substituídos por inteiro. `chave` torna a criação segura contra clique duplo.
  */
-export async function salvarRascunho(db, { compra, itens, chave }, { hoje = hojeLocal() } = {}) {
+export async function salvarRascunho(db, { compra, itens, chave }, { hoje = hojeLocal(), aceitaPrevisao = false } = {}) {
   if (!db) return falha("Banco indisponível.");
-  const erro = validarCabecalho(compra, hoje);
+  const erro = validarCabecalho(compra, hoje, aceitaPrevisao);
   if (erro) return falha(erro);
   if (!itens?.length) return falha("Adicione pelo menos um produto.");
   const linhas = [];

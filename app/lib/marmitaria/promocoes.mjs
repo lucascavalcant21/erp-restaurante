@@ -98,8 +98,12 @@ export function simularOferta({ itens = [], oferta = {}, canal = CANAL_DIRETO, t
 // ─── Combos ─────────────────────────────────────────────────────────────────
 
 export const MODELOS_COMBO = [
-  { id: "comida_bebida", rotulo: "Comida + bebida", grupos: ["marmita", "bebida"] },
-  { id: "comida_bebida_sobremesa", rotulo: "Comida + bebida + sobremesa", grupos: ["marmita", "bebida", "sobremesa"] },
+  { id: "comida_bebida", rotulo: "Comida + bebida", grupos: ["marmita", "bebida"], exemplo: "Ex.: marmita + refrigerante" },
+  { id: "comida_sobremesa", rotulo: "Comida + sobremesa", grupos: ["marmita", "sobremesa"], exemplo: "Ex.: marmita + pudim" },
+  { id: "comida_bebida_sobremesa", rotulo: "Comida + bebida + sobremesa", grupos: ["marmita", "bebida", "sobremesa"], exemplo: "Ex.: marmita + suco + pudim" },
+  { id: "sobremesa_bebida", rotulo: "Sobremesa + bebida", grupos: ["sobremesa", "bebida"], exemplo: "Ex.: pudim + suco" },
+  { id: "so_sobremesas", rotulo: "Só sobremesas", grupos: ["sobremesa", "sobremesa"], exemplo: "Ex.: pudim + mousse" },
+  { id: "so_bebidas", rotulo: "Só bebidas", grupos: ["bebida", "bebida"], exemplo: "Ex.: refrigerante + suco" },
 ];
 export const ROTULO_GRUPO = { marmita: "Comida", bebida: "Bebida", sobremesa: "Sobremesa" };
 
@@ -132,7 +136,8 @@ export function normalizarCombo(c = {}) {
     id: String(c.id || `combo-${Math.random().toString(36).slice(2, 9)}`),
     nome: String(c.nome || "").trim().slice(0, 80),
     modelo: modelo.id,
-    itens: modelo.grupos.map((g) => ({ grupo: g, id: (c.itens || []).find((i) => i.grupo === g)?.id || "" })),
+    // Por posição: "só sobremesas" tem duas vagas do mesmo grupo.
+    itens: modelo.grupos.map((g, i) => ({ grupo: g, id: (c.itens || [])[i]?.grupo === g ? c.itens[i].id : (c.itens || []).find((x) => x.grupo === g)?.id || "" })),
     preco: c.preco === "" || c.preco == null ? "" : String(c.preco),
   };
 }
@@ -151,8 +156,7 @@ export function itensDoCombo(combo, catalogo) {
 // ─── Cardápio de vendas (pedido do dono, 28/10/2026) ────────────────────────
 // "Cardápio onde vejo os pratos com e sem desconto, 2x1 e combos, como se
 // fosse montar no iFood, e ao lado meu lucro líquido; aprofundar os custos e
-// saber se faz sentido" + "simular se eu vender X quanto lucro no dia,
-// semana e mês". Ofertas salvas: [{ id, ficha_id, tipo, valor, leve, pague }].
+// saber se faz sentido". Ofertas salvas: [{ id, ficha_id, tipo, valor, leve, pague }].
 
 export function rotuloDaOferta(o = {}) {
   if (o.tipo === "leve_pague") return `${Math.round(pos(o.leve) || 2)} por ${Math.round(pos(o.pague) || 1)}`;
@@ -220,25 +224,4 @@ export function cardapioDeVendas({ catalogo = { marmita: [], bebida: [], sobreme
     out.push(linha("marmitas", `m-${it.id}`, it.nome, [{ ...it, qtd: 1 }], { tipo: "nenhuma" }, extra));
   }
   return out;
-}
-
-/**
- * Se vender X por dia: faturamento e lucro no dia, na semana e no mês.
- * vendas: { idDaLinha: pedidos por dia }. mês = dia × dias por semana × 52 ÷ 12.
- * SIMULAÇÃO (o lucro por pedido já desconta equipe e custos fixos, quando há base).
- */
-export function projecaoDeVendas(linhas = [], vendas = {}, { diasPorSemana = 6 } = {}) {
-  const d = Math.min(7, Math.max(1, Math.round(pos(diasPorSemana) || 6)));
-  let fat = 0; let lucro = 0; let pedidos = 0; let semDados = 0;
-  for (const l of linhas || []) {
-    const q = pos(vendas?.[l.id]);
-    if (!(q > 0)) continue;
-    pedidos += q;
-    if (l.lucro == null || l.receita == null) { semDados += 1; continue; }
-    fat += q * l.receita;
-    lucro += q * l.lucro;
-  }
-  const fator = { dia: 1, semana: d, mes: (d * 52) / 12 };
-  const em = (k) => ({ pedidos: r2(pedidos * fator[k]), faturamento: r2(fat * fator[k]), lucro: r2(lucro * fator[k]) });
-  return { dia: em("dia"), semana: em("semana"), mes: em("mes"), lucroPct: fat > 0 ? r2((lucro / fat) * 100) : null, semDados, diasPorSemana: d };
 }

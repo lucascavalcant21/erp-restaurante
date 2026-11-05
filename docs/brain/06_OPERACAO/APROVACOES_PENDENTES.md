@@ -277,3 +277,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Comando/alteração:** `Rodar o arquivo inteiro. O select do fim deve devolver b300bf3a8f1a004da40d3eaf2f104a2a.`
 - **Status:** PENDENTE
 - **Criado em:** 2026-11-04
+
+## APR-018 — MARM-PROD-1: produção de subprodutos da marmitaria
+
+Aplicar `db/marmitaria/MARM_PROD_1_PREPAROS.sql`. Aditiva: cria dois locais de estoque e uma função. Rollback em `db/marmitaria/MARM_PROD_1_ROLLBACK.sql`. Sem ela, a Cozinha planeja, mas não produz. TESTADO LOCAL com PGlite. NÃO VALIDADO no Supabase real.

@@ -1,6 +1,6 @@
 "use client";
 
-// Marmitaria & Delivery: oito áreas, uma barra só. O menu de cima leva para
+// Marmitaria & Delivery: doze áreas, uma barra só. O menu de cima leva para
 // cá sem submenu (a navegação do módulo mora aqui), e o que é secundário vira
 // aba dentro de cada área.
 
@@ -13,10 +13,14 @@ import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 // "curto" é o rótulo no celular: quatro por linha cabem sem quebrar.
 const AREAS = [
   { href: "/dashboard/marmitaria", rotulo: "Visão geral", curto: "Geral", exato: true },
-  { href: "/dashboard/marmitaria/marmitas", rotulo: "Ficha técnica", curto: "Ficha", exceto: ["/dashboard/marmitaria/marmitas/cardapio", "/dashboard/marmitaria/marmitas/embalagens"] },
-  { href: "/dashboard/marmitaria/marmitas/embalagens", rotulo: "Embalagens" },
+  { href: "/dashboard/marmitaria/marmitas", rotulo: "Ficha técnica", curto: "Ficha", exceto: ["/dashboard/marmitaria/marmitas/cardapio", "/dashboard/marmitaria/marmitas/embalagens", "/dashboard/marmitaria/marmitas/lucro", "/dashboard/marmitaria/marmitas/processos"] },
+  { href: "/dashboard/marmitaria/marmitas/processos", rotulo: "Processos" },
+  { href: "/dashboard/marmitaria/marmitas/embalagens", rotulo: "Embalagens", curto: "Embal." },
   { href: "/dashboard/marmitaria/marmitas/cardapio", rotulo: "Cardápio" },
-  { href: "/dashboard/marmitaria/estoque", rotulo: "Estoque e produção", curto: "Estoque" },
+  { href: "/dashboard/marmitaria/marmitas/lucro", rotulo: "Painel de lucro", curto: "Lucro" },
+  { href: "/dashboard/marmitaria/estoque/compras", rotulo: "Compras" },
+  { href: "/dashboard/marmitaria/estoque", rotulo: "Estoque", exceto: ["/dashboard/marmitaria/estoque/compras", "/dashboard/marmitaria/estoque/cozinha"] },
+  { href: "/dashboard/marmitaria/estoque/cozinha", rotulo: "Cozinha" },
   { href: "/dashboard/marmitaria/funcionarios", rotulo: "Funcionários", curto: "Equipe" },
   { href: "/dashboard/marmitaria/financeiro", rotulo: "Financeiro" },
   { href: "/dashboard/marmitaria/configuracoes", rotulo: "Configurações", curto: "Ajustes" },

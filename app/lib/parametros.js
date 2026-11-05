@@ -334,6 +334,17 @@ export async function fetchCombosMarmitaria(unidadeId) {
 }
 export const salvarCombosMarmitaria = (unidadeId, combos) => salvarParams(unidadeId, { marmitaria_combos: Array.isArray(combos) ? combos.slice(0, 30) : [] });
 
+/* Processos de montagem da marmitaria: config_sistema.params.marmitaria_processos,
+ * um objeto { ficha_id: processo }. */
+export async function fetchProcessosMarmitaria(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: {}, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: {}, error: error.message };
+  const v = data?.[0]?.params?.marmitaria_processos;
+  return { data: v && typeof v === "object" && !Array.isArray(v) ? v : {}, error: null };
+}
+export const salvarProcessosMarmitaria = (unidadeId, processos) => salvarParams(unidadeId, { marmitaria_processos: processos || {} });
+
 /* Promoções da marmitaria no cardápio de vendas (desconto, 2 por 1…):
  * config_sistema.params.marmitaria_ofertas. */
 export async function fetchOfertasMarmitaria(unidadeId) {

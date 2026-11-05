@@ -68,3 +68,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | "Criar nosso próprio algoritmo para as pessoas não conseguirem copiar nosso sistema" | Respondido: a proteção vem de código privado, regra no servidor e dados próprios. Repositório continua público até o dono decidir |
 | 05/11/2026 | Simulador de vendas: tantos de cada item por dia, tantos dias no mês, quanto fatura e lucra por dia, semana e mês | Feito em PR rascunho · TESTADO EM MOCK. Equipe e fixos entram uma vez no mês |
 | 05/11/2026 | "Eu quero ter o meu próprio algoritmo, algo único lá dentro" | Proposta enviada ao dono; aguarda decisão |
+| 05/11/2026 | Compras, estoque e produção exclusivos da marmitaria: pedido com data de chegada piscando, conferência do que chegou, estoque que só retira, subprodutos, estoque de produção e planilha de hoje e amanhã para o tablet | Feito em PR rascunho · TESTADO EM MOCK. Depende da MARM-PROD-1 (APR-018) para produzir |

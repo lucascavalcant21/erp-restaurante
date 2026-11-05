@@ -9,12 +9,13 @@ import { Package, Plus } from "lucide-react";
 import { useMarmitaria } from "../../../../components/marmitaria/contexto";
 import { ehEmbalagem } from "../../../../components/marmitaria/BuscaItens";
 import { NovoProduto } from "../../../../components/marmitaria/CadastrosRapidos";
-import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, brl, inputCls, lerNumero } from "../../../../components/marmitaria/ui";
-import { atualizarPrecoEmbalagem } from "../../../../lib/marmitaria/dados";
+import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, brl, inputCls, lerNumero, num } from "../../../../components/marmitaria/ui";
+import { ESTOQUE_EMBALAGENS, atualizarPrecoEmbalagem } from "../../../../lib/marmitaria/dados";
+import { fatorSaldo } from "../../../../lib/marmitaria/nucleo.mjs";
 import { custoUnitarioEfetivoInsumo } from "../../../../lib/ficha-calculos.mjs";
 import { casaBusca } from "../../../../lib/busca.mjs";
 
-function LinhaEmbalagem({ item, usos }) {
+function LinhaEmbalagem({ item, usos, saldo }) {
   const { recarregar } = useMarmitaria();
   const [editando, setEditando] = useState(false);
   const [preco, setPreco] = useState("");
@@ -47,7 +48,7 @@ function LinhaEmbalagem({ item, usos }) {
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-hf-elevated text-hf-muted"><Package size={18} /></span>
         <div className="min-w-0 flex-1">
           <p className="break-words text-sm font-bold text-hf-text">{item.nome}</p>
-          <p className="text-xs text-hf-muted">{usos ? `Usada em ${usos} ficha${usos > 1 ? "s" : ""}` : "Ainda em nenhuma ficha"}</p>
+          <p className="text-xs text-hf-muted">Em estoque: {num(saldo)} · {usos ? `usada em ${usos} ficha${usos > 1 ? "s" : ""}` : "em nenhuma ficha"}</p>
         </div>
         <div className="shrink-0 text-right">
           <p className={`text-sm font-black tabular-nums ${custo > 0 ? "text-hf-text" : "text-hf-warning"}`}>{custo > 0 ? brl(custo) : "Sem valor"}</p>
@@ -82,6 +83,11 @@ export default function EmbalagensPage() {
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR")), [base, busca]);
 
   if (!base) return carregando ? <Cartao><p className="text-sm text-hf-muted">Carregando embalagens…</p></Cartao> : null;
+  const localId = base.estoques.find((e) => e.slug === ESTOQUE_EMBALAGENS)?.id;
+  const saldoDe = (id) => {
+    const it = base.itensEstoque.find((x) => x.estoque_id === localId && x.insumo_id === id);
+    return it ? (Number(it.quantidade_atual) || 0) / fatorSaldo(base.insumos.get(id)) : 0;
+  };
 
   return (
     <div className="space-y-4">
@@ -92,7 +98,7 @@ export default function EmbalagensPage() {
         direita={!nova && <Botao onClick={() => setNova(true)}><Plus size={16} /> Nova embalagem</Botao>}>
         <input className={`${inputCls} mb-1`} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar embalagem" aria-label="Buscar embalagem" />
         <ul className="divide-y divide-hf-border">
-          {lista.map((i) => <LinhaEmbalagem key={i.id} item={i} usos={usos.get(i.id) || 0} />)}
+          {lista.map((i) => <LinhaEmbalagem key={i.id} item={i} usos={usos.get(i.id) || 0} saldo={saldoDe(i.id)} />)}
         </ul>
         {!lista.length && <p className="py-4 text-sm text-hf-muted">{busca.trim() ? "Nenhuma embalagem com essa busca." : "Nenhuma embalagem cadastrada."}</p>}
       </Secao>

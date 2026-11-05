@@ -93,3 +93,14 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - **Painel:** usa as mesmas linhas do Cardápio. "O que mais rendeu" = vendas reais × lucro de hoje (ESTIMATIVA).
 - **Sugestões:** testam as combinações com preço e custo, com o mesmo desconto sobre a soma. O alvo é a meta de lucro ou, sem meta, a média dos pratos. Combo sem marmita não carrega equipe nem custos fixos.
 - **Simulador de vendas:** equipe e custos fixos entram uma vez no mês, não por marmita, porque não crescem com a venda. Por isso o lucro simulado pode ser diferente de "lucro por marmita × quantidade". Avisa quando o faturamento anual passa do limite do MEI (LC 238/2026: R$ 81 mil em 2026, R$ 110 mil em 2027, R$ 140 mil em 2028).
+
+## DP — Compras e produção exclusivas da marmitaria (05/11/2026, decisão do dono)
+
+- **Exclusivo:** compras, estoque e produção usam só os locais `marmitaria`, `embalagens-marmitaria` e `producao-marmitaria`. A função da produção recusa baixar de outro local.
+- **Pedido:** é um rascunho em `compras`, com a previsão de chegada em `data_recebimento`. Ao receber, grava o que chegou, a data real e chama `compras_confirmar`.
+- **Conta a pagar:** não é gerada na compra da marmitaria, para não cair no financeiro do restaurante. Falta o dono decidir como lançar.
+- **Estoque:** só retira. A entrada vem da compra e da produção.
+- **Subproduto:** é uma ficha de pré-preparo. Cada tipo é uma ficha própria (frango empanado na panko, no trigo, só temperado). O estoque fica em `producao-marmitaria`.
+- **As RPCs `iniciar_producao_lote` e `finalizar_producao_lote` não são usadas:** baixam de `estoque_atual`, que é legado.
+- **Plano:** uma linha por dia em `marmitaria_planos_operacionais` com `periodo_tipo = 'cozinha'`.
+

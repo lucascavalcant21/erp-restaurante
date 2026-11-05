@@ -26,13 +26,14 @@ export default function VisaoGeralPage() {
   const mes = p.ate.slice(0, 7);
   const doMes = useDreMarmitaria(mes);
   const [vendas, setVendas] = useState(null);
+  const [versao, setVersao] = useState(0); // venda lançada no painel Hoje atualiza os números do período
 
   useEffect(() => {
     if (!unidadeId) return;
     let vivo = true;
     fetchVendas(unidadeId, p.de, p.ate).then((r) => { if (vivo) setVendas(r.data || []); });
     return () => { vivo = false; };
-  }, [unidadeId, p.de, p.ate]);
+  }, [unidadeId, p.de, p.ate, versao]);
 
   const custoCompleto = useMemo(() => new Map([...custos.entries()].filter(([, c]) => c.completo).map(([id, c]) => [id, c.total])), [custos]);
   const doPeriodo = useMemo(() => {
@@ -91,7 +92,7 @@ export default function VisaoGeralPage() {
   const periodoTxt = filtro === "hoje" ? "hoje" : filtro === "semana" ? "nesta semana" : filtro === "mes" ? `em ${mesTxt}` : "no período";
   return (
     <div className="space-y-4">
-      <DiaDaMarmitaria />
+      <DiaDaMarmitaria aoMudar={() => setVersao((v) => v + 1)} />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[280px] flex-1"><Abas abas={FILTROS} valor={filtro} onChange={setFiltro} /></div>

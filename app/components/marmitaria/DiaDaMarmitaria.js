@@ -7,9 +7,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, ClipboardCopy, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useMarmitaria } from "./contexto";
-import { Aviso, Botao, CampoNumero, Secao, brl, lerNumero, num } from "./ui";
-import { fetchProducoesDoDia, fetchVendas, salvarVenda } from "../../lib/marmitaria/dados";
-import { canaisDisponiveis, panoramaDoDia, precoNoCanal, textoDoCardapio, vendaRapida } from "../../lib/marmitaria/dia.mjs";
+import { Aviso, Botao, CampoNumero, Secao, brl, lerNumero, markupTxt, num } from "./ui";
+import { fetchPedidosDoDia, fetchProducoesDoDia, fetchVendas, importarVendas, salvarVenda } from "../../lib/marmitaria/dados";
+import { canaisDisponiveis, markupDaMarmita, panoramaDoDia, precoNoCanal, textoDoCardapio, vendaRapida, vendasDoCardapioOnline } from "../../lib/marmitaria/dia.mjs";
 
 const hojeIso = () => new Date().toLocaleDateString("sv-SE");
 const CHIP = "min-h-[44px] rounded-full border px-4 text-sm font-bold transition";
@@ -23,8 +23,8 @@ function Numero({ rotulo, valor, alerta }) {
   );
 }
 
-export default function DiaDaMarmitaria() {
-  const { base, unidadeId } = useMarmitaria();
+export default function DiaDaMarmitaria({ aoMudar }) {
+  const { base, unidadeId, custos } = useMarmitaria();
   const dia = hojeIso();
   const canais = useMemo(() => canaisDisponiveis(base.config), [base.config]);
   const [canalId, setCanalId] = useState(canais[0]?.id);
@@ -36,15 +36,17 @@ export default function DiaDaMarmitaria() {
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState(null);
   const [copiado, setCopiado] = useState(false);
+  const [online, setOnline] = useState([]);
 
   const canal = canais.find((c) => c.id === canalId) || canais[0];
   const marmitas = useMemo(() => base.marmitas.filter((m) => m.ativo !== false), [base.marmitas]);
   const carregar = useCallback(async () => {
-    const [l, v] = await Promise.all([fetchProducoesDoDia(unidadeId, dia), fetchVendas(unidadeId, dia, dia)]);
+    const [l, v, o] = await Promise.all([fetchProducoesDoDia(unidadeId, dia), fetchVendas(unidadeId, dia, dia), fetchPedidosDoDia(unidadeId, dia)]);
     setLotes(l.data || []);
     setVendas(v.data || []);
+    setOnline(vendasDoCardapioOnline({ ...o, marmitas, dia }));
     if (l.error || v.error) setMsg({ tipo: "alerta", texto: l.error || v.error });
-  }, [unidadeId, dia]);
+  }, [unidadeId, dia, marmitas]);
   useEffect(() => { if (unidadeId) carregar(); }, [carregar, unidadeId]);
 
   const p = useMemo(() => panoramaDoDia({ marmitas, lotes, vendas, dia }), [marmitas, lotes, vendas, dia]);
@@ -77,6 +79,18 @@ export default function DiaDaMarmitaria() {
     setAberta(null);
     setMsg({ tipo: "info", texto: r.faltamTaxas ? `Venda lançada. Sem as taxas do canal ${canal.nome}, o lucro fica estimado até você configurar.` : "Venda lançada." });
     carregar();
+    aoMudar?.();
+  }
+
+  async function trazerOnline() {
+    if (salvando) return;
+    setSalvando(true);
+    const r = await importarVendas(unidadeId, online);
+    setSalvando(false);
+    if (r.error) return setMsg({ tipo: "alerta", texto: r.error });
+    setMsg({ tipo: "info", texto: `${online.length} venda(s) do cardápio online lançada(s).` });
+    carregar();
+    aoMudar?.();
   }
 
   async function copiarCardapio() {
@@ -108,10 +122,18 @@ export default function DiaDaMarmitaria() {
         ))}
       </div>
 
+      {online.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hf-accent/40 bg-hf-accent/5 p-3">
+          <p className="min-w-0 text-sm font-semibold text-hf-text">{num(online.reduce((s, v) => s + v.quantidade, 0), 0)} marmita(s) em pedidos online aceitos ainda não lançada(s).</p>
+          <Botao onClick={trazerOnline} disabled={salvando}>Lançar nas vendas</Botao>
+        </div>
+      )}
+
       <ul className="mt-3 divide-y divide-hf-border">
         {p.linhas.map((l) => {
           const m = marmitas.find((x) => x.id === l.id);
           const preco = precoNoCanal(m, canal);
+          const markup = markupDaMarmita(preco, custos.get(m.id));
           return (
             <li key={l.id} className="py-3">
               <div className="flex items-center gap-3">
@@ -122,6 +144,7 @@ export default function DiaDaMarmitaria() {
                     {l.restam !== null && ` · restam ${num(l.restam, 0)}`}
                     {!l.temProducao && " · produção não registrada"}
                     {preco ? ` · ${brl(preco)}` : " · sem preço"}
+                    {markup !== null && ` · markup ${markupTxt(markup)}`}
                   </p>
                   {l.conferir && <p className="text-xs font-semibold text-hf-warning">Vendas acima da produção registrada: confira.</p>}
                 </div>

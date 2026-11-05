@@ -284,6 +284,38 @@ export async function excluirVenda(id) {
   return { error: mensagemErro(error) };
 }
 
+/** Pedidos do dia com marmita. Só lê; quem grava é importarVendas, com a confirmação do usuário. */
+export async function fetchPedidosDoDia(unidadeId, dia) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { pedidos: [], itens: [], fichasDeProduto: new Map(), jaImportadas: new Set() };
+  const inicio = new Date(`${dia}T00:00:00`);
+  const fim = new Date(inicio.getTime() + 86400000);
+  const pedidosR = await supabase.from("pedidos").select("id, status, tipo_pedido, desconto, created_at")
+    .eq("unidade_id", unidadeId).gte("created_at", inicio.toISOString()).lt("created_at", fim.toISOString());
+  const pedidos = pedidosR.data || [];
+  if (pedidosR.error || !pedidos.length) return { pedidos: [], itens: [], fichasDeProduto: new Map(), jaImportadas: new Set(), error: mensagemErro(pedidosR.error) };
+  const itensR = await supabase.from("pedidos_itens").select("id, pedido_id, produto_id, quantidade, valor_unitario").in("pedido_id", pedidos.map((p) => p.id));
+  const itens = itensR.data || [];
+  const produtos = [...new Set(itens.map((i) => i.produto_id).filter(Boolean))];
+  const [prodR, impR] = await Promise.all([
+    produtos.length ? supabase.from("produtos").select("id, ficha_id").in("id", produtos) : { data: [] },
+    supabase.from("marmitaria_vendas").select("referencia_externa").eq("unidade_id", unidadeId).eq("fonte", "importacao").eq("data", dia),
+  ]);
+  return {
+    pedidos, itens,
+    fichasDeProduto: new Map((prodR.data || []).filter((p) => p.ficha_id).map((p) => [p.id, p.ficha_id])),
+    jaImportadas: new Set((impR.data || []).map((v) => String(v.referencia_externa))),
+    error: mensagemErro(itensR.error || prodR.error || impR.error),
+  };
+}
+
+export async function importarVendas(unidadeId, vendas) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
+  const linhas = vendas.map((v) => ({ ...v, unidade_id: unidadeId, fonte: "importacao", taxas_estimadas: false }));
+  const { error } = await supabase.from("marmitaria_vendas").insert(linhas);
+  return { error: mensagemErro(error) };
+}
+
 // ─── Funcionários (RH existente, sem cadastro duplicado) ─────────────────────
 
 export async function carregarEquipe(unidadeId) {

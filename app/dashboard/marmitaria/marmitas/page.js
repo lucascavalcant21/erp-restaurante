@@ -6,9 +6,10 @@ import { Plus, Search, UtensilsCrossed } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import EditorMarmita from "../../../components/marmitaria/EditorMarmita";
 import { CANAL_DIRETO } from "../../../lib/marmitaria/promocoes.mjs";
-import { Abas, Aviso, Botao, Campo, CampoNumero, Cartao, Secao, SemDados, Selo, brl, inputCls, pctTxt } from "../../../components/marmitaria/ui";
+import { Abas, Aviso, Botao, Campo, CampoNumero, Cartao, Secao, SemDados, Selo, brl, inputCls, markupTxt, pctTxt } from "../../../components/marmitaria/ui";
 import { formDaMarmita } from "../../../lib/marmitaria/formulario.mjs";
 import { resultadoPorCanal, precoSugerido } from "../../../lib/marmitaria/nucleo.mjs";
+import { markupDaMarmita, precoPorMarkup } from "../../../lib/marmitaria/dia.mjs";
 import { definirDisponibilidade } from "../../../lib/marmitaria/dados";
 import { normalizarBusca } from "../../../lib/ingredientes-utils.mjs";
 import { parseNumero } from "../../../lib/ficha-calculos.mjs";
@@ -110,6 +111,7 @@ function Cardapio({ onEditar, onNova, recarregar }) {
               <div><p className="truncate text-[11px] text-hf-muted">{canalPrincipal ? `Preço ${canalPrincipal.nome}` : "Preço"}</p><p className="font-bold tabular-nums">{preco > 0 ? brl(preco) : "—"}</p></div>
               <div><p className="text-[11px] text-hf-muted">Margem</p>
                 <p className={`font-bold tabular-nums ${r?.margemContribuicao < 0 ? "text-hf-danger" : ""}`}>{r?.valido && r.margemContribuicaoPct !== null ? pctTxt(r.margemContribuicaoPct) : "—"}</p></div>
+              <div><p className="text-[11px] text-hf-muted">Markup</p><p className="font-bold tabular-nums">{markupTxt(markupDaMarmita(preco, c))}</p></div>
             </>
           );
           return (
@@ -125,13 +127,13 @@ function Cardapio({ onEditar, onNova, recarregar }) {
                     {c && !c.completo && <p className="text-xs font-semibold text-hf-warning">Custo incompleto</p>}
                   </div>
                 </button>
-                <div className="hidden w-80 flex-shrink-0 grid-cols-3 gap-4 text-right text-sm sm:grid">{numeros}</div>
+                <div className="hidden w-96 flex-shrink-0 grid-cols-4 gap-3 text-right text-sm sm:grid">{numeros}</div>
                 <label className="flex min-h-[44px] flex-shrink-0 items-center gap-2 text-xs font-semibold text-hf-text-2">
                   <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={!fora} onChange={() => alternar(m)} />
                   <span className="w-[4.5rem] leading-tight sm:w-auto">No cardápio</span>
                 </label>
               </div>
-              <div className={`mt-2 grid grid-cols-3 gap-2 rounded-xl bg-hf-elevated/60 px-3 py-2 text-sm sm:hidden ${fora ? "opacity-60" : ""}`}>{numeros}</div>
+              <div className={`mt-2 grid grid-cols-4 gap-2 rounded-xl bg-hf-elevated/60 px-3 py-2 text-sm sm:hidden ${fora ? "opacity-60" : ""}`}>{numeros}</div>
             </li>
           );
         })}
@@ -168,10 +170,13 @@ function PrecosPorCanal({ onEditar }) {
   return (
     <div className="space-y-4">
       <Secao titulo="Simulador de preço" subtitulo="Simulação: nada é gravado até você salvar a marmita.">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Campo rotulo="Marmita"><select className={inputCls} value={m.id} onChange={(e) => setSel({ ...sel, marmita: e.target.value, preco: "" })}>{base.marmitas.map((x) => <option key={x.id} value={x.id}>{x.nome_receita}</option>)}</select></Campo>
-          <Campo rotulo="Canal"><select className={inputCls} value={canal.id} onChange={(e) => setSel({ ...sel, canal: e.target.value, preco: "" })}>{canais.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}</select></Campo>
-          <Campo rotulo="Preço de venda (R$)" dica={`Hoje: ${brl(precoAtual)}`}><CampoNumero valor={sel.preco} onChange={(v) => setSel({ ...sel, preco: v })} placeholder={String(precoAtual).replace(".", ",")} /></Campo>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Campo rotulo="Marmita"><select className={inputCls} value={m.id} onChange={(e) => setSel({ ...sel, marmita: e.target.value, preco: "", markup: "" })}>{base.marmitas.map((x) => <option key={x.id} value={x.id}>{x.nome_receita}</option>)}</select></Campo>
+          <Campo rotulo="Canal"><select className={inputCls} value={canal.id} onChange={(e) => setSel({ ...sel, canal: e.target.value, preco: "", markup: "" })}>{canais.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}</select></Campo>
+          <Campo rotulo="Markup desejado" dica={c?.completo ? "Preço = custo × markup." : "Precisa do custo completo da ficha."}>
+            <CampoNumero valor={sel.markup ?? ""} disabled={!c?.completo} placeholder="ex.: 3" onChange={(v) => { const novo = precoPorMarkup(c?.total, parseNumero(v)); setSel({ ...sel, markup: v, preco: novo === null ? "" : String(novo).replace(".", ",") }); }} aria-label="Markup desejado" />
+          </Campo>
+          <Campo rotulo="Preço de venda (R$)" dica={`Hoje: ${brl(precoAtual)}`}><CampoNumero valor={sel.preco} onChange={(v) => setSel({ ...sel, preco: v, markup: "" })} placeholder={String(precoAtual).replace(".", ",")} /></Campo>
         </div>
         {r.valido ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -190,7 +195,7 @@ function PrecosPorCanal({ onEditar }) {
               <Cartao><p className="text-xs text-hf-muted">Margem de contribuição</p><p className="text-2xl font-black tabular-nums">{pctTxt(r.margemContribuicaoPct)}</p><p className="text-xs text-hf-muted">da receita · não é lucro líquido</p></Cartao>
               <div className="grid grid-cols-2 gap-3">
                 <Cartao><p className="text-xs text-hf-muted">CMV técnico</p><p className="text-lg font-bold tabular-nums">{pctTxt(r.cmvTecnicoPct)}</p></Cartao>
-                <Cartao><p className="text-xs text-hf-muted">Markup</p><p className="text-lg font-bold tabular-nums">{r.markup !== null ? `${r.markup.toLocaleString("pt-BR")}×` : "—"}</p></Cartao>
+                <Cartao><p className="text-xs text-hf-muted">Markup</p><p className="text-lg font-bold tabular-nums">{markupTxt(markupDaMarmita(preco, c))}</p><p className="text-[11px] text-hf-muted">preço ÷ custo</p></Cartao>
               </div>
               <Cartao>
                 <p className="text-xs text-hf-muted">Preço para {pctTxt(base.config.margem_alvo_pct, 0)} de margem</p>
@@ -219,7 +224,7 @@ function PrecosPorCanal({ onEditar }) {
                     {canais.map((x) => {
                       const p = mm.precos[x.id] ?? (Number(mm.preco_venda) || 0);
                       const rr = resultadoPorCanal({ preco: p, custoTecnico: cc?.total ?? null, canal: x, tributosPct: base.config.tributos_pct });
-                      return <td key={x.id} className={`py-2 pr-2 text-right tabular-nums ${rr.margemContribuicao < 0 ? "font-bold text-hf-danger" : ""}`}>{rr.valido && rr.margemContribuicao !== null ? <>{brl(p)}<br /><span className="text-xs">{pctTxt(rr.margemContribuicaoPct)}</span></> : "—"}</td>;
+                      return <td key={x.id} className={`py-2 pr-2 text-right tabular-nums ${rr.margemContribuicao < 0 ? "font-bold text-hf-danger" : ""}`}>{rr.valido && rr.margemContribuicao !== null ? <>{brl(p)}<br /><span className="text-xs">{pctTxt(rr.margemContribuicaoPct)} · {markupTxt(markupDaMarmita(p, cc))}</span></> : "—"}</td>;
                     })}
                   </tr>
                 );
@@ -227,7 +232,7 @@ function PrecosPorCanal({ onEditar }) {
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-hf-muted"><Selo natureza="previsto" /> Margem = preço − tributos − taxas do canal − custo técnico.</p>
+        <p className="mt-2 text-xs text-hf-muted"><Selo natureza="previsto" /> Margem = preço − tributos − taxas do canal − custo técnico. Markup (×) = preço ÷ custo técnico.</p>
       </Secao>
     </div>
   );

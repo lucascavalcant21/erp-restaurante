@@ -11,7 +11,7 @@ import { useMarmitaria } from "./contexto";
 import { Aviso, Botao, Campo, CampoNumero, Secao, SemDados, Selo, brl, inputCls, lerNumero, num } from "./ui";
 import { fetchVendas, salvarVenda, excluirVenda } from "../../lib/marmitaria/dados";
 import { canalConfigurado, resultadoPorCanal, resumoVendas } from "../../lib/marmitaria/nucleo.mjs";
-import { canaisDisponiveis } from "../../lib/marmitaria/dia.mjs";
+import { canaisDisponiveis, nomeDoCanal } from "../../lib/marmitaria/dia.mjs";
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
 const vazia = (canal = "") => ({ data: hoje(), canal, ficha_id: "", quantidade: "", valor_bruto: "", descontos: "", cancelamentos: "", comissao: "", taxa_pagamento: "", entrega_subsidiada: "", promocoes: "", tributos: "", observacao: "", taxasDoRepasse: false });
@@ -73,7 +73,7 @@ export default function Vendas() {
 
   const rv = resumoVendas(lista);
   const faltamTaxas = canais.some((c) => !canalConfigurado(c));
-  const nomeCanal = (id) => canais.find((c) => c.id === id)?.nome || base.config.canais.find((c) => c.id === id)?.nome || id;
+  const nomeCanal = (id) => nomeDoCanal(id, [...canais, ...base.config.canais]);
 
   return (
     <div className="space-y-4">

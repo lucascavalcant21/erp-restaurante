@@ -83,3 +83,48 @@ export function textoDoCardapio({ marmitas = [], panorama, canal, dataTexto }) {
   }).filter(Boolean);
   return itens.length ? `Marmitas de hoje (${dataTexto})\n${itens.join("\n")}` : null;
 }
+
+export const CANAL_ONLINE = "cardapio_online";
+const NOMES_EXTRAS = { [CANAL_ONLINE]: "Cardápio online" };
+export const nomeDoCanal = (id, canais = []) => canais.find((c) => c.id === id)?.nome || NOMES_EXTRAS[id] || id;
+
+// Só pedido que a casa aceitou. Novo ainda pode ser recusado; salão não é marmita.
+const PEDIDO_FORA = new Set(["novo_online", "aberto", "pendente", "aguardando_aceite"]);
+const pedidoConta = (p) => p.tipo_pedido !== "salao" && !PEDIDO_FORA.has(p.status) && !/cancel|recus/i.test(String(p.status || ""));
+
+/**
+ * Vendas de marmita nos pedidos online. O vínculo é produtos.ficha_id, nunca o
+ * nome. O desconto do pedido é repartido pelo valor dos itens, e cada item vira
+ * uma venda com referência própria, para não entrar duas vezes.
+ */
+export function vendasDoCardapioOnline({ pedidos = [], itens = [], fichasDeProduto = new Map(), marmitas = [], jaImportadas = new Set(), dia }) {
+  const ids = new Set(marmitas.map((m) => m.id));
+  const validos = new Map(pedidos.filter(pedidoConta).map((p) => [p.id, p]));
+  const totalPorPedido = new Map();
+  for (const i of itens) totalPorPedido.set(i.pedido_id, (totalPorPedido.get(i.pedido_id) || 0) + numero(i.quantidade) * numero(i.valor_unitario));
+  const vendas = [];
+  for (const i of itens) {
+    const pedido = validos.get(i.pedido_id);
+    const ficha = fichasDeProduto.get(i.produto_id);
+    if (!pedido || !ids.has(ficha) || jaImportadas.has(String(i.id))) continue;
+    const bruto = numero(i.quantidade) * numero(i.valor_unitario);
+    const total = totalPorPedido.get(i.pedido_id) || 0;
+    vendas.push({
+      data: dia, canal: CANAL_ONLINE, ficha_id: ficha, quantidade: numero(i.quantidade), valor_bruto: r2(bruto),
+      descontos: total > 0 ? r2(numero(pedido.desconto) * (bruto / total)) : 0,
+      referencia_externa: String(i.id), observacao: "Importada do cardápio online",
+    });
+  }
+  return vendas;
+}
+
+/** Preço para chegar ao markup pedido, em cima do custo técnico da ficha. */
+export function precoPorMarkup(custo, markup) {
+  return numero(custo) > 0 && numero(markup) > 0 ? r2(numero(custo) * numero(markup)) : null;
+}
+
+/** Markup = preço ÷ custo técnico. Custo incompleto não gera número. */
+export function markupDaMarmita(preco, custo) {
+  if (!(numero(preco) > 0) || !custo?.completo || !(numero(custo.total) > 0)) return null;
+  return r2(numero(preco) / numero(custo.total));
+}

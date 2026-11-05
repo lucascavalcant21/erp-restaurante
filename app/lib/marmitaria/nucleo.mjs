@@ -36,6 +36,15 @@ export function fatorSaldo(insumo) {
   return ehFracionavel(insumo) && ehUnidadeContavel(insumo.unidade_medida) ? Math.max(Number(insumo.tamanho_embalagem) || 1, 0.000001) : 1;
 }
 
+// Quanto sai cada unidade de um pacote. Sem preço ou sem quantidade não há conta.
+export function custoPorUnidadeDoPacote(preco, unidades) {
+  if (preco === "" || preco === null || preco === undefined) return null;
+  const p = Number(preco);
+  const u = Number(unidades);
+  if (!(p >= 0) || !(u > 0)) return null;
+  return p / u;
+}
+
 // Quantidade digitada (g, kg, ml, L, un) → unidade do cadastro do insumo ou do
 // rendimento do pré-preparo. Grandezas incompatíveis devolvem null.
 // pesos (opcional): { unidadeG, porcaoG } do cadastro, para digitar "3 un" ou

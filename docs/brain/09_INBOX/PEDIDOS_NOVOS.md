@@ -78,3 +78,8 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | Marmitaria como empresa separada | Ensaio no banco real, desfeito: 330 produtos, 39 pré-preparos e 1 marmita copiam sem perder vínculo. Aguarda dados da empresa e decisão do dono |
 | 05/11/2026 | Marmitaria com cadastros e fichas próprios, começando vazia, com uma senha para entrar e sair | Feito em PR rascunho · TESTADO EM MOCK. Depende da MARM-UNIDADE-1 |
 | 05/11/2026 | Barra da marmitaria na ordem: painel geral, cadastro de ingredientes, compras, estoque, produções e produção do dia | Feito em PR rascunho · TESTADO EM MOCK |
+| 05/11/2026 | Marmitaria: marca do produto no cadastro | Feito em PR rascunho · TESTADO EM MOCK. Usa a coluna `insumos.marca`, que já existia |
+| 05/11/2026 | Embalagens: pacote de R$ 23 com 30 unidades mostra quanto sai cada unidade | Feito em PR rascunho · TESTADO EM MOCK. R$ 0,77 (0,7667 exato) |
+| 05/11/2026 | Compras: alinhar Quantidade e Valor total | Feito em PR rascunho · TESTADO EM MOCK |
+| 05/11/2026 | Compras: ao lançar no estoque com validade, imprimir a etiqueta do produto | Feito em PR rascunho · TESTADO EM MOCK. Impressora física NÃO VALIDADO |
+| 05/11/2026 | Compras: recebidos com unidade e "chegou 2,5 kg a mais do pedido" | Feito em PR rascunho · TESTADO EM MOCK |

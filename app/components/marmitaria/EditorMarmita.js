@@ -1,8 +1,8 @@
 "use client";
 
-// Cadastro da marmita numa tela só, em quatro seções:
-//   A dados básicos · B ingredientes e pré-preparos · C embalagens · D preço e resultado
-// O custo e a margem são recalculados a cada tecla. Salvar nunca fica preso
+// Ficha técnica numa tela só: dados, ingredientes e pré-preparos, embalagens e
+// o custo final, recalculado a cada tecla. Preço não mora aqui: fica no
+// Cardápio, por plataforma. Salvar nunca fica preso
 // em "Salvando…" (finally) e, se der erro, o que foi digitado continua aqui.
 
 import { useMemo, useRef, useState } from "react";
@@ -10,12 +10,12 @@ import { ArrowLeft, Check, ImagePlus, Trash2 } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import BuscaItens from "./BuscaItens";
 import { NovoProduto, NovoPrePreparo } from "./CadastrosRapidos";
-import { Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, inputCls, pctTxt } from "./ui";
+import { Aviso, Botao, Campo, CampoNumero, Secao, brl, inputCls, pctTxt } from "./ui";
 import { salvarMarmita, novaChave } from "../../lib/marmitaria/dados";
 import { atalhosDeQuantidade, catalogoDePrePreparos, custoDoForm, payloadDoForm, TAMANHOS, TIPOS_EMBALAGEM, unidadeDoItem } from "../../lib/marmitaria/formulario.mjs";
-import { precoSugerido, resultadoPorCanal, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
+import { unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
+import { CATEGORIAS_FICHA, ordenarCategorias } from "../../lib/marmitaria/cardapio.mjs";
 import { pesosDoInsumo } from "../../lib/ficha-calculos.mjs";
-import { CANAL_DIRETO } from "../../lib/marmitaria/promocoes.mjs";
 import { normalizarBusca } from "../../lib/ingredientes-utils.mjs";
 import { custoDeProduzirFicha, custoUnitarioEfetivoInsumo, parseNumero } from "../../lib/ficha-calculos.mjs";
 import { uploadFotoMontagem } from "../../lib/montagem";
@@ -23,7 +23,7 @@ import { uploadFotoMontagem } from "../../lib/montagem";
 export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) {
   const { base, unidadeId, recarregar } = useMarmitaria();
   const [form, setForm] = useState(formInicial);
-  const [painel, setPainel] = useState(null); // busca-item | busca-emb | novo-ing | novo-prep | nova-emb
+  const [painel, setPainel] = useState(null); // busca-item | busca-emb | novo-prod | novo-prep | nova-emb
   const [textoNovo, setTextoNovo] = useState("");
   const [tipoEmb, setTipoEmb] = useState("marmitex");
   const [salvando, setSalvando] = useState(false);
@@ -34,11 +34,6 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
 
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
   const custo = useMemo(() => custoDoForm(form, ctx), [form, base]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Sem canal configurado, a margem sai pela venda direta (sem comissão).
-  const canaisAtivos = base.config.canais.filter((c) => c.ativo);
-  const canais = canaisAtivos.length ? canaisAtivos : [CANAL_DIRETO];
-  const tributos = base.config.tributos_pct;
-  const margemAlvo = base.config.margem_alvo_pct;
 
   // `unidade` vem de quem acabou de cadastrar (a base recarregada ainda não
   // chegou a esta closure).
@@ -98,26 +93,33 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
     if (escolhidos.has(it.id)) setForm((x) => ({ ...x, itens: x.itens.filter((i) => i.subficha_id !== it.id) }));
     else adicionarItem({ tipo: "pre_preparo", id: it.id, unidade: it.unidade });
   };
-  const preco = parseNumero(form.preco);
   const linhaCusto = (item) => custo.linhas.find((l) => (item.subficha_id ? l.subficha_id === item.subficha_id : l.insumo_id === item.insumo_id));
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <button type="button" onClick={onFechar} className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-2 text-sm font-semibold text-hf-text-2 hover:bg-hf-elevated">
-          <ArrowLeft size={16} /> Voltar para as marmitas
+          <ArrowLeft size={16} /> Voltar para a ficha técnica
         </button>
-        <p className="text-sm text-hf-muted">{form.codigo ? `Código ${form.codigo}` : "Nova marmita"}</p>
+        <p className="text-sm text-hf-muted">{form.codigo ? `Código ${form.codigo}` : "Nova ficha técnica"}</p>
       </div>
 
       {/* A — dados básicos */}
-      <Secao titulo="A · Dados básicos">
+      <Secao titulo="Dados básicos">
         <div className="grid gap-3 sm:grid-cols-[1fr_160px]">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Campo rotulo="Nome da marmita" className="sm:col-span-2"><input className={inputCls} value={form.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Ex.: Frango grelhado com arroz e feijão" /></Campo>
+            <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={form.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Ex.: Frango grelhado com arroz e feijão" /></Campo>
             <Campo rotulo="Descrição para o cardápio" className="sm:col-span-2"><textarea className={`${inputCls} min-h-[72px] py-2`} value={form.descricao} onChange={(e) => set("descricao", e.target.value)} /></Campo>
-            <Campo rotulo="Categoria"><input className={inputCls} value={form.categoria} onChange={(e) => set("categoria", e.target.value)} placeholder="Ex.: Tradicional, Fit" list="categorias-marmita" /></Campo>
-            <datalist id="categorias-marmita">{[...new Set(base.marmitas.map((m) => m.categoria).filter(Boolean))].map((c) => <option key={c} value={c} />)}</datalist>
+            <div className="sm:col-span-2">
+              <span className="mb-1 block text-xs font-semibold text-hf-text-2">Categoria</span>
+              <div className="flex flex-wrap gap-1.5">
+                {ordenarCategorias([...CATEGORIAS_FICHA, ...base.marmitas.map((m) => m.categoria).filter(Boolean)]).map((c) => (
+                  <button key={c} type="button" onClick={() => set("categoria", c)} aria-pressed={form.categoria === c}
+                    className={`min-h-[40px] rounded-full border px-3 text-sm font-semibold ${form.categoria === c ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>{c}</button>
+                ))}
+              </div>
+              <input className={`${inputCls} mt-2`} value={form.categoria} onChange={(e) => set("categoria", e.target.value)} placeholder="Ou digite outra categoria" aria-label="Categoria" />
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <Campo rotulo="Tamanho"><select className={inputCls} value={form.tamanho} onChange={(e) => set("tamanho", e.target.value)}>{TAMANHOS.map((t) => <option key={t}>{t}</option>)}</select></Campo>
               <Campo rotulo="Porção (g)"><CampoNumero valor={form.peso} onChange={(v) => set("peso", v)} placeholder="Ex.: 550" /></Campo>
@@ -139,7 +141,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
       </Secao>
 
       {/* B — ingredientes e pré-preparos */}
-      <Secao titulo="B · Ingredientes e pré-preparos" subtitulo="Os mesmos do estoque e das fichas do restaurante: nada é duplicado."
+      <Secao titulo="Ingredientes e pré-preparos" subtitulo="Vêm do cadastro da marmitaria."
         direita={<p className="text-sm text-hf-text-2">Alimentos <b className="tabular-nums">{brl(custo.alimentos)}</b> · Pré-preparos <b className="tabular-nums">{brl(custo.prePreparos)}</b></p>}>
         {form.itens.length > 0 && (
           <ul className="divide-y divide-hf-border">
@@ -220,10 +222,10 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
           )}
           {painel === "busca-item" && (
             <BuscaItens base={base} excluir={form.itens.map((i) => i.insumo_id || i.subficha_id)} onEscolher={adicionarItem}
-              onCriarIngrediente={(t) => { setTextoNovo(t); setPainel("novo-ing"); }}
+              onCriarIngrediente={(t) => { setTextoNovo(t); setPainel("novo-prod"); }}
               onCriarPrePreparo={(t) => { setTextoNovo(t); setPainel("novo-prep"); }} />
           )}
-          {painel === "novo-ing" && (
+          {painel === "novo-prod" && (
             <NovoProduto unidadeId={unidadeId} nomeInicial={textoNovo} onFechar={() => setPainel(null)}
               onCriado={async (id, unidade) => { await recarregar(); if (id) adicionarItem({ tipo: "ingrediente", id, unidade }); else setPainel(null); }} />
           )}
@@ -231,14 +233,14 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
             <NovoPrePreparo unidadeId={unidadeId} base={base} nomeInicial={textoNovo} onFechar={() => setPainel(null)}
               onCriado={async (id, unidade) => { await recarregar(); adicionarItem({ tipo: "pre_preparo", id, unidade }); }} />
           )}
-          {painel !== "busca-item" && painel !== "novo-ing" && painel !== "novo-prep" && (
+          {painel !== "busca-item" && painel !== "novo-prod" && painel !== "novo-prep" && (
             <Botao variante="secundario" type="button" onClick={() => setPainel("busca-item")}>+ Adicionar ingrediente ou pré-preparo</Botao>
           )}
         </div>
       </Secao>
 
       {/* C — embalagens */}
-      <Secao titulo="C · Embalagens" direita={<p className="text-sm text-hf-text-2">Total <b className="tabular-nums">{brl(custo.embalagens)}</b> por marmita</p>}>
+      <Secao titulo="Embalagens" direita={<p className="text-sm text-hf-text-2">Total <b className="tabular-nums">{brl(custo.embalagens)}</b> por unidade</p>}>
         {form.embalagens.length > 0 && (
           <ul className="mb-3 divide-y divide-hf-border">
             {form.embalagens.map((e) => {
@@ -280,66 +282,14 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
         )}
       </Secao>
 
-      {/* D — preço e resultado */}
-      <Secao titulo="D · Preço e resultado" subtitulo="Margem de contribuição não é lucro: ainda faltam mão de obra e despesas fixas (veja o Financeiro).">
+      <Secao titulo="Custo" subtitulo="Comida e embalagem. O preço, as taxas e o lucro ficam no Cardápio.">
         <div className="grid gap-3 sm:grid-cols-4">
           <Resumo rotulo="Alimentos" valor={custo.alimentos} />
           <Resumo rotulo="Pré-preparos" valor={custo.prePreparos} />
           <Resumo rotulo="Embalagens" valor={custo.embalagens} />
-          <Resumo rotulo="Custo técnico total" valor={custo.total} forte />
+          <Resumo rotulo="Custo total" valor={custo.total} forte />
         </div>
         {custo.pendencias.length > 0 && <Aviso tipo="alerta" className="mt-3">Custo incompleto: {custo.pendencias.join(" ")}</Aviso>}
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-[220px_1fr]">
-          <Campo rotulo="Preço de referência (balcão/cardápio)" dica="Usado nos canais sem preço próprio.">
-            <CampoNumero valor={form.preco} onChange={(v) => set("preco", v)} placeholder="0,00" />
-          </Campo>
-          {tributos === null
-            ? <Aviso tipo="alerta">Impostos em branco: preencha em <a href="/dashboard/financeiro/resultado" className="font-bold underline">Financeiro → Resultado do mês</a> (ou em Configurações, só para a marmitaria) para a margem descontar o imposto.</Aviso>
-            : <p className="self-center text-xs text-hf-muted">Impostos de {pctTxt(tributos)}{base.config.doResultado?.tributos_pct ? " (do Resultado do mês)" : ""}. {canaisAtivos.length ? "" : "Sem canal configurado: a tabela mostra a venda direta, sem comissão."} Promoções e combos: aba <b>Combos e promoções</b>.</p>}
-        </div>
-
-        {false ? null : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-hf-muted">
-                  <th className="py-2 pr-2">Canal</th><th className="py-2 pr-2">Preço</th><th className="py-2 pr-2 text-right">Tributos</th><th className="py-2 pr-2 text-right">Taxas do canal</th>
-                  <th className="py-2 pr-2 text-right">Margem de contribuição</th><th className="py-2 pr-2 text-right">CMV técnico</th><th className="py-2 text-right">Markup</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-hf-border">
-                {canais.map((c) => {
-                  const proprio = form.precos[c.id];
-                  const p = String(proprio ?? "").trim() ? parseNumero(proprio) : preco;
-                  const r = resultadoPorCanal({ preco: p, custoTecnico: custo.total, canal: c, tributosPct: tributos });
-                  const sug = precoSugerido({ custoTecnico: custo.total, canal: c, tributosPct: tributos, margemAlvoPct: margemAlvo });
-                  return (
-                    <tr key={c.id} className="align-top">
-                      <td className="py-2 pr-2"><p className="font-semibold text-hf-text">{c.nome}</p>{c.modalidade && <p className="text-xs text-hf-muted">{c.modalidade}</p>}</td>
-                      <td className="py-2 pr-2 w-[150px]">
-                        <CampoNumero valor={proprio ?? ""} onChange={(v) => setForm((x) => ({ ...x, precos: { ...x.precos, [c.id]: v } }))} placeholder={form.preco ? String(form.preco) : "0,00"} />
-                        {sug.preco !== null ? (
-                          <button type="button" onClick={() => setForm((x) => ({ ...x, precos: { ...x.precos, [c.id]: String(sug.preco).replace(".", ",") } }))} className="mt-1 text-xs font-semibold text-hf-accent hover:underline">
-                            Sugerido p/ {pctTxt(margemAlvo, 0)}: {brl(sug.preco)}
-                          </button>
-                        ) : <p className="mt-1 text-[11px] text-hf-muted">{sug.motivo}</p>}
-                      </td>
-                      <td className="py-2 pr-2 text-right tabular-nums">{r.valido ? brl(r.tributos) : "—"}</td>
-                      <td className="py-2 pr-2 text-right tabular-nums">{r.valido ? brl(r.variaveis) : "—"}</td>
-                      <td className={`py-2 pr-2 text-right font-bold tabular-nums ${r.margemContribuicao < 0 ? "text-hf-danger" : "text-hf-text"}`}>
-                        {r.valido && r.margemContribuicao !== null ? <>{brl(r.margemContribuicao)}<br /><span className="text-xs font-semibold">{pctTxt(r.margemContribuicaoPct)}</span></> : "—"}
-                      </td>
-                      <td className="py-2 pr-2 text-right tabular-nums">{r.valido ? pctTxt(r.cmvTecnicoPct) : "—"}</td>
-                      <td className="py-2 text-right tabular-nums">{r.valido && r.markup !== null ? `${r.markup.toLocaleString("pt-BR")}×` : "—"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <p className="mt-2 text-xs text-hf-muted">Margem = receita − tributos − taxas do canal − custo técnico, em % da receita. Markup = preço ÷ custo técnico. <Selo natureza="previsto" /></p>
-          </div>
-        )}
       </Secao>
 
       {erros.length > 0 && (
@@ -347,7 +297,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
       )}
       <div className="sticky bottom-3 z-10 flex justify-end gap-2 rounded-2xl border border-hf-border bg-hf-surface/95 p-2 backdrop-blur">
         <Botao variante="secundario" type="button" onClick={onFechar}>Cancelar</Botao>
-        <Botao type="button" onClick={salvar} disabled={salvando} className="min-w-[160px]">{salvando ? "Salvando…" : "Salvar marmita"}</Botao>
+        <Botao type="button" onClick={salvar} disabled={salvando} className="min-w-[160px]">{salvando ? "Salvando…" : "Salvar ficha técnica"}</Botao>
       </div>
     </div>
   );

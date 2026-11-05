@@ -11,8 +11,14 @@ export const brl = (v) => (v === null || v === undefined || !Number.isFinite(Num
   : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 export const pctTxt = (v, dec = 1) => (v === null || v === undefined || !Number.isFinite(Number(v)) ? "—"
   : `${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec })}%`);
+export const markupPctTxt = (m) => (m === null || m === undefined || !Number.isFinite(Number(m)) ? "—"
+  : `${((Number(m) - 1) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%`);
 export const num = (v, dec = 3) => (v === null || v === undefined ? "—"
   : Number(v).toLocaleString("pt-BR", { maximumFractionDigits: dec }));
+
+// Markup = preço ÷ custo técnico. Sem custo completo, não há número.
+export const markupTxt = (v) => (v === null || v === undefined || !Number.isFinite(Number(v)) ? "—"
+  : `${Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}×`);
 
 const NATUREZA = {
   real: { rotulo: "Real", cls: "bg-hf-accent/10 text-hf-accent" },

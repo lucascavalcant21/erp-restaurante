@@ -293,3 +293,15 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Criado em:** 2026-11-05 01:00
 - **Chave:** migracao:db/treinamento/TREIN_1_TREINAMENTO_POR_FUNCAO.sql
 
+## APR-018 — MARM-PROD-1: produção de subprodutos da marmitaria
+
+**Executada em 05/11/2026 com autorização do dono.** TESTADO NO SUPABASE REAL em transação desfeita (compra recebida e produção). `db/marmitaria/MARM_PROD_1_PREPAROS.sql`. Aditiva: cria dois locais de estoque e uma função. Rollback em `db/marmitaria/MARM_PROD_1_ROLLBACK.sql`.
+
+## APR-019 — MARM-UNIDADE-1: unidade própria da marmitaria
+
+**Executada em 05/11/2026 com autorização do dono.** `db/marmitaria/MARM_UNIDADE_1_UNIDADE_PROPRIA.sql`. Aditiva: unidade `marmitaria`, vazia, com cinco estoques e as funções da senha. TESTADO NO SUPABASE REAL em transação desfeita (senha, cadastro e subproduto; usuário comum sem acesso). Rollback em `db/marmitaria/MARM_UNIDADE_1_ROLLBACK.sql`.
+
+
+## APR-020 — MARM-UNIDADE-2, 3 e 4: acesso à marmitaria pela senha
+
+**Executadas em 05/11/2026 com autorização do dono.** Com a senha, o usuário ativo da mesma empresa recebe o escopo da unidade `marmitaria`. `hefisto_user_can` e `fin_pode_acessar_unidade` mudaram só para essa unidade, `compras`, `compras_itens` e `contas_pagar` ganharam a policy `marmitaria_escopo`, e sete tabelas de estoque e pagamentos ganharam leitura por `marmitaria_escopo_ler`. TESTADO NO SUPABASE REAL em transação desfeita. Rollbacks em `db/marmitaria/`.

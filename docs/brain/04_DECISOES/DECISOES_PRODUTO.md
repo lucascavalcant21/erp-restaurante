@@ -83,4 +83,45 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - Os bonecos são personagens próprios. A voz é a do aparelho, sem custo por uso.
 - As falas da IA são sugestões: a IA só reescreve o texto da aula, e número que não está no texto é recusado.
 - Pratos e drinks mostram a ficha real. O Héfisto não inventa receita: sem preparo escrito, aparece como pendência.
+## DP — Marmitaria: ficha só com custo, preço no Cardápio (05/11/2026, decisão do dono)
+
+- **Ficha técnica** mostra só o custo (comida + embalagem). Preço, taxas e lucro ficam no **Cardápio**, por plataforma.
+- **Ingrediente novo** nasce só no cadastro do sistema. A marmitaria mantém o cadastro de **embalagens**.
+- **Lucro = o que o cliente paga − imposto − taxas da plataforma − custo da ficha − equipe − custos fixos.** Equipe e fixos são o valor do mês ÷ marmitas por mês (ESTIMATIVA); bebida e sobremesa não carregam essa parte.
+- Base da conta: o último mês fechado do DRE da marmitaria. O que o dono digita em Configurações vale sobre o sistema.
+- **Taxa em branco não é zero:** sem as taxas da plataforma, ou sem imposto definido, o Cardápio não mostra lucro.
+- **MEI:** imposto sobre venda 0%. O regime e os custos mensais ficam em `marmitaria_configuracoes.rateio` (jsonb), sem migração. Vale `regime = "mei"` e `tributos_pct = 0`.
+- Plataformas: iFood, 99 (`99food`), Keeta e Balcão; WhatsApp e outras entram por botão. Só a comissão do balcão nasce zerada.
+- Rotas novas ficam sob `/dashboard/marmitaria/marmitas/` para herdar a permissão `marmitaria.recipes`.
+
+## DP — Marmitaria: modelo da loja e painel de lucro (05/11/2026, decisão do dono)
+
+- **Modelo da loja:** segue a ordem Mais pedidos, Combos, Marmitas de frango, Marmitas de carne, Sobremesas, Refrigerantes e Sucos. Mais pedidos sai só de vendas lançadas nos últimos 30 dias; sem venda, fica vazio.
+- **Mudança de custo:** compara o primeiro preço do histórico nos últimos 30 dias com o preço de hoje (`insumos_precos_historico`). O preço de venda fica igual, então a diferença de custo sai direto do lucro.
+- **Painel:** usa as mesmas linhas do Cardápio. "O que mais rendeu" = vendas reais × lucro de hoje (ESTIMATIVA).
+- **Sugestões:** testam as combinações com preço e custo, com o mesmo desconto sobre a soma. O alvo é a meta de lucro ou, sem meta, a média dos pratos. Combo sem marmita não carrega equipe nem custos fixos.
+- **Simulador de vendas:** equipe e custos fixos entram uma vez no mês, não por marmita, porque não crescem com a venda. Por isso o lucro simulado pode ser diferente de "lucro por marmita × quantidade". Avisa quando o faturamento anual passa do limite do MEI (LC 238/2026: R$ 81 mil em 2026, R$ 110 mil em 2027, R$ 140 mil em 2028).
+
+## DP — Compras e produção exclusivas da marmitaria (05/11/2026, decisão do dono)
+
+- **Exclusivo:** compras, estoque e produção usam só os locais `marmitaria`, `embalagens-marmitaria` e `producao-marmitaria`. A função da produção recusa baixar de outro local.
+- **Pedido:** é um rascunho em `compras`, com a previsão de chegada em `data_recebimento`. Ao receber, grava o que chegou, a data real e chama `compras_confirmar`.
+- **Conta a pagar:** não é gerada na compra da marmitaria, para não cair no financeiro do restaurante. Falta o dono decidir como lançar.
+- **Estoque:** só retira. A entrada vem da compra e da produção.
+- **Subproduto:** é uma ficha de pré-preparo. Cada tipo é uma ficha própria (frango empanado na panko, no trigo, só temperado). O estoque fica em `producao-marmitaria`.
+- **As RPCs `iniciar_producao_lote` e `finalizar_producao_lote` não são usadas:** baixam de `estoque_atual`, que é legado.
+- **Plano:** uma linha por dia em `marmitaria_planos_operacionais` com `periodo_tipo = 'cozinha'`.
+- **Preço aberto:** a tela mostra markup em % (300% = 4 vezes o custo) e divide o preço em CMV, embalagens, CMO por funcionário, custos fixos por conta, taxas, impostos e lucro. As contas ficam em `rateio.custos_fixos`.
+- **Pró-labore:** é uma conta própria entre os custos fixos, não entra no CMO.
+- **Processos:** ficam em `config_sistema.params.marmitaria_processos`, por ficha, com as embalagens que servem e as etapas.
+- **Embalagens e limpeza:** cada uma com estoque próprio da marmitaria (`embalagens-marmitaria`, `limpeza-marmitaria`).
+
+## DP — Marmitaria é uma unidade própria (05/11/2026, decisão do dono)
+
+- A marmitaria é uma empresa separada: unidade `marmitaria`, na mesma `empresa_id`, regime MEI.
+- Começa vazia: cadastros e fichas próprios. Nada do restaurante é copiado ou movido. Substitui a decisão de usar o cadastro do sistema.
+- Uma senha só para entrar e sair, em `estoque_seguranca` (hash e bloqueio por tentativas). A trava de tela prende o aparelho; a proteção dos dados é a separação por unidade.
+- Funcionário precisa ter a unidade `marmitaria` como principal ou em `usuario_escopos`.
+- Na unidade própria, toda conta entra inteira no resultado da marmitaria (`centros_diretos = ["*"]`), sem rateio, e a compra recebida gera a conta a pagar dela. O PR #172 (outubro) tinha a mesma ideia, mas não foi mesclado e tem histórico separado.
+- **Acesso pela senha:** o dono passa a senha e não configura cada usuário. Com a senha certa, o usuário ativo da mesma empresa recebe o escopo da unidade `marmitaria`, que continua depois de sair. `hefisto_user_can` libera `estoque.*` só nessa unidade, menos segurança e cancelamento de compra. Quem tem a senha vê tudo da marmitaria, inclusive custos e DRE.
 

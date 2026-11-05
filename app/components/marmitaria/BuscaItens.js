@@ -1,8 +1,8 @@
 "use client";
 
-// Busca universal da marmita: pré-preparos e ingredientes do estoque geral
-// (os mesmos das fichas do restaurante — nada é copiado), ou embalagens.
-// No fim da lista, criar o que não existe sem sair da marmita.
+// Busca da marmita: pré-preparos e produtos do cadastro da marmitaria, ou embalagens.
+// Tudo é da própria marmitaria: produto, pré-preparo e embalagem podem ser
+// criados aqui, sem sair da ficha.
 
 import { useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";

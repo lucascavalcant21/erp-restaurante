@@ -1,30 +1,30 @@
 "use client";
 
+// Ficha técnica: monta cada marmita, sobremesa e bebida e mostra só o custo,
+// já com a embalagem. Preço, taxas e lucro ficam no Cardápio.
+
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search, UtensilsCrossed } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import EditorMarmita from "../../../components/marmitaria/EditorMarmita";
-import { CANAL_DIRETO } from "../../../lib/marmitaria/promocoes.mjs";
-import { Abas, Aviso, Botao, Campo, CampoNumero, Cartao, Secao, SemDados, Selo, brl, inputCls, markupTxt, pctTxt } from "../../../components/marmitaria/ui";
+import { Aviso, Botao, Cartao, Secao, brl, inputCls } from "../../../components/marmitaria/ui";
 import { formDaMarmita } from "../../../lib/marmitaria/formulario.mjs";
-import { resultadoPorCanal, precoSugerido } from "../../../lib/marmitaria/nucleo.mjs";
-import { markupDaMarmita, precoPorMarkup } from "../../../lib/marmitaria/dia.mjs";
-import { definirDisponibilidade } from "../../../lib/marmitaria/dados";
+import { ordenarCategorias } from "../../../lib/marmitaria/cardapio.mjs";
 import { normalizarBusca } from "../../../lib/ingredientes-utils.mjs";
-import { parseNumero } from "../../../lib/ficha-calculos.mjs";
 import { casaBusca } from "../../../lib/busca.mjs";
 
+const SEM_CATEGORIA = "Sem categoria";
+
 function Conteudo() {
-  const { base, custos, carregando, recarregar } = useMarmitaria();
+  const { base, carregando } = useMarmitaria();
   const params = useSearchParams();
   const router = useRouter();
-  const [aba, setAba] = useState(params.get("aba") === "precos" ? "precos" : "cardapio");
   const [editando, setEditando] = useState(null);
   const [aviso, setAviso] = useState(null);
-  // Links antigos (?aba=combos) e o "Editar marmita" da área de Combos.
+  // Links antigos das abas de preço e de combos, e o "Editar" vindo do Cardápio.
   const editarId = params.get("editar");
-  useEffect(() => { if (params.get("aba") === "combos") router.replace("/dashboard/marmitaria/marmitas/combos"); }, [params, router]);
+  useEffect(() => { if (["combos", "precos"].includes(params.get("aba"))) router.replace("/dashboard/marmitaria/marmitas/cardapio"); }, [params, router]);
   useEffect(() => {
     if (!base || !editarId) return;
     const m = base.marmitas.find((x) => String(x.id) === editarId);
@@ -32,13 +32,13 @@ function Conteudo() {
     router.replace("/dashboard/marmitaria/marmitas");
   }, [base, editarId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!base) return carregando ? <Cartao><p className="text-sm text-hf-muted">Carregando marmitas…</p></Cartao> : null;
+  if (!base) return carregando ? <Cartao><p className="text-sm text-hf-muted">Carregando fichas…</p></Cartao> : null;
 
   if (editando) {
     return (
       <EditorMarmita key={editando.id} form={editando}
         onFechar={() => setEditando(null)}
-        onSalvo={(r) => { setEditando(null); setAviso(`Marmita salva${r?.codigo ? ` (${r.codigo})` : ""}.`); }} />
+        onSalvo={(r) => { setEditando(null); setAviso(`Ficha técnica salva${r?.codigo ? ` (${r.codigo})` : ""}.`); }} />
     );
   }
 
@@ -47,194 +47,84 @@ function Conteudo() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="min-w-[240px] flex-1"><Abas abas={[{ id: "cardapio", rotulo: "Marmitas" }, { id: "precos", rotulo: "Preços por canal" }]} valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} /></div>
-        <Botao onClick={nova}><Plus size={16} /> Nova marmita</Botao>
-      </div>
+      <div className="flex justify-end"><Botao onClick={nova}><Plus size={16} /> Nova ficha técnica</Botao></div>
       {aviso && <Aviso>{aviso}</Aviso>}
-      {aba === "cardapio" ? <Cardapio onEditar={editar} onNova={nova} recarregar={recarregar} /> : <PrecosPorCanal onEditar={editar} />}
+      <ListaDeFichas onEditar={editar} onNova={nova} />
     </div>
   );
 }
 
-function Cardapio({ onEditar, onNova, recarregar }) {
+function ListaDeFichas({ onEditar, onNova }) {
   const { base, custos } = useMarmitaria();
   const [busca, setBusca] = useState("");
-  const [filtro, setFiltro] = useState("todas");
-  const [erro, setErro] = useState(null);
-  // Sem canal configurado, a margem sai pela venda direta (sem comissão).
-  const canalPrincipal = base.config.canais.find((c) => c.ativo) || CANAL_DIRETO;
+  const [categoria, setCategoria] = useState("");
 
-  const lista = useMemo(() => {
+  const categorias = useMemo(() => ordenarCategorias(base.marmitas.map((m) => m.categoria || SEM_CATEGORIA)), [base.marmitas]);
+  const grupos = useMemo(() => {
     const t = normalizarBusca(busca);
-    return base.marmitas
-      .filter((m) => (filtro === "todas" ? true : filtro === "disponiveis" ? m.ativo !== false : m.ativo === false))
+    const lista = base.marmitas
+      .filter((m) => !categoria || (m.categoria || SEM_CATEGORIA) === categoria)
       .filter((m) => !t || casaBusca(`${m.nome_receita} ${m.codigo || ""} ${m.categoria || ""}`, busca));
-  }, [base.marmitas, busca, filtro]);
-
-  async function alternar(m) {
-    setErro(null);
-    const r = await definirDisponibilidade(m.id, m.ativo === false);
-    if (r.error) setErro(r.error); else recarregar();
-  }
+    return categorias.map((c) => ({ categoria: c, itens: lista.filter((m) => (m.categoria || SEM_CATEGORIA) === c) })).filter((g) => g.itens.length);
+  }, [base.marmitas, busca, categoria, categorias]);
 
   if (!base.marmitas.length) {
     return (
-      <Secao titulo="Nenhuma marmita cadastrada">
-        <p className="text-sm text-hf-text-2">Cadastre a primeira: escolha o arroz, o feijão e a proteína que você já tem no estoque, as embalagens, e veja o custo e a margem na hora.</p>
-        <Botao className="mt-3" onClick={onNova}><Plus size={16} /> Cadastrar marmita</Botao>
+      <Secao titulo="Nenhuma ficha técnica ainda">
+        <p className="text-sm text-hf-text-2">Monte a primeira: escolha os ingredientes do cadastro do sistema, a embalagem, e veja o custo na hora.</p>
+        <Botao className="mt-3" onClick={onNova}><Plus size={16} /> Montar ficha técnica</Botao>
       </Secao>
     );
   }
 
   return (
     <Secao>
-      <div className="mb-3 flex flex-wrap gap-2">
-        <div className="relative min-w-[220px] flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-muted" />
-          <input className={`${inputCls} pl-9`} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar marmita" />
-        </div>
-        <select className={`${inputCls.replace("w-full ", "")} w-full sm:w-52`} value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Filtro">
-          <option value="todas">Todas</option><option value="disponiveis">No cardápio</option><option value="fora">Fora do cardápio</option>
-        </select>
+      <div className="relative mb-3">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-muted" />
+        <input className={`${inputCls} pl-9`} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar na ficha técnica" aria-label="Buscar na ficha técnica" />
       </div>
-      {erro && <Aviso tipo="alerta" className="mb-3">{erro}</Aviso>}
-      <ul className="divide-y divide-hf-border">
-        {lista.map((m) => {
-          const c = custos.get(m.id);
-          const preco = canalPrincipal && m.precos[canalPrincipal.id] !== undefined ? m.precos[canalPrincipal.id] : Number(m.preco_venda) || 0;
-          const r = canalPrincipal && preco > 0 && c ? resultadoPorCanal({ preco, custoTecnico: c.total, canal: canalPrincipal, tributosPct: base.config.tributos_pct }) : null;
-          const fora = m.ativo === false;
-          const numeros = (
-            <>
-              <div><p className="text-[11px] text-hf-muted">Custo</p><p className="font-bold tabular-nums">{c ? brl(c.total) : "—"}</p></div>
-              <div><p className="truncate text-[11px] text-hf-muted">{canalPrincipal ? `Preço ${canalPrincipal.nome}` : "Preço"}</p><p className="font-bold tabular-nums">{preco > 0 ? brl(preco) : "—"}</p></div>
-              <div><p className="text-[11px] text-hf-muted">Margem</p>
-                <p className={`font-bold tabular-nums ${r?.margemContribuicao < 0 ? "text-hf-danger" : ""}`}>{r?.valido && r.margemContribuicaoPct !== null ? pctTxt(r.margemContribuicaoPct) : "—"}</p></div>
-              <div><p className="text-[11px] text-hf-muted">Markup</p><p className="font-bold tabular-nums">{markupTxt(markupDaMarmita(preco, c))}</p></div>
-            </>
-          );
-          return (
-            <li key={m.id} className="py-3">
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => onEditar(m)} className={`flex min-w-0 flex-1 items-center gap-3 text-left ${fora ? "opacity-60" : ""}`}>
-                  <div className="grid h-14 w-14 flex-shrink-0 place-items-center overflow-hidden rounded-xl bg-hf-elevated text-hf-muted">
-                    {m.imagem ? <img src={m.imagem} alt="" className="h-full w-full object-cover" /> : <UtensilsCrossed size={20} />}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="line-clamp-2 text-sm font-bold text-hf-text">{m.nome_receita}</p>
-                    <p className="truncate text-xs text-hf-muted">{[m.codigo, m.tamanho_marmita, m.peso_final_g ? `${Number(m.peso_final_g)} g` : null, m.categoria].filter(Boolean).join(" · ")}</p>
-                    {c && !c.completo && <p className="text-xs font-semibold text-hf-warning">Custo incompleto</p>}
-                  </div>
-                </button>
-                <div className="hidden w-96 flex-shrink-0 grid-cols-4 gap-3 text-right text-sm sm:grid">{numeros}</div>
-                <label className="flex min-h-[44px] flex-shrink-0 items-center gap-2 text-xs font-semibold text-hf-text-2">
-                  <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={!fora} onChange={() => alternar(m)} />
-                  <span className="w-[4.5rem] leading-tight sm:w-auto">No cardápio</span>
-                </label>
-              </div>
-              <div className={`mt-2 grid grid-cols-4 gap-2 rounded-xl bg-hf-elevated/60 px-3 py-2 text-sm sm:hidden ${fora ? "opacity-60" : ""}`}>{numeros}</div>
-            </li>
-          );
-        })}
-      </ul>
-      {!lista.length && <p className="py-4 text-sm text-hf-muted">{filtro === "fora" ? "Nenhuma marmita fora do cardápio." : "Nenhuma marmita com essa busca."}</p>}
-      {canalPrincipal.id === "direto" && <Aviso className="mt-3">Margem pela venda direta (sem comissão). Configure iFood e WhatsApp em Configurações para ver por canal.</Aviso>}
-    </Secao>
-  );
-}
-
-// Simulador único de preço: escolha a marmita e o canal, mexa no preço e veja
-// cada parcela. Tabela abaixo com todas as marmitas × canais.
-function PrecosPorCanal({ onEditar }) {
-  const { base, custos } = useMarmitaria();
-  const ativos = base.config.canais.filter((c) => c.ativo);
-  const canais = ativos.length ? ativos : [CANAL_DIRETO];
-  const [sel, setSel] = useState({ marmita: base.marmitas[0]?.id || "", canal: canais[0]?.id || "", preco: "" });
-  if (!base.marmitas.length) return <SemDados motivo="Cadastre uma marmita para simular o preço." />;
-
-  const m = base.marmitas.find((x) => x.id === sel.marmita) || base.marmitas[0];
-  const canal = canais.find((c) => c.id === sel.canal) || canais[0];
-  const c = custos.get(m.id);
-  const precoAtual = m.precos[canal.id] ?? (Number(m.preco_venda) || 0);
-  const preco = String(sel.preco).trim() ? parseNumero(sel.preco) : precoAtual;
-  const r = resultadoPorCanal({ preco, custoTecnico: c?.total ?? null, canal, tributosPct: base.config.tributos_pct });
-  const sug = precoSugerido({ custoTecnico: c?.total, canal, tributosPct: base.config.tributos_pct, margemAlvoPct: base.config.margem_alvo_pct });
-  const linha = (rotulo, v, neg = true, forte = false) => (
-    <div className={`flex justify-between gap-3 py-1.5 ${forte ? "border-t border-hf-border pt-2 font-bold" : ""}`}>
-      <span className={forte ? "text-hf-text" : "text-hf-text-2"}>{rotulo}</span>
-      <span className={`tabular-nums ${forte && v < 0 ? "text-hf-danger" : ""}`}>{v === null || v === undefined ? "—" : `${neg && v > 0 ? "− " : ""}${brl(v)}`}</span>
-    </div>
-  );
-
-  return (
-    <div className="space-y-4">
-      <Secao titulo="Simulador de preço" subtitulo="Simulação: nada é gravado até você salvar a marmita.">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Campo rotulo="Marmita"><select className={inputCls} value={m.id} onChange={(e) => setSel({ ...sel, marmita: e.target.value, preco: "", markup: "" })}>{base.marmitas.map((x) => <option key={x.id} value={x.id}>{x.nome_receita}</option>)}</select></Campo>
-          <Campo rotulo="Canal"><select className={inputCls} value={canal.id} onChange={(e) => setSel({ ...sel, canal: e.target.value, preco: "", markup: "" })}>{canais.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}</select></Campo>
-          <Campo rotulo="Markup desejado" dica={c?.completo ? "Preço = custo × markup." : "Precisa do custo completo da ficha."}>
-            <CampoNumero valor={sel.markup ?? ""} disabled={!c?.completo} placeholder="ex.: 3" onChange={(v) => { const novo = precoPorMarkup(c?.total, parseNumero(v)); setSel({ ...sel, markup: v, preco: novo === null ? "" : String(novo).replace(".", ",") }); }} aria-label="Markup desejado" />
-          </Campo>
-          <Campo rotulo="Preço de venda (R$)" dica={`Hoje: ${brl(precoAtual)}`}><CampoNumero valor={sel.preco} onChange={(v) => setSel({ ...sel, preco: v, markup: "" })} placeholder={String(precoAtual).replace(".", ",")} /></Campo>
+      {categorias.length > 1 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {["", ...categorias].map((c) => (
+            <button key={c || "todas"} type="button" onClick={() => setCategoria(c)} aria-pressed={categoria === c}
+              className={`min-h-[40px] rounded-full border px-3 text-sm font-semibold ${categoria === c ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>{c || "Todas"}</button>
+          ))}
         </div>
-        {r.valido ? (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="text-sm">
-              {linha("Preço de venda", r.preco, false)}
-              {linha("Promoção custeada pela empresa", r.promocao)}
-              {linha("Tributos", r.tributos)}
-              {linha("Comissão do canal", r.comissao)}
-              {linha("Taxa de pagamento", r.taxaPagamento)}
-              {linha("Taxa fixa por pedido", r.taxaFixa)}
-              {linha("Entrega subsidiada", r.entrega)}
-              {linha("Custo técnico (ficha)", r.custo)}
-              {linha("Margem de contribuição", r.margemContribuicao, false, true)}
-            </div>
-            <div className="grid content-start gap-3">
-              <Cartao><p className="text-xs text-hf-muted">Margem de contribuição</p><p className="text-2xl font-black tabular-nums">{pctTxt(r.margemContribuicaoPct)}</p><p className="text-xs text-hf-muted">da receita · não é lucro líquido</p></Cartao>
-              <div className="grid grid-cols-2 gap-3">
-                <Cartao><p className="text-xs text-hf-muted">CMV técnico</p><p className="text-lg font-bold tabular-nums">{pctTxt(r.cmvTecnicoPct)}</p></Cartao>
-                <Cartao><p className="text-xs text-hf-muted">Markup</p><p className="text-lg font-bold tabular-nums">{markupTxt(markupDaMarmita(preco, c))}</p><p className="text-[11px] text-hf-muted">preço ÷ custo</p></Cartao>
-              </div>
-              <Cartao>
-                <p className="text-xs text-hf-muted">Preço para {pctTxt(base.config.margem_alvo_pct, 0)} de margem</p>
-                <p className="text-lg font-bold tabular-nums">{sug.preco !== null ? brl(sug.preco) : "—"}</p>
-                {sug.motivo && <p className="text-xs text-hf-muted">{sug.motivo}</p>}
-              </Cartao>
-              {r.avisos.map((a) => <Aviso key={a} tipo="alerta">{a}</Aviso>)}
-              {c && !c.completo && <Aviso tipo="alerta">Custo incompleto: {c.pendencias.join(" ")}</Aviso>}
-              <Botao variante="secundario" onClick={() => onEditar(m)}>Abrir a marmita para salvar o preço</Botao>
-            </div>
-          </div>
-        ) : <Aviso className="mt-3">{r.motivo}</Aviso>}
-      </Secao>
-
-      <Secao titulo="Todas as marmitas por canal" subtitulo="Margem de contribuição prevista pela ficha técnica. Vermelho = vende abaixo do custo variável.">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-sm">
-            <thead><tr className="text-left text-xs uppercase tracking-wide text-hf-muted"><th className="py-2 pr-2">Marmita</th><th className="py-2 pr-2 text-right">Custo</th>{canais.map((x) => <th key={x.id} className="py-2 pr-2 text-right">{x.nome}</th>)}</tr></thead>
-            <tbody className="divide-y divide-hf-border">
-              {base.marmitas.map((mm) => {
-                const cc = custos.get(mm.id);
+      )}
+      <div className="space-y-4">
+        {grupos.map((g) => (
+          <div key={g.categoria}>
+            <p className="text-xs font-black uppercase tracking-wide text-hf-muted">{g.categoria}</p>
+            <ul className="divide-y divide-hf-border">
+              {g.itens.map((m) => {
+                const c = custos.get(m.id);
                 return (
-                  <tr key={mm.id}>
-                    <td className="py-2 pr-2"><button type="button" onClick={() => setSel({ marmita: mm.id, canal: sel.canal, preco: "" })} className="text-left font-semibold text-hf-text hover:text-hf-accent">{mm.nome_receita}</button></td>
-                    <td className="py-2 pr-2 text-right tabular-nums">{cc ? brl(cc.total) : "—"}</td>
-                    {canais.map((x) => {
-                      const p = mm.precos[x.id] ?? (Number(mm.preco_venda) || 0);
-                      const rr = resultadoPorCanal({ preco: p, custoTecnico: cc?.total ?? null, canal: x, tributosPct: base.config.tributos_pct });
-                      return <td key={x.id} className={`py-2 pr-2 text-right tabular-nums ${rr.margemContribuicao < 0 ? "font-bold text-hf-danger" : ""}`}>{rr.valido && rr.margemContribuicao !== null ? <>{brl(p)}<br /><span className="text-xs">{pctTxt(rr.margemContribuicaoPct)} · {markupTxt(markupDaMarmita(p, cc))}</span></> : "—"}</td>;
-                    })}
-                  </tr>
+                  <li key={m.id}>
+                    <button type="button" onClick={() => onEditar(m)} className="flex w-full items-center gap-3 py-3 text-left hover:bg-hf-elevated/40">
+                      <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-hf-elevated text-hf-muted">
+                        {m.imagem ? <img src={m.imagem} alt="" className="h-full w-full object-cover" /> : <UtensilsCrossed size={20} />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold text-hf-text">{m.nome_receita}</span>
+                        <span className="block text-xs text-hf-muted">
+                          {c ? `Comida ${brl(c.alimentos + c.prePreparos)} · Embalagem ${brl(c.embalagens)}` : ""}{m.ativo === false ? " · Fora do cardápio" : ""}
+                        </span>
+                        {c && !c.completo && <span className="block text-xs font-semibold text-hf-warning">Custo incompleto</span>}
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="block text-[11px] text-hf-muted">Custo</span>
+                        <span className="block text-base font-black tabular-nums text-hf-text">{c ? brl(c.total) : "—"}</span>
+                      </span>
+                    </button>
+                  </li>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-2 text-xs text-hf-muted"><Selo natureza="previsto" /> Margem = preço − tributos − taxas do canal − custo técnico. Markup (×) = preço ÷ custo técnico.</p>
-      </Secao>
-    </div>
+            </ul>
+          </div>
+        ))}
+      </div>
+      {!grupos.length && <p className="py-4 text-sm text-hf-muted">Nada encontrado com essa busca.</p>}
+    </Secao>
   );
 }
 

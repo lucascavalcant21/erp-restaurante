@@ -8,7 +8,7 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import { useCardapio } from "./useCardapio";
 import SimuladorDeVendas from "./SimuladorDeVendas";
-import { Abas, Aviso, Botao, Campo, Secao, Selo, brl, inputCls, lerNumero, markupTxt, pctTxt } from "./ui";
+import { Abas, Aviso, Botao, Campo, Secao, Selo, brl, inputCls, lerNumero, markupPctTxt, pctTxt } from "./ui";
 import { fetchVendas } from "../../lib/marmitaria/dados";
 import { MODELOS_COMBO, normalizarCombo } from "../../lib/marmitaria/promocoes.mjs";
 import { compararPromocoes, painelDeLucro, sugerirCombos } from "../../lib/marmitaria/painel-lucro.mjs";
@@ -179,7 +179,7 @@ export default function PainelDeLucro({ abaInicial = "painel" }) {
             <Destaque rotulo={p.mediaPonderada ? "Média pelas vendas" : "Média dos pratos"} valor={pctTxt(p.mediaPct)} />
           </div>
           <ul className="mt-3 divide-y divide-hf-border">
-            {p.pratos.map((x) => <Linha key={x.id} titulo={x.nome} detalhe={`${x.categoria} · Markup ${markupTxt(x.markup)} · CMV ${pctTxt(x.cmvPct)}`} valor={brl(x.lucro)} nota={pctTxt(x.lucroPct)} negativo={x.lucro < 0} />)}
+            {p.pratos.map((x) => <Linha key={x.id} titulo={x.nome} detalhe={`${x.categoria} · Markup ${markupPctTxt(x.markup)} · CMV ${pctTxt(x.cmvPct)}`} valor={brl(x.lucro)} nota={pctTxt(x.lucroPct)} negativo={x.lucro < 0} />)}
           </ul>
         </Secao>
 

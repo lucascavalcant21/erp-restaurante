@@ -1,6 +1,6 @@
 "use client";
 
-// Marmitaria & Delivery: onze áreas, uma barra só. O menu de cima leva para
+// Marmitaria & Delivery: doze áreas, uma barra só. O menu de cima leva para
 // cá sem submenu (a navegação do módulo mora aqui), e o que é secundário vira
 // aba dentro de cada área.
 
@@ -13,7 +13,8 @@ import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 // "curto" é o rótulo no celular: quatro por linha cabem sem quebrar.
 const AREAS = [
   { href: "/dashboard/marmitaria", rotulo: "Visão geral", curto: "Geral", exato: true },
-  { href: "/dashboard/marmitaria/marmitas", rotulo: "Ficha técnica", curto: "Ficha", exceto: ["/dashboard/marmitaria/marmitas/cardapio", "/dashboard/marmitaria/marmitas/embalagens", "/dashboard/marmitaria/marmitas/lucro"] },
+  { href: "/dashboard/marmitaria/marmitas", rotulo: "Ficha técnica", curto: "Ficha", exceto: ["/dashboard/marmitaria/marmitas/cardapio", "/dashboard/marmitaria/marmitas/embalagens", "/dashboard/marmitaria/marmitas/lucro", "/dashboard/marmitaria/marmitas/processos"] },
+  { href: "/dashboard/marmitaria/marmitas/processos", rotulo: "Processos" },
   { href: "/dashboard/marmitaria/marmitas/embalagens", rotulo: "Embalagens", curto: "Embal." },
   { href: "/dashboard/marmitaria/marmitas/cardapio", rotulo: "Cardápio" },
   { href: "/dashboard/marmitaria/marmitas/lucro", rotulo: "Painel de lucro", curto: "Lucro" },

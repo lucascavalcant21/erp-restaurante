@@ -10,13 +10,13 @@
 import { useState } from "react";
 import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronUp, UtensilsCrossed, CupSoda, IceCreamCone, SlidersHorizontal } from "lucide-react";
 import { useMarmitaria } from "./contexto";
-import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, markupTxt, inputCls, lerNumero, pctTxt } from "./ui";
+import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, markupPctTxt, markupTxt, inputCls, lerNumero, pctTxt } from "./ui";
 import {
   TIPOS_OFERTA, MODELOS_COMBO, ROTULO_GRUPO,
   simularOferta, normalizarCombo, itensDoCombo,
   normalizarOferta, rotuloDaOferta,
 } from "../../lib/marmitaria/promocoes.mjs";
-import { ehMei, ordenarCategorias, rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
+import { composicaoDoPreco, ehMei, ordenarCategorias, rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
 import { melhorTroca } from "../../lib/marmitaria/painel-lucro.mjs";
 import { precoSugerido } from "../../lib/marmitaria/nucleo.mjs";
 import { precoPorMarkup } from "../../lib/marmitaria/dia.mjs";
@@ -194,7 +194,7 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
                       <dl className="mt-3 grid grid-cols-4 gap-2 text-center">
                         <Numero r="Preço" v={l.semPreco ? "—" : brl(l.precoPago)} riscado={l.precoCheio > l.precoPago ? brl(l.precoCheio) : null} />
                         <Numero r="Custo" v={l.custo == null ? "—" : brl(l.custo)} />
-                        <Numero r="Markup" v={markupTxt(l.markup)} />
+                        <Numero r="Markup" v={markupPctTxt(l.markup)} />
                         <Numero r="CMV" v={l.cmvPct == null ? "—" : pctTxt(l.cmvPct)} />
                       </dl>
                       <div className="mt-2 rounded-xl bg-hf-elevated p-2.5">
@@ -216,6 +216,7 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
                         <div className="mt-2">
                           {c && <p className="text-xs text-hf-text-2">Custo de 1 unidade: alimentos {brl(c.alimentos)} · pré-preparos {brl(c.prePreparos)} · embalagens {brl(c.embalagens)} = <b>{brl(c.total)}</b>{!c.completo ? " (incompleto)" : ""}</p>}
                           {l.secao === "combos" && <p className="text-xs text-hf-text-2">Itens: {l.itens.map((i) => `${i.nome} (custo ${i.custo == null ? "—" : brl(i.custo)})`).join(" · ")}</p>}
+                          <ComposicaoDoPreco c={composicaoDoPreco({ linha: l, custoFicha: l.secao === "combos" ? null : c, embutidos: comum.embutidos })} />
                           {l.secao === "marmitas" ? <Comparacao s={{ ...l.sim, sem: l.sim.com }} rotuloSem="Preço cheio" rotuloCom="Preço cheio" unico rotuloLucro={rotuloLucro} /> : <Comparacao s={l.sim} rotuloSem={l.secao === "combos" ? "Separado" : "Sem promoção"} rotuloCom={l.secao === "combos" ? "Combo" : "Com promoção"} rotuloLucro={rotuloLucro} />}
                         </div>
                       )}
@@ -230,6 +231,30 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
       </div>
       <a href="/dashboard/marmitaria/marmitas/lucro?aba=simulador" className="mt-5 inline-flex min-h-[44px] items-center text-sm font-bold text-hf-accent hover:underline">Simular vendas do dia, da semana e do mês</a>
     </Secao>
+  );
+}
+
+// De cada R$ do preço, quanto vai para cada coisa. Toque na linha para abrir.
+function ComposicaoDoPreco({ c }) {
+  if (!c) return null;
+  return (
+    <div className="mt-2 rounded-2xl border border-hf-border p-3">
+      <p className="flex justify-between gap-3 text-sm font-black text-hf-text"><span>Do preço de {brl(c.preco)}</span><span className="tabular-nums">Markup {c.markupPct == null ? "—" : `${Math.round(c.markupPct)}%`}</span></p>
+      <div className="mt-1 divide-y divide-hf-border">
+        {c.linhas.map((l) => {
+          const cabeca = <><span className={l.id === "lucro" ? "font-black text-hf-text" : "font-semibold text-hf-text"}>{l.rotulo}</span><span className={`ml-auto tabular-nums ${l.valor < 0 ? "text-hf-danger" : "text-hf-text-2"}`}>{pctTxt(l.pct)} · {brl(l.valor)}</span></>;
+          if (!l.filhos?.length) return <div key={l.id} className="flex min-h-[40px] items-center gap-3 text-sm">{cabeca}</div>;
+          return (
+            <details key={l.id} className="text-sm">
+              <summary className="flex min-h-[40px] cursor-pointer list-none items-center gap-3">{cabeca}</summary>
+              <ul className="pb-2 pl-3">
+                {l.filhos.map((f) => <li key={f.rotulo} className="flex justify-between gap-3 py-0.5 text-xs text-hf-text-2"><span>{f.rotulo}</span><span className="tabular-nums">{pctTxt(f.pct)} · {brl(f.valor)}</span></li>)}
+              </ul>
+            </details>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -271,14 +296,14 @@ function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
   return (
     <div className="mt-2 rounded-xl border border-hf-border p-3">
       <div className="grid grid-cols-2 gap-3">
-        <Campo rotulo="Markup desejado" dica={item.custo == null ? "Precisa do custo completo." : "Preço = custo × markup."}>
-          <CampoNumero valor={markup} disabled={item.custo == null} placeholder="ex.: 3" onChange={(v) => { setMarkup(v); const novo = precoPorMarkup(item.custo, lerNumero(v)); if (novo !== null) usar(novo); }} />
+        <Campo rotulo="Markup desejado (%)" dica={item.custo == null ? "Precisa do custo completo." : "300% = preço de 4 vezes o custo."}>
+          <CampoNumero valor={markup} disabled={item.custo == null} placeholder="ex.: 300" onChange={(v) => { setMarkup(v); const pct = lerNumero(v); const novo = pct === "" ? null : precoPorMarkup(item.custo, 1 + pct / 100); if (novo !== null) usar(novo); }} />
         </Campo>
         <Campo rotulo={`Preço no ${comum.canal.nome} (R$)`}><CampoNumero valor={preco} onChange={(v) => { setPreco(v); setMarkup(""); }} placeholder="0,00" /></Campo>
       </div>
       {sug.preco !== null && !linha.falta && <button type="button" onClick={() => { usar(sug.preco); setMarkup(""); }} className="mt-2 min-h-[32px] text-xs font-bold text-hf-accent hover:underline">Usar {brl(sug.preco)}, que dá {pctTxt(lerNumero(metaPct), 0)} de lucro</button>}
       {s?.com.valido && !linha.falta && (
-        <p className="mt-2 text-sm text-hf-text-2">Markup <b className="tabular-nums">{markupTxt(s.com.markup)}</b> · CMV <b className="tabular-nums">{pctTxt(s.com.cmvTecnicoPct)}</b> · Sobra <b className={`tabular-nums ${s.com.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{brl(s.com.lucro)}</b></p>
+        <p className="mt-2 text-sm text-hf-text-2">Markup <b className="tabular-nums">{markupPctTxt(s.com.markup)}</b> · CMV <b className="tabular-nums">{pctTxt(s.com.cmvTecnicoPct)}</b> · Sobra <b className={`tabular-nums ${s.com.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{brl(s.com.lucro)}</b></p>
       )}
       {erro && <Aviso tipo="alerta" className="mt-2">{erro}</Aviso>}
       <Botao className="mt-2" type="button" onClick={salvar} disabled={salvando || !(valor > 0)}>{salvando ? "Salvando…" : `Salvar preço no ${comum.canal.nome}`}</Botao>

@@ -103,4 +103,8 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - **Subproduto:** é uma ficha de pré-preparo. Cada tipo é uma ficha própria (frango empanado na panko, no trigo, só temperado). O estoque fica em `producao-marmitaria`.
 - **As RPCs `iniciar_producao_lote` e `finalizar_producao_lote` não são usadas:** baixam de `estoque_atual`, que é legado.
 - **Plano:** uma linha por dia em `marmitaria_planos_operacionais` com `periodo_tipo = 'cozinha'`.
+- **Preço aberto:** a tela mostra markup em % (300% = 4 vezes o custo) e divide o preço em CMV, embalagens, CMO por funcionário, custos fixos por conta, taxas, impostos e lucro. As contas ficam em `rateio.custos_fixos`.
+- **Pró-labore:** é uma conta própria entre os custos fixos, não entra no CMO.
+- **Processos:** ficam em `config_sistema.params.marmitaria_processos`, por ficha, com as embalagens que servem e as etapas.
+- **Embalagens e limpeza:** cada uma com estoque próprio da marmitaria (`embalagens-marmitaria`, `limpeza-marmitaria`).
 

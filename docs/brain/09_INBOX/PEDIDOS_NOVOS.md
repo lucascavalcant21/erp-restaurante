@@ -69,3 +69,6 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | Simulador de vendas: tantos de cada item por dia, tantos dias no mês, quanto fatura e lucra por dia, semana e mês | Feito em PR rascunho · TESTADO EM MOCK. Equipe e fixos entram uma vez no mês |
 | 05/11/2026 | "Eu quero ter o meu próprio algoritmo, algo único lá dentro" | Proposta enviada ao dono; aguarda decisão |
 | 05/11/2026 | Compras, estoque e produção exclusivos da marmitaria: pedido com data de chegada piscando, conferência do que chegou, estoque que só retira, subprodutos, estoque de produção e planilha de hoje e amanhã para o tablet | Feito em PR rascunho · TESTADO EM MOCK. Depende da MARM-PROD-1 (APR-018) para produzir |
+| 05/11/2026 | Estoques separados de embalagens e limpeza, por unidade e ml | Feito em PR rascunho · TESTADO EM MOCK |
+| 05/11/2026 | Markup em %, preço abrindo CMV, CMO por funcionário, custos fixos por conta; contas mapeadas em Configurações | Feito em PR rascunho · TESTADO EM MOCK |
+| 05/11/2026 | Processos de montagem de cada marmita: embalagens que servem, montagem, fritura, descanso, fechamento, saco kraft, grampos e motoboy | Feito em PR rascunho · TESTADO EM MOCK |

@@ -4,7 +4,7 @@
 // mesmos itens do cadastro geral, então o preço novo vale na hora em todas as
 // fichas que usam a embalagem e fica no histórico de preço.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Package, Plus } from "lucide-react";
 import { useMarmitaria } from "../../../../components/marmitaria/contexto";
 import { ehEmbalagem } from "../../../../components/marmitaria/BuscaItens";
@@ -14,8 +14,10 @@ import { ESTOQUE_EMBALAGENS, atualizarPrecoEmbalagem } from "../../../../lib/mar
 import { fatorSaldo } from "../../../../lib/marmitaria/nucleo.mjs";
 import { custoUnitarioEfetivoInsumo } from "../../../../lib/ficha-calculos.mjs";
 import { casaBusca } from "../../../../lib/busca.mjs";
+import { fetchProcessosMarmitaria } from "../../../../lib/parametros";
+import { marmitasDaEmbalagem } from "../../../../lib/marmitaria/processos.mjs";
 
-function LinhaEmbalagem({ item, usos, saldo }) {
+function LinhaEmbalagem({ item, usos, saldo, serve = [] }) {
   const { recarregar } = useMarmitaria();
   const [editando, setEditando] = useState(false);
   const [preco, setPreco] = useState("");
@@ -49,6 +51,7 @@ function LinhaEmbalagem({ item, usos, saldo }) {
         <div className="min-w-0 flex-1">
           <p className="break-words text-sm font-bold text-hf-text">{item.nome}</p>
           <p className="text-xs text-hf-muted">Em estoque: {num(saldo)} · {usos ? `usada em ${usos} ficha${usos > 1 ? "s" : ""}` : "em nenhuma ficha"}</p>
+          {serve.length > 0 && <p className="text-xs text-hf-text-2">Serve para: {serve.join(", ")}</p>}
         </div>
         <div className="shrink-0 text-right">
           <p className={`text-sm font-black tabular-nums ${custo > 0 ? "text-hf-text" : "text-hf-warning"}`}>{custo > 0 ? brl(custo) : "Sem valor"}</p>
@@ -74,6 +77,8 @@ export default function EmbalagensPage() {
   const { base, carregando, unidadeId, recarregar } = useMarmitaria();
   const [nova, setNova] = useState(false);
   const [busca, setBusca] = useState("");
+  const [processos, setProcessos] = useState({});
+  useEffect(() => { if (unidadeId) fetchProcessosMarmitaria(unidadeId).then((r) => setProcessos(r.data || {})); }, [unidadeId]);
   const usos = useMemo(() => {
     const m = new Map();
     for (const f of base?.marmitas || []) for (const e of f.embalagens || []) m.set(e.insumo_id, (m.get(e.insumo_id) || 0) + 1);
@@ -98,7 +103,7 @@ export default function EmbalagensPage() {
         direita={!nova && <Botao onClick={() => setNova(true)}><Plus size={16} /> Nova embalagem</Botao>}>
         <input className={`${inputCls} mb-1`} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar embalagem" aria-label="Buscar embalagem" />
         <ul className="divide-y divide-hf-border">
-          {lista.map((i) => <LinhaEmbalagem key={i.id} item={i} usos={usos.get(i.id) || 0} saldo={saldoDe(i.id)} />)}
+          {lista.map((i) => <LinhaEmbalagem key={i.id} item={i} usos={usos.get(i.id) || 0} saldo={saldoDe(i.id)} serve={marmitasDaEmbalagem(processos, i.id, base.marmitas)} />)}
         </ul>
         {!lista.length && <p className="py-4 text-sm text-hf-muted">{busca.trim() ? "Nenhuma embalagem com essa busca." : "Nenhuma embalagem cadastrada."}</p>}
       </Secao>

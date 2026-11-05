@@ -21,6 +21,7 @@ const RATEAVEIS = [
   ["utilidades_gas", "Gás"], ["utilidades_internet", "Internet e telefone"], ["adm_sistemas", "Sistemas"], ["adm_contabilidade", "Contabilidade"],
   ["marketing", "Marketing"], ["manutencao", "Manutenção"], ["limpeza", "Limpeza"],
 ];
+const SUGESTOES_FIXAS = ["Aluguel", "Luz", "Água", "Gás", "Telefone", "Internet", "Pró-labore", "Materiais de limpeza", "Contador", "Sistemas"];
 const vazio = (v) => v === null || v === undefined ? "" : String(v).replace(".", ",");
 // Taxa em branco é "não configurado"; só a comissão do balcão nasce zerada.
 const canalEmBranco = (m) => {
@@ -35,7 +36,7 @@ export default function ConfiguracoesPage() {
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState(null);
   const doSistema = useBaseDosCustos();
-  const previa = useMemo(() => (cfg ? custosEmbutidos({ ...doSistema, config: { rateio: cfg.rateio } }) : null), [cfg, doSistema]);
+  const previa = useMemo(() => (cfg ? custosEmbutidos({ ...doSistema, config: { rateio: { ...cfg.rateio, custos_fixos: cfg.rateio.custos_fixos.map((x) => ({ ...x, valor: lerNumero(x.valor) })) } } }) : null), [cfg, doSistema]);
 
   useEffect(() => {
     if (!base) return;
@@ -50,7 +51,7 @@ export default function ConfiguracoesPage() {
       // O dono avisou que será MEI: vale de saída, até ele salvar outra escolha.
       regime: c.rateio?.regime ?? (base.configSalva ? "" : "mei"),
       margem_alvo_pct: c.doResultado?.margem_alvo_pct ? "" : vazio(c.margem_alvo_pct),
-      encargos: { ...c.encargos }, rateio: { padrao_pct: vazio(c.rateio?.padrao_pct), por_categoria: { ...(c.rateio?.por_categoria || {}), }, marmitas_mes: vazio(c.rateio?.marmitas_mes), cmo_mes: vazio(c.rateio?.cmo_mes), fixos_mes: vazio(c.rateio?.fixos_mes) },
+      encargos: { ...c.encargos }, rateio: { padrao_pct: vazio(c.rateio?.padrao_pct), por_categoria: { ...(c.rateio?.por_categoria || {}), }, marmitas_mes: vazio(c.rateio?.marmitas_mes), cmo_mes: vazio(c.rateio?.cmo_mes), custos_fixos: (c.rateio?.custos_fixos || []).map((x) => ({ nome: x.nome, valor: vazio(x.valor) })) },
       centros_diretos: c.centros_diretos,
     });
   }, [base]);
@@ -79,7 +80,8 @@ export default function ConfiguracoesPage() {
       const r = await salvarConfig(unidadeId, {
         canais, tributos_pct: t, margem_alvo_pct: m, encargos,
         rateio: { padrao_pct: lerNumero(cfg.rateio.padrao_pct), por_categoria: porCat, regime: mei ? "mei" : "",
-          marmitas_mes: lerNumero(cfg.rateio.marmitas_mes), cmo_mes: lerNumero(cfg.rateio.cmo_mes), fixos_mes: lerNumero(cfg.rateio.fixos_mes) },
+          marmitas_mes: lerNumero(cfg.rateio.marmitas_mes), cmo_mes: lerNumero(cfg.rateio.cmo_mes),
+          custos_fixos: cfg.rateio.custos_fixos.map((x) => ({ nome: String(x.nome || "").trim(), valor: lerNumero(x.valor) })).filter((x) => x.nome) },
         centros_diretos: cfg.centros_diretos,
       });
       if (r.error) setMsg({ tipo: "alerta", texto: r.error });
@@ -147,10 +149,24 @@ export default function ConfiguracoesPage() {
       </Secao>
 
       <Secao titulo="Equipe e custos dentro de cada marmita" subtitulo="O Cardápio divide o custo do mês pelas marmitas do mês e desconta do lucro. É uma estimativa.">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Campo rotulo="Marmitas por mês" dica={doSistema.vendidasMes > 0 ? `Em branco: ${doSistema.vendidasMes} vendidas no mês passado.` : "Quantas você espera vender."}><CampoNumero valor={cfg.rateio.marmitas_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, marmitas_mes: v } })} placeholder="não configurado" /></Campo>
           <Campo rotulo="Equipe por mês (R$)" dica={doSistema.cmoMes > 0 ? `Em branco: ${brl(doSistema.cmoMes)} do RH (Funcionários).` : "Em branco: vem do RH, de quem está em Funcionários."}><CampoNumero valor={cfg.rateio.cmo_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, cmo_mes: v } })} placeholder={doSistema.cmoMes > 0 ? vazio(doSistema.cmoMes) : "não configurado"} /></Campo>
-          <Campo rotulo="Custos fixos por mês (R$)" dica={doSistema.fixosContasMes > 0 ? `Em branco: ${brl(doSistema.fixosContasMes)} das contas do mês passado.` : "Em branco: vem das contas a pagar da marmitaria."}><CampoNumero valor={cfg.rateio.fixos_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, fixos_mes: v } })} placeholder={doSistema.fixosContasMes > 0 ? vazio(doSistema.fixosContasMes) : "não configurado"} /></Campo>
+        </div>
+        <p className="mb-1 mt-4 text-sm font-bold text-hf-text">Custos fixos do mês</p>
+        <p className="mb-2 text-xs text-hf-muted">{doSistema.fixosContasMes > 0 ? `Sem nada aqui, valem ${brl(doSistema.fixosContasMes)} das contas do mês passado.` : "Coloque o valor de cada conta. Entra sozinho no preço de cada marmita."}</p>
+        <ul className="space-y-2">
+          {cfg.rateio.custos_fixos.map((c, i) => (
+            <li key={i} className="grid grid-cols-[1fr_120px_44px] items-center gap-2">
+              <input className={inputCls} value={c.nome} aria-label="Nome da conta" onChange={(e) => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_fixos: cfg.rateio.custos_fixos.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x)) } })} />
+              <CampoNumero valor={c.valor} placeholder="0,00" aria-label={`Valor de ${c.nome || "conta"}`} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_fixos: cfg.rateio.custos_fixos.map((x, j) => (j === i ? { ...x, valor: v } : x)) } })} />
+              <button type="button" aria-label={`Tirar ${c.nome || "conta"}`} onClick={() => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_fixos: cfg.rateio.custos_fixos.filter((_, j) => j !== i) } })} className="grid h-11 w-11 place-items-center rounded-lg text-hf-muted hover:bg-hf-elevated"><Trash2 size={16} /></button>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {SUGESTOES_FIXAS.filter((n) => !cfg.rateio.custos_fixos.some((c) => c.nome === n)).map((n) => <button key={n} type="button" onClick={() => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_fixos: [...cfg.rateio.custos_fixos, { nome: n, valor: "" }] } })} className="min-h-[40px] rounded-full border border-hf-border px-3 text-sm font-semibold text-hf-text-2"><Plus size={13} className="mr-1 inline" />{n}</button>)}
+          <button type="button" onClick={() => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_fixos: [...cfg.rateio.custos_fixos, { nome: "", valor: "" }] } })} className="min-h-[40px] rounded-full border border-dashed border-hf-border-strong px-3 text-sm font-semibold text-hf-accent">Outra conta</button>
         </div>
         <p className="mt-3 text-sm text-hf-text-2">
           {previa?.completo ? <>Cada marmita carrega <b className="tabular-nums">{brl(previa.cmoPorMarmita)}</b> de equipe e <b className="tabular-nums">{brl(previa.fixosPorMarmita)}</b> de custos fixos.</>

@@ -11,12 +11,17 @@ import { ehEmbalagem } from "../../../../components/marmitaria/BuscaItens";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, brl, inputCls, lerNumero, num } from "../../../../components/marmitaria/ui";
 import { ESTOQUE_EMBALAGENS, ESTOQUE_MARMITARIA, criarPedido, fetchPedidos, novaChave, receberPedido } from "../../../../lib/marmitaria/dados";
 import { ESTOQUE_LIMPEZA, conferencia, ehEstoqueDaMarmitaria, ehLimpeza, pedidosDaMarmitaria, somarDias } from "../../../../lib/marmitaria/cozinha.mjs";
+import { etiquetasDoRecebimento, textoDoRecebido } from "../../../../lib/marmitaria/etiquetas.mjs";
+import { CONSERVACAO } from "../../../../lib/etiquetas";
+import EtiquetasProntas from "../../../../components/marmitaria/EtiquetasProntas";
 import { custoUnitarioEfetivoInsumo } from "../../../../lib/ficha-calculos.mjs";
 import { casaBusca } from "../../../../lib/busca.mjs";
 
 const hojeIso = () => new Date().toLocaleDateString("sv-SE");
 const texto = (v) => (v === null || v === undefined ? "" : String(Math.round(Number(v) * 1000) / 1000).replace(".", ","));
 const chip = (a) => `min-h-[44px] rounded-xl border px-4 text-sm font-bold ${a ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border bg-hf-surface text-hf-text-2"}`;
+// appearance-none: sem isso o campo de data do iPhone passa da largura do cartão.
+const dataCls = `${inputCls} min-w-0 max-w-full appearance-none`;
 const COR_CONFERENCIA = { igual: "text-hf-accent", mais: "text-hf-warning", menos: "text-hf-danger" };
 
 function NovoPedido({ estoques, aoCriar }) {
@@ -66,11 +71,11 @@ function NovoPedido({ estoques, aoCriar }) {
             const un = String(i.insumo.unidade_medida || "un").toLowerCase();
             const q = lerNumero(i.qtd); const c = custoUnitarioEfetivoInsumo(i.insumo);
             return (
-              <li key={i.insumo.id} className="grid grid-cols-[1fr_1fr_44px] items-end gap-2 py-2">
+              <li key={i.insumo.id} className="grid grid-cols-[1fr_1fr_44px] items-start gap-2 py-2">
                 <p className="col-span-3 text-sm font-bold text-hf-text">{i.insumo.nome}</p>
                 <Campo rotulo={`Quantidade (${un})`}><CampoNumero valor={i.qtd} onChange={(v) => { const nq = lerNumero(v); mudar(i.insumo.id, { qtd: v, valor: !i.mexeuValor && nq > 0 && c > 0 ? texto(Math.round(nq * c * 100) / 100) : i.valor }); }} /></Campo>
-                <Campo rotulo="Valor total (R$)" dica={c > 0 && q > 0 ? `Último custo: ${brl(c)}/${un}` : "Sem custo cadastrado"}><CampoNumero valor={i.valor} onChange={(v) => mudar(i.insumo.id, { valor: v, mexeuValor: true })} /></Campo>
-                <button type="button" aria-label={`Tirar ${i.insumo.nome}`} onClick={() => setItens((l) => l.filter((x) => x.insumo.id !== i.insumo.id))} className="mb-5 grid h-11 w-11 place-items-center rounded-lg text-hf-muted hover:bg-hf-elevated"><Trash2 size={16} /></button>
+                <Campo rotulo="Valor total (R$)" dica={c > 0 ? `Último custo: ${brl(c)}/${un}` : "Sem custo cadastrado"}><CampoNumero valor={i.valor} onChange={(v) => mudar(i.insumo.id, { valor: v, mexeuValor: true })} /></Campo>
+                <button type="button" aria-label={`Tirar ${i.insumo.nome}`} onClick={() => setItens((l) => l.filter((x) => x.insumo.id !== i.insumo.id))} className="mt-5 grid h-11 w-11 place-items-center rounded-lg text-hf-muted hover:bg-hf-elevated"><Trash2 size={16} /></button>
               </li>
             );
           })}
@@ -91,7 +96,7 @@ function NovoPedido({ estoques, aoCriar }) {
 function Receber({ pedido, aoReceber }) {
   const { base, unidadeId } = useMarmitaria();
   const [linhas, setLinhas] = useState(() => pedido.itens.map((item) => ({
-    item, insumo: base.insumos.get(item.insumo_id), pedida: Number(item.quantidade_pedida_embalagens ?? item.quantidade_embalagens) || 0, qtd: "", valor: texto(item.valor_total), validade: "",
+    item, insumo: base.insumos.get(item.insumo_id), pedida: Number(item.quantidade_pedida_embalagens ?? item.quantidade_embalagens) || 0, qtd: "", valor: texto(item.valor_total), validade: "", conservacao: "Resfriado", copias: "1",
   })));
   const [vencimento, setVencimento] = useState(hojeIso());
   const [salvando, setSalvando] = useState(false);
@@ -103,9 +108,10 @@ function Receber({ pedido, aoReceber }) {
     if (linhas.some((l) => String(l.qtd).trim() === "")) return setErro("Informe o que chegou de cada produto. Se não chegou, coloque 0.");
     setSalvando(true); setErro(null);
     try {
-      const r = await receberPedido({ unidadeId, compra: pedido, hoje: hojeIso(), vencimento, linhas: linhas.map((l) => ({ ...l, recebida: lerNumero(l.qtd), valor: lerNumero(l.valor) || 0 })) });
+      const prontas = linhas.map((l) => ({ ...l, recebida: lerNumero(l.qtd), valor: lerNumero(l.valor) || 0 }));
+      const r = await receberPedido({ unidadeId, compra: pedido, hoje: hojeIso(), vencimento, linhas: prontas });
       if (r.error) { setErro(r.error); return; }
-      await aoReceber();
+      await aoReceber(etiquetasDoRecebimento(prontas));
     } finally { setSalvando(false); }
   }
 
@@ -123,13 +129,15 @@ function Receber({ pedido, aoReceber }) {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               <Campo rotulo={`Chegou (pedido: ${num(l.pedida)} ${un})`}><CampoNumero valor={l.qtd} onChange={(v) => mudar(l.item.id, { qtd: v })} placeholder="0" /></Campo>
               <Campo rotulo="Valor cobrado (R$)"><CampoNumero valor={l.valor} onChange={(v) => mudar(l.item.id, { valor: v })} /></Campo>
-              <Campo rotulo="Validade" className="col-span-2 sm:col-span-1"><input type="date" className={inputCls} value={l.validade} onChange={(e) => mudar(l.item.id, { validade: e.target.value })} /></Campo>
+              <Campo rotulo="Validade" className="col-span-2 sm:col-span-1" dica="Com validade, a etiqueta sai ao lançar."><input type="date" className={dataCls} value={l.validade} onChange={(e) => mudar(l.item.id, { validade: e.target.value })} /></Campo>
+              {l.validade && <Campo rotulo="Conservação"><select className={inputCls} value={l.conservacao} onChange={(e) => mudar(l.item.id, { conservacao: e.target.value })}>{CONSERVACAO.map((c) => <option key={c.id} value={c.id}>{c.id}</option>)}</select></Campo>}
+              {l.validade && <Campo rotulo="Etiquetas"><CampoNumero valor={l.copias} onChange={(v) => mudar(l.item.id, { copias: v })} /></Campo>}
             </div>
             {c && <p className={`mt-1 text-sm font-bold ${COR_CONFERENCIA[c.id]}`}>{c.id === "igual" ? "Quantidade igual ao pedido" : `${num(Math.abs(c.diferenca))} ${un} a ${c.id === "mais" ? "mais" : "menos"}`}</p>}
           </div>
         );
       })}
-      <Campo rotulo="Vencimento da conta a pagar" className="max-w-[220px]"><input type="date" className={inputCls} value={vencimento} onChange={(e) => e.target.value && setVencimento(e.target.value)} /></Campo>
+      <Campo rotulo="Vencimento da conta a pagar" className="max-w-[220px]"><input type="date" className={dataCls} value={vencimento} onChange={(e) => e.target.value && setVencimento(e.target.value)} /></Campo>
       {erro && <Aviso tipo="alerta">{erro}</Aviso>}
       <Botao type="button" onClick={lancar} disabled={salvando}>{salvando ? "Lançando…" : "Lançar no estoque"}</Botao>
     </div>
@@ -140,6 +148,7 @@ export default function ComprasPage() {
   const { base, carregando, unidadeId, recarregar } = useMarmitaria();
   const [dados, setDados] = useState({ compras: [], itens: [] });
   const [aberto, setAberto] = useState(null);
+  const [etiquetas, setEtiquetas] = useState(null);
   const estoques = useMemo(() => (base?.estoques || []).filter(ehEstoqueDaMarmitaria), [base]);
   const ids = estoques.map((e) => e.id).join();
   const carregar = async () => setDados(await fetchPedidos(unidadeId, estoques.map((e) => e.id)));
@@ -152,6 +161,7 @@ export default function ComprasPage() {
   return (
     <div className="space-y-4">
       {dados.error && <Aviso tipo="alerta">{dados.error}</Aviso>}
+      {etiquetas?.length > 0 && <EtiquetasProntas key={etiquetas.chave} lista={etiquetas} unidadeId={unidadeId} recebidoEm={hojeIso()} onFechar={() => setEtiquetas(null)} />}
       <Secao titulo="Aguardando chegada" subtitulo="Quando chegar, confira a quantidade e lance no estoque.">
         {!aguardando.length ? <p className="text-sm text-hf-text-2">Nenhum pedido aguardando.</p> : (
           <ul className="space-y-3">
@@ -166,7 +176,7 @@ export default function ComprasPage() {
                   <button type="button" aria-expanded={aberto === p.id} onClick={() => setAberto(aberto === p.id ? null : p.id)} className="ml-auto min-h-[44px] rounded-xl bg-hf-accent px-4 text-sm font-bold text-hf-accent-fg">Chegou</button>
                 </div>
                 <p className="mt-1 text-sm text-hf-text-2">{p.itens.map((i) => `${i.descricao_snapshot} (${num(i.quantidade_pedida_embalagens ?? i.quantidade_embalagens)} ${String(base.insumos.get(i.insumo_id)?.unidade_medida || "un").toLowerCase()})`).join(" · ")}</p>
-                {aberto === p.id && <Receber pedido={p} aoReceber={async () => { setAberto(null); await Promise.all([carregar(), recarregar()]); }} />}
+                {aberto === p.id && <Receber pedido={p} aoReceber={async (lista) => { setAberto(null); setEtiquetas(lista.length ? Object.assign(lista, { chave: novaChave() }) : null); await Promise.all([carregar(), recarregar()]); }} />}
               </li>
             ))}
           </ul>
@@ -178,10 +188,7 @@ export default function ComprasPage() {
           <ul className="divide-y divide-hf-border">
             {recebidos.slice(0, 15).map((p) => (
               <li key={p.id} className="py-2 text-sm text-hf-text-2">
-                <b className="text-hf-text">{String(p.data_recebimento || "").split("-").reverse().join("/")}</b>: {p.itens.map((i) => {
-                  const c = conferencia(i.quantidade_pedida_embalagens, i.quantidade_embalagens);
-                  return `${i.descricao_snapshot} ${num(i.quantidade_embalagens)}${c && c.id !== "igual" ? ` (${c.diferenca > 0 ? "+" : ""}${num(c.diferenca)})` : ""}`;
-                }).join(" · ")}
+                <b className="text-hf-text">{String(p.data_recebimento || "").split("-").reverse().join("/")}</b>: {p.itens.map((i) => textoDoRecebido(i, base.insumos.get(i.insumo_id)?.unidade_medida)).join(" · ")}
               </li>
             ))}
           </ul>

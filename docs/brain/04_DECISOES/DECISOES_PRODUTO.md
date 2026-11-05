@@ -92,4 +92,4 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - **Mudança de custo:** compara o primeiro preço do histórico nos últimos 30 dias com o preço de hoje (`insumos_precos_historico`). O preço de venda fica igual, então a diferença de custo sai direto do lucro.
 - **Painel:** usa as mesmas linhas do Cardápio. "O que mais rendeu" = vendas reais × lucro de hoje (ESTIMATIVA).
 - **Sugestões:** testam as combinações com preço e custo, com o mesmo desconto sobre a soma. O alvo é a meta de lucro ou, sem meta, a média dos pratos. Combo sem marmita não carrega equipe nem custos fixos.
-
+- **Simulador de vendas:** equipe e custos fixos entram uma vez no mês, não por marmita, porque não crescem com a venda. Por isso o lucro simulado pode ser diferente de "lucro por marmita × quantidade". Avisa quando o faturamento anual passa do limite do MEI (LC 238/2026: R$ 81 mil em 2026, R$ 110 mil em 2027, R$ 140 mil em 2028).

@@ -7,7 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import { useCardapio } from "./useCardapio";
-import { Aviso, Botao, Campo, Secao, Selo, brl, inputCls, lerNumero, markupTxt, pctTxt } from "./ui";
+import SimuladorDeVendas from "./SimuladorDeVendas";
+import { Abas, Aviso, Botao, Campo, Secao, Selo, brl, inputCls, lerNumero, markupTxt, pctTxt } from "./ui";
 import { fetchVendas } from "../../lib/marmitaria/dados";
 import { MODELOS_COMBO, normalizarCombo } from "../../lib/marmitaria/promocoes.mjs";
 import { compararPromocoes, painelDeLucro, sugerirCombos } from "../../lib/marmitaria/painel-lucro.mjs";
@@ -132,9 +133,10 @@ function Sugestoes({ catalogo, comum, alvoPct, combos, setCombos, unidadeId }) {
   );
 }
 
-export default function PainelDeLucro() {
-  const { unidadeId } = useMarmitaria();
-  const { canais, canal, setCanalId, combos, setCombos, metaPct, catalogo, comum, linhas, mudancas } = useCardapio();
+export default function PainelDeLucro({ abaInicial = "painel" }) {
+  const { base, unidadeId } = useMarmitaria();
+  const { canais, canal, setCanalId, combos, setCombos, metaPct, catalogo, comum, linhas, mudancas, embutidos } = useCardapio();
+  const [aba, setAba] = useState(abaInicial === "simulador" ? "simulador" : "painel");
   const [vendas, setVendas] = useState([]);
   const [itemId, setItemId] = useState("");
 
@@ -162,8 +164,10 @@ export default function PainelDeLucro() {
         <span className="text-xs font-bold uppercase text-hf-muted">Vendendo em</span>
         {canais.map((c) => <button key={c.id} type="button" className={chip(c.id === canal.id)} onClick={() => setCanalId(c.id)}>{c.nome}</button>)}
       </div>
+      <Abas abas={[{ id: "painel", rotulo: "Painel" }, { id: "simulador", rotulo: "Simulador de vendas" }]} valor={aba} onChange={setAba} />
       {falta && <Aviso tipo="alerta">{falta}: preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a> para ver o lucro.</Aviso>}
 
+      {aba === "simulador" ? <SimuladorDeVendas linhas={linhas} embutidos={embutidos} config={base.config} /> : <>
       <MudancasDeCusto mudancas={mudancas} />
 
       {!falta && (p.pratos.length > 0 ? <>
@@ -214,6 +218,7 @@ export default function PainelDeLucro() {
         </Secao>
 
         <Sugestoes catalogo={catalogo} comum={comum} alvoPct={alvoPct} combos={combos} setCombos={setCombos} unidadeId={unidadeId} />
+      </>}
       </>}
     </div>
   );

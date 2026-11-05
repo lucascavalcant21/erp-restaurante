@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { compararPromocoes, melhorTroca, mudancasDeCusto, painelDeLucro, sugerirCombos } from "./painel-lucro.mjs";
+import { compararPromocoes, limiteMei, melhorTroca, mudancasDeCusto, painelDeLucro, simularVendas, sugerirCombos } from "./painel-lucro.mjs";
 import { cardapioDeVendas, normalizarCombo, itensDoCombo } from "./promocoes.mjs";
 import { normalizarCanal } from "./nucleo.mjs";
 
@@ -95,4 +95,32 @@ test("troca de item no mesmo preço aumenta o lucro", () => {
   const t = melhorTroca({ itens: [catalogo.marmita[0], catalogo.bebida[1]], preco: 36, catalogo, comum });
   assert.deepEqual([t.sai.nome, t.entra.nome, t.ganho], ["Importada", "Suco", 5]);
   assert.equal(melhorTroca({ itens: [catalogo.marmita[0], catalogo.bebida[0]], preco: 36, catalogo, comum }), null);
+});
+
+test("200 por dia em 25 dias: fatura, sobra e paga equipe e fixos uma vez só", () => {
+  const embutidos = { cmoPorMarmita: 1, fixosPorMarmita: 1, totalPorMarmita: 2, cmoMes: 2000, fixosMes: 1000 };
+  const linhas = cardapioDeVendas({ catalogo, canal, tributosPct: 0, embutidos, combos: [{ id: "c", nome: "Combo", modelo: "comida_bebida", itens: [{ grupo: "marmita", id: "m1" }, { grupo: "bebida", id: "b1" }], preco: "34" }] });
+  const s = simularVendas({ linhas, quantidades: { "m-m1": 200, c: 50 }, diasMes: 25, embutidos });
+  // Marmita sobra 14 (30 − 6 − 10) e o combo sobra 15,20 (34 − 6,80 − 12).
+  assert.deepEqual(s.itens.map((i) => [i.nome, i.sobraPorPedido, i.sobraDia]), [["Combo", 15.2, 760], ["Frango", 14, 2800]]);
+  assert.deepEqual([s.mes.pedidos, s.mes.faturamento, s.mes.produtos, s.mes.taxas], [6250, 192500, 65000, 38500]);
+  assert.equal(s.mes.lucro, 86000);
+  assert.equal(s.dia.lucro, 3440);
+  assert.equal(s.semana.lucro, 19846.15);
+  assert.equal(s.faturamentoAno, 2310000);
+  assert.equal(s.pedidosParaEmpatar, 9);
+  assert.deepEqual(s.faltando, []);
+});
+
+test("item sem lucro fica fora e avisa; sem equipe e fixos a conta diz o que falta", () => {
+  const linhas = cardapioDeVendas({ catalogo: { marmita: [...catalogo.marmita, { id: "x", nome: "Sem custo", preco: 30, custo: null, grupo: "marmita" }], bebida: [], sobremesa: [] }, canal, tributosPct: 0 });
+  const s = simularVendas({ linhas, quantidades: { "m-m1": 10, "m-x": 5, "m-m2": 0 } });
+  assert.deepEqual([s.itens.length, s.semDados, s.dias], [1, 1, 25]);
+  assert.deepEqual(s.faltando, ["equipe", "custos fixos"]);
+  assert.equal(s.mes.lucro, 3500);
+  assert.equal(simularVendas({ linhas: [] }).pedidosParaEmpatar, null);
+});
+
+test("limite do MEI por ano", () => {
+  assert.deepEqual([limiteMei(2026), limiteMei(2027), limiteMei(2028), limiteMei(2030)], [81000, 110000, 140000, 140000]);
 });

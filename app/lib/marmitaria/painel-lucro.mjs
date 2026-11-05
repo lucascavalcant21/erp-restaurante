@@ -183,3 +183,53 @@ export function melhorTroca({ itens, preco, catalogo, comum }) {
   });
   return melhor;
 }
+
+export const SEMANAS_POR_MES = 52 / 12;
+
+// Lei Complementar 238/2026, sancionada em 21/10/2026. Reconfirmar a cada ano.
+const LIMITES_MEI = [[2026, 81000], [2027, 110000], [2028, 140000]];
+export function limiteMei(ano) {
+  const achado = [...LIMITES_MEI].reverse().find(([a]) => ano >= a);
+  return achado ? achado[1] : LIMITES_MEI[0][1];
+}
+
+/**
+ * Se eu vender tantos por dia, durante tantos dias. Equipe e custos fixos são
+ * contas do mês: entram uma vez, não por marmita, porque não crescem com a
+ * venda. Por isso a conta usa o que sobra de cada pedido antes deles.
+ */
+export function simularVendas({ linhas = [], quantidades = {}, diasMes = 25, embutidos = null } = {}) {
+  const dias = Math.min(31, Math.max(1, Math.round(num(diasMes)) || 25));
+  const itens = [];
+  let semDados = 0;
+  const dia = { pedidos: 0, faturamento: 0, produtos: 0, taxas: 0, sobra: 0 };
+  for (const l of linhas || []) {
+    const q = num(quantidades?.[l.id]);
+    if (!(q > 0)) continue;
+    const r = l.sim?.com;
+    if (l.lucro == null || !r?.valido || r.margemContribuicao == null) { semDados += 1; continue; }
+    dia.pedidos += q;
+    dia.faturamento += q * r.receita;
+    dia.produtos += q * r.custo;
+    dia.taxas += q * (r.tributos + r.variaveis);
+    dia.sobra += q * r.margemContribuicao;
+    itens.push({ id: l.id, nome: l.nome, quantidade: q, sobraPorPedido: r.margemContribuicao, sobraDia: r2(q * r.margemContribuicao), faturamentoDia: r2(q * r.receita) });
+  }
+  const equipe = embutidos?.cmoMes ?? null;
+  const fixos = embutidos?.fixosMes ?? null;
+  const mes = {
+    pedidos: r2(dia.pedidos * dias), faturamento: r2(dia.faturamento * dias), produtos: r2(dia.produtos * dias), taxas: r2(dia.taxas * dias),
+    equipe, fixos, lucro: r2(dia.sobra * dias - (equipe || 0) - (fixos || 0)),
+  };
+  const periodo = (d) => ({ pedidos: r2(mes.pedidos / d), faturamento: r2(mes.faturamento / d), lucro: r2(mes.lucro / d) });
+  const faltando = [equipe === null && "equipe", fixos === null && "custos fixos"].filter(Boolean);
+  const sobraMedia = dia.pedidos > 0 ? dia.sobra / dia.pedidos : 0;
+  return {
+    itens, semDados, dias, faltando,
+    dia: periodo(dias), semana: periodo(SEMANAS_POR_MES), mes,
+    lucroPct: mes.faturamento > 0 ? r2((mes.lucro / mes.faturamento) * 100) : null,
+    faturamentoAno: r2(mes.faturamento * 12),
+    // Quantos pedidos por dia, nessa mesma mistura, pagam equipe e custos fixos.
+    pedidosParaEmpatar: sobraMedia > 0 ? Math.ceil(((equipe || 0) + (fixos || 0)) / sobraMedia / dias) : null,
+  };
+}

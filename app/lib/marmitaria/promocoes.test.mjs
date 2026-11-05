@@ -58,7 +58,7 @@ test("catálogo e combo comida + bebida + sobremesa", () => {
 });
 
 test("cardápio de vendas: preço cheio, promoção 2x1 e combo, com veredito", async () => {
-  const { cardapioDeVendas, projecaoDeVendas, veredito } = await import("./promocoes.mjs");
+  const { cardapioDeVendas, veredito } = await import("./promocoes.mjs");
   const catalogo = { marmita: [{ id: "m1", nome: "Frango", preco: 40, custo: 15 }], bebida: [{ id: "b1", nome: "Suco", preco: 10, custo: 3 }], sobremesa: [] };
   const linhas = cardapioDeVendas({
     catalogo, ofertas: [{ id: "o1", ficha_id: "m1", tipo: "leve_pague", leve: "2", pague: "1" }],
@@ -74,9 +74,6 @@ test("cardápio de vendas: preço cheio, promoção 2x1 e combo, com veredito", 
   assert.equal(por.c1.lucro, 27);                // 45 − 18
   assert.equal(veredito(-1, 20).id, "prejuizo");
   assert.equal(veredito(10, 20).id, "baixo");
-  // 10 frangos por dia, 6 dias: 250/dia, 1500/semana, 6500/mês
-  const p = projecaoDeVendas(linhas, { "m-m1": 10 }, { diasPorSemana: 6 });
-  assert.deepEqual([p.dia.lucro, p.semana.lucro, p.mes.lucro, p.dia.faturamento], [250, 1500, 6500, 400]);
 });
 
 test("marmita com custo incompleto não aparece como lucro de 100%", async () => {

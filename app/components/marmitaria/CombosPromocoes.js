@@ -14,7 +14,7 @@ import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, markupTxt, in
 import {
   TIPOS_OFERTA, MODELOS_COMBO, ROTULO_GRUPO,
   simularOferta, normalizarCombo, itensDoCombo,
-  projecaoDeVendas, normalizarOferta, rotuloDaOferta,
+  normalizarOferta, rotuloDaOferta,
 } from "../../lib/marmitaria/promocoes.mjs";
 import { ehMei, ordenarCategorias, rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
 import { melhorTroca } from "../../lib/marmitaria/painel-lucro.mjs";
@@ -31,10 +31,6 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
   const [aba, setAba] = useState(["cardapio", "combos", "promocoes", "modelo"].includes(abaInicial) ? abaInicial : "cardapio");
   const { base, custos, unidadeId } = useMarmitaria();
   const { canais, canal, setCanalId, embutidos, combos, setCombos, ofertas, setOfertas, metaPct, setMetaPct, catalogo, comum, linhas, mudancas } = useCardapio();
-  const [diasSemana, setDiasSemana] = useState("6");
-  const chaveVendas = `hefisto:marmitaria:vendas-dia:${unidadeId}`;
-  const [vendas, setVendas] = useState(() => { try { return JSON.parse(localStorage.getItem(chaveVendas) || "{}") || {}; } catch { return {}; } });
-  const mudarVenda = (id, v) => setVendas((x) => { const n = { ...x, [id]: v }; try { localStorage.setItem(chaveVendas, JSON.stringify(n)); } catch { /* segue */ } return n; });
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState(null);
 
@@ -81,7 +77,7 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
       {aba !== "modelo" && linhas[0]?.falta && <Aviso tipo="alerta">{linhas[0].falta}: preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a> para ver o lucro.</Aviso>}
       {aba !== "modelo" && !embutidos.completo && <Aviso>Equipe e custos fixos ainda não entram por completo (falta {embutidos.faltando.join(", ")}). Preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a>.</Aviso>}
 
-      {aba === "cardapio" && <CardapioVendas linhas={linhas} vendas={vendas} mudarVenda={mudarVenda} diasSemana={diasSemana} custos={custos} onEditar={onEditar} comum={comum} metaPct={metaPct}
+      {aba === "cardapio" && <CardapioVendas linhas={linhas} custos={custos} onEditar={onEditar} comum={comum} metaPct={metaPct}
         onRemoverOferta={(id) => gravarOfertas(ofertas.filter((o) => o.id !== id))} msg={msg} irPara={setAba} />}
 
       {aba === "promocoes" && <SimuladorPromocao catalogo={catalogo} comum={comum} bloqueio={linhas[0]?.falta || null}
@@ -123,7 +119,7 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
       {aba !== "modelo" && <details className="group rounded-2xl border border-hf-border bg-hf-surface p-4">
         <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-black text-hf-text">
           <SlidersHorizontal size={16} className="text-hf-accent" /> Ajustes da conta
-          <span className="ml-auto text-xs font-semibold text-hf-text-2">{ehMei(base.config) ? "MEI · " : ""}meta {metaPct === "" ? "—" : `${metaPct}%`} · {diasSemana || "—"} dias/semana</span>
+          <span className="ml-auto text-xs font-semibold text-hf-text-2">{ehMei(base.config) ? "MEI · " : ""}meta {metaPct === "" ? "—" : `${metaPct}%`}</span>
         </summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl bg-hf-elevated p-3 text-sm">
@@ -132,7 +128,6 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
             <p className="text-hf-text">Custos fixos {embutidos.fixosPorMarmita == null ? "—" : brl(embutidos.fixosPorMarmita)}</p>
           </div>
           <Campo rotulo="Meta de lucro (%)" dica="Acima dela: faz sentido. Para fixar, use Configurações."><CampoNumero valor={metaPct} onChange={setMetaPct} placeholder="ex.: 15" /></Campo>
-          <Campo rotulo="Dias que vende por semana"><CampoNumero valor={diasSemana} onChange={setDiasSemana} /></Campo>
         </div>
       </details>}
     </div>
@@ -146,7 +141,7 @@ const VEREDITO_COR = { ok: "bg-hf-accent/10 text-hf-accent", baixo: "bg-hf-warni
 const SECOES_CARDAPIO = [["promocoes", "Promoções"], ["combos", "Combos"], ["marmitas", "Sozinhos"]];
 
 // Cardápio como o cliente vê (estilo iFood) e, ao lado, o lucro de cada item.
-function CardapioVendas({ linhas, vendas, mudarVenda, diasSemana, custos, onRemoverOferta, msg, onEditar, irPara, comum, metaPct }) {
+function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara, comum, metaPct }) {
   const { recarregar } = useMarmitaria();
   const [aberto, setAberto] = useState(null);
   const [precoAberto, setPrecoAberto] = useState(null);
@@ -157,7 +152,6 @@ function CardapioVendas({ linhas, vendas, mudarVenda, diasSemana, custos, onRemo
     const r = await definirDisponibilidade(ficha.id, false);
     if (r.error) setErro(r.error); else await recarregar();
   }
-  const p = projecaoDeVendas(linhas, vendas, { diasPorSemana: diasSemana });
   return (
     <Secao titulo={`Cardápio no ${comum.canal.nome}`} subtitulo="O preço de cada item nessa plataforma e quanto sobra para você em cada pedido.">
       {erro && <p className="mb-2 text-sm font-bold text-hf-danger">{erro}</p>}
@@ -203,15 +197,12 @@ function CardapioVendas({ linhas, vendas, mudarVenda, diasSemana, custos, onRemo
                         <Numero r="Markup" v={markupTxt(l.markup)} />
                         <Numero r="CMV" v={l.cmvPct == null ? "—" : pctTxt(l.cmvPct)} />
                       </dl>
-                      <div className="mt-2 grid grid-cols-[1fr_96px] items-end gap-3 rounded-xl bg-hf-elevated p-2.5">
+                      <div className="mt-2 rounded-xl bg-hf-elevated p-2.5">
                         <div className="min-w-0">
                           <p className="text-[11px] font-bold uppercase text-hf-muted">{rotuloLucro}</p>
                           <p className={`text-xl font-black tabular-nums ${l.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{l.lucro == null ? "—" : brl(l.lucro)} <span className="text-xs font-bold text-hf-text-2">{l.lucro == null ? "" : pctTxt(l.lucroPct)}</span></p>
                           <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-black ${VEREDITO_COR[l.veredito.id]}`}>{l.veredito.rotulo}</span>
                         </div>
-                        <label className="text-[11px] font-bold uppercase text-hf-muted">Vendo/dia
-                          <CampoNumero valor={vendas[l.id] ?? ""} onChange={(v) => mudarVenda(l.id, v)} placeholder="0" aria-label={`Vendas por dia de ${l.nome}`} />
-                        </label>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                         {l.secao === "marmitas" && <button type="button" onClick={() => setPrecoAberto(precoAberto === l.id ? null : l.id)} aria-expanded={precoAberto === l.id} className="min-h-[32px] text-xs font-bold text-hf-accent hover:underline">Formar preço</button>}
@@ -237,21 +228,7 @@ function CardapioVendas({ linhas, vendas, mudarVenda, diasSemana, custos, onRemo
         })}
         {!linhas.length && <p className="text-sm text-hf-text-2">Monte as fichas técnicas para formar o cardápio.</p>}
       </div>
-      <div className="mt-5 rounded-2xl border-2 border-hf-accent/30 bg-hf-accent/5 p-4">
-        <p className="text-sm font-black text-hf-text">Se eu vender isso <Selo natureza="simulacao" /></p>
-        {p.dia.pedidos > 0 ? (
-          <div className="mt-2 grid gap-3 sm:grid-cols-3">
-            {[["Por dia", p.dia], [`Por semana (${p.diasPorSemana} dias)`, p.semana], ["Por mês", p.mes]].map(([rot, v]) => (
-              <div key={rot} className="rounded-xl bg-hf-surface p-3">
-                <p className="text-[11px] font-bold uppercase text-hf-muted">{rot}</p>
-                <p className={`text-xl font-black tabular-nums ${v.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{brl(v.lucro)}</p>
-                <p className="text-xs text-hf-text-2">de lucro · {brl(v.faturamento)} vendidos · {v.pedidos.toLocaleString("pt-BR")} pedidos</p>
-              </div>
-            ))}
-          </div>
-        ) : <p className="mt-1 text-sm text-hf-text-2">Preencha “Vendo/dia” nos itens acima para ver o lucro do dia, da semana e do mês.</p>}
-        {p.semDados > 0 && <p className="mt-2 text-xs font-bold text-hf-warning">{p.semDados} item(ns) sem custo ou sem preço ficaram fora da conta (DADOS INSUFICIENTES).</p>}
-      </div>
+      <a href="/dashboard/marmitaria/marmitas/lucro?aba=simulador" className="mt-5 inline-flex min-h-[44px] items-center text-sm font-bold text-hf-accent hover:underline">Simular vendas do dia, da semana e do mês</a>
     </Secao>
   );
 }

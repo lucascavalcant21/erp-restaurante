@@ -66,3 +66,5 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | Avisar quando embalagem ou ingrediente sobe ou desce, com o efeito no prato e no lucro; painel de lucratividade de pratos, combos e promoções; combos só de sobremesa, sobremesa + bebida e só de bebida | Feito em PR rascunho · TESTADO EM MOCK |
 | 05/11/2026 | Sugestões de combinação: qual item usar, com que preço, para manter a média; o que evitar e o que fazer no lugar | Feito em PR rascunho · TESTADO EM MOCK. Cálculo determinístico, sem modelo de linguagem |
 | 05/11/2026 | "Criar nosso próprio algoritmo para as pessoas não conseguirem copiar nosso sistema" | Respondido: a proteção vem de código privado, regra no servidor e dados próprios. Repositório continua público até o dono decidir |
+| 05/11/2026 | Simulador de vendas: tantos de cada item por dia, tantos dias no mês, quanto fatura e lucra por dia, semana e mês | Feito em PR rascunho · TESTADO EM MOCK. Equipe e fixos entram uma vez no mês |
+| 05/11/2026 | "Eu quero ter o meu próprio algoritmo, algo único lá dentro" | Proposta enviada ao dono; aguarda decisão |

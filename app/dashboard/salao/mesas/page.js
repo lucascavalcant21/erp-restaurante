@@ -10,6 +10,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "../../../lib/supabase";
 import { fmtBRL } from "../../../components/ui";
 import CampoDecimal from "../../../components/CampoDecimal";
+import { resumoPorPessoa, totalDaComanda } from "../../../lib/comandas.mjs";
 import { mascaraCPF, somenteDigitos } from "../../../lib/mascaras.mjs";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
 
@@ -583,7 +584,7 @@ export default function SaloesMesasPage() {
      let sub = 0;
      if(abaAtiva !== 'salao') sub = totalCarrinho;
      else if(abaAtiva === 'salao' && pedidoAtivo) {
-        sub = pedidoAtivo.pedidos_itens?.reduce((acc, it) => acc + (it.valor_unitario * it.quantidade), 0) || 0;
+        sub = totalDaComanda(pedidoAtivo.pedidos_itens || []);
      }
 
      if(sub <= 0) return alert("Valor zerado!");
@@ -628,7 +629,7 @@ export default function SaloesMesasPage() {
      let sub = 0;
      if(abaAtiva !== 'salao') sub = totalCarrinho;
      else if(abaAtiva === 'salao' && pedidoAtivo) {
-        sub = pedidoAtivo.pedidos_itens?.reduce((acc, it) => acc + (it.valor_unitario * it.quantidade), 0) || 0;
+        sub = totalDaComanda(pedidoAtivo.pedidos_itens || []);
      }
      return sub;
   }, [abaAtiva, totalCarrinho, pedidoAtivo]);
@@ -1020,7 +1021,7 @@ export default function SaloesMesasPage() {
                   <div className="px-5 py-4 bg-white border-b border-line flex flex-col gap-1">
                      <div className="flex justify-between items-start">
                         <span className="font-bold text-fg-soft text-lg">Ident: <span className="font-normal">{pedidoAtivo.identificacao || 'Sem Ident'}</span></span>
-                        <span className="font-black text-slate-800 text-xl">{fmtBRL(pedidoAtivo.pedidos_itens?.reduce((a,i)=>a+(i.quantidade*i.valor_unitario),0)||0)}</span>
+                        <span className="font-black text-slate-800 text-xl">{fmtBRL(totalDaComanda(pedidoAtivo.pedidos_itens || []))}</span>
                      </div>
                      <span className="font-bold text-slate-900 text-sm">Comanda: {pedidoAtivo.id.substring(0,6).toUpperCase()}</span>
                      <div className="flex gap-4 mt-2">
@@ -1367,6 +1368,17 @@ export default function SaloesMesasPage() {
                
                {/* Lado Esquerdo: Identificação e Descontos */}
                <div className="w-full md:w-1/3 bg-white border-b md:border-b-0 md:border-r border-line p-4 sm:p-6 overflow-y-visible md:overflow-y-auto custom-scrollbar">
+                  {abaAtiva === 'salao' && resumoPorPessoa(pedidoAtivo?.pedidos_itens || []).length > 1 && (
+                     <div className="mb-6 rounded-xl border border-line p-3">
+                        <h3 className="mb-2 text-sm font-black text-slate-800">Por pessoa</h3>
+                        <ul className="space-y-1 text-sm">
+                           {resumoPorPessoa(pedidoAtivo?.pedidos_itens || []).map((g) => (
+                              <li key={g.pessoa} className="flex justify-between gap-3"><span className="truncate">{g.pessoa}</span><span className="font-bold tabular-nums">{fmtBRL(g.total)}</span></li>
+                           ))}
+                        </ul>
+                        <p className="mt-2 text-xs text-fg">Consumo sem os 10%.</p>
+                     </div>
+                  )}
                   <h3 className="font-black text-slate-800 mb-6 flex items-center gap-2"><Users size={18}/> Cliente na Nota</h3>
                   <div className="space-y-4 mb-8">
                      <div>
@@ -1802,7 +1814,7 @@ export default function SaloesMesasPage() {
                            {pedido.identificacao ? pedido.identificacao.substring(0,4) : '#'}
                         </div>
                         <span className="font-black text-fg-soft text-lg">{pedido.identificacao || 'Sem Ident'}</span>
-                        <span className="text-xs font-bold text-subtle uppercase tracking-widest mt-1">R$ {(pedido.pedidos_itens?.reduce((acc, it) => acc + (it.quantidade * it.valor_unitario), 0) || 0).toFixed(2).replace('.',',')}</span>
+                        <span className="text-xs font-bold text-subtle uppercase tracking-widest mt-1">R$ {totalDaComanda(pedido.pedidos_itens || []).toFixed(2).replace('.',',')}</span>
                      </button>
                   ))}
                </div>

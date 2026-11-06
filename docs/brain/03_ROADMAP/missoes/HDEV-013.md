@@ -28,7 +28,8 @@ Decisões do dono (06/11/2026): conta por mesa, dividindo por pessoa. Garçom la
 
 ## Estado
 
-- Etapa 1: telas TESTADO EM MOCK, migração TESTADO LOCAL. `COM_1` não aplicada no banco real.
+- Etapa 1: telas TESTADO EM MOCK. `COM_1` aplicada em 06/11/2026, com aprovação do dono. Fluxo do garçom TESTADO NO SUPABASE REAL em transação desfeita.
+- Etapa 3: feita em 06/11/2026 com aprovação do dono (`db/comandas/COM_2_LIMPEZA_DE_TESTES.sql`). Nada apagado.
 - Impressão na cozinha e no bar: NÃO VALIDADO em impressora física.
 - `fecharContaDaMesa` grava em etapas, ignora erros, usa `lancamentos` e não cria `vendas`. A tabela `vendas` está vazia: nenhuma conta foi fechada de verdade.
 - A tela antiga usava `comandas` (itens em JSON). Essa tabela fica no banco, sem uso.

@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, Calculator, UtensilsCrossed } from "lucide-react";
+import { BookOpen, CalendarDays, Calculator, Target, UtensilsCrossed } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
 
@@ -20,6 +20,7 @@ const AREAS = [
   { href: `${BASE}/rapido`, rotulo: "Simulador", curto: "Simular", icone: Calculator },
   { href: FUNIL, rotulo: "Funil de eventos", curto: "Funil", icone: BookOpen, ativo: (p) => p === BASE || p === FUNIL },
   { href: `${BASE}/agenda`, rotulo: "Agenda", curto: "Agenda", icone: CalendarDays },
+  { href: `${BASE}/metas`, rotulo: "Metas", curto: "Metas", icone: Target },
   { href: `${BASE}/reservas`, rotulo: "Reservas de mesa", curto: "Reservas", icone: UtensilsCrossed },
 ];
 
@@ -44,7 +45,7 @@ export default function ReservasEventosLayout({ children }) {
           {unidadeInfo?.nome && <p className="text-sm text-hf-text-2">{unidadeInfo.nome}</p>}
         </header>
         {areas.length > 1 && (
-          <nav aria-label="Áreas de eventos e reservas" className={`mb-5 grid gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:max-w-3xl ${areas.length > 3 ? "grid-cols-4" : "grid-cols-3"}`}>
+          <nav aria-label="Áreas de eventos e reservas" className={`mb-5 grid gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:max-w-3xl ${areas.length > 4 ? "grid-cols-5" : areas.length > 3 ? "grid-cols-4" : "grid-cols-3"}`}>
             {areas.map((a) => {
               const ativo = a.ativo ? a.ativo(pathname) : pathname === a.href || pathname.startsWith(`${a.href}/`);
               const Icone = a.icone;

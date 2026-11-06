@@ -88,6 +88,9 @@ export function orcamentoVazio(params = {}) {
       imposto_pct: pos(params.imposto_pct),
       maquininha_pct: pos(params.taxa_cartao_pct),
       meta_lucro_pct: pos(params.margem_alvo_pct),
+      // Meta em reais por convidado (regra do dono, 06/11/2026): se preenchida,
+      // vale no lugar da porcentagem e não muda com o preço.
+      meta_lucro_reais_pessoa: "",
       prolabore: { modo: "pct", valor: 0 },
       comissoes: [],
       preco_por_pessoa: 0,
@@ -349,11 +352,17 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
   const regras = [...(fin.comissoes || []), fin.prolabore].filter(Boolean);
   const fixos = cmv + equipe + extras + regras.filter((g) => g.modo === "valor").reduce((t, g) => t + pos(g.valor), 0);
   const pctSobrePreco = impostoPct + maquininhaPct + regras.filter((g) => g.modo !== "valor").reduce((t, g) => t + pos(g.valor), 0);
-  const metaPct = pos(fin.meta_lucro_pct);
-  const precoPara = (meta) => {
+  const metaReaisPessoa = pos(fin.meta_lucro_reais_pessoa);
+  const emReais = metaReaisPessoa > 0;
+  const metaReaisTotal = emReais && convidados > 0 ? r2(metaReaisPessoa * convidados) : 0;
+  const metaPct = emReais ? 0 : pos(fin.meta_lucro_pct);
+  // Meta em reais entra como custo fixo; em %, como fatia do preço. `zero` = lucro zero.
+  const precoPara = (zero) => {
+    const meta = zero ? 0 : metaPct;
+    const somaFixa = fixos + (zero ? 0 : metaReaisTotal);
     const sobra = 100 - pctSobrePreco - meta;
     if (!(convidados > 0) || !(fixos > 0) || !(sobra > 0)) return null;
-    const receitaAlvo = fixos / (sobra / 100);
+    const receitaAlvo = somaFixa / (sobra / 100);
     const descPct = fin.desconto?.modo === "pct" ? Math.min(pos(fin.desconto?.valor), 99.99) / 100 : 0;
     const bruta = descPct ? receitaAlvo / (1 - descPct) : receitaAlvo + (fin.desconto?.modo === "pct" ? 0 : pos(fin.desconto?.valor));
     const fixoCriancas = pc.modo === "valor" ? pos(pc.valor) * criancas : 0;
@@ -364,11 +373,12 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
   };
 
   // Preço do pacote da mesa que, com o preço por pessoa atual, chega na meta.
-  const pacotePara = (meta) => {
+  const pacotePara = (zero) => {
+    const meta = zero ? 0 : metaPct;
     const sobra = 100 - pctSobrePreco - meta;
     if (!temMesa || !(fixos > 0) || !(sobra > 0)) return null;
     const descPct = fin.desconto?.modo === "pct" ? Math.min(pos(fin.desconto?.valor), 99.99) / 100 : 0;
-    const alvo = fixos / (sobra / 100);
+    const alvo = (fixos + (zero ? 0 : metaReaisTotal)) / (sobra / 100);
     const bruta = descPct ? alvo / (1 - descPct) : alvo + (fin.desconto?.modo === "pct" ? 0 : pos(fin.desconto?.valor));
     const v = bruta - receitaPorPessoa;
     return v > 0 ? Math.ceil(v) : null;
@@ -394,11 +404,15 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
   ];
 
   const custoTotal = r2(receita - lucro); // tudo o que sai, incluindo taxas e pró-labore
+  // A meta sempre em reais: é o dinheiro que precisa sobrar no bolso.
+  const metaValor = emReais ? (convidados > 0 ? metaReaisTotal : null) : metaPct > 0 && receita > 0 ? r2(receita * metaPct / 100) : null;
+  const diferencaMeta = metaValor !== null && receita > 0 ? r2(lucro - metaValor) : null;
+  const sugerido = precoPara(false);
   return {
     convidados, adultos, criancas, pessoasConsumo, sobraPct: pos(orc.sobra_pct), itens, dre,
     precoCrianca, receitaBruta, desconto,
     temMesa, precoMesa, custoMesa, receitaPorPessoa,
-    precoSugeridoMesa: pacotePara(metaPct), precoMinimoMesa: pacotePara(0),
+    precoSugeridoMesa: pacotePara(false), precoMinimoMesa: pacotePara(true),
     precoMedioPorPessoa: convidados > 0 && receita > 0 ? r2(receita / convidados) : null,
     cmv, cmvComida, cmvBebida, equipe, pessoasEquipe, extras, extrasPorCategoria,
     imposto, maquininha, comissoes, comissoesTotal, prolabore,
@@ -410,11 +424,18 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
     custoOperacaoPorPessoa: convidados > 0 ? r2((cmv + equipe + extras) / convidados) : null,
     custoTotalPorPessoa: convidados > 0 && receita > 0 ? r2(custoTotal / convidados) : null,
     lucroPorPessoa: convidados > 0 && receita > 0 ? r2(lucro / convidados) : null,
-    meta: { pct: metaPct, atingida: receita > 0 && (pct(lucro) ?? -Infinity) >= metaPct - 0.005 },
-    precoSugeridoPorPessoa: precoPara(metaPct),
+    meta: {
+      pct: metaPct, emReais, reaisPorPessoa: emReais ? metaReaisPessoa : null, valor: metaValor,
+      definida: emReais || metaPct > 0,
+      atingida: receita > 0 && (emReais ? diferencaMeta !== null && diferencaMeta >= -0.005 : (pct(lucro) ?? -Infinity) >= metaPct - 0.005),
+      // O que passa da meta é margem de segurança; o que falta, falta.
+      margem: diferencaMeta !== null && diferencaMeta > 0 ? diferencaMeta : 0,
+      falta: diferencaMeta !== null && diferencaMeta < 0 ? r2(-diferencaMeta) : 0,
+    },
+    precoSugeridoPorPessoa: sugerido,
     // Sugerido arredondado para o próximo real inteiro (preço "redondo").
-    precoSugeridoRedondo: precoPara(metaPct) ? Math.ceil(precoPara(metaPct) - 0.000001) : null,
-    precoMinimoPorPessoa: precoPara(0),
+    precoSugeridoRedondo: sugerido ? Math.ceil(sugerido - 0.000001) : null,
+    precoMinimoPorPessoa: precoPara(true),
     prejuizo: receita > 0 && lucro < 0,
     semCusto: itens.filter((i) => i.semCusto).map((i) => i.nome),
   };
@@ -512,8 +533,8 @@ export function sugestoesDeEquipe(eventos = []) {
 }
 
 // Etapas que contam como evento fechado e como proposta feita.
-const FECHADO = ["APROVADO", "AGUARDANDO SINAL", "SINAL PAGO", "CONFIRMADO", "PREPARACAO", "EM PRODUCAO", "EVENTO", "FINALIZADO"];
-const PROPOSTA = ["PROPOSTA ENVIADA", "NEGOCIACAO", ...FECHADO, "CANCELADO"];
+export const FECHADO = ["APROVADO", "AGUARDANDO SINAL", "SINAL PAGO", "CONFIRMADO", "PREPARACAO", "EM PRODUCAO", "EVENTO", "FINALIZADO"];
+export const PROPOSTA = ["PROPOSTA ENVIADA", "NEGOCIACAO", ...FECHADO, "CANCELADO"];
 const semAcentoMaiusc = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 
 /* Números do funil no mês (YYYY-MM, pela data do evento; "" = todos):
@@ -575,7 +596,9 @@ export function copiaDoOrcamento(orc) {
 
 // Resumo gravado junto do evento para o funil mostrar lucro sem recalcular.
 export function resumoParaFunil(r) {
-  return { receita: r.receita, lucro: r.lucro, lucro_pct: r.lucroPct, preco_por_pessoa: r.precoPorPessoa, custo_por_pessoa: r.custoTotalPorPessoa ?? r.custoOperacaoPorPessoa };
+  return { receita: r.receita, lucro: r.lucro, lucro_pct: r.lucroPct, preco_por_pessoa: r.precoPorPessoa, custo_por_pessoa: r.custoTotalPorPessoa ?? r.custoOperacaoPorPessoa, meta_lucro: r.meta?.valor ?? null,
+    // Para onde vai o dinheiro (metas do mês dos eventos).
+    cmv: r.cmv, equipe: r.equipe, extras: r.extras, taxas: r2((r.imposto || 0) + (r.maquininha || 0) + (r.comissoesTotal || 0)), prolabore: r.prolabore };
 }
 
 // ─── Pendências ─────────────────────────────────────────────────────────────
@@ -594,7 +617,7 @@ export function pendenciasDoOrcamento(orc = {}, r, { hojeIso, etapa, recebido = 
   if (temPorPessoa && !(r.precoPorPessoa > 0)) lista.push("Valor por pessoa não definido.");
   if (r.temMesa && !(r.precoMesa > 0)) lista.push("Preço da mesa montada (pacote) não definido.");
   if (r.prejuizo) lista.push(r.temMesa ? "O valor cobrado não cobre os custos do evento." : "O valor por pessoa não cobre os custos do evento.");
-  else if (r.receita > 0 && !r.meta.atingida && r.meta.pct > 0) lista.push("O lucro líquido está abaixo da meta.");
+  else if (r.receita > 0 && !r.meta.atingida && r.meta.definida) lista.push("O lucro líquido está abaixo da meta.");
   if (c.data_evento && hojeIso && c.data_evento < hojeIso && !["FINALIZADO", "CANCELADO"].includes(etapa)) lista.push("A data já passou e o evento não foi finalizado no funil.");
   const pendente = r2(r.receita - recebido);
   if (r.receita > 0 && pendente > 0.009 && ["CONFIRMADO", "PREPARACAO", "EM PRODUCAO", "EVENTO", "FINALIZADO"].includes(etapa)) {

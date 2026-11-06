@@ -378,3 +378,19 @@ export async function fetchModeloProposta(unidadeId) {
   return { data: params.proposta_eventos || null, logoCardapio: cd.tema?.logo_url || cd.logo_url || "", error: null };
 }
 export const salvarModeloProposta = (unidadeId, modelo) => salvarParams(unidadeId, { proposta_eventos: modelo });
+
+/* Metas dos eventos (pedido do dono, 06/11/2026): lucro e faturamento por mês,
+ * em reais, em config_sistema.params.eventos_metas. Leitura própria porque
+ * fetchParams só devolve os campos numéricos conhecidos. */
+export async function fetchMetasEventos(unidadeId) {
+  const vazio = { meta_lucro_mes: "", meta_faturamento_mes: "" };
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: vazio, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: vazio, error: error.message };
+  const v = data?.[0]?.params?.eventos_metas;
+  return { data: v && typeof v === "object" && !Array.isArray(v) ? { ...vazio, ...v } : vazio, error: null };
+}
+
+export const salvarMetasEventos = (unidadeId, metas) => salvarParams(unidadeId, {
+  eventos_metas: { meta_lucro_mes: String(metas?.meta_lucro_mes ?? ""), meta_faturamento_mes: String(metas?.meta_faturamento_mes ?? "") },
+});

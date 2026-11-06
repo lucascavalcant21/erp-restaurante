@@ -23,7 +23,11 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
     <div className="space-y-5">
       <Cartao titulo="Valor para o cliente" descricao="O sistema sugere o valor por pessoa que cobre todos os custos e ainda deixa sua meta de lucro líquido. Você decide o valor final.">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Campo rotulo="Meta de lucro líquido" ajuda="Vem do Resultado do mês (Financeiro); mude só para este evento."><Numero valor={f.meta_lucro_pct} onChange={(v) => mudar({ meta_lucro_pct: v })} sufixo="%" /></Campo>
+          <div className="space-y-3">
+            {/* Meta em reais por convidado (regra do dono, 06/11/2026): é o dinheiro no bolso e não muda com o preço. */}
+            <Campo rotulo="Meta de lucro por convidado" ajuda={r.meta.emReais && r.meta.valor !== null ? `${fmtReais(r.meta.valor)} no bolso com ${r.convidados} convidados.` : "Preenchida, vale no lugar da porcentagem."}><Numero valor={f.meta_lucro_reais_pessoa ?? ""} onChange={(v) => mudar({ meta_lucro_reais_pessoa: v })} prefixo="R$" placeholder="0,00" /></Campo>
+            {!r.meta.emReais && <Campo rotulo="Meta de lucro (%)" ajuda="Vem do Resultado do mês (Financeiro). Usada quando a meta por convidado está em branco."><Numero valor={f.meta_lucro_pct} onChange={(v) => mudar({ meta_lucro_pct: v })} sufixo="%" /></Campo>}
+          </div>
           <div className="rounded-2xl bg-slate-50 px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Sugerido por pessoa</p>
             <p className="text-xl font-black tabular-nums text-slate-900">{r.precoSugeridoPorPessoa ? fmtReais(r.precoSugeridoPorPessoa) : "—"}</p>
@@ -64,6 +68,9 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
               tom={r.prejuizo ? "text-red-600" : r.meta.atingida ? "text-emerald-700" : "text-amber-700"} />
             {!(r.receita > 0) && <p className="text-xs font-semibold text-slate-600">Digite o valor ou toque em “Usar este valor” para ver o lucro líquido.</p>}
             {r.lucroPorPessoa !== null && <LinhaValor rotulo="Lucro por pessoa" valor={fmtReais(r.lucroPorPessoa)} />}
+            {r.receita > 0 && r.meta.valor !== null && <LinhaValor rotulo="Meta de lucro" valor={fmtReais(r.meta.valor)} />}
+            {r.receita > 0 && r.meta.margem > 0 && <LinhaValor rotulo="Margem de segurança" valor={fmtReais(r.meta.margem)} tom="text-emerald-700" />}
+            {r.receita > 0 && r.meta.falta > 0 && <LinhaValor rotulo="Falta para a meta" valor={fmtReais(r.meta.falta)} tom="text-red-600" />}
           </div>
         </div>
         {/* Para onde vai cada R$ que o cliente paga (pedido do dono, 28/10/2026: "melhore"). */}
@@ -179,9 +186,9 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
             </tbody>
           </table>
         </div>
-        {r.meta.pct > 0 && r.receita > 0 && (
+        {r.meta.valor !== null && r.receita > 0 && (
           <p className={`mt-3 text-sm font-bold ${r.meta.atingida ? "text-emerald-700" : "text-amber-700"}`}>
-            Meta de lucro líquido: {fmtPct(r.meta.pct)} — {r.meta.atingida ? "atingida." : `abaixo da meta. Sugerido: ${r.precoSugeridoPorPessoa ? fmtReais(r.precoSugeridoPorPessoa) : "—"} por pessoa.`}
+            Meta de lucro: {fmtReais(r.meta.valor)}. {r.meta.atingida ? (r.meta.margem > 0 ? `Atingida, com ${fmtReais(r.meta.margem)} de margem de segurança.` : "Atingida.") : `Faltam ${fmtReais(r.meta.falta)}. Sugerido: ${r.precoSugeridoPorPessoa ? fmtReais(r.precoSugeridoPorPessoa) : "—"} por pessoa.`}
           </p>
         )}
       </Cartao>

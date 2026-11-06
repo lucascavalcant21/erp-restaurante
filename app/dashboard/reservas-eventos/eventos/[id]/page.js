@@ -378,13 +378,17 @@ export default function EventoPage() {
             <Linha rotulo="Cardápio por pessoa" valor={temCusto ? fmtReais(resumo.cmvPorPessoa) : "—"} />
             <Linha rotulo="Custo por pessoa" valor={!temCusto ? "—" : resumo.custoTotalPorPessoa !== null ? fmtReais(resumo.custoTotalPorPessoa) : resumo.custoOperacaoPorPessoa !== null ? fmtReais(resumo.custoOperacaoPorPessoa) : "—"} />
             <Linha rotulo="Valor por pessoa" valor={resumo.precoPorPessoa > 0 ? fmtReais(resumo.precoPorPessoa) : "—"} />
-            {temCusto && resumo.precoSugeridoPorPessoa && <Linha rotulo={`Sugerido (meta ${fmtPct(resumo.meta.pct, 0)})`} valor={fmtReais(resumo.precoSugeridoPorPessoa)} suave />}
+            {temCusto && resumo.precoSugeridoPorPessoa && <Linha rotulo="Sugerido para a meta" valor={fmtReais(resumo.precoSugeridoPorPessoa)} suave />}
             <div className="mt-3 border-t border-hf-border pt-3">
               <p className="text-[11px] font-bold uppercase tracking-wide text-hf-muted">Lucro líquido</p>
               {temCusto && resumo.receita > 0 ? (
                 <>
                   <p className={`text-2xl font-black tabular-nums ${resumo.prejuizo ? "text-hf-danger" : resumo.meta.atingida ? "text-hf-accent" : "text-hf-text"}`}>{fmtReais(resumo.lucro)}</p>
                   <p className="text-sm font-semibold text-hf-text-2">{fmtPct(resumo.lucroPct)} do evento</p>
+                  {/* Meta sempre em reais (pedido do dono, 06/11/2026). */}
+                  {resumo.meta.valor !== null && <Linha rotulo="Meta de lucro" valor={fmtReais(resumo.meta.valor)} />}
+                  {resumo.meta.margem > 0 && <Linha rotulo="Margem de segurança" valor={fmtReais(resumo.meta.margem)} />}
+                  {resumo.meta.falta > 0 && <Linha rotulo="Falta para a meta" valor={fmtReais(resumo.meta.falta)} />}
                 </>
               ) : (
                 <>

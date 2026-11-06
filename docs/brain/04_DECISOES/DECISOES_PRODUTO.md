@@ -139,3 +139,12 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - Continua na tabela oficial `colaboradores`, para ponto e recibos funcionarem. Não há cadastro paralelo.
 - Sai a alocação compartilhada com o restaurante nessa tela: são empresas separadas.
 - Cadastrar exige permissão de RH na unidade. Quem só entra com a senha da marmitaria não cria funcionário.
+
+## DP — Três negócios e acesso por login (05/11/2026, decisão do dono)
+
+- Restaurante, marmitaria e eventos são negócios diferentes, sem relação entre si: cada um com RH, ingredientes e fichas próprios.
+- A senha única da marmitaria saiu por dar problema. Substitui a decisão anterior de entrada e saída por senha.
+- Acesso pelo login: em Configurações > Usuários, o dono escolhe as páginas. Login só da marmitaria usa Unidade principal = Marmitaria.
+- As telas da marmitaria sempre usam a unidade `marmitaria`, sem trocar a unidade do app.
+- A troca de negócio fica no topo. Hoje ela leva às páginas; eventos ainda usa os dados do restaurante.
+- As funções e a senha guardada no banco ficam sem uso. Apagar é ação destrutiva e depende do dono.

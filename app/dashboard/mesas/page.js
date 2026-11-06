@@ -1,298 +1,265 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Users, Search as SearchIcon, RefreshCw, X, ChevronRight, Clock, Banknote, Map, Coffee } from "lucide-react";
+// Comandas do garçom: escolhe a mesa, lança por pessoa, envia à cozinha e ao bar
+// e pede a conta. Quem recebe é o caixa, em /dashboard/salao/mesas.
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Check, Minus, Plus, Receipt, Search, Send, X } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
-import { fetchMesasEComandas, gerarMesas } from "../../lib/mesas";
-import { supabase, isSupabaseReady } from "../../lib/supabase";
-import { carimbarUnidade } from "../../lib/unidades";
-import { useRouter } from "next/navigation";
-import { formatarTempoMesa } from "../../lib/vendas-pdv-utils.mjs";
+import { fetchColaboradores } from "../../lib/rh";
+import { equipeParaEtiquetar } from "../../lib/equipe-area.mjs";
+import { abrirComandaDaMesa, enviarParaProducao, fetchCardapioDoSalao, fetchSalao, pedirConta } from "../../lib/comandas";
+import { MESA_TODA, STATUS_DO_ITEM, definirObservacao, estadoDaMesa, limparNome, mudarQuantidade, numeroDaMesa, ordenarMesas, pessoasDaComanda, resumoPorPessoa, somarAoRascunho, tempoDaMesa, totalDaComanda } from "../../lib/comandas.mjs";
 
-function fmtBRL(v) { return Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+const CHAVE_GARCOM = "hefisto_comandas_garcom";
+const ATUALIZAR_MS = 15000;
+const brl = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const semAcento = (v) => String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const COR = {
+  livre: "border-hf-border bg-hf-surface",
+  ocupada: "border-hf-accent bg-hf-accent/15",
+  conta: "border-hf-warning bg-hf-warning/15",
+};
+const chip = (ativo) => `min-h-[44px] shrink-0 rounded-xl px-3 text-sm font-bold ${ativo ? "bg-hf-accent text-hf-accent-fg" : "border border-hf-border bg-hf-surface text-hf-text-2"}`;
 
-function tempoDecorrido(isoStr) {
-  if (!isoStr) return "--";
-  const diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
-  const m = Math.floor(diff / 60);
-  return `${m}m`;
+function EscolherGarcom({ equipe, onEscolher }) {
+  return (
+    <div className="mx-auto w-full max-w-md">
+      <h1 className="text-xl font-black text-hf-text">Quem está atendendo?</h1>
+      <p className="text-sm text-hf-text-2">Seu nome fica registrado nas mesas que você abrir.</p>
+      <ul className="mt-3 space-y-2">
+        {equipe.map((c) => <li key={c.id}><button type="button" onClick={() => onEscolher(c.nome)} className="min-h-[52px] w-full rounded-xl border border-hf-border bg-hf-surface px-4 text-left font-bold text-hf-text">{c.nome}</button></li>)}
+      </ul>
+      {!equipe.length && <p className="mt-3 text-sm text-hf-text-2">Nenhum funcionário ativo no Restaurante.</p>}
+    </div>
+  );
 }
 
-export default function MesasPDVPage() {
-  const { unidadeAtiva } = useERP();
-  const router = useRouter();
-
-  const [mesas, setMesas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [faturamentoHoje, setFaturamentoHoje] = useState(0);
-
-  // Seleção e Drawer
-  const [mesaSelecionada, setMesaSelecionada] = useState(null);
-  const [drawerAberto, setDrawerAberto] = useState(false);
-  
-  const [salvando, setSalvando] = useState(false);
-  const [toast, setToast] = useState("");
+function Mapa({ mesas, pedidos, garcom, onTrocarGarcom, onAbrir, ocupado }) {
   const [busca, setBusca] = useState("");
+  const porMesa = useMemo(() => new Map(pedidos.map((p) => [p.mesa_id, p]).reverse()), [pedidos]);
+  const lista = ordenarMesas(mesas).filter((m) => numeroDaMesa(m).includes(busca.trim()));
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl font-black text-hf-text">Comandas</h1>
+        <button type="button" onClick={onTrocarGarcom} className="min-h-[44px] truncate text-sm font-bold text-hf-text-2 underline">{garcom}</button>
+      </div>
+      <label className="relative mt-2 block">
+        <span className="sr-only">Buscar mesa</span>
+        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-muted" aria-hidden="true" />
+        <input inputMode="numeric" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Número da mesa" className="h-12 w-full rounded-xl border border-hf-border bg-hf-surface pl-10 pr-3 text-base text-hf-text outline-none focus:border-hf-accent" />
+      </label>
+      <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {lista.map((m) => {
+          const p = porMesa.get(m.id);
+          const e = estadoDaMesa(m, p);
+          return (
+            <li key={m.id}>
+              <button type="button" disabled={ocupado} onClick={() => onAbrir(m)} className={`flex min-h-[112px] w-full flex-col rounded-2xl border-2 p-3 text-left disabled:opacity-60 ${COR[e.id]}`}>
+                <span className="text-3xl font-black leading-none text-hf-text">{numeroDaMesa(m)}</span>
+                <span className="mt-auto text-sm font-bold text-hf-text">{e.rotulo}</span>
+                {p && <span className="text-xs text-hf-text-2">{tempoDaMesa(p.created_at)} · {brl(totalDaComanda(p.pedidos_itens))}</span>}
+                {p?.garcom_nome && <span className="truncate text-xs text-hf-text-2">{p.garcom_nome}</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {!mesas.length && <p className="mt-3 text-sm text-hf-text-2">Nenhuma mesa cadastrada. O caixa cria as mesas na tela Caixa e mesas.</p>}
+    </>
+  );
+}
 
-  const showToast = useCallback((msg, dur = 3000) => {
-    setToast(msg); setTimeout(() => setToast(""), dur);
-  }, []);
+function Comanda({ mesa, pedido, produtos, onVoltar, aoMudar }) {
+  const [rascunho, setRascunho] = useState([]);
+  const [extras, setExtras] = useState([]);
+  const [pessoa, setPessoa] = useState("");
+  const [novaPessoa, setNovaPessoa] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [busca, setBusca] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState(null);
+  const itens = useMemo(() => pedido?.pedidos_itens || [], [pedido]);
+  const pessoas = pessoasDaComanda(itens, extras);
+  const categorias = useMemo(() => [...new Set(produtos.map((p) => p.categoria || "Outros"))], [produtos]);
+  const visiveis = useMemo(() => {
+    const termo = semAcento(busca.trim());
+    return produtos.filter((p) => (termo ? semAcento(p.nome_produto).includes(termo) : !categoria || (p.categoria || "Outros") === categoria)).slice(0, 60);
+  }, [produtos, busca, categoria]);
+  const resumo = resumoPorPessoa(itens);
+  const totalRascunho = rascunho.reduce((t, l) => t + l.valor_unitario * l.quantidade, 0);
+  const pediuConta = mesa.status === "fechando";
 
-  const carregar = useCallback(async (silencioso = false) => {
-    if (!silencioso) setLoading(true);
-    const mRes = await fetchMesasEComandas(unidadeAtiva);
-    const mesasData = mRes.data || [];
-    setMesas(mesasData);
-
-    const fatAtivo = mesasData.reduce((total, m) =>
-      total + m.comandas.reduce((t, c) =>
-        t + (c.itens||[]).reduce((s,i) => s + i.preco*i.quantidade, 0)
-      , 0)
-    , 0);
-    setFaturamentoHoje(fatAtivo);
-
-    if (mesaSelecionada) {
-      const m = mesasData.find(x => x.id === mesaSelecionada.id);
-      if (m) setMesaSelecionada(m);
-    }
-    if (!silencioso) setLoading(false);
-  }, [unidadeAtiva, mesaSelecionada?.id]);
-
-  useEffect(() => { carregar(); }, [carregar]);
-
-  // Se o Drawer fechar, limpa a mesa selecionada após a animação (opcional)
-  function fecharDrawer() {
-    setDrawerAberto(false);
-    setTimeout(() => setMesaSelecionada(null), 300);
+  function incluirPessoa(e) {
+    e.preventDefault();
+    const nome = limparNome(novaPessoa);
+    if (!nome) return;
+    setExtras((l) => [...l, nome]); setPessoa(nome); setNovaPessoa("");
   }
 
-  function abrirDrawer(m) {
-    setMesaSelecionada(m);
-    setDrawerAberto(true);
+  async function agir(acao) {
+    if (ocupado) return;
+    setOcupado(true); setErro(null);
+    try {
+      const r = await acao();
+      if (r?.error) { setErro(r.error.includes("sem preço") ? r.error : "Não consegui salvar. Tente de novo."); return; }
+      await aoMudar();
+    } finally { setOcupado(false); }
   }
-
-  async function handleAdicionarMesa() {
-    if (!isSupabaseReady()) return;
-    setSalvando(true);
-    await supabase.from("mesas").insert([carimbarUnidade({ numero: `Mesa ${mesas.length + 1}` }, unidadeAtiva)]);
-    await carregar(true);
-    setSalvando(false);
-    showToast(`Mesa ${mesas.length + 1} adicionada!`);
-  }
-
-  const mesasFiltradas = mesas.filter(m => m.numero.toLowerCase().includes(busca.toLowerCase()));
-  const mesasLivres = mesas.filter(m => (m.comandas?.length || 0) === 0).length;
-  const mesasOcupadas = mesas.length - mesasLivres;
-  const quantidadeVisivel = mesasFiltradas.length;
-  // O tamanho acompanha a quantidade: mais mesas = cartões menores e mais
-  // colunas. No celular a grade continua com duas colunas para o toque não
-  // ficar apertado demais.
-  const mesaMinima = quantidadeVisivel <= 12 ? 160
-    : quantidadeVisivel <= 24 ? 120
-      : quantidadeVisivel <= 40 ? 96
-        : quantidadeVisivel <= 60 ? 82 : 72;
-  const mesaGap = quantidadeVisivel <= 12 ? 18 : quantidadeVisivel <= 24 ? 12 : 8;
-  const mesaCompacta = quantidadeVisivel > 12;
-  const mesaMuitoCompacta = quantidadeVisivel > 32;
+  const enviar = () => agir(async () => { const r = await enviarParaProducao(pedido.id, mesa.id, rascunho); if (!r.error) setRascunho([]); return r; });
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] bg-card relative overflow-hidden font-sans">
-      <style>{`
-        .mesas-grade-adaptativa{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--mesa-min),1fr));gap:var(--mesa-gap)}
-        @media(max-width:640px){.mesas-grade-adaptativa{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
-      `}</style>
-      {toast && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl font-black text-sm transition-all animate-bounce">
-          {toast}
-        </div>
-      )}
-
-      {/* TOP BAR OPERACIONAL (CLEAN) */}
-      <div className="px-3 sm:px-6 py-3 sm:py-4 bg-card border-b border-line flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-sm z-10">
-         <div className="flex items-center gap-3 sm:gap-6 min-w-0 overflow-x-auto pb-1 lg:pb-0">
-            <h1 className="font-black text-xl sm:text-2xl text-slate-800 tracking-tight flex items-center gap-2 shrink-0">
-              <Map className="text-success"/> Salão
-            </h1>
-            <div className="h-8 w-px bg-slate-200 shrink-0"></div>
-            
-            {/* KPIs Rápidos */}
-            <div className="flex gap-2 sm:gap-3 shrink-0">
-              <div className="px-3 sm:px-4 py-2 bg-accent-soft text-accent-strong rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> {mesasLivres} Livres
-              </div>
-              <div className="px-3 sm:px-4 py-2 bg-white text-accent rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div> {mesasOcupadas} Ocupadas
-              </div>
-            </div>
-         </div>
-
-         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="relative flex-1 lg:flex-none">
-              <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg" />
-              <input 
-                type="text" 
-                placeholder="Buscar Mesa..." 
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="pl-12 pr-4 py-3 bg-card rounded-2xl text-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-hf-accent w-full lg:w-64 transition-all"
-              />
-            </div>
-            <button onClick={() => carregar(true)} className="w-12 h-12 rounded-2xl bg-card border border-line text-fg hover:bg-white hover:text-success flex items-center justify-center transition-colors shadow-sm active:scale-95">
-              <RefreshCw size={20} />
-            </button>
-            <button onClick={handleAdicionarMesa} disabled={salvando} className="px-3 sm:px-5 py-3 rounded-2xl bg-slate-800 text-white font-black text-sm uppercase tracking-wide sm:tracking-widest hover:bg-slate-900 shadow-lg shadow-slate-900/20 transition-all active:scale-95 flex items-center gap-2 shrink-0">
-              <Plus size={18} /> <span className="hidden sm:inline">Add Mesa</span>
-            </button>
-         </div>
+    <div className="pb-24">
+      <button type="button" onClick={onVoltar} className="flex min-h-[44px] items-center gap-2 text-sm font-bold text-hf-text-2"><ArrowLeft size={18} aria-hidden="true" />Mesas</button>
+      <div className="flex items-baseline justify-between gap-2">
+        <h1 className="text-2xl font-black text-hf-text">Mesa {numeroDaMesa(mesa)}</h1>
+        <p className="text-sm font-bold tabular-nums text-hf-text">{brl(totalDaComanda(itens))}</p>
       </div>
+      {pediuConta && <p className="mt-1 rounded-xl bg-hf-warning/15 px-3 py-2 text-sm font-bold text-hf-text">Conta pedida. O caixa já pode receber.</p>}
+      {erro && <p role="alert" className="mt-2 text-sm font-bold text-hf-danger">{erro}</p>}
 
-      {/* MAPA DE MESAS (GRID) */}
-      <div className={`flex-1 overflow-y-auto hide-scrollbar ${mesaMuitoCompacta ? "p-2 sm:p-3" : "p-3 sm:p-5"}`}>
-        {loading ? (
-          <div className="h-full flex items-center justify-center font-black text-2xl text-fg">Carregando Mapa...</div>
-        ) : mesas.length === 0 ? (
-           <div className="h-full flex flex-col items-center justify-center text-fg px-4 text-center">
-              <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mb-6">
-                <Coffee size={40} className="text-fg" />
-              </div>
-              <p className="font-black text-2xl mb-2 text-slate-800">O Salão está vazio</p>
-              <p className="mb-8 font-medium">Adicione mesas para começar a operar.</p>
-               <button onClick={() => gerarMesas(unidadeAtiva, 12).then(()=>carregar(true))} className="px-5 sm:px-8 py-3 sm:py-4 bg-accent text-accent-fg font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-blue-600/30 hover:bg-accent active:scale-95 transition-all">
-                Gerar 12 Mesas Automaticamente
-              </button>
-           </div>
-        ) : (
-          <div className="mesas-grade-adaptativa pb-20" style={{ "--mesa-min": `${mesaMinima}px`, "--mesa-gap": `${mesaGap}px` }}>
-            {mesasFiltradas.map(m => {
-              const ocupada = (m.comandas?.length || 0) > 0;
-              const maiorTempo = ocupada ? Math.floor(m.comandas.reduce((t,c) => {
-                const inicio = c.aberta_em || c.created_at;
-                const d = inicio ? Math.max(0, Date.now() - new Date(inicio).getTime()) : 0;
-                return d > t ? d : t;
-              },0)/60000) : 0;
-              const tempoExibido = formatarTempoMesa(maiorTempo);
-              const valorTotal = ocupada ? m.comandas.reduce((t, c) => t + (c.itens||[]).reduce((s,i) => s + i.preco*i.quantidade, 0), 0) : 0;
-              
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => abrirDrawer(m)}
-                  className={`relative flex flex-col transition-all duration-300 active:scale-95 text-left overflow-hidden group ${mesaMuitoCompacta ? "min-h-32 p-2 rounded-xl border-b-4" : mesaCompacta ? "min-h-40 p-3 rounded-2xl border-b-[6px]" : "min-h-48 p-3 sm:p-5 rounded-2xl sm:rounded-[28px] border-b-8"} ${
-                    ocupada 
-                      ? 'bg-emerald-500 border-emerald-600 shadow-[0_8px_20px_rgba(16,185,129,0.22)] hover:-translate-y-1'
-                      : 'bg-card border-line shadow-sm hover:-translate-y-1 hover:shadow-lg hover:border-emerald-200'
-                  }`}
-                >
-                  {/* Numero da Mesa */}
-                  <h3 className={`font-black tracking-tighter leading-none transition-colors ${mesaMuitoCompacta ? "text-2xl" : mesaCompacta ? "text-3xl" : "text-4xl sm:text-5xl"} ${ocupada ? 'text-white' : 'text-slate-800 group-hover:text-success'}`}>
-                    {m.numero.replace(/Mesa /i, "")}
-                  </h3>
-                  
-                  {ocupada ? (
-                    <div className={`mt-auto w-full ${mesaMuitoCompacta ? "space-y-1" : "space-y-2"}`}>
-                       <div className={`relative z-10 flex max-w-full items-center gap-1 whitespace-nowrap text-emerald-50 font-bold uppercase bg-black/20 rounded-lg w-fit ${mesaMuitoCompacta ? "text-3xs px-1.5 py-1" : "text-xs tracking-wide px-2.5 py-1.5"}`}>
-                         {!mesaMuitoCompacta && <Clock size={12}/>} {tempoExibido}
-                       </div>
-                       <div className={`relative z-10 flex max-w-full items-center gap-1 whitespace-nowrap text-white font-bold bg-black/20 rounded-lg w-fit ${mesaMuitoCompacta ? "text-3xs px-1.5 py-1" : "text-sm sm:text-base px-2 sm:px-3 py-1.5"}`}>
-                         {!mesaMuitoCompacta && <Banknote size={15}/>} {fmtBRL(valorTotal)}
-                       </div>
-                    </div>
-                  ) : (
-                    <div className="mt-auto w-full">
-                       <span className={`inline-block rounded-lg bg-card text-fg font-bold uppercase group-hover:bg-accent-soft group-hover:text-accent-strong transition-colors ${mesaMuitoCompacta ? "px-2 py-1 text-3xs" : "px-4 py-2 text-xs tracking-widest"}`}>
-                         Livre
-                       </span>
-                    </div>
-                  )}
+      <section aria-label="De quem é o pedido" className="mt-3">
+        <p className="text-xs font-bold uppercase tracking-wide text-hf-muted">Para quem</p>
+        <div className="mt-1 flex gap-2 overflow-x-auto pb-1">
+          <button type="button" aria-pressed={!pessoa} className={chip(!pessoa)} onClick={() => setPessoa("")}>{MESA_TODA}</button>
+          {pessoas.map((n) => <button key={n} type="button" aria-pressed={pessoa === n} className={chip(pessoa === n)} onClick={() => setPessoa(n)}>{n}</button>)}
+        </div>
+        <form onSubmit={incluirPessoa} className="mt-1 flex gap-2">
+          <input value={novaPessoa} maxLength={40} onChange={(e) => setNovaPessoa(e.target.value)} placeholder="Nome de quem pediu" aria-label="Nome de quem pediu" className="h-11 min-w-0 flex-1 rounded-xl border border-hf-border bg-hf-surface px-3 text-base text-hf-text outline-none focus:border-hf-accent" />
+          <button type="submit" aria-label="Incluir pessoa" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hf-border bg-hf-surface text-hf-text"><Plus size={18} aria-hidden="true" /></button>
+        </form>
+      </section>
 
-                  {/* Efeito Visual Ocupada */}
-                  {ocupada && (
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-card opacity-10 rounded-full blur-2xl transform translate-x-10 -translate-y-10"></div>
-                  )}
-                </button>
-              )
-            })}
+      <section aria-label="Cardápio" className="mt-4">
+        <label className="relative block">
+          <span className="sr-only">Buscar no cardápio</span>
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-muted" aria-hidden="true" />
+          <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar prato ou bebida" className="h-12 w-full rounded-xl border border-hf-border bg-hf-surface pl-10 pr-3 text-base text-hf-text outline-none focus:border-hf-accent" />
+        </label>
+        {!busca.trim() && (
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+            <button type="button" aria-pressed={!categoria} className={chip(!categoria)} onClick={() => setCategoria("")}>Tudo</button>
+            {categorias.map((c) => <button key={c} type="button" aria-pressed={categoria === c} className={chip(categoria === c)} onClick={() => setCategoria(c)}>{c}</button>)}
           </div>
         )}
-      </div>
+        <ul className="mt-2 divide-y divide-hf-border rounded-2xl border border-hf-border bg-hf-surface">
+          {visiveis.map((p) => (
+            <li key={p.id}>
+              <button type="button" onClick={() => setRascunho((r) => somarAoRascunho(r, p, pessoa))} className="flex min-h-[52px] w-full items-center gap-3 px-3 py-2 text-left">
+                <span className="min-w-0 flex-1 break-words text-[15px] font-semibold text-hf-text">{p.nome_produto}</span>
+                <span className="shrink-0 text-sm tabular-nums text-hf-text-2">{Number(p.preco_venda) > 0 ? brl(p.preco_venda) : "Sem preço"}</span>
+                <Plus size={18} className="shrink-0 text-hf-text-2" aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+          {!visiveis.length && <li className="p-3 text-sm text-hf-text-2">Nada encontrado no cardápio.</li>}
+        </ul>
+      </section>
 
-      {/* OVERLAY DO DRAWER */}
-      {drawerAberto && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] transition-opacity" onClick={fecharDrawer}></div>
+      {itens.length > 0 && (
+        <section aria-label="Já enviado" className="mt-4">
+          <h2 className="text-sm font-black text-hf-text">Já enviado</h2>
+          <ul className="mt-2 space-y-1">
+            {itens.map((i) => (
+              <li key={i.id} className={`flex items-start gap-2 text-sm ${i.status_kds === "cancelado" ? "text-hf-muted line-through" : "text-hf-text"}`}>
+                <span className="font-bold tabular-nums">{i.quantidade}×</span>
+                <span className="min-w-0 flex-1">{i.produtos?.nome_produto || "Item"}{i.pessoa ? ` · ${i.pessoa}` : ""}{i.observacao ? ` · ${i.observacao}` : ""}</span>
+                <span className="shrink-0 text-xs font-semibold text-hf-text-2">{STATUS_DO_ITEM[i.status_kds] || i.status_kds}</span>
+              </li>
+            ))}
+          </ul>
+          {resumo.length > 1 && (
+            <ul className="mt-3 rounded-xl border border-hf-border p-3 text-sm">
+              {resumo.map((g) => <li key={g.pessoa} className="flex justify-between gap-3"><span className="truncate font-semibold text-hf-text">{g.pessoa}</span><span className="tabular-nums text-hf-text">{brl(g.total)}</span></li>)}
+            </ul>
+          )}
+          <p className="mt-2 text-xs text-hf-text-2">Para cancelar item enviado, fale com o caixa.</p>
+          <button type="button" disabled={ocupado} onClick={() => agir(() => pedirConta(mesa.id, !pediuConta))} className={`mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border-2 font-bold disabled:opacity-60 ${pediuConta ? "border-hf-border text-hf-text-2" : "border-hf-warning text-hf-text"}`}>
+            {pediuConta ? <><X size={18} aria-hidden="true" />Desfazer pedido de conta</> : <><Receipt size={18} aria-hidden="true" />Pedir a conta</>}
+          </button>
+        </section>
       )}
 
-      {/* DRAWER LATERAL (ACTION PANEL) */}
-      <div 
-        className={`fixed top-0 right-0 h-full w-full max-w-md bg-card shadow-[-20px_0_60px_rgba(0,0,0,0.1)] z-[110] transform transition-transform duration-300 ease-out flex flex-col border-l border-line ${
-          drawerAberto ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        {mesaSelecionada && (
-          <>
-            {/* Header Drawer */}
-            <div className="p-4 sm:p-8 bg-white border-b border-line flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-fg uppercase tracking-widest mb-1">Gerenciar</p>
-                <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">{mesaSelecionada.numero}</h2>
-              </div>
-              <button onClick={fecharDrawer} className="w-14 h-14 bg-card rounded-full flex items-center justify-center text-fg hover:text-slate-800 shadow-sm border border-line transition-colors active:scale-95">
-                <X size={24}/>
-              </button>
-            </div>
+      {rascunho.length > 0 && (
+        <section aria-label="Novo pedido" className="fixed inset-x-0 bottom-0 z-40 border-t border-hf-border bg-hf-surface px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-6px_20px_rgba(0,0,0,0.12)]">
+          <div className="mx-auto max-w-3xl">
+            <ul className="max-h-[32vh] space-y-1 overflow-y-auto">
+              {rascunho.map((l) => (
+                <li key={l.chave} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-2 gap-y-1 border-b border-hf-border pb-2 last:border-0">
+                  <span className="min-w-0 text-sm font-semibold text-hf-text">{l.nome}{l.pessoa ? ` · ${l.pessoa}` : ""}</span>
+                  <button type="button" aria-label={`Tirar um: ${l.nome}`} onClick={() => setRascunho((r) => mudarQuantidade(r, l.chave, -1))} className="grid h-11 w-11 place-items-center rounded-lg border border-hf-border text-hf-text"><Minus size={16} aria-hidden="true" /></button>
+                  <span className="w-6 text-center font-black tabular-nums text-hf-text">{l.quantidade}</span>
+                  <button type="button" aria-label={`Mais um: ${l.nome}`} onClick={() => setRascunho((r) => mudarQuantidade(r, l.chave, 1))} className="grid h-11 w-11 place-items-center rounded-lg border border-hf-border text-hf-text"><Plus size={16} aria-hidden="true" /></button>
+                  <input value={l.observacao} maxLength={120} aria-label={`Observação: ${l.nome}`} placeholder="Observação (ex.: sem gelo)" onChange={(e) => setRascunho((r) => definirObservacao(r, l.chave, e.target.value))} className="col-span-4 h-10 w-full rounded-lg border border-hf-border bg-hf-bg px-3 text-base text-hf-text outline-none focus:border-hf-accent" />
+                </li>
+              ))}
+            </ul>
+            <button type="button" disabled={ocupado} onClick={enviar} className="mt-2 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-hf-accent font-bold text-hf-accent-fg disabled:opacity-60">
+              <Send size={18} aria-hidden="true" />{ocupado ? "Enviando…" : `Enviar · ${brl(totalRascunho)}`}
+            </button>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
 
-            {/* Conteúdo Drawer */}
-             <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-card">
-               
-               <button 
-                 onClick={() => router.push(`/dashboard/vendas?novaMesa=${mesaSelecionada.id}`)} 
-                 className="w-full p-4 sm:p-6 bg-accent-soft hover:bg-emerald-100 text-accent-strong border-2 border-emerald-200 rounded-3xl flex flex-col items-center justify-center gap-3 transition-colors mb-6 sm:mb-10 active:scale-95 group"
-               >
-                 <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center shadow-sm text-emerald-500 group-hover:scale-110 transition-transform">
-                   <Plus size={32} />
-                 </div>
-                 <span className="font-black text-xl uppercase tracking-widest">Abrir Comanda</span>
-               </button>
+export default function ComandasPage() {
+  const { unidadeAtiva } = useERP();
+  const [dados, setDados] = useState(null);
+  const [produtos, setProdutos] = useState([]);
+  const [equipe, setEquipe] = useState([]);
+  const [garcom, setGarcom] = useState("");
+  const [mesaId, setMesaId] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState(null);
 
-               <div className="text-sm font-bold text-fg uppercase tracking-widest mb-4">Comandas em Atividade</div>
-               
-               {mesaSelecionada.comandas?.length > 0 ? (
-                 <div className="flex flex-col gap-4">
-                   {mesaSelecionada.comandas.map(c => {
-                     const totalComanda = (c.itens||[]).reduce((s,i) => s + i.preco*i.quantidade, 0);
-                     return (
-                       <button 
-                         key={c.id} 
-                         onClick={() => router.push(`/dashboard/vendas?comanda=${c.id}`)} 
-                          className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 bg-card border-2 border-line-soft hover:border-emerald-500 rounded-3xl transition-all text-left w-full shadow-sm hover:shadow-lg group active:scale-95"
-                       >
-                         <div className="w-14 h-14 rounded-full bg-white text-emerald-600 font-black flex items-center justify-center text-2xl group-hover:bg-accent group-hover:text-accent-fg transition-colors">
-                           {c.nome_cliente?.[0]?.toUpperCase()||"C"}
-                         </div>
-                         <div className="flex-1">
-                           <p className="font-black text-slate-800 text-lg mb-1">{c.nome_cliente || "Sem nome"}</p>
-                           <div className="flex items-center gap-3">
-                             <span className="text-xs font-bold text-fg bg-card px-2 py-1 rounded-md">{tempoDecorrido(c.aberta_em)}</span>
-                             <span className="text-sm font-black text-success">{fmtBRL(totalComanda)}</span>
-                           </div>
-                         </div>
-                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-fg group-hover:bg-card group-hover:text-success transition-colors">
-                           <ChevronRight size={24}/>
-                         </div>
-                       </button>
-                     )
-                   })}
-                 </div>
-               ) : (
-                 <div className="text-center py-10 px-4 text-fg bg-white rounded-3xl border-2 border-dashed border-line">
-                    <Coffee size={40} className="mx-auto mb-4 text-fg" />
-                    <p className="font-bold text-lg mb-1">Mesa Livre</p>
-                    <p className="text-sm">Nenhuma comanda aberta nesta mesa no momento.</p>
-                 </div>
-               )}
-            </div>
-          </>
-        )}
+  const carregar = useCallback(async () => {
+    if (!unidadeAtiva) return;
+    const r = await fetchSalao(unidadeAtiva);
+    setErro(r.error ? "Não consegui atualizar as mesas." : null);
+    if (!r.error) setDados(r);
+  }, [unidadeAtiva]);
+
+  useEffect(() => {
+    if (!unidadeAtiva) return undefined;
+    carregar();
+    fetchCardapioDoSalao(unidadeAtiva).then((r) => setProdutos(r.data));
+    fetchColaboradores(unidadeAtiva).then((r) => setEquipe(equipeParaEtiquetar(r.data)));
+    try { setGarcom(localStorage.getItem(CHAVE_GARCOM) || ""); } catch { /* escolhe de novo */ }
+    const t = setInterval(carregar, ATUALIZAR_MS);
+    return () => clearInterval(t);
+  }, [unidadeAtiva, carregar]);
+
+  function escolherGarcom(nome) {
+    setGarcom(nome);
+    try { if (nome) localStorage.setItem(CHAVE_GARCOM, nome); else localStorage.removeItem(CHAVE_GARCOM); } catch { /* vale só nesta tela */ }
+  }
+
+  async function abrirMesa(mesa) {
+    if (ocupado) return;
+    setOcupado(true); setErro(null);
+    try {
+      const r = await abrirComandaDaMesa(unidadeAtiva, mesa, garcom);
+      if (r.error) { setErro("Não consegui abrir a mesa. Tente de novo."); return; }
+      await carregar();
+      setMesaId(mesa.id);
+    } finally { setOcupado(false); }
+  }
+
+  const mesa = dados?.mesas.find((m) => m.id === mesaId);
+  const pedido = dados?.pedidos.find((p) => p.mesa_id === mesaId);
+
+  return (
+    <div className="min-h-full bg-hf-bg">
+      <div className="mx-auto w-full max-w-3xl px-4 pb-10 pt-4">
+        {erro && <p role="alert" className="mb-2 text-sm font-bold text-hf-danger">{erro}</p>}
+        {!garcom ? <EscolherGarcom equipe={equipe} onEscolher={escolherGarcom} />
+          : !dados ? <p className="text-sm text-hf-muted">Carregando mesas…</p>
+            : mesa && pedido ? <Comanda key={mesa.id} mesa={mesa} pedido={pedido} produtos={produtos} onVoltar={() => setMesaId(null)} aoMudar={carregar} />
+              : <Mapa mesas={dados.mesas} pedidos={dados.pedidos} garcom={garcom} ocupado={ocupado} onTrocarGarcom={() => escolherGarcom("")} onAbrir={abrirMesa} />}
       </div>
     </div>
-  )
+  );
 }

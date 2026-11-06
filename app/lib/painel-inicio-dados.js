@@ -9,7 +9,7 @@ import { supabase, isSupabaseReady } from "./supabase";
 import { fetchPontoHoje } from "./ponto";
 import { fetchEventos } from "./eventos";
 import { fetchContasPagar } from "./financeiro";
-import { fetchMesasEComandas } from "./mesas";
+import { fetchSalao } from "./comandas";
 import { MOTIVO_SEM_FATURAMENTO } from "./cmv-dados.mjs";
 import {
   dataLocalISO, seteDiasAte, resumirFaturamentoDiario, resumirEquipe, reservasDoDia,
@@ -92,9 +92,9 @@ export async function carregarPainelInicio(unidadeId, pode, agora = new Date()) 
     }) : nada,
     pode.estoque ? comErro(() => estoqueBaixo(unidadeId)) : nada,
     pode.mesas ? comErro(async () => {
-      const r = await fetchMesasEComandas(unidadeId);
+      const r = await fetchSalao(unidadeId);
       if (r.error) throw new Error(r.error);
-      return resumirMesas(r.data);
+      return resumirMesas(r.mesas.map((m) => ({ ...m, comandas: r.pedidos.filter((p) => p.mesa_id === m.id) })));
     }) : nada,
   ]);
 

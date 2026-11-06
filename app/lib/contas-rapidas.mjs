@@ -49,6 +49,18 @@ export const CONTAS_RAPIDAS = Object.freeze([
     permissoes: ["cozinha.sector.view", "cozinha.search.view", "cozinha.notes.view", "cozinha.notes.create", "cozinha.recipes.view", "cozinha.recipes.print", ...ESTOQUE_SO_RETIRAR, ...ETIQUETAS, TREINAMENTO],
   },
   {
+    id: "garcom",
+    codigo: "conta-garcom",
+    nome: "Garçom",
+    descricao: "Conta do salão: lança os pedidos da mesa, separa por pessoa, envia à cozinha e ao bar e pede a conta ao caixa.",
+    setor: "Salão",
+    icone: "ConciergeBell",
+    paginaInicial: "/dashboard/mesas",
+    pode: ["Abrir mesas e lançar pedidos", "Separar os itens por pessoa", "Enviar à cozinha e ao bar", "Pedir a conta ao caixa"],
+    naoPode: ["Receber pagamentos", "Cancelar item enviado", "Ver custos"],
+    permissoes: ["salao.tables.view", "salao.tables.create", TREINAMENTO],
+  },
+  {
     id: "somente-ponto",
     // Perfil que já existe no banco: não se cria outro igual.
     codigo: "somente-ponto",

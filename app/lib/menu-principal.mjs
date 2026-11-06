@@ -84,7 +84,8 @@ export const MENU_PRINCIPAL = Object.freeze([
     titulo: "Salão", subtitulo: "Tudo o que o salão usa no dia a dia",
     secoes: [
       { titulo: "Atendimento", cards: [
-        { label: "Mesas e salão", desc: "Comandas e ocupação", href: "/dashboard/salao/mesas", icone: "UtensilsCrossed" },
+        { label: "Comandas", desc: "Lançar pedidos e pedir a conta", href: "/dashboard/mesas", icone: "ConciergeBell" },
+        { label: "Caixa e mesas", desc: "Receber as contas e vender no balcão", href: "/dashboard/salao/mesas", icone: "UtensilsCrossed" },
         { label: "Pedidos online", desc: "Pedidos do cardápio e QR Code", href: "/dashboard/salao/online", icone: "Smartphone" },
         { label: "Delivery", desc: "Entregas em andamento", href: "/dashboard/delivery", icone: "Bike" },
         { label: "Clientes", desc: "Cadastro e relacionamento", href: "/dashboard/clientes", icone: "Users" },

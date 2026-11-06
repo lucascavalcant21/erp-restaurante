@@ -4,13 +4,14 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, atualizarQtdItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, atualizarStatusPedido } from "../../../lib/vendas";
+import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, atualizarQtdItemComanda, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, atualizarStatusPedido } from "../../../lib/vendas";
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag, Bell, Clock, MapPin } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "../../../lib/supabase";
 import { fmtBRL } from "../../../components/ui";
 import CampoDecimal from "../../../components/CampoDecimal";
 import { resumoPorPessoa, totalDaComanda } from "../../../lib/comandas.mjs";
+import { receberComanda } from "../../../lib/comandas";
 import { mascaraCPF, somenteDigitos } from "../../../lib/mascaras.mjs";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
 
@@ -683,9 +684,16 @@ export default function SaloesMesasPage() {
         if(error) alert(error);
         else { sucesso = true; pedidoIdParaRecibo = data.id; }
      } else {
-        const { error } = await fecharContaDaMesa(mesaAtiva.id, pedidoAtivo.id, unidadeAtiva, caixa.id, pagamentoData);
+        const desconto = Number(pagamentoData.desconto) || 0;
+        const { error, faltas } = await receberComanda({
+           pedidoId: pedidoAtivo.id, caixaId: caixa.id, unidadeId: unidadeAtiva, pagamentos: recebimentosReais, desconto,
+           taxaServico: aplicarDezPorcento ? (subtotalPagamento - desconto) * 0.10 : 0, acrescimo: pagamentoData.taxa, cliente: clienteNome,
+        });
         if(error) alert(error);
-        else { sucesso = true; pedidoIdParaRecibo = pedidoAtivo.id; }
+        else {
+           sucesso = true; pedidoIdParaRecibo = pedidoAtivo.id;
+           if(faltas?.length) alert(`Conta fechada. Confira no estoque:\n${faltas.join("\n")}`);
+        }
      }
 
      setProcessando(false);

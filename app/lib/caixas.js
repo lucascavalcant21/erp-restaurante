@@ -67,7 +67,7 @@ export async function fetchResumoCaixa(caixaId) {
 
   // Busca as vendas (apenas as que não foram canceladas)
   const { data: vendas, error: errV } = await supabase.from("vendas")
-    .select("total, forma_pagamento")
+    .select("total, forma_pagamento, venda_pagamentos ( forma, valor )")
     .eq("caixa_id", caixaId)
     .neq("status", "cancelada");
   
@@ -95,12 +95,13 @@ export async function fetchResumoCaixa(caixaId) {
     if (m.tipo === "sangria") resumo.sangrias += val;
   });
 
-  (vendas || []).forEach(v => {
-    const val = Number(v.total);
+  // A comanda pode ser paga em mais de uma forma: cada parte vai para a sua linha.
+  (vendas || []).flatMap(v => (v.venda_pagamentos?.length ? v.venda_pagamentos : [{ forma: v.forma_pagamento, valor: v.total }])).forEach(p => {
+    const val = Number(p.valor);
     resumo.total_vendas += val;
-    if (v.forma_pagamento === "dinheiro") resumo.vendas_dinheiro += val;
-    else if (v.forma_pagamento === "pix") resumo.vendas_pix += val;
-    else if (v.forma_pagamento === "credito" || v.forma_pagamento === "debito") resumo.vendas_cartao += val;
+    if (p.forma === "dinheiro") resumo.vendas_dinheiro += val;
+    else if (p.forma === "pix") resumo.vendas_pix += val;
+    else if (p.forma === "credito" || p.forma === "debito") resumo.vendas_cartao += val;
     else resumo.vendas_outros += val;
   });
 

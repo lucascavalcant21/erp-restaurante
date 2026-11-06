@@ -66,6 +66,15 @@ export function criarServicoDeAcoes({ store, escopo, dbe, dbUsuario, verificador
   }
 
   function resultadoExecutado(rec, def, repetido = false) {
+    // ação com resumo próprio (ex.: ficha técnica): texto, linhas e referência da conversa
+    if (typeof def.resumoResultado === "function") {
+      const x = def.resumoResultado(rec);
+      return {
+        tipo: "resultado_acao", texto: x.texto,
+        resultado: { acaoId: rec.id, acao: def.id, linhas: x.linhas || [], movimentoId: null, repetido },
+        acoes: x.acoes || [], sugestoes: x.sugestoes || [], referencia: x.referencia || null,
+      };
+    }
     const r = rec.resultado || {};
     const un = rec.preview?.unidadeSaldo || r.unidadeMedida || "";
     const fmt = (n) => Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -95,7 +104,13 @@ export function criarServicoDeAcoes({ store, escopo, dbe, dbUsuario, verificador
       return { tipo: "erro_acao", texto: prep.erro, acaoId: rec.id };
     }
     if (prep.faltando) {
-      return { tipo: "pergunta", texto: prep.faltando.texto, pergunta: { acaoId: rec.id, ...prep.faltando } };
+      // a ação pode guardar o que a pergunta pediu (ex.: qual ingrediente), para aplicar a resposta
+      const { persistir, ...faltando } = prep.faltando;
+      if (persistir) {
+        const salvo = await store.transicionarAcao({ id: rec.id, ...dono, de: ["rascunho"], para: "rascunho", campos: { params: { ...(rec.params || {}), ...persistir } }, agora: relogio() });
+        if (!salvo) return { tipo: "erro_acao", texto: "Esta ação mudou de estado. Faça o pedido de novo." };
+      }
+      return { tipo: "pergunta", texto: faltando.texto, pergunta: { acaoId: rec.id, ...faltando } };
     }
     const expira = new Date(relogio().getTime() + VALIDADE_PROPOSTA_MIN * 60000).toISOString();
     const prop = await store.transicionarAcao({
@@ -150,7 +165,7 @@ export function criarServicoDeAcoes({ store, escopo, dbe, dbUsuario, verificador
       if (!def.campos.includes(campo)) return { tipo: "erro_acao", texto: "Campo inválido para esta ação." };
       const um = def.paramsSchema.forma[campo].parse(valor);
       if (!um.ok || um.valor == null) return { tipo: "pergunta", texto: `Resposta inválida: ${mensagemDeErro(um) || "vazia"}. Tente de novo.`, pergunta: { acaoId, campo, texto: "Tente de novo.", livre: true } };
-      const novos = { ...rec.params, [campo]: um.valor };
+      const novos = typeof def.aplicarResposta === "function" ? def.aplicarResposta(rec.params || {}, campo, um.valor) : { ...rec.params, [campo]: um.valor };
       if (campo === "produto") { novos.insumoId = null; novos.estoqueId = null; }
       if (campo === "insumoId") novos.estoqueId = null;
       const atual = await store.transicionarAcao({ id: rec.id, ...dono, de: ["rascunho"], para: "rascunho", campos: { params: novos }, agora: relogio() });

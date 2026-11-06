@@ -52,6 +52,18 @@ export const paramsSchema = s.object({
   motivoEntrada: s.opcional(s.enum(IDS_MOTIVO)),
 });
 
+/**
+ * Local principal do setor do produto: o estoque chamado exatamente como o
+ * setor do cadastro ("cozinha" → "Cozinha", "bar" → "Bar"). Pré-preparos,
+ * embalagens e máquinas não são o principal. Sem setor ou sem local com esse
+ * nome → null (a conversa pergunta).
+ */
+export function localDoSetor(estoques, insumo) {
+  const setor = semAcento(insumo?.departamento);
+  if (!setor) return null;
+  return (estoques || []).find((e) => semAcento(e.nome) === setor) || null;
+}
+
 const pergunta = (campo, texto, opcoes = null, extra = {}) => ({ faltando: { campo, texto, opcoes, livre: !opcoes, ...extra } });
 
 async function preparar(ctx, p) {
@@ -82,8 +94,12 @@ async function preparar(ctx, p) {
   if (estoqueId && !porId.has(estoqueId)) return { erro: "Esse local de estoque não existe nesta unidade." };
   if (!estoqueId) {
     const ondeEsta = [...new Set(itens.map((i) => i.estoque_id))];
+    const principal = localDoSetor(estoques, insumo);
     if (ondeEsta.length === 1) estoqueId = ondeEsta[0];
     else if (estoques.length === 1) estoqueId = estoques[0].id;
+    // Picanha é da cozinha, xarope é do bar: o setor do cadastro escolhe o
+    // local principal do setor, se o produto está nele ou ainda não está em nenhum.
+    else if (principal && (!ondeEsta.length || ondeEsta.includes(principal.id))) estoqueId = principal.id;
     else {
       const lista = ondeEsta.length ? ondeEsta.map((id) => porId.get(id)) : estoques;
       return pergunta("estoqueId", `Em qual local entra ${insumo.nome}?`, lista.map((e) => {

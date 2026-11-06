@@ -46,8 +46,12 @@ export const INTENCOES = Object.freeze([
   {
     id: "estoque.registrar_entrada", tipo: "acao", acao: "stock.registerEntry", agentes: ["estoque"],
     descricao: "Dar entrada de um produto no estoque (ex.: 'dei entrada de 10 kg de batata', 'chegaram 3 caixas de coca', 'produzi 5 kg de molho').",
-    frases: [["dei entrada", "dar entrada", "da entrada", "de entrada", "lanca entrada", "lancar entrada", "registra entrada", "registrar entrada", "registre entrada", "lance entrada", "lance uma entrada", "entrada de", "chegou", "chegaram", "recebi", "recebemos", "produzi", "produzimos", "poe no estoque", "por no estoque", "coloca no estoque", "colocar no estoque", "coloque no estoque", "adiciona no estoque", "adicionar no estoque", "adicione no estoque", "bota no estoque", "botar no estoque"]],
-    proibidas: ["quanto", "quais", "qual", "quantas", "quando"], peso: 10,
+    frases: [["dei entrada", "dar entrada", "da entrada", "de entrada", "lanca entrada", "lancar entrada", "registra entrada", "registrar entrada", "registre entrada", "lance entrada", "lance uma entrada", "entrada de", "chegou", "chegaram", "recebi", "recebemos", "produzi", "produzimos", "poe no estoque", "por no estoque", "coloca no estoque", "colocar no estoque", "coloque no estoque", "adiciona no estoque", "adicionar no estoque", "adicione no estoque", "bota no estoque", "botar no estoque",
+      // "Adicione 3 kg de picanha, 4 kg de xarope" (Assistente Efto): verbo sozinho também vale
+      "adicione", "adiciona", "adicionar", "acrescente", "acrescenta", "coloque", "coloca", "bota", "bote", "ponha", "poe", "entrou", "entraram", "veio", "vieram"]],
+    // receita/ficha é o fluxo da ficha técnica; "era pra pedir" é conferência de recebimento
+    proibidas: ["quanto", "quais", "qual", "quantas", "quando", "receita", "ficha", "prato", "era pra", "era para", "pedi", "pedido", "pedimos",
+      "horario", "atrasado", "atrasados", "atrasada", "atrasou", "funcionario", "funcionarios", "equipe", "pontual", "ponto"], peso: 10,
   },
   {
     id: "empresa.resumo_dia", tipo: "pergunta", agentes: ["operacoes", "vendas", "financeiro", "estoque"],
@@ -109,7 +113,7 @@ export const INTENCOES = Object.freeze([
   {
     id: "estoque.saldo_produto", tipo: "pergunta", agentes: ["estoque"],
     descricao: "Quanto tem de um produto no estoque agora.",
-    frases: [["quanto tenho", "quanto tem", "quanto temos", "quanto sobrou", "quanto resta", "saldo", "tenho de", "temos de"]], peso: 6,
+    frases: [["quanto tenho", "quanto tem", "quanto temos", "quanto e que eu tenho", "quanto e que tem", "quanto e que temos", "quanto eu tenho", "quanto que eu tenho", "quanto que tem", "quanto que temos", "quanto ainda tenho", "quanto ainda tem", "quanto sobrou", "quanto resta", "saldo", "tenho de", "temos de"]], peso: 6,
   },
   {
     id: "estoque.abaixo_minimo", tipo: "pergunta", agentes: ["estoque"],
@@ -165,6 +169,36 @@ export const INTENCOES = Object.freeze([
     id: "compras.criar", tipo: "acao", acao: "purchase.create", agentes: ["compras"],
     descricao: "Criar uma compra/pedido de compra (ex.: 'crie uma compra de 5 kg de filé').",
     frases: [["crie uma compra", "criar compra", "criar uma compra", "cria uma compra", "faca uma compra", "nova compra", "crie um pedido", "fazer pedido", "faz um pedido", "lanca uma compra", "lance uma compra"]], peso: 10,
+  },
+  // ── Assistente Efto ──
+  {
+    id: "compras.conferir_recebimento", tipo: "pergunta", agentes: ["compras"], usaQuantidade: true,
+    descricao: "Conferir o que chegou contra o que foi pedido (ex.: 'chegou 3 kg de picanha, só que era para pedir 2').",
+    frases: [["chegou", "chegaram", "veio", "vieram", "recebi", "recebemos", "entregaram", "entregou"], ["era pra", "era para", "pedi", "pedido", "pedimos", "encomendei", "encomendamos", "a mais", "a menos", "sobrou", "faltou"]], peso: 12,
+  },
+  {
+    id: "rh.pontualidade", tipo: "pergunta", agentes: ["rh"],
+    descricao: "Se a equipe chegou no horário combinado hoje: quem atrasou (minutos), quem ainda não chegou (ex.: 'meus funcionários chegaram no horário?').",
+    frases: [["funcionario", "funcionarios", "equipe", "pessoal", "galera", "colaborador", "colaboradores", "quem", "alguem", "todo mundo", "todos", "ninguem", "pontualidade", "ponto de hoje"],
+      ["chegou", "chegaram", "atrasado", "atrasados", "atrasada", "atrasadas", "atrasou", "atrasaram", "atraso", "atrasos", "pontual", "pontuais", "pontualidade", "no horario", "bateu o ponto", "bateram o ponto", "bateu ponto", "bateram ponto", "faltou", "faltaram", "ponto de hoje"]],
+    proibidas: ["kg", "gramas", "quilos", "litros", "pedido", "era pra", "era para"], peso: 9,
+  },
+  {
+    id: "fichas.custo_quantidade", tipo: "pergunta", agentes: ["operacoes"], usaQuantidade: true,
+    descricao: "Custo de uma quantidade de uma receita/ficha (ex.: 'quanto custa 200 g do molho de tomate?', 'qual o valor de 200 gramas dessa receita?'); sem quantidade, o custo total.",
+    frases: [["quanto custa", "quanto sai", "quanto fica", "quanto da", "qual o valor", "qual valor", "qual o custo", "qual custo", "qual e o custo", "qual e o valor", "custo de", "custo do", "custo da", "valor de"],
+      ["g", "kg", "gramas", "grama", "ml", "l", "litro", "litros", "quilo", "quilos", "porcao", "porcoes", "receita", "ficha", "base", "prato"]],
+    proibidas: ["paguei", "ultima vez", "ultima compra", "conta", "contas", "boleto"], peso: 9,
+  },
+  {
+    id: "fichas.lucro_preco", tipo: "pergunta", agentes: ["operacoes"], usaQuantidade: true,
+    descricao: "Lucro de um prato a um preço de venda (ex.: 'vou vender esse prato por 50 reais', 'se eu vender o risoto a 48, quanto lucro?').",
+    frases: [["vender", "vendo", "vende", "vendendo", "cobrar", "cobro", "cobrando", "preco de venda"], ["por", "lucro", "margem", "reais", "a"]], peso: 9,
+  },
+  {
+    id: "fichas.criar", tipo: "acao", acao: "recipe.create", agentes: ["operacoes"],
+    descricao: "Montar uma ficha técnica conversando: receita/base ou prato, com ingredientes, rendimento, preço (ex.: 'vamos montar uma receita, o nome vai ser molho de tomate, vai tomate, sal, alho', 'montar um prato com essa base').",
+    frases: [["montar uma receita", "montar receita", "monta uma receita", "criar uma receita", "criar receita", "cria uma receita", "nova receita", "nova ficha", "criar ficha", "criar uma ficha", "cria uma ficha", "cadastrar ficha", "cadastrar uma ficha", "cadastrar receita", "cadastrar uma receita", "montar uma ficha", "montar ficha", "montar um prato", "monta um prato", "montar o prato", "criar um prato", "criar prato", "cadastrar um prato", "novo prato", "fazer uma ficha", "fazer uma receita", "montar uma base", "criar uma base", "nova base"]], peso: 12,
   },
   {
     id: "navegar", tipo: "navegacao", agentes: [],

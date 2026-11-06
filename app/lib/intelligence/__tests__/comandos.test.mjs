@@ -496,15 +496,21 @@ test("Chegaram 2 garrafas de óleo: embalagem do cadastro, origem deduzida do te
 test("entrada em dúvida pergunta: unidade e local", async () => {
   const tabelas = tabelasPadrao();
   tabelas.estoques.push({ id: "e0000000-0000-4000-8000-000000000009", unidade_id: "loja-a", nome: "Bar", status: "ativo" });
+  tabelas.insumos.push({ id: "a0000000-0000-4000-8000-000000000099", unidade_id: "loja-a", nome: "Gelo", unidade_medida: "kg", departamento: null, tamanho_embalagem: 1 });
   const { pedir, continuar, rpcChamadas } = await montar({ tabelas });
   const r1 = await pedir("Recebi 4 de picanha");
   assert.equal(r1.pergunta.campo, "unidade", "4 sem unidade: kg ou g?");
   assert.deepEqual(r1.pergunta.opcoes.map((o) => o.id), ["kg", "g"], "picanha a granel: sem opção de embalagem");
   const r2 = await continuar(r1.pergunta.acaoId, "unidade", "kg");
   assert.equal(r2.tipo, "confirmacao", "picanha já está na Cozinha: entra lá");
+  // Assistente Efto: produto sem local entra no local do SETOR do cadastro (cozinha → Cozinha)
   const r3 = await pedir("Recebi 1 kg de picanha suína");
-  assert.equal(r3.pergunta.campo, "estoqueId", "produto sem local e dois locais: pergunta onde entra");
-  assert.deepEqual(r3.pergunta.opcoes.map((o) => o.rotulo), ["Cozinha", "Bar"]);
+  assert.equal(r3.tipo, "confirmacao", "sem local, setor cozinha: entra na Cozinha");
+  assert.equal(r3.confirmacao.linhas.find((l) => l.rotulo === "Local").valor, "Cozinha");
+  // sem setor no cadastro e dois locais: pergunta onde entra
+  const r4 = await pedir("Recebi 1 kg de gelo");
+  assert.equal(r4.pergunta.campo, "estoqueId", "produto sem setor e sem local: pergunta onde entra");
+  assert.deepEqual(r4.pergunta.opcoes.map((o) => o.rotulo), ["Cozinha", "Bar"]);
   assert.equal(rpcChamadas.length, 0);
 });
 

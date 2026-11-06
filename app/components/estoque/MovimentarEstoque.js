@@ -129,6 +129,9 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
   useEffect(() => { carregarBase(); }, [carregarBase]);
   useEffect(() => { carregarUltimos(); }, [carregarUltimos]);
   useEffect(() => { lerSeguranca(unidade).then((r) => { setSeg(r.data); setSegErro(r.error || ""); }); }, [unidade]);
+  // Conta da área: a entrada vem pela compra, então só resta retirar.
+  const soRetira = !!seg && !seg.pode_entrada && !!seg.pode_retirada;
+  useEffect(() => { if (soRetira && tipo !== "saida") setTipo("saida"); }, [soRetira, tipo]);
   useEffect(() => { if (estoqueId) gravarLocal(unidade, estoqueId); }, [unidade, estoqueId]);
 
   // ?insumo=<id> abre direto no produto; ?tipo=transferencia já escolhe o motivo
@@ -371,8 +374,8 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
           </div>
 
           {/* Retirar ou adicionar: escolhido no produto */}
-          <div role="radiogroup" aria-label="Retirar ou adicionar" className="grid grid-cols-2 gap-2">
-            {[["saida", ehTransferencia ? "Transferir" : "Retirar", ehTransferencia ? ArrowLeftRight : Minus], ["entrada", "Adicionar", Plus]].map(([t, rot, Icone]) => (
+          <div role="radiogroup" aria-label="Retirar ou adicionar" className={`grid gap-2 ${soRetira ? "grid-cols-1" : "grid-cols-2"}`}>
+            {[["saida", ehTransferencia ? "Transferir" : "Retirar", ehTransferencia ? ArrowLeftRight : Minus], ["entrada", "Adicionar", Plus]].filter(([t]) => t !== "entrada" || !soRetira).map(([t, rot, Icone]) => (
               <button key={t} role="radio" aria-checked={tipo === t} onClick={() => trocarTipo(t)}
                 className={`flex h-14 items-center justify-center gap-2 rounded-2xl border text-base font-black transition-all active:scale-[0.98] ${tipo === t ? (t === "entrada" ? "border-hf-accent bg-hf-accent text-hf-accent-fg shadow-sm" : "border-hf-text bg-hf-text text-hf-surface shadow-sm") : "border-hf-border bg-hf-surface text-hf-text hover:bg-hf-elevated"}`}>
                 <Icone size={20} /> {rot}

@@ -769,11 +769,12 @@ function EtiquetasRunner() {
         setCodigoSalvo(codigo);
         setAssinaturaSalva(assinaturaConteudo);
         if (!modoImpressao) setSalvou("Etiqueta salva!");
-        // Entrada no estoque é consequência da etiqueta: quando dá certo,
-        // confirma; quando não dá, a etiqueta vale do mesmo jeito e não há o
-        // que o usuário faça na hora — segue em silêncio.
+        // Entrada no estoque é consequência da etiqueta: quando não dá, ela vale
+        // do mesmo jeito, mas a tela avisa para o saldo não ficar errado sem ninguém ver.
         if (resultado.estoque?.ok) {
           setSalvou(`Etiqueta registrada · +${resultado.estoque.quantidade} em ${resultado.estoque.estoque}`);
+        } else if (resultado.estoque && !resultado.estoque.silencioso) {
+          setSalvou(`Etiqueta registrada, mas não entrou no estoque: ${resultado.estoque.motivo}`);
         }
       }
       setTimeout(() => {

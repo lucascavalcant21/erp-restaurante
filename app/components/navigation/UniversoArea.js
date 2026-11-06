@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Bike, BookOpen, Carrot, CheckSquare, ChefHat, Citrus, ConciergeBell, CookingPot,
-  FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, Package, Salad,
-  ShoppingCart, Smartphone, Sparkles, SprayCan, Star, StickyNote, Store, Tag, Thermometer, Users,
+  FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, NotebookPen, Package, Salad,
+  Search, ShoppingCart, Smartphone, Sparkles, SprayCan, Star, StickyNote, Store, Tag, Thermometer, Users,
   UtensilsCrossed, WandSparkles, Wine,
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
@@ -24,8 +24,8 @@ function Coqueteleira({ strokeWidth = 2, ...props }) {
 
 const ICONES = {
   Bike, BookOpen, Carrot, CheckSquare, ChefHat, Citrus, ConciergeBell, CookingPot, Coqueteleira,
-  FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, Package, Salad,
-  ShoppingCart, Smartphone, Sparkles, SprayCan, Star, StickyNote, Store, Tag, Thermometer, Users,
+  FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, NotebookPen, Package, Salad,
+  Search, ShoppingCart, Smartphone, Sparkles, SprayCan, Star, StickyNote, Store, Tag, Thermometer, Users,
   UtensilsCrossed, WandSparkles, Wine,
 };
 

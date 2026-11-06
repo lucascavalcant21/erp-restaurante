@@ -388,3 +388,38 @@ test("pendências: só mesa montada pede o pacote, não o valor por pessoa", () 
   p = pendenciasDoOrcamento(orc, resumoDoOrcamento(orc, FICHAS), { hojeIso: "2026-11-03" });
   assert.ok(!p.some((x) => /pacote|Valor por pessoa/.test(x)), p.join(" | "));
 });
+
+test("meta em reais por convidado: vale no lugar da %, sugerido deixa a meta no bolso", () => {
+  const o = orcBase();
+  o.financeiro.meta_lucro_reais_pessoa = 25; // 100 convidados → R$ 2.500 no bolso
+  const r = resumoDoOrcamento(o, FICHAS);
+  assert.equal(r.meta.emReais, true);
+  assert.equal(r.meta.pct, 0);
+  assert.equal(r.meta.valor, 2500);
+  o.financeiro.preco_por_pessoa = r.precoSugeridoPorPessoa;
+  const r2 = resumoDoOrcamento(o, FICHAS);
+  assert.ok(r2.lucro >= 2500 - 0.01 && r2.lucro < 2500 + 2, `lucro ${r2.lucro}`);
+  assert.equal(r2.meta.atingida, true);
+  assert.equal(r2.meta.falta, 0);
+  // Cobrando R$ 10 a mais por pessoa, o que passa da meta é margem de segurança.
+  o.financeiro.preco_por_pessoa = r.precoSugeridoPorPessoa + 10;
+  const r3 = resumoDoOrcamento(o, FICHAS);
+  assert.ok(r3.meta.margem > 0 && r3.meta.falta === 0);
+  assert.equal(r3.meta.valor, 2500, "a meta em reais não muda com o preço");
+  // Abaixo: mostra quanto falta.
+  o.financeiro.preco_por_pessoa = r.precoMinimoPorPessoa;
+  const r4 = resumoDoOrcamento(o, FICHAS);
+  assert.equal(r4.meta.atingida, false);
+  assert.ok(Math.abs(r4.meta.falta - 2500) < 2, `falta ${r4.meta.falta}`);
+  // O mínimo continua sendo lucro zero.
+  assert.ok(r.precoMinimoPorPessoa < r.precoSugeridoPorPessoa);
+});
+
+test("meta em %: valor da meta sai em reais sobre a receita", () => {
+  const o = orcBase();
+  const r = resumoDoOrcamento(o, FICHAS); // 100 × R$ 80 = R$ 8.000, meta 20%
+  assert.equal(r.meta.emReais, false);
+  assert.equal(r.meta.valor, 1600);
+  assert.equal(r.meta.falta + r.meta.margem, Math.abs(r2v(r.lucro - 1600)));
+});
+const r2v = (v) => Math.round(v * 100) / 100;

@@ -1,47 +1,11 @@
-// ENTRADA E SAÍDA DA MARMITARIA (pedido do dono, 05/11/2026): a marmitaria é
-// uma unidade própria, com uma senha para entrar e sair. Dentro dela, o aparelho
-// fica preso às telas da marmitaria. A trava é da tela; quem protege os dados
-// é a separação por unidade no banco. Funções puras (testes em acesso.test.mjs).
+// O acesso à marmitaria é pelo login: o dono escolhe as páginas de cada usuário em
+// Configurações > Usuários (decisão do dono, 05/11/2026). A senha única saiu.
 
-export const UNIDADE_MARMITARIA = "marmitaria";
-const CHAVE = "hefisto:marmitaria:dentro";
+export { UNIDADE_MARMITARIA } from "../negocios.mjs";
 
-// O banco fala de "PIN"; aqui é a senha da marmitaria.
-export function textoDaSenha(erro) {
-  return String(erro || "Senha recusada.").replace("Senha incorreto", "Senha incorreta").replace("O Senha ficou bloqueado", "A senha ficou bloqueada")
-    .replace("Senha bloqueado", "Senha bloqueada").replace("Senha incorreta. A senha", "Senha incorreta. A senha");
-}
+const CHAVE_ANTIGA = "hefisto:marmitaria:dentro";
 
-export const senhaValida = (s) => /^[0-9]{4,8}$/.test(String(s ?? ""));
-
-export function ehRotaDaMarmitaria(caminho) {
-  return caminho === "/dashboard/marmitaria" || String(caminho || "").startsWith("/dashboard/marmitaria/");
-}
-
-/** Dentro da marmitaria, qualquer outra tela volta para ela. */
-export const rotaBloqueada = (dentro, caminho) => !!dentro && !ehRotaDaMarmitaria(caminho);
-
-/**
- * Tela que a pessoa tentou abrir dentro da marmitaria. Depois da senha, ela segue
- * para lá. Só aceita caminho interno: o valor vem da URL.
- */
-export function destinoDaSaida(valor) {
-  const caminho = String(valor || "");
-  if (!/^\/dashboard(\/|\?|$)/.test(caminho) || caminho.includes("//") || caminho.includes("\\")) return "/dashboard";
-  return ehRotaDaMarmitaria(caminho.split("?")[0]) ? "/dashboard" : caminho;
-}
-
-export function lerEntrada(armazem) {
-  try {
-    const v = JSON.parse(armazem?.getItem(CHAVE) || "null");
-    return v && typeof v === "object" ? v : null;
-  } catch { return null; }
-}
-
-export function gravarEntrada(armazem, unidadeAnterior) {
-  try { armazem?.setItem(CHAVE, JSON.stringify({ unidadeAnterior: unidadeAnterior || null })); } catch { /* segue na memória */ }
-}
-
-export function limparEntrada(armazem) {
-  try { armazem?.removeItem(CHAVE); } catch { /* nada a limpar */ }
+/** Solta o aparelho que ficou preso na trava da senha. */
+export function limparEntradaAntiga(armazem) {
+  try { armazem?.removeItem(CHAVE_ANTIGA); } catch { /* nada a limpar */ }
 }

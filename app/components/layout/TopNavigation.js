@@ -8,6 +8,7 @@ import { homeDoUsuario } from "../../lib/auth";
 import { menuPrincipal, menuVisivel, universoLiberado, areaDaRota, universoDaRota, cardsDaArea } from "../../lib/menu-principal.mjs";
 import { lerOrigem, limparOrigem } from "../../lib/universo-origem";
 import LogoHefisto from "./LogoHefisto";
+import TrocaNegocio from "./TrocaNegocio";
 
 // App dedicado não abre a tela de cards: as telas liberadas viram submenu.
 const linksDoApp = (mod) => mod.submodules || cardsDaArea(mod);
@@ -95,9 +96,11 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           </button>
 
           <Link href={sessao?.is_app || sessao?.gerenciado ? homeDoUsuario(sessao) : "/dashboard"} className="flex items-center gap-2 shrink-0 group">
-            <LogoHefisto className="w-8 h-8 transform group-hover:rotate-12 transition-transform" />
+            <LogoHefisto animada className="w-8 h-8" />
             <span className="font-black tracking-tight text-xl hidden sm:block xl:hidden 2xl:block">Héfisto</span>
           </Link>
+
+          <TrocaNegocio sessao={sessao} pathname={pathname} />
 
           {/* BADGE DE APP DEDICADO / ESTAÇÃO */}
           {sessao?.is_app && (

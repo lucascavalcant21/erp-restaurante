@@ -4,7 +4,6 @@
 // sem depender do RH do restaurante. Com o custo de cada um sai o CMO.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Indicador, Secao, SemDados, brl, inputCls, pctTxt, lerNumero } from "../../../components/marmitaria/ui";
 import { carregarEquipe, criarFuncionario, salvarAlocacao, fetchVendas } from "../../../lib/marmitaria/dados";
@@ -129,7 +128,6 @@ export default function FuncionariosPage() {
           </div>
         )}
         {msg && <Aviso tipo={msg.tipo} className="mt-3">{msg.texto}</Aviso>}
-        <p className="mt-3 text-xs text-hf-muted">Horas extras e diárias: lançadas em <Link href="/dashboard/rh/extra" className="font-semibold text-hf-accent">Gestão de Extras</Link>. Diárias pagas no mês entram aqui pela fração alocada.</p>
       </Secao>
     </div>
   );

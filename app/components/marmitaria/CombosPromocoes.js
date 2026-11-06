@@ -17,7 +17,8 @@ import {
   normalizarOferta, rotuloDaOferta,
 } from "../../lib/marmitaria/promocoes.mjs";
 import { composicaoDoPreco, ehMei, ordenarCategorias, rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
-import { noBolso } from "../../lib/precificacao.mjs";
+import NoBolso from "../metas/NoBolso";
+import { metaEmReais } from "../../lib/precificacao.mjs";
 import { melhorTroca } from "../../lib/marmitaria/painel-lucro.mjs";
 import { precoSugerido } from "../../lib/marmitaria/nucleo.mjs";
 import { precoPorMarkup } from "../../lib/marmitaria/dia.mjs";
@@ -270,25 +271,6 @@ function Numero({ r, v, riscado }) {
 }
 
 // Forma o preço do item nesta plataforma. A conta muda a cada tecla; só grava no botão.
-/** Lucro em reais, meta fixa e o que sobra ou falta. */
-function NoBolso({ lucro, preco, metaPct, metaReais, rotulo }) {
-  const b = noBolso({ lucro, preco, metaPct: metaPct === "" ? null : metaPct, metaReais });
-  if (!b) return null;
-  const cor = b.estado === "prejuizo" || b.estado === "abaixo" ? "text-hf-danger" : "text-hf-success";
-  return (
-    <div className="mt-2 rounded-xl border border-hf-border bg-hf-elevated p-3">
-      <p className="text-xs font-bold text-hf-text-2">{rotulo === "Lucro" ? "Lucro por pedido" : rotulo}</p>
-      <p className={`text-2xl font-black tabular-nums ${cor}`}>{brl(b.lucro)}</p>
-      <dl className="mt-1 space-y-0.5 text-sm">
-        {b.meta !== null && <div className="flex justify-between gap-3"><dt className="text-hf-text-2">{b.rotuloMeta}</dt><dd className="font-bold tabular-nums text-hf-text">{brl(b.meta)}</dd></div>}
-        {b.margem > 0 && <div className="flex justify-between gap-3"><dt className="text-hf-text-2">Margem de segurança</dt><dd className="font-bold tabular-nums text-hf-success">{brl(b.margem)}</dd></div>}
-        {b.falta > 0 && <div className="flex justify-between gap-3"><dt className="text-hf-text-2">Falta para a meta</dt><dd className="font-bold tabular-nums text-hf-danger">{brl(b.falta)}</dd></div>}
-      </dl>
-      {b.estado === "sem_meta" && <p className="mt-1 text-xs text-hf-text-2">Defina a meta em Configurações para ver a margem de segurança.</p>}
-    </div>
-  );
-}
-
 function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
   const { base, unidadeId, recarregar } = useMarmitaria();
   const metaReais = base.config.rateio?.meta_lucro_reais ?? null;
@@ -322,7 +304,7 @@ function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
         </Campo>
         <Campo rotulo={`Preço no ${comum.canal.nome} (R$)`}><CampoNumero valor={preco} onChange={(v) => { setPreco(v); setMarkup(""); }} placeholder="0,00" /></Campo>
       </div>
-      {sug.preco !== null && !linha.falta && <button type="button" onClick={() => { usar(sug.preco); setMarkup(""); }} className="mt-2 min-h-[32px] text-xs font-bold text-hf-accent hover:underline">Usar {brl(sug.preco)}, que dá {pctTxt(lerNumero(metaPct), 0)} de lucro</button>}
+      {sug.preco !== null && !linha.falta && <button type="button" onClick={() => { usar(sug.preco); setMarkup(""); }} className="mt-2 min-h-[32px] text-xs font-bold text-hf-accent hover:underline">Usar {brl(sug.preco)}, que deixa a meta de {brl(metaEmReais({ preco: sug.preco, metaPct: metaPct === "" ? null : metaPct, metaReais: item.grupo === "marmita" ? metaReais : null }))} de lucro</button>}
       {s?.com.valido && !linha.falta && (
         <p className="mt-2 text-sm text-hf-text-2">Markup <b className="tabular-nums">{markupPctTxt(s.com.markup)}</b> · CMV <b className="tabular-nums">{pctTxt(s.com.cmvTecnicoPct)}</b> · Sobra <b className={`tabular-nums ${s.com.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{brl(s.com.lucro)}</b></p>
       )}

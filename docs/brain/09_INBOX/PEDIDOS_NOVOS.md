@@ -103,3 +103,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 06/11/2026 | Precificação: meta de lucro fixa em % ou R$, sobra como margem de segurança, foco no dinheiro no bolso, nos três negócios | Marmitaria em PR rascunho · TESTADO EM MOCK. Restaurante e Eventos a seguir |
 | 06/11/2026 | Metas: custo por dia, ponto de equilíbrio, metas por período, previsão do mês, estratégia e diagnóstico do lucro (gargalo, itens parados, movimento) | Marmitaria em PR rascunho (#236) · TESTADO EM MOCK. Restaurante e Eventos a seguir |
 | 06/11/2026 | Nomes sempre profissionais, sem linguagem informal nem abreviação | Regra em `hefisto-auditoria-ui` e telas ajustadas em PR rascunho · TESTADO EM MOCK |
+| 06/11/2026 | Restaurante: meta de lucro em R$, lucro por pedido com margem de segurança na Pizza do prato; metas por período, projeção do mês e estrutura de custos no Resultado do mês | PR rascunho · TESTADO EM MOCK. Eventos a seguir |

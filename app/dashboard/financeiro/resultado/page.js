@@ -20,6 +20,7 @@ import { calcularCMO } from "../../../lib/cmo.mjs";
 import { carregarDadosCmv } from "../../../lib/cmv-dados.mjs";
 import { periodosEntreContagens, apurarPeriodo } from "../../../lib/cmv-real.mjs";
 import { GRUPOS, calcularResultado, cmvDoMes, copiarMes, equipeDoMes, mesHerdado, semanasDoCmv, ticketMedio, depreciacaoMensal, novoIdResultado, valorDoItem } from "../../../lib/resultado-mes.mjs";
+import MetasDoRestaurante from "./MetasDoRestaurante";
 
 const brl = (v) => (v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 const pctTxt = (v) => (v == null ? "—" : `${Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`);
@@ -225,6 +226,8 @@ export default function ResultadoDoMes() {
                 <Num rotulo="Vendas no débito" sufixo="%" valor={modelo.cartao?.parte_debito_pct} onChange={(v) => setCartao("parte_debito_pct", v)} />
                 <Num rotulo="Taxa do débito" sufixo="%" valor={modelo.cartao?.taxa_debito_pct} onChange={(v) => setCartao("taxa_debito_pct", v)} />
                 <Num rotulo="Meta de lucro" sufixo="%" valor={modelo.meta_lucro_pct} onChange={(v) => set("meta_lucro_pct", v)} className="col-span-2" dica="Base do preço sugerido nos eventos, no orçamento rápido e nas marmitas (com os impostos e as taxas acima)." />
+                <Num rotulo="Meta de lucro por prato" valor={modelo.meta_lucro_reais} onChange={(v) => set("meta_lucro_reais", v)} className="col-span-2" dica="Em R$. Se preencher, vale no lugar da porcentagem no preço sugerido." />
+                <Num rotulo="Meta de faturamento do mês" valor={modelo.meta_faturamento} onChange={(v) => set("meta_faturamento", v)} className="col-span-2" dica="Base das metas por período e da projeção." />
               </div>
             </section>
 
@@ -390,6 +393,7 @@ export default function ResultadoDoMes() {
                 </>
               ) : <p className="mt-2 text-sm font-bold text-hf-danger">DADOS INSUFICIENTES: {eq.motivo}</p>}
             </section>
+            <MetasDoRestaurante unidadeId={unidadeAtiva} mes={mes} modelo={modelo} resultado={r} cmo={cmo} />
             <p className="text-center text-xs text-hf-text-2">Preço de cada prato: <Link href="/dashboard/financeiro/pizza" className="font-bold text-hf-accent">Pizza do prato (precificação)</Link></p>
           </aside>
         </div>

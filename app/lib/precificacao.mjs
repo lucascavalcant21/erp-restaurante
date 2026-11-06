@@ -23,7 +23,6 @@ export function noBolso({ lucro, preco, metaPct = null, metaReais = null } = {})
   const l = num(lucro);
   if (l === null) return null;
   const meta = metaEmReais({ preco, metaPct, metaReais });
-  const reais = num(metaReais);
   if (meta === null) return { lucro: r2(l), meta: null, margem: null, falta: null, estado: "sem_meta", rotuloMeta: null };
   const diferenca = r2(l - meta);
   return {
@@ -31,6 +30,7 @@ export function noBolso({ lucro, preco, metaPct = null, metaReais = null } = {})
     margem: diferenca > 0 ? diferenca : 0,
     falta: diferenca < 0 ? r2(-diferenca) : 0,
     estado: l < 0 ? "prejuizo" : diferenca < 0 ? "abaixo" : "na_meta",
-    rotuloMeta: reais !== null && reais > 0 ? "Meta de lucro" : `Meta de lucro (${String(num(metaPct)).replace(".", ",")}%)`,
+    // Só em reais (pedido do dono, 06/11/2026): "(25%)" ao lado de "R$ 25,00" confunde.
+    rotuloMeta: "Meta de lucro",
   };
 }

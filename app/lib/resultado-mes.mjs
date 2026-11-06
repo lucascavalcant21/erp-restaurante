@@ -37,6 +37,10 @@ export function modeloInicial() {
     bonus_funcionario: "",
     // Meta de lucro (%): base do preço sugerido no evento, no orçamento rápido e nas marmitas.
     meta_lucro_pct: "",
+    // Meta de lucro por prato (R$): se preenchida, vale no lugar da porcentagem no preço sugerido.
+    meta_lucro_reais: "",
+    // Meta de faturamento do mês (R$): base das metas por período e da projeção.
+    meta_faturamento: "",
     // Extras pagos no mês fora dos recibos do RH (R$). Não passa para o mês seguinte.
     extras_informados: "",
     pedidos: "",
@@ -346,7 +350,7 @@ export function ticketMedio(faturamento, pedidos, dias = 0) {
 export function parametrosDoResultado(todos = {}, mesRef = null) {
   const meses = Object.keys(todos || {}).filter((k) => /^\d{4}-\d{2}$/.test(k) && (!mesRef || k <= mesRef)).sort();
   const mes = meses[meses.length - 1];
-  if (!mes) return { mes: null, imposto_pct: null, taxa_cartao_pct: null, margem_alvo_pct: null };
+  if (!mes) return { mes: null, imposto_pct: null, taxa_cartao_pct: null, margem_alvo_pct: null, lucro_alvo_reais: null };
   const m = todos[mes] || {};
   const tem = (v) => v !== "" && v !== null && v !== undefined;
   const c = m.cartao || {};
@@ -356,13 +360,14 @@ export function parametrosDoResultado(todos = {}, mesRef = null) {
     imposto_pct: tem(m.impostos_pct) ? r2(num(m.impostos_pct)) : null,
     taxa_cartao_pct: temCartao ? r2((num(c.parte_credito_pct) * num(c.taxa_credito_pct) + num(c.parte_debito_pct) * num(c.taxa_debito_pct)) / 100) : null,
     margem_alvo_pct: tem(m.meta_lucro_pct) ? r2(num(m.meta_lucro_pct)) : null,
+    lucro_alvo_reais: tem(m.meta_lucro_reais) && num(m.meta_lucro_reais) > 0 ? r2(num(m.meta_lucro_reais)) : null,
   };
 }
 
 /** Sobrepõe aos parâmetros antigos (config_sistema) o que o Resultado do mês tem preenchido. */
 export function sobreporParametros(params = {}, doResultado = {}) {
   const r = { ...params };
-  for (const k of ["imposto_pct", "taxa_cartao_pct", "margem_alvo_pct"]) if (doResultado?.[k] != null) r[k] = doResultado[k];
+  for (const k of ["imposto_pct", "taxa_cartao_pct", "margem_alvo_pct", "lucro_alvo_reais"]) if (doResultado?.[k] != null) r[k] = doResultado[k];
   r.origem_parametros = doResultado?.mes ? `Resultado do mês (${doResultado.mes})` : null;
   return r;
 }

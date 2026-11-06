@@ -384,8 +384,6 @@ function maisEspecificas(candidatas) {
 export function canAccessRoute(session, pathname, search = "") {
   if (!session) return false;
   if (session.papel === "admin" || session.super_admin || session.permissions === "*") return true;
-  // A marmitaria tem porta própria: quem tem a senha entra (decisão do dono, 05/11/2026).
-  if (pathname === "/dashboard/marmitaria" || String(pathname).startsWith("/dashboard/marmitaria/")) return true;
   if (session.is_app && Array.isArray(session.allowed_routes)) {
     return session.allowed_routes.some((r) => {
       const [path] = r.split("?");

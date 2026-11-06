@@ -15,12 +15,12 @@ const MENSAGEM = {
 };
 
 export default function EtiquetasProntas({ lista, unidadeId, recebidoEm, onFechar }) {
-  const { sessao, unidadeInfo } = useERP();
+  const { sessao } = useERP();
   const [prontas, setProntas] = useState(null);
   const [estado, setEstado] = useState(null);
   const [imprimindo, setImprimindo] = useState(true);
   const iniciado = useRef(false);
-  const opcoes = { unidadeId, unidadeNome: unidadeInfo?.nome_fantasia || unidadeInfo?.nome || "", responsavel: sessao?.nome || "", recebidoEm };
+  const opcoes = { unidadeId, unidadeNome: "Marmitaria", responsavel: sessao?.nome || "", recebidoEm };
 
   async function imprimir(comRegistro, pedirPermissao) {
     setImprimindo(true);

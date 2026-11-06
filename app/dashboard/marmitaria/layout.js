@@ -7,10 +7,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useERP } from "../../context/ERPContext";
 import { MarmitariaProvider, useMarmitaria } from "../../components/marmitaria/contexto";
-import { EntrarNaMarmitaria, SairDaMarmitaria } from "../../components/marmitaria/PortaDaMarmitaria";
-import { UNIDADE_MARMITARIA } from "../../lib/marmitaria/acesso.mjs";
 import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 
@@ -44,12 +41,6 @@ function Estado() {
 
 export default function MarmitariaLayout({ children }) {
   const pathname = usePathname() || "";
-  const { unidadeAtiva } = useERP();
-  const atual = typeof unidadeAtiva === "object" ? unidadeAtiva?.id : unidadeAtiva;
-  // A marmitaria é outra unidade: fora dela, a tela pede a senha.
-  if (atual !== UNIDADE_MARMITARIA) {
-    return <div className="min-h-full bg-hf-bg px-4 pb-16 pt-8"><EntrarNaMarmitaria /></div>;
-  }
   return (
     <MarmitariaProvider>
       <div className="min-h-full bg-hf-bg">
@@ -59,7 +50,6 @@ export default function MarmitariaLayout({ children }) {
               <p className="text-xs font-semibold uppercase tracking-wider text-hf-accent">Operação</p>
               <h1 className="text-xl font-black text-hf-text sm:text-2xl">Marmitaria &amp; Delivery</h1>
             </div>
-            <SairDaMarmitaria />
           </header>
           <nav aria-label="Áreas da marmitaria" className="mb-4 grid grid-cols-4 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:inline-flex sm:max-w-full sm:flex-wrap">
             {AREAS.map((a) => {

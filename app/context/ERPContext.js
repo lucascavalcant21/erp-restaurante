@@ -1,6 +1,6 @@
 "use client";
 
-import { UNIDADE_MARMITARIA, lerEntrada, unidadeForaDaMarmitaria } from "../lib/marmitaria/acesso.mjs";
+import { limparEntradaAntiga, unidadeForaDaMarmitaria } from "../lib/marmitaria/acesso.mjs";
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { fetchEstoque } from "../lib/estoque";
@@ -133,12 +133,8 @@ export function ERPProvider({ children }) {
         setPodeTrocar(trocar);
 
         const padrao = unidadeDaSessao(sessaoObj, unids);
-        // Quem entrou na marmitaria com a senha continua nela ao recarregar.
-        let dentro = null;
-        try { dentro = lerEntrada(window.localStorage); } catch (_) {}
-        if (dentro && unids.some((u) => u.id === UNIDADE_MARMITARIA)) {
-          setUnidadeAtivaState(UNIDADE_MARMITARIA);
-        } else if (trocar && sessaoObj?.id) {
+        try { limparEntradaAntiga(window.localStorage); } catch (_) {}
+        if (trocar && sessaoObj?.id) {
           const chaveUsuario = `${UNIDADE_KEY}_${sessaoObj.id}`;
           let salva = null;
           try {

@@ -5,20 +5,15 @@
 // juntas depois de gravar.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useERP } from "../../context/ERPContext";
+import { UNIDADE_MARMITARIA } from "../../lib/marmitaria/acesso.mjs";
 import { carregarBase } from "../../lib/marmitaria/dados";
 import { custoDaMarmita } from "../../lib/marmitaria/nucleo.mjs";
 
 const Ctx = createContext(null);
 
-export function unidadeDaSessao(unidadeAtiva) {
-  const id = typeof unidadeAtiva === "object" ? unidadeAtiva?.id : unidadeAtiva;
-  return id && id !== "todas" && id !== "matriz" ? id : null;
-}
-
 export function MarmitariaProvider({ children }) {
-  const { unidadeAtiva } = useERP();
-  const unidadeId = unidadeDaSessao(unidadeAtiva);
+  // Sempre a unidade da marmitaria, sem mexer na unidade do resto do app.
+  const unidadeId = UNIDADE_MARMITARIA;
   const [base, setBase] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);

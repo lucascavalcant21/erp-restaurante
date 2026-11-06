@@ -11,7 +11,6 @@ import BarraUniverso from "../components/navigation/BarraUniverso";
 import CommandCenterModal from "../components/navigation/CommandCenterModal";
 import PainelHefisto from "../components/intelligence/PainelHefisto";
 import { addRecentRoute } from "../lib/user-preferences.js";
-import { lerEntrada, rotaBloqueada } from "../lib/marmitaria/acesso.mjs";
 
 function ProtecaoPermissao({ sessao, children }) {
   const router = useRouter();
@@ -21,22 +20,6 @@ function ProtecaoPermissao({ sessao, children }) {
   const deveVerificar = !!sessao?.gerenciado || !!sessao?.is_app;
   const permitido = !deveVerificar || canAccessRoute(sessao, pathname, search)
     || universoLiberado(pathname, (rota, busca) => canAccessRoute(sessao, rota, busca));
-
-  // Quem entrou na marmitaria só sai com a senha: a tela pedida vira o destino
-  // da saída, para o botão do RH não parecer quebrado.
-  useEffect(() => {
-    const conferir = () => {
-      let armazem = null;
-      try { armazem = window.localStorage; } catch { /* sem armazenamento, sem trava */ }
-      if (rotaBloqueada(!!lerEntrada(armazem), pathname)) {
-        const pedida = search ? `${pathname}?${search}` : pathname;
-        router.replace(`/dashboard/marmitaria?destino=${encodeURIComponent(pedida)}`);
-      }
-    };
-    conferir();
-    window.addEventListener("hefisto:marmitaria", conferir);
-    return () => window.removeEventListener("hefisto:marmitaria", conferir);
-  }, [pathname, router, search]);
 
   useEffect(() => {
     if (!deveVerificar || permitido) return;

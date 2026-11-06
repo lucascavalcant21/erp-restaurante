@@ -46,7 +46,7 @@ export default function ConfiguracoesPage() {
       // O dono avisou que será MEI: vale de saída, até ele salvar outra escolha.
       regime: c.rateio?.regime ?? (base.configSalva ? "" : "mei"),
       margem_alvo_pct: c.doResultado?.margem_alvo_pct ? "" : vazio(c.margem_alvo_pct),
-      encargos: { ...c.encargos }, rateio: { padrao_pct: vazio(c.rateio?.padrao_pct), por_categoria: { ...(c.rateio?.por_categoria || {}), }, marmitas_mes: vazio(c.rateio?.marmitas_mes), cmo_mes: vazio(c.rateio?.cmo_mes), custos_fixos: (c.rateio?.custos_fixos || []).map((x) => ({ nome: x.nome, valor: vazio(x.valor) })) },
+      encargos: { ...c.encargos }, rateio: { meta_lucro_reais: vazio(c.rateio?.meta_lucro_reais), padrao_pct: vazio(c.rateio?.padrao_pct), por_categoria: { ...(c.rateio?.por_categoria || {}), }, marmitas_mes: vazio(c.rateio?.marmitas_mes), cmo_mes: vazio(c.rateio?.cmo_mes), custos_fixos: (c.rateio?.custos_fixos || []).map((x) => ({ nome: x.nome, valor: vazio(x.valor) })) },
       centros_diretos: c.centros_diretos,
     });
   }, [base]);
@@ -74,7 +74,7 @@ export default function ConfiguracoesPage() {
     try {
       const r = await salvarConfig(unidadeId, {
         canais, tributos_pct: t, margem_alvo_pct: m, encargos,
-        rateio: { padrao_pct: lerNumero(cfg.rateio.padrao_pct), por_categoria: porCat, regime: mei ? "mei" : "",
+        rateio: { padrao_pct: lerNumero(cfg.rateio.padrao_pct), por_categoria: porCat, regime: mei ? "mei" : "", meta_lucro_reais: lerNumero(cfg.rateio.meta_lucro_reais),
           marmitas_mes: lerNumero(cfg.rateio.marmitas_mes), cmo_mes: lerNumero(cfg.rateio.cmo_mes),
           custos_fixos: cfg.rateio.custos_fixos.map((x) => ({ nome: String(x.nome || "").trim(), valor: lerNumero(x.valor) })).filter((x) => x.nome) },
         centros_diretos: cfg.centros_diretos,
@@ -140,6 +140,7 @@ export default function ConfiguracoesPage() {
             <Campo rotulo="Imposto sobre as vendas (%)" dica={base?.config?.doResultado?.tributos_pct ? `Em branco: ${base.config.tributos_pct}% (impostos do Resultado do mês).` : "Ex.: a alíquota efetiva do Simples. Confirme com o contador."}><CampoNumero valor={cfg.tributos_pct} onChange={(v) => setCfg({ ...cfg, tributos_pct: v })} placeholder={base?.config?.doResultado?.tributos_pct ? `${base.config.tributos_pct} (Resultado do mês)` : "não configurado"} /></Campo>
           )}
           <Campo rotulo="Meta de lucro (%)" dica={base?.config?.doResultado?.margem_alvo_pct ? `Em branco: ${base.config.margem_alvo_pct}% (meta do Resultado do mês). Usada para sugerir preços.` : "Usada para sugerir preços no Cardápio."}><CampoNumero valor={cfg.margem_alvo_pct} onChange={(v) => setCfg({ ...cfg, margem_alvo_pct: v })} placeholder={base?.config?.doResultado?.margem_alvo_pct ? `${base.config.margem_alvo_pct} (Resultado do mês)` : "não configurado"} /></Campo>
+          <Campo rotulo="Meta de lucro (R$ por marmita)" dica="Se preencher, vale no lugar da porcentagem: o preço sugerido garante esse valor no bolso."><CampoNumero valor={cfg.rateio.meta_lucro_reais} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, meta_lucro_reais: v } })} placeholder="ex.: 10" /></Campo>
         </div>
       </Secao>
 

@@ -18,6 +18,7 @@ import {
 } from "../../lib/marmitaria/promocoes.mjs";
 import { composicaoDoPreco, ehMei, ordenarCategorias, rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
 import NoBolso from "../metas/NoBolso";
+import { metaEmReais } from "../../lib/precificacao.mjs";
 import { melhorTroca } from "../../lib/marmitaria/painel-lucro.mjs";
 import { precoSugerido } from "../../lib/marmitaria/nucleo.mjs";
 import { precoPorMarkup } from "../../lib/marmitaria/dia.mjs";
@@ -303,7 +304,7 @@ function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
         </Campo>
         <Campo rotulo={`Preço no ${comum.canal.nome} (R$)`}><CampoNumero valor={preco} onChange={(v) => { setPreco(v); setMarkup(""); }} placeholder="0,00" /></Campo>
       </div>
-      {sug.preco !== null && !linha.falta && <button type="button" onClick={() => { usar(sug.preco); setMarkup(""); }} className="mt-2 min-h-[32px] text-xs font-bold text-hf-accent hover:underline">Usar {brl(sug.preco)}, que dá {pctTxt(lerNumero(metaPct), 0)} de lucro</button>}
+      {sug.preco !== null && !linha.falta && <button type="button" onClick={() => { usar(sug.preco); setMarkup(""); }} className="mt-2 min-h-[32px] text-xs font-bold text-hf-accent hover:underline">Usar {brl(sug.preco)}, que deixa a meta de {brl(metaEmReais({ preco: sug.preco, metaPct: metaPct === "" ? null : metaPct, metaReais: item.grupo === "marmita" ? metaReais : null }))} de lucro</button>}
       {s?.com.valido && !linha.falta && (
         <p className="mt-2 text-sm text-hf-text-2">Markup <b className="tabular-nums">{markupPctTxt(s.com.markup)}</b> · CMV <b className="tabular-nums">{pctTxt(s.com.cmvTecnicoPct)}</b> · Sobra <b className={`tabular-nums ${s.com.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{brl(s.com.lucro)}</b></p>
       )}

@@ -17,7 +17,7 @@ test("meta em reais vale sobre a porcentagem e não muda com o preço", () => {
 
 test("o que passa da meta é margem de segurança", () => {
   const b = noBolso({ lucro: 7, preco: 40, metaPct: 10 });
-  assert.deepEqual([b.lucro, b.meta, b.margem, b.falta, b.estado, b.rotuloMeta], [7, 4, 3, 0, "na_meta", "Meta de lucro (10%)"]);
+  assert.deepEqual([b.lucro, b.meta, b.margem, b.falta, b.estado, b.rotuloMeta], [7, 4, 3, 0, "na_meta", "Meta de lucro"]);
 });
 
 test("na promoção aparece quanto falta para a meta", () => {

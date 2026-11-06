@@ -25,6 +25,8 @@ Para testar e publicar, siga `hefisto-entrega`.
 
 ## Toda tela nova
 
+- Nomes de módulos, abas e títulos são profissionais, como em um ERP: "Diagnóstico de lucro", nunca "Cadê o lucro?"; "Produção do dia", nunca "Do dia". Sem abreviação nem linguagem informal. Na dúvida, pesquise o termo usado no mercado.
+
 1. Entrada em `app/lib/permissions-catalog.mjs`. A trava `node app/lib/permissions-catalog.test.mjs` falha sem ela. A regra mais específica por prefixo de rota vence.
 2. Link no `app/lib/navigation-registry.mjs` (`node scripts/test-navigation-registry.mjs`).
 3. Valor sem dado: **DADOS INSUFICIENTES**, nunca zero inventado.

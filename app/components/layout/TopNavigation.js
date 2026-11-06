@@ -8,6 +8,7 @@ import { homeDoUsuario } from "../../lib/auth";
 import { menuPrincipal, menuVisivel, universoLiberado, areaDaRota, universoDaRota, cardsDaArea } from "../../lib/menu-principal.mjs";
 import { lerOrigem, limparOrigem } from "../../lib/universo-origem";
 import LogoHefisto from "./LogoHefisto";
+import TrocaNegocio from "./TrocaNegocio";
 
 // App dedicado não abre a tela de cards: as telas liberadas viram submenu.
 const linksDoApp = (mod) => mod.submodules || cardsDaArea(mod);
@@ -228,6 +229,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           </div>
         </div>
               </div>
+        <TrocaNegocio sessao={sessao} pathname={pathname} />
       </header>
 
       {/* MOBILE MENU DRAWER */}

@@ -1,7 +1,7 @@
 // Rode: node --test app/lib/negocios.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ehNegocioSeparado, negocioAtual, negociosDoLogin, unidadeInicial } from "./negocios.mjs";
+import { ehNegocioSeparado, negocioAtual, negociosDoLogin, semNegociosDaTroca, unidadeInicial } from "./negocios.mjs";
 
 const unidades = [{ id: "eventos" }, { id: "marmitaria" }, { id: "seldeestrela" }];
 
@@ -41,4 +41,11 @@ test("com um negócio só, não aparece a troca", () => {
 test("restaurante não é negócio separado", () => {
   assert.equal(ehNegocioSeparado("seldeestrela"), false);
   assert.equal(ehNegocioSeparado("eventos"), true);
+});
+
+test("o menu não repete o que está na troca do topo", () => {
+  const modulos = [{ id: "cozinha" }, { id: "eventos" }, { id: "marmitaria" }];
+  assert.deepEqual(semNegociosDaTroca(modulos, [{ id: "restaurante" }, { id: "marmitaria" }, { id: "eventos" }]).map((m) => m.id), ["cozinha"]);
+  assert.deepEqual(semNegociosDaTroca(modulos, [{ id: "restaurante" }, { id: "marmitaria" }]).map((m) => m.id), ["cozinha", "eventos"]);
+  assert.deepEqual(semNegociosDaTroca(modulos, []).map((m) => m.id), ["cozinha", "eventos", "marmitaria"], "login com um negócio só não fica sem caminho");
 });

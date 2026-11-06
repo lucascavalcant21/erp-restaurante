@@ -10,6 +10,7 @@ import { useCardapio } from "./useCardapio";
 import SimuladorDeVendas from "./SimuladorDeVendas";
 import MotorDeLucro from "./MotorDeLucro";
 import LucroPorCanal from "./LucroPorCanal";
+import MetasDoNegocio from "./MetasDoNegocio";
 import { rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
 import { Abas, Aviso, Botao, Campo, Secao, Selo, brl, inputCls, lerNumero, markupPctTxt, pctTxt } from "./ui";
 import { fetchVendas } from "../../lib/marmitaria/dados";
@@ -139,7 +140,7 @@ function Sugestoes({ catalogo, comum, alvoPct, combos, setCombos, unidadeId }) {
 export default function PainelDeLucro({ abaInicial = "painel" }) {
   const { base, unidadeId } = useMarmitaria();
   const { canais, canal, setCanalId, combos, setCombos, metaPct, catalogo, comum, linhas, mudancas, embutidos } = useCardapio();
-  const [aba, setAba] = useState(abaInicial === "simulador" ? "simulador" : "painel");
+  const [aba, setAba] = useState(["simulador", "metas"].includes(abaInicial) ? abaInicial : "painel");
   const [vendas, setVendas] = useState([]);
   const [itemId, setItemId] = useState("");
 
@@ -167,10 +168,10 @@ export default function PainelDeLucro({ abaInicial = "painel" }) {
         <span className="text-xs font-bold uppercase text-hf-muted">Vendendo em</span>
         {canais.map((c) => <button key={c.id} type="button" className={chip(c.id === canal.id)} onClick={() => setCanalId(c.id)}>{c.nome}</button>)}
       </div>
-      <Abas abas={[{ id: "painel", rotulo: "Painel" }, { id: "simulador", rotulo: "Simulador de vendas" }]} valor={aba} onChange={setAba} />
+      <Abas abas={[{ id: "painel", rotulo: "Painel" }, { id: "metas", rotulo: "Metas" }, { id: "simulador", rotulo: "Simulador de vendas" }]} valor={aba} onChange={setAba} />
       {falta && <Aviso tipo="alerta">{falta}: preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a> para ver o lucro.</Aviso>}
 
-      {aba === "simulador" ? <SimuladorDeVendas linhas={linhas} embutidos={embutidos} config={base.config} /> : <>
+      {aba === "simulador" ? <SimuladorDeVendas linhas={linhas} embutidos={embutidos} config={base.config} /> : aba === "metas" ? <MetasDoNegocio linhas={linhas} embutidos={embutidos} catalogo={catalogo} vendas30={vendas} pratos={p.pratos.map((x) => ({ id: linhas.find((l) => l.id === x.id)?.ficha?.id ?? x.id, nome: x.nome, lucro: x.lucro, preco: linhas.find((l) => l.id === x.id)?.sim?.com?.preco ?? 0 }))} /> : <>
       <LucroPorCanal canais={canais} combos={combos} tributosPct={comum.tributosPct} embutidos={embutidos} rotulo={rotuloDoLucro(embutidos)} />
       {!falta && <MotorDeLucro painel={p} linhas={linhas} comum={comum} metaPct={alvoPct} mudancas={mudancas} />}
       <MudancasDeCusto mudancas={mudancas} />

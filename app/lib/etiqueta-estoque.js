@@ -1,5 +1,6 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { registrarMovimentoMulti, vincularItemEstoque } from "./estoques-multiplos";
+import { lerSegurancaEstoque } from "./estoque-movimento.mjs";
 
 // LIGAÇÃO ETIQUETA → ESTOQUE
 // Etiquetar é declarar que aquilo existe: ao gerar a etiqueta, a quantidade
@@ -50,6 +51,13 @@ async function movimentarPorEtiqueta({ unidadeId, etiqueta, tipo, usuario, obser
   if (quantidade <= 0) return { ok: false, silencioso: true, motivo: "etiqueta sem peso informado" };
 
   try {
+    // Conta da área (decisão do dono, 05/11/2026): a etiqueta da equipe marca o
+    // produzido ou o aberto, mas não lança entrada. Só vale o que vem da compra.
+    if (tipo === "entrada") {
+      const seg = await lerSegurancaEstoque(supabase, unidadeId);
+      if (seg.data?.pode_entrada === false) return { ok: false, silencioso: true, motivo: "conta sem entrada de estoque" };
+    }
+
     const insumo = await acharInsumo(unidadeId, etiqueta.produto);
     if (!insumo) return { ok: false, motivo: `"${etiqueta.produto}" não está cadastrado como produto` };
 
@@ -84,7 +92,7 @@ async function movimentarPorEtiqueta({ unidadeId, etiqueta, tipo, usuario, obser
   }
 }
 
-// Etiqueta gerada = produção declarada: entra no estoque.
+// Etiqueta gerada = produção declarada: entra no estoque, se a conta puder lançar entrada.
 export function entradaPorEtiqueta({ unidadeId, etiqueta, usuario }) {
   return movimentarPorEtiqueta({
     unidadeId, etiqueta, tipo: "entrada", usuario, motivo: "producao",

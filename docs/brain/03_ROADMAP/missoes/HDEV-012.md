@@ -28,10 +28,10 @@ Decisões do dono (05/11/2026): uma conta por área, com a pessoa escolhendo o n
 
 ## Estado
 
-- Fase 1: TESTADO EM MOCK nas telas e TESTADO LOCAL na migração (PGlite). `ECO_1` não aplicada no banco real.
+- Fase 1: TESTADO EM MOCK nas telas e TESTADO LOCAL na migração (PGlite). `ECO_1` aplicada no banco real em 05/11/2026, com aprovação do dono.
 - A tela `/dashboard/operacao/montagem` não confere permissão para editar ou excluir, então a conta da equipe não recebe `assembly.view` e vê a montagem na Buscar.
 - `fichas_tecnicas` continua gravável pelo banco para quem é da unidade: fechar depende de SEC-FICHAS-1/APR-016.
 
-## Decisão pendente do dono
+## Decisões sobre etiquetas (05/11/2026)
 
-Etiqueta com peso lança produção como entrada. Na conta que só retira, o banco recusa essa entrada: a etiqueta sai, o saldo não sobe, e a tela agora avisa.
+Etiqueta da conta da área não entra no estoque, e também serve para produto aberto. A entrada dessas contas é pulada sem aviso; o saldo só sobe pela compra.

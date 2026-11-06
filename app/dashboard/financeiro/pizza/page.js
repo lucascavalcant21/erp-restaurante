@@ -21,6 +21,7 @@ import VisaoPeriodo from "./VisaoPeriodo";
 import { DESPESAS_OPERACIONAIS, DESPESAS_VARIAVEIS, pesoNoFaturamento } from "../../../lib/composicao-preco.mjs";
 import { fmtReais, fmtPct, percentualDe } from "../../../lib/valor-percentual.mjs";
 import CampoDecimal from "../../../components/CampoDecimal";
+import NoBolso from "../../../components/metas/NoBolso";
 
 const fmt = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -280,7 +281,7 @@ export default function PizzaDoLucroPage() {
           fixoUnit: porFatia("fixo"), variavelUnit: porFatia("variavel"), proLaboreUnit: porFatia("prolabore"),
           sugerido: entrada.semCusto
             ? null
-            : precoSugerido({ ...entrada, margemAlvoPct: paramsComCmo.margem_alvo_pct, params: paramsComCmo }),
+            : precoSugerido({ ...entrada, margemAlvoPct: paramsComCmo.margem_alvo_pct, lucroAlvoReais: paramsComCmo.lucro_alvo_reais, params: paramsComCmo }),
         };
       })
       .filter((x) => x.conta.preco > 0)
@@ -991,6 +992,7 @@ export default function PizzaDoLucroPage() {
                               )}
                               <div className="max-w-md md:mx-auto">
                                 <PizzaDoPrato {...x.entrada} />
+                                {!x.entrada.semCusto && <NoBolso lucro={x.conta.prejuizo > 0 ? -x.conta.prejuizo : x.conta.lucro} preco={x.conta.preco} metaPct={paramsComCmo.margem_alvo_pct ?? null} metaReais={paramsComCmo.lucro_alvo_reais ?? null} rotulo="Lucro" />}
                               </div>
                               </div>
                             </td>

@@ -248,7 +248,7 @@ export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = 
  */
 export function precoSugerido({
   custoIngredientes = 0, custoEmbalagem = 0, impostoPct = null, taxaMaquininhaPct = null,
-  margemAlvoPct = 0, params = {},
+  margemAlvoPct = 0, params = {}, lucroAlvoReais = null,
 } = {}) {
   const cmv = Math.max(0, num(custoIngredientes)) + Math.max(0, num(custoEmbalagem));
   // Despesas variáveis: as da ficha (imposto, maquininha) e as da casa.
@@ -262,8 +262,10 @@ export function precoSugerido({
   // faturamento, é um percentual do preço (entra no denominador).
   const rateadoFixo = base.ok && base.metodo === "prato" ? mensais / base.pratos : 0;
   const rateadoPct = base.ok && base.metodo === "faturamento" ? (mensais / base.faturamento) * 100 : 0;
-  const custoDireto = cmv + rateadoFixo;
-  const sobraPct = 100 - variavelPct - rateadoPct - Math.max(0, num(margemAlvoPct));
+  // Meta em reais: entra como valor fixo por prato e a porcentagem deixa de valer.
+  const lucroReais = Math.max(0, num(lucroAlvoReais));
+  const custoDireto = cmv + rateadoFixo + lucroReais;
+  const sobraPct = 100 - variavelPct - rateadoPct - (lucroReais > 0 ? 0 : Math.max(0, num(margemAlvoPct)));
   if (sobraPct <= 0 || custoDireto <= 0) return null;
   return custoDireto / (sobraPct / 100);
 }

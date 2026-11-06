@@ -153,7 +153,7 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
     if (r.error) setErro(r.error); else await recarregar();
   }
   return (
-    <Secao titulo={`Cardápio no ${comum.canal.nome}`} subtitulo="O preço de cada item nessa plataforma e quanto sobra para você em cada pedido.">
+    <Secao titulo={`Precificação no ${comum.canal.nome}`} subtitulo="O preço de cada item nessa plataforma e quanto sobra para você em cada pedido.">
       {erro && <p className="mb-2 text-sm font-bold text-hf-danger">{erro}</p>}
       {msg && <p className={`mb-2 text-sm font-bold ${msg.tipo === "alerta" ? "text-hf-danger" : "text-hf-accent"}`}>{msg.t}</p>}
       <div className="space-y-5">

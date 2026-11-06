@@ -131,7 +131,7 @@ export default function ProcessosPage() {
 
   const categorias = ordenarCategorias(base.marmitas.map((m) => m.categoria || "Sem categoria"));
   return (
-    <Secao titulo="Processos" subtitulo="Como cada item é montado, fechado e entregue.">
+    <Secao titulo="Montagem do prato" subtitulo="Como cada item é montado, fechado e entregue.">
       {!base.marmitas.length && <p className="text-sm text-hf-text-2">Monte as fichas técnicas primeiro.</p>}
       <div className="space-y-4">
         {categorias.map((c) => (

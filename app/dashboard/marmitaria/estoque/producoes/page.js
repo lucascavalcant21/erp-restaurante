@@ -1,18 +1,18 @@
 "use client";
 
-// Produções da marmitaria: as receitas dos subprodutos, o registro das marmitas
-// feitas, o planejamento e os pedidos do iFood. A Produção do dia vem depois.
+// O apoio da Produção do dia: as receitas dos subprodutos, o registro das marmitas
+// feitas, o planejamento e os pedidos do iFood.
 // Fica sob /estoque para herdar a mesma permissão de rota.
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useMarmitaria } from "../../../../components/marmitaria/contexto";
-import { Abas, Botao, Cartao, Secao, num } from "../../../../components/marmitaria/ui";
+import { Botao, Cartao, Secao, num } from "../../../../components/marmitaria/ui";
 import { NovoPrePreparo } from "../../../../components/marmitaria/CadastrosRapidos";
 import { Planejar, RegistrarMarmitas } from "../../../../components/marmitaria/TelasDeEstoque";
 import PedidosIfood from "../../../../components/marmitaria/PedidosIfood";
+import AbasDaProducao, { ABAS_DA_PRODUCAO } from "../../../../components/marmitaria/AbasDaProducao";
 
-const ABAS = [{ id: "subprodutos", rotulo: "Subprodutos" }, { id: "marmitas", rotulo: "Marmitas" }, { id: "planejar", rotulo: "Planejar" }, { id: "pedidos", rotulo: "Pedidos do iFood" }];
 const unTxt = (u) => (String(u).toLowerCase() === "l" ? "L" : u || "un");
 
 function Subprodutos() {
@@ -41,12 +41,11 @@ function Subprodutos() {
 function Conteudo() {
   const { base, carregando } = useMarmitaria();
   const params = useSearchParams();
-  const router = useRouter();
-  const [aba, setAba] = useState(ABAS.some((a) => a.id === params.get("aba")) ? params.get("aba") : "subprodutos");
+  const aba = ABAS_DA_PRODUCAO.some((a) => a.id === params.get("aba")) && params.get("aba") !== "hoje" ? params.get("aba") : "subprodutos";
   if (!base) return carregando ? <Cartao><p className="text-sm text-hf-muted">Carregando produções…</p></Cartao> : null;
   return (
     <div className="space-y-4">
-      <Abas abas={ABAS} valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} />
+      <AbasDaProducao ativa={aba} />
       {aba === "subprodutos" && <Subprodutos />}
       {aba === "marmitas" && <RegistrarMarmitas />}
       {aba === "planejar" && <Planejar />}

@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useMarmitaria } from "../../../../components/marmitaria/contexto";
+import AbasDaProducao from "../../../../components/marmitaria/AbasDaProducao";
 import RetirarProduto from "../../../../components/marmitaria/RetirarProduto";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, brl, inputCls, lerNumero, num } from "../../../../components/marmitaria/ui";
 import { fetchPedidos, fetchPlanosDaCozinha, fetchPreparosDoDia, novaChave, produzirPreparo, salvarPlanoDaCozinha } from "../../../../lib/marmitaria/dados";
@@ -175,6 +176,7 @@ export default function CozinhaPage() {
 
   return (
     <div className="space-y-4">
+      <AbasDaProducao ativa="hoje" />
       {semProducao && <Aviso tipo="alerta">O banco ainda não recebeu a atualização da produção (MARM-PROD-1). Até lá, dá para planejar, mas não para produzir.</Aviso>}
       {erro && <Aviso tipo="alerta">{erro}</Aviso>}
       {chegando.length > 0 && (

@@ -1,7 +1,7 @@
 // CENTRAL DE COMANDO: regras puras (TESTADO LOCAL), com o registry real.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { interpretarConsulta, sugestoes, buscar, explorar, categoriaDo, nomeDo } from "./central-comando.mjs";
+import { interpretarConsulta, sugestoes, buscar, explorar, categoriaDo, nomeDo, nomeCurto, doNegocio, filtrarPorNegocio, montarInicio } from "./central-comando.mjs";
 import { getAccessibleNavigation } from "./navigation-registry.mjs";
 
 const DONO = { papel: "admin", gerenciado: false, permissions: "*" };
@@ -58,4 +58,38 @@ test("categoria e nome: seção específica (não 'Operação' em tudo) e nome c
   assert.notEqual(categoriaDo(etiq), "Operação");
   assert.ok(nomeDo(etiq).length <= etiq.title.length);
   assert.ok(idDe("/dashboard"), "registry real carregado");
+});
+
+const da = (id, route) => ({ id, route, title: id, shortTitle: id, mobilePriority: 1 });
+const restaurante = [da("rh", "/dashboard/rh"), da("estoque", "/dashboard/operacao/estoque")];
+const marmita = [da("m-painel", "/dashboard/marmitaria"), da("m-ficha", "/dashboard/marmitaria/marmitas")];
+
+test("negócio: cada um vê o que é dele", () => {
+  assert.equal(doNegocio(marmita[0], "marmitaria"), true);
+  assert.equal(doNegocio(restaurante[0], "marmitaria"), false);
+  assert.equal(doNegocio(marmita[0], "seldeestrela"), false);
+  assert.deepEqual(filtrarPorNegocio([...restaurante, ...marmita], "marmitaria").map((i) => i.id), ["m-painel", "m-ficha"]);
+  assert.equal(filtrarPorNegocio(restaurante, "marmitaria").length, 2, "sem nada do negócio, mantém a lista");
+});
+
+test("início: favoritos primeiro, sem repetir nos recentes", () => {
+  const r = montarInicio({ acessiveis: [...restaurante, ...marmita], favoritos: [marmita[1], restaurante[0]], recentes: [marmita[0], marmita[1], restaurante[1]], unidadeId: "marmitaria" });
+  assert.deepEqual(r.atalhos.map((i) => i.id), ["m-ficha", "m-painel"]);
+  assert.deepEqual(r.recentes, []);
+  const n = montarInicio({ acessiveis: restaurante, recentes: [restaurante[0]], uso: { estoque: 5 }, atalhos: 1, unidadeId: "seldeestrela" });
+  assert.deepEqual(n.atalhos.map((i) => i.id), ["estoque"]);
+  assert.deepEqual(n.recentes.map((i) => i.id), ["rh"]);
+});
+
+test("busca e explorar trazem o negócio aberto primeiro", () => {
+  const admin = { papel: "admin", super_admin: true, gerenciado: false, permissions: "*" };
+  const m = buscar("estoque", admin, { unidadeId: "marmitaria", limite: 3 }).itens;
+  assert.ok(m[0].route.startsWith("/dashboard/marmitaria"));
+  const r = buscar("estoque", admin, { unidadeId: "seldeestrela", limite: 3 }).itens;
+  assert.ok(!r[0].route.startsWith("/dashboard/marmitaria"));
+  assert.ok(explorar(getAccessibleNavigation(admin), "marmitaria")[0].itens[0].route.startsWith("/dashboard/marmitaria"));
+});
+
+test("o sufixo do negócio sai do nome curto", () => {
+  assert.equal(nomeCurto({ shortTitle: "Cadastro de ingredientes da marmitaria" }), "Cadastro de ingredientes");
 });

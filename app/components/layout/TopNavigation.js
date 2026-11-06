@@ -13,6 +13,11 @@ import TrocaNegocio from "./TrocaNegocio";
 // App dedicado não abre a tela de cards: as telas liberadas viram submenu.
 const linksDoApp = (mod) => mod.submodules || cardsDaArea(mod);
 
+// Cada área do menu lateral é um cartão, destacado do fundo. O dourado marca a atual.
+const cardDoMenu = (ativo) => `flex min-h-[52px] items-center justify-between rounded-2xl border px-4 font-bold shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-colors ${ativo
+  ? "border-hf-menu-accent bg-hf-menu-hover text-hf-menu-text shadow-[inset_4px_0_0_rgb(var(--hf-menu-accent)),0_2px_6px_rgba(0,0,0,0.35)]"
+  : "border-hf-menu-border bg-hf-menu-hover text-hf-menu-text hover:border-hf-menu-muted"}`;
+
 export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -253,7 +258,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto py-4 px-3 space-y-2 custom-scrollbar">
               {modulosVisiveis.map((mod) => {
                 const isExpanded = expandedMobileModule === mod.id;
                 const isActive = ativoId === mod.id;
@@ -263,24 +268,24 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                 if (!(mod.submodules?.length > 0)) {
                   return (
                     <Link key={mod.id} href={mod.href}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl font-bold transition-colors ${isActive ? 'bg-hf-menu-hover text-hf-menu-text shadow-[inset_2px_0_0_rgb(var(--hf-menu-accent))]' : 'text-hf-menu-muted hover:bg-hf-menu-hover hover:text-hf-menu-text'}`}>
+                      className={`${cardDoMenu(isActive)} w-full`}>
                       {mod.label}
                     </Link>
                   );
                 }
 
                 return (
-                  <div key={mod.id} className="flex flex-col">
+                  <div key={mod.id} className={`${isExpanded ? "rounded-2xl bg-hf-menu-hover/60 pb-1" : ""} flex flex-col`}>
                     <button 
                       onClick={() => setExpandedMobileModule(isExpanded ? null : mod.id)}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl font-bold transition-colors ${isActive ? 'bg-hf-menu-hover text-hf-menu-text shadow-[inset_2px_0_0_rgb(var(--hf-menu-accent))]' : 'text-hf-menu-muted hover:bg-hf-menu-hover hover:text-hf-menu-text'}`}
+                      className={`${cardDoMenu(isActive)} w-full`}
                     >
                       {mod.label}
                       <ChevronRight size={16} className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                     </button>
                     
                     {isExpanded && (
-                      <div className="flex flex-col gap-1 ml-4 mt-1 border-l border-hf-menu-border pl-3 py-1">
+                      <div className="mx-3 mt-1 flex flex-col gap-1 border-l border-hf-menu-border py-1 pl-3">
                         {mod.submodules.map((sub) => (
                           <Link 
                             key={sub.href} 

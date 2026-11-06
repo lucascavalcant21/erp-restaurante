@@ -240,7 +240,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           <div className="relative w-80 max-w-[80vw] h-full bg-hf-menu border-r border-hf-menu-border flex flex-col shadow-2xl animate-in slide-in-from-left">
             <div className="flex items-center justify-between px-4 pb-4 border-b border-hf-menu-border" style={{ paddingTop: "calc(var(--erp-safe-top) + 0.75rem)" }}>
               <div className="flex items-center gap-2">
-                <LogoHefisto />
+                <LogoHefisto cambalhota />
                 <span className="font-black tracking-tight text-xl text-hf-menu-text">Héfisto</span>
                 {sessao?.is_app && (
                   <span className="text-3xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold uppercase">

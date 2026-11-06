@@ -1,6 +1,7 @@
 "use client";
 
-import { limparEntradaAntiga, unidadeForaDaMarmitaria } from "../lib/marmitaria/acesso.mjs";
+import { limparEntradaAntiga } from "../lib/marmitaria/acesso.mjs";
+import { ehNegocioSeparado, unidadeInicial } from "../lib/negocios.mjs";
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { fetchEstoque } from "../lib/estoque";
@@ -140,9 +141,14 @@ export function ERPProvider({ children }) {
           try {
             salva = typeof window !== "undefined" ? localStorage.getItem(chaveUsuario) : null;
           } catch (_) {}
-          setUnidadeAtivaState(unidadeForaDaMarmitaria(unids, salva, padrao));
+          // Negócio separado só reabre se foi escolhido no menu: a unidade guardada
+          // pela antiga senha da marmitaria não conta.
+          let escolheu = false;
+          try { escolheu = !!localStorage.getItem(`${chaveUsuario}_escolhida`); } catch (_) {}
+          const reabre = ehNegocioSeparado(salva) && escolheu && unids.some((u) => u.id === salva);
+          setUnidadeAtivaState(reabre ? salva : unidadeInicial(unids, salva, padrao));
         } else {
-          setUnidadeAtivaState(unidadeForaDaMarmitaria(unids, padrao));
+          setUnidadeAtivaState(unidadeInicial(unids, padrao));
         }
       } catch (err) {
         if (!vivo) return;
@@ -158,6 +164,7 @@ export function ERPProvider({ children }) {
     try {
       if (sessao?.id) {
         localStorage.setItem(`${UNIDADE_KEY}_${sessao.id}`, id);
+        localStorage.setItem(`${UNIDADE_KEY}_${sessao.id}_escolhida`, "1");
       }
     } catch (_) {}
   }, [sessao?.id]);

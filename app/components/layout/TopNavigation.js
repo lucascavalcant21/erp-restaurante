@@ -100,6 +100,8 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             <span className="font-black tracking-tight text-xl hidden sm:block xl:hidden 2xl:block">Héfisto</span>
           </Link>
 
+          <TrocaNegocio sessao={sessao} pathname={pathname} />
+
           {/* BADGE DE APP DEDICADO / ESTAÇÃO */}
           {sessao?.is_app && (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -229,7 +231,6 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           </div>
         </div>
               </div>
-        <TrocaNegocio sessao={sessao} pathname={pathname} />
       </header>
 
       {/* MOBILE MENU DRAWER */}

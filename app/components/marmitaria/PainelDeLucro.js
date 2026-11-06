@@ -9,6 +9,8 @@ import { useMarmitaria } from "./contexto";
 import { useCardapio } from "./useCardapio";
 import SimuladorDeVendas from "./SimuladorDeVendas";
 import MotorDeLucro from "./MotorDeLucro";
+import LucroPorCanal from "./LucroPorCanal";
+import { rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
 import { Abas, Aviso, Botao, Campo, Secao, Selo, brl, inputCls, lerNumero, markupPctTxt, pctTxt } from "./ui";
 import { fetchVendas } from "../../lib/marmitaria/dados";
 import { MODELOS_COMBO, normalizarCombo } from "../../lib/marmitaria/promocoes.mjs";
@@ -169,6 +171,7 @@ export default function PainelDeLucro({ abaInicial = "painel" }) {
       {falta && <Aviso tipo="alerta">{falta}: preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a> para ver o lucro.</Aviso>}
 
       {aba === "simulador" ? <SimuladorDeVendas linhas={linhas} embutidos={embutidos} config={base.config} /> : <>
+      <LucroPorCanal canais={canais} combos={combos} tributosPct={comum.tributosPct} embutidos={embutidos} rotulo={rotuloDoLucro(embutidos)} />
       {!falta && <MotorDeLucro painel={p} linhas={linhas} comum={comum} metaPct={alvoPct} mudancas={mudancas} />}
       <MudancasDeCusto mudancas={mudancas} />
 

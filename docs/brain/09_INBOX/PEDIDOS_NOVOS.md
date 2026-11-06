@@ -94,3 +94,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | Restaurante, marmitaria e eventos como três negócios, cada um com RH, ingredientes e fichas próprios | Eventos como unidade própria, começando vazia, por decisão do dono. Troca no topo em menu que abre para baixo |
 | 05/11/2026 | Ecossistema: conta da cozinha, do bar e do salão que só consulta, com etiquetas, estoque, anotações e compras | Fase 1 em PR rascunho (HDEV-012) · TESTADO EM MOCK e TESTADO LOCAL. Fases 2 e 3 na missão |
 | 05/11/2026 | Marmitaria: nomes completos nas abas e nova ordem: Ficha depois do Estoque, Precificação, Produção do dia; Lucro virou Faturamento; Produções entrou na Produção do dia | Feito em PR rascunho · TESTADO EM MOCK |
+| 06/11/2026 | Ideia de anúncio: lucro do mesmo prato em cada canal, com visual marcante; ícone dando cambalhota no menu lateral | Feito em PR rascunho · TESTADO EM MOCK |

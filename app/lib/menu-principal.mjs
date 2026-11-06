@@ -19,6 +19,8 @@ export const MENU_PRINCIPAL = Object.freeze([
     titulo: "Cozinha", subtitulo: "Tudo o que a cozinha usa no dia a dia",
     secoes: [
       { titulo: "Hoje", cards: [
+        { label: "Buscar", desc: "Fichas, montagem e cardápio", href: "/dashboard/operacao/consulta?dept=cozinha", icone: "Search" },
+        { label: "Anotações", desc: "Produzir hoje ou amanhã e pedir compras", href: "/dashboard/operacao/anotacoes?dept=cozinha", icone: "NotebookPen" },
         { label: "Produção do dia", desc: "Lotes e preparos de hoje", href: "/dashboard/operacao/producao?dept=cozinha", icone: "CookingPot" },
         { label: "Tela da cozinha (KDS)", desc: "Pedidos em preparo", href: "/dashboard/cozinha/kds?setor=cozinha", icone: "ConciergeBell" },
         { label: "Etiquetas", desc: "Imprimir etiquetas de produção", href: "/dashboard/operacao/etiquetas?dept=cozinha", icone: "Tag" },
@@ -49,6 +51,8 @@ export const MENU_PRINCIPAL = Object.freeze([
     titulo: "Bar", subtitulo: "Tudo o que o bar usa no dia a dia",
     secoes: [
       { titulo: "Hoje", cards: [
+        { label: "Buscar", desc: "Fichas, montagem e cardápio", href: "/dashboard/operacao/consulta?dept=bar", icone: "Search" },
+        { label: "Anotações", desc: "Produzir hoje ou amanhã e pedir compras", href: "/dashboard/operacao/anotacoes?dept=bar", icone: "NotebookPen" },
         { label: "Produção do dia", desc: "Bases, xaropes e preparos", href: "/dashboard/operacao/producao?dept=bar", icone: "Coqueteleira" },
         { label: "Tela do bar (KDS)", desc: "Pedidos em preparo", href: "/dashboard/cozinha/kds?setor=bar", icone: "ConciergeBell" },
         { label: "Etiquetas", desc: "Imprimir etiquetas do bar", href: "/dashboard/operacao/etiquetas?dept=bar", icone: "Tag" },

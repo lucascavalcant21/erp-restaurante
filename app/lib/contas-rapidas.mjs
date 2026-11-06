@@ -4,6 +4,9 @@
 // do navegador. Nenhum modelo dá custo, edição de ficha nem exclusão; quem
 // precisar de mais recebe depois, em Configurações > Perfis.
 const ESTOQUE_DIA_A_DIA = ["estoque.operation.view", "estoque.movements.view", "estoque.movements.create"];
+// Conta da área: vê o saldo e retira. A entrada vem pela compra, e o banco recusa
+// entrada para quem só tem estoque.outputs.create (_estoque_pode).
+const ESTOQUE_SO_RETIRAR = ["estoque.operation.view", "estoque.movements.view", "estoque.outputs.view", "estoque.outputs.create"];
 const ETIQUETAS = ["estoque.labels.view", "estoque.labels.create", "estoque.labels.print"];
 const TREINAMENTO = "treinamento.my.view";
 const LIDERAR_TREINAMENTO = ["treinamento.team.view", "treinamento.team.create", "treinamento.team.approve"];
@@ -25,25 +28,25 @@ export const CONTAS_RAPIDAS = Object.freeze([
     id: "equipe-bar",
     codigo: "conta-equipe-bar",
     nome: "Equipe do bar",
-    descricao: "Consulta fichas, usa o estoque e imprime fichas e etiquetas do bar.",
+    descricao: "Conta do bar: busca fichas e montagem, imprime etiquetas, retira do estoque, anota a produção e pede compras.",
     setor: "Bar",
     icone: "Wine",
     paginaInicial: "/dashboard/bar",
-    pode: ["Ver as fichas de drinks", "Adicionar e retirar do estoque", "Imprimir fichas e etiquetas"],
-    naoPode: ["Alterar fichas", "Ver custos"],
-    permissoes: ["bar.sector.view", "bar.recipes.view", "bar.recipes.print", ...ESTOQUE_DIA_A_DIA, ...ETIQUETAS, TREINAMENTO],
+    pode: ["Buscar fichas, montagem e cardápio", "Retirar do estoque", "Imprimir fichas e etiquetas", "Anotar a produção e pedir compras"],
+    naoPode: ["Alterar fichas", "Ver custos", "Adicionar ao estoque"],
+    permissoes: ["bar.sector.view", "bar.search.view", "bar.notes.view", "bar.notes.create", "bar.recipes.view", "bar.recipes.print", ...ESTOQUE_SO_RETIRAR, ...ETIQUETAS, TREINAMENTO],
   },
   {
     id: "equipe-cozinha",
     codigo: "conta-equipe-cozinha",
     nome: "Equipe da cozinha",
-    descricao: "Consulta fichas, usa o estoque e imprime fichas e etiquetas da cozinha.",
+    descricao: "Conta da cozinha: busca fichas e montagem, imprime etiquetas, retira do estoque, anota a produção e pede compras.",
     setor: "Cozinha",
     icone: "ChefHat",
     paginaInicial: "/dashboard/cozinha",
-    pode: ["Ver as fichas técnicas", "Adicionar e retirar do estoque", "Imprimir fichas e etiquetas"],
-    naoPode: ["Alterar fichas", "Ver custos"],
-    permissoes: ["cozinha.sector.view", "cozinha.recipes.view", "cozinha.recipes.print", ...ESTOQUE_DIA_A_DIA, ...ETIQUETAS, TREINAMENTO],
+    pode: ["Buscar fichas, montagem e cardápio", "Retirar do estoque", "Imprimir fichas e etiquetas", "Anotar a produção e pedir compras"],
+    naoPode: ["Alterar fichas", "Ver custos", "Adicionar ao estoque"],
+    permissoes: ["cozinha.sector.view", "cozinha.search.view", "cozinha.notes.view", "cozinha.notes.create", "cozinha.recipes.view", "cozinha.recipes.print", ...ESTOQUE_SO_RETIRAR, ...ETIQUETAS, TREINAMENTO],
   },
   {
     id: "somente-ponto",

@@ -96,6 +96,8 @@ export const PERMISSION_MODULES = [
   {
     id: "cozinha", label: "Cozinha",
     pages: [
+      { id: "search", label: "Busca da cozinha", route: "/dashboard/operacao/consulta?dept=cozinha", actions: ["view"] },
+      { id: "notes", label: "Anotações da cozinha", route: "/dashboard/operacao/anotacoes?dept=cozinha", actions: ["view", "create"] },
       { id: "recipes", label: "Fichas técnicas", route: "/dashboard/operacao/fichas?dept=cozinha", actions: [...CRUD, "view_costs", "print", "export"] },
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem?dept=cozinha", actions: [...CRUD, "print"] },
       { id: "production", label: "Produção do dia", route: "/dashboard/operacao/producao?dept=cozinha", actions: ["view", "create", "edit", "confirm", "cancel", "print"] },
@@ -116,6 +118,8 @@ export const PERMISSION_MODULES = [
     id: "bar", label: "Bar",
     pages: [
       { id: "products", label: "Produtos", route: "/dashboard/operacao/ingredientes?dept=bar", actions: [...CRUD, "view_costs"] },
+      { id: "search", label: "Busca do bar", route: "/dashboard/operacao/consulta?dept=bar", actions: ["view"] },
+      { id: "notes", label: "Anotações do bar", route: "/dashboard/operacao/anotacoes?dept=bar", actions: ["view", "create"] },
       { id: "recipes", label: "Fichas de drinks", route: "/dashboard/operacao/fichas?dept=bar", actions: [...CRUD, "view_costs", "print"] },
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem?dept=bar", actions: [...CRUD, "print"] },
       { id: "production", label: "Produção do dia", route: "/dashboard/operacao/producao?dept=bar", actions: ["view", "create", "edit", "confirm", "cancel"] },
@@ -196,6 +200,8 @@ export const PERMISSION_MODULES = [
   {
     id: "fichas", label: "Fichas técnicas",
     pages: [
+      { id: "search", label: "Busca da equipe (todas as áreas)", route: "/dashboard/operacao/consulta", actions: ["view"] },
+      { id: "notes", label: "Anotações da equipe (todas as áreas)", route: "/dashboard/operacao/anotacoes", actions: ["view", "create"] },
       { id: "recipes", label: "Fichas técnicas", route: "/dashboard/operacao/fichas", actions: [...CRUD, "view_costs", "view_margin", "print", "export", "import"] },
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem", actions: [...CRUD, "print"] },
     ],

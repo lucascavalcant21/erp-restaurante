@@ -84,3 +84,19 @@ test("senha temporária tem 10 caracteres sem letras parecidas", () => {
   assert.equal(senha.length, 10);
   assert.ok(!/[il1o0]/.test(senha));
 });
+
+test("conta da área: busca, anota e só retira do estoque", async () => {
+  const { CONTAS_RAPIDAS } = await import("./contas-rapidas.mjs");
+  const { canAccessRoute } = await import("./permissions-catalog.mjs");
+  for (const [id, area, outra] of [["equipe-cozinha", "cozinha", "bar"], ["equipe-bar", "bar", "cozinha"]]) {
+    const conta = CONTAS_RAPIDAS.find((c) => c.id === id);
+    const sessao = { gerenciado: true, papel: "colaborador", permissions: conta.permissoes };
+    assert.equal(conta.permissoes.includes("estoque.movements.create"), false);
+    assert.equal(conta.permissoes.includes("estoque.outputs.create"), true);
+    assert.equal(canAccessRoute(sessao, "/dashboard/operacao/consulta", `?dept=${area}`), true);
+    assert.equal(canAccessRoute(sessao, "/dashboard/operacao/anotacoes", `?dept=${area}`), true);
+    assert.equal(canAccessRoute(sessao, "/dashboard/operacao/consulta", `?dept=${outra}`), false);
+    assert.equal(canAccessRoute(sessao, "/dashboard/operacao/anotacoes", ""), false);
+    assert.equal(canAccessRoute(sessao, "/dashboard/operacao/montagem", `?dept=${area}`), false); // a tela de montagem edita e exclui
+  }
+});

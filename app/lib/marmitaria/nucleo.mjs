@@ -230,17 +230,19 @@ export function resultadoPorCanal({ preco, custoTecnico, canal = {}, tributosPct
  * com k = tributos e taxas percentuais escritos como fração do preço.
  * Arredonda para cima, ao centavo.
  */
-export function precoSugerido({ custoTecnico, canal = {}, tributosPct = null, margemAlvoPct } = {}) {
+export function precoSugerido({ custoTecnico, canal = {}, tributosPct = null, margemAlvoPct, lucroAlvoReais = null } = {}) {
   const c = normalizarCanal(canal);
   const custo = custoTecnico == null ? null : parseNumero(custoTecnico);
   if (custo === null || !(custo > 0)) return { preco: null, motivo: "Sem custo técnico não há preço sugerido." };
-  if (margemAlvoPct === null || margemAlvoPct === undefined || margemAlvoPct === "") return { preco: null, motivo: "Configure a margem-alvo em Configurações." };
-  const m = parseNumero(margemAlvoPct) / 100;
+  const lucroReais = lucroAlvoReais === null || lucroAlvoReais === "" ? 0 : pos(parseNumero(lucroAlvoReais));
+  if (!(lucroReais > 0) && (margemAlvoPct === null || margemAlvoPct === undefined || margemAlvoPct === "")) return { preco: null, motivo: "Configure a margem-alvo em Configurações." };
+  // Meta em reais: soma ao que não depende do preço, e a porcentagem deixa de valer.
+  const m = lucroReais > 0 ? 0 : parseNumero(margemAlvoPct) / 100;
   const d = pct(c.promocao_pct);
   const t = pct(tributosPct);
   const baseComissao = c.comissao_base === "bruto" ? 1 : (1 - d);
   const k = (1 - d) * t + baseComissao * pct(c.comissao_pct) + (c.pagamento_na_comissao ? 0 : (1 - d) * pct(c.taxa_pagamento_pct));
-  const fixo = custo + pos(c.taxa_fixa_pedido) / c.itens_por_pedido + pos(c.entrega_subsidiada_pedido) / c.itens_por_pedido;
+  const fixo = custo + lucroReais + pos(c.taxa_fixa_pedido) / c.itens_por_pedido + pos(c.entrega_subsidiada_pedido) / c.itens_por_pedido;
   const den = (1 - d) * (1 - m) - k;
   if (!(den > 0)) return { preco: null, motivo: "Com essas taxas e essa margem-alvo não existe preço possível: reduza a margem ou revise as taxas." };
   return { preco: Math.ceil((fixo / den) * 100) / 100, motivo: null };

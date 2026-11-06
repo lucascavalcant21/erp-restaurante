@@ -17,6 +17,7 @@ import {
   normalizarOferta, rotuloDaOferta,
 } from "../../lib/marmitaria/promocoes.mjs";
 import { composicaoDoPreco, ehMei, ordenarCategorias, rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
+import { noBolso } from "../../lib/precificacao.mjs";
 import { melhorTroca } from "../../lib/marmitaria/painel-lucro.mjs";
 import { precoSugerido } from "../../lib/marmitaria/nucleo.mjs";
 import { precoPorMarkup } from "../../lib/marmitaria/dia.mjs";
@@ -119,7 +120,7 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
       {aba !== "modelo" && <details className="group rounded-2xl border border-hf-border bg-hf-surface p-4">
         <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-black text-hf-text">
           <SlidersHorizontal size={16} className="text-hf-accent" /> Ajustes da conta
-          <span className="ml-auto text-xs font-semibold text-hf-text-2">{ehMei(base.config) ? "MEI · " : ""}meta {metaPct === "" ? "—" : `${metaPct}%`}</span>
+          <span className="ml-auto text-xs font-semibold text-hf-text-2">{ehMei(base.config) ? "MEI · " : ""}meta {Number(base.config.rateio?.meta_lucro_reais) > 0 ? brl(Number(base.config.rateio.meta_lucro_reais)) : metaPct === "" ? "—" : `${metaPct}%`}</span>
         </summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl bg-hf-elevated p-3 text-sm">
@@ -269,8 +270,28 @@ function Numero({ r, v, riscado }) {
 }
 
 // Forma o preço do item nesta plataforma. A conta muda a cada tecla; só grava no botão.
+/** O que importa é o dinheiro no bolso: lucro em reais, meta fixa e o que sobra ou falta. */
+function NoBolso({ lucro, preco, metaPct, metaReais, rotulo }) {
+  const b = noBolso({ lucro, preco, metaPct: metaPct === "" ? null : metaPct, metaReais });
+  if (!b) return null;
+  const cor = b.estado === "prejuizo" || b.estado === "abaixo" ? "text-hf-danger" : "text-hf-success";
+  return (
+    <div className="mt-2 rounded-xl border border-hf-border bg-hf-elevated p-3">
+      <p className="text-xs font-bold text-hf-text-2">{rotulo === "Lucro" ? "No seu bolso" : rotulo}</p>
+      <p className={`text-2xl font-black tabular-nums ${cor}`}>{brl(b.lucro)}</p>
+      <dl className="mt-1 space-y-0.5 text-sm">
+        {b.meta !== null && <div className="flex justify-between gap-3"><dt className="text-hf-text-2">{b.rotuloMeta}</dt><dd className="font-bold tabular-nums text-hf-text">{brl(b.meta)}</dd></div>}
+        {b.margem > 0 && <div className="flex justify-between gap-3"><dt className="text-hf-text-2">Margem de segurança</dt><dd className="font-bold tabular-nums text-hf-success">{brl(b.margem)}</dd></div>}
+        {b.falta > 0 && <div className="flex justify-between gap-3"><dt className="text-hf-text-2">Falta para a meta</dt><dd className="font-bold tabular-nums text-hf-danger">{brl(b.falta)}</dd></div>}
+      </dl>
+      {b.estado === "sem_meta" && <p className="mt-1 text-xs text-hf-text-2">Defina a meta em Configurações para ver a margem de segurança.</p>}
+    </div>
+  );
+}
+
 function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
-  const { unidadeId, recarregar } = useMarmitaria();
+  const { base, unidadeId, recarregar } = useMarmitaria();
+  const metaReais = base.config.rateio?.meta_lucro_reais ?? null;
   const item = linha.itens[0];
   const [preco, setPreco] = useState(item.preco > 0 ? String(item.preco).replace(".", ",") : "");
   const [markup, setMarkup] = useState("");
@@ -279,7 +300,7 @@ function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
   const valor = lerNumero(preco);
   const s = valor > 0 ? simularOferta({ itens: [{ ...item, preco: valor, qtd: 1 }], oferta: { tipo: "nenhuma" }, ...comum }) : null;
   const custoComEmbutidos = item.custo == null ? null : item.custo + (item.grupo === "marmita" ? comum.embutidos.totalPorMarmita || 0 : 0);
-  const sug = precoSugerido({ custoTecnico: custoComEmbutidos, canal: { ...comum.canal, itens_por_pedido: 1 }, tributosPct: comum.tributosPct, margemAlvoPct: metaPct === "" ? null : metaPct });
+  const sug = precoSugerido({ custoTecnico: custoComEmbutidos, canal: { ...comum.canal, itens_por_pedido: 1 }, tributosPct: comum.tributosPct, margemAlvoPct: metaPct === "" ? null : metaPct, lucroAlvoReais: item.grupo === "marmita" ? metaReais : null });
   const usar = (v) => { setPreco(String(v).replace(".", ",")); setErro(null); };
 
   async function salvar() {
@@ -305,6 +326,7 @@ function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
       {s?.com.valido && !linha.falta && (
         <p className="mt-2 text-sm text-hf-text-2">Markup <b className="tabular-nums">{markupPctTxt(s.com.markup)}</b> · CMV <b className="tabular-nums">{pctTxt(s.com.cmvTecnicoPct)}</b> · Sobra <b className={`tabular-nums ${s.com.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{brl(s.com.lucro)}</b></p>
       )}
+      {s?.com.valido && !linha.falta && <NoBolso lucro={s.com.lucro} preco={valor} metaPct={metaPct} metaReais={item.grupo === "marmita" ? metaReais : null} rotulo={rotuloDoLucro(comum.embutidos)} />}
       {erro && <Aviso tipo="alerta" className="mt-2">{erro}</Aviso>}
       <Botao className="mt-2" type="button" onClick={salvar} disabled={salvando || !(valor > 0)}>{salvando ? "Salvando…" : `Salvar preço no ${comum.canal.nome}`}</Botao>
     </div>
@@ -312,6 +334,7 @@ function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
 }
 
 function SimuladorPromocao({ catalogo, comum, bloqueio, onAdicionar }) {
+  const { base } = useMarmitaria();
   const opcoes = [...catalogo.marmita, ...catalogo.bebida.filter((i) => i.propria), ...catalogo.sobremesa.filter((i) => i.propria)];
   const [itemId, setItemId] = useState(catalogo.marmita[0]?.id || opcoes[0]?.id || "");
   const [qtd, setQtd] = useState("1");
@@ -355,7 +378,7 @@ function SimuladorPromocao({ catalogo, comum, bloqueio, onAdicionar }) {
         ) : null}
       </div>
       {item && item.custo == null && <Aviso tipo="alerta" className="mt-3">{item.nome} está sem custo na ficha: o lucro não dá para calcular (DADOS INSUFICIENTES).</Aviso>}
-      {bloqueio ? <Aviso tipo="alerta" className="mt-3">{bloqueio}: preencha em Configurações para ver o lucro.</Aviso> : s && <Comparacao s={s} rotuloLucro={rotuloDoLucro(comum.embutidos)} />}
+      {bloqueio ? <Aviso tipo="alerta" className="mt-3">{bloqueio}: preencha em Configurações para ver o lucro.</Aviso> : s && <><Comparacao s={s} rotuloLucro={rotuloDoLucro(comum.embutidos)} />{s.com.valido && <NoBolso lucro={s.com.lucro} preco={s.com.preco} metaPct={base.config.margem_alvo_pct ?? ""} metaReais={item?.grupo === "marmita" && Number(base.config.rateio?.meta_lucro_reais) > 0 ? Number(base.config.rateio.meta_lucro_reais) * (s.com.pedido?.unidades || 1) : null} rotulo={rotuloDoLucro(comum.embutidos)} />}</>}
       {onAdicionar && item && oferta.tipo !== "nenhuma" && !String(precoSim).trim() && (
         <Botao className="mt-3" onClick={() => onAdicionar(item.id, oferta)}><Plus size={16} /> Colocar “{rotuloDaOferta(oferta)}” no cardápio</Botao>
       )}

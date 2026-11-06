@@ -1181,8 +1181,8 @@ export const NAVIGATION_REGISTRY = [
   },
   {
     id: "marmitaria-lucro",
-    title: "Marmitaria — Precificação",
-    shortTitle: "Precificação",
+    title: "Marmitaria — Faturamento",
+    shortTitle: "Faturamento",
     description: "Pratos mais lucrativos, combos, promoções, mudanças de custo e sugestões de combinação",
     route: "/dashboard/marmitaria/marmitas/lucro",
     domain: "Marmitaria & Delivery",
@@ -1197,8 +1197,8 @@ export const NAVIGATION_REGISTRY = [
   },
   {
     id: "marmitaria-combos",
-    title: "Marmitaria — Cardápio e precificação",
-    shortTitle: "Cardápio",
+    title: "Marmitaria — Precificação e cardápio",
+    shortTitle: "Precificação",
     description: "Preço, markup, CMV e lucro por plataforma (iFood, 99, Keeta e balcão), com combos e promoções como compre 1 e ganhe outra",
     route: "/dashboard/marmitaria/marmitas/cardapio",
     domain: "Marmitaria & Delivery",
@@ -1229,8 +1229,8 @@ export const NAVIGATION_REGISTRY = [
   },
   {
     id: "marmitaria-producoes",
-    title: "Marmitaria — Planejar produção",
-    shortTitle: "Planejar produção",
+    title: "Marmitaria — Subprodutos e planejamento",
+    shortTitle: "Subprodutos e planejamento",
     description: "Subprodutos, marmitas produzidas, planejamento do que produzir e pedidos do iFood",
     route: "/dashboard/marmitaria/estoque/producoes",
     domain: "Marmitaria & Delivery",

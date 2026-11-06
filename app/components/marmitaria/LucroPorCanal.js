@@ -77,8 +77,8 @@ export default function LucroPorCanal({ canais, combos, tributosPct, embutidos, 
     <section aria-labelledby="lucro-canal" className="rounded-3xl border border-hf-border bg-hf-surface p-4 sm:p-6" style={pontilhado}>
       <div className="flex justify-end"><Selo natureza="estimado" /></div>
       <h2 id="lucro-canal" className="mt-1 text-center text-3xl font-black uppercase leading-none tracking-tight text-hf-text sm:text-4xl">
-        O mesmo prato
-        <span className="mx-auto mt-2 block w-fit bg-hf-accent px-2 py-1 text-xl text-hf-accent-fg sm:text-2xl">Um lucro em cada canal</span>
+        Rentabilidade
+        <span className="mx-auto mt-2 block w-fit bg-hf-accent px-2 py-1 text-xl text-hf-accent-fg sm:text-2xl">Por canal de venda</span>
       </h2>
 
       {!item ? (
@@ -100,7 +100,7 @@ export default function LucroPorCanal({ canais, combos, tributosPct, embutidos, 
           </div>
           {motivos.length > 0 && (
             <div>
-              <p className="text-center text-sm font-bold text-hf-text">No {item.pior.canal} sobram {brl(item.diferenca)} a menos que no {item.melhor.canal}:</p>
+              <p className="text-center text-sm font-bold text-hf-text">O {item.pior.canal} rende {brl(item.diferenca)} a menos que o {item.melhor.canal}:</p>
               <ul className="mt-2 flex flex-wrap justify-center gap-2">
                 {motivos.map((m) => <li key={m.rotulo} className="rounded-full bg-hf-text px-3 py-1.5 text-sm font-black" style={ouro}>− {m.rotulo} {brl(m.valor)}</li>)}
               </ul>

@@ -25,7 +25,7 @@ const chip = (ativo) => `min-h-[44px] shrink-0 rounded-xl px-3 text-sm font-bold
 function EscolherGarcom({ equipe, onEscolher }) {
   return (
     <div className="mx-auto w-full max-w-md">
-      <h1 className="text-xl font-black text-hf-text">Quem está atendendo?</h1>
+      <h1 className="text-xl font-black text-hf-text">Identificação do garçom</h1>
       <p className="text-sm text-hf-text-2">Seu nome fica registrado nas mesas que você abrir.</p>
       <ul className="mt-3 space-y-2">
         {equipe.map((c) => <li key={c.id}><button type="button" onClick={() => onEscolher(c.nome)} className="min-h-[52px] w-full rounded-xl border border-hf-border bg-hf-surface px-4 text-left font-bold text-hf-text">{c.nome}</button></li>)}

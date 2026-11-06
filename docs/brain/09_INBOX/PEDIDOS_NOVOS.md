@@ -102,3 +102,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 06/11/2026 | Fechamento da comanda: venda em uma só transação, baixa pela ficha, faturamento automático, cartão e Pix a receber | Em PR rascunho (HDEV-013) · TESTADO LOCAL e TESTADO EM MOCK. COM_3 aguarda aprovação |
 | 06/11/2026 | Precificação: meta de lucro fixa em % ou R$, sobra como margem de segurança, foco no dinheiro no bolso, nos três negócios | Marmitaria em PR rascunho · TESTADO EM MOCK. Restaurante e Eventos a seguir |
 | 06/11/2026 | Metas: custo por dia, ponto de equilíbrio, metas por período, previsão do mês, estratégia e diagnóstico do lucro (gargalo, itens parados, movimento) | Marmitaria em PR rascunho (#236) · TESTADO EM MOCK. Restaurante e Eventos a seguir |
+| 06/11/2026 | Nomes sempre profissionais, sem linguagem informal nem abreviação | Regra em `hefisto-auditoria-ui` e telas ajustadas em PR rascunho · TESTADO EM MOCK |

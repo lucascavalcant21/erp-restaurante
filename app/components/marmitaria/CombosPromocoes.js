@@ -270,14 +270,14 @@ function Numero({ r, v, riscado }) {
 }
 
 // Forma o preço do item nesta plataforma. A conta muda a cada tecla; só grava no botão.
-/** O que importa é o dinheiro no bolso: lucro em reais, meta fixa e o que sobra ou falta. */
+/** Lucro em reais, meta fixa e o que sobra ou falta. */
 function NoBolso({ lucro, preco, metaPct, metaReais, rotulo }) {
   const b = noBolso({ lucro, preco, metaPct: metaPct === "" ? null : metaPct, metaReais });
   if (!b) return null;
   const cor = b.estado === "prejuizo" || b.estado === "abaixo" ? "text-hf-danger" : "text-hf-success";
   return (
     <div className="mt-2 rounded-xl border border-hf-border bg-hf-elevated p-3">
-      <p className="text-xs font-bold text-hf-text-2">{rotulo === "Lucro" ? "No seu bolso" : rotulo}</p>
+      <p className="text-xs font-bold text-hf-text-2">{rotulo === "Lucro" ? "Lucro por pedido" : rotulo}</p>
       <p className={`text-2xl font-black tabular-nums ${cor}`}>{brl(b.lucro)}</p>
       <dl className="mt-1 space-y-0.5 text-sm">
         {b.meta !== null && <div className="flex justify-between gap-3"><dt className="text-hf-text-2">{b.rotuloMeta}</dt><dd className="font-bold tabular-nums text-hf-text">{brl(b.meta)}</dd></div>}

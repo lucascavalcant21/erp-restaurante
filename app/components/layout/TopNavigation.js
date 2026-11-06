@@ -8,6 +8,8 @@ import { homeDoUsuario } from "../../lib/auth";
 import { menuPrincipal, menuVisivel, universoLiberado, areaDaRota, universoDaRota, cardsDaArea } from "../../lib/menu-principal.mjs";
 import { lerOrigem, limparOrigem } from "../../lib/universo-origem";
 import LogoHefisto from "./LogoHefisto";
+import { useERP } from "../../context/ERPContext";
+import { negociosDoLogin, semNegociosDaTroca } from "../../lib/negocios.mjs";
 import TrocaNegocio from "./TrocaNegocio";
 
 // App dedicado não abre a tela de cards: as telas liberadas viram submenu.
@@ -45,6 +47,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
   const podeInteligencia = !!sessao && (!sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view"));
   // A lista do menu mora em app/lib/menu-principal.mjs (a mesma do "voltar" das telas).
+  const { unidades } = useERP();
   const todosOsModulos = menuPrincipal({ podeInteligencia });
   // Conta com perfil só enxerga as áreas dela. App dedicado tem filtro próprio abaixo.
   const modules = sessao?.gerenciado && !sessao?.is_app
@@ -60,7 +63,8 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   const ativoId = universoId || areaDaRota(pathname, modules)?.id || null;
 
   // Filtra módulos caso seja um App dedicado com rotas restritas
-  const modulosVisiveis = modules
+  const negocios = sessao && !sessao.is_app ? negociosDoLogin(unidades, (rota) => canAccessRoute(sessao, rota)) : [];
+  const modulosVisiveis = semNegociosDaTroca(modules, negocios)
     .filter((mod) => {
       if (!sessao?.is_app) return true;
       const rotas = sessao.allowed_routes || [];

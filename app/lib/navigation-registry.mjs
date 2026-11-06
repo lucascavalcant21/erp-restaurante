@@ -1134,7 +1134,7 @@ export const NAVIGATION_REGISTRY = [
   {
     id: "marmitaria-produtos",
     title: "Marmitaria — Cadastro de ingredientes",
-    shortTitle: "Ingredientes da marmitaria",
+    shortTitle: "Cadastro de ingredientes da marmitaria",
     description: "Cadastro próprio dos ingredientes da marmitaria, com preço de compra e quantidade em estoque",
     route: "/dashboard/marmitaria/marmitas/produtos",
     domain: "Marmitaria & Delivery",
@@ -1149,8 +1149,8 @@ export const NAVIGATION_REGISTRY = [
   },
   {
     id: "marmitaria-processos",
-    title: "Marmitaria — Processos de montagem",
-    shortTitle: "Processos",
+    title: "Marmitaria — Montagem do prato",
+    shortTitle: "Montagem do prato",
     description: "Como montar, cozinhar, fechar e entregar cada marmita, e quais embalagens servem para ela",
     route: "/dashboard/marmitaria/marmitas/processos",
     domain: "Marmitaria & Delivery",
@@ -1181,8 +1181,8 @@ export const NAVIGATION_REGISTRY = [
   },
   {
     id: "marmitaria-lucro",
-    title: "Marmitaria — Painel de lucro",
-    shortTitle: "Painel de lucro",
+    title: "Marmitaria — Precificação",
+    shortTitle: "Precificação",
     description: "Pratos mais lucrativos, combos, promoções, mudanças de custo e sugestões de combinação",
     route: "/dashboard/marmitaria/marmitas/lucro",
     domain: "Marmitaria & Delivery",
@@ -1229,8 +1229,8 @@ export const NAVIGATION_REGISTRY = [
   },
   {
     id: "marmitaria-producoes",
-    title: "Marmitaria — Produções",
-    shortTitle: "Produções da marmitaria",
+    title: "Marmitaria — Planejar produção",
+    shortTitle: "Planejar produção",
     description: "Subprodutos, marmitas produzidas, planejamento do que produzir e pedidos do iFood",
     route: "/dashboard/marmitaria/estoque/producoes",
     domain: "Marmitaria & Delivery",

@@ -92,4 +92,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | Tirar a senha da marmitaria; acesso pelos logins, escolhendo as páginas | Feito em PR rascunho · TESTADO EM MOCK |
 | 05/11/2026 | Troca entre Restaurante, Marmitaria e Eventos no topo do app | Feito em PR rascunho · TESTADO EM MOCK |
 | 05/11/2026 | Restaurante, marmitaria e eventos como três negócios, cada um com RH, ingredientes e fichas próprios | Eventos como unidade própria, começando vazia, por decisão do dono. Troca no topo em menu que abre para baixo |
-| 05/11/2026 | Ecossistema: conta da cozinha, do bar e do salão que só consulta, com etiquetas, estoque, anotações e compras | Fase 1 em PR rascunho (HDEV-012) · TESTADO EM MOCK e TESTADO LOCAL. Fases 2 e 3 na missão |
+| 05/11/2026 | Ecossistema: conta da cozinha, do bar e do salão que só consulta, com etiquetas, estoque, anotações e compras | Fase 1 publicada (PR #229, HDEV-012) · TESTADO NO SUPABASE REAL em transação desfeita, telas TESTADO EM MOCK, login real NÃO VALIDADO. Fases 2 e 3 na missão |

@@ -151,7 +151,7 @@ export async function fetchPedidoAberto(mesaId) {
     .select(`
       *,
       pedidos_itens (
-         id, produto_id, quantidade, valor_unitario, observacao, status_kds, created_at,
+         id, produto_id, quantidade, valor_unitario, observacao, status_kds, created_at, pessoa,
          produtos ( nome_produto, departamento )
       )
     `)
@@ -171,7 +171,7 @@ export async function fetchTodosPedidosAbertos(mesaId) {
     .select(`
       *,
       pedidos_itens (
-         id, produto_id, quantidade, valor_unitario, observacao, status_kds, created_at,
+         id, produto_id, quantidade, valor_unitario, observacao, status_kds, created_at, pessoa,
          produtos ( nome_produto, departamento )
       )
     `)

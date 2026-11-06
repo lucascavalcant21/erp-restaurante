@@ -96,4 +96,6 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | Marmitaria: nomes completos nas abas e nova ordem: Ficha depois do Estoque, Precificação, Produção do dia; Lucro virou Faturamento; Produções entrou na Produção do dia | Feito em PR rascunho · TESTADO EM MOCK |
 | 06/11/2026 | Ideia de anúncio: lucro do mesmo prato em cada canal, com visual marcante; ícone dando cambalhota no menu lateral | Feito em PR rascunho · TESTADO EM MOCK |
 | 06/11/2026 | Menu lateral em cartões; Central de Comando mais prática | Feito em PR rascunho · TESTADO EM MOCK. A janela descia no celular por causa da regra global de modal |
+| 06/11/2026 | Sistema de comandas: conta por mesa e por pessoa, garçom no celular, tela e impressora, caixa recebe | Etapa 1 em PR rascunho (HDEV-013) · TESTADO EM MOCK e TESTADO LOCAL |
+| 06/11/2026 | Mover os 3 eventos futuros do Restaurante para Eventos | Feito no banco com aprovação do dono (`db/eventos/EVT_UNIDADE_2_MOVER_FUTUROS.sql`). Sem cardápio, equipe, compras ou contas ligadas |
 | 06/11/2026 | Tirar Marmitaria e Eventos do menu: a troca fica só no topo | Feito em PR rascunho · TESTADO EM MOCK. Login com um negócio só mantém o item. Restaurante ainda tem 3 eventos futuros |

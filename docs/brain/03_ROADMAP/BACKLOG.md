@@ -22,4 +22,5 @@ Ideias ainda sem forma de missão ficam em [[IDEIAS_DO_DONO]] e [[PEDIDOS_NOVOS]
 | [[HDEV-006]] | HI-05 — Proatividade / Autonomia | BACKLOG | 3 | HDEV-004 | – | 0 |
 | [[HDEV-007]] | HI-06 — Voz / WhatsApp | BACKLOG | 3 | HDEV-001 | BLQ-006 | 0 |
 | [[HDEV-012]] | Ecossistema por área: contas de cozinha, bar e salão que só consultam, anotam e retiram | BACKLOG | 3 | – | – | 0 |
+| [[HDEV-013]] | Sistema de comandas: garçom lança por pessoa, caixa recebe | BACKLOG | 3 | – | – | 0 |
 <!-- hefisto-agent:indice:fim -->

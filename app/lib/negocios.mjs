@@ -40,3 +40,12 @@ export function negociosDoLogin(unidades = [], pode = () => true) {
   })).filter((n) => n.unidadeId && pode(n.href));
   return lista.length > 1 ? lista : [];
 }
+
+/**
+ * O menu do negócio não repete a troca do topo. Só some o que a troca alcança:
+ * quem tem um negócio só continua achando o caminho pelo menu.
+ */
+export function semNegociosDaTroca(modulos = [], negocios = []) {
+  const naTroca = new Set(negocios.map((n) => n.id));
+  return modulos.filter((m) => !(ehNegocioSeparado(m.id) && naTroca.has(m.id)));
+}

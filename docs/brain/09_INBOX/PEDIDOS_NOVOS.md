@@ -91,4 +91,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 05/11/2026 | RH "sumiu" e abria a marmitaria | Era a trava da marmitaria sem aviso. Agora pede a senha e segue para o RH · TESTADO EM MOCK |
 | 05/11/2026 | Tirar a senha da marmitaria; acesso pelos logins, escolhendo as páginas | Feito em PR rascunho · TESTADO EM MOCK |
 | 05/11/2026 | Troca entre Restaurante, Marmitaria e Eventos no topo do app | Feito em PR rascunho · TESTADO EM MOCK |
-| 05/11/2026 | Restaurante, marmitaria e eventos como três negócios, cada um com RH, ingredientes e fichas próprios | Marmitaria já separada. Eventos depende de decisão do dono sobre os dados atuais |
+| 05/11/2026 | Restaurante, marmitaria e eventos como três negócios, cada um com RH, ingredientes e fichas próprios | Eventos como unidade própria, começando vazia, por decisão do dono. Troca no topo em menu que abre para baixo |

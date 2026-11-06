@@ -4,13 +4,14 @@
 //
 // `animada`: a perna chuta, feliz, enquanto o app carrega. O joelho é um círculo
 // fixo para a perna não soltar do corpo ao girar. O movimento fica em globals.css.
+// `cambalhota`: o ícone inteiro pula e dá uma volta no ar, no menu lateral.
 
 const OURO = "rgb(var(--hf-accent))";
 const TINTA = "rgb(var(--hf-accent-fg))";
 
-export default function LogoHefisto({ className = "w-8 h-8", animada = false }) {
+export default function LogoHefisto({ className = "w-8 h-8", animada = false, cambalhota = false }) {
   return (
-    <svg viewBox="0 0 64 64" className={`${className} ${animada ? "hf-logo-feliz" : ""}`} role="img" aria-label="Héfisto" overflow={animada ? "visible" : undefined}>
+    <svg viewBox="0 0 64 64" className={`${className} ${animada ? "hf-logo-feliz" : ""} ${cambalhota ? "hf-logo-cambalhota" : ""}`} role="img" aria-label="Héfisto" overflow={animada || cambalhota ? "visible" : undefined}>
       <rect width="64" height="64" rx="14" style={{ fill: OURO }} />
       <path style={{ fill: TINTA }} d="M11 10H23V24H35V10H47V34H23V44H11Z" />
       {animada && <circle cx="41" cy="34" r="6" style={{ fill: TINTA }} />}

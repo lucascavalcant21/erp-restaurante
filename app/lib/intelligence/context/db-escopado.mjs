@@ -63,6 +63,7 @@ export const TABELAS = Object.freeze({
   rh_folgas_esporadicas: { tenant: true, rotulo: "Folgas lançadas" },
   registro_ponto: { tenant: true, rotulo: "Ponto batido" },
   fornecedores: { tenant: true, rotulo: "Fornecedores" },
+  compras: { tenant: true, rotulo: "Compras" },
   etiquetas: { tenant: true, rotulo: "Etiquetas de validade" },
   config_sistema: { tenant: true, rotulo: "Resultado do mês (valores informados pelo dono)" },
   fichas_tecnicas: { tenant: true, rotulo: "Fichas técnicas" },

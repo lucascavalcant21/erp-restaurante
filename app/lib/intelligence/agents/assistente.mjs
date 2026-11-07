@@ -27,6 +27,9 @@ export function numerosDoTexto(texto) {
 
 // ─── Compras: chegou x pedido ────────────────────────────────────────────────
 export const HANDLERS_COMPRAS = {
+  async "compras.foto_nota"() {
+    return r("Mande a foto da nota (DANFE): toque na câmera ao lado do campo de mensagem (ou no + para escolher da galeria) e tire a foto com a nota inteira, reta e com boa luz. Eu leio os itens, confiro com o cadastro, cadastro o que faltar e te mostro a compra para confirmar.");
+  },
   async "compras.conferir_recebimento"({ motor, params }) {
     const [chegou, pedido] = numerosDoTexto(params.texto);
     if (!params.produto || !chegou) {

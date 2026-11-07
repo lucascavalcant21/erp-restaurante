@@ -201,6 +201,11 @@ export const INTENCOES = Object.freeze([
     frases: [["montar uma receita", "montar receita", "monta uma receita", "criar uma receita", "criar receita", "cria uma receita", "nova receita", "nova ficha", "criar ficha", "criar uma ficha", "cria uma ficha", "cadastrar ficha", "cadastrar uma ficha", "cadastrar receita", "cadastrar uma receita", "montar uma ficha", "montar ficha", "montar um prato", "monta um prato", "montar o prato", "criar um prato", "criar prato", "cadastrar um prato", "novo prato", "fazer uma ficha", "fazer uma receita", "montar uma base", "criar uma base", "nova base"]], peso: 12,
   },
   {
+    id: "compras.foto_nota", tipo: "pergunta", agentes: ["compras"],
+    descricao: "Lançar uma compra pela foto da nota fiscal/DANFE (ex.: 'quero lançar uma nota', 'vou mandar a foto da danfe').",
+    frases: [["danfe", "foto da nota", "lancar nota", "lancar a nota", "lancar uma nota", "nota fiscal da compra", "foto da danfe", "mandar a nota", "mandar foto da nota", "ler a nota"]], peso: 11,
+  },
+  {
     id: "navegar", tipo: "navegacao", agentes: [],
     descricao: "Abrir uma tela do ERP (estoque, compras, contas, CMV, fichas, validade…).",
     // Só vale com um destino reconhecido (DESTINOS) — senão cai para outra intenção.

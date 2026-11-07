@@ -50,22 +50,38 @@ export async function POST(request) {
                 hora_emissao: { type: "string", description: "Hora no formato HH:MM" },
                 categoria: { type: "string", enum: ["Hortifruti", "Açougue/Proteína", "Laticínios", "Secos e Molhados", "Bebidas", "Limpeza", "Embalagens", "Outros"] },
                 valor_total: { type: "string", description: "Valor total exato da nota, ex: '219,90'" },
+                numero: { type: "string", description: "Número da nota (NF-e/NFC-e), só dígitos. Vazio se não houver." },
+                serie: { type: "string", description: "Série da nota. Vazio se não houver." },
+                chave_acesso: { type: "string", description: "Chave de acesso de 44 dígitos, só números. Vazio se não houver." },
+                valor_frete: { type: "string", description: "Valor do frete, ex: '15,00'. Vazio se não houver." },
+                valor_desconto: { type: "string", description: "Valor do desconto total da nota. Vazio se não houver." },
+                vencimentos: {
+                  type: "array",
+                  description: "Duplicatas/fatura: cada vencimento e valor. Lista vazia se não houver.",
+                  items: {
+                    type: "object",
+                    properties: { data: { type: "string", description: "Vencimento YYYY-MM-DD" }, valor: { type: "string", description: "Valor da parcela" } },
+                    required: ["data", "valor"], additionalProperties: false,
+                  },
+                },
                 itens: {
                   type: "array",
                   items: {
                     type: "object",
                     properties: {
-                      nome: { type: "string", description: "Nome limpo do produto (sem códigos numéricos)" },
+                      codigo: { type: "string", description: "Código do produto do fornecedor, se aparecer. Vazio se não houver." },
+                      nome: { type: "string", description: "Nome limpo do produto (sem códigos numéricos), com o tamanho se estiver escrito (ex.: 'OLEO SOJA 900ML CX C/20')" },
                       qtd: { type: "string", description: "Quantidade comprada, ex: '2,615'" },
                       un: { type: "string", description: "Unidade de medida (UN, KG, CX)" },
+                      valor_unitario: { type: "string", description: "Valor unitário do item, ex: '8,99'" },
                       preco: { type: "string", description: "Valor total do item na linha, ex: '23,51'" }
                     },
-                    required: ["nome", "qtd", "un", "preco"],
+                    required: ["codigo", "nome", "qtd", "un", "valor_unitario", "preco"],
                     additionalProperties: false
                   }
                 }
               },
-              required: ["fornecedor", "cnpj", "data_emissao", "hora_emissao", "categoria", "valor_total", "itens"],
+              required: ["fornecedor", "cnpj", "data_emissao", "hora_emissao", "categoria", "valor_total", "numero", "serie", "chave_acesso", "valor_frete", "valor_desconto", "vencimentos", "itens"],
               additionalProperties: false
             }
           }
@@ -79,19 +95,26 @@ export async function POST(request) {
     const resultString = data.choices[0].message.content;
     const jsonResult = JSON.parse(resultString);
     
-    // Converte os valores string com vírgula para número real para o frontend
-    if (jsonResult.valor_total) {
-      jsonResult.valor_total = parseFloat(jsonResult.valor_total.replace(/[^\d,-]/g, '').replace(',', '.'));
-    }
+    // Converte os valores string com vírgula ("1.234,56") para número real para o frontend
+    const numero = (v) => {
+      const t = String(v ?? "").replace(/[^\d,.-]/g, "");
+      if (!t) return null;
+      const n = parseFloat(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t);
+      return Number.isFinite(n) ? n : null;
+    };
+    if (jsonResult.valor_total) jsonResult.valor_total = numero(jsonResult.valor_total);
+    jsonResult.valor_frete = numero(jsonResult.valor_frete);
+    jsonResult.valor_desconto = numero(jsonResult.valor_desconto);
+    if (Array.isArray(jsonResult.vencimentos)) jsonResult.vencimentos = jsonResult.vencimentos.map((v) => ({ data: v.data, valor: numero(v.valor) }));
     if (jsonResult.itens) {
       jsonResult.itens = jsonResult.itens.map(item => ({
         ...item,
-        qtd: item.qtd ? parseFloat(String(item.qtd).replace(/[^\d,-]/g, '').replace(',', '.')) : 1,
-        preco: item.preco ? parseFloat(String(item.preco).replace(/[^\d,-]/g, '').replace(',', '.')) : 0
+        qtd: item.qtd ? numero(item.qtd) ?? 1 : 1,
+        valor_unitario: numero(item.valor_unitario),
+        preco: item.preco ? numero(item.preco) ?? 0 : 0
       }));
     }
 
-    console.log("RESULTADO OCR:", JSON.stringify(jsonResult, null, 2));
 
     return NextResponse.json(jsonResult);
   } catch (error) {

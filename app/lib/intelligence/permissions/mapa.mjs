@@ -30,6 +30,8 @@ export const PERMISSOES = Object.freeze({
   custo_fichas: ["fichas.recipes.view_costs", "cozinha.recipes.view_costs", "bar.recipes.view_costs"],
   // criar ficha pela conversa (e cadastrar o ingrediente que falta nela): quem cria ficha na tela
   criar_ficha: ["fichas.recipes.create", "cozinha.recipes.create", "bar.recipes.create"],
+  // lançar compra pela foto da nota: quem confirma compras (a RPC confere de novo no banco)
+  confirmar_compra: ["estoque.purchases.confirm"],
   // as mesmas chaves que _estoque_pode('movimentar', unidade, 'entrada') aceita no banco (EST-MOV-1)
   registrar_entrada: ["estoque.entries.create", "estoque.movements.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
   registrar_perda: ["estoque.losses.record_loss", "estoque.movements.create", "estoque.outputs.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
@@ -54,6 +56,7 @@ export const ROTULO_CAPACIDADE = Object.freeze({
   ponto: "ponto da equipe",
   custo_fichas: "custo das fichas técnicas",
   criar_ficha: "criar ficha técnica",
+  confirmar_compra: "confirmar compras",
 });
 
 /**

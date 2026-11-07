@@ -15,6 +15,7 @@ import { motivoDaEntrada, MOTIVOS_ENTRADA } from "../actions/registrar-entrada.m
 import { dividirEmItens } from "./lote.mjs";
 import { paramsDoComando } from "../actions/criar-ficha.mjs";
 import { sugestoesDaResposta } from "./sugestoes.mjs";
+import { notaSchema } from "../actions/lancar-nota.mjs";
 import { responderPergunta } from "../agents/orquestrador.mjs";
 import { criarTrilha, NIVEL } from "../core/niveis.mjs";
 import { auditar, ETAPA_AUDITORIA } from "../audit/auditoria.mjs";
@@ -30,6 +31,8 @@ export const pedidoSchema = s.object({
     valorNumero: s.opcional(s.number({ min: 0.001, max: 100000 })),
   })),
   canal: s.opcional(s.enum(["texto", "voz"])),
+  // leitura da foto da DANFE (/api/ocr): começa o lançamento da compra (purchase.fromInvoice)
+  nota: s.opcional(notaSchema),
   // O que a resposta ANTERIOR desta conversa citou (devolvido pelo servidor em
   // `referencia`). Não confiável: produto é reconferido no banco da unidade e
   // insight é procurado entre os recalculados agora — nunca usado como dado.
@@ -137,6 +140,19 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
     const c = pedido.continuar;
     resposta = await servicoAcoes.responder({ acaoId: c.acaoId, campo: c.campo, valor: c.valorNumero ?? c.valor, correlationId });
     trilha.passar("acao", NIVEL.AGIR);
+  } else if (pedido.nota) {
+    // foto da nota lida: cada item é conferido na conversa e a compra sai com prévia e CONFIRMAR
+    intencao = intencaoPorId("compras.foto_nota");
+    interp = { intencao: intencao.id, confianca: 1, periodo: null, produto: null };
+    origem = "regras";
+    trilha.passar("acao", NIVEL.AGIR);
+    resposta = await servicoAcoes.iniciar({ acaoId: "purchase.fromInvoice", params: { nota: pedido.nota }, comando: `Foto da nota${pedido.nota.numero ? ` ${pedido.nota.numero}` : ""}${pedido.nota.fornecedor ? ` — ${pedido.nota.fornecedor}` : ""}`.slice(0, 500), chave: pedido.chave, correlationId });
+    // o que foi lido, antes da primeira pergunta (a pessoa confere se a leitura pegou a nota certa)
+    if (resposta?.texto && ["pergunta", "confirmacao"].includes(resposta.tipo)) {
+      const n = pedido.nota;
+      const total = n.valor_total ? `, total ${Number(n.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "";
+      resposta = { ...resposta, texto: `Li a nota${n.numero ? ` ${n.numero}` : ""}${n.fornecedor ? ` de ${n.fornecedor}` : ""}: ${n.itens.length} ${n.itens.length === 1 ? "item" : "itens"}${total}. ${resposta.texto}` };
+    }
   } else if (!pedido.texto) {
     resposta = { tipo: "nao_entendi", texto: "Diga ou digite o que você precisa.", sugestoes: EXEMPLOS.slice(0, 5) };
   } else if ((lote = dividirEmItens(pedido.texto))) {

@@ -15,7 +15,7 @@ export function handlerAsk({ envolverAcoes = null } = {}) {
   return async ({ ic, motor, store, servicoAcoes, corpo, correlationId, nomeUsuario, provedor }) => {
     const p = pedidoSchema.parse({
       texto: corpo.texto ?? null, chave: corpo.chave ?? null, continuar: corpo.continuar ?? null, canal: corpo.canal ?? null,
-      conversa: corpo.conversa ?? null,
+      conversa: corpo.conversa ?? null, nota: corpo.nota ?? null,
     });
     if (!p.ok) return { corpo: { erro: "Pedido inválido.", codigo: "PEDIDO_INVALIDO" }, status: 400 };
     const acoes = envolverAcoes ? envolverAcoes(servicoAcoes) : servicoAcoes;

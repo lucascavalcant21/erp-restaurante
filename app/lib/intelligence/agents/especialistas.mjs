@@ -141,7 +141,7 @@ export const AgenteEstoque = {
     const insumoId = params.insumoIdContexto || null;
     const termo = insumoId ? null : params.produto;
     if (!termo && !insumoId) return { ...r("De qual produto?"), pergunta: { campo: "produto", texto: "De qual produto você quer saber o saldo?", livre: true, comandoBase: "Quanto tenho de {valor}?" } };
-    const m = await motor.getProductStock(insumoId ? { insumoId } : { termo });
+    const m = await motor.getProductStock(insumoId ? { insumoId } : { termo, frase: params.texto || null });
     if (m.status === "insuficiente" && m.detalhes?.ambiguo) {
       return { ...r(m.motivo), pergunta: { campo: "produto", texto: m.motivo, opcoes: m.detalhes.opcoes.map((o) => ({ id: o.id, rotulo: o.nome, comando: `Quanto tenho de ${o.nome}?` })) } };
     }
@@ -280,24 +280,30 @@ export const AgenteOperacoes = {
   id: "operacoes", nome: "OperationsAgent",
   ...HANDLERS_FICHAS,
   async "fichas.preparo"({ motor, params }) {
-    if (!params.produto) return { ...r("De qual prato ou drink?"), pergunta: { campo: "produto", texto: "De qual prato ou drink você quer a ficha?", livre: true, comandoBase: "Como faz {valor}?" } };
-    const m = await motor.getRecipe({ termo: params.produto });
+    // "como faz essa?" logo depois de falar de uma ficha: vale a ficha da conversa (reconferida nesta unidade)
+    if (!params.produto && !params.fichaIdContexto) return { ...r("De qual prato ou drink?"), pergunta: { campo: "produto", texto: "De qual prato ou drink você quer a ficha?", livre: true, comandoBase: "Como faz {valor}?" } };
+    const m = await motor.getRecipe(params.produto ? { termo: params.produto, frase: params.texto || null } : { fichaId: params.fichaIdContexto });
+    if (m.status === "insuficiente" && m.detalhes?.ambiguo) {
+      return { ...r(m.motivo), pergunta: { campo: "produto", texto: m.motivo, opcoes: m.detalhes.opcoes.map((o) => ({ id: o.id, rotulo: o.nome, comando: `Como faz ${o.nome}?` })) } };
+    }
     if (!temValor(m)) return insuf(m, "Ficha técnica");
-    const { ficha: f, ingredientes, etapas, outras } = m.detalhes;
+    const { ficha: f, ingredientes, etapas, outras, folha } = m.detalhes;
     const partes = [`${f.nome}${f.rendimento ? ` rende ${f.rendimento}` : ""}${f.porcaoG ? ` (porção de ${num(f.porcaoG)} g)` : ""}.`];
     if (ingredientes.length) partes.push(`Ingredientes: ${ingredientes.map((i) => `${i.quantidade} de ${i.nome}`).join("; ")}.`);
     if (etapas.length) partes.push(`Preparo: ${etapas.map((e, i) => `${i + 1}) ${e.instrucao || e.titulo}`).join(" ")}`);
     else if (f.modoPreparo) partes.push(`Preparo: ${f.modoPreparo}`);
     else partes.push("Modo de preparo: não cadastrado na ficha.");
-    const tempos = [f.tempoPreparo ? `preparo ${f.tempoPreparo} min` : null, f.tempoCoccao ? `cocção ${f.tempoCoccao} min` : null, f.temperatura ? `temperatura ${f.temperatura}` : null].filter(Boolean);
+    if (folha?.montagem?.length) partes.push(`Montagem: ${folha.montagem.map((p, i) => `${i + 1}) ${p.texto}`).join(" ")}`);
+    // A folha (cartaz) já mostra ingredientes, copo/gelo, preparo e montagem; o texto fica para leitura em voz alta.
     const blocos = [];
-    if (ingredientes.length) blocos.push(blocoLista(`Ingredientes — ${f.nome}`, ingredientes.map((i) => ({ rotulo: i.nome, valor: i.quantidade }))));
-    if (etapas.length) blocos.push(blocoLista("Modo de preparo", etapas.map((e, i) => ({ rotulo: `${i + 1}. ${e.titulo || "Etapa"}`, valor: e.tempoMin ? `${e.tempoMin} min` : "", detalhe: [e.instrucao, e.equipamento, e.temperatura].filter(Boolean).join(" · ") }))));
-    else if (f.modoPreparo) blocos.push(blocoTexto(f.modoPreparo, "Modo de preparo"));
-    const extra = [tempos.length ? tempos.join(" · ") : null, f.validadeDias ? `validade ${f.validadeDias} dia(s)` : null, f.bar?.copo ? `copo ${f.bar.copo}` : null, f.bar?.gelo ? `gelo ${f.bar.gelo}` : null, f.bar?.guarnicao ? `guarnição ${f.bar.guarnicao}` : null, f.observacoes].filter(Boolean);
-    if (extra.length) blocos.push(blocoTexto(extra.join(" · "), "Detalhes"));
+    if (folha) blocos.push({ tipo: "folha", folha });
+    else {
+      if (ingredientes.length) blocos.push(blocoLista(`Ingredientes — ${f.nome}`, ingredientes.map((i) => ({ rotulo: i.nome, valor: i.quantidade }))));
+      if (f.modoPreparo) blocos.push(blocoTexto(f.modoPreparo, "Modo de preparo"));
+    }
     if (outras.length) blocos.push(blocoTexto(`Também encontrei: ${outras.join(", ")}.`, "Outras fichas"));
-    return r(partes.join(" "), blocos, [{ rotulo: "Abrir fichas técnicas", rota: "/dashboard/operacao/fichas" }]);
+    const acoes = [{ rotulo: folha?.faltando?.length ? "Completar a ficha" : "Abrir a ficha", rota: `/dashboard/operacao/fichas/${f.id}` }];
+    return { ...r(partes.join(" "), blocos, acoes), referencia: { ficha: { id: f.id, nome: f.nome } } };
   },
   async "empresa.resumo_dia"({ motor, store, nomeUsuario }) {
     const b = await generateDailyBrief({ motor, store, nomeUsuario });

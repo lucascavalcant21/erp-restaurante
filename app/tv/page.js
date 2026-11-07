@@ -19,12 +19,28 @@ const API = "/api/public/sinalizacao/tv";
 const CHAVE_SEGREDO = "hefisto_tv_segredo";
 const CHAVE_ROTEIRO = "hefisto_tv_roteiro";
 const CACHE_MIDIAS = "hefisto-tv-midias";
-const INTERVALO_PAREADA = 30 * 1000;
+const INTERVALO_PAREADA = 15 * 1000;
 const INTERVALO_CODIGO = 4 * 1000;
 const SHA_LOCAL = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || "";
 
 const ler = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const gravar = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* sem storage: segue */ } };
+
+// Realce das fotos na TV (pedido do dono, 07/11/2026: "mais bonita, mais nítida,
+// mais viva"): cores um pouco mais vivas, contraste leve e nitidez suave.
+// Só na exibição: o arquivo original no acervo não muda. Vídeo fica de fora
+// (filtro em vídeo pesa na TV).
+const REALCE = "saturate(1.15) contrast(1.06) brightness(1.02) url(#hefisto-nitidez)";
+
+function FiltroNitidez() {
+  return (
+    <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+      <filter id="hefisto-nitidez" colorInterpolationFilters="sRGB">
+        <feConvolveMatrix order="3" preserveAlpha="true" kernelMatrix="0 -0.35 0 -0.35 2.4 -0.35 0 -0.35 0" />
+      </filter>
+    </svg>
+  );
+}
 
 const preco = (v) => `R$ ${Number(v).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
 
@@ -83,25 +99,25 @@ async function limparCache(chavesVivas) {
 function SlideCardapio({ pagina, loja, vertical }) {
   const itens = pagina?.itens || [];
   return (
-    <div className="flex h-full w-full flex-col bg-[#14110d] text-[#f6efe2]" style={{ padding: vertical ? "calc(var(--alt) * 6) calc(var(--larg) * 6)" : "calc(var(--alt) * 5) calc(var(--larg) * 5)" }}>
-      <div className="flex items-end justify-between gap-6 border-b border-[#c9a24d]/40 pb-[calc(var(--alt)*2.5)]">
+    <div className="flex h-full w-full flex-col bg-[#14110d] text-[#f6efe2]" style={{ padding: vertical ? "calc(1cqh * 6) calc(1cqw * 6)" : "calc(1cqh * 5) calc(1cqw * 5)" }}>
+      <div className="flex items-end justify-between gap-6 border-b border-[#c9a24d]/40 pb-[calc(1cqh*2.5)]">
         <div className="min-w-0">
-          <p className="truncate font-semibold uppercase tracking-[0.2em] text-[#c9a24d]" style={{ fontSize: vertical ? "calc(var(--larg) * 2.6)" : "calc(var(--alt) * 2.2)" }}>{pagina?.titulo}</p>
-          <h1 className={`font-bold leading-tight ${vertical ? "" : "truncate"}`} style={{ fontSize: vertical ? "calc(var(--larg) * 7)" : "calc(var(--alt) * 6)" }}>{pagina?.categoria}</h1>
+          <p className="truncate font-semibold uppercase tracking-[0.2em] text-[#c9a24d]" style={{ fontSize: vertical ? "calc(1cqw * 2.6)" : "calc(1cqh * 2.2)" }}>{pagina?.titulo}</p>
+          <h1 className={`font-bold leading-tight ${vertical ? "" : "truncate"}`} style={{ fontSize: vertical ? "calc(1cqw * 7)" : "calc(1cqh * 6)" }}>{pagina?.categoria}</h1>
         </div>
-        {loja && <p className="shrink-0 font-medium text-[#f6efe2]/60" style={{ fontSize: vertical ? "calc(var(--larg) * 2.6)" : "calc(var(--alt) * 2.2)" }}>{loja}</p>}
+        {loja && <p className="shrink-0 font-medium text-[#f6efe2]/60" style={{ fontSize: vertical ? "calc(1cqw * 2.6)" : "calc(1cqh * 2.2)" }}>{loja}</p>}
       </div>
-      <ul className="mt-[calc(var(--alt)*3)] flex flex-1 flex-col justify-evenly">
+      <ul className="mt-[calc(1cqh*3)] flex flex-1 flex-col justify-evenly">
         {itens.map((p, i) => (
-          <li key={i} className="flex items-baseline gap-[calc(var(--larg)*2)]">
+          <li key={i} className="flex items-baseline gap-[calc(1cqw*2)]">
             <div className="min-w-0 max-w-[68%]">
-              <p className="truncate font-semibold" style={{ fontSize: vertical ? "calc(var(--larg) * 4.4)" : "calc(var(--alt) * 3.8)" }}>{p.nome}</p>
-              {p.descricao && <p className="truncate text-[#f6efe2]/60" style={{ fontSize: vertical ? "calc(var(--larg) * 2.6)" : "calc(var(--alt) * 2.2)" }}>{p.descricao}</p>}
+              <p className="truncate font-semibold" style={{ fontSize: vertical ? "calc(1cqw * 4.4)" : "calc(1cqh * 3.8)" }}>{p.nome}</p>
+              {p.descricao && <p className="truncate text-[#f6efe2]/60" style={{ fontSize: vertical ? "calc(1cqw * 2.6)" : "calc(1cqh * 2.2)" }}>{p.descricao}</p>}
             </div>
-            <span className="mx-[calc(var(--larg)*1)] hidden flex-1 border-b-2 border-dotted border-[#f6efe2]/20 sm:block" aria-hidden />
+            <span className="mx-[calc(1cqw*1)] hidden flex-1 border-b-2 border-dotted border-[#f6efe2]/20 sm:block" aria-hidden />
             <div className="shrink-0 text-right">
-              {p.preco_original && <p className="text-[#f6efe2]/50 line-through" style={{ fontSize: vertical ? "calc(var(--larg) * 2.6)" : "calc(var(--alt) * 2.2)" }}>{preco(p.preco_original)}</p>}
-              <p className="font-bold tabular-nums text-[#e6c06a]" style={{ fontSize: vertical ? "calc(var(--larg) * 5)" : "calc(var(--alt) * 4.2)" }}>{preco(p.preco)}</p>
+              {p.preco_original && <p className="text-[#f6efe2]/50 line-through" style={{ fontSize: vertical ? "calc(1cqw * 2.6)" : "calc(1cqh * 2.2)" }}>{preco(p.preco_original)}</p>}
+              <p className="font-bold tabular-nums text-[#e6c06a]" style={{ fontSize: vertical ? "calc(1cqw * 5)" : "calc(1cqh * 4.2)" }}>{preco(p.preco)}</p>
             </div>
           </li>
         ))}
@@ -125,32 +141,56 @@ function Midia({ slide, aoTerminar }) {
         autoPlay muted playsInline onEnded={aoTerminar} onError={aoTerminar} />
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img key={slide.chave} src={src} alt="" className="h-full w-full bg-black object-contain" onError={aoTerminar} />;
+  // Arte que não tem o formato da tela (vertical numa TV deitada): em vez de
+  // faixa preta, a própria arte ampliada e desfocada preenche o fundo.
+  return (
+    <div key={slide.chave} className="relative h-full w-full overflow-hidden bg-black">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" className="relative h-full w-full object-contain" style={{ filter: REALCE }} onError={aoTerminar} />
+    </div>
+  );
+}
+
+/**
+ * Um lado da tela tocando a sua sequência, com os seus tempos. Tela inteira
+ * = um lado só. `aoMostrar` conta ao painel o que está passando (lado 1).
+ */
+function Sequencia({ slides, loja, vertical, aoMostrar }) {
+  const [indice, setIndice] = useState(0);
+  const slide = slides.length ? slides[indice % slides.length] : null;
+  const proximo = useCallback(() => setIndice((i) => (slides.length ? (i + 1) % slides.length : 0)), [slides.length]);
+  useEffect(() => { aoMostrar?.(slide); }, [slide, aoMostrar]);
+  // Tempo de cada slide (o vídeo avança sozinho no fim; o tempo é a rede de segurança).
+  useEffect(() => {
+    if (!slide || (slides.length < 2 && slide.tipo !== "video")) return undefined;
+    const extra = slide.tipo === "video" ? 5 : 0;
+    const t = setTimeout(proximo, (slide.duracao_seg + extra) * 1000);
+    return () => clearTimeout(t);
+  }, [slide, indice, proximo, slides.length]);
+  if (!slide) return <div className="h-full w-full bg-black" />;
+  return slide.tipo === "cardapio"
+    ? <SlideCardapio pagina={slide.pagina} loja={loja} vertical={vertical} />
+    : <Midia slide={slide} aoTerminar={proximo} />;
 }
 
 // ─── página ──────────────────────────────────────────────────────────────────
 export default function PlayerTv() {
   const [estado, setEstado] = useState({ fase: "iniciando" });
   const [roteiro, setRoteiro] = useState([]);
-  const [indice, setIndice] = useState(0);
   const [girar, setGirar] = useState(false);
   const segredoRef = useRef(null);
   const assinaturaRef = useRef(null);
-  const pendenteRef = useRef(null); // roteiro novo, aplicado no fim do slide atual
-  const roteiroRef = useRef([]);
-  const indiceRef = useRef(0);
+  const atualRef = useRef(null); // o que passa no lado 1 agora (vai para o painel)
   const [cursor, setCursor] = useState(false);
-
-  roteiroRef.current = roteiro;
-  indiceRef.current = indice;
+  const aoMostrar = useCallback((sl) => { atualRef.current = sl; }, []);
 
   const aplicarRoteiro = useCallback((novo) => {
     setRoteiro(novo);
-    setIndice(0);
-    limparCache(new Set(novo.map((s) => s.chave)));
+    limparCache(new Set(novo.map((sl) => sl.chave)));
     // Já baixa tudo em segundo plano: a próxima mídia entra sem tela preta.
-    novo.forEach((s) => { if (s.url) midiaLocal(s); });
+    novo.forEach((sl) => { if (sl.url) midiaLocal(sl); });
   }, []);
 
   const consultar = useCallback(async () => {
@@ -164,7 +204,7 @@ export default function PlayerTv() {
         setEstado({ fase: "codigo", codigo: r.codigo });
         return INTERVALO_CODIGO;
       }
-      const atual = roteiroRef.current[indiceRef.current];
+      const atual = atualRef.current;
       const r = await pedir({ acao: "conteudo", exibindo: atual ? { chave: atual.chave, nome: atual.nome, midia_id: atual.midia_id || null, tipo: atual.tipo } : null }, segredo);
       if (r.estado === "novo") {
         segredoRef.current = null;
@@ -183,8 +223,7 @@ export default function PlayerTv() {
       if (r.assinatura !== assinaturaRef.current) {
         assinaturaRef.current = r.assinatura;
         gravar(CHAVE_ROTEIRO, JSON.stringify({ tela: r.tela, loja: r.loja, roteiro: r.roteiro, assinatura: r.assinatura }));
-        if (!roteiroRef.current.length || roteiroRef.current.length === 1) aplicarRoteiro(r.roteiro);
-        else pendenteRef.current = r.roteiro;
+        aplicarRoteiro(r.roteiro);
       }
       return r.intervalo_ms || INTERVALO_PAREADA;
     } catch {
@@ -254,53 +293,36 @@ export default function PlayerTv() {
     return () => { window.removeEventListener("mousemove", mexeu); window.removeEventListener("keydown", telaCheia); window.removeEventListener("click", telaCheia); window.removeEventListener("resize", girou); clearTimeout(t); };
   }, []);
 
-  const proximo = useCallback(() => {
-    if (pendenteRef.current) {
-      const novo = pendenteRef.current;
-      pendenteRef.current = null;
-      aplicarRoteiro(novo);
-      return;
-    }
-    setIndice((i) => (roteiroRef.current.length ? (i + 1) % roteiroRef.current.length : 0));
-  }, [aplicarRoteiro]);
-
-  // Tempo de cada slide (o vídeo avança sozinho no fim; o tempo é a rede de segurança).
-  const slide = roteiro[indice] || null;
-  useEffect(() => {
-    if (!slide) return undefined;
-    const extra = slide.tipo === "video" ? 5 : 0;
-    const t = setTimeout(proximo, (slide.duracao_seg + extra) * 1000);
-    return () => clearTimeout(t);
-  }, [slide, indice, proximo]);
-
-  // Roteiro de um slide só (uma arte fixa): troca quando chega roteiro novo.
-  useEffect(() => {
-    if (roteiro.length !== 1) return undefined;
-    const t = setInterval(() => { if (pendenteRef.current) proximo(); }, 2000);
-    return () => clearInterval(t);
-  }, [roteiro.length, proximo]);
+  // Lados da tela (tela dividida): cada lado com a sua sequência.
+  const lados = roteiro.reduce((m, sl) => Math.max(m, (sl.zona ?? 0) + 1), 1);
+  const porLado = Array.from({ length: lados }, (_, z) => roteiro.filter((sl) => (sl.zona ?? 0) === z));
 
   const vertical = estado.tela?.orientacao === "vertical";
-  // --alt / --larg = 1% da altura / largura do PALCO (girado ou não): o
-  // cardápio vertical num TV Box horizontal sai com o tamanho certo.
+  // O palco e cada lado são contêineres: os tamanhos (cqh/cqw) seguem o
+  // espaço real, girado ou não, inteiro ou dividido.
   const palco = girar
-    ? { position: "fixed", top: "50%", left: "50%", width: "100vh", height: "100vw", transform: "translate(-50%, -50%) rotate(90deg)", "--alt": "1vw", "--larg": "1vh" }
-    : { position: "fixed", inset: 0, "--alt": "1vh", "--larg": "1vw" };
+    ? { position: "fixed", top: "50%", left: "50%", width: "100vh", height: "100vw", transform: "translate(-50%, -50%) rotate(90deg)", containerType: "size" }
+    : { position: "fixed", inset: 0, containerType: "size" };
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-black text-white" style={{ cursor: cursor ? "default" : "none" }}>
+      <FiltroNitidez />
       <div style={palco}>
-        {estado.fase === "pareada" && slide && !estado.pausada && (
-          slide.tipo === "cardapio"
-            ? <SlideCardapio pagina={slide.pagina} loja={estado.loja} vertical={vertical} />
-            : <Midia slide={slide} aoTerminar={proximo} />
+        {estado.fase === "pareada" && roteiro.length > 0 && !estado.pausada && (
+          <div key={assinaturaRef.current || "r"} className="flex h-full w-full">
+            {porLado.map((slides, z) => (
+              <div key={z} className="relative h-full min-w-0 flex-1 overflow-hidden" style={{ containerType: "size" }}>
+                <Sequencia slides={slides} loja={estado.loja} vertical={vertical || lados > 1} aoMostrar={z === 0 ? aoMostrar : undefined} />
+              </div>
+            ))}
+          </div>
         )}
-        {estado.fase === "pareada" && (!slide || estado.pausada) && (
+        {estado.fase === "pareada" && (!roteiro.length || estado.pausada) && (
           <Espera titulo={estado.tela?.nome || "Tela"} texto={estado.pausada ? "Tela pausada no painel." : "Conectada. Escolha o conteúdo no painel do Héfisto."} />
         )}
         {estado.fase === "codigo" && <Codigo codigo={estado.codigo} />}
         {estado.fase === "iniciando" && <Espera titulo="Héfisto TV" texto="Conectando…" />}
-        {estado.fase === "sem_rede" && <Espera titulo="Sem internet" texto="Confira o Wi-Fi da TV. Tentando de novo a cada 30 segundos." />}
+        {estado.fase === "sem_rede" && <Espera titulo="Sem internet" texto="Confira o Wi-Fi da TV. Tentando de novo a cada 15 segundos." />}
       </div>
       {estado.fase === "pareada" && estado.online === false && (
         <span className="pointer-events-none fixed bottom-3 right-3 h-3 w-3 rounded-full bg-amber-500/80" title="Sem internet: tocando o último conteúdo" />
@@ -312,23 +334,23 @@ export default function PlayerTv() {
 function Codigo({ codigo }) {
   const c = String(codigo || "");
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-[calc(var(--alt)*4)] bg-[#111] px-[calc(var(--larg)*6)] text-center">
-      <p className="font-semibold uppercase tracking-[0.25em] text-[#c9a24d]" style={{ fontSize: "calc(var(--alt) * 2.4)" }}>Héfisto TV</p>
-      <p className="text-white/80" style={{ fontSize: "calc(var(--alt) * 3)" }}>No painel do Héfisto, abra <b>Cardápio → Sinalização digital → Parear TV</b> e digite:</p>
-      <p className="font-bold tracking-[0.3em] text-white tabular-nums" style={{ fontSize: "calc(var(--alt) * 16)", lineHeight: 1 }} data-codigo={c}>
+    <div className="flex h-full w-full flex-col items-center justify-center gap-[calc(1cqh*4)] bg-[#111] px-[calc(1cqw*6)] text-center">
+      <p className="font-semibold uppercase tracking-[0.25em] text-[#c9a24d]" style={{ fontSize: "calc(1cqh * 2.4)" }}>Héfisto TV</p>
+      <p className="text-white/80" style={{ fontSize: "calc(1cqh * 3)" }}>No painel do Héfisto, abra <b>Cardápio → Sinalização digital → Parear TV</b> e digite:</p>
+      <p className="font-bold tracking-[0.3em] text-white tabular-nums" style={{ fontSize: "calc(1cqh * 16)", lineHeight: 1 }} data-codigo={c}>
         {c.split("").join(" ")}
       </p>
-      <p className="text-white/50" style={{ fontSize: "calc(var(--alt) * 2.2)" }}>O código muda a cada 30 minutos. Pressione OK no controle para tela cheia.</p>
+      <p className="text-white/50" style={{ fontSize: "calc(1cqh * 2.2)" }}>O código muda a cada 30 minutos. Pressione OK no controle para tela cheia.</p>
     </div>
   );
 }
 
 function Espera({ titulo, texto }) {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-[calc(var(--alt)*2)] bg-[#111] px-[calc(var(--larg)*6)] text-center">
-      <p className="font-semibold uppercase tracking-[0.25em] text-[#c9a24d]" style={{ fontSize: "calc(var(--alt) * 2.4)" }}>Héfisto TV</p>
-      <p className="font-bold text-white" style={{ fontSize: "calc(var(--alt) * 5)" }}>{titulo}</p>
-      <p className="text-white/60" style={{ fontSize: "calc(var(--alt) * 2.6)" }}>{texto}</p>
+    <div className="flex h-full w-full flex-col items-center justify-center gap-[calc(1cqh*2)] bg-[#111] px-[calc(1cqw*6)] text-center">
+      <p className="font-semibold uppercase tracking-[0.25em] text-[#c9a24d]" style={{ fontSize: "calc(1cqh * 2.4)" }}>Héfisto TV</p>
+      <p className="font-bold text-white" style={{ fontSize: "calc(1cqh * 5)" }}>{titulo}</p>
+      <p className="text-white/60" style={{ fontSize: "calc(1cqh * 2.6)" }}>{texto}</p>
     </div>
   );
 }

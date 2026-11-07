@@ -299,6 +299,8 @@ export const PERMISSION_MODULES = [
     id: "configuracoes", label: "Configurações",
     pages: [
       { id: "store", label: "Dados da loja", route: "/dashboard/configuracoes", actions: ["view", "edit", "settings"] },
+      // Modelos das vias (cozinha, bar, conferência, recibo), impressora de cada setor no aparelho e observações prontas (07/11/2026).
+      { id: "printing", label: "Impressão e observações prontas", route: "/dashboard/configuracoes/impressao", actions: ["view", "edit"] },
       { id: "users", label: "Usuários e acessos", route: "/dashboard/configuracoes/usuarios", actions: [...CRUD, "settings", "view_history"] },
       { id: "profiles", label: "Perfis de acesso", route: "/dashboard/configuracoes/perfis", actions: [...CRUD, "settings"] },
       { id: "units", label: "Empresas e unidades", route: "/dashboard/configuracoes", actions: [...CRUD, "settings"] },

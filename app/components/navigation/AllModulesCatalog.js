@@ -7,7 +7,7 @@ import {
   BarChart2, Settings, ArrowRight, ShieldCheck, Box, Truck, Sparkles,
   ShoppingBag, ShoppingCart, FileText, UserCheck, Clock, DollarSign,
   UserPlus, Receipt, GitFork, TrendingUp, PieChart, FileCheck,
-  ClipboardCheck, Wrench, FileSpreadsheet, Heart, ShieldAlert, Lock, Edit3
+  ClipboardCheck, Wrench, FileSpreadsheet, Heart, ShieldAlert, Lock, Edit3, Printer
 } from "lucide-react";
 import { searchNavigationRegistry, getAccessibleNavigation } from "../../lib/navigation-registry.mjs";
 import FavoriteStarButton from "./FavoriteStarButton.js";
@@ -17,7 +17,7 @@ const ICON_MAP = {
   Settings, ShieldCheck, Box, Truck, Sparkles, ShoppingBag, ShoppingCart,
   FileText, UserCheck, Clock, DollarSign, UserPlus, Receipt, GitFork,
   TrendingUp, PieChart, FileCheck, ClipboardCheck, Wrench, FileSpreadsheet,
-  Heart, ShieldAlert, Lock, Edit3
+  Heart, ShieldAlert, Lock, Edit3, Printer
 };
 
 export default function AllModulesCatalog({ isOpen, onClose, sessao }) {

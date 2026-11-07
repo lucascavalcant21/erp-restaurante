@@ -62,6 +62,7 @@ export function montarFilaKDS(linhas, setor = "cozinha") {
         origem: origemDoPedido(ped),
         cliente: ped.cliente_nome || null,
         identificacao: ped.identificacao || null,
+        garcom: ped.garcom_nome || null,
         created_at: ped.created_at || l.created_at,
         itens: [],
       });
@@ -71,6 +72,7 @@ export function montarFilaKDS(linhas, setor = "cozinha") {
       nome: l.produtos?.nome_produto || "Item",
       quantidade: Number(l.quantidade) || 1,
       observacao: l.observacao || null,
+      pessoa: l.pessoa || null,
       status: l.status_kds || "pendente",
       setor: s,
       created_at: l.created_at,

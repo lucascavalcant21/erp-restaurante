@@ -52,3 +52,11 @@ Formato: **B-NNN**, situação, onde foi visto, evidência da correção.
 - Sintoma: ao abrir as etiquetas, a pessoa da área não aparecia.
 - Causa: `equipeDaArea` tira quem tem contrato Freelancer, e boa parte da equipe ativa está cadastrada assim. Conferido no banco real pela função `hefisto_colaboradores_operacional`.
 - Correção: `equipeParaEtiquetar` lista toda a equipe ativa da unidade. O ponto e o estoque continuam com `equipeDaArea`.
+
+## Impressão e NFC-e (07/11/2026)
+
+| Id | Bug | Onde | Gravidade e evidência |
+|---|---|---|---|
+| B-037 | Conferência de conta e recibo listavam o **item cancelado** (o total já não somava, mas a linha aparecia no papel e na tela). **Corrigido** 07/11 | `app/dashboard/salao/mesas/page.js` | MÉDIA (cliente vê item que não paga). TESTADO EM MOCK (Playwright: Tacacá cancelado fora da conferência) |
+| B-038 | Com as telas da Cozinha e do Bar no mesmo aparelho, as duas imprimiam na mesma impressora (uma configuração só por aparelho) e o "imprimir sozinho" ligava os dois setores juntos. **Corrigido** 07/11: impressora e impressão automática por setor | `app/lib/impressoras-aparelho.js`, `app/components/kds/ImpressaoKds.js` | MÉDIA. TESTADO EM MOCK |
+| B-039 | NFC-e: `/api/fiscal/emitir` grava a nota autorizada em `notas_fiscais`, que é a tabela de **notas de compra** (fornecedor, vencimento) e não tem `numero_nota`/`chave_acesso`. Se o emissor estivesse ligado, a SEFAZ autorizaria e o histórico **não seria salvo**. **Aberto**: a casa ainda não emite NFC-e (decisão do dono, 07/11); a caixa "Emitir cupom fiscal" foi trocada por um aviso. Corrigir com tabela própria (migração aditiva) antes de ligar o emissor | `app/api/fiscal/emitir/route.js` | ALTA quando ativar. Colunas conferidas no Supabase real (information_schema) |

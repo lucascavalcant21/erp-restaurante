@@ -558,3 +558,18 @@ export async function imprimirEtiquetasBluetooth({ tamanho, copias, dados, largu
   await escreverBluetooth(comandos);
   return { perfil: perfil.id, copias: quantidade };
 }
+
+// Bytes ESC/POS crus pelo assistente QZ (07/11/2026): para a impressora
+// instalada no computador (USB ou rede com driver) ou direto pelo IP da
+// térmica na rede (porta 9100), sem driver nenhum.
+export async function imprimirBytesNoAssistente({ impressora = "", host = "", porta = 9100, bytes, titulo = "Via" }) {
+  const qz = await obterQz();
+  if (!qz?.websocket?.isActive()) throw new Error("Assistente de impressão desconectado");
+  if (!host && !impressora) throw new Error("Escolha a impressora");
+  const destino = host ? { host, port: Number(porta) || 9100 } : impressora;
+  const config = qz.configs.create(destino, { jobName: `Hefisto ${titulo}`, encoding: "ISO-8859-1" });
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  const base64 = typeof btoa === "function" ? btoa(bin) : Buffer.from(bin, "binary").toString("base64");
+  await qz.print(config, [{ type: "raw", format: "command", flavor: "base64", data: base64 }]);
+}

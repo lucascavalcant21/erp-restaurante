@@ -312,10 +312,12 @@ export function telaDaRota(pathname, search = "", origem = null) {
   const universo = universoDaRota(p, search, origem);
   const area = universo || areaDaRota(p);
   if (!area) return { area: null, item: null };
-  const candidatos = [
+  let candidatos = [
     ...cardsDaArea(area).filter((c) => cardCasa(c, p, search)),
     ...(area.submodules || []).filter((s) => casaRota(p, rotaDe(s.href))),
   ];
+  // Aberta sem o setor na URL (?dept=…): vale o card da mesma tela na área.
+  if (candidatos.length === 0) candidatos = cardsDaArea(area).filter((c) => casaRota(p, rotaDe(c.href)));
   // o link mais específico vence (Compras e custo médio não é Estoque)
   let item = null; let tam = -1;
   for (const c of candidatos) {

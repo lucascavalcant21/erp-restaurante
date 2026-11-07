@@ -111,7 +111,7 @@ export default function CabecalhoTela({ titulo, subtitulo, icone: IconeAvulso, v
             </span>
           ) : null}
           <div className="min-w-0">
-            <h1 className="erp-page-title truncate text-[22px] font-semibold leading-tight tracking-tight text-hf-text sm:text-[26px]">{nomeTela}</h1>
+            <h1 className="erp-page-title line-clamp-2 break-words text-[22px] font-semibold leading-tight tracking-tight text-hf-text sm:text-[26px]">{nomeTela}</h1>
             {(subtitulo ?? item?.desc) && (
               <p className="erp-page-subtitle mt-0.5 text-sm text-hf-muted">{subtitulo ?? item?.desc}</p>
             )}

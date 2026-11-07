@@ -16,6 +16,7 @@ Para testar e publicar, siga `hefisto-entrega`.
   - menu grafite `bg-hf-menu`;
   - estados: `hf-success` (verde, só positivo), `hf-warning`, `hf-danger`.
 - **Cores de módulo (07/11/2026, visual do Nina):** o quadradinho do ícone de uma tela ou área usa `<IconeModulo item={…} />` (`app/components/ui/IconeModulo.js`), com a cor de `app/lib/cores-modulo.mjs` (tokens `hf-tile-*`). Junto com as cores do WhatsApp na tela do Assistente Héfisto, é a única exceção ao "sem azul/violeta": nunca em botão, texto, fundo ou estado. Card novo no menu com ícone novo: dê a cor em `cores-modulo.mjs` (a trava `cores-modulo.test.mjs` cobra).
+- **Cabeçalho de tela:** use `<CabecalhoTela titulo subtitulo>` (`app/components/ui/CabecalhoTela.js`) ou `PageHeader`, que já usa ele. Ele monta a trilha "Unidade / Área / Tela", o ícone colorido e a data a partir do menu (`telaDaRota`); ações vão como filhos. `embutido` quando a tela já tem coluna com margem; `voltarPara` para um endereço fixo. Não crie cabeçalho próprio com `h1` solto. Abas e áreas: faixa de pílulas (`rounded-full`, ativa `bg-hf-menu text-white`), rolando de lado no celular.
 - Fonte do app: Inter (`--font-app`). Títulos `font-semibold tracking-tight`; rótulo de seção `text-[13px] font-medium text-hf-muted`.
 - `emerald-*` no código é a escala DOURADA (identidade). Para positivo use `hf-success`. Não use cor solta (hex), azul/índigo/violeta nem fundo escuro fora do menu.
 - O menu (`app/lib/menu-principal.mjs`) é a fonte única: tela nova entra lá, não em painel paralelo.

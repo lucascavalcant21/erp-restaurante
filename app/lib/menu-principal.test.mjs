@@ -117,6 +117,8 @@ test("cabeçalho das telas: área e card de onde a tela foi aberta", async () =>
   assert.equal(t.item.icone, "Package", "item do submenu herda o ícone da área");
   t = telaDaRota("/dashboard/operacao/validade", "", "bar");
   assert.equal(t.area.id, "bar");
+  t = telaDaRota("/dashboard/operacao/montagem", "", "cozinha");
+  assert.equal(t.item?.icone, "Salad", "sem ?dept, vale o card da mesma tela");
   t = telaDaRota("/dashboard/financeiro", "");
   assert.equal(t.area.id, "financeiro"); assert.equal(t.item, null);
   assert.deepEqual(telaDaRota("/dashboard/xyz"), { area: null, item: null });

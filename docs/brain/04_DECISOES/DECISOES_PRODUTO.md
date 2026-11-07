@@ -174,3 +174,10 @@ Decisões:
 - **Cores de módulo** (`hf-tile-*`, `app/lib/cores-modulo.mjs`) entram como exceção à regra "sem azul/violeta": valem **só** para o quadradinho do ícone. Botão, texto, fundo e estado continuam no branco e dourado. A cor sai da função (Estoque sempre índigo, Etiquetas sempre azul), não da área.
 - O card grafite de destaque usa `bg-hf-menu` (mesmo grafite do menu): KDS na Cozinha e no Bar, com a fila real; Comandas no Salão.
 - Feito nas telas de Cozinha, Bar, Salão e no Início (lançador de módulos). As outras telas herdam só a fonte.
+
+### Visual do Nina dentro das telas (07/11/2026, pedido do dono: "implemente dentro das páginas")
+
+- Cabeçalho único `CabecalhoTela` (trilha "Unidade / Área / Tela", ícone colorido do card do menu, título em peso 600, data, ações à direita). `PageHeader` passou a usá-lo, então as 34 telas que já o usavam mudaram juntas; as telas com cabeçalho próprio foram convertidas uma a uma.
+- Global: sombras curtas (substituem as sombras fundas de 27/10), botões em pílula lisa (sem degradê), rótulos sem caixa alta, peso das letras contido dentro das telas (font-black vira 700).
+- Abas e áreas (Financeiro, RH, Eventos, Marmitaria, Estoque) viram faixa de pílulas.
+- Ficam com layout próprio, só herdando fonte e cores: KDS, Ponto (quiosque), Caixa e mesas, Green Dot, escolha de quem etiqueta e identificação do garçom, Héfisto Intelligence (tema escuro).

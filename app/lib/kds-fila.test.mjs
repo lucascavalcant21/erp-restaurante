@@ -65,3 +65,16 @@ test("pedido online fica pronto só quando nada mais está na fila; comanda do s
   assert.equal(pedidoFicaPronto({ ...online, status: "saiu" }, [{ status_kds: "entregue" }]), false, "não volta pedido que já saiu");
   assert.equal(pedidoFicaPronto({ id: "S", tipo_pedido: "salao", status: "aberto" }, [{ status_kds: "entregue" }]), false, "a comanda segue aberta até o garçom fechar");
 });
+
+test("contagem por setor: pedido só de bebida conta no Bar, não na Cozinha", async () => {
+  const { contarPorSetor } = await import("./kds-fila.mjs");
+  const ped = (id) => ({ id, status: "aberto", tipo_pedido: "salao" });
+  const linhas = [
+    { id: "a", status_kds: "pendente", produtos: { departamento: "bar" }, pedidos: ped("p1") },
+    { id: "b", status_kds: "pendente", produtos: { departamento: "cozinha" }, pedidos: ped("p2") },
+    { id: "c", status_kds: "pronto", produtos: { departamento: "bar" }, pedidos: ped("p2") },
+    { id: "d", status_kds: "entregue", produtos: { departamento: "cozinha" }, pedidos: ped("p3") },
+  ];
+  assert.deepEqual(contarPorSetor(linhas), { cozinha: 1, bar: 2, todos: 2 });
+  assert.deepEqual(contarPorSetor([]), { cozinha: 0, bar: 0, todos: 0 });
+});

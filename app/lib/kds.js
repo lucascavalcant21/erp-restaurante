@@ -9,7 +9,7 @@
  */
 
 import { supabase, isSupabaseReady } from "./supabase";
-import { STATUS_NA_FILA, montarFilaKDS, pedidoFicaPronto } from "./kds-fila.mjs";
+import { STATUS_NA_FILA, contarPorSetor, montarFilaKDS, pedidoFicaPronto } from "./kds-fila.mjs";
 
 /**
  * Busca vendas do dia que contêm itens ativos (pendente, preparando, pronto)
@@ -81,7 +81,8 @@ export async function fetchFilaKDS(unidadeId, setor = "cozinha") {
     console.error("[kds] fetchFilaKDS:", error.message);
     return { data: [], error: error.message };
   }
-  return { data: montarFilaKDS(data, setor), error: null };
+  // contagem: pedidos esperando em cada setor, para as abas da tela.
+  return { data: montarFilaKDS(data, setor), contagem: contarPorSetor(data), error: null };
 }
 
 /** Muda o estado de um item (pendente → preparando → pronto). */

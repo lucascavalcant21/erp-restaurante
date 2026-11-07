@@ -394,3 +394,18 @@ export async function fetchMetasEventos(unidadeId) {
 export const salvarMetasEventos = (unidadeId, metas) => salvarParams(unidadeId, {
   eventos_metas: { meta_lucro_mes: String(metas?.meta_lucro_mes ?? ""), meta_faturamento_mes: String(metas?.meta_faturamento_mes ?? "") },
 });
+
+/* Modelos de impressão e observações prontas (07/11/2026), em
+ * config_sistema.params da unidade: valem para todos os aparelhos. */
+async function lerObjetoDosParams(unidadeId, chave) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: null, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: null, error: error.message };
+  const v = data?.[0]?.params?.[chave];
+  return { data: v && typeof v === "object" && !Array.isArray(v) ? v : null, error: null };
+}
+
+export const fetchModelosImpressao = (unidadeId) => lerObjetoDosParams(unidadeId, "modelos_impressao");
+export const salvarModelosImpressao = (unidadeId, modelos) => salvarParams(unidadeId, { modelos_impressao: modelos });
+export const fetchObservacoesProntas = (unidadeId) => lerObjetoDosParams(unidadeId, "observacoes_prontas");
+export const salvarObservacoesProntas = (unidadeId, obs) => salvarParams(unidadeId, { observacoes_prontas: obs });

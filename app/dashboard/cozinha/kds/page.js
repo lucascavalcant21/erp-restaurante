@@ -3,9 +3,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTempoReal } from "../../../lib/realtime";
-import { Clock, CheckCircle, ChefHat, Check, Flame, LayoutGrid, Volume2, VolumeX, ArrowLeft, TriangleAlert, Printer } from "lucide-react";
+import { Clock, CheckCircle, Check, Flame, LayoutGrid, Volume2, VolumeX, ArrowLeft, TriangleAlert, Printer, RefreshCw, User } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import IconeModulo from "../../../components/ui/IconeModulo";
 import { fetchFilaKDS, atualizarItemKDS, entregarTicketKDS } from "../../../lib/kds";
 import { proximoStatusKDS } from "../../../lib/kds-fila.mjs";
 import { useImpressaoKds, PainelImpressaoKds } from "../../../components/kds/ImpressaoKds";
@@ -29,6 +28,9 @@ export default function KDSPage() {
   const router = useRouter();
   
   const [pedidos, setPedidos] = useState([]);
+  // Pedidos esperando em cada setor: aparece nas abas (ex.: "Bar 1").
+  const [contagem, setContagem] = useState({ cozinha: 0, bar: 0, todos: 0 });
+  const [atualizadoEm, setAtualizadoEm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [agora, setAgora] = useState(Date.now());
@@ -57,8 +59,9 @@ export default function KDSPage() {
 
   const carregar = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
-    const { data, error } = await fetchFilaKDS(unidadeAtiva, setor);
+    const { data, contagem: c, error } = await fetchFilaKDS(unidadeAtiva, setor);
     setErro(error || "");
+    if (!error) { if (c) setContagem(c); setAtualizadoEm(new Date()); }
     
     if (data && data.length > 0) {
       const maisRecente = new Date(Math.max(...data.map(p => new Date(p.created_at))));
@@ -135,61 +138,36 @@ export default function KDSPage() {
         imprimirTeste={() => impressao.imprimir([{ id: "teste", origem: "Teste de impressão", identificacao: null, cliente: null, itens: (setor === "todos" ? ["cozinha", "bar"] : [setor]).map((s) => ({ id: `teste-${s}`, setor: s, nome: "Via de teste", quantidade: 1, observacao: "Se saiu, está tudo certo." })) }], { marcar: false })}
       />
 
-      {/* HEADER DO KDS */}
-      <div className="px-3 sm:px-6 pb-3 sm:pb-4 bg-hf-surface border-b border-hf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm z-50" style={{ paddingTop: "calc(var(--erp-safe-top, 0px) + 0.75rem)" }}>
-         <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <button onClick={() => abrirMenu()} aria-label="Voltar" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-hf-text-2 shadow-none hover:bg-hf-elevated hover:text-hf-text transition-colors active:scale-95">
+      {/* CABEÇALHO (07/11/2026): compacto no celular e no tablet. Linha 1: voltar,
+          título e ações em ícone; linha 2: setores com quantos pedidos esperam. */}
+      <div className="bg-hf-surface border-b border-hf-border shadow-sm z-50 px-3 sm:px-5 pb-2.5" style={{ paddingTop: "calc(var(--erp-safe-top, 0px) + 0.5rem)" }}>
+         <div className="flex items-center gap-2 lg:gap-4">
+            <button onClick={() => abrirMenu()} aria-label="Voltar" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text active:scale-95">
                <ArrowLeft size={20} />
             </button>
-            
-            <IconeModulo item={{ icone: "ConciergeBell", cor: "verde" }} className="hidden sm:grid" />
-
-            <div>
-               <h1 className="text-xl sm:text-[26px] font-semibold text-hf-text tracking-tight truncate">KDS produção</h1>
-               <p className="text-xs sm:text-sm font-medium text-hf-muted flex items-center gap-2 mt-0.5 truncate">
-                 {unidadeInfo.nome} <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Sync ON
+            <div className="min-w-0 flex-1">
+               <h1 className="truncate text-lg sm:text-xl font-black text-hf-text leading-tight"><span className="sm:hidden">Produção</span><span className="hidden sm:inline">Painel de produção</span></h1>
+               <p className="flex items-center gap-1.5 truncate text-xs font-semibold text-hf-muted">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${erro ? "bg-red-500" : "bg-emerald-500 animate-pulse"}`} />
+                  <span className="truncate">{unidadeInfo.nome}{atualizadoEm ? ` · atualizado ${horaStr(atualizadoEm)}` : ""}</span>
                </p>
             </div>
-         </div>
-
-         <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-4">
-            <div className="col-span-2 sm:col-span-1 flex rounded-full border border-hf-border bg-hf-elevated p-1" role="group" aria-label="Setor">
-               {[["cozinha", "Cozinha"], ["bar", "Bar"], ["todos", "Tudo"]].map(([id, rotulo]) => (
-                  <button
-                     key={id}
-                     onClick={() => escolherSetor(id)}
-                     aria-pressed={setor === id}
-                     className={`flex-1 min-h-[40px] px-3 sm:px-4 rounded-full font-semibold text-sm shadow-none transition-colors ${setor === id ? "bg-hf-menu text-white" : "text-hf-text-2 hover:text-hf-text"}`}
-                  >
-                     {rotulo}
-                  </button>
-               ))}
-            </div>
-            <button 
-              onClick={() => setSomAtivo(!somAtivo)}
-              className={`flex min-h-[44px] items-center justify-center gap-2 px-4 rounded-full font-semibold text-sm shadow-none transition-colors border ${
-                somAtivo
-                  ? "bg-hf-surface text-hf-text border-hf-border"
-                  : "bg-hf-elevated text-hf-muted border-hf-border"
-              }`}
-            >
+            <div className="hidden lg:block"><AbasDeSetor setor={setor} escolher={escolherSetor} contagem={contagem} /></div>
+            <button onClick={() => setSomAtivo(!somAtivo)} aria-label={somAtivo ? "Som ligado: tocar para desligar" : "Som desligado: tocar para ligar"} aria-pressed={somAtivo}
+               className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border ${somAtivo ? "border-hf-border bg-hf-surface text-hf-text" : "border-hf-border bg-hf-elevated text-hf-muted"}`}>
                {somAtivo ? <Volume2 size={20} /> : <VolumeX size={20} />}
-               {somAtivo ? "Som On" : "Som Off"}
             </button>
-            <button
-               onClick={() => setPainelImpressao(true)}
-               className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-widest transition-colors border ${impressao.cfg.auto ? "bg-emerald-500/20 text-emerald-700 border-emerald-500/30" : "bg-hf-elevated text-fg border-hf-border"}`}
-            >
-               <Printer size={20} /> {impressao.cfg.auto ? "Impressão on" : "Impressão"}
+            <button onClick={() => setPainelImpressao(true)} aria-label={impressao.cfg.auto ? "Impressão automática ligada" : "Impressão"}
+               className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-xl border ${impressao.cfg.auto ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700" : "border-hf-border bg-hf-surface text-hf-text"}`}>
+               <Printer size={20} />
+               {impressao.cfg.auto && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-500" />}
             </button>
-            <button 
-               onClick={() => carregar(false)} 
-               disabled={loading}
-               className="col-span-2 sm:col-span-1 px-3 sm:px-6 py-2.5 sm:py-3 bg-hf-elevated hover:bg-hf-border text-hf-text font-bold text-xs sm:text-sm uppercase tracking-wide sm:tracking-widest rounded-xl transition-colors shadow-md active:scale-95 disabled:opacity-50"
-            >
-               {loading ? "Sincronizando..." : "Forçar Sync"}
+            <button onClick={() => carregar(false)} disabled={loading} aria-label="Atualizar a fila"
+               className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hf-border bg-hf-surface text-hf-text active:scale-95 disabled:opacity-50">
+               <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
             </button>
          </div>
+         <div className="mt-2 lg:hidden"><AbasDeSetor setor={setor} escolher={escolherSetor} contagem={contagem} /></div>
       </div>
 
       {/* ÁREA DOS TICKETS */}
@@ -206,13 +184,18 @@ export default function KDSPage() {
          )}
          {pedidos.length === 0 && !loading ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-900 px-4 text-center">
-               <LayoutGrid size={100} className="mb-6 opacity-20" />
-               <h2 className="text-2xl sm:text-4xl font-black text-fg tracking-tight">Cozinha Limpa</h2>
-               <p className="text-base sm:text-xl font-bold mt-3 text-slate-900">Nenhum pedido na fila de preparo.</p>
-               <p className="text-sm font-bold mt-2 text-fg">Aqui chegam os pedidos do salão, das mesas pelo QR, do delivery e do iFood depois de aceitos.</p>
+               <LayoutGrid size={72} className="mb-4 opacity-20" />
+               <h2 className="text-2xl sm:text-3xl font-black text-fg tracking-tight">{setor === "bar" ? "Bar sem pedidos" : setor === "todos" ? "Nenhum pedido na fila" : "Cozinha sem pedidos"}</h2>
+               {setor !== "todos" && contagem.todos > 0 ? (
+                  <button onClick={() => escolherSetor(setor === "bar" ? "cozinha" : "bar")} className="mt-5 min-h-[52px] rounded-2xl bg-amber-100 border-2 border-amber-300 px-5 text-base font-black text-amber-900 active:scale-95">
+                     {setor === "bar" ? `${contagem.cozinha} na Cozinha` : `${contagem.bar} no Bar`}: toque para ver
+                  </button>
+               ) : (
+                  <p className="text-sm font-bold mt-3 text-fg max-w-md">Aqui chegam os pedidos do salão, das mesas pelo QR, do delivery e do iFood depois de aceitos.</p>
+               )}
             </div>
          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3 sm:gap-6 items-start pb-24">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3 sm:gap-4 lg:gap-6 items-start pb-24">
                {pedidos.map(pedido => {
                   const minutos = diffMinutos(pedido.created_at);
                   const isAtrasado = minutos >= SLA_MINUTOS; 
@@ -235,33 +218,29 @@ export default function KDSPage() {
                            <div className={`h-full ${corSLA} ${corSlaGlow} transition-all duration-1000 ${isAtrasado ? 'animate-pulse' : ''}`} style={{ width: `${pct}%` }}></div>
                         </div>
 
-                        {/* Cabeçalho Ticket */}
-                         <div className={`p-3 sm:p-5 flex items-center justify-between gap-3 border-b ${isAtrasado ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-hf-surface border-hf-border'}`}>
+                        {/* Cabeçalho do pedido: mesa em destaque; origem, número e garçom embaixo */}
+                        <div className={`p-3 sm:p-4 flex items-start justify-between gap-2 border-b ${isAtrasado ? 'bg-red-50 border-red-200' : 'bg-hf-surface border-hf-border'}`}>
                            <div className="min-w-0 flex-1">
-                              <p className={`text-xl font-black tracking-tight ${isAtrasado ? 'text-fg' : 'text-hf-text'}`}>
-                                 #{pedido.id.slice(0, 4).toUpperCase()}
+                              <p className="text-xl sm:text-2xl font-black tracking-tight text-hf-text truncate">
+                                 {pedido.identificacao || pedido.cliente || `#${pedido.id.slice(0, 4).toUpperCase()}`}
                               </p>
-                              <p className="text-xs font-black text-emerald-700 mt-1 uppercase tracking-widest">
-                                 {pedido.origem}{pedido.identificacao ? ` · ${pedido.identificacao}` : ""}
+                              <p className="mt-0.5 text-xs font-bold text-hf-text-2 truncate">
+                                 {pedido.origem} · #{pedido.id.slice(0, 4).toUpperCase()}{pedido.garcom ? ` · ${pedido.garcom}` : ""}
                               </p>
-                              {pedido.cliente && (
-                                 <p className="text-sm font-bold text-fg mt-0.5 truncate max-w-[14rem]">{pedido.cliente}</p>
+                              {pedido.cliente && pedido.identificacao && (
+                                 <p className="text-sm font-bold text-fg mt-0.5 truncate">{pedido.cliente}</p>
                               )}
                            </div>
-                           <div className={`px-4 py-2 rounded-xl flex flex-col items-end border ${
-                              isAtrasado ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-hf-elevated border-hf-border'
-                           }`}>
-                              <p className={`text-2xl font-black flex items-center gap-2 ${isAtrasado ? 'text-slate-900 animate-pulse' : 'text-fg'}`}>
-                                 <Clock size={20} /> {minutos}m
-                              </p>
-                              <p className="text-3xs font-bold text-fg uppercase tracking-widest mt-0.5">{horaStr(pedido.created_at)}</p>
+                           <div className={`shrink-0 rounded-xl border px-2.5 py-1.5 text-right ${isAtrasado ? 'bg-red-100 border-red-300 text-red-800' : 'bg-hf-elevated border-hf-border text-fg'}`}>
+                              <p className={`flex items-center justify-end gap-1 text-lg sm:text-xl font-black ${isAtrasado ? 'animate-pulse' : ''}`}><Clock size={16} /> {minutos}m</p>
+                              <p className="text-[11px] font-bold">{horaStr(pedido.created_at)}</p>
                            </div>
                            <button
                               onClick={() => impressao.imprimir([pedido])}
-                              aria-label={`Imprimir via do pedido ${pedido.id.slice(0, 4).toUpperCase()}`}
-                              className="p-3 rounded-xl bg-hf-elevated border border-hf-border text-fg hover:text-hf-text active:scale-95"
+                              aria-label={`Imprimir via: ${pedido.identificacao || pedido.id.slice(0, 4).toUpperCase()}`}
+                              className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-hf-elevated border border-hf-border text-fg hover:text-hf-text active:scale-95"
                            >
-                              <Printer size={20} />
+                              <Printer size={18} />
                            </button>
                         </div>
 
@@ -296,9 +275,12 @@ export default function KDSPage() {
                                  >
                                     <div className="flex-shrink-0">{stIcon}</div>
                                     <div className={`flex-1 text-base sm:text-lg font-bold leading-tight ${stText}`}>
-                                       <span className="font-black bg-black/30 px-2 py-1 rounded-lg text-sm mr-2">{item.quantidade}x</span>
+                                       <span className="font-black bg-hf-text/10 px-2 py-1 rounded-lg text-sm mr-2">{item.quantidade}x</span>
                                        {item.nome}
                                        {setor === "todos" && <span className="ml-2 text-3xs font-black uppercase tracking-widest text-fg">{item.setor}</span>}
+                                       {item.pessoa && (
+                                          <span className="mt-1 flex items-center gap-1 text-sm font-bold text-hf-text-2"><User size={14} /> {item.pessoa}</span>
+                                       )}
                                        {item.observacao && (
                                           <span className="mt-1 flex items-center gap-1 text-sm font-bold text-amber-700"><TriangleAlert size={14} /> {item.observacao}</span>
                                        )}
@@ -322,13 +304,13 @@ export default function KDSPage() {
                         <div className="p-4 pt-0 mt-auto">
                            <button
                               onClick={() => handleFinalizarPedido(pedido)}
-                              className={`w-full py-5 rounded-[20px] font-black text-lg uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
+                              className={`w-full py-4 sm:py-5 rounded-[20px] font-black text-base sm:text-lg uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
                                  todosProntos 
                                    ? "bg-emerald-500 hover:bg-accent text-accent-fg shadow-[0_0_30px_rgba(16,185,129,0.4)] animate-pulse" 
                                    : "bg-hf-elevated text-fg hover:bg-hf-border"
                               }`}
                            >
-                              <Check size={24} /> Entregar Pedido
+                              <Check size={24} /> Entregar pedido
                            </button>
                         </div>
                      </div>
@@ -337,6 +319,29 @@ export default function KDSPage() {
             </div>
          )}
       </div>
+    </div>
+  );
+}
+
+// Setores com quantos pedidos esperam. Aba de outro setor com pedido fica em
+// destaque: o pedido só de bebida não "some" para quem está na Cozinha.
+function AbasDeSetor({ setor, escolher, contagem }) {
+  return (
+    <div className="flex rounded-2xl border border-hf-border bg-hf-elevated p-1" role="group" aria-label="Setor">
+      {[["cozinha", "Cozinha"], ["bar", "Bar"], ["todos", "Tudo"]].map(([id, rotulo]) => {
+        const n = contagem?.[id] || 0;
+        const ativo = setor === id;
+        const chama = !ativo && id !== "todos" && n > 0;
+        return (
+          <button key={id} onClick={() => escolher(id)} aria-pressed={ativo}
+            className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl px-3 lg:px-4 text-sm font-bold transition-colors ${ativo ? "bg-hf-menu text-white" : chama ? "text-amber-900" : "text-hf-text-2 hover:text-hf-text"}`}>
+            {rotulo}
+            {n > 0 && (
+              <span className={`min-w-[22px] rounded-full px-1.5 text-xs font-black leading-[22px] ${ativo ? "bg-white/25 text-white" : chama ? "bg-amber-400 text-amber-950 animate-pulse" : "bg-hf-border text-hf-text"}`} aria-label={`${n} pedido(s)`}>{n}</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

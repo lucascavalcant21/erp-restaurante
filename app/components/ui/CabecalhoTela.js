@@ -40,16 +40,23 @@ export function useTelaAtual() {
  * @param {string} [p.subtitulo]
  * @param {Function} [p.icone]      ícone do lucide, só quando a tela não está no menu
  * @param {"area"|"historico"|false} [p.voltar]  para onde a seta leva
+ * @param {string} [p.voltarPara]   endereço fixo da seta (vence `voltar`)
  * @param {boolean} [p.fixo]        gruda no topo ao rolar (telas longas)
  * @param {boolean} [p.embutido]    dentro de uma coluna que já tem margem lateral
  * @param {React.ReactNode} [p.children]  ações (botões) à direita
  */
-export default function CabecalhoTela({ titulo, subtitulo, icone: IconeAvulso, voltar = "area", fixo = false, embutido = false, className = "", children }) {
+export default function CabecalhoTela({ titulo, subtitulo, icone: IconeAvulso, voltar = "area", voltarPara = null, fixo = false, embutido = false, className = "", children }) {
   const router = useRouter();
   const { unidadeInfo, abrirMenu } = useERP();
   const { area, item } = useTelaAtual();
   const [hoje, setHoje] = useState("");
   useEffect(() => { setHoje(dataCurta(new Date())); }, []);
+  // A tela tem voltar próprio: a faixa "Voltar para Cozinha" (BarraUniverso) some.
+  useEffect(() => {
+    if (!(voltar || voltarPara)) return undefined;
+    document.body.dataset.cabecalhoTela = "1";
+    return () => { delete document.body.dataset.cabecalhoTela; };
+  }, [voltar, voltarPara]);
 
   const nomeTela = titulo || item?.label || area?.label || "";
   const trilha = [unidadeInfo?.nome, area?.label, item && item.label !== area?.label ? item.label : null]
@@ -58,7 +65,8 @@ export default function CabecalhoTela({ titulo, subtitulo, icone: IconeAvulso, v
   if (trilha.length > 1 && trilha[trilha.length - 1] === nomeTela) trilha.pop();
 
   const aoVoltar = () => {
-    if (voltar === "historico") router.back();
+    if (voltarPara) router.push(voltarPara);
+    else if (voltar === "historico") router.back();
     else if (abrirMenu) abrirMenu();
     else router.push("/dashboard");
   };
@@ -69,7 +77,7 @@ export default function CabecalhoTela({ titulo, subtitulo, icone: IconeAvulso, v
     >
       <div className="flex min-h-[44px] items-center justify-between gap-3">
         <nav aria-label="Você está em" className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-hf-muted">
-          {voltar && (
+          {(voltar || voltarPara) && (
             <button
               type="button"
               onClick={aoVoltar}

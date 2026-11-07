@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchObservacoesPadrao, salvarObservacaoPadrao, excluirObservacaoPadrao } from "../../../lib/vendas";
 import { Plus, X, Trash2, MessageSquareText } from "lucide-react";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 export default function ObservacoesPage() {
   const { unidadeAtiva } = useERP();
@@ -48,17 +49,11 @@ export default function ObservacoesPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto animate-in fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 flex items-center gap-3">
-            <MessageSquareText size={28} className="text-[#4970AF]" /> Observações Fixas
-          </h1>
-          <p className="text-fg font-bold mt-1">Crie botões rápidos para o garçom usar no Salão (Ex: "Com gelo", "Para Viagem")</p>
-        </div>
-        <button onClick={() => setModalOpen(true)} className="w-full sm:w-auto bg-[#4970AF] hover:bg-[#3A5B99] text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95">
-          <Plus size={18} /> Nova Observação
+      <CabecalhoTela embutido titulo="Observações fixas" subtitulo='Botões rápidos para o garçom usar no salão (ex.: "Com gelo", "Para viagem")' className="mb-4">
+        <button onClick={() => setModalOpen(true)} className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-hf-accent px-5 text-sm font-semibold text-hf-accent-fg shadow-none active:scale-95 sm:w-auto">
+          <Plus size={18} /> Nova observação
         </button>
-      </div>
+      </CabecalhoTela>
 
       <div className="bg-card rounded-3xl shadow-sm border border-line p-4 sm:p-6">
          {observacoes.length === 0 ? (

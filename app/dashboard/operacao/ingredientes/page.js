@@ -59,6 +59,7 @@ import CampoDecimal from "../../../components/CampoDecimal";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
 import { casaBusca } from "../../../lib/busca.mjs";
 import { contaDoPacote, pesosDoInsumo } from "../../../lib/ficha-calculos.mjs";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 // Gramas (ou ml) por unidade-base do cadastro: o pacote vem em kg, g, L ou ml.
 const GRAMAS_POR_BASE_UI = { kg: 1000, g: 1, l: 1000, ml: 1 };
@@ -895,23 +896,16 @@ function IngredientesRunner() {
 
   return (
     <div className="min-h-screen bg-hf-bg pb-20 text-slate-800">
-      <header className="border-b border-line bg-card">
-        <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 py-4 sm:px-5 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={abrirMenu}
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-white text-fg hover:text-fg"
-              title="Voltar ao menu"
-            >
-              <ArrowLeft size={19} />
-            </button>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-950">{ehBar ? "Produtos cadastrados" : "Ingredientes cadastrados"}</h1>
-              <p className="mt-1 text-sm font-medium text-fg">{ehBar ? "Catálogo de produtos do Bar e histórico de preços" : "Catálogo de ingredientes e histórico de preços"}</p>
-            </div>
-          </div>
+      <header className="border-b border-hf-border">
+        <div className="mx-auto max-w-[1480px]">
+          <CabecalhoTela
+            titulo={ehBar ? "Produtos cadastrados" : "Ingredientes cadastrados"}
+            subtitulo={ehBar ? "Catálogo de produtos do Bar e histórico de preços" : "Catálogo de ingredientes e histórico de preços"}
+          />
+        </div>
+        <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 pb-4 sm:px-6 lg:px-8">
           <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
-            <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-card px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[500px]">
+            <label className="flex min-w-0 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 transition-all focus-within:border-hf-accent focus-within:ring-4 focus-within:ring-hf-accent/20 sm:w-[500px]">
               <Search size={19} className="shrink-0 text-fg-soft font-bold" />
               <input
                 value={busca}
@@ -927,19 +921,19 @@ function IngredientesRunner() {
             </label>
             <button
               onClick={() => { setModalMigrar(true); setItensMigracao([]); setMigrarTexto(""); setMigrarArquivos([]); setOrigemMigracaoVoz(false); setRespostaVozIngredientes(""); }}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-accent-soft px-4 text-sm font-black text-accent-strong shadow-sm transition hover:bg-emerald-100"
+              className="flex h-11 items-center justify-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none transition hover:bg-hf-elevated"
             >
               <Camera size={18} /> Migrar por Print / Lista
             </button>
             <button
               onClick={() => iniciarCadastroPorVoz(true)}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-600/30 bg-zinc-100 px-4 text-sm font-black text-zinc-700 shadow-sm transition hover:bg-zinc-100"
+              className="flex h-11 items-center justify-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none transition hover:bg-hf-elevated"
             >
               <Mic size={18} /> Adicionar por voz
             </button>
             <button
               onClick={abrirNovo}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20 transition hover:bg-accent"
+              className="flex h-11 items-center justify-center gap-2 rounded-full bg-hf-accent px-5 text-sm font-semibold text-hf-accent-fg shadow-none transition"
             >
               <Plus size={18} /> Novo {rotuloItem}
             </button>
@@ -947,7 +941,7 @@ function IngredientesRunner() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
+      <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-6 lg:px-8">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             { id: "todos", icon: Package, label: `Total de ${rotuloItens}`, value: estatisticas.total, note: "Clique p/ ver todos", color: "emerald", action: () => setBusca("") },

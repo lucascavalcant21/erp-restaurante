@@ -8,7 +8,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronLeft, MoreHorizontal } from "lucide-react";
+import { ChevronDown, MoreHorizontal } from "lucide-react";
+import CabecalhoTela from "../ui/CabecalhoTela";
 import { useERP } from "../../context/ERPContext";
 import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
 
@@ -37,34 +38,29 @@ export default function EstoqueAbas() {
   }, [aberto]);
   useEffect(() => { setAberto(false); }, [pathname]);
 
+  // Visual do Nina (07/11/2026): o cabeçalho padrão das telas, com o "Mais" como ação.
   return (
-    <nav aria-label="Estoque" className="sticky top-0 z-20 border-b border-hf-border bg-hf-surface print:hidden">
-      <div className="mx-auto flex h-12 max-w-[1500px] items-center gap-2 px-3 sm:px-6">
-        {naPrincipal ? (
-          <span className="text-sm font-black text-hf-text">Estoque</span>
-        ) : (
-          <>
-            <Link href={PRINCIPAL} className="inline-flex h-9 items-center gap-1 rounded-lg px-2 text-sm font-bold text-hf-accent hover:bg-hf-elevated"><ChevronLeft size={16} /> Estoque</Link>
-            <span className="truncate text-sm font-black text-hf-text">{atual.rotulo}</span>
-          </>
-        )}
-        {itens.length > 0 && (
-          <div ref={caixa} className="relative ml-auto">
-            <button type="button" onClick={() => setAberto((v) => !v)} aria-expanded={aberto} aria-haspopup="menu"
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-bold text-hf-text">
-              <MoreHorizontal size={16} /> Mais <ChevronDown size={14} />
-            </button>
-            {aberto && (
-              <div role="menu" className="absolute right-0 top-11 w-64 overflow-hidden rounded-2xl border border-hf-border bg-hf-surface py-1 shadow-xl">
-                {itens.map((m) => (
-                  <Link key={m.href} role="menuitem" href={m.href} aria-current={atual?.href === m.href ? "page" : undefined}
-                    className={`block px-4 py-2.5 text-sm font-bold hover:bg-hf-elevated ${atual?.href === m.href ? "text-hf-accent" : "text-hf-text"}`}>{m.rotulo}</Link>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+    <div className="border-b border-hf-border print:hidden">
+      <div className="mx-auto max-w-[1500px]">
+        <CabecalhoTela titulo={naPrincipal ? null : atual.rotulo} voltarPara={naPrincipal ? null : PRINCIPAL} className="!pb-3">
+          {itens.length > 0 && (
+            <div ref={caixa} className="relative">
+              <button type="button" onClick={() => setAberto((v) => !v)} aria-expanded={aberto} aria-haspopup="menu"
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none hover:bg-hf-elevated">
+                <MoreHorizontal size={16} /> Mais <ChevronDown size={14} />
+              </button>
+              {aberto && (
+                <div role="menu" className="absolute right-0 top-12 z-30 w-64 overflow-hidden rounded-2xl border border-hf-border bg-hf-surface py-1 shadow-xl">
+                  {itens.map((m) => (
+                    <Link key={m.href} role="menuitem" href={m.href} aria-current={atual?.href === m.href ? "page" : undefined}
+                      className={`block px-4 py-3 text-sm font-semibold hover:bg-hf-elevated ${atual?.href === m.href ? "text-hf-accent" : "text-hf-text"}`}>{m.rotulo}</Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CabecalhoTela>
       </div>
-    </nav>
+    </div>
   );
 }

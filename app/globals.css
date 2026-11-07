@@ -636,3 +636,5 @@ textarea *,
 .erp-main-scroll :is(p, span, h2, h3, h4, div, label).uppercase:is([class*="tracking-wide"], [class*="tracking-widest"], [class*="tracking-wider"]) {
   letter-spacing: 0.02em;
 }
+/* Tela com o cabeçalho novo já tem a seta e a trilha: a faixa fixa de voltar some. */
+body[data-cabecalho-tela] .erp-barra-universo { display: none; }

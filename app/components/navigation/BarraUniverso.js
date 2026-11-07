@@ -22,7 +22,7 @@ export default function BarraUniverso() {
 
   if (!universo || universo.href === pathname) return null;
   return (
-    <nav aria-label={`Voltar para ${universo.label}`} className="shrink-0 border-b border-hf-border bg-hf-surface">
+    <nav aria-label={`Voltar para ${universo.label}`} className="erp-barra-universo shrink-0 border-b border-hf-border bg-hf-surface">
       <Link
         href={universo.href}
         className="inline-flex min-h-11 items-center gap-2 px-4 lg:px-6 text-sm font-bold text-hf-text hover:text-hf-accent"

@@ -106,7 +106,7 @@ export default function VendasDoCaixa({ caixaId, unidadeId, quem, podeCancelar, 
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className={`flex items-center gap-1.5 text-sm font-black ${cancelada ? "text-slate-400 line-through" : "text-slate-900"}`}>
-                            <Receipt size={14} className="shrink-0" /> <span className="truncate">{v.observacao || "Venda"}</span>
+                            <Receipt size={14} className="shrink-0" /> <span className="truncate">{String(v.observacao || "Venda").replace(/^Comanda (Balcão|iFood|Cardápio digital)$/, "$1")}</span>
                           </p>
                           <p className="text-xs text-slate-500">{hora(v.created_at)}{v.cliente ? ` · ${v.cliente}` : ""}</p>
                           <p className="mt-0.5 text-xs text-slate-600">{formasTxt(v)}</p>

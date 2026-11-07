@@ -493,6 +493,9 @@ export async function transferirComanda(pedidoId, mesaOrigemId, mesaDestinoId) {
   return { success: true };
 }
 
+// SEM USO desde 07/11/2026: o caixa usa venderNoBalcao (comandas.js), que fecha
+// pelo comanda_fechar (caixa, faturamento do dia, contas a receber, cancelamento).
+// Este caminho gravava só em `lancamentos` e não aparecia no fechamento do caixa.
 export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamentoData, origem = 'balcao') {
   if (!isSupabaseReady()) return { error: "Offline" };
 

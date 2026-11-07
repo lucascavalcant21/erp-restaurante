@@ -4,14 +4,14 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, atualizarQtdItemComanda, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, atualizarStatusPedido } from "../../../lib/vendas";
+import { fetchProdutos, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, atualizarQtdItemComanda, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, atualizarStatusPedido } from "../../../lib/vendas";
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag, Bell, Clock, MapPin } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "../../../lib/supabase";
 import { fmtBRL } from "../../../components/ui";
 import CampoDecimal from "../../../components/CampoDecimal";
 import { resumoPorPessoa, totalDaComanda } from "../../../lib/comandas.mjs";
-import { receberComanda } from "../../../lib/comandas";
+import { receberComanda, venderNoBalcao } from "../../../lib/comandas";
 import { mascaraCPF, somenteDigitos } from "../../../lib/mascaras.mjs";
 import { hasPermission } from "../../../lib/permissions-catalog.mjs";
 import VendasDoCaixa from "../../../components/salao/VendasDoCaixa";
@@ -684,10 +684,18 @@ export default function SaloesMesasPage() {
      let pedidoIdParaRecibo = null;
 
      if(abaAtiva !== 'salao') {
+        // Mesmo fechamento da comanda (07/11/2026): caixa, faturamento do dia,
+        // contas a receber, baixa pela ficha e cancelamento.
         const itensMapeados = carrinho.map(i => ({ ...i, preco_venda: i.preco_venda || i.preco || 0 }));
-        const { error, data } = await lancarVendaBalcao(unidadeAtiva, caixa.id, itensMapeados, pagamentoData, abaAtiva);
+        const { error, data, faltas } = await venderNoBalcao({
+           unidadeId: unidadeAtiva, caixaId: caixa.id, itens: itensMapeados, pagamentos: recebimentosReais,
+           desconto: pagamentoData.desconto, acrescimo: pagamentoData.taxa, cliente: clienteNome, origem: abaAtiva, quem: usuarioLogado?.nome || "",
+        });
         if(error) alert(error);
-        else { sucesso = true; pedidoIdParaRecibo = data.id; }
+        else {
+           sucesso = true; pedidoIdParaRecibo = data.id;
+           if(faltas?.length) alert(`Venda registrada. Confira no estoque:\n${faltas.join("\n")}`);
+        }
      } else {
         const desconto = Number(pagamentoData.desconto) || 0;
         const { error, faltas } = await receberComanda({

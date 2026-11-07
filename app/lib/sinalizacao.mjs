@@ -28,10 +28,14 @@ export const LIMITE_BYTES = Object.freeze({ imagem: 25 * 1024 * 1024, video: 50 
 
 export const DURACAO = Object.freeze({ min: 3, max: 600, imagem: 10, cardapio: 15 });
 
+// Tela dividida (pedido do dono, 07/11/2026): numa TV horizontal, 2 ou 3 artes
+// verticais lado a lado, cada lado com a sua sequência e os seus tempos.
+export const MAX_LADOS = 3;
+
 export const LIMITES = Object.freeze({ itensPorPlaylist: 60, telasPorRegra: 500, nome: 80, porPagina: { min: 3, max: 12, padrao: 6 } });
 
-// A TV pergunta a cada 30 s. Sem notícia por 2,5 min = fora do ar.
-export const INTERVALO_TV_MS = 30 * 1000;
+// A TV pergunta a cada 15 s (o dono quer ver a troca logo). Sem notícia por 2,5 min = fora do ar.
+export const INTERVALO_TV_MS = 15 * 1000;
 export const ONLINE_MS = 150 * 1000;
 
 // Código de pareamento: 4 números, como no Nina (decisão do dono, 07/11/2026).
@@ -123,9 +127,11 @@ export function normalizarItem(item) {
   if (!item || typeof item !== "object") return null;
   const dur = inteiro(item.duracao_seg);
   const duracao_seg = Number.isFinite(dur) && dur > 0 ? limitar(dur, DURACAO.min, DURACAO.max) : null;
+  const z = inteiro(item.zona);
+  const zona = Number.isFinite(z) ? limitar(z, 0, MAX_LADOS - 1) : 0;
   if (item.tipo === "midia") {
     if (!uuidValido(item.midia_id)) return null;
-    return { tipo: "midia", midia_id: item.midia_id, duracao_seg };
+    return { tipo: "midia", midia_id: item.midia_id, duracao_seg, zona };
   }
   if (item.tipo === "cardapio") {
     const categorias = Array.isArray(item.categoria_ids)
@@ -139,9 +145,17 @@ export function normalizarItem(item) {
       por_pagina: Number.isFinite(pp) ? limitar(pp, LIMITES.porPagina.min, LIMITES.porPagina.max) : LIMITES.porPagina.padrao,
       mostrar_descricao: item.mostrar_descricao !== false,
       duracao_seg: duracao_seg ?? DURACAO.cardapio,
+      zona,
     };
   }
   return null;
+}
+
+/** Em quantos lados a tela se divide: o maior lado usado (1 = tela inteira). */
+export function ladosDosItens(itens = []) {
+  let max = 0;
+  for (const i of itens) if (Number.isInteger(i?.zona) && i.zona > max) max = i.zona;
+  return Math.min(MAX_LADOS, max + 1);
 }
 
 export function validarPlaylist({ nome, orientacao, itens } = {}) {
@@ -150,6 +164,10 @@ export function validarPlaylist({ nome, orientacao, itens } = {}) {
   const lista = (Array.isArray(itens) ? itens : []).map(normalizarItem).filter(Boolean);
   if (!lista.length) return falha("A playlist precisa de pelo menos um conteúdo.");
   if (lista.length > LIMITES.itensPorPlaylist) return falha(`No máximo ${LIMITES.itensPorPlaylist} conteúdos por playlist.`);
+  const lados = ladosDosItens(lista);
+  for (let z = 0; z < lados; z++) {
+    if (!lista.some((i) => i.zona === z)) return falha(`Tela dividida em ${lados}: falta conteúdo no lado ${z + 1}.`);
+  }
   return { ok: true, playlist: { nome: n, orientacao: ORIENTACOES.includes(orientacao) ? orientacao : "horizontal", itens: lista } };
 }
 
@@ -360,13 +378,14 @@ export function montarRoteiro({ itens = [], midias = new Map(), urls = new Map()
         tipo: m.tipo, midia_id: m.id, nome: m.nome, url,
         chave: `${m.id}:${m.versao || 1}`,
         duracao_seg: duracaoDaMidia(m, item.duracao_seg),
+        zona: item.zona,
       });
       continue;
     }
     const paginas = paginasDoCardapio(cardapio, item);
     paginas.forEach((pg, i) => slides.push({
-      tipo: "cardapio", chave: `cardapio:${pg.categoria}:${i}`, nome: `${pg.titulo} · ${pg.categoria}`,
-      duracao_seg: item.duracao_seg, pagina: pg,
+      tipo: "cardapio", chave: `cardapio:${item.zona}:${pg.categoria}:${i}`, nome: `${pg.titulo} · ${pg.categoria}`,
+      duracao_seg: item.duracao_seg, pagina: pg, zona: item.zona,
     }));
   }
   return slides;

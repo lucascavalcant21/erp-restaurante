@@ -24,7 +24,7 @@ export async function POST(request) {
     return r.ok ? responder({ segredo: r.segredo, codigo: r.codigo, expira_em: r.expira_em }) : recusar({ ...r, codigo: "indisponivel", mensagem: r.erro });
   }
 
-  // Cada TV pergunta a cada 30 s (20 vezes em 10 min); 150 TVs atrás do mesmo IP cabem.
+  // Cada TV pergunta a cada 15 s (40 vezes em 10 min); 75 TVs atrás do mesmo IP cabem.
   const freio = freioPorIp(request, "sinal-tv-conteudo", { maximo: 3000 });
   if (freio) return freio;
   const segredo = request.headers.get("x-tela-segredo") || "";

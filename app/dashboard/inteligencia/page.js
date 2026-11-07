@@ -8,13 +8,13 @@
 // Camadas: a lógica (rede, cancelamento, erros, listas derivadas) mora em
 // useCentralInteligencia; aqui só fica a apresentação.
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import Link from "next/link";
-import { RefreshCw, Loader2, ShieldCheck, ChevronDown, History, Settings, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { RefreshCw, Loader2, ShieldCheck, ChevronDown, History, Settings, ArrowLeft, Bot, Mic, MessageCircle } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { MetricaCartao, SeloCobertura } from "../../components/intelligence/Blocos";
 import InsightCartao from "../../components/intelligence/InsightCartao";
-import ConversaHefisto from "../../components/intelligence/ConversaHefisto";
 import PerguntaCartao from "../../components/intelligence/PerguntaCartao";
 import BannerErroRede from "../../components/intelligence/BannerErroRede";
 import { SecaoInteligencia as Secao, EsqueletoInteligencia } from "../../components/intelligence/SecaoInteligencia";
@@ -34,15 +34,14 @@ const BOTAO_SECUNDARIO = "inline-flex min-h-[44px] items-center gap-2 rounded-xl
 export default function CentralDeInteligencia() {
   const { unidadeAtiva, unidadeInfo } = useERP() || {};
   const c = useCentralInteligencia(unidadeAtiva);
-  const conversa = useRef(null);
-  const chatRef = useRef(null);
+  const router = useRouter();
 
+  // A conversa da Central é o Assistente Efto (tela própria, estilo WhatsApp): a pergunta vai junto
   const perguntar = useCallback((texto) => {
-    chatRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    conversa.current?.enviar(texto);
-  }, []);
+    router.push(`${ROTA_EFTO}${texto ? `?q=${encodeURIComponent(String(texto).slice(0, 500))}` : ""}`);
+  }, [router]);
 
-  // Pergunta vinda da busca (Ctrl+K) quando já se está na Central: vai para a conversa daqui
+  // Pergunta vinda da busca (Ctrl+K) quando já se está na Central: abre o Assistente Efto com ela
   useEffect(() => {
     const aoPerguntar = (e) => { const t = e?.detail?.texto; if (t) perguntar(t); };
     window.addEventListener("hefisto:perguntar", aoPerguntar);
@@ -74,6 +73,7 @@ export default function CentralDeInteligencia() {
             </div>
           )}
         </div>
+        {!c.semUnidade && <CartaoAssistenteEfto className="mt-4 lg:hidden" />}
         {brief && <p className="mt-2 max-w-3xl text-[16px] leading-snug text-hf-text-2">{brief.summary}</p>}
         {brief && (
           <p className="mt-1 text-[12px] font-medium text-hf-muted">
@@ -182,12 +182,8 @@ export default function CentralDeInteligencia() {
             )}
           </div>
 
-          <aside ref={chatRef} className="space-y-6 lg:sticky lg:top-4">
-            <Secao titulo="Pergunte ao Héfisto">
-              <div className="rounded-3xl border border-hf-border bg-hf-elevated/70 p-3 shadow-sm sm:p-4">
-                <ConversaHefisto ref={conversa} unidadeId={unidadeAtiva} tela={TELA_CENTRAL} />
-              </div>
-            </Secao>
+          <aside className="space-y-6 lg:sticky lg:top-4">
+            <CartaoAssistenteEfto className="hidden lg:block" />
             {c.historico.length > 0 && (
               <Secao titulo="Histórico recente">
                 <ul className="space-y-1.5">
@@ -210,5 +206,22 @@ export default function CentralDeInteligencia() {
   );
 }
 
-// Objeto estável: antes era recriado a cada render e invalidava os callbacks da conversa.
-const TELA_CENTRAL = Object.freeze({ rota: "/dashboard/inteligencia" });
+const ROTA_EFTO = "/dashboard/inteligencia/assistente";
+
+/** Entrada do Assistente Efto na Central: a ação principal da tela. */
+function CartaoAssistenteEfto({ className = "" }) {
+  return (
+    <section className={`rounded-3xl border border-hf-border bg-hf-surface p-4 shadow-sm ${className}`} aria-labelledby="efto-titulo">
+      <div className="flex items-center gap-3">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-hf-success text-white"><Bot size={24} /></span>
+        <div className="min-w-0">
+          <h2 id="efto-titulo" className="text-[17px] font-black text-hf-text">Assistente Efto</h2>
+          <p className="text-[13px] leading-snug text-hf-text-2">Converse por texto ou áudio: entrada no estoque, conferência de recebimento, ponto da equipe e fichas técnicas com custo e lucro.</p>
+        </div>
+      </div>
+      <Link href={ROTA_EFTO} className="mt-3 flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-hf-success px-4 text-[15px] font-bold text-white shadow-sm transition active:scale-[0.99]">
+        <MessageCircle size={18} /> Abrir conversa <span className="font-medium opacity-80">· texto ou <Mic size={14} className="inline -translate-y-px" /> áudio</span>
+      </Link>
+    </section>
+  );
+}

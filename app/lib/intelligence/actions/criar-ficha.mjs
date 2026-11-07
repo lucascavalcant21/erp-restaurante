@@ -293,6 +293,7 @@ async function preparar(ctx, params) {
   const itens = p.itens || [];
   const ehPrato = p.tipo === "prato";
   const oQue = ehPrato ? "o prato" : "a receita";
+  const naReceita = ehPrato ? "no prato" : "na receita";
 
   if (!p.nome) return pergunta("nome", ehPrato ? "Qual vai ser o nome do prato?" : "Qual vai ser o nome da receita?", { aviso });
   const deBase = itens.length === 1 && itens[0].fichaId && p.fichaBaseId;
@@ -339,7 +340,7 @@ async function preparar(ctx, params) {
     if (it.quantidade == null) {
       const un = alvo.tipo === "ficha" ? ROTULO_UN[alvo.ficha.rendimento_unidade] || alvo.ficha.rendimento_unidade : alvo.tipo === "insumo" ? ROTULO_UN[String(alvo.insumo.unidade_medida).toLowerCase()] || alvo.insumo.unidade_medida : ROTULO_UN[it.novo.unidade];
       const nomeAlvo = alvo.tipo === "ficha" ? alvo.ficha.nome : alvo.tipo === "insumo" ? alvo.insumo.nome : it.termo;
-      return pergunta("quantidade", `Quanto de ${nomeAlvo} vai em ${oQue}? (em ${un}, ou diga a unidade: "300 g", "2 kg")`, { indice: i, aviso });
+      return pergunta("quantidade", `Quanto de ${nomeAlvo} vai ${naReceita}? (em ${un}, ou diga a unidade: "300 g", "2 kg")`, { indice: i, aviso });
     }
     let quantidade;
     let insumo = null;

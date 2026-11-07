@@ -214,7 +214,7 @@ test("ficha pela conversa: cadastra o que falta, custo, 200 g, base → prato co
   let r = await pedir("Agora vamos montar uma receita na nossa ficha técnica. O nome dele vai ser molho de tomate, e ele vai tomate, sal, alho, pimenta do reino.");
   assert.equal(r.interpretacao.intencao, "fichas.criar");
   const acao = r.pergunta.acaoId;
-  assert.match(r.texto, /Quanto de Tomate vai em a receita|Quanto de Tomate vai/);
+  assert.match(r.texto, /Quanto de Tomate vai na receita\? \(em kg/);
   r = await responder(acao, "3 kg");
   assert.match(r.texto, /Quanto de Sal Fino/);
   r = await responder(acao, "30 g");
@@ -256,7 +256,7 @@ test("ficha pela conversa: cadastra o que falta, custo, 200 g, base → prato co
   const prato = r.pergunta.acaoId;
   assert.match(r.texto, /nome do prato/);
   r = await responder(prato, "Espaguete ao sugo");
-  assert.match(r.texto, /Quanto de Molho de tomate vai em o prato/);
+  assert.match(r.texto, /Quanto de Molho de tomate vai no prato\? \(em kg/);
   r = await responder(prato, "200 g");
   assert.match(r.texto, /Vai mais algum ingrediente além de Molho de tomate/);
   r = await responder(prato, "não");

@@ -1055,7 +1055,9 @@ export default function PontoPage() {
   const saudacao = hNow >= 5 && hNow < 12 ? "Bom dia" : hNow >= 12 && hNow < 18 ? "Boa tarde" : "Boa noite";
 
   return (
-    <div ref={containerRef} onClick={reforcarFullscreen} className="erp-safe-top fixed inset-0 z-[9999] bg-hf-bg overflow-y-auto font-sans">
+    // Escolha de área: tudo numa tela só, fixo, sem rolar (pedido do dono, 06/11/2026).
+    // A lista de pessoas de uma área continua rolando: pode ter muita gente.
+    <div ref={containerRef} onClick={reforcarFullscreen} className={`erp-safe-top fixed inset-0 z-[9999] bg-hf-bg font-sans ${areaAtiva ? "overflow-y-auto" : "overflow-hidden"}`}>
       {pinSair && (
         <ModalPinGerente senha={pinGerente}
           titulo="Sair do Modo Ponto"
@@ -1064,8 +1066,8 @@ export default function PontoPage() {
           onSuccess={sairKiosk}
         />
       )}
-      <div className="max-w-4xl mx-auto p-6 md:p-10">
-        <div className="flex items-center justify-between mb-6">
+      <div className={`max-w-4xl mx-auto ${areaAtiva ? "p-6 md:p-10" : "flex h-full flex-col px-4 pb-4 pt-3 sm:px-6 md:p-10"}`}>
+        <div className={`flex shrink-0 items-center justify-between ${areaAtiva ? "mb-6" : "mb-2 sm:mb-6"}`}>
           {kiosk ? (
             <button onClick={() => setPinSair(true)} aria-label="Destravar com PIN do gerente" className="grid h-12 w-12 place-items-center bg-hf-surface hover:bg-hf-elevated text-hf-text-2 hover:text-hf-text rounded-2xl transition-colors border border-hf-border" title="Destravar com PIN do gerente">
               <Lock size={18} />
@@ -1082,16 +1084,16 @@ export default function PontoPage() {
           )}
         </div>
 
-        <div className="text-center mb-8 relative">
+        <div className={`text-center relative shrink-0 ${areaAtiva ? "mb-8" : "mb-3 sm:mb-8"}`}>
           <div className="absolute left-1/2 -translate-x-1/2 -top-8 w-[420px] max-w-full h-44 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
           <p className="text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
-          <h1 className="text-8xl md:text-[10rem] font-black tabular-nums tracking-tight relative text-slate-900 dark:text-white">
+          <h1 className={`font-black tabular-nums tracking-tight relative leading-none text-slate-900 dark:text-white ${areaAtiva ? "text-8xl md:text-[10rem]" : "text-[clamp(3.25rem,11vh,10rem)]"}`}>
             {/* Segundos não são enfeite: o Anexo IX, item 3, exige que o
                 coletor exiba horas, minutos e segundos no momento da marcação. */}
             {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-            <span className="text-4xl md:text-6xl text-emerald-600 dark:text-emerald-400 font-black ml-2">:{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
+            <span className={`text-emerald-600 dark:text-emerald-400 font-black ml-2 ${areaAtiva ? "text-4xl md:text-6xl" : "text-[clamp(1.5rem,4.5vh,3.75rem)]"}`}>:{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
           </h1>
-          <p className="text-hf-text-2 font-bold uppercase tracking-widest mt-2 relative">
+          <p className={`text-hf-text-2 font-bold uppercase relative ${areaAtiva ? "tracking-widest mt-2" : "mt-1 text-xs tracking-wider sm:mt-2 sm:text-base sm:tracking-widest"}`}>
             {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} · {unidadeInfo?.nome}
           </p>
           {/* Qual área está aberta, no meio e logo abaixo da hora: é a primeira
@@ -1140,7 +1142,7 @@ export default function PontoPage() {
           });
           if (!alertas.length) return null;
           return (
-            <div className="mb-6 space-y-2">
+            <div className={`space-y-2 ${areaAtiva ? "mb-6" : "mb-3 max-h-[22vh] shrink-0 overflow-y-auto"}`}>
               {alertas.map((a, i) => {
                 const zap = linkZap(a.c, a.msg);
                 return (
@@ -1172,18 +1174,22 @@ export default function PontoPage() {
             próprio setor e acha o nome na lista mais rápido do que digitaria —
             ainda mais com a mão ocupada ou molhada. */}
         {!areaAtiva ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          // As três áreas dividem o espaço que sobra da tela: no celular, uma
+          // embaixo da outra (celular e tablet em pé); tablet deitado, lado a lado.
+          <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-3 gap-3 sm:gap-4 sm:landscape:grid-cols-3 sm:landscape:grid-rows-1">
             {AREAS_PONTO.map(area => {
               const Icone = area.icone;
               const quantos = colaboradores.filter(c => AREAS_DA_CATEGORIA[area.id].includes(categoriaFuncao(c.cargo))).length;
               return (
                 <button key={area.id} onClick={() => setAreaAtiva(area.id)}
-                  className="flex flex-col items-center gap-3 rounded-3xl border-2 border-hf-border bg-hf-surface p-8 transition-all hover:border-emerald-500 active:scale-[.98]">
-                  <span className="grid h-24 w-24 place-items-center rounded-3xl" style={{ background: area.fundo, color: area.cor }}>
-                    <Icone size={48} />
+                  className="flex min-h-0 items-center gap-4 rounded-3xl border-2 border-hf-border bg-hf-surface px-5 py-3 text-left transition-all hover:border-emerald-500 active:scale-[.98] sm:flex-col sm:justify-center sm:gap-3 sm:p-8 sm:text-center">
+                  <span className="grid h-[clamp(3.5rem,9vh,6rem)] w-[clamp(3.5rem,9vh,6rem)] shrink-0 place-items-center rounded-3xl" style={{ background: area.fundo, color: area.cor }}>
+                    <Icone className="h-1/2 w-1/2" />
                   </span>
-                  <span className="text-3xl font-black text-hf-text">{area.nome}</span>
-                  <span className="text-sm font-bold text-hf-text-2">{quantos} pessoa(s)</span>
+                  <span className="min-w-0">
+                    <span className="block text-[clamp(1.5rem,4vh,1.875rem)] font-black leading-tight text-hf-text">{area.nome}</span>
+                    <span className="block text-sm font-bold text-hf-text-2">{quantos === 1 ? "1 pessoa" : `${quantos} pessoas`}</span>
+                  </span>
                 </button>
               );
             })}
@@ -1196,10 +1202,10 @@ export default function PontoPage() {
             <ArrowLeft size={24} />
           </button>
         )}
-        {loading ? (
+        {!areaAtiva ? null : loading ? (
           <div className="text-center py-16"><Loader2 size={40} className="animate-spin text-hf-text-2 mx-auto" /></div>
         ) : filtrados.length === 0 ? (
-          <p className="text-center text-hf-text-2 font-bold py-12">{colaboradores.length === 0 ? "Nenhum colaborador cadastrado no RH." : "Nenhum nome ou função encontrado."}</p>
+          <p className="text-center text-hf-text-2 font-bold py-12">{colaboradores.length === 0 ? "Nenhum colaborador cadastrado no RH." : "Ninguém desta área está cadastrado no RH."}</p>
         ) : (
           <div className="space-y-7">
             {grupos.map(g => (

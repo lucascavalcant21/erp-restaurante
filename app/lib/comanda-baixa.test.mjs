@@ -37,3 +37,19 @@ test("rendimento em quilo usa o peso da porção", () => {
 test("pagamentos em centavos exatos", () => {
   assert.deepEqual(pagamentosDaConta([{ forma: "pix", valor: 10.004 }, { forma: "dinheiro", valor: 0 }, { forma: "vr", valor: 5 }]), [{ forma: "pix", valor: 10 }, { forma: "voucher", valor: 5 }]);
 });
+
+test("devolução do cancelamento: só o que a venda tirou, somado por estoque e insumo", async () => {
+  const { devolucoesDaVenda } = await import("./comanda-baixa.mjs");
+  const movs = [
+    { tipo: "saida", chave_idempotencia: "venda:v1:e1:i1", estoque_id: "e1", insumo_id: "i1", quantidade: 0.2 },
+    { tipo: "saida", chave_idempotencia: "venda:v1:e1:i1", estoque_id: "e1", insumo_id: "i1", quantidade: 0.1 },
+    { tipo: "saida", chave_idempotencia: "venda:v1:e2:i2", estoque_id: "e2", insumo_id: "i2", quantidade: 3 },
+    { tipo: "saida", chave_idempotencia: "venda:v10:e1:i1", estoque_id: "e1", insumo_id: "i1", quantidade: 9 },
+    { tipo: "entrada", chave_idempotencia: "venda:v1:e1:i1", estoque_id: "e1", insumo_id: "i1", quantidade: 5 },
+  ];
+  assert.deepEqual(devolucoesDaVenda(movs, "v1"), [
+    { estoque_id: "e1", insumo_id: "i1", quantidade: 0.3, chave: "cancelamento:v1:e1:i1" },
+    { estoque_id: "e2", insumo_id: "i2", quantidade: 3, chave: "cancelamento:v1:e2:i2" },
+  ]);
+  assert.deepEqual(devolucoesDaVenda([], "v1"), []);
+});

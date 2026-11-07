@@ -13,10 +13,15 @@ import CampoDecimal from "../../../components/CampoDecimal";
 import { resumoPorPessoa, totalDaComanda } from "../../../lib/comandas.mjs";
 import { receberComanda } from "../../../lib/comandas";
 import { mascaraCPF, somenteDigitos } from "../../../lib/mascaras.mjs";
+import { hasPermission } from "../../../lib/permissions-catalog.mjs";
+import VendasDoCaixa from "../../../components/salao/VendasDoCaixa";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 export default function SaloesMesasPage() {
-  const { unidadeAtiva, usuarioLogado } = useERP();
+  const { unidadeAtiva, usuarioLogado, sessao } = useERP();
+  // Vendas do caixa e cancelamento (COM-4). O banco confere a permissão de novo.
+  const [modalVendas, setModalVendas] = useState(false);
+  const podeCancelarVenda = !sessao?.gerenciado || hasPermission(sessao, "salao.sector.cancel");
   const router = useRouter();
   
   const [loading, setLoading] = useState(true);
@@ -1006,6 +1011,9 @@ export default function SaloesMesasPage() {
             <button onClick={toggleFullScreen} className="flex items-center gap-1.5 px-3 py-2 bg-hf-elevated hover:bg-hf-border font-bold text-xs rounded-lg transition-colors text-hf-text">
                <Maximize size={16} /> Tela Cheia
             </button>
+            <button onClick={() => setModalVendas(true)} className="flex items-center gap-1.5 px-3 py-2 bg-hf-elevated hover:bg-hf-border font-bold text-xs rounded-lg transition-colors text-hf-text">
+               <Receipt size={16} /> Vendas do caixa
+            </button>
             <button onClick={() => { setTipoMov('suprimento'); setModalMov(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-hf-elevated hover:bg-hf-border font-bold text-xs rounded-lg transition-colors text-hf-text-2">
                <ArrowUpCircle size={16} /> Suprimento
             </button>
@@ -1647,6 +1655,10 @@ export default function SaloesMesasPage() {
       )}
 
       {/* FECHAMENTO DE CAIXA (LEITURA Z) */}
+      {modalVendas && caixa && (
+        <VendasDoCaixa caixaId={caixa.id} unidadeId={unidadeAtiva} quem={usuarioLogado?.nome || ""}
+          podeCancelar={podeCancelarVenda} onClose={() => setModalVendas(false)} />
+      )}
       {modalFechamento && resumoZ && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
             <div className="bg-card rounded-3xl p-6 w-full max-w-md shadow-2xl">

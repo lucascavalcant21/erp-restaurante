@@ -6,7 +6,7 @@
 //   app.hefisto.com.br/tv
 // 1. A TV mostra um código de 4 números.
 // 2. No painel (Cardápio → Sinalização digital → Parear TV), digite o código.
-// 3. Pronto: a TV toca o que o painel mandar e pergunta de novo a cada 30 s.
+// 3. Pronto: a TV toca o que o painel mandar e pergunta de novo a cada 15 s.
 //
 // Sem internet a TV continua tocando o último roteiro: as mídias ficam no
 // cache do navegador (Cache API "hefisto-tv-midias"), e o roteiro no
@@ -14,6 +14,7 @@
 // num totem em pé) é girada aqui, sem mexer na configuração do aparelho.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Palco, FiltroNitidez } from "../components/sinalizacao/PalcoTv";
 
 const API = "/api/public/sinalizacao/tv";
 const CHAVE_SEGREDO = "hefisto_tv_segredo";
@@ -25,24 +26,6 @@ const SHA_LOCAL = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || "";
 
 const ler = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const gravar = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* sem storage: segue */ } };
-
-// Realce das fotos na TV (pedido do dono, 07/11/2026: "mais bonita, mais nítida,
-// mais viva"): cores um pouco mais vivas, contraste leve e nitidez suave.
-// Só na exibição: o arquivo original no acervo não muda. Vídeo fica de fora
-// (filtro em vídeo pesa na TV).
-const REALCE = "saturate(1.15) contrast(1.06) brightness(1.02) url(#hefisto-nitidez)";
-
-function FiltroNitidez() {
-  return (
-    <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
-      <filter id="hefisto-nitidez" colorInterpolationFilters="sRGB">
-        <feConvolveMatrix order="3" preserveAlpha="true" kernelMatrix="0 -0.35 0 -0.35 2.4 -0.35 0 -0.35 0" />
-      </filter>
-    </svg>
-  );
-}
-
-const preco = (v) => `R$ ${Number(v).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
 
 async function pedir(corpo, segredo) {
   const r = await fetch(API, {
@@ -93,86 +76,6 @@ async function limparCache(chavesVivas) {
       }
     }
   } catch { /* nada */ }
-}
-
-// ─── slides ──────────────────────────────────────────────────────────────────
-function SlideCardapio({ pagina, loja, vertical }) {
-  const itens = pagina?.itens || [];
-  return (
-    <div className="flex h-full w-full flex-col bg-[#14110d] text-[#f6efe2]" style={{ padding: vertical ? "calc(1cqh * 6) calc(1cqw * 6)" : "calc(1cqh * 5) calc(1cqw * 5)" }}>
-      <div className="flex items-end justify-between gap-6 border-b border-[#c9a24d]/40 pb-[calc(1cqh*2.5)]">
-        <div className="min-w-0">
-          <p className="truncate font-semibold uppercase tracking-[0.2em] text-[#c9a24d]" style={{ fontSize: vertical ? "calc(1cqw * 2.6)" : "calc(1cqh * 2.2)" }}>{pagina?.titulo}</p>
-          <h1 className={`font-bold leading-tight ${vertical ? "" : "truncate"}`} style={{ fontSize: vertical ? "calc(1cqw * 7)" : "calc(1cqh * 6)" }}>{pagina?.categoria}</h1>
-        </div>
-        {loja && <p className="shrink-0 font-medium text-[#f6efe2]/60" style={{ fontSize: vertical ? "calc(1cqw * 2.6)" : "calc(1cqh * 2.2)" }}>{loja}</p>}
-      </div>
-      <ul className="mt-[calc(1cqh*3)] flex flex-1 flex-col justify-evenly">
-        {itens.map((p, i) => (
-          <li key={i} className="flex items-baseline gap-[calc(1cqw*2)]">
-            <div className="min-w-0 max-w-[68%]">
-              <p className="truncate font-semibold" style={{ fontSize: vertical ? "calc(1cqw * 4.4)" : "calc(1cqh * 3.8)" }}>{p.nome}</p>
-              {p.descricao && <p className="truncate text-[#f6efe2]/60" style={{ fontSize: vertical ? "calc(1cqw * 2.6)" : "calc(1cqh * 2.2)" }}>{p.descricao}</p>}
-            </div>
-            <span className="mx-[calc(1cqw*1)] hidden flex-1 border-b-2 border-dotted border-[#f6efe2]/20 sm:block" aria-hidden />
-            <div className="shrink-0 text-right">
-              {p.preco_original && <p className="text-[#f6efe2]/50 line-through" style={{ fontSize: vertical ? "calc(1cqw * 2.6)" : "calc(1cqh * 2.2)" }}>{preco(p.preco_original)}</p>}
-              <p className="font-bold tabular-nums text-[#e6c06a]" style={{ fontSize: vertical ? "calc(1cqw * 5)" : "calc(1cqh * 4.2)" }}>{preco(p.preco)}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function Midia({ slide, aoTerminar }) {
-  const [src, setSrc] = useState(null);
-  useEffect(() => {
-    let vivo = true;
-    setSrc(null);
-    midiaLocal(slide).then((u) => { if (vivo) setSrc(u); });
-    return () => { vivo = false; };
-  }, [slide]);
-  if (!src) return <div className="h-full w-full bg-black" />;
-  if (slide.tipo === "video") {
-    return (
-      <video key={slide.chave} src={src} className="h-full w-full bg-black object-contain"
-        autoPlay muted playsInline onEnded={aoTerminar} onError={aoTerminar} />
-    );
-  }
-  // Arte que não tem o formato da tela (vertical numa TV deitada): em vez de
-  // faixa preta, a própria arte ampliada e desfocada preenche o fundo.
-  return (
-    <div key={slide.chave} className="relative h-full w-full overflow-hidden bg-black">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" className="relative h-full w-full object-contain" style={{ filter: REALCE }} onError={aoTerminar} />
-    </div>
-  );
-}
-
-/**
- * Um lado da tela tocando a sua sequência, com os seus tempos. Tela inteira
- * = um lado só. `aoMostrar` conta ao painel o que está passando (lado 1).
- */
-function Sequencia({ slides, loja, vertical, aoMostrar }) {
-  const [indice, setIndice] = useState(0);
-  const slide = slides.length ? slides[indice % slides.length] : null;
-  const proximo = useCallback(() => setIndice((i) => (slides.length ? (i + 1) % slides.length : 0)), [slides.length]);
-  useEffect(() => { aoMostrar?.(slide); }, [slide, aoMostrar]);
-  // Tempo de cada slide (o vídeo avança sozinho no fim; o tempo é a rede de segurança).
-  useEffect(() => {
-    if (!slide || (slides.length < 2 && slide.tipo !== "video")) return undefined;
-    const extra = slide.tipo === "video" ? 5 : 0;
-    const t = setTimeout(proximo, (slide.duracao_seg + extra) * 1000);
-    return () => clearTimeout(t);
-  }, [slide, indice, proximo, slides.length]);
-  if (!slide) return <div className="h-full w-full bg-black" />;
-  return slide.tipo === "cardapio"
-    ? <SlideCardapio pagina={slide.pagina} loja={loja} vertical={vertical} />
-    : <Midia slide={slide} aoTerminar={proximo} />;
 }
 
 // ─── página ──────────────────────────────────────────────────────────────────
@@ -293,10 +196,6 @@ export default function PlayerTv() {
     return () => { window.removeEventListener("mousemove", mexeu); window.removeEventListener("keydown", telaCheia); window.removeEventListener("click", telaCheia); window.removeEventListener("resize", girou); clearTimeout(t); };
   }, []);
 
-  // Lados da tela (tela dividida): cada lado com a sua sequência.
-  const lados = roteiro.reduce((m, sl) => Math.max(m, (sl.zona ?? 0) + 1), 1);
-  const porLado = Array.from({ length: lados }, (_, z) => roteiro.filter((sl) => (sl.zona ?? 0) === z));
-
   const vertical = estado.tela?.orientacao === "vertical";
   // O palco e cada lado são contêineres: os tamanhos (cqh/cqw) seguem o
   // espaço real, girado ou não, inteiro ou dividido.
@@ -309,13 +208,7 @@ export default function PlayerTv() {
       <FiltroNitidez />
       <div style={palco}>
         {estado.fase === "pareada" && roteiro.length > 0 && !estado.pausada && (
-          <div key={assinaturaRef.current || "r"} className="flex h-full w-full">
-            {porLado.map((slides, z) => (
-              <div key={z} className="relative h-full min-w-0 flex-1 overflow-hidden" style={{ containerType: "size" }}>
-                <Sequencia slides={slides} loja={estado.loja} vertical={vertical || lados > 1} aoMostrar={z === 0 ? aoMostrar : undefined} />
-              </div>
-            ))}
-          </div>
+          <Palco roteiro={roteiro} loja={estado.loja} vertical={vertical} carregar={midiaLocal} aoMostrar={aoMostrar} chave={assinaturaRef.current || "r"} />
         )}
         {estado.fase === "pareada" && (!roteiro.length || estado.pausada) && (
           <Espera titulo={estado.tela?.nome || "Tela"} texto={estado.pausada ? "Tela pausada no painel." : "Conectada. Escolha o conteúdo no painel do Héfisto."} />

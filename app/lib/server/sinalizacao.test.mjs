@@ -232,3 +232,20 @@ test("painel: sem o hash do token, com status; sem tabelas avisa que falta a mig
   const semTab = await lerPainel(bancoFalso({ unidades: [] }), U, { agora: AGORA });
   assert.deepEqual([semTab.ok, semTab.semTabelas], [false, true]);
 });
+
+test("prévia: o mesmo roteiro da TV, só com mídias da própria unidade, sem gravar nada", async () => {
+  const { previaRoteiro } = await import("./sinalizacao.mjs");
+  _limparCacheCardapio();
+  const db = bancoFalso(comConteudo(), [`${U}/${"b".repeat(24)}.png`, `${OUTRA}/${"c".repeat(24)}.png`]);
+  const antes = JSON.stringify(db.dados.sinal_telas);
+  const r = await previaRoteiro(db, U, { itens: [
+    { tipo: "midia", midia_id: M1, zona: 0, ajuste: "dividir", duracao_seg: 7 },
+    { tipo: "midia", midia_id: "66666666-6666-4666-8666-666666666666", zona: 1 },
+    { tipo: "cardapio", zona: 1 },
+  ] }, { agora: AGORA });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.roteiro.map((s) => [s.tipo, s.zona, s.ajuste ?? null]), [["imagem", 0, "dividir"], ["cardapio", 1, null]], "mídia de outra loja fica de fora");
+  assert.equal(JSON.stringify(db.dados.sinal_telas), antes);
+  const fixa = await previaRoteiro(db, U, { conteudo: { tipo: "midia", id: M1, ajuste: "preencher" } }, { agora: AGORA });
+  assert.equal(fixa.roteiro[0].ajuste, "preencher");
+});

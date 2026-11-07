@@ -406,7 +406,7 @@ export async function conteudoDaTela(db, { segredo, exibindo = null, aparelho = 
     const { data: pl } = await db.from("sinal_playlists").select("itens, ativa").eq("id", r.conteudo.id).eq("unidade_id", tela.unidade_id).maybeSingle();
     if (pl && pl.ativa !== false) itens = Array.isArray(pl.itens) ? pl.itens : [];
   } else if (r.conteudo?.tipo === "midia") {
-    itens = [{ tipo: "midia", midia_id: r.conteudo.id }];
+    itens = [{ tipo: "midia", midia_id: r.conteudo.id, ajuste: r.conteudo.ajuste }];
   }
 
   const ids = midiasUsadas(itens);
@@ -431,4 +431,34 @@ export async function conteudoDaTela(db, { segredo, exibindo = null, aparelho = 
     loja: cardapio?.unidade?.nome || null,
     intervalo_ms: INTERVALO_TV_MS,
   });
+}
+
+// ─── PRÉVIA NO PAINEL ────────────────────────────────────────────────────────
+
+/**
+ * "Ver como fica na TV": monta o mesmo roteiro que a TV receberia para estes
+ * itens (mídias desta unidade com URL assinada e o cardápio com preço), sem
+ * salvar nada. Mídia de outra unidade é ignorada.
+ */
+export async function previaRoteiro(db, unidade, corpo, { agora = new Date() } = {}) {
+  let itens = Array.isArray(corpo?.itens) ? corpo.itens.slice(0, 60) : [];
+  if (corpo?.conteudo) {
+    const c = normalizarConteudo(corpo.conteudo);
+    if (c?.tipo === "midia") itens = [{ tipo: "midia", midia_id: c.id, ajuste: c.ajuste }];
+    else if (c?.tipo === "playlist") {
+      const { data: pl } = await db.from("sinal_playlists").select("itens").eq("id", c.id).eq("unidade_id", unidade).maybeSingle();
+      itens = Array.isArray(pl?.itens) ? pl.itens : [];
+    }
+  }
+  const ids = midiasUsadas(itens);
+  let midias = new Map();
+  let urls = new Map();
+  if (ids.length) {
+    const { data } = await db.from("sinal_midias").select("id, nome, tipo, caminho, duracao_seg, versao, orientacao").eq("unidade_id", unidade).eq("ativo", true).in("id", ids);
+    const lista = data || [];
+    midias = new Map(lista.map((m) => [m.id, m]));
+    urls = await urlsAssinadas(db, lista, TTL_PAINEL_S);
+  }
+  const cardapio = itens.some((i) => i?.tipo === "cardapio") ? await cardapioDaUnidade(db, unidade, agora) : null;
+  return ok({ roteiro: montarRoteiro({ itens, midias, urls, cardapio }), loja: cardapio?.unidade?.nome || null });
 }

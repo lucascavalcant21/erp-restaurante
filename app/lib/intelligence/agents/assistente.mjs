@@ -35,7 +35,7 @@ export const HANDLERS_COMPRAS = {
     if (!params.produto || !chegou) {
       return { ...r("O que chegou e quanto?"), pergunta: { campo: "produto", livre: true, texto: "Me diga o produto, quanto chegou e quanto foi pedido. Ex.: \"chegou 3 kg de picanha, o pedido era 2 kg\".", comandoBase: "{valor}" } };
     }
-    const m = await motor.getReceivingCheck({ termo: params.produto });
+    const m = await motor.getReceivingCheck({ termo: params.produto, frase: params.texto || null });
     if (m.status === "sem_permissao") return insuf(m, "Conferência de recebimento");
     const ins = temValor(m) ? m.detalhes.insumo : null;
     const nome = ins?.nome || params.produto;
@@ -110,7 +110,7 @@ export const HANDLERS_RH = {
 
 // ─── Fichas: custo de X gramas e lucro a um preço ───────────────────────────
 function fichaDaPergunta(params) {
-  return params.produto ? { termo: params.produto } : params.fichaIdContexto ? { fichaId: params.fichaIdContexto } : null;
+  return params.produto ? { termo: params.produto, frase: params.texto || null } : params.fichaIdContexto ? { fichaId: params.fichaIdContexto } : null;
 }
 
 const rotuloRend = (q, u) => (u === "porcao" || /porc/.test(String(u)) ? `${num(q)} ${Number(q) === 1 ? "porção" : "porções"}` : `${num(q)} ${ROT[u] || u}`);

@@ -120,12 +120,12 @@ export function divergenciaRecebimento(chegou, pedido) {
 
 const PARA_UNIDADE = { g: { kg: 0.001, g: 1 }, ml: { l: 0.001, ml: 1 }, un: { un: 1 } };
 
-export function conferenciaRecebimento(amb, { termo }) {
+export function conferenciaRecebimento(amb, { termo, frase = null }) {
   const periodo = { de: amb.hoje, ate: amb.hoje, rotulo: "compras em aberto" };
   return medir(amb, { id: "conferencia_recebimento", capacidade: "compras", periodo }, async (consultas) => {
     const fontes = [fonte("insumos", "Cadastro do produto"), fonte("vw_compras", "Compras em rascunho"), fonte("compras_itens", "Quantidade pedida")];
     const insumos = (await ler(amb.dbe.from("insumos").select(CAMPOS_INSUMO).order("nome"), "insumos")) || [];
-    const c = candidatosDoTermo(insumos, termo || "");
+    const c = candidatosDoTermo(insumos, termo || "", 8, { frase });
     if (!c.length) {
       return insuficiente({ metrica: "conferencia_recebimento", periodo, escopo: amb.escopo, apuradoEm: amb.apuradoEm, fontes, consultas: consultas(),
         motivo: `Não encontrei "${termo}" no cadastro desta unidade.`, faltando: ["produto no cadastro"] });
@@ -214,12 +214,12 @@ export function quantidadeNoRendimento({ quantidade, unidade, ficha }) {
   return g != null && peso > 0 ? { q: g / peso } : null;
 }
 
-export function custoDeFicha(amb, { termo = null, fichaId = null } = {}) {
+export function custoDeFicha(amb, { termo = null, fichaId = null, frase = null } = {}) {
   const periodo = { de: amb.hoje, ate: amb.hoje, rotulo: "custo atual do cadastro" };
   return medir(amb, { id: "custo_ficha", capacidade: "custo_fichas", periodo }, async (consultas) => {
     const fontes = [fonte("fichas_tecnicas", "Ficha técnica"), fonte("fichas_ingredientes", "Ingredientes e quantidades"), fonte("insumos", "Preço de compra do cadastro")];
     const { todas, ativas } = await carregarFichasComCusto(amb.dbe);
-    const ficha = fichaId ? ativas.find((f) => f.id === fichaId) : candidatosDoTermo(ativas, termo || "")[0];
+    const ficha = fichaId ? ativas.find((f) => f.id === fichaId) : candidatosDoTermo(ativas, termo || "", 8, { frase })[0];
     if (!ficha) {
       return insuficiente({ metrica: "custo_ficha", periodo, escopo: amb.escopo, apuradoEm: amb.apuradoEm, fontes, consultas: consultas(),
         motivo: termo ? `Não há ficha técnica "${termo}" nesta unidade.` : "Não sei de qual ficha você está falando.", faltando: ["ficha técnica"] });

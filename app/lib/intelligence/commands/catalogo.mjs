@@ -143,7 +143,8 @@ export const INTENCOES = Object.freeze([
   {
     id: "fichas.preparo", tipo: "pergunta", agentes: ["operacoes"],
     descricao: "Ficha técnica de um prato ou drink: ingredientes, quantidades e modo de preparo (ex.: 'como faz o vatapá?', 'ficha do risoto', 'ingredientes da caipirinha').",
-    frases: [["como faz", "como fazer", "como se faz", "como faco", "como prepara", "como preparar", "modo de preparo", "receita do", "receita da", "receita de", "ficha do", "ficha da", "ficha de", "ficha tecnica", "ingredientes do", "ingredientes da", "o que vai no", "o que vai na", "preparo do", "preparo da"]], peso: 6,
+    frases: [["como faz", "como fazer", "como se faz", "como faco", "como prepara", "como preparar", "modo de preparo", "receita do", "receita da", "receita de", "ficha do", "ficha da", "ficha de", "ficha tecnica", "ingredientes do", "ingredientes da", "o que vai no", "o que vai na", "preparo do", "preparo da",
+      "como monta", "como montar", "como se monta", "como monto", "montagem do", "montagem da", "montagem de", "como serve", "como servir", "passo a passo"]], peso: 6,
   },
   {
     id: "rh.escala_dia", tipo: "pergunta", agentes: ["rh"],
@@ -198,7 +199,8 @@ export const INTENCOES = Object.freeze([
   {
     id: "fichas.criar", tipo: "acao", acao: "recipe.create", agentes: ["operacoes"],
     descricao: "Montar uma ficha técnica conversando: receita/base ou prato, com ingredientes, rendimento, preço (ex.: 'vamos montar uma receita, o nome vai ser molho de tomate, vai tomate, sal, alho', 'montar um prato com essa base').",
-    frases: [["montar uma receita", "montar receita", "monta uma receita", "criar uma receita", "criar receita", "cria uma receita", "nova receita", "nova ficha", "criar ficha", "criar uma ficha", "cria uma ficha", "cadastrar ficha", "cadastrar uma ficha", "cadastrar receita", "cadastrar uma receita", "montar uma ficha", "montar ficha", "montar um prato", "monta um prato", "montar o prato", "criar um prato", "criar prato", "cadastrar um prato", "novo prato", "fazer uma ficha", "fazer uma receita", "montar uma base", "criar uma base", "nova base"]], peso: 12,
+    frases: [["montar uma receita", "montar receita", "monta uma receita", "criar uma receita", "criar receita", "cria uma receita", "nova receita", "nova ficha", "criar ficha", "criar uma ficha", "cria uma ficha", "cadastrar ficha", "cadastrar uma ficha", "cadastrar receita", "cadastrar uma receita", "montar uma ficha", "montar ficha", "montar um prato", "monta um prato", "montar o prato", "criar um prato", "criar prato", "cadastrar um prato", "novo prato", "fazer uma ficha", "fazer uma receita", "montar uma base", "criar uma base", "nova base"]],
+    proibidas: ["como monta", "como montar", "como se monta", "como faz", "como fazer", "como se faz", "ficha tecnica de", "ficha tecnica do", "ficha tecnica da"], peso: 12,
   },
   {
     id: "compras.foto_nota", tipo: "pergunta", agentes: ["compras"],

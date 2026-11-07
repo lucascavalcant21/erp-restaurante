@@ -88,6 +88,11 @@ export function criarServicoDeAcoes({ store, escopo, dbe, dbUsuario, verificador
       texto: def.id === "stock.registerLoss" ? "Perda registrada." : def.id === "stock.registerEntry" ? "Entrada registrada." : "Ação executada.",
       resultado: { acaoId: rec.id, acao: def.id, linhas, movimentoId: r.movimentoId || null, repetido },
       acoes: [{ rotulo: "Ver movimentações", rota: "/dashboard/operacao/estoque/historico" }],
+      // próximos passos (botões de resposta rápida no Assistente Héfisto)
+      sugestoes: [
+        ...(rec.preview?.entidade?.nome ? [`Quanto tenho de ${rec.preview.entidade.nome}?`] : []),
+        "Quais produtos estão abaixo do mínimo?",
+      ],
     };
   }
 

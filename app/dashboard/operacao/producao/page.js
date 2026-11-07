@@ -323,10 +323,6 @@ function ProducaoRunner() {
       
       {erroCarga && <p role="alert" className="m-4 rounded-xl bg-red-50 p-4 text-red-700">Falha ao carregar: {erroCarga}</p>}
       {aviso && <p role="status" className="fixed bottom-4 left-1/2 z-[95] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-lg">{aviso}</p>}
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-4 px-4 pt-4">
-        <label>Dia do planejamento <input type="date" value={dataPlano} onChange={e => setDataPlano(e.target.value)} className="rounded border p-2" /></label>
-        <label><input type="checkbox" checked={incluirPratos} onChange={e => setIncluirPratos(e.target.checked)} /> Incluir pratos para consumo imediato</label>
-      </div>
       {/* CABEÇALHO (visual do Nina) */}
       <div className="sticky top-0 z-10 bg-hf-bg/95 backdrop-blur">
         <div className="mx-auto max-w-5xl">
@@ -348,6 +344,10 @@ function ProducaoRunner() {
             </button>
           </CabecalhoTela>
         </div>
+      </div>
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 px-4 pt-4 text-sm font-medium text-hf-text-2 sm:px-6 lg:px-8">
+        <label className="flex items-center gap-2">Dia do planejamento <input type="date" value={dataPlano} onChange={e => setDataPlano(e.target.value)} className="h-11 rounded-full border border-hf-border bg-hf-surface px-4 text-hf-text" /></label>
+        <label className="flex min-h-[44px] items-center gap-2"><input type="checkbox" checked={incluirPratos} onChange={e => setIncluirPratos(e.target.checked)} className="h-5 w-5 accent-[rgb(var(--hf-accent))]" /> Incluir pratos para consumo imediato</label>
       </div>
 
       <section className="mx-auto mt-4 max-w-5xl px-4 sm:px-6">

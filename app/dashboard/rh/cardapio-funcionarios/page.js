@@ -121,7 +121,7 @@ export default function JantaFuncionarios() {
         ))}
       </div>
 
-      <div role="tablist" aria-label="Dia da semana" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+      <div role="tablist" aria-label="Dia da semana" className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {semana.map((x) => (
           <button key={x.id} role="tab" aria-selected={dia === x.id} onClick={() => setDia(x.id)}
             className={`shrink-0 rounded-2xl border px-4 py-2 text-left transition ${dia === x.id ? "border-hf-text bg-hf-text text-white" : "border-hf-border bg-hf-surface text-hf-text"}`}>
@@ -133,7 +133,7 @@ export default function JantaFuncionarios() {
         ))}
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
         {/* QUANTAS PESSOAS JANTAM (o dono informa) */}
         <section className="rounded-3xl border border-hf-border bg-hf-surface p-5">
           <p className="text-[11px] font-black uppercase tracking-wider text-hf-muted">Quantas pessoas jantam · {rotDia}</p>

@@ -164,7 +164,7 @@ export default function CadastroExtrasPage() {
           </div>
 
           <div className="rounded-2xl border border-emerald-200 bg-card p-2.5 sm:p-3 shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-1">
+            <div className="flex flex-wrap items-center justify-between gap-1">
               <span className="text-3xs font-bold uppercase tracking-wider text-emerald-800 shrink-0">Pago no período</span>
               <div className="flex gap-0.5 bg-card p-0.5 rounded-lg shrink-0">
                 {[["dia", "Dia"], ["semana", "Sem."], ["mes", "Mês"]].map(([v, r]) => (

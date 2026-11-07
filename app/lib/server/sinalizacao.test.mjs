@@ -84,14 +84,14 @@ test("TV nova: registra, mostra código; pareada no painel, passa a se identific
   const db = bancoFalso(vazio());
   const reg = await registrarAparelho(db, { agora: AGORA, aleatorio: (n) => Buffer.from(Array.from({ length: n }, (_, i) => (i * 13 + 5) % 256)) });
   assert.equal(reg.ok, true);
-  assert.equal(reg.codigo.length, 6);
+  assert.match(reg.codigo, /^\d{4}$/);
   assert.equal(db.dados.sinal_pareamentos[0].segredo_hash, hashDe(reg.segredo), "banco só guarda o hash");
   assert.ok(!JSON.stringify(db.dados).includes(reg.segredo), "o segredo em claro não fica no banco");
 
   const antes = await conteudoDaTela(db, { segredo: reg.segredo, agora: AGORA });
   assert.deepEqual([antes.estado, antes.codigo], ["aguardando", reg.codigo]);
 
-  const p = await parearTela(db, U, { codigo: reg.codigo.toLowerCase(), nome: "Parede 01", orientacao: "vertical" }, { agora: AGORA, quem: "Lucas" });
+  const p = await parearTela(db, U, { codigo: ` ${reg.codigo.slice(0, 2)} ${reg.codigo.slice(2)} `, nome: "Parede 01", orientacao: "vertical" }, { agora: AGORA, quem: "Lucas" });
   assert.equal(p.ok, true);
   assert.equal(db.dados.sinal_pareamentos.length, 0, "código usado some");
   const t = db.dados.sinal_telas[0];
@@ -107,8 +107,8 @@ test("TV nova: registra, mostra código; pareada no painel, passa a se identific
 });
 
 test("código vencido ou de outra forma inválido não pareia; segredo malformado é 'novo'", async () => {
-  const db = bancoFalso({ ...vazio(), sinal_pareamentos: [{ id: "x", codigo: "ABCDEF", segredo_hash: "a".repeat(64), expira_em: "2026-11-09T14:00:00Z" }] });
-  assert.equal((await parearTela(db, U, { codigo: "ABCDEF", nome: "TV" }, { agora: AGORA })).status, 404);
+  const db = bancoFalso({ ...vazio(), sinal_pareamentos: [{ id: "x", codigo: "0420", segredo_hash: "a".repeat(64), expira_em: "2026-11-09T14:00:00Z" }] });
+  assert.equal((await parearTela(db, U, { codigo: "0420", nome: "TV" }, { agora: AGORA })).status, 404);
   assert.equal((await parearTela(db, U, { codigo: "123", nome: "TV" }, { agora: AGORA })).status, 400);
   assert.equal((await conteudoDaTela(db, { segredo: "curto", agora: AGORA })).estado, "novo");
 });
@@ -154,6 +154,11 @@ test("playlist só aceita mídia da própria unidade; publicar em todas não toc
   assert.equal(ruim.status, 400);
   const pl = await salvarPlaylist(db, U, { nome: "Almoço", itens: [{ tipo: "midia", midia_id: M1 }, { tipo: "cardapio", titulo: "Almoço executivo" }] }, { quem: "Lucas" });
   assert.equal(pl.ok, true);
+  assert.equal(pl.versao, 1);
+  db.dados.sinal_playlists[0].versao = 1;
+  const v2 = await salvarPlaylist(db, U, { id: pl.id, nome: "Almoço", itens: [{ tipo: "cardapio" }] });
+  assert.equal(v2.versao, 2, "cada edição vira uma versão nova");
+  assert.equal((await salvarPlaylist(db, OUTRA, { id: pl.id, nome: "x", itens: [{ tipo: "cardapio" }] })).status, 404, "outra loja não edita");
   const r = await trocarConteudo(db, U, { tela_ids: "todas", conteudo: { tipo: "playlist", id: pl.id } }, { agora: AGORA });
   assert.equal(r.telas, 2);
   assert.equal(db.dados.sinal_telas.find((t) => t.unidade_id === OUTRA).conteudo, null);

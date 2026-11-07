@@ -4,7 +4,7 @@
 //
 // Abra este endereço no navegador da TV, do TV Box ou do Fire Stick:
 //   app.hefisto.com.br/tv
-// 1. A TV mostra um código de 6 caracteres.
+// 1. A TV mostra um código de 4 números.
 // 2. No painel (Cardápio → Sinalização digital → Parear TV), digite o código.
 // 3. Pronto: a TV toca o que o painel mandar e pergunta de novo a cada 30 s.
 //
@@ -86,22 +86,22 @@ function SlideCardapio({ pagina, loja, vertical }) {
     <div className="flex h-full w-full flex-col bg-[#14110d] text-[#f6efe2]" style={{ padding: vertical ? "calc(var(--alt) * 6) calc(var(--larg) * 6)" : "calc(var(--alt) * 5) calc(var(--larg) * 5)" }}>
       <div className="flex items-end justify-between gap-6 border-b border-[#c9a24d]/40 pb-[calc(var(--alt)*2.5)]">
         <div className="min-w-0">
-          <p className="truncate font-semibold uppercase tracking-[0.2em] text-[#c9a24d]" style={{ fontSize: vertical ? "calc(var(--alt) * 1.8)" : "calc(var(--alt) * 2.2)" }}>{pagina?.titulo}</p>
-          <h1 className="truncate font-bold leading-tight" style={{ fontSize: vertical ? "calc(var(--alt) * 4.6)" : "calc(var(--alt) * 6)" }}>{pagina?.categoria}</h1>
+          <p className="truncate font-semibold uppercase tracking-[0.2em] text-[#c9a24d]" style={{ fontSize: vertical ? "calc(var(--larg) * 2.6)" : "calc(var(--alt) * 2.2)" }}>{pagina?.titulo}</p>
+          <h1 className={`font-bold leading-tight ${vertical ? "" : "truncate"}`} style={{ fontSize: vertical ? "calc(var(--larg) * 7)" : "calc(var(--alt) * 6)" }}>{pagina?.categoria}</h1>
         </div>
-        {loja && <p className="shrink-0 font-medium text-[#f6efe2]/60" style={{ fontSize: vertical ? "calc(var(--alt) * 1.8)" : "calc(var(--alt) * 2.2)" }}>{loja}</p>}
+        {loja && <p className="shrink-0 font-medium text-[#f6efe2]/60" style={{ fontSize: vertical ? "calc(var(--larg) * 2.6)" : "calc(var(--alt) * 2.2)" }}>{loja}</p>}
       </div>
       <ul className="mt-[calc(var(--alt)*3)] flex flex-1 flex-col justify-evenly">
         {itens.map((p, i) => (
           <li key={i} className="flex items-baseline gap-[calc(var(--larg)*2)]">
             <div className="min-w-0 max-w-[68%]">
-              <p className="truncate font-semibold" style={{ fontSize: vertical ? "calc(var(--alt) * 3)" : "calc(var(--alt) * 3.8)" }}>{p.nome}</p>
-              {p.descricao && <p className="truncate text-[#f6efe2]/60" style={{ fontSize: vertical ? "calc(var(--alt) * 1.8)" : "calc(var(--alt) * 2.2)" }}>{p.descricao}</p>}
+              <p className="truncate font-semibold" style={{ fontSize: vertical ? "calc(var(--larg) * 4.4)" : "calc(var(--alt) * 3.8)" }}>{p.nome}</p>
+              {p.descricao && <p className="truncate text-[#f6efe2]/60" style={{ fontSize: vertical ? "calc(var(--larg) * 2.6)" : "calc(var(--alt) * 2.2)" }}>{p.descricao}</p>}
             </div>
             <span className="mx-[calc(var(--larg)*1)] hidden flex-1 border-b-2 border-dotted border-[#f6efe2]/20 sm:block" aria-hidden />
             <div className="shrink-0 text-right">
-              {p.preco_original && <p className="text-[#f6efe2]/50 line-through" style={{ fontSize: vertical ? "calc(var(--alt) * 1.8)" : "calc(var(--alt) * 2.2)" }}>{preco(p.preco_original)}</p>}
-              <p className="font-bold tabular-nums text-[#e6c06a]" style={{ fontSize: vertical ? "calc(var(--alt) * 3.2)" : "calc(var(--alt) * 4.2)" }}>{preco(p.preco)}</p>
+              {p.preco_original && <p className="text-[#f6efe2]/50 line-through" style={{ fontSize: vertical ? "calc(var(--larg) * 2.6)" : "calc(var(--alt) * 2.2)" }}>{preco(p.preco_original)}</p>}
+              <p className="font-bold tabular-nums text-[#e6c06a]" style={{ fontSize: vertical ? "calc(var(--larg) * 5)" : "calc(var(--alt) * 4.2)" }}>{preco(p.preco)}</p>
             </div>
           </li>
         ))}
@@ -281,9 +281,11 @@ export default function PlayerTv() {
   }, [roteiro.length, proximo]);
 
   const vertical = estado.tela?.orientacao === "vertical";
+  // --alt / --larg = 1% da altura / largura do PALCO (girado ou não): o
+  // cardápio vertical num TV Box horizontal sai com o tamanho certo.
   const palco = girar
-    ? { position: "fixed", top: "50%", left: "50%", width: "calc(var(--alt) * 100)", height: "calc(var(--larg) * 100)", transform: "translate(-50%, -50%) rotate(90deg)" }
-    : { position: "fixed", inset: 0 };
+    ? { position: "fixed", top: "50%", left: "50%", width: "100vh", height: "100vw", transform: "translate(-50%, -50%) rotate(90deg)", "--alt": "1vw", "--larg": "1vh" }
+    : { position: "fixed", inset: 0, "--alt": "1vh", "--larg": "1vw" };
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-black text-white" style={{ cursor: cursor ? "default" : "none" }}>
@@ -314,7 +316,7 @@ function Codigo({ codigo }) {
       <p className="font-semibold uppercase tracking-[0.25em] text-[#c9a24d]" style={{ fontSize: "calc(var(--alt) * 2.4)" }}>Héfisto TV</p>
       <p className="text-white/80" style={{ fontSize: "calc(var(--alt) * 3)" }}>No painel do Héfisto, abra <b>Cardápio → Sinalização digital → Parear TV</b> e digite:</p>
       <p className="font-bold tracking-[0.3em] text-white tabular-nums" style={{ fontSize: "calc(var(--alt) * 16)", lineHeight: 1 }} data-codigo={c}>
-        {c.slice(0, 3)}<span className="opacity-40"> </span>{c.slice(3)}
+        {c.split("").join(" ")}
       </p>
       <p className="text-white/50" style={{ fontSize: "calc(var(--alt) * 2.2)" }}>O código muda a cada 30 minutos. Pressione OK no controle para tela cheia.</p>
     </div>

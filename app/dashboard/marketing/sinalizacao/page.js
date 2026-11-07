@@ -153,8 +153,8 @@ function CartaoTela({ tela, midiasPorId, playlistsPorId, abrir, podeEditar }) {
     <Card className="flex flex-col gap-3 !p-3">
       <div className="relative">
         <Miniatura midia={midia} cardapio={cardapio} orientacao="horizontal" />
-        <div className="absolute left-2 top-2"><Selo tom={st.tom}>{st.texto}</Selo></div>
-        <div className="absolute right-2 top-2"><Selo>{tela.orientacao === "vertical" ? "Vertical" : "Horizontal"}</Selo></div>
+        <div className="absolute left-2 top-2 rounded-full bg-white shadow-sm"><Selo tom={st.tom}>{st.texto}</Selo></div>
+        <div className="absolute right-2 top-2 rounded-full bg-white shadow-sm"><Selo>{tela.orientacao === "vertical" ? "Vertical" : "Horizontal"}</Selo></div>
         {tela.status === "sem_contato" && (
           <p className="absolute inset-x-2 bottom-2 rounded-lg bg-white/90 px-2 py-1 text-[11px] font-semibold text-hf-warning">{rotuloSemContato(tela.ultimo_contato)}</p>
         )}
@@ -383,6 +383,9 @@ function Playlists({ painel, midiasPorId, abrir, podeCriar, podeEditar }) {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {painel.playlists.map((p) => {
             const usadas = painel.telas.filter((t) => t.agora?.conteudo?.tipo === "playlist" && t.agora.conteudo.id === p.id).length;
+            // Publicada = é o conteúdo fixo de alguma tela ou está numa regra ligada.
+            const publicada = painel.telas.some((t) => t.conteudo?.tipo === "playlist" && t.conteudo.id === p.id)
+              || painel.programacoes.some((r) => r.ativa && r.playlist_id === p.id);
             const capas = (p.itens || []).slice(0, 4);
             return (
               <Card key={p.id} className="flex flex-col gap-3">
@@ -392,7 +395,11 @@ function Playlists({ painel, midiasPorId, abrir, podeCriar, podeEditar }) {
                   ))}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-[15px] font-semibold text-hf-text">{p.nome}</p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="min-w-0 truncate text-[15px] font-semibold text-hf-text">{p.nome}</p>
+                    <Selo>V{p.versao || 1}</Selo>
+                    {publicada ? <Selo tom="ok">Publicada</Selo> : <Selo tom="aviso">Não publicada</Selo>}
+                  </div>
                   <p className="text-xs text-hf-muted">{p.orientacao === "vertical" ? "Vertical" : "Horizontal"} · {resumoItens(p.itens, midiasPorId)}</p>
                   <p className="text-xs text-hf-muted">{usadas ? `Passando agora em ${usadas} tela(s)` : "Não está passando agora"}</p>
                 </div>
@@ -480,11 +487,11 @@ function ModalParear({ painel, dados, fechar, executar }) {
   return (
     <Modal open onClose={fechar} title={dados.tela ? `Parear de novo: ${dados.tela.nome}` : "Parear TV"}>
       <form onSubmit={parear}>
-        <p className="mb-3 text-sm text-hf-muted">Abra <b>/tv</b> no navegador da TV e digite o código que aparece.</p>
+        <p className="mb-3 text-sm text-hf-muted">Abra <b>/tv</b> no navegador da TV e digite os 4 números que aparecem.</p>
         <Erro texto={erro} />
         <Field label="Código da TV">
-          <TextInput value={codigo} onChange={(e) => setCodigo(e.target.value.toUpperCase().slice(0, 7))} placeholder="ABC 234" autoFocus
-            className="!h-14 text-center !text-2xl font-semibold tracking-[0.3em]" autoCapitalize="characters" autoComplete="off" />
+          <TextInput value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="0000" autoFocus
+            inputMode="numeric" pattern="[0-9]*" className="!h-14 text-center !text-3xl font-semibold tracking-[0.5em]" autoComplete="off" />
         </Field>
         {!dados.tela && (
           <>
@@ -502,7 +509,7 @@ function ModalParear({ painel, dados, fechar, executar }) {
             </Field>
           </>
         )}
-        <Btn type="submit" disabled={salvando || codigo.replace(/\s/g, "").length < 6 || (!dados.tela && !nome.trim())} className="mt-2 !min-h-12 w-full">
+        <Btn type="submit" disabled={salvando || codigo.length !== 4 || (!dados.tela && !nome.trim())} className="mt-2 !min-h-12 w-full">
           {salvando ? "Pareando…" : "Parear"}
         </Btn>
       </form>
@@ -658,12 +665,12 @@ function ModalPlaylist({ painel, playlist, fechar, executar, abrir, podeExcluir 
                 <p className="truncate text-sm font-semibold text-hf-text">{it.tipo === "cardapio" ? (it.titulo || "Cardápio") : m?.nome || "Mídia removida"}</p>
                 {it.tipo === "cardapio" && (
                   <div className="flex flex-wrap gap-1.5">
-                    <TextInput value={it.titulo || ""} onChange={(e) => mudar(i, "titulo", e.target.value)} placeholder="Título na TV" className="!h-9 !w-36 text-xs" maxLength={60} />
-                    <Select value={it.categoria_ids?.[0] || ""} onChange={(e) => mudar(i, "categoria_ids", e.target.value ? [e.target.value] : [])} className="!h-9 !w-40 text-xs">
+                    <TextInput value={it.titulo || ""} onChange={(e) => mudar(i, "titulo", e.target.value)} placeholder="Título na TV" className="!h-10 !w-full text-xs sm:!w-36" maxLength={60} />
+                    <Select value={it.categoria_ids?.[0] || ""} onChange={(e) => mudar(i, "categoria_ids", e.target.value ? [e.target.value] : [])} className="!h-10 !w-full text-xs sm:!w-44">
                       <option value="">Todas as seções</option>
                       {painel.categorias.map((c) => <option key={c.id} value={c.id}>{c.nome} ({c.pratos})</option>)}
                     </Select>
-                    <Select value={it.por_pagina || 6} onChange={(e) => mudar(i, "por_pagina", Number(e.target.value))} className="!h-9 !w-28 text-xs">
+                    <Select value={it.por_pagina || 6} onChange={(e) => mudar(i, "por_pagina", Number(e.target.value))} className="!h-10 !w-full text-xs sm:!w-32">
                       {[4, 5, 6, 8, 10, 12].map((n) => <option key={n} value={n}>{n} por tela</option>)}
                     </Select>
                   </div>

@@ -1,9 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SINAL-1 · SINALIZAÇÃO DIGITAL (TVs DE MARKETING)
 
-   STATUS: ESCRITA, NÃO APLICADA. Aguarda a aprovação do dono (APR-016 em
-   docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md). Testada no PGlite
-   (app/lib/sinalizacao-banco.test.mjs).
+   STATUS: APLICADA em 07/11/2026 com aprovação do dono no chat (APR-022 em
+   docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md). Impressão digital
+   conferida no banco real: 902d3121ff098c8bee0e2b508246c485. Testada no
+   PGlite (app/lib/sinalizacao-banco.test.mjs); anon e authenticated sem
+   leitura nas 5 tabelas (has_table_privilege, banco real).
 
    POR QUÊ: pedido do dono (07/11/2026): tirar o pendrive das TVs. As artes,
    os vídeos e o cardápio com preço do Héfisto passam a ir para as TVs pela
@@ -19,11 +21,12 @@
                               passando agora (monitoramento);
      2. sinal_midias        — o acervo: imagem/vídeo no bucket privado
                               `sinalizacao`, duração, orientação, versão;
-     3. sinal_playlists     — sequência de mídias e páginas de cardápio;
+     3. sinal_playlists     — sequência de mídias e páginas de cardápio,
+                              com versão (V1, V2…) a cada edição;
      4. sinal_programacoes  — regras: playlist × telas × dias × horário ×
                               datas × prioridade;
-     5. sinal_pareamentos   — códigos de 6 caracteres que a TV mostra até ser
-                              pareada (expiram em 30 min);
+     5. sinal_pareamentos   — códigos de 4 números que a TV mostra até ser
+                              pareada (expiram em 30 min, uso único);
      6. bucket privado `sinalizacao` (50 MB por arquivo, só JPG/PNG/WebP/MP4).
    SEGURANÇA: RLS ligado nas 5 tabelas, sem policy e sem grant para anon ou
    authenticated: só o servidor (service_role) lê e grava, depois de conferir
@@ -36,7 +39,7 @@
    BACKUP: desnecessário (nenhuma linha existente é tocada).
 
    VERIFICAÇÃO: o select do fim devolve a impressão digital (colunas, índices,
-   RLS das 5 tabelas e o bucket). Esperado: e1aa3b7cb7f2e3817dcab705b34c1787 (conferido no PGlite por
+   RLS das 5 tabelas e o bucket). Esperado: 902d3121ff098c8bee0e2b508246c485 (conferido no PGlite por
    app/lib/sinalizacao-banco.test.mjs).
 
    ROLLBACK (não rodar sem decisão do dono; telas, playlists e regras somem;
@@ -117,6 +120,7 @@ create table public.sinal_playlists (
   nome               text not null check (char_length(nome) between 1 and 80),
   orientacao         text not null default 'horizontal' check (orientacao in ('horizontal', 'vertical')),
   itens              jsonb not null default '[]'::jsonb check (jsonb_typeof(itens) = 'array' and jsonb_array_length(itens) <= 60),
+  versao             integer not null default 1 check (versao >= 1),
   ativa              boolean not null default true,
   criado_por         text check (criado_por is null or char_length(criado_por) <= 120),
   created_at         timestamptz not null default now(),
@@ -150,7 +154,7 @@ create index sinal_programacoes_unidade on public.sinal_programacoes (unidade_id
 -- 5. Pareamentos ---------------------------------------------------------------
 create table public.sinal_pareamentos (
   id                 uuid primary key default gen_random_uuid(),
-  codigo             text not null check (codigo ~ '^[A-HJ-KM-NP-Z2-9]{6}$'),
+  codigo             text not null check (codigo ~ '^[0-9]{4}$'),
   segredo_hash       text not null check (segredo_hash ~ '^[0-9a-f]{64}$'),
   aparelho           text check (aparelho is null or char_length(aparelho) <= 200),
   expira_em          timestamptz not null,

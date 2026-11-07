@@ -34,9 +34,10 @@ export const LIMITES = Object.freeze({ itensPorPlaylist: 60, telasPorRegra: 500,
 export const INTERVALO_TV_MS = 30 * 1000;
 export const ONLINE_MS = 150 * 1000;
 
-// Código de pareamento: 6 letras/números sem os que se confundem na TV (0/O, 1/I/L).
-export const ALFABETO_CODIGO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-export const TAMANHO_CODIGO = 6;
+// Código de pareamento: 4 números, como no Nina (decisão do dono, 07/11/2026).
+// Vale 30 min, é de uso único e só pareia quem tem login e permissão no painel.
+export const ALFABETO_CODIGO = "0123456789";
+export const TAMANHO_CODIGO = 4;
 export const VALIDADE_CODIGO_MS = 30 * 60 * 1000;
 
 export const PRIORIDADE = Object.freeze({ min: 1, max: 999, padrao: 100 });
@@ -70,18 +71,13 @@ export function gerarCodigo(aleatorio) {
   return s;
 }
 
-/** O que a pessoa digitou → código canônico, ou "" se não pode ser um código. */
+/** O que a pessoa digitou → código canônico (só os 4 números), ou "" se não pode ser um código. */
 export function normalizarCodigo(v) {
-  const s = String(v ?? "").toUpperCase().replace(/[\s-]/g, "")
-    .replace(/O/g, "0").replace(/[IL]/g, "1");
-  // 0 e 1 não existem no alfabeto: quem digitou O/I/L leu errado a TV, e o
-  // código não casa com nada (melhor "não encontrado" que parear a TV errada).
-  if (s.length !== TAMANHO_CODIGO) return "";
-  for (const c of s) if (!ALFABETO_CODIGO.includes(c)) return "";
-  return s;
+  const s = String(v ?? "").replace(/[\s.-]/g, "");
+  return /^\d+$/.test(s) && s.length === TAMANHO_CODIGO ? s : "";
 }
 
-export const formatarCodigo = (c) => (c && c.length === 6 ? `${c.slice(0, 3)} ${c.slice(3)}` : c || "");
+export const formatarCodigo = (c) => String(c || "").split("").join(" ");
 
 // ─── MÍDIAS ──────────────────────────────────────────────────────────────────
 

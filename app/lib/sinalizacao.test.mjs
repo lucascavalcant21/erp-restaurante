@@ -20,15 +20,16 @@ const M2 = "66666666-6666-4666-8666-666666666666";
 // Horário de Brasília (UTC-3, sem horário de verão).
 const em = (iso) => new Date(`${iso}-03:00`);
 
-test("código de pareamento: 6 caracteres do alfabeto sem 0/O/1/I/L", () => {
-  const c = gerarCodigo((n) => Uint8Array.from({ length: n }, (_, i) => i * 37));
-  assert.equal(c.length, 6);
-  for (const x of c) assert.ok(ALFABETO_CODIGO.includes(x));
-  assert.doesNotMatch(ALFABETO_CODIGO, /[01OIL]/);
-  assert.equal(normalizarCodigo(" abc-def "), "ABCDEF");
-  assert.equal(normalizarCodigo("ABC 23"), "", "curto demais");
-  assert.equal(normalizarCodigo("ABCDE0"), "", "0 não existe: não casa com outro código");
-  assert.equal(formatarCodigo("ABCDEF"), "ABC DEF");
+test("código de pareamento: 4 números, digitado com ou sem espaço", () => {
+  const c = gerarCodigo((n) => Uint8Array.from({ length: n }, (_, i) => i * 37 + 3));
+  assert.match(c, /^\d{4}$/);
+  assert.equal(ALFABETO_CODIGO, "0123456789");
+  assert.equal(normalizarCodigo(" 12 34 "), "1234");
+  assert.equal(normalizarCodigo("1-2-3-4"), "1234");
+  assert.equal(normalizarCodigo("123"), "", "curto demais");
+  assert.equal(normalizarCodigo("12345"), "", "longo demais");
+  assert.equal(normalizarCodigo("12a4"), "", "letra não");
+  assert.equal(formatarCodigo("0420"), "0 4 2 0");
 });
 
 test("envio: só formato que a TV toca e dentro do limite do plano", () => {

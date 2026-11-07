@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SQL = fs.readFileSync(path.join(raiz, "db", "SINAL_1_SINALIZACAO_DIGITAL.sql"), "utf8");
 const pular = !process.env.PGLITE && "PGLITE não informado";
-const IMPRESSAO = "e1aa3b7cb7f2e3817dcab705b34c1787";
+const IMPRESSAO = "902d3121ff098c8bee0e2b508246c485";
 const TABELAS = ["sinal_telas", "sinal_midias", "sinal_playlists", "sinal_programacoes", "sinal_pareamentos"];
 
 const BASE = `
@@ -85,9 +85,10 @@ test("restrições: token em hash, código no alfabeto, horário em par, datas e
   await falha("insert into public.sinal_telas (unidade_id, nome, token_hash) values ('seldeestrela', 'TV', 'segredo-em-claro')");
   await falha("insert into public.sinal_telas (unidade_id, nome, orientacao) values ('seldeestrela', 'TV', 'diagonal')");
   const h = "a".repeat(64);
-  await falha("insert into public.sinal_pareamentos (codigo, segredo_hash, expira_em) values ('ABC0EF', $1, now())", [h]);
-  await pg.query("insert into public.sinal_pareamentos (codigo, segredo_hash, expira_em) values ('ABC2EF', $1, now())", [h]);
-  await assert.rejects(() => pg.query("insert into public.sinal_pareamentos (codigo, segredo_hash, expira_em) values ('ABC2EF', $1, now())", ["b".repeat(64)]), /duplicate/);
+  await falha("insert into public.sinal_pareamentos (codigo, segredo_hash, expira_em) values ('ABC2', $1, now())", [h]);
+  await falha("insert into public.sinal_pareamentos (codigo, segredo_hash, expira_em) values ('12345', $1, now())", [h]);
+  await pg.query("insert into public.sinal_pareamentos (codigo, segredo_hash, expira_em) values ('0420', $1, now())", [h]);
+  await assert.rejects(() => pg.query("insert into public.sinal_pareamentos (codigo, segredo_hash, expira_em) values ('0420', $1, now())", ["b".repeat(64)]), /duplicate/);
   await falha("insert into public.sinal_midias (unidade_id, nome, tipo, mime, caminho, tamanho_bytes) values ('seldeestrela', 'v', 'video', 'video/mp4', 'x/1.mp4', 60000000)");
   await falha("insert into public.sinal_midias (unidade_id, nome, tipo, mime, caminho, tamanho_bytes) values ('seldeestrela', 'v', 'video', 'video/webm', 'x/1.webm', 10)");
   const pl = (await pg.query("insert into public.sinal_playlists (unidade_id, nome) values ('seldeestrela', 'Almoço') returning id")).rows[0].id;

@@ -58,7 +58,7 @@ export async function lerPainel(db, unidade, { agora = new Date() } = {}) {
   const [rT, rM, rP, rR] = await Promise.all([
     db.from("sinal_telas").select(COL_TELA).eq("unidade_id", unidade).order("nome"),
     db.from("sinal_midias").select(COL_MIDIA).eq("unidade_id", unidade).eq("ativo", true).order("created_at", { ascending: false }),
-    db.from("sinal_playlists").select("id, nome, orientacao, itens, ativa, updated_at").eq("unidade_id", unidade).order("nome"),
+    db.from("sinal_playlists").select("id, nome, orientacao, itens, versao, ativa, updated_at").eq("unidade_id", unidade).order("nome"),
     db.from("sinal_programacoes").select("id, nome, playlist_id, tela_ids, dias_semana, hora_inicio, hora_fim, data_inicio, data_fim, prioridade, ativa, updated_at")
       .eq("unidade_id", unidade).order("prioridade", { ascending: false }),
   ]);
@@ -99,7 +99,7 @@ export async function lerPainel(db, unidade, { agora = new Date() } = {}) {
  */
 export async function parearTela(db, unidade, corpo, { quem = null, agora = new Date() } = {}) {
   const codigo = normalizarCodigo(corpo?.codigo);
-  if (!codigo) return falha(400, "Código inválido. Digite os 6 caracteres que aparecem na TV.");
+  if (!codigo) return falha(400, "Código inválido. Digite os 4 números que aparecem na TV.");
   const { data: par, error: eP } = await db.from("sinal_pareamentos").select("id, segredo_hash, aparelho, expira_em").eq("codigo", codigo).maybeSingle();
   if (semTabelas(eP)) return falha(409, ERRO_SEM_TABELAS);
   if (eP) return falha(500, "Não foi possível conferir o código.");
@@ -271,15 +271,18 @@ export async function salvarPlaylist(db, unidade, corpo, { quem = null, agora = 
   }
   if (corpo?.id) {
     if (!uuidValido(corpo.id)) return falha(400, "Playlist inválida.");
-    const { data, error } = await db.from("sinal_playlists").update({ ...v.playlist, ativa: corpo.ativa !== false, updated_at: agora.toISOString() })
+    const { data: atual } = await db.from("sinal_playlists").select("id, versao").eq("id", corpo.id).eq("unidade_id", unidade).maybeSingle();
+    if (!atual) return falha(404, "Playlist não encontrada nesta unidade.");
+    const versao = (Number(atual.versao) || 1) + 1;
+    const { data, error } = await db.from("sinal_playlists").update({ ...v.playlist, versao, ativa: corpo.ativa !== false, updated_at: agora.toISOString() })
       .eq("id", corpo.id).eq("unidade_id", unidade).select("id").maybeSingle();
     if (error) return falha(500, "Não foi possível salvar a playlist.");
     if (!data) return falha(404, "Playlist não encontrada nesta unidade.");
-    return ok({ id: data.id });
+    return ok({ id: data.id, versao });
   }
   const { data, error } = await db.from("sinal_playlists").insert({ unidade_id: unidade, ...v.playlist, criado_por: quem }).select("id").single();
   if (error) return falha(500, "Não foi possível criar a playlist.");
-  return ok({ id: data.id });
+  return ok({ id: data.id, versao: 1 });
 }
 
 /** Excluir a playlist leva junto as regras de programação dela e solta as telas que a tinham fixa. */
@@ -332,7 +335,8 @@ export async function excluirProgramacao(db, unidade, id) {
 export async function registrarAparelho(db, { aparelho = "", agora = new Date(), aleatorio = randomBytes } = {}) {
   // Limpa códigos vencidos (só desta tabela de passagem; nenhum dado de loja).
   await db.from("sinal_pareamentos").delete().lt("expira_em", agora.toISOString());
-  for (let tentativa = 0; tentativa < 5; tentativa++) {
+  // 4 números = 10 mil códigos: se sair um que já está em uso, sorteia outro.
+  for (let tentativa = 0; tentativa < 12; tentativa++) {
     const segredo = aleatorio(32).toString("base64url");
     const codigo = gerarCodigo(aleatorio);
     const expira_em = new Date(agora.getTime() + VALIDADE_CODIGO_MS).toISOString();

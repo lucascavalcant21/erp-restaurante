@@ -325,7 +325,7 @@ conferir("sem UUID falso de unidade", appSrc.includes("00000000-0000-0000-0000-0
   conferir("telas antigas que gravavam fora do financeiro novo redirecionam (fluxo→caixa, documentos→contas, margem→pizza)",
     [["fluxo", "caixa"], ["documentos", "contas"], ["margem", "pizza"]].every(([de, para]) =>
       ler(`app/dashboard/financeiro/${de}/page.js`).includes(`router.replace("/dashboard/financeiro/${para}")`)), true);
-  conferir("Central: botão direto 'Contas a Pagar' no topo", /push\("\/dashboard\/financeiro\/contas"\)[\s\S]{0,120}Contas a Pagar/.test(central), true);
+  conferir("Central: botão direto 'Contas a Pagar' no topo", /push\("\/dashboard\/financeiro\/contas"\)[\s\S]{0,120}Contas a pagar/i.test(central), true);
   conferir("Central: 'Resolver' abre Contas a Pagar filtrado em vencidas", (() => { const i = central.indexOf("Resolver"); const trecho = central.slice(Math.max(0, i - 250), i); return i > 0 && trecho.includes('"/dashboard/financeiro/contas?situacao=vencido"'); })(), true);
   conferir("tela lê o filtro da URL (recarregar mantém)", /params\?\.get\("situacao"\)/.test(pagina) && /params\?\.get\("periodo"\)/.test(pagina), true);
   const outrasTelas = fs.readdirSync(path.join(raiz, "app/dashboard"), { recursive: true }).filter((f) => /contas-?a-?pagar|contas_pagar/i.test(String(f)));

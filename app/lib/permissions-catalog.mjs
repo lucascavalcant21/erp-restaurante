@@ -240,6 +240,10 @@ export const PERMISSION_MODULES = [
       // As mesmas chaves (clientes.loyalty.*) são conferidas no banco pelas funções da FIDELIDADE-1.
       { id: "loyalty", label: "Fidelidade e cadastro", route: "/dashboard/clientes/fidelidade", actions: ["view", "edit", "confirm"] },
       { id: "coupons", label: "Cupons", route: "/dashboard/marketing/cupons", actions: CRUD },
+      // Sinalização digital (TVs de marketing, 07/11/2026): parear TV (create),
+      // enviar arte/vídeo (create), trocar conteúdo, playlists e programação
+      // (edit), excluir (delete). Conferido no servidor em /api/sinalizacao.
+      { id: "signage", label: "Sinalização digital (TVs)", route: "/dashboard/marketing/sinalizacao", actions: CRUD },
     ],
   },
   {
@@ -299,6 +303,8 @@ export const PERMISSION_MODULES = [
     id: "configuracoes", label: "Configurações",
     pages: [
       { id: "store", label: "Dados da loja", route: "/dashboard/configuracoes", actions: ["view", "edit", "settings"] },
+      // Modelos das vias (cozinha, bar, conferência, recibo), impressora de cada setor no aparelho e observações prontas (07/11/2026).
+      { id: "printing", label: "Impressão e observações prontas", route: "/dashboard/configuracoes/impressao", actions: ["view", "edit"] },
       { id: "users", label: "Usuários e acessos", route: "/dashboard/configuracoes/usuarios", actions: [...CRUD, "settings", "view_history"] },
       { id: "profiles", label: "Perfis de acesso", route: "/dashboard/configuracoes/perfis", actions: [...CRUD, "settings"] },
       { id: "units", label: "Empresas e unidades", route: "/dashboard/configuracoes", actions: [...CRUD, "settings"] },

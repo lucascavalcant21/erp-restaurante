@@ -9,6 +9,8 @@ import { useERP } from "../../context/ERPContext";
 import { fetchColaboradores } from "../../lib/rh";
 import { equipeParaEtiquetar } from "../../lib/equipe-area.mjs";
 import { abrirComandaDaMesa, enviarParaProducao, fetchCardapioDoSalao, fetchSalao, pedirConta } from "../../lib/comandas";
+import { alternarObservacao, mesclarObservacoes, observacoesDoProduto, temObservacao } from "../../lib/observacoes-prontas.mjs";
+import { fetchObservacoesProntas } from "../../lib/parametros";
 import { MESA_TODA, STATUS_DO_ITEM, definirObservacao, estadoDaMesa, limparNome, mudarQuantidade, numeroDaMesa, ordenarMesas, pessoasDaComanda, resumoPorPessoa, somarAoRascunho, tempoDaMesa, totalDaComanda } from "../../lib/comandas.mjs";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
 
@@ -71,7 +73,7 @@ function Mapa({ mesas, pedidos, garcom, onTrocarGarcom, onAbrir, ocupado }) {
   );
 }
 
-function Comanda({ mesa, pedido, produtos, onVoltar, aoMudar }) {
+function Comanda({ mesa, pedido, produtos, obsProntas, onVoltar, aoMudar }) {
   const [rascunho, setRascunho] = useState([]);
   const [extras, setExtras] = useState([]);
   const [pessoa, setPessoa] = useState("");
@@ -191,7 +193,19 @@ function Comanda({ mesa, pedido, produtos, onVoltar, aoMudar }) {
                   <button type="button" aria-label={`Tirar um: ${l.nome}`} onClick={() => setRascunho((r) => mudarQuantidade(r, l.chave, -1))} className="grid h-11 w-11 place-items-center rounded-lg border border-hf-border text-hf-text"><Minus size={16} aria-hidden="true" /></button>
                   <span className="w-6 text-center font-black tabular-nums text-hf-text">{l.quantidade}</span>
                   <button type="button" aria-label={`Mais um: ${l.nome}`} onClick={() => setRascunho((r) => mudarQuantidade(r, l.chave, 1))} className="grid h-11 w-11 place-items-center rounded-lg border border-hf-border text-hf-text"><Plus size={16} aria-hidden="true" /></button>
-                  <input value={l.observacao} maxLength={120} aria-label={`Observação: ${l.nome}`} placeholder="Observação (ex.: sem gelo)" onChange={(e) => setRascunho((r) => definirObservacao(r, l.chave, e.target.value))} className="col-span-4 h-10 w-full rounded-lg border border-hf-border bg-hf-bg px-3 text-base text-hf-text outline-none focus:border-hf-accent" />
+                  {/* Observações prontas: um toque põe, outro toque tira. O texto digitado continua. */}
+                  {observacoesDoProduto(obsProntas, l).length > 0 && (
+                    <div className="col-span-4 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5" role="group" aria-label={`Observações prontas: ${l.nome}`}>
+                      {observacoesDoProduto(obsProntas, l).map((o) => {
+                        const ativa = temObservacao(l.observacao, o);
+                        return (
+                          <button key={o} type="button" aria-pressed={ativa} onClick={() => setRascunho((r) => definirObservacao(r, l.chave, alternarObservacao(l.observacao, o)))}
+                            className={`min-h-[36px] shrink-0 whitespace-nowrap rounded-full border px-3 text-xs font-bold ${ativa ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border bg-hf-bg text-hf-text"}`}>{o}</button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <input value={l.observacao} maxLength={120} aria-label={`Observação: ${l.nome}`} placeholder="Ou escreva a observação" onChange={(e) => setRascunho((r) => definirObservacao(r, l.chave, e.target.value))} className="col-span-4 h-10 w-full rounded-lg border border-hf-border bg-hf-bg px-3 text-base text-hf-text outline-none focus:border-hf-accent" />
                 </li>
               ))}
             </ul>
@@ -209,6 +223,7 @@ export default function ComandasPage() {
   const { unidadeAtiva } = useERP();
   const [dados, setDados] = useState(null);
   const [produtos, setProdutos] = useState([]);
+  const [obsProntas, setObsProntas] = useState(() => mesclarObservacoes(null));
   const [equipe, setEquipe] = useState([]);
   const [garcom, setGarcom] = useState("");
   const [mesaId, setMesaId] = useState(null);
@@ -226,6 +241,7 @@ export default function ComandasPage() {
     if (!unidadeAtiva) return undefined;
     carregar();
     fetchCardapioDoSalao(unidadeAtiva).then((r) => setProdutos(r.data));
+    fetchObservacoesProntas(unidadeAtiva).then((r) => setObsProntas(mesclarObservacoes(r?.data))).catch(() => {});
     fetchColaboradores(unidadeAtiva).then((r) => setEquipe(equipeParaEtiquetar(r.data)));
     try { setGarcom(localStorage.getItem(CHAVE_GARCOM) || ""); } catch { /* escolhe de novo */ }
     const t = setInterval(carregar, ATUALIZAR_MS);
@@ -257,7 +273,7 @@ export default function ComandasPage() {
         {erro && <p role="alert" className="mb-2 text-sm font-bold text-hf-danger">{erro}</p>}
         {!garcom ? <EscolherGarcom equipe={equipe} onEscolher={escolherGarcom} />
           : !dados ? <p className="text-sm text-hf-muted">Carregando mesas…</p>
-            : mesa && pedido ? <Comanda key={mesa.id} mesa={mesa} pedido={pedido} produtos={produtos} onVoltar={() => setMesaId(null)} aoMudar={carregar} />
+            : mesa && pedido ? <Comanda key={mesa.id} mesa={mesa} pedido={pedido} produtos={produtos} obsProntas={obsProntas} onVoltar={() => setMesaId(null)} aoMudar={carregar} />
               : <Mapa mesas={dados.mesas} pedidos={dados.pedidos} garcom={garcom} ocupado={ocupado} onTrocarGarcom={() => escolherGarcom("")} onAbrir={abrirMesa} />}
       </div>
     </div>

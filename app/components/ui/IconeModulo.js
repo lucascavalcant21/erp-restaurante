@@ -5,7 +5,7 @@
 
 import {
   Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
-  CookingPot, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, NotebookPen,
+  CookingPot, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, MonitorPlay, NotebookPen,
   Package, PartyPopper, Salad, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan, Star,
   StickyNote, Store, Tag, Thermometer, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
 } from "lucide-react";
@@ -22,7 +22,7 @@ export function Coqueteleira({ strokeWidth = 2, size, ...props }) {
 
 export const ICONES_MODULO = {
   Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
-  CookingPot, Coqueteleira, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText,
+  CookingPot, Coqueteleira, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, MonitorPlay,
   NotebookPen, Package, PartyPopper, Salad, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan,
   Star, StickyNote, Store, Tag, Thermometer, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
 };

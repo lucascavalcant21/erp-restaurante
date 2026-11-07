@@ -317,3 +317,20 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Rollback:** `db/comandas/COM_4_ROLLBACK.sql` (recusa rodar se já houver venda cancelada, para não perder o histórico).
 - **Sem a COM-4 aplicada:** a lista "Vendas do caixa" aparece sem o botão de cancelar.
 
+
+### APR-022 · EXECUTADO
+
+- **Missão:** Sinalização digital (pedido do dono, 07/11/2026)
+- **Ação:** Aplicar db/SINAL_1_SINALIZACAO_DIGITAL.sql no Supabase real (5 tabelas novas `sinal_*` e o bucket privado `sinalizacao`)
+- **Ambiente:** supabase (produção)
+- **Risco:** MEDIUM (só aditiva: nenhuma tabela existente tocada)
+- **Motivo:** O módulo de TVs precisa das tabelas para parear telas e guardar mídias, playlists e programação.
+- **Impacto:** Nenhum no que já existe. RLS ligado e sem grant para anon/authenticated: só o servidor acessa.
+- **Rollback:** no cabeçalho do arquivo (drop das 5 tabelas e do bucket; não rodar sem decisão do dono).
+- **Evidências:** PGlite 4/4 (`app/lib/sinalizacao-banco.test.mjs`); ensaio desfeito no banco real antes; aplicada com impressão 902d3121ff098c8bee0e2b508246c485 igual à do PGlite; anon e authenticated sem leitura nas 5 tabelas (has_table_privilege).
+- **Status:** EXECUTADO
+- **Criado em:** 2026-11-07 10:00
+- **Decidido em:** 2026-11-07 10:27
+- **Decidido por:** lucas (no chat: "Sim, pode criar")
+- **Nota:** Aplicada em 07/11/2026 ~10:30 (horário de Brasília) em sessão acompanhada.
+- **Chave:** migracao:db/SINAL_1_SINALIZACAO_DIGITAL.sql

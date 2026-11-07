@@ -4,13 +4,17 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, atualizarQtdItemComanda, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, atualizarStatusPedido } from "../../../lib/vendas";
+import { fetchProdutos, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, atualizarQtdItemComanda, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, atualizarStatusPedido } from "../../../lib/vendas";
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag, Bell, Clock, MapPin } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "../../../lib/supabase";
 import { fmtBRL } from "../../../components/ui";
 import CampoDecimal from "../../../components/CampoDecimal";
-import { resumoPorPessoa, totalDaComanda } from "../../../lib/comandas.mjs";
+import { ORIGENS_BALCAO, resumoPorPessoa, totalDaComanda } from "../../../lib/comandas.mjs";
+import { linhasDaConta, mesclarModelos } from "../../../lib/impressao-modelos.mjs";
+import { imprimirNoSetor } from "../../../lib/impressoras-aparelho";
+import { fetchModelosImpressao, fetchObservacoesProntas } from "../../../lib/parametros";
+import { alternarObservacao, mesclarObservacoes, observacoesDoProduto, temObservacao } from "../../../lib/observacoes-prontas.mjs";
 import { receberComanda, venderNoBalcao } from "../../../lib/comandas";
 import { mascaraCPF, somenteDigitos } from "../../../lib/mascaras.mjs";
 import { hasPermission } from "../../../lib/permissions-catalog.mjs";
@@ -102,7 +106,7 @@ export default function SaloesMesasPage() {
   const [qtdLancamento, setQtdLancamento] = useState(1);
   const [obsLancamento, setObsLancamento] = useState("");
   const [modsLancarMesa, setModsLancarMesa] = useState([]);
-  const [observacoesPadrao, setObservacoesPadrao] = useState([]);
+  const [observacoesPadrao, setObservacoesPadrao] = useState(() => mesclarObservacoes(null));
 
   // --- PAGAMENTO STATE ---
   const [modalPagamento, setModalPagamento] = useState(false);
@@ -122,104 +126,24 @@ export default function SaloesMesasPage() {
   const [modalRecibo, setModalRecibo] = useState(false);
   const [dadosRecibo, setDadosRecibo] = useState(null);
 
-  // --- FUNÇÃO GLOBAL DE IMPRESSÃO TÉRMICA (POP-UP) ---
-  const abrirCupomTermico = (dados) => {
-     const win = window.open('', '_blank', 'width=320,height=600');
-     if (!win) return alert("Habilite os popups para imprimir o cupom.");
-     
-     const pagamentosHtml = dados.recebidos && dados.recebidos.length > 0 ? `
-        <div class="sep"></div>
-        <div class="center bold" style="margin-top:4px;">PAGAMENTOS</div>
-        ${dados.recebidos.map(p => `<div class="row"><span>${p.forma.toUpperCase()}</span><span>R$${p.valor.toFixed(2)}</span></div>`).join('')}
-        ${dados.troco > 0 ? `<div class="row"><span>TROCO</span><span>R$${dados.troco.toFixed(2)}</span></div>` : ''}
-     ` : '';
-
-     const itensHtml = dados.itens.map(it => `
-        <div class="row">
-           <span class="name">${it.nome}</span>
-           <span class="qtd">${it.qtd}</span>
-           <span class="val">R$${it.tot.toFixed(2)}</span>
-        </div>
-     `).join('');
-
-     const taxaHtml = dados.taxa > 0 ? `<div class="row"><span>TAXA SERVIÇO</span><span>R$${dados.taxa.toFixed(2)}</span></div>` : '';
-     const descontoHtml = dados.desconto > 0 ? `<div class="row"><span>DESCONTO</span><span>-R$${dados.desconto.toFixed(2)}</span></div>` : '';
-
-     const mesaOuBalcao = dados.tipo === 'salao' ? `MESA ${dados.mesa}` : 'VENDA BALCÃO';
-     
-     let tituloRecibo = dados.isPreConta ? 'CONFERÊNCIA DE CONTA' : 'RECIBO NÃO FISCAL';
-     let nfceHtml = '';
-     
-     if (dados.nfce) {
-        tituloRecibo = 'DOCUMENTO AUXILIAR DA NOTA FISCAL DE CONSUMIDOR ELETRÔNICA';
-        nfceHtml = `
-           <div class="sep"></div>
-           <div class="center" style="font-size:9px; margin-top:8px;">
-              <p class="bold mb-1">EMISSÃO DE NFC-e</p>
-              <p>Chave de Acesso:</p>
-              <p style="word-break: break-all;">${dados.nfce.chave_acesso}</p>
-              <p class="mt-2"><a href="${dados.nfce.url_pdf}" target="_blank">Consultar pela Chave de Acesso</a></p>
-           </div>
-        `;
-     }
-
-     win.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-           <meta charset="utf-8"/>
-           <title>Cupom Térmico</title>
-           <style>
-              * { margin:0; padding:0; box-sizing:border-box; }
-              body { font-family: 'Courier New', monospace; font-size: 11px; width: 80mm; padding: 4mm; color: #000; }
-              .center { text-align: center; }
-              .bold { font-weight: bold; }
-              .big { font-size: 14px; }
-              .sep { border-top: 1px dashed #000; margin: 6px 0; }
-              .row { display: flex; justify-content: space-between; }
-              .row .name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-              .row .qtd { width: 25px; text-align: center; }
-              .row .val { width: 55px; text-align: right; }
-              .total-row { font-size: 14px; font-weight: bold; }
-              @media print {
-                 @page { margin: 0; size: 80mm auto; }
-                 body { width: 80mm; }
-              }
-           </style>
-        </head>
-        <body>
-           <div class="center bold big">HEFISTO ERP</div>
-           <div class="center">${tituloRecibo}</div>
-           <div class="center">${mesaOuBalcao}</div>
-           <div class="center" style="font-size:10px">${dados.data.toLocaleString()}</div>
-           <div class="sep"></div>
-           <div class="row bold">
-              <span class="name">DESCRIÇÃO</span>
-              <span class="qtd">QTD</span>
-              <span class="val">TOTAL</span>
-           </div>
-           <div class="sep"></div>
-           ${itensHtml}
-           <div class="sep"></div>
-           <div class="row"><span>SUBTOTAL</span><span>R$${dados.subtotal.toFixed(2)}</span></div>
-           ${taxaHtml}
-           ${descontoHtml}
-           <div class="sep"></div>
-           <div class="row total-row"><span>TOTAL GERAL</span><span>R$${dados.total.toFixed(2)}</span></div>
-           ${pagamentosHtml}
-           ${nfceHtml}
-           <div class="sep"></div>
-           <div class="center" style="margin-top:10px; font-size:10px;">
-              Obrigado pela preferência!<br>
-              Sistema Hefisto ERP
-           </div>
-           <script>
-              window.onload = function() { window.print(); window.close(); }
-           </script>
-        </body>
-        </html>
-     `);
-     win.document.close();
+  // --- CONFERÊNCIA E RECIBO DO CAIXA (07/11/2026) ---
+  // "Mesa 2" já pode vir com a palavra; não repete.
+  const rotuloDaMesa = (n) => { const t = String(n ?? '').trim(); return !t ? null : /^mesa\b/i.test(t) ? t : `Mesa ${t}`; };
+  // Seguem o modelo de Configurações → Impressão e saem na impressora do
+  // Caixa deste aparelho (janela, assistente, rede, USB ou Bluetooth).
+  const modelosImpressao = useRef({ dados: null, lidoEm: 0 });
+  const lerModelosDoCaixa = async () => {
+     if (modelosImpressao.current.dados && Date.now() - modelosImpressao.current.lidoEm < 300000) return modelosImpressao.current.dados;
+     const r = await fetchModelosImpressao(unidadeAtiva).catch(() => ({ data: null }));
+     modelosImpressao.current = { dados: mesclarModelos(r?.data), lidoEm: Date.now() };
+     return modelosImpressao.current.dados;
+  };
+  const abrirCupomTermico = async (dados) => {
+     const tipo = dados.isPreConta ? 'conferencia' : 'recibo';
+     const modelos = await lerModelosDoCaixa();
+     const linhas = linhasDaConta(tipo, dados, modelos);
+     const r = await imprimirNoSetor('caixa', [linhas], { copias: modelos[tipo].copias, cortar: modelos[tipo].cortar, titulo: tipo === 'conferencia' ? 'Conferência de conta' : 'Recibo' });
+     if (r.erro) alert(`A via do caixa não saiu: ${r.erro}\nConfira em Configurações → Impressão → Impressoras deste aparelho.`);
   };
 
   // --- FECHAMENTO AVANÇADO ---
@@ -260,8 +184,9 @@ export default function SaloesMesasPage() {
 
   const carregarMesas = async () => {
     const { data: m } = await fetchMesas(unidadeAtiva);
-    const { data: obsData } = await fetchObservacoesPadrao(unidadeAtiva);
-    setObservacoesPadrao(obsData || []);
+    // Observações prontas por setor e categoria (Configurações → Impressão).
+    const { data: obsData } = await fetchObservacoesProntas(unidadeAtiva).catch(() => ({ data: null }));
+    setObservacoesPadrao(mesclarObservacoes(obsData));
     const mesasSanitizadas = (m || []).map((mesa, index) => {
        if (mesa.numero_mesa === 'Mesa Antiga' || !mesa.numero_mesa) {
           return { ...mesa, numero_mesa: String(index + 1).padStart(2, '0') };
@@ -738,11 +663,13 @@ export default function SaloesMesasPage() {
 
         const itensRecibo = abaAtiva !== 'salao' 
           ? carrinho.map(i => ({ nome: i.nome_produto, qtd: i.quantidade, tot: i.quantidade * (i.preco_venda||0) }))
-          : pedidoAtivo.pedidos_itens.map(i => ({ nome: i.produtos?.nome_produto || 'Item', qtd: i.quantidade, tot: i.quantidade * i.valor_unitario }));
+          : pedidoAtivo.pedidos_itens.filter(i => i.status_kds !== 'cancelado').map(i => ({ nome: i.produtos?.nome_produto || 'Item', qtd: i.quantidade, tot: i.quantidade * i.valor_unitario }));
 
         const objRecibo = {
            id: pedidoIdParaRecibo,
            tipo: abaAtiva,
+           identificacao: abaAtiva === 'salao' ? rotuloDaMesa(mesaAtiva?.numero_mesa) : (ORIGENS_BALCAO[abaAtiva] || 'Balcão'),
+           garcom: abaAtiva === 'salao' ? (pedidoAtivo?.garcom_nome || null) : null,
            isPreConta: false,
            mesa: mesaAtiva?.numero_mesa,
            itens: itensRecibo,
@@ -776,12 +703,15 @@ export default function SaloesMesasPage() {
     const taxaFixa = Number(taxaExtra) || 0;
     const taxaDezPorcento = aplicarDezPorcento && abaAtiva === 'salao' ? (subtotalPagamento - desc) * 0.10 : 0;
     
-    const itensRecibo = pedidoAtivo.pedidos_itens.map(i => ({ nome: i.produtos?.nome_produto || 'Item', qtd: i.quantidade, tot: i.quantidade * i.valor_unitario }));
+    const itensRecibo = pedidoAtivo.pedidos_itens.filter(i => i.status_kds !== 'cancelado').map(i => ({ nome: i.produtos?.nome_produto || 'Item', qtd: i.quantidade, tot: i.quantidade * i.valor_unitario }));
 
     const dadosPrev = {
        id: pedidoAtivo.id,
        tipo: 'salao',
        isPreConta: true,
+       identificacao: rotuloDaMesa(mesaAtiva?.numero_mesa),
+       garcom: pedidoAtivo.garcom_nome || null,
+       porPessoa: resumoPorPessoa(pedidoAtivo.pedidos_itens || []).map(g => ({ nome: g.pessoa, total: g.total })),
        mesa: mesaAtiva?.numero_mesa,
        itens: itensRecibo,
        subtotal: subtotalPagamento,
@@ -1075,7 +1005,7 @@ export default function SaloesMesasPage() {
                      <div className="grid grid-cols-2 gap-2">
                         <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-card hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors">VOLTAR</button>
                         <button onClick={() => setModalTransferir(true)} className="py-3 bg-card hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><ArrowRightLeft size={16}/> TRANSF.</button>
-                        <button onClick={imprimirPreConta} className="py-3 bg-card hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><Printer size={16}/> PRÉ-CONTA</button>
+                        <button onClick={imprimirPreConta} className="py-3 bg-card hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><Printer size={16}/> CONFERÊNCIA</button>
                         <button onClick={abrirModalPagamento} className="py-3 bg-emerald-500 hover:bg-accent text-accent-fg font-black text-sm rounded-xl shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all">RECEBER</button>
                      </div>
                   </div>
@@ -1363,13 +1293,16 @@ export default function SaloesMesasPage() {
                   <div>
                      <label className="block text-xs font-bold text-fg uppercase mb-2">Observação (Ex: Sem cebola)</label>
                      <input type="text" value={obsLancamento} onChange={e => setObsLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-medium text-fg-soft outline-none focus:ring-2 focus:ring-hf-accent" placeholder="Opcional..." />
-                     {observacoesPadrao.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                           {observacoesPadrao.map(o => (
-                              <button key={o.id} type="button" onClick={() => setObsLancamento(prev => prev ? prev + ', ' + o.texto : o.texto)} className="bg-card hover:bg-slate-200 text-slate-900 px-3 py-1.5 rounded-full text-3xs font-bold uppercase transition-colors shadow-sm">
-                                 + {o.texto}
-                              </button>
-                           ))}
+                     {produtoSel && observacoesDoProduto(observacoesPadrao, produtos.find(p => p.id === produtoSel) || {}).length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3" role="group" aria-label="Observações prontas">
+                           {observacoesDoProduto(observacoesPadrao, produtos.find(p => p.id === produtoSel) || {}).map(o => {
+                              const ativa = temObservacao(obsLancamento, o);
+                              return (
+                                 <button key={o} type="button" aria-pressed={ativa} onClick={() => setObsLancamento(prev => alternarObservacao(prev, o))} className={`min-h-[36px] px-3 rounded-full text-xs font-bold transition-colors border ${ativa ? 'bg-slate-800 text-white border-slate-800' : 'bg-card text-slate-900 border-line hover:bg-slate-200'}`}>
+                                    {o}
+                                 </button>
+                              );
+                           })}
                         </div>
                      )}
                   </div>
@@ -1544,10 +1477,8 @@ export default function SaloesMesasPage() {
                   </div>
 
                   <div className="pt-6 shrink-0 mt-4 border-t border-line-soft space-y-4">
-                     <label className="flex items-center gap-2 cursor-pointer bg-white p-3 rounded-xl border border-line hover:bg-card transition-colors">
-                        <input type="checkbox" checked={emitirNFCe} onChange={e => setEmitirNFCe(e.target.checked)} className="w-5 h-5 accent-emerald-600 cursor-pointer"/>
-                        <span className="font-bold text-fg-soft">Emitir Cupom Fiscal (NFC-e / SAT)</span>
-                     </label>
+                     {/* NFC-e: a casa ainda não emite pelo Héfisto (decisão do dono, 07/11/2026). Sai o recibo não fiscal. */}
+                     <p className="rounded-xl border border-line bg-card p-3 text-sm text-fg-soft">Cupom fiscal (NFC-e): ainda não ativado no Héfisto. Sai o recibo não fiscal.</p>
 
                      <button onClick={finalizarVenda} disabled={processando || restante > 0} className="w-full bg-slate-800 hover:bg-black disabled:bg-slate-300 text-white font-black py-4 rounded-xl shadow-lg transition-transform text-lg flex items-center justify-center">
                         {processando ? "PROCESSANDO..." : "CONCLUIR RECEBIMENTO"}

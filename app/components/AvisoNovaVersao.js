@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { RefreshCw, X } from "lucide-react";
 
 // SHA do build que ESTA janela carregou. Fica congelado no bundle: é o mesmo
@@ -20,6 +21,8 @@ const SHA_LOCAL = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || "";
  * carregou. Atualizar é um clique.
  */
 export default function AvisoNovaVersao() {
+  // A TV (/tv) se atualiza sozinha entre um slide e outro: nada de aviso na tela do cliente.
+  const naTv = (usePathname() || "").startsWith("/tv");
   const [shaPublicado, setShaPublicado] = useState(null);
   const [dispensado, setDispensado] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
@@ -72,7 +75,7 @@ export default function AvisoNovaVersao() {
     window.location.reload();
   };
 
-  if (!shaPublicado || dispensado) return null;
+  if (naTv || !shaPublicado || dispensado) return null;
 
   return (
     <div className="fixed inset-x-0 bottom-20 z-[100] flex justify-center px-3 sm:bottom-6 print:hidden">

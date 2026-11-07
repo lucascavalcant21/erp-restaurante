@@ -55,7 +55,8 @@ export function somarAoRascunho(rascunho = [], produto, pessoa = "", observacao 
   const obs = String(observacao || "").trim();
   const achou = rascunho.find((l) => l.produto_id === produto.id && l.pessoa === nome && l.observacao === obs);
   if (achou) return rascunho.map((l) => (l === achou ? { ...l, quantidade: l.quantidade + 1 } : l));
-  return [...rascunho, { chave: `${produto.id}|${nome}|${obs}`, produto_id: produto.id, nome: produto.nome_produto, valor_unitario: Number(produto.preco_venda) || 0, quantidade: 1, pessoa: nome, observacao: obs }];
+  // departamento e categoria: decidem as observações prontas da linha (07/11/2026).
+  return [...rascunho, { chave: `${produto.id}|${nome}|${obs}`, produto_id: produto.id, nome: produto.nome_produto, valor_unitario: Number(produto.preco_venda) || 0, quantidade: 1, pessoa: nome, observacao: obs, departamento: produto.departamento || null, categoria: produto.categoria || null }];
 }
 
 export function mudarQuantidade(rascunho = [], chave, delta) {

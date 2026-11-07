@@ -344,7 +344,10 @@ body {
 /* App instalado no computador (mouse) não tem barra de status: sem o recuo. */
 @media (max-width: 1279px) and (pointer: coarse), (max-width: 767px), (pointer: coarse) and (display-mode: standalone), (pointer: coarse) and (display-mode: fullscreen) {
   :root {
-    --erp-safe-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 1.25rem));
+    /* Só a altura real da barra de status + 4 px (pedido do dono, 07/11/2026: "tem um
+       espaço muito grande" no topo do iPhone). Antes somava 20 px a mais, com mínimo de
+       56 px. O mínimo de 48 px cobre o entalhe quando o navegador informa 0. */
+    --erp-safe-top: max(3rem, calc(env(safe-area-inset-top, 0px) + 0.25rem));
   }
 
   /* Garante que qualquer modal/janela centralizada ou bottom-sheet fique abaixo da barra de status no celular/tablet */

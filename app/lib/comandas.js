@@ -3,7 +3,7 @@
 
 import { supabase, isSupabaseReady } from "./supabase";
 import { itensParaEnviar } from "./comandas.mjs";
-import { consumoDaVenda, pagamentosDaConta, planejarBaixas } from "./comanda-baixa.mjs";
+import { consumoDaVenda, devolucoesDaVenda, pagamentosDaConta, planejarBaixas } from "./comanda-baixa.mjs";
 import { registrarMovimentoMulti } from "./estoques-multiplos";
 
 const OFFLINE = "Sistema indisponível no momento.";
@@ -97,4 +97,57 @@ export async function receberComanda({ pedidoId, caixaId, unidadeId, pagamentos,
   if (error) return { error: error.message };
   const faltas = data?.repetido ? [] : await baixarEstoqueDaVenda(pedidoId, data.venda_id, unidadeId, quem).catch(() => ["Não consegui calcular a baixa de estoque"]);
   return { data, faltas, error: null };
+}
+
+/* ── Vendas do caixa e cancelamento (COM-4, 07/11/2026) ─────────────────── */
+
+const SEM_COM4 = /venda_cancelar|cancelada_em|motivo_cancelamento/i;
+
+/** Vendas do caixa aberto, da mais nova para a mais antiga, com as formas de pagamento. */
+export async function fetchVendasDoCaixa(caixaId) {
+  if (!isSupabaseReady()) return { data: [], error: OFFLINE };
+  const completo = "id, created_at, total, subtotal, desconto, acrescimo, taxa_servico, status, observacao, cliente, pedido_id, motivo_cancelamento, cancelada_em, venda_pagamentos ( forma, valor )";
+  let r = await supabase.from("vendas").select(completo).eq("caixa_id", caixaId).order("created_at", { ascending: false }).limit(200);
+  // Banco sem a COM-4: lista sem as colunas de cancelamento (e sem o botão).
+  if (r.error && SEM_COM4.test(r.error.message)) {
+    r = await supabase.from("vendas").select("id, created_at, total, subtotal, desconto, acrescimo, taxa_servico, status, observacao, cliente, pedido_id, venda_pagamentos ( forma, valor )")
+      .eq("caixa_id", caixaId).order("created_at", { ascending: false }).limit(200);
+    return { data: r.data || [], error: r.error?.message || null, semCancelamento: !r.error };
+  }
+  return { data: r.data || [], error: r.error?.message || null, semCancelamento: false };
+}
+
+/**
+ * Cancela a venda pelo banco (venda_cancelar: uma transação, com permissão e
+ * motivo). Se pedido, devolve ao estoque o que a venda tirou, com chave própria
+ * para não devolver duas vezes. Falha na devolução não desfaz o cancelamento:
+ * volta como aviso.
+ */
+export async function cancelarVenda({ vendaId, motivo, devolverEstoque = false, unidadeId, quem = "" }) {
+  if (!isSupabaseReady()) return { error: OFFLINE };
+  const { data, error } = await supabase.rpc("venda_cancelar", { p_venda_id: vendaId, p_motivo: motivo });
+  if (error) {
+    if (/function .*venda_cancelar.* does not exist|Could not find the function/i.test(error.message)) {
+      return { error: "O banco ainda não tem o cancelamento de vendas. Peça a aplicação da COM-4." };
+    }
+    return { error: error.message };
+  }
+  const avisos = [];
+  if (devolverEstoque && !data?.repetido) {
+    const movs = await supabase.from("estoque_movimentacoes_multi").select("tipo, estoque_id, insumo_id, quantidade, chave_idempotencia")
+      .eq("unidade_id", unidadeId).like("chave_idempotencia", `venda:${vendaId}:%`);
+    if (movs.error) avisos.push("Não consegui ler o que a venda tirou do estoque. Lance a devolução pelo Estoque.");
+    else {
+      const devolver = devolucoesDaVenda(movs.data, vendaId);
+      if (!devolver.length) avisos.push("Esta venda não tinha baixa de estoque para devolver.");
+      for (const d of devolver) {
+        const { error: e } = await registrarMovimentoMulti({
+          unidadeId, estoqueId: d.estoque_id, insumoId: d.insumo_id, tipo: "entrada", quantidade: d.quantidade, motivo: "devolucao",
+          usuarioNome: quem || "", observacao: `Venda cancelada: ${motivo}`.slice(0, 300), chave: d.chave,
+        });
+        if (e) avisos.push(`Estoque não devolvido: ${e}`);
+      }
+    }
+  }
+  return { data, avisos, error: null };
 }

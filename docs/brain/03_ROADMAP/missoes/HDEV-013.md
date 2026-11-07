@@ -36,4 +36,5 @@ Decisões do dono (06/11/2026): conta por mesa, dividindo por pessoa. Garçom la
 - Os 10% ficam fora do faturamento: gorjeta não é receita.
 - Baixa pela ficha desce até o ingrediente cru. A retirada manual do que foi vendido conta duas vezes.
 - Balcão ainda usa `lancarVendaBalcao` (legado, grava em `lancamentos`).
+- Cancelamento de venda (07/11/2026): `COM_4` + "Vendas do caixa" no caixa. Cancela contas a receber previstas, tira do faturamento do dia, marca venda e comanda. Devolução ao estoque opcional (o que a venda tirou, chave `cancelamento:<venda>:…`). Permissão `salao.sector.cancel` (só gerente). SQL TESTADO LOCAL em PGlite, tela TESTADO EM MOCK. Aguarda APR-021 para aplicar no banco real.
 - A tela antiga usava `comandas` (itens em JSON). Essa tabela fica no banco, sem uso.

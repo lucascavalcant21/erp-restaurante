@@ -306,3 +306,14 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 ## APR-020 — MARM-UNIDADE-2, 3 e 4: acesso à marmitaria pela senha
 
 **Executadas em 05/11/2026 com autorização do dono.** Com a senha, o usuário ativo da mesma empresa recebe o escopo da unidade `marmitaria`. `hefisto_user_can` e `fin_pode_acessar_unidade` mudaram só para essa unidade, `compras`, `compras_itens` e `contas_pagar` ganharam a policy `marmitaria_escopo`, e sete tabelas de estoque e pagamentos ganharam leitura por `marmitaria_escopo_ler`. TESTADO NO SUPABASE REAL em transação desfeita. Rollbacks em `db/marmitaria/`.
+
+
+## APR-021 — COM-4: cancelar a venda da comanda
+
+**PENDENTE (07/11/2026).** Aplicar `db/comandas/COM_4_CANCELAR_VENDA.sql` no banco real.
+- **O que faz:** três colunas novas em `vendas` (`cancelada_em`, `cancelada_por`, `motivo_cancelamento`) e a função `venda_cancelar(venda, motivo)`. Só aditiva; nada é apagado.
+- **Regras da função:** permissão `salao.sector.cancel`; motivo obrigatório; recusa se o caixa da venda já fechou ou se cartão/Pix já foi conferido como recebido (aí é estorno pelo Financeiro). Cancela as contas a receber previstas da venda, soma o valor em `cancelamentos` no faturamento do dia, marca a venda e a comanda como canceladas. Segundo toque não soma de novo.
+- **Evidência:** TESTADO LOCAL com o SQL real em PGlite (`app/lib/comanda-fechar-banco.test.mjs`, 17 casos novos). Tela TESTADO EM MOCK. NÃO VALIDADO no Supabase real.
+- **Rollback:** `db/comandas/COM_4_ROLLBACK.sql` (recusa rodar se já houver venda cancelada, para não perder o histórico).
+- **Sem a COM-4 aplicada:** a lista "Vendas do caixa" aparece sem o botão de cancelar.
+

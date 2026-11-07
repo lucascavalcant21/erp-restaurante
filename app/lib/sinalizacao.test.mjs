@@ -167,3 +167,22 @@ test("roteiro: mídia sem URL ou apagada some; cardápio vira páginas", () => {
   assert.equal(montarRoteiro({ itens, midias, urls, cardapio: null }).length, 1, "sem cardápio: só a mídia");
   assert.deepEqual(midiasUsadas(itens), [M1, M2]);
 });
+
+test("tela dividida: cada item num lado; todo lado precisa de conteúdo; o roteiro leva o lado", async () => {
+  const { ladosDosItens } = await import("./sinalizacao.mjs");
+  const ok = validarPlaylist({ nome: "Duas artes", itens: [
+    { tipo: "midia", midia_id: M1, duracao_seg: 8, zona: 0 },
+    { tipo: "midia", midia_id: M2, duracao_seg: 20, zona: 1 },
+  ] });
+  assert.equal(ok.ok, true);
+  assert.equal(ladosDosItens(ok.playlist.itens), 2);
+  assert.deepEqual(ok.playlist.itens.map((i) => [i.zona, i.duracao_seg]), [[0, 8], [1, 20]], "tempos diferentes em cada lado");
+  const buraco = validarPlaylist({ nome: "x", itens: [{ tipo: "midia", midia_id: M1, zona: 0 }, { tipo: "midia", midia_id: M2, zona: 2 }] });
+  assert.match(buraco.erro, /lado 2/);
+  assert.equal(normalizarItem({ tipo: "midia", midia_id: M1, zona: 9 }).zona, 2, "no máximo 3 lados");
+  assert.equal(normalizarItem({ tipo: "midia", midia_id: M1 }).zona, 0, "sem lado = tela inteira");
+  const midias = new Map([[M1, { id: M1, tipo: "imagem", nome: "A" }], [M2, { id: M2, tipo: "imagem", nome: "B" }]]);
+  const urls = new Map([[M1, "u1"], [M2, "u2"]]);
+  const r = montarRoteiro({ itens: ok.playlist.itens, midias, urls });
+  assert.deepEqual(r.map((s) => [s.nome, s.zona, s.duracao_seg]), [["A", 0, 8], ["B", 1, 20]]);
+});

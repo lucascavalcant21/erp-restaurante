@@ -62,7 +62,8 @@ export default function SinalizacaoPage() {
 
   const executar = async (acao, dados, sucesso) => {
     const r = await chamar(unidadeAtiva, acao, dados);
-    await carregar();
+    // Não espera recarregar o painel: a janela fecha na hora e a lista atualiza logo depois.
+    carregar();
     if (sucesso) avisar(sucesso);
     return r;
   };
@@ -115,7 +116,7 @@ export default function SinalizacaoPage() {
       {modal?.tipo === "parear" && <ModalParear painel={painel} dados={modal.dados} fechar={fechar} executar={executar} />}
       {modal?.tipo === "trocar" && <ModalTrocar painel={painel} dados={modal.dados} fechar={fechar} executar={executar} />}
       {modal?.tipo === "tela" && <ModalTela tela={modal.dados.tela} fechar={fechar} executar={executar} abrir={abrir} podeExcluir={podeExcluir} />}
-      {modal?.tipo === "playlist" && <ModalPlaylist painel={painel} playlist={modal.dados.playlist} fechar={fechar} executar={executar} abrir={abrir} podeExcluir={podeExcluir} />}
+      {modal?.tipo === "playlist" && <ModalPlaylist painel={painel} playlist={modal.dados.playlist} fechar={fechar} executar={executar} podeExcluir={podeExcluir} />}
       {modal?.tipo === "regra" && <ModalRegra painel={painel} regra={modal.dados.regra} fechar={fechar} executar={executar} podeExcluir={podeExcluir} />}
       <Toast show={!!aviso}>{aviso}</Toast>
     </div>
@@ -398,6 +399,7 @@ function Playlists({ painel, midiasPorId, abrir, podeCriar, podeEditar }) {
                   <div className="flex flex-wrap items-center gap-1.5">
                     <p className="min-w-0 truncate text-[15px] font-semibold text-hf-text">{p.nome}</p>
                     <Selo>V{p.versao || 1}</Selo>
+                    {(() => { const n = Math.max(1, ...(p.itens || []).map((x) => (x.zona ?? 0) + 1)); return n > 1 ? <Selo tom="destaque">{n} lados</Selo> : null; })()}
                     {publicada ? <Selo tom="ok">Publicada</Selo> : <Selo tom="aviso">Não publicada</Selo>}
                   </div>
                   <p className="text-xs text-hf-muted">{p.orientacao === "vertical" ? "Vertical" : "Horizontal"} · {resumoItens(p.itens, midiasPorId)}</p>
@@ -576,7 +578,7 @@ function ModalTrocar({ painel, dados, fechar, executar }) {
       {dados.telas && dados.telas !== "todas" && (
         <button onClick={() => salvar(true)} disabled={salvando} className="mt-2 min-h-11 w-full text-sm font-medium text-hf-muted">Tirar o conteúdo fixo desta tela</button>
       )}
-      <p className="mt-3 text-xs text-hf-muted">A TV troca em até 30 segundos. Uma regra de programação valendo agora tem prioridade sobre este conteúdo.</p>
+      <p className="mt-3 text-xs text-hf-muted">A TV troca em até 15 segundos. Uma regra de programação valendo agora tem prioridade sobre este conteúdo.</p>
     </Modal>
   );
 }
@@ -618,99 +620,175 @@ function ModalTela({ tela, fechar, executar, abrir, podeExcluir }) {
   );
 }
 
-function ModalPlaylist({ painel, playlist, fechar, executar, abrir, podeExcluir }) {
+const NOMES_LADOS = { 1: ["Tela inteira"], 2: ["Lado esquerdo", "Lado direito"], 3: ["Esquerda", "Meio", "Direita"] };
+
+function ItemDaSequencia({ it, i, ordem, painel, midiasPorId, mudar, mover, remover }) {
+  const m = it.tipo === "midia" ? midiasPorId.get(it.midia_id) : null;
+  return (
+    <li className="flex items-center gap-2 rounded-xl border border-hf-border bg-hf-surface p-2">
+      <span className="w-5 shrink-0 text-center text-xs font-semibold text-hf-muted">{ordem}</span>
+      <Miniatura midia={m} cardapio={it.tipo === "cardapio"} className="w-20 shrink-0" />
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="truncate text-sm font-semibold text-hf-text">{it.tipo === "cardapio" ? (it.titulo || "Cardápio") : m?.nome || "Mídia removida"}</p>
+        {it.tipo === "cardapio" && (
+          <div className="flex flex-wrap gap-1.5">
+            <TextInput value={it.titulo || ""} onChange={(e) => mudar(i, "titulo", e.target.value)} placeholder="Título na TV" className="!h-10 !w-full text-xs sm:!w-36" maxLength={60} />
+            <Select value={it.categoria_ids?.[0] || ""} onChange={(e) => mudar(i, "categoria_ids", e.target.value ? [e.target.value] : [])} className="!h-10 !w-full text-xs sm:!w-44">
+              <option value="">Todas as seções</option>
+              {painel.categorias.map((c) => <option key={c.id} value={c.id}>{c.nome} ({c.pratos})</option>)}
+            </Select>
+            <Select value={it.por_pagina || 6} onChange={(e) => mudar(i, "por_pagina", Number(e.target.value))} className="!h-10 !w-full text-xs sm:!w-32">
+              {[4, 5, 6, 8, 10, 12].map((n) => <option key={n} value={n}>{n} por tela</option>)}
+            </Select>
+          </div>
+        )}
+        <label className="flex items-center gap-1.5 text-xs text-hf-muted">
+          Tempo
+          <input type="number" inputMode="numeric" min={DURACAO.min} max={DURACAO.max} value={it.duracao_seg ?? ""} placeholder={m?.tipo === "video" ? "vídeo inteiro" : String(it.tipo === "cardapio" ? DURACAO.cardapio : DURACAO.imagem)}
+            onChange={(e) => mudar(i, "duracao_seg", e.target.value ? Number(e.target.value) : null)} className="erp-input !h-9 !w-20 !px-2 text-xs" /> s
+        </label>
+      </div>
+      <div className="flex shrink-0 flex-col gap-1">
+        <button onClick={() => mover(i, -1)} aria-label="Subir" className="flex h-9 w-9 items-center justify-center rounded-lg border border-hf-border text-hf-muted"><ArrowUp size={14} /></button>
+        <button onClick={() => mover(i, 1)} aria-label="Descer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-hf-border text-hf-muted"><ArrowDown size={14} /></button>
+      </div>
+      <button onClick={() => remover(i)} aria-label="Remover" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-hf-danger"><Trash2 size={15} /></button>
+    </li>
+  );
+}
+
+function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir }) {
   const [nome, setNome] = useState(playlist?.nome || "");
   const [orientacao, setOrientacao] = useState(playlist?.orientacao || "horizontal");
-  const [itens, setItens] = useState(playlist?.itens || []);
-  const [escolhendo, setEscolhendo] = useState(false);
+  const [itens, setItens] = useState(() => (playlist?.itens || []).map((x) => ({ ...x, zona: x.zona ?? 0 })));
+  // Tela dividida: 1 (inteira), 2 ou 3 lados, cada lado com a sua sequência e os seus tempos.
+  const [lados, setLados] = useState(() => Math.max(1, ...(playlist?.itens || []).map((x) => (x.zona ?? 0) + 1)));
+  const [escolhendo, setEscolhendo] = useState(null); // lado em que a arte escolhida entra
   const [erro, setErro] = useState("");
-  const [salvando, setSalvando] = useState(false);
+  const [salvando, setSalvando] = useState("");
+  // Destino (como no Nina): telas marcadas; nenhuma marcada = todas as telas.
+  const [destino, setDestino] = useState(() => (playlist ? painel.telas.filter((t) => t.conteudo?.tipo === "playlist" && t.conteudo.id === playlist.id).map((t) => t.id) : []));
   const midiasPorId = new Map(painel.midias.map((m) => [m.id, m]));
+  const alternarDestino = (id) => setDestino((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
 
-  const mover = (i, d) => setItens((l) => { const n = [...l]; const j = i + d; if (j < 0 || j >= n.length) return l; [n[i], n[j]] = [n[j], n[i]]; return n; });
+  // Subir/descer troca de lugar com o item vizinho do MESMO lado.
+  const mover = (i, d) => setItens((l) => {
+    const z = l[i].zona;
+    let j = i + d;
+    while (j >= 0 && j < l.length && l[j].zona !== z) j += d;
+    if (j < 0 || j >= l.length) return l;
+    const n = [...l]; [n[i], n[j]] = [n[j], n[i]]; return n;
+  });
   const mudar = (i, campo, v) => setItens((l) => l.map((x, k) => (k === i ? { ...x, [campo]: v } : x)));
+  const remover = (i) => setItens((l) => l.filter((_, k) => k !== i));
+  const adicionar = (item) => setItens((l) => [...l, { ...item, zona: escolhendo ?? 0 }]);
+  const dividir = (n) => {
+    setLados(n);
+    // Quem estava num lado que deixou de existir vai para o último lado.
+    setItens((l) => l.map((x) => (x.zona >= n ? { ...x, zona: n - 1 } : x)));
+    setEscolhendo(null);
+    if (n > 1) setOrientacao("horizontal");
+  };
 
   const salvar = async (publicar = false) => {
-    setErro(""); setSalvando(true);
+    setErro("");
+    if (!nome.trim()) return setErro("Dê um nome à playlist (campo Nome, no topo).");
+    if (!itens.length) return setErro("Adicione pelo menos uma arte, vídeo ou o cardápio.");
+    for (let z = 0; z < lados; z++) if (!itens.some((x) => x.zona === z)) return setErro(`Falta conteúdo no ${NOMES_LADOS[lados][z].toLowerCase()}.`);
+    if (publicar && !painel.telas.length) return setErro("Nenhuma TV pareada ainda. Toque em Parear TV primeiro; a playlist fica salva.");
+    setSalvando(publicar ? "Publicando…" : "Salvando…");
     try {
-      const r = await executar("salvar_playlist", { id: playlist?.id, nome, orientacao, itens }, "Playlist salva");
+      // Na ordem dos lados: o lado 1 primeiro (é o que a TV conta ao painel).
+      const ordenados = [...itens].sort((x, y) => x.zona - y.zona);
+      const r = await executar("salvar_playlist", { id: playlist?.id, nome, orientacao, itens: ordenados }, publicar ? null : "Playlist salva");
+      if (publicar) {
+        await executar("trocar_conteudo", { tela_ids: destino.length ? destino : "todas", conteudo: { tipo: "playlist", id: r.id } },
+          `Publicada em ${destino.length || painel.telas.length} tela(s). A TV troca em até 15 segundos.`);
+      }
       fechar();
-      if (publicar) abrir("trocar", { conteudo: { tipo: "playlist", id: r.id } });
-    } catch (e) { setErro(e.message); } finally { setSalvando(false); }
+    } catch (e) { setErro(e.message); } finally { setSalvando(""); }
   };
 
   return (
     <Modal open onClose={fechar} title={playlist ? "Editar playlist" : "Nova playlist"} maxWidth="md:max-w-2xl">
-      <Erro texto={erro} />
       <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
         <Field label="Nome"><TextInput value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Almoço executivo · horizontal" maxLength={80} /></Field>
-        <Field label="Formato">
-          <Select value={orientacao} onChange={(e) => setOrientacao(e.target.value)}>
-            <option value="horizontal">Horizontal</option>
-            <option value="vertical">Vertical</option>
+        <Field label="Formato da TV">
+          <Select value={orientacao} onChange={(e) => { setOrientacao(e.target.value); if (e.target.value === "vertical") dividir(1); }}>
+            <option value="horizontal">Horizontal (deitada)</option>
+            <option value="vertical">Vertical (em pé)</option>
           </Select>
         </Field>
       </div>
 
-      <p className="erp-label mb-1.5">Sequência</p>
-      {!itens.length && <p className="mb-2 text-sm text-hf-muted">Adicione artes, vídeos ou o cardápio com preço.</p>}
-      <ol className="mb-3 space-y-2">
-        {itens.map((it, i) => {
-          const m = it.tipo === "midia" ? midiasPorId.get(it.midia_id) : null;
-          return (
-            <li key={i} className="flex items-center gap-2 rounded-xl border border-hf-border p-2">
-              <span className="w-5 shrink-0 text-center text-xs font-semibold text-hf-muted">{i + 1}</span>
-              <Miniatura midia={m} cardapio={it.tipo === "cardapio"} className="w-20 shrink-0" />
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="truncate text-sm font-semibold text-hf-text">{it.tipo === "cardapio" ? (it.titulo || "Cardápio") : m?.nome || "Mídia removida"}</p>
-                {it.tipo === "cardapio" && (
-                  <div className="flex flex-wrap gap-1.5">
-                    <TextInput value={it.titulo || ""} onChange={(e) => mudar(i, "titulo", e.target.value)} placeholder="Título na TV" className="!h-10 !w-full text-xs sm:!w-36" maxLength={60} />
-                    <Select value={it.categoria_ids?.[0] || ""} onChange={(e) => mudar(i, "categoria_ids", e.target.value ? [e.target.value] : [])} className="!h-10 !w-full text-xs sm:!w-44">
-                      <option value="">Todas as seções</option>
-                      {painel.categorias.map((c) => <option key={c.id} value={c.id}>{c.nome} ({c.pratos})</option>)}
-                    </Select>
-                    <Select value={it.por_pagina || 6} onChange={(e) => mudar(i, "por_pagina", Number(e.target.value))} className="!h-10 !w-full text-xs sm:!w-32">
-                      {[4, 5, 6, 8, 10, 12].map((n) => <option key={n} value={n}>{n} por tela</option>)}
-                    </Select>
-                  </div>
-                )}
-                <label className="flex items-center gap-1.5 text-xs text-hf-muted">
-                  Tempo
-                  <input type="number" min={DURACAO.min} max={DURACAO.max} value={it.duracao_seg ?? ""} placeholder={m?.tipo === "video" ? "vídeo inteiro" : String(it.tipo === "cardapio" ? DURACAO.cardapio : DURACAO.imagem)}
-                    onChange={(e) => mudar(i, "duracao_seg", e.target.value ? Number(e.target.value) : null)} className="erp-input !h-8 !w-24 !px-2 text-xs" /> s
-                </label>
-              </div>
-              <div className="flex shrink-0 flex-col gap-1">
-                <button onClick={() => mover(i, -1)} aria-label="Subir" className="flex h-9 w-9 items-center justify-center rounded-lg border border-hf-border text-hf-muted"><ArrowUp size={14} /></button>
-                <button onClick={() => mover(i, 1)} aria-label="Descer" className="flex h-9 w-9 items-center justify-center rounded-lg border border-hf-border text-hf-muted"><ArrowDown size={14} /></button>
-              </div>
-              <button onClick={() => setItens((l) => l.filter((_, k) => k !== i))} aria-label="Remover" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-hf-danger"><Trash2 size={15} /></button>
-            </li>
-          );
-        })}
-      </ol>
-
-      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <button onClick={() => setEscolhendo((e) => !e)} className="erp-btn erp-btn-ghost !min-h-11 text-sm"><ImageIcon size={16} /> Adicionar arte ou vídeo</button>
-        <button onClick={() => setItens((l) => [...l, { tipo: "cardapio", titulo: "Cardápio", categoria_ids: [], por_pagina: 6, duracao_seg: DURACAO.cardapio }])} disabled={!painel.cardapioDisponivel}
-          className="erp-btn erp-btn-ghost !min-h-11 text-sm"><Utensils size={16} /> Cardápio com preço do Héfisto</button>
-      </div>
-      {!painel.cardapioDisponivel && <p className="-mt-2 mb-3 text-xs text-hf-muted">Cardápio indisponível: confira se há pratos ativos com preço no Cardápio digital.</p>}
-      {escolhendo && (
-        <div className="mb-4 grid max-h-[240px] grid-cols-3 gap-2 overflow-y-auto rounded-xl bg-hf-elevated p-2 sm:grid-cols-4">
-          {painel.midias.length ? painel.midias.map((m) => (
-            <button key={m.id} onClick={() => setItens((l) => [...l, { tipo: "midia", midia_id: m.id, duracao_seg: null }])} className="rounded-lg bg-hf-surface p-1 text-left">
-              <Miniatura midia={m} />
-              <p className="mt-0.5 truncate text-[11px] font-medium text-hf-text">{m.nome}</p>
-            </button>
-          )) : <p className="col-span-full p-2 text-sm text-hf-muted">Envie mídias na aba Mídias.</p>}
-        </div>
+      {orientacao === "horizontal" && (
+        <Field label="Divisão da tela">
+          <div className="grid grid-cols-3 gap-2">
+            {[[1, "Inteira"], [2, "2 lados"], [3, "3 lados"]].map(([n, rotulo]) => (
+              <button key={n} onClick={() => dividir(n)} className={`flex min-h-[64px] flex-col items-center justify-center gap-1.5 rounded-xl border text-sm font-medium ${lados === n ? "border-hf-accent bg-hf-accent/15 text-hf-text" : "border-hf-border text-hf-text-2"}`}>
+                <span className="flex h-6 w-10 gap-0.5 overflow-hidden rounded border border-current p-0.5" aria-hidden>
+                  {Array.from({ length: n }, (_, k) => <span key={k} className="flex-1 rounded-sm bg-current opacity-40" />)}
+                </span>
+                {rotulo}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-hf-muted">
+            {lados === 1
+              ? "Foto de celular (em pé) numa TV deitada: o fundo é preenchido com a própria foto desfocada, sem faixa preta."
+              : `${lados} fotos lado a lado, cada lado com a sua sequência e os seus tempos. Ideal para fotos de celular numa TV deitada.`}
+          </p>
+        </Field>
       )}
 
+      {Array.from({ length: lados }, (_, z) => {
+        const doLado = itens.map((it, i) => ({ it, i })).filter((x) => x.it.zona === z);
+        return (
+          <section key={z} className={`mb-3 ${lados > 1 ? "rounded-2xl border border-hf-border bg-hf-elevated/60 p-2.5" : ""}`}>
+            <p className="erp-label mb-1.5">{lados > 1 ? NOMES_LADOS[lados][z] : "Sequência"}</p>
+            {!doLado.length && <p className="mb-2 text-sm text-hf-muted">{lados > 1 ? "Adicione pelo menos uma arte neste lado." : "Adicione artes, vídeos ou o cardápio com preço."}</p>}
+            <ol className="mb-2 space-y-2">
+              {doLado.map(({ it, i }, k) => (
+                <ItemDaSequencia key={i} it={it} i={i} ordem={k + 1} painel={painel} midiasPorId={midiasPorId} mudar={mudar} mover={mover} remover={remover} />
+              ))}
+            </ol>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <button onClick={() => setEscolhendo((e) => (e === z ? null : z))} className="erp-btn erp-btn-ghost !min-h-11 text-sm"><ImageIcon size={16} /> Adicionar arte ou vídeo</button>
+              <button onClick={() => setItens((l) => [...l, { tipo: "cardapio", titulo: "Cardápio", categoria_ids: [], por_pagina: lados > 1 ? 5 : 6, duracao_seg: DURACAO.cardapio, zona: z }])} disabled={!painel.cardapioDisponivel}
+                className="erp-btn erp-btn-ghost !min-h-11 text-sm"><Utensils size={16} /> Cardápio com preço do Héfisto</button>
+            </div>
+            {escolhendo === z && (
+              <div className="mt-2 grid max-h-[240px] grid-cols-3 gap-2 overflow-y-auto rounded-xl bg-hf-elevated p-2 sm:grid-cols-4">
+                {painel.midias.length ? painel.midias.map((m) => (
+                  <button key={m.id} onClick={() => adicionar({ tipo: "midia", midia_id: m.id, duracao_seg: null })} className="rounded-lg bg-hf-surface p-1 text-left">
+                    <Miniatura midia={m} />
+                    <p className="mt-0.5 truncate text-[11px] font-medium text-hf-text">{m.nome}</p>
+                  </button>
+                )) : <p className="col-span-full p-2 text-sm text-hf-muted">Envie mídias na aba Mídias.</p>}
+              </div>
+            )}
+          </section>
+        );
+      })}
+      {!painel.cardapioDisponivel && <p className="mb-3 text-xs text-hf-muted">Cardápio indisponível: confira se há pratos ativos com preço no Cardápio digital.</p>}
+
+      {painel.telas.length > 0 && (
+        <Field label="Publicar em (nenhuma marcada = todas as telas)">
+          <div className="max-h-[180px] space-y-1 overflow-y-auto">
+            {painel.telas.map((t) => (
+              <label key={t.id} className="flex min-h-11 items-center gap-3 rounded-xl px-2 hover:bg-hf-elevated">
+                <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={destino.includes(t.id)} onChange={() => alternarDestino(t.id)} />
+                <span className="min-w-0 flex-1 truncate text-sm text-hf-text">{t.nome}</span>
+                <span className="shrink-0 text-xs text-hf-muted">{t.local || ""}</span>
+              </label>
+            ))}
+          </div>
+        </Field>
+      )}
+      <Erro texto={erro} />
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <Btn variant="ghost" onClick={() => salvar(false)} disabled={salvando || !nome.trim() || !itens.length} className="!min-h-12">Salvar</Btn>
-        <Btn onClick={() => salvar(true)} disabled={salvando || !nome.trim() || !itens.length} className="!min-h-12">Salvar e publicar</Btn>
+        <Btn variant="ghost" onClick={() => salvar(false)} disabled={!!salvando} className="!min-h-12">{salvando === "Salvando…" ? salvando : "Salvar"}</Btn>
+        <Btn onClick={() => salvar(true)} disabled={!!salvando} className="!min-h-12">{salvando === "Publicando…" ? salvando : `Salvar e publicar${painel.telas.length ? ` em ${destino.length ? `${destino.length} tela(s)` : "todas as telas"}` : ""}`}</Btn>
       </div>
       {playlist && podeExcluir && (
         <button onClick={() => window.confirm("Excluir a playlist? As regras de programação dela também saem.") && executar("excluir_playlist", { id: playlist.id }, "Playlist excluída").then(fechar).catch((e) => setErro(e.message))}

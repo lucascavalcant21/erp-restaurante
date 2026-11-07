@@ -27,6 +27,14 @@ export function quantidadeLegivel(q, unidade) {
   return `${fmtQtd(n)} ${ul === "l" ? "L" : u}`;
 }
 
+/**
+ * Mesmo prato com nome escrito de outro jeito na Montagem: "Moqueca de pirarucu - 2 pessoas"
+ * = "Moqueca de pirarucu - 2P". Só acento, caixa, pontuação e "N pessoas" ↔ "NP" mudam.
+ */
+export function chaveDeNome(nome) {
+  return normalizar(nome).replace(/(\d+)\s*(?:pessoas?|pax|p)\b/g, "$1p").replace(/[^a-z0-9]+/g, "");
+}
+
 const CAMPOS_FOLHA = "id, nome_comercial, descricao_comercial, imagem, montagem_foto, montagem_sequencia, alergenicos_pode_conter";
 
 /** Leitura opcional: tabela que ainda não existe no banco desta instalação vira lista vazia. */
@@ -43,14 +51,19 @@ async function lerOpcional(consulta, tabela) {
  * @param {object} amb
  * @param {{ termo?: string, frase?: string|null, fichaId?: string|null }} op
  *   frase = o pedido inteiro ("como faz a caipirinha clássica?"): o nome do cadastro dito inteiro manda.
+ *   tipo  = "base" (a receita/pré-preparo) ou "prato" (o prato ou drink servido): filtra quando a pessoa já disse.
  */
-export function fichaDoPrato(amb, { termo, frase = null, fichaId = null } = {}) {
+export function fichaDoPrato(amb, { termo, frase = null, fichaId = null, tipo = null } = {}) {
   const periodo = { de: amb.hoje, ate: amb.hoje, rotulo: "cadastro atual" };
   return medir(amb, { id: "ficha_tecnica", capacidade: "fichas", periodo }, async (consultas) => {
     const fontes = [fonte("fichas_tecnicas", "Ficha cadastrada"), fonte("fichas_ingredientes", "Ingredientes da ficha"), fonte("fichas_etapas", "Etapas do preparo")];
     const todas = ((await ler(amb.dbe.from("fichas_tecnicas").select(CAMPOS_FICHA), "fichas_tecnicas")) || []).filter((f) => f.ativo !== false && f.status !== "arquivada");
     const comNome = todas.map((f) => ({ ...f, nome: f.nome_receita || f.nome_comercial, nome_interno: f.nome_interno || f.nome_comercial }));
-    const achadas = fichaId ? comNome.filter((f) => f.id === fichaId) : candidatosDoTermo(comNome, termo || "", 8, { frase, parcial: true });
+    let achadas = fichaId ? comNome.filter((f) => f.id === fichaId) : candidatosDoTermo(comNome, termo || "", 8, { frase, parcial: true });
+    if (tipo && achadas.length > 1) {
+      const doTipo = achadas.filter((f) => (tipo === "base") === !!f.eh_base);
+      if (doTipo.length) achadas = doTipo; // nenhuma do tipo dito: mostra todas em vez de dizer que não há
+    }
     if (!achadas.length) {
       return insuficiente({ metrica: "ficha_tecnica", periodo, escopo: amb.escopo, apuradoEm: amb.apuradoEm, fontes, consultas: consultas(),
         motivo: `Não há ficha técnica cadastrada com o nome "${termo}" nesta unidade.`, faltando: ["ficha técnica do prato"] });
@@ -59,8 +72,8 @@ export function fichaDoPrato(amb, { termo, frase = null, fichaId = null } = {}) 
     const exatas = achadas.filter((f) => ehNomeExato(f, termo || ""));
     if (achadas.length > 1 && exatas.length !== 1) {
       return insuficiente({ metrica: "ficha_tecnica", periodo, escopo: amb.escopo, apuradoEm: amb.apuradoEm, fontes, consultas: consultas(),
-        motivo: `Encontrei ${achadas.length} fichas com esse nome. Qual delas?`, faltando: ["escolher a ficha"],
-        detalhes: { ambiguo: true, opcoes: achadas.map((f) => ({ id: f.id, nome: String(f.nome || "").trim(), departamento: f.departamento || null })) } });
+        motivo: tipo === "prato" ? `Encontrei ${achadas.length} pratos com esse nome. Qual deles?` : tipo === "base" ? `Encontrei ${achadas.length} receitas base com esse nome. Qual delas?` : `Encontrei ${achadas.length} fichas com esse nome. Qual delas?`, faltando: ["escolher a ficha"],
+        detalhes: { ambiguo: true, tipo, opcoes: achadas.map((f) => ({ id: f.id, nome: String(f.nome || "").trim(), departamento: f.departamento || null, base: !!f.eh_base })) } });
     }
     const ficha = exatas.length === 1 ? exatas[0] : achadas[0];
     const ings = (await ler(amb.dbe.from("fichas_ingredientes").select("ficha_id, insumo_id, subficha_id, quantidade").eq("ficha_id", ficha.id), "fichas_ingredientes")) || [];
@@ -85,13 +98,15 @@ export function fichaDoPrato(amb, { termo, frase = null, fichaId = null } = {}) 
     // Folha: campos pesados (foto) só da ficha escolhida; passos e tela de Montagem pelo nome.
     const [extra] = await lerOpcional(amb.dbe.from("fichas_tecnicas").select(CAMPOS_FOLHA).eq("id", ficha.id), "fichas_tecnicas");
     const passosTabela = await lerOpcional(amb.dbe.from("fichas_montagem_passos").select("ficha_id, ordem, descricao").eq("ficha_id", ficha.id).order("ordem"), "fichas_montagem_passos");
-    const chave = normalizar(ficha.nome_receita);
+    const chaves = new Set([ficha.nome_receita, ficha.nome_comercial].filter(Boolean).map(chaveDeNome));
     const montagem = (await lerOpcional(amb.dbe.from("montagem").select("nome, departamento, descritivo, foto_url, estrutura_ia, tempo_preparo, rendimento, observacoes"), "montagem"))
-      .find((m) => normalizar(m.nome) === chave || (ficha.nome_comercial && normalizar(m.nome) === normalizar(ficha.nome_comercial))) || null;
+      .find((m) => chaves.has(chaveDeNome(m.nome))) || null;
     if (montagem) fontes.push(fonte("montagem", "Montagem (foto e passo a passo)"));
+    // foto do cardápio (produto de venda ligado a esta ficha), quando a ficha e a Montagem não têm
+    const [doCardapio] = await lerOpcional(amb.dbe.from("produtos").select("imagem_url").eq("ficha_id", ficha.id).limit(3), "produtos");
     const folha = montarFolha({
       ficha: { ...ficha, ...(extra || {}), nome_receita: ficha.nome_receita },
-      ingredientes, etapas, montagem,
+      ingredientes, etapas, montagem, fotoCardapio: doCardapio?.imagem_url || null,
       passosMontagem: passosGravados(passosTabela, extra?.montagem_sequencia),
     });
     const semPreparo = !etapas.length && !String(ficha.modo_preparo || "").trim();

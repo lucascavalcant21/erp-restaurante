@@ -32,6 +32,12 @@ export const DURACAO = Object.freeze({ min: 3, max: 600, imagem: 10, cardapio: 1
 // verticais lado a lado, cada lado com a sua sequência e os seus tempos.
 export const MAX_LADOS = 3;
 
+// Como a arte ocupa a tela quando o formato não bate (pedido do dono, 07/11/2026):
+//   inteira   — a arte toda, fundo com ela mesma desfocada (padrão);
+//   preencher — enche a tela cortando as sobras (em cima e embaixo, ou nos lados);
+//   dividir   — metade de cima à esquerda e metade de baixo à direita (foto em pé numa TV deitada).
+export const AJUSTES = Object.freeze(["inteira", "preencher", "dividir"]);
+
 export const LIMITES = Object.freeze({ itensPorPlaylist: 60, telasPorRegra: 500, nome: 80, porPagina: { min: 3, max: 12, padrao: 6 } });
 
 // A TV pergunta a cada 15 s (o dono quer ver a troca logo). Sem notícia por 2,5 min = fora do ar.
@@ -131,7 +137,8 @@ export function normalizarItem(item) {
   const zona = Number.isFinite(z) ? limitar(z, 0, MAX_LADOS - 1) : 0;
   if (item.tipo === "midia") {
     if (!uuidValido(item.midia_id)) return null;
-    return { tipo: "midia", midia_id: item.midia_id, duracao_seg, zona };
+    const ajuste = AJUSTES.includes(item.ajuste) ? item.ajuste : "inteira";
+    return { tipo: "midia", midia_id: item.midia_id, duracao_seg, zona, ajuste };
   }
   if (item.tipo === "cardapio") {
     const categorias = Array.isArray(item.categoria_ids)
@@ -176,7 +183,10 @@ export function validarPlaylist({ nome, orientacao, itens } = {}) {
 /** O que a tela roda quando nenhuma programação vale: uma playlist ou uma arte só. */
 export function normalizarConteudo(c) {
   if (!c || typeof c !== "object") return null;
-  if ((c.tipo === "playlist" || c.tipo === "midia") && uuidValido(c.id)) return { tipo: c.tipo, id: c.id };
+  if (c.tipo === "playlist" && uuidValido(c.id)) return { tipo: "playlist", id: c.id };
+  if (c.tipo === "midia" && uuidValido(c.id)) {
+    return { tipo: "midia", id: c.id, ...(AJUSTES.includes(c.ajuste) && c.ajuste !== "inteira" ? { ajuste: c.ajuste } : {}) };
+  }
   return null;
 }
 
@@ -191,11 +201,12 @@ export function validarProgramacao(r = {}) {
   const dias = Array.isArray(r.dias_semana)
     ? [...new Set(r.dias_semana.map(inteiro).filter((d) => d >= 0 && d <= 6))].sort((a, b) => a - b)
     : [];
-  const ini = r.hora_inicio ? String(r.hora_inicio).slice(0, 5) : null;
-  const fim = r.hora_fim ? String(r.hora_fim).slice(0, 5) : null;
+  let ini = r.hora_inicio ? String(r.hora_inicio).slice(0, 5) : null;
+  let fim = r.hora_fim ? String(r.hora_fim).slice(0, 5) : null;
   if ((ini && !HORA_RE.test(ini)) || (fim && !HORA_RE.test(fim))) return falha("Horário inválido (use HH:MM).");
   if ((ini && !fim) || (!ini && fim)) return falha("Informe o horário de início e o de término, ou deixe o dia inteiro.");
-  if (ini && fim && ini === fim) return falha("Início e término iguais. Para o dia todo, deixe sem horário.");
+  // Como no Nina: horários iguais = dia inteiro.
+  if (ini && fim && ini === fim) { ini = null; fim = null; }
   const dIni = r.data_inicio ? String(r.data_inicio).slice(0, 10) : null;
   const dFim = r.data_fim ? String(r.data_fim).slice(0, 10) : null;
   if ((dIni && !DATA_RE.test(dIni)) || (dFim && !DATA_RE.test(dFim))) return falha("Data inválida.");
@@ -379,6 +390,7 @@ export function montarRoteiro({ itens = [], midias = new Map(), urls = new Map()
         chave: `${m.id}:${m.versao || 1}`,
         duracao_seg: duracaoDaMidia(m, item.duracao_seg),
         zona: item.zona,
+        ajuste: item.ajuste,
       });
       continue;
     }

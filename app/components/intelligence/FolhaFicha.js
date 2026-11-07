@@ -43,16 +43,18 @@ function FolhaFicha({ folha }) {
   if (!folha?.nome) return null;
   return (
     <article className="overflow-hidden rounded-xl border border-black/[0.07] bg-white" aria-label={`Ficha de ${folha.nome}`}>
-      {folha.foto ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={folha.foto} alt={folha.nome} loading="lazy" className="h-44 w-full object-cover" />
-      ) : null}
       <div className="space-y-4 px-3 pb-3 pt-2.5">
         <header>
           <p className="text-[11.5px] font-bold uppercase tracking-[0.12em]" style={{ color: META }}>{TIPO[folha.tipo] || "Ficha"}</p>
           <h3 className="text-[21px] font-extrabold uppercase leading-tight tracking-wide" style={{ color: VERDE }}>{folha.nome}</h3>
           {folha.descricao ? <p className="mt-0.5 text-[14px]" style={{ color: META }}>{folha.descricao}</p> : null}
         </header>
+
+        {/* foto do prato/drink logo abaixo do título, quando tem; sem foto, a folha segue igual */}
+        {folha.foto ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={folha.foto} alt={`Foto de ${folha.nome}`} loading="lazy" className="max-h-64 w-full rounded-lg object-cover" />
+        ) : null}
 
         {folha.ingredientes?.length ? (
           <section>

@@ -81,11 +81,21 @@ export function servicoDaMontagem(estrutura) {
   return { copo: copo ? limpo(copo.nome) : null, gelo: gelo ? limpo(gelo.nome) : null };
 }
 
-/** Só foto que o navegador consegue abrir com segurança: endereço https (nunca base64 gigante nem javascript:). */
+const MAX_FOTO_EMBUTIDA = 700_000; // ~500 KB de imagem: foto de ficha salva direto no banco
+const ASSINATURA = { "/9j/": "image/jpeg", iVBORw0KGgo: "image/png", UklGR: "image/webp" };
+
+/**
+ * Só foto que o navegador abre com segurança: endereço https, ou JPEG/PNG/WebP
+ * salvo em base64 na ficha (vira data:image/...). Nunca javascript:, SVG ou http.
+ */
 export function fotoSegura(...urls) {
   for (const u of urls) {
     const s = String(u || "").trim();
     if (/^https:\/\/[^\s"'<>]+$/i.test(s)) return s;
+    const m = s.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+    const corpo = m ? m[2] : s;
+    const tipo = m ? m[1] : Object.entries(ASSINATURA).find(([k]) => s.startsWith(k))?.[1];
+    if (tipo && corpo.length <= MAX_FOTO_EMBUTIDA && /^[A-Za-z0-9+/]+={0,2}$/.test(corpo)) return `data:${tipo};base64,${corpo}`;
   }
   return null;
 }
@@ -97,7 +107,7 @@ const minutos = (n) => (Number(n) > 0 ? `${Number(n)} min` : null);
  * linha da tela de Montagem com o mesmo nome (ou null).
  * @returns {object} folha — nada inventado; faltando[] diz o que completar
  */
-export function montarFolha({ ficha, ingredientes = [], etapas = [], passosMontagem = [], montagem = null }) {
+export function montarFolha({ ficha, ingredientes = [], etapas = [], passosMontagem = [], montagem = null, fotoCardapio = null }) {
   const tipo = ficha.departamento === "bar" ? "drink" : ficha.eh_base ? "base" : "prato";
   const preparo = etapas.length
     ? etapas.map((e) => ({ texto: limpo(e.instrucao || e.titulo), detalhe: [e.tempoMin ? `${e.tempoMin} min` : null, e.temperatura, e.equipamento].filter(Boolean).join(" · ") || null })).filter((p) => p.texto)
@@ -138,7 +148,7 @@ export function montarFolha({ ficha, ingredientes = [], etapas = [], passosMonta
     nome: limpo(ficha.nome_comercial) || limpo(ficha.nome_receita),
     tipo,
     descricao: limpo(ficha.descricao_comercial) || null,
-    foto: fotoSegura(ficha.imagem, ficha.montagem_foto, montagem?.foto_url),
+    foto: fotoSegura(ficha.imagem, ficha.montagem_foto, montagem?.foto_url, fotoCardapio),
     ingredientes: ingredientes.map((i) => ({ nome: i.nome, quantidade: i.quantidade })),
     servico,
     preparo,

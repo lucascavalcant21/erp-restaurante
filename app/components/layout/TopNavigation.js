@@ -248,7 +248,14 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileDrawerOpen(false)}></div>
           <div className="relative w-80 max-w-[80vw] h-full bg-hf-menu border-r border-hf-menu-border flex flex-col shadow-2xl animate-in slide-in-from-left">
             <div className="flex items-center justify-between px-4 pb-4 border-b border-hf-menu-border" style={{ paddingTop: "calc(var(--erp-safe-top) + 0.75rem)" }}>
-              <div className="flex items-center gap-2">
+              {/* Tocar no logo ou no nome leva à tela inicial (pedido do dono, 07/11/2026),
+                  com a mesma regra do logo da barra de cima. */}
+              <Link
+                href={sessao?.is_app || sessao?.gerenciado ? homeDoUsuario(sessao) : "/dashboard"}
+                onClick={() => setMobileDrawerOpen(false)}
+                aria-label="Ir para a tela inicial"
+                className="-ml-1 flex min-h-[44px] items-center gap-2 rounded-xl px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-menu-accent"
+              >
                 <LogoHefisto cambalhota />
                 <span className="font-black tracking-tight text-xl text-hf-menu-text">Héfisto</span>
                 {sessao?.is_app && (
@@ -256,7 +263,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                     App
                   </span>
                 )}
-              </div>
+              </Link>
               <button onClick={() => setMobileDrawerOpen(false)} aria-label="Fechar menu" className="w-11 h-11 flex items-center justify-center text-hf-menu-muted hover:text-hf-menu-text rounded-xl hover:bg-hf-menu-hover">
                 <X size={20} />
               </button>

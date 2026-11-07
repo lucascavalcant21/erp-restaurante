@@ -12,7 +12,7 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { usePermission } from "../../../components/access-control/PermissionGate";
 import { PageHeader, PageBody, Card, Modal, Field, TextInput, Select, Btn, Toast, Toggle, EmptyState, SkeletonList } from "../../../components/ui";
-import { chamar, lerPainel, enviarArquivo, tamanhoLegivel, segundos, Miniatura, Selo, DIAS } from "../../../components/sinalizacao/apoio";
+import { chamar, lerPainel, enviarArquivo, tamanhoLegivel, segundos, Miniatura, Selo, DIAS, PreviaTv, AJUSTES_TV, AJUDA_AJUSTE } from "../../../components/sinalizacao/apoio";
 import { regraVale, rotuloSemContato, LIMITE_BYTES, DURACAO } from "../../../lib/sinalizacao.mjs";
 
 const ABAS = [
@@ -114,9 +114,9 @@ export default function SinalizacaoPage() {
       </PageBody>
 
       {modal?.tipo === "parear" && <ModalParear painel={painel} dados={modal.dados} fechar={fechar} executar={executar} />}
-      {modal?.tipo === "trocar" && <ModalTrocar painel={painel} dados={modal.dados} fechar={fechar} executar={executar} />}
+      {modal?.tipo === "trocar" && <ModalTrocar painel={painel} dados={modal.dados} fechar={fechar} executar={executar} unidadeId={unidadeAtiva} />}
       {modal?.tipo === "tela" && <ModalTela tela={modal.dados.tela} fechar={fechar} executar={executar} abrir={abrir} podeExcluir={podeExcluir} />}
-      {modal?.tipo === "playlist" && <ModalPlaylist painel={painel} playlist={modal.dados.playlist} fechar={fechar} executar={executar} podeExcluir={podeExcluir} />}
+      {modal?.tipo === "playlist" && <ModalPlaylist painel={painel} playlist={modal.dados.playlist} fechar={fechar} executar={executar} podeExcluir={podeExcluir} unidadeId={unidadeAtiva} />}
       {modal?.tipo === "regra" && <ModalRegra painel={painel} regra={modal.dados.regra} fechar={fechar} executar={executar} podeExcluir={podeExcluir} />}
       <Toast show={!!aviso}>{aviso}</Toast>
     </div>
@@ -187,7 +187,8 @@ function CartaoTela({ tela, midiasPorId, playlistsPorId, abrir, podeEditar }) {
 // ─── Visão geral ─────────────────────────────────────────────────────────────
 function VisaoGeral({ painel, midiasPorId, playlistsPorId, irPara, abrir, podeCriar }) {
   const r = painel.resumo;
-  const linkTv = typeof window !== "undefined" ? `${window.location.origin}/tv` : "/tv";
+  const origem = typeof window !== "undefined" ? window.location.origin : "";
+  const linkTv = !origem || /vercel\.app$/.test(new URL(origem).hostname) ? "https://app.hefisto.com.br/tv" : `${origem}/tv`;
   const [copiado, setCopiado] = useState(false);
   const numeros = [
     { rotulo: "Telas", valor: r.total, aba: "telas" },
@@ -220,7 +221,6 @@ function VisaoGeral({ painel, midiasPorId, playlistsPorId, irPara, abrir, podeCr
           <button onClick={() => { navigator.clipboard?.writeText(linkTv); setCopiado(true); setTimeout(() => setCopiado(false), 2000); }} className="erp-btn erp-btn-ghost !min-h-11 text-sm">
             <Copy size={16} /> {copiado ? "Copiado" : "Copiar endereço"}
           </button>
-          {podeCriar && <button onClick={() => abrir("parear")} className="erp-btn erp-btn-primary !min-h-11 text-sm"><Plus size={16} /> Parear TV</button>}
         </div>
       </Card>
 
@@ -229,7 +229,7 @@ function VisaoGeral({ painel, midiasPorId, playlistsPorId, irPara, abrir, podeCr
           {painel.telas.map((t) => <CartaoTela key={t.id} tela={t} midiasPorId={midiasPorId} playlistsPorId={playlistsPorId} abrir={abrir} podeEditar={false} />)}
         </div>
       ) : (
-        <EmptyState icon={MonitorPlay} title="Nenhuma TV pareada ainda" hint="Abra o endereço /tv na TV e toque em Parear TV." actionLabel={podeCriar ? "Parear TV" : undefined} onAction={() => abrir("parear")} />
+        <EmptyState icon={MonitorPlay} title="Nenhuma TV pareada ainda" hint="Abra o endereço /tv na TV e toque em Parear TV, no topo." />
       )}
     </div>
   );
@@ -238,7 +238,7 @@ function VisaoGeral({ painel, midiasPorId, playlistsPorId, irPara, abrir, podeCr
 // ─── Telas ───────────────────────────────────────────────────────────────────
 function Telas({ painel, midiasPorId, playlistsPorId, abrir, podeCriar, podeEditar }) {
   if (!painel.telas.length) {
-    return <EmptyState icon={MonitorPlay} title="Nenhuma TV pareada ainda" hint="Abra o endereço /tv na TV e toque em Parear TV." actionLabel={podeCriar ? "Parear TV" : undefined} onAction={() => abrir("parear")} />;
+    return <EmptyState icon={MonitorPlay} title="Nenhuma TV pareada ainda" hint="Abra o endereço /tv na TV e toque em Parear TV, no topo." />;
   }
   const locais = [...new Set(painel.telas.map((t) => t.local || "Sem local"))];
   return (
@@ -341,7 +341,7 @@ function Midias({ painel, unidade, carregar, avisar, executar, abrir, podeCriar,
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
           {midias.map((m) => (
             <Card key={m.id} className="flex flex-col gap-2 !p-2.5">
-              <Miniatura midia={m} orientacao={m.orientacao} className={m.orientacao === "vertical" ? "mx-auto max-h-[220px]" : ""} />
+              <Miniatura midia={m} proporcao="aspect-[4/5]" className="w-full" />
               <div className="min-w-0 px-0.5">
                 <p className="truncate text-sm font-semibold text-hf-text">{m.nome}</p>
                 <p className="truncate text-[11px] text-hf-muted">
@@ -519,9 +519,10 @@ function ModalParear({ painel, dados, fechar, executar }) {
   );
 }
 
-function ModalTrocar({ painel, dados, fechar, executar }) {
+function ModalTrocar({ painel, dados, fechar, executar, unidadeId }) {
   const [tipo, setTipo] = useState(dados.conteudo?.tipo || (painel.playlists.length ? "playlist" : "midia"));
   const [id, setId] = useState(dados.conteudo?.id || "");
+  const [ajuste, setAjuste] = useState(dados.conteudo?.ajuste || "inteira");
   const [telas, setTelas] = useState(dados.telas === "todas" ? painel.telas.map((t) => t.id) : dados.telas || []);
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -531,7 +532,8 @@ function ModalTrocar({ painel, dados, fechar, executar }) {
   const salvar = async (limpar = false) => {
     setErro(""); setSalvando(true);
     try {
-      const r = await executar("trocar_conteudo", { tela_ids: todas ? "todas" : telas, conteudo: limpar ? null : { tipo, id } });
+      const r = await executar("trocar_conteudo", { tela_ids: todas ? "todas" : telas, conteudo: limpar ? null : { tipo, id, ...(tipo === "midia" ? { ajuste } : {}) } },
+        limpar ? "Conteúdo fixo retirado" : "Enviado. A TV troca em até 15 segundos.");
       fechar();
       return r;
     } catch (e) { setErro(e.message); } finally { setSalvando(false); }
@@ -559,6 +561,18 @@ function ModalTrocar({ painel, dados, fechar, executar }) {
           </div>
         ) : <p className="text-sm text-hf-muted">{tipo === "playlist" ? "Nenhuma playlist criada ainda." : "Nenhuma mídia no acervo ainda."}</p>}
       </Field>
+      {tipo === "midia" && id && (
+        <Field label="Ajuste na TV">
+          <Select value={ajuste} onChange={(e) => setAjuste(e.target.value)}>
+            {AJUSTES_TV.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </Select>
+          <p className="mt-1 text-xs text-hf-muted">{AJUDA_AJUSTE[ajuste]}</p>
+        </Field>
+      )}
+      {id && (
+        <PreviaTv unidadeId={unidadeId} conteudo={{ tipo, id, ...(tipo === "midia" ? { ajuste } : {}) }}
+          orientacao={painel.telas.find((t) => telas.includes(t.id))?.orientacao || "horizontal"} />
+      )}
       <Field label="Em quais telas">
         <label className="mb-1 flex min-h-11 items-center gap-3 rounded-xl border border-hf-border px-3">
           <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={todas} onChange={() => setTelas(todas ? [] : painel.telas.map((t) => t.id))} />
@@ -642,6 +656,11 @@ function ItemDaSequencia({ it, i, ordem, painel, midiasPorId, mudar, mover, remo
             </Select>
           </div>
         )}
+        {it.tipo === "midia" && (
+          <Select value={it.ajuste || "inteira"} onChange={(e) => mudar(i, "ajuste", e.target.value)} className="!h-10 !w-full text-xs" aria-label="Ajuste na TV" title={AJUDA_AJUSTE[it.ajuste || "inteira"]}>
+            {AJUSTES_TV.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </Select>
+        )}
         <label className="flex items-center gap-1.5 text-xs text-hf-muted">
           Tempo
           <input type="number" inputMode="numeric" min={DURACAO.min} max={DURACAO.max} value={it.duracao_seg ?? ""} placeholder={m?.tipo === "video" ? "vídeo inteiro" : String(it.tipo === "cardapio" ? DURACAO.cardapio : DURACAO.imagem)}
@@ -657,7 +676,7 @@ function ItemDaSequencia({ it, i, ordem, painel, midiasPorId, mudar, mover, remo
   );
 }
 
-function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir }) {
+function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir, unidadeId }) {
   const [nome, setNome] = useState(playlist?.nome || "");
   const [orientacao, setOrientacao] = useState(playlist?.orientacao || "horizontal");
   const [itens, setItens] = useState(() => (playlist?.itens || []).map((x) => ({ ...x, zona: x.zona ?? 0 })));
@@ -772,6 +791,8 @@ function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir }) {
       })}
       {!painel.cardapioDisponivel && <p className="mb-3 text-xs text-hf-muted">Cardápio indisponível: confira se há pratos ativos com preço no Cardápio digital.</p>}
 
+      <PreviaTv unidadeId={unidadeId} itens={itens} orientacao={orientacao} />
+
       {painel.telas.length > 0 && (
         <Field label="Publicar em (nenhuma marcada = todas as telas)">
           <div className="max-h-[180px] space-y-1 overflow-y-auto">
@@ -801,12 +822,12 @@ function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir }) {
 function ModalRegra({ painel, regra, fechar, executar, podeExcluir }) {
   const [f, setF] = useState(() => ({
     nome: regra?.nome || "",
-    playlist_id: regra?.playlist_id || painel.playlists[0]?.id || "",
+    playlist_id: regra?.playlist_id || "",
     tela_ids: regra?.tela_ids || [],
-    dias_semana: regra?.dias_semana || [],
-    diaInteiro: !regra?.hora_inicio,
-    hora_inicio: regra?.hora_inicio || "11:00",
-    hora_fim: regra?.hora_fim || "15:00",
+    dias_semana: regra ? regra.dias_semana || [] : [1, 2, 3, 4, 5],
+    hora_inicio: regra?.hora_inicio || (regra ? "00:00" : "08:00"),
+    hora_fim: regra?.hora_fim || (regra ? "00:00" : "22:00"),
+    periodo: !!(regra?.data_inicio || regra?.data_fim),
     data_inicio: regra?.data_inicio || "",
     data_fim: regra?.data_fim || "",
     prioridade: regra?.prioridade ?? 100,
@@ -817,68 +838,89 @@ function ModalRegra({ painel, regra, fechar, executar, podeExcluir }) {
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
   const alternarDia = (d) => set("dias_semana", f.dias_semana.includes(d) ? f.dias_semana.filter((x) => x !== d) : [...f.dias_semana, d].sort());
   const alternarTela = (id) => set("tela_ids", f.tela_ids.includes(id) ? f.tela_ids.filter((x) => x !== id) : [...f.tela_ids, id]);
+  const diaInteiro = f.hora_inicio === f.hora_fim;
+  const viraNoite = !diaInteiro && f.hora_fim < f.hora_inicio;
 
   const salvar = async () => {
-    setErro(""); setSalvando(true);
+    setErro("");
+    if (!f.nome.trim()) return setErro("Dê um nome à regra.");
+    if (!f.playlist_id) return setErro("Escolha a playlist que será exibida.");
+    setSalvando(true);
     try {
       await executar("salvar_programacao", {
         id: regra?.id, nome: f.nome, playlist_id: f.playlist_id, tela_ids: f.tela_ids, dias_semana: f.dias_semana,
-        hora_inicio: f.diaInteiro ? null : f.hora_inicio, hora_fim: f.diaInteiro ? null : f.hora_fim,
-        data_inicio: f.data_inicio || null, data_fim: f.data_fim || null, prioridade: Number(f.prioridade), ativa: f.ativa,
-      }, "Regra salva");
+        hora_inicio: diaInteiro ? null : f.hora_inicio, hora_fim: diaInteiro ? null : f.hora_fim,
+        data_inicio: f.periodo ? f.data_inicio || null : null, data_fim: f.periodo ? f.data_fim || null : null,
+        prioridade: Number(f.prioridade), ativa: f.ativa,
+      }, "Regra salva. As TVs aplicam em até 15 segundos.");
       fechar();
     } catch (e) { setErro(e.message); } finally { setSalvando(false); }
   };
 
   return (
-    <Modal open onClose={fechar} title={regra ? "Editar regra" : "Nova regra de programação"} maxWidth="md:max-w-lg">
-      <Erro texto={erro} />
-      <Field label="Nome"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Ex.: Almoço de segunda a sexta" maxLength={80} /></Field>
-      <Field label="Playlist exibida">
+    <Modal open onClose={fechar} title={regra ? "Editar regra" : "Nova regra"} maxWidth="md:max-w-lg">
+      <p className="-mt-1 mb-3 text-sm text-hf-muted">Defina qual playlist aparece em cada tela, dia e horário.</p>
+      <Field label="Nome da regra"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Ex.: Almoço de segunda a sexta" maxLength={80} /></Field>
+      <Field label="Playlist que será exibida">
         <Select value={f.playlist_id} onChange={(e) => set("playlist_id", e.target.value)}>
+          <option value="">Escolha uma playlist</option>
           {painel.playlists.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
         </Select>
       </Field>
-      <Field label="Dias da semana (nenhum = todos)">
+      <Field label="Telas-alvo">
+        <div className="space-y-1 rounded-xl border border-hf-border p-1.5">
+          {painel.telas.map((t) => (
+            <label key={t.id} className="flex min-h-11 items-center gap-3 rounded-lg px-2 hover:bg-hf-elevated">
+              <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={f.tela_ids.includes(t.id)} onChange={() => alternarTela(t.id)} />
+              <span className="min-w-0 flex-1 truncate text-sm text-hf-text">{t.nome}</span>
+              <span className="shrink-0 text-xs text-hf-muted">{t.local || ""}</span>
+            </label>
+          ))}
+          {!painel.telas.length && <p className="px-2 py-2 text-sm text-hf-muted">Nenhuma TV pareada ainda.</p>}
+        </div>
+        <p className="mt-1 text-xs text-hf-muted">Sem seleção, a regra vale para todas as telas.</p>
+      </Field>
+      <Field label="Dias da semana">
         <div className="grid grid-cols-7 gap-1">
           {DIAS.map((d, i) => (
             <button key={d} onClick={() => alternarDia(i)} className={`min-h-11 rounded-lg text-xs font-semibold ${f.dias_semana.includes(i) ? "bg-hf-menu text-white" : "border border-hf-border text-hf-text-2"}`}>{d}</button>
           ))}
         </div>
+        {!f.dias_semana.length && <p className="mt-1 text-xs text-hf-muted">Nenhum dia marcado = todos os dias.</p>}
       </Field>
-      <div className="mb-2 flex min-h-11 items-center justify-between">
-        <span className="text-sm text-hf-text">Dia inteiro</span>
-        <Toggle active={f.diaInteiro} onChange={() => set("diaInteiro", !f.diaInteiro)} />
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Começa às"><TextInput type="time" value={f.hora_inicio} onChange={(e) => set("hora_inicio", e.target.value)} className="min-w-0" /></Field>
+        <Field label="Termina às"><TextInput type="time" value={f.hora_fim} onChange={(e) => set("hora_fim", e.target.value)} className="min-w-0" /></Field>
       </div>
-      {!f.diaInteiro && (
+      <div className="-mt-2 mb-3 flex items-start justify-between gap-3">
+        <p className="text-xs text-hf-muted">
+          {diaInteiro ? "Dia inteiro." : viraNoite ? `Atravessa a meia-noite: das ${f.hora_inicio} até ${f.hora_fim} do dia seguinte.` : "Fim menor que o início atravessa a meia-noite."}
+        </p>
+        <button type="button" onClick={() => setF((x) => ({ ...x, hora_inicio: "00:00", hora_fim: "00:00" }))} className="min-h-9 shrink-0 text-xs font-semibold text-hf-accent">Dia inteiro</button>
+      </div>
+      <label className="mb-3 flex min-h-11 items-start gap-3 rounded-xl border border-hf-border p-3">
+        <input type="checkbox" className="mt-0.5 h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={f.periodo} onChange={() => set("periodo", !f.periodo)} />
+        <span>
+          <span className="block text-sm font-semibold text-hf-text">Limitar por período</span>
+          <span className="block text-xs text-hf-muted">Útil para campanhas com data para começar ou terminar.</span>
+        </span>
+      </label>
+      {f.periodo && (
         <div className="grid grid-cols-2 gap-2">
-          <Field label="Começa às"><TextInput type="time" value={f.hora_inicio} onChange={(e) => set("hora_inicio", e.target.value)} /></Field>
-          <Field label="Termina às"><TextInput type="time" value={f.hora_fim} onChange={(e) => set("hora_fim", e.target.value)} /></Field>
+          <Field label="De"><TextInput type="date" value={f.data_inicio} onChange={(e) => set("data_inicio", e.target.value)} className="min-w-0 !px-2" /></Field>
+          <Field label="Até"><TextInput type="date" value={f.data_fim} onChange={(e) => set("data_fim", e.target.value)} className="min-w-0 !px-2" /></Field>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-2">
-        <Field label="A partir de (opcional)"><TextInput type="date" value={f.data_inicio} onChange={(e) => set("data_inicio", e.target.value)} /></Field>
-        <Field label="Até (opcional)"><TextInput type="date" value={f.data_fim} onChange={(e) => set("data_fim", e.target.value)} /></Field>
+      <div className="grid grid-cols-2 items-end gap-2">
+        <Field label="Prioridade"><TextInput type="number" inputMode="numeric" min={1} max={999} value={f.prioridade} onChange={(e) => set("prioridade", e.target.value)} className="min-w-0" /></Field>
+        <label className="mb-4 flex min-h-12 items-center gap-3 rounded-xl border border-hf-border px-3">
+          <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={f.ativa} onChange={() => set("ativa", !f.ativa)} />
+          <span className="text-sm font-semibold text-hf-text">Regra ativa</span>
+        </label>
       </div>
-      <Field label="Prioridade (maior vence quando duas regras valem ao mesmo tempo)">
-        <TextInput type="number" min={1} max={999} value={f.prioridade} onChange={(e) => set("prioridade", e.target.value)} />
-      </Field>
-      <Field label={`Telas (${f.tela_ids.length ? f.tela_ids.length : "todas"})`}>
-        <div className="max-h-[180px] space-y-1 overflow-y-auto">
-          {painel.telas.map((t) => (
-            <label key={t.id} className="flex min-h-11 items-center gap-3 rounded-xl px-2 hover:bg-hf-elevated">
-              <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={f.tela_ids.includes(t.id)} onChange={() => alternarTela(t.id)} />
-              <span className="min-w-0 flex-1 truncate text-sm text-hf-text">{t.nome}</span>
-            </label>
-          ))}
-          {!painel.telas.length && <p className="text-sm text-hf-muted">Sem telas pareadas: a regra vale para todas as que forem pareadas.</p>}
-        </div>
-      </Field>
-      <div className="mb-4 flex min-h-11 items-center justify-between">
-        <span className="text-sm text-hf-text">Regra ligada</span>
-        <Toggle active={f.ativa} onChange={() => set("ativa", !f.ativa)} />
-      </div>
-      <Btn onClick={salvar} disabled={salvando || !f.nome.trim() || !f.playlist_id} className="!min-h-12 w-full">{salvando ? "Salvando…" : "Salvar regra"}</Btn>
+      <p className="mb-3 text-xs text-hf-muted">Horários iguais significam dia inteiro. Em conflitos, vence a maior prioridade; no empate, a regra salva mais recentemente. Fora das faixas ativas, a tela mostra o conteúdo fixo dela (Trocar conteúdo) como reserva.</p>
+      <Erro texto={erro} />
+      <Btn onClick={salvar} disabled={salvando} className="!min-h-12 w-full">{salvando ? "Salvando…" : "Salvar regra"}</Btn>
       {regra && podeExcluir && (
         <button onClick={() => window.confirm("Excluir a regra?") && executar("excluir_programacao", { id: regra.id }, "Regra excluída").then(fechar).catch((e) => setErro(e.message))}
           className="mt-3 min-h-11 w-full text-sm font-medium text-hf-danger">Excluir regra</button>

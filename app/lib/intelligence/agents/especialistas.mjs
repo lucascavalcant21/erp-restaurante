@@ -13,6 +13,29 @@ import { HANDLERS_COMPRAS, HANDLERS_RH, HANDLERS_FICHAS, HANDLERS_ETIQUETAS } fr
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoInsight, blocoTexto, brl, num, ddmm, valorFormatado } from "../commands/resposta.mjs";
 
 const r = (texto, blocos = [], acoes = [], nivel = NIVEL.OBSERVAR) => ({ texto, blocos, acoes, nivel });
+/** "a receita base de vatapá" → base; "o prato de vatapá" / "o drink de…" → prato; senão null. */
+export function tipoDeFichaPedido(texto) {
+  const t = String(texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (/\b(receita|massa|molho|preparo)\s+base\b|\ba base\b|\bbase d[eoa]s?\b|\bpre[- ]?preparo\b/.test(t)) return "base";
+  if (/\b(o|um)\s+(prato|drink|drinque)\b|\b(prato|drink|drinque)\s+d[eoa]s?\b/.test(t)) return "prato";
+  return null;
+}
+
+/** O termo com a grafia do cadastro ("vatapa" → "Vatapá"), para o texto e os botões. */
+export function nomeLegivel(termo, nomes) {
+  const sem = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const alvo = sem(termo).split(/\s+/).filter(Boolean);
+  for (const n of nomes || []) {
+    const palavras = String(n).split(/\s+/);
+    const achadas = alvo.map((a) => palavras.find((p) => sem(p).replace(/[^a-z0-9]/g, "") === a));
+    if (achadas.every(Boolean)) {
+      const s = achadas.join(" ");
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+  }
+  return String(termo || "").trim();
+}
+
 const insuf = (m, rotulo) => r(fraseDaMetrica(m, rotulo), [blocoMetrica(m, rotulo)], [], NIVEL.OBSERVAR);
 
 // ─── Vendas ──────────────────────────────────────────────────────────────────
@@ -283,7 +306,23 @@ export const AgenteOperacoes = {
   async "fichas.preparo"({ motor, params }) {
     // "como faz essa?" logo depois de falar de uma ficha: vale a ficha da conversa (reconferida nesta unidade)
     if (!params.produto && !params.fichaIdContexto) return { ...r("De qual prato ou drink?"), pergunta: { campo: "produto", texto: "De qual prato ou drink você quer a ficha?", livre: true, comandoBase: "Como faz {valor}?" } };
-    const m = await motor.getRecipe(params.produto ? { termo: params.produto, frase: params.texto || null } : { fichaId: params.fichaIdContexto });
+    const tipo = tipoDeFichaPedido(params.texto);
+    const m = await motor.getRecipe(params.produto ? { termo: params.produto, frase: params.texto || null, tipo } : { fichaId: params.fichaIdContexto });
+    if (m.status === "insuficiente" && m.detalhes?.ambiguo && !tipo) {
+      // "vatapá" é a receita base E pratos: primeiro pergunta qual dos dois (pedido do dono, 07/11/2026)
+      const ops = m.detalhes.opcoes;
+      const bases = ops.filter((o) => o.base);
+      const servidos = ops.filter((o) => !o.base);
+      if (bases.length && servidos.length) {
+        const nome = nomeLegivel(params.produto, ops.map((o) => o.nome));
+        const servido = servidos.every((o) => o.departamento === "bar") ? "drink" : "prato";
+        const texto = `Achei a receita base e ${servidos.length} ${servido}${servidos.length > 1 ? "s" : ""} de ${nome}. Você quer a receita (o preparo) ou o ${servido}?`;
+        return { ...r(texto), pergunta: { campo: "produto", texto, opcoes: [
+          { id: "base", rotulo: "A receita (preparo)", comando: `Como faz a receita base de ${nome}?` },
+          { id: "servido", rotulo: `O ${servido}`, comando: `Como faz o ${servido} de ${nome}?` },
+        ] } };
+      }
+    }
     if (m.status === "insuficiente" && m.detalhes?.ambiguo) {
       return { ...r(m.motivo), pergunta: { campo: "produto", texto: m.motivo, opcoes: m.detalhes.opcoes.map((o) => ({ id: o.id, rotulo: o.nome, comando: `Como faz ${o.nome}?` })) } };
     }

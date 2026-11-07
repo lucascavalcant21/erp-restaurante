@@ -51,6 +51,15 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
 - **Rodada 2 (Estoque, Financeiro, painel):** Financeiro com barra de áreas (Visão geral, A pagar, A receber, Caixa, DRE, Pizza, CMV); `/fluxo`, `/documentos` e `/margem` redirecionam (gravavam/liam tabelas fora do financeiro novo, B-024); CMV sem 0% inventado (B-023); Contas a Pagar em cartões no celular; Pizza do Lucro visível no celular; paleta sem fundo preto no Estoque e no Financeiro; abas do Estoque à vista no celular; painel inicial com faturamento vazio compacto. Simulador com o **esquema e o volume reais** (369 produtos, 374 saldos, 350 movimentos; leitura só). Mesmo resultado de testes; build OK.
 
+## 07/11/2026 — Visual inspirado no Nina (pedido do dono)
+
+Branch `claude/visual-nina-modulos` (PR em rascunho):
+- Fonte do app: **Inter** (antes Plus Jakarta Sans).
+- **Cores de módulo** (`hf-tile-*`, `app/lib/cores-modulo.mjs`, `ui/IconeModulo.js`): ícone colorido por função, só no quadradinho do ícone.
+- **Cozinha, Bar e Salão:** trilha e data no topo, card grafite de destaque (KDS com a fila real do setor; Comandas no Salão), cards com ícone, título, descrição e seta.
+- **Início:** cabeçalho plano e lançador de módulos (mesmas permissões do menu do topo).
+- Evidência: TESTADO LOCAL (`cores-modulo.test.mjs` 5/5, menu 13/13, catálogo de permissões e navegação OK; as 13 falhas de `app/lib` são as mesmas da `main`, testes de banco sem PGLITE), build OK (fontes do Google simuladas: a sandbox não alcança o Google Fonts). TESTADO EM MOCK (Playwright 390/820/1366 px, Supabase falso: sem rolagem lateral, sem erro de página, toques ≥ 44 px nas telas novas). Preview e produção: NÃO VALIDADO.
+
 ## 27/10/2026 (noite) — Estoque organizado, fundo cinza
 
 - **Todos os produtos** (aba nova do Estoque): saldo por local, ritmo REAL de saída/entrada (dia/semana/mês), cobertura e mínimo/máximo sugerido (ESTIMATIVA) pelo prazo de reposição + folga + intervalo de compra; grava só `estoque_minimo/estoque_maximo`. TESTADO LOCAL (6 testes) + TESTADO EM MOCK (cópia do estoque real, Playwright 11/11).

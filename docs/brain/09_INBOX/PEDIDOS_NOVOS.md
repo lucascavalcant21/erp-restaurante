@@ -106,3 +106,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 06/11/2026 | Restaurante: meta de lucro em R$, lucro por pedido com margem de segurança na Pizza do prato; metas por período, projeção do mês e estrutura de custos no Resultado do mês | PR rascunho · TESTADO EM MOCK. Eventos a seguir |
 | 06/11/2026 | Meta de lucro só em reais na tela ("R$ 25" ao lado de "25%" confunde) | Publicado com o PR #238 · TESTADO EM MOCK |
 | 06/11/2026 | Eventos: meta de lucro em R$ por convidado no orçamento, margem de segurança; aba Metas com lucro e faturamento contratados do mês e do ano, negociação, eventos abaixo da meta e para onde vai o dinheiro | PR rascunho · TESTADO EM MOCK |
+| 07/11/2026 | Analisar o visual do Nina (fonte, cores, posições) e implantar no Héfisto | PR rascunho `claude/visual-nina-modulos` · TESTADO EM MOCK (Playwright 390/820/1366 px, Supabase falso) e TESTADO LOCAL. Fonte Inter, cores de módulo, Cozinha/Bar/Salão e Início |

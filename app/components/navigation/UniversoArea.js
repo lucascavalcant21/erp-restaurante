@@ -81,7 +81,7 @@ function CardModulo({ card }) {
   return (
     <Link
       href={card.href}
-      className="group relative flex min-h-[76px] min-w-0 items-center gap-3.5 rounded-[18px] border border-hf-border bg-hf-surface p-3.5 shadow-xs transition hover:border-hf-border-strong hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent sm:min-h-[96px] sm:items-start sm:p-4"
+      className="group relative flex min-h-[76px] min-w-0 items-center gap-3.5 rounded-[18px] border border-hf-border bg-hf-surface p-3.5 shadow-xs transition hover:border-hf-border-strong hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent sm:min-h-[84px] sm:items-start sm:p-4"
     >
       <IconeModulo item={card} tamanho="md" />
       <span className="min-w-0 flex-1 pr-5">

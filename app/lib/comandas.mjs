@@ -101,3 +101,44 @@ export function numeroDaMesa(mesa) {
 export function ordenarMesas(mesas = []) {
   return [...mesas].sort((a, b) => numeroDaMesa(a).localeCompare(numeroDaMesa(b), "pt-BR", { numeric: true }));
 }
+
+/* ── Venda no balcão pelo mesmo fechamento da comanda (07/11/2026) ─────────
+   O balcão (e as abas iFood e Cardápio digital do caixa) cria o pedido aberto,
+   grava os itens e fecha pelo comanda_fechar: entra no caixa, no faturamento do
+   dia e nas contas a receber, baixa pela ficha e pode ser cancelada. */
+
+const c2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
+export const ORIGENS_BALCAO = { balcao: "Balcão", ifood: "iFood", cardapio: "Cardápio digital" };
+
+/**
+ * Monta itens, totais e pagamentos como o banco vai conferir: cada item
+ * arredondado, desconto e acréscimo em centavos. Diferença de até 5 centavos
+ * nos pagamentos (desconto em %, troco) vai para o último pagamento; mais que
+ * isso é erro de valor e volta para o caixa corrigir.
+ */
+export function planoDoBalcao({ itens = [], pagamentos = [], desconto = 0, acrescimo = 0 } = {}) {
+  const linhas = (itens || []).filter((it) => it?.id && Number(it.quantidade) > 0).map((it) => {
+    const mods = it.modsSelecionados || [];
+    const unit = c2(Number(it.preco_venda ?? it.preco ?? 0) + mods.reduce((t, m) => t + Number(m.preco || 0), 0));
+    const extras = mods.map((m) => `+${m.nome}`).join(", ");
+    const obs = [String(it.observacao || "").trim(), extras && (it.observacao ? `(${extras})` : extras)].filter(Boolean).join(" ");
+    return { produto_id: it.id, quantidade: Number(it.quantidade), valor_unitario: unit, observacao: obs || null,
+      status_kds: String(it.departamento || "").toLowerCase().includes("cozinha") ? "pendente" : "entregue" };
+  });
+  if (!linhas.length) return { erro: "Adicione itens à venda." };
+  const subtotal = c2(linhas.reduce((t, l) => t + c2(l.quantidade * l.valor_unitario), 0));
+  if (!(subtotal > 0)) return { erro: "A venda está sem valor." };
+  const desc = Math.min(Math.max(c2(desconto), 0), subtotal);
+  const acr = Math.max(c2(acrescimo), 0);
+  const total = c2(subtotal - desc + acr);
+  const pags = (pagamentos || []).map((p) => ({ forma: p.forma === "vr" ? "voucher" : p.forma, valor: c2(p.valor) })).filter((p) => p.valor > 0);
+  if (!pags.length) return { erro: "Informe o pagamento." };
+  const diferenca = c2(total - pags.reduce((t, p) => t + p.valor, 0));
+  if (Math.abs(diferenca) > 0.05) return { erro: `Pagamentos somam ${pags.reduce((t, p) => t + p.valor, 0).toFixed(2)} e a venda é ${total.toFixed(2)}.` };
+  if (diferenca !== 0) {
+    const ultimo = pags[pags.length - 1];
+    ultimo.valor = c2(ultimo.valor + diferenca);
+    if (!(ultimo.valor > 0)) return { erro: "Confira os valores dos pagamentos." };
+  }
+  return { linhas, subtotal, desconto: desc, acrescimo: acr, total, pagamentos: pags };
+}

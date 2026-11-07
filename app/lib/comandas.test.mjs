@@ -66,3 +66,32 @@ test("tempo, número e ordem das mesas", () => {
   assert.equal(numeroDaMesa({ numero: "Mesa 7" }), "7");
   assert.deepEqual(ordenarMesas([{ numero: "Mesa 10" }, { numero: "Mesa 2" }]).map(numeroDaMesa), ["2", "10"]);
 });
+
+test("balcão: itens com adicionais, totais em centavos e ajuste de centavo no último pagamento", async () => {
+  const { planoDoBalcao } = await import("./comandas.mjs");
+  const p = planoDoBalcao({
+    itens: [
+      { id: 1, preco_venda: 10, quantidade: 2, departamento: "Cozinha", modsSelecionados: [{ nome: "Queijo", preco: 2.5 }], observacao: "sem cebola" },
+      { id: 2, preco: 7.9, quantidade: 1, departamento: "bar" },
+    ],
+    pagamentos: [{ forma: "dinheiro", valor: 20 }, { forma: "vr", valor: 9.567 }],
+    desconto: 3.333, acrescimo: 0,
+  });
+  assert.deepEqual(p.linhas, [
+    { produto_id: 1, quantidade: 2, valor_unitario: 12.5, observacao: "sem cebola (+Queijo)", status_kds: "pendente" },
+    { produto_id: 2, quantidade: 1, valor_unitario: 7.9, observacao: null, status_kds: "entregue" },
+  ]);
+  assert.equal(p.subtotal, 32.9);
+  assert.equal(p.desconto, 3.33);
+  assert.equal(p.total, 29.57);
+  assert.deepEqual(p.pagamentos, [{ forma: "dinheiro", valor: 20 }, { forma: "voucher", valor: 9.57 }]);
+});
+
+test("balcão: recusa venda vazia, sem pagamento ou com valor errado", async () => {
+  const { planoDoBalcao } = await import("./comandas.mjs");
+  assert.equal(planoDoBalcao({ itens: [] }).erro, "Adicione itens à venda.");
+  assert.equal(planoDoBalcao({ itens: [{ id: 1, preco: 10, quantidade: 1 }] }).erro, "Informe o pagamento.");
+  assert.equal(planoDoBalcao({ itens: [{ id: 1, preco: 10, quantidade: 1 }], pagamentos: [{ forma: "pix", valor: 9 }] }).erro, "Pagamentos somam 9.00 e a venda é 10.00.");
+  // Desconto maior que a venda fica no valor da venda; aí não há o que receber.
+  assert.equal(planoDoBalcao({ itens: [{ id: 1, preco: 10, quantidade: 1 }], pagamentos: [{ forma: "pix", valor: 10 }], desconto: 50 }).erro, "Pagamentos somam 10.00 e a venda é 0.00.");
+});

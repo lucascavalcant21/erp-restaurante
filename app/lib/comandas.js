@@ -2,7 +2,7 @@
 // Receber continua no caixa (/dashboard/salao/mesas).
 
 import { supabase, isSupabaseReady } from "./supabase";
-import { itensParaEnviar } from "./comandas.mjs";
+import { ORIGENS_BALCAO, itensParaEnviar, planoDoBalcao } from "./comandas.mjs";
 import { consumoDaVenda, devolucoesDaVenda, pagamentosDaConta, planejarBaixas } from "./comanda-baixa.mjs";
 import { registrarMovimentoMulti } from "./estoques-multiplos";
 
@@ -150,4 +150,36 @@ export async function cancelarVenda({ vendaId, motivo, devolverEstoque = false, 
     }
   }
   return { data, avisos, error: null };
+}
+
+/**
+ * Venda no balcão (e abas iFood / Cardápio digital) pelo mesmo fechamento da
+ * comanda (07/11/2026). Antes ia direto para `lancamentos` e não aparecia no
+ * caixa nem no faturamento do dia. Se algo falhar depois de criar o pedido, o
+ * pedido e os itens são cancelados para não ficarem abertos nem no KDS.
+ */
+export async function venderNoBalcao({ unidadeId, caixaId, itens, pagamentos, desconto = 0, acrescimo = 0, cliente = null, origem = "balcao", quem = "" }) {
+  if (!isSupabaseReady()) return { error: OFFLINE };
+  const plano = planoDoBalcao({ itens, pagamentos, desconto, acrescimo });
+  if (plano.erro) return { error: plano.erro };
+  const nome = String(cliente || "").trim() || null;
+
+  const { data: pedido, error: errPed } = await supabase.from("pedidos").insert({
+    unidade_id: unidadeId, status: "aberto", tipo_pedido: origem, identificacao: ORIGENS_BALCAO[origem] || "Balcão", cliente_nome: nome,
+  }).select("id").single();
+  if (errPed) return { error: errPed.message };
+
+  const desfazer = async () => {
+    await supabase.from("pedidos_itens").update({ status_kds: "cancelado" }).eq("pedido_id", pedido.id);
+    await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", pedido.id).eq("status", "aberto");
+  };
+  const { error: errItens } = await supabase.from("pedidos_itens").insert(plano.linhas.map((l) => ({ ...l, pedido_id: pedido.id })));
+  if (errItens) { await desfazer(); return { error: errItens.message }; }
+
+  const r = await receberComanda({
+    pedidoId: pedido.id, caixaId, unidadeId, pagamentos: plano.pagamentos,
+    desconto: plano.desconto, taxaServico: 0, acrescimo: plano.acrescimo, cliente: nome, quem,
+  });
+  if (r.error) { await desfazer(); return { error: r.error }; }
+  return { data: { id: pedido.id, venda_id: r.data?.venda_id, total: plano.total }, faltas: r.faltas || [], error: null };
 }

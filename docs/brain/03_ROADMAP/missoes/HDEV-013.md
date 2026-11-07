@@ -35,6 +35,6 @@ Decisões do dono (06/11/2026): conta por mesa, dividindo por pessoa. Garçom la
 - Decisões do dono (06/11/2026): venda baixa pela ficha, faturamento do dia soma sozinho e cartão/Pix viram contas a receber.
 - Os 10% ficam fora do faturamento: gorjeta não é receita.
 - Baixa pela ficha desce até o ingrediente cru. A retirada manual do que foi vendido conta duas vezes.
-- Balcão ainda usa `lancarVendaBalcao` (legado, grava em `lancamentos`).
+- Balcão, iFood e Cardápio digital do caixa (07/11/2026): `venderNoBalcao` cria o pedido aberto, grava os itens e fecha pelo `comanda_fechar` (antes ia só para `lancamentos` e não aparecia no fechamento do caixa). Fluxo TESTADO NO SUPABASE REAL sob RLS em transação desfeita; tela TESTADO EM MOCK. `lancarVendaBalcao` ficou sem uso.
 - Cancelamento de venda (07/11/2026): `COM_4` + "Vendas do caixa" no caixa. Cancela contas a receber previstas, tira do faturamento do dia, marca venda e comanda. Devolução ao estoque opcional (o que a venda tirou, chave `cancelamento:<venda>:…`). Permissão `salao.sector.cancel` (só gerente). SQL TESTADO LOCAL em PGlite e TESTADO NO SUPABASE REAL em transação desfeita; tela TESTADO EM MOCK. COM-4 aplicada em 07/11/2026 (APR-021).
 - A tela antiga usava `comandas` (itens em JSON). Essa tabela fica no banco, sem uso.

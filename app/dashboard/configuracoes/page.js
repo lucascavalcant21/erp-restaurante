@@ -424,6 +424,11 @@ function CardImpressoras() {
         </div>
       </div>
       <div className="p-5 space-y-3">
+        <a href="/dashboard/configuracoes/impressao" className="group block rounded-xl border-2 border-emerald-500 bg-emerald-50/50 p-4 transition hover:bg-emerald-100/60">
+          <Printer size={20} className="mb-3 text-emerald-600" />
+          <p className="font-black text-slate-800">Impressão de comandas</p>
+          <p className="mt-1 text-xs text-fg">Modelos da via da cozinha, do bar, da conferência e do recibo; impressora de cada setor neste aparelho; observações prontas do garçom.</p>
+        </a>
         <a href="/dashboard/configuracoes/impressoras" className="group block rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
           <Printer size={20} className="mb-3 text-success" />
           <p className="font-black text-slate-800">Diagnóstico WebUSB (Android / Tablet)</p>

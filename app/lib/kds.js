@@ -68,9 +68,9 @@ export async function fetchFilaKDS(unidadeId, setor = "cozinha") {
   const { data, error } = await supabase
     .from("pedidos_itens")
     .select(`
-      id, pedido_id, quantidade, observacao, status_kds, created_at,
+      id, pedido_id, quantidade, observacao, pessoa, status_kds, created_at,
       produtos ( nome_produto, departamento ),
-      pedidos!inner ( id, unidade_id, status, tipo_pedido, cliente_nome, identificacao, created_at )
+      pedidos!inner ( id, unidade_id, status, tipo_pedido, cliente_nome, identificacao, garcom_nome, created_at )
     `)
     .eq("pedidos.unidade_id", unidadeId)
     .in("status_kds", STATUS_NA_FILA)

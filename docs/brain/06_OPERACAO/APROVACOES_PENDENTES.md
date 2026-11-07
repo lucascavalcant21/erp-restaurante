@@ -310,10 +310,10 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 
 ## APR-021 — COM-4: cancelar a venda da comanda
 
-**PENDENTE (07/11/2026).** Aplicar `db/comandas/COM_4_CANCELAR_VENDA.sql` no banco real.
+**Executada em 07/11/2026 com autorização do dono** (`apply_migration com_4_cancelar_venda`). Verificação pós-aplicação passou: função presente, anon sem acesso, 3 colunas. TESTADO NO SUPABASE REAL em transação desfeita: fechar comanda de R$ 50 (dinheiro 20, crédito 30) e cancelar → venda e comanda canceladas, crédito cancelado, cancelamentos +50, devolver R$ 20 em dinheiro; segundo toque repetido; usuário sem `salao.sector.cancel` recusado. Nada ficou gravado.
 - **O que faz:** três colunas novas em `vendas` (`cancelada_em`, `cancelada_por`, `motivo_cancelamento`) e a função `venda_cancelar(venda, motivo)`. Só aditiva; nada é apagado.
 - **Regras da função:** permissão `salao.sector.cancel`; motivo obrigatório; recusa se o caixa da venda já fechou ou se cartão/Pix já foi conferido como recebido (aí é estorno pelo Financeiro). Cancela as contas a receber previstas da venda, soma o valor em `cancelamentos` no faturamento do dia, marca a venda e a comanda como canceladas. Segundo toque não soma de novo.
-- **Evidência:** TESTADO LOCAL com o SQL real em PGlite (`app/lib/comanda-fechar-banco.test.mjs`, 17 casos novos). Tela TESTADO EM MOCK. NÃO VALIDADO no Supabase real.
+- **Evidência:** TESTADO LOCAL com o SQL real em PGlite (`app/lib/comanda-fechar-banco.test.mjs`, 17 casos novos). Tela TESTADO EM MOCK. TESTADO NO SUPABASE REAL (acima).
 - **Rollback:** `db/comandas/COM_4_ROLLBACK.sql` (recusa rodar se já houver venda cancelada, para não perder o histórico).
 - **Sem a COM-4 aplicada:** a lista "Vendas do caixa" aparece sem o botão de cancelar.
 

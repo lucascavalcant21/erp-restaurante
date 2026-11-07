@@ -137,7 +137,8 @@ export const PERMISSION_MODULES = [
       { id: "training_pick", label: "Escolher área de treinamento", route: "/dashboard/treinamentos", actions: CRUD },
       { id: "notes", label: "Observações", route: "/dashboard/operacao/observacoes", actions: CRUD },
       // Cobre por prefixo /dashboard/salao/mesas e /dashboard/salao/online.
-      { id: "sector", label: "Operação do salão", route: "/dashboard/salao", actions: ["view", "create", "edit", "confirm", "view_values"] },
+      // cancel: cancelar venda já recebida (COM-4, 07/11/2026). Só gerente: o caixa recebe, não desfaz.
+      { id: "sector", label: "Operação do salão", route: "/dashboard/salao", actions: ["view", "create", "edit", "confirm", "cancel", "view_values"] },
     ],
   },
   {

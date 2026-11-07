@@ -36,12 +36,12 @@ export default function CentralDeInteligencia() {
   const c = useCentralInteligencia(unidadeAtiva);
   const router = useRouter();
 
-  // A conversa da Central é o Assistente Efto (tela própria, estilo WhatsApp): a pergunta vai junto
+  // A conversa da Central é o Assistente Héfisto (tela própria, estilo WhatsApp): a pergunta vai junto
   const perguntar = useCallback((texto) => {
-    router.push(`${ROTA_EFTO}${texto ? `?q=${encodeURIComponent(String(texto).slice(0, 500))}` : ""}`);
+    router.push(`${ROTA_ASSISTENTE}${texto ? `?q=${encodeURIComponent(String(texto).slice(0, 500))}` : ""}`);
   }, [router]);
 
-  // Pergunta vinda da busca (Ctrl+K) quando já se está na Central: abre o Assistente Efto com ela
+  // Pergunta vinda da busca (Ctrl+K) quando já se está na Central: abre o Assistente Héfisto com ela
   useEffect(() => {
     const aoPerguntar = (e) => { const t = e?.detail?.texto; if (t) perguntar(t); };
     window.addEventListener("hefisto:perguntar", aoPerguntar);
@@ -73,7 +73,7 @@ export default function CentralDeInteligencia() {
             </div>
           )}
         </div>
-        {!c.semUnidade && <CartaoAssistenteEfto className="mt-4 lg:hidden" />}
+        {!c.semUnidade && <CartaoAssistenteHefisto className="mt-4 lg:hidden" />}
         {brief && <p className="mt-2 max-w-3xl text-[16px] leading-snug text-hf-text-2">{brief.summary}</p>}
         {brief && (
           <p className="mt-1 text-[12px] font-medium text-hf-muted">
@@ -183,7 +183,7 @@ export default function CentralDeInteligencia() {
           </div>
 
           <aside className="space-y-6 lg:sticky lg:top-4">
-            <CartaoAssistenteEfto className="hidden lg:block" />
+            <CartaoAssistenteHefisto className="hidden lg:block" />
             {c.historico.length > 0 && (
               <Secao titulo="Histórico recente">
                 <ul className="space-y-1.5">
@@ -206,20 +206,20 @@ export default function CentralDeInteligencia() {
   );
 }
 
-const ROTA_EFTO = "/dashboard/inteligencia/assistente";
+const ROTA_ASSISTENTE = "/dashboard/inteligencia/assistente";
 
-/** Entrada do Assistente Efto na Central: a ação principal da tela. */
-function CartaoAssistenteEfto({ className = "" }) {
+/** Entrada do Assistente Héfisto na Central: a ação principal da tela. */
+function CartaoAssistenteHefisto({ className = "" }) {
   return (
-    <section className={`rounded-3xl border border-hf-border bg-hf-surface p-4 shadow-sm ${className}`} aria-labelledby="efto-titulo">
+    <section className={`rounded-3xl border border-hf-border bg-hf-surface p-4 shadow-sm ${className}`} aria-labelledby="assistente-titulo">
       <div className="flex items-center gap-3">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-hf-success text-white"><Bot size={24} /></span>
         <div className="min-w-0">
-          <h2 id="efto-titulo" className="text-[17px] font-black text-hf-text">Assistente Efto</h2>
+          <h2 id="assistente-titulo" className="text-[17px] font-black text-hf-text">Assistente Héfisto</h2>
           <p className="text-[13px] leading-snug text-hf-text-2">Converse por texto ou áudio: entrada no estoque, conferência de recebimento, ponto da equipe e fichas técnicas com custo e lucro.</p>
         </div>
       </div>
-      <Link href={ROTA_EFTO} className="mt-3 flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-hf-success px-4 text-[15px] font-bold text-white shadow-sm transition active:scale-[0.99]">
+      <Link href={ROTA_ASSISTENTE} className="mt-3 flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-hf-success px-4 text-[15px] font-bold text-white shadow-sm transition active:scale-[0.99]">
         <MessageCircle size={18} /> Abrir conversa <span className="font-medium opacity-80">· texto ou <Mic size={14} className="inline -translate-y-px" /> áudio</span>
       </Link>
     </section>

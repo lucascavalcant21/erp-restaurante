@@ -1,6 +1,6 @@
 "use client";
 
-// /dashboard/inteligencia/assistente — Assistente Efto (conversa estilo WhatsApp).
+// /dashboard/inteligencia/assistente — Assistente Héfisto (conversa estilo WhatsApp).
 // Mesma permissão da Central de Inteligência (prefixo /dashboard/inteligencia
 // no catálogo de rotas). A pergunta pode chegar pela Central em ?q=.
 
@@ -8,7 +8,7 @@ import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import AssistenteEfto from "../../../components/intelligence/efto/AssistenteEfto";
+import AssistenteHefisto from "../../../components/intelligence/assistente/AssistenteHefisto";
 
 function Conteudo() {
   const { unidadeAtiva, unidadeInfo } = useERP() || {};
@@ -18,12 +18,12 @@ function Conteudo() {
   if (!unidadeAtiva) {
     return (
       <div className="mx-auto max-w-md px-4 py-10 text-[15px] text-hf-text-2">
-        Selecione uma unidade para conversar com o Assistente Efto. Ele trabalha com uma unidade por vez e nunca mistura dados de empresas diferentes.
+        Selecione uma unidade para conversar com o Assistente Héfisto. Ele trabalha com uma unidade por vez e nunca mistura dados de empresas diferentes.
       </div>
     );
   }
   return (
-    <AssistenteEfto
+    <AssistenteHefisto
       unidadeId={unidadeAtiva}
       unidadeNome={unidadeInfo?.nome || ""}
       perguntaInicial={q ? q.slice(0, 500) : null}
@@ -32,7 +32,7 @@ function Conteudo() {
   );
 }
 
-export default function PaginaAssistenteEfto() {
+export default function PaginaAssistenteHefisto() {
   return (
     <div className="h-full min-h-0">
       <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-sm font-bold text-hf-text"><Loader2 className="mr-2 animate-spin" />Abrindo conversa…</div>}>

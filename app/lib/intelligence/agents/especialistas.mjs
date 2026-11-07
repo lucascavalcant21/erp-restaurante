@@ -9,7 +9,7 @@ import { DADOS_INSUFICIENTES, NATUREZA, temValor } from "../core/contratos.mjs";
 import { normalizar } from "../metrics/produtos.mjs";
 import { somarDias } from "../core/periodos.mjs";
 import { generateDailyBrief } from "../insights/daily-brief.mjs";
-import { HANDLERS_COMPRAS, HANDLERS_RH, HANDLERS_FICHAS } from "./efto.mjs";
+import { HANDLERS_COMPRAS, HANDLERS_RH, HANDLERS_FICHAS } from "./assistente.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoInsight, blocoTexto, brl, num, ddmm, valorFormatado } from "../commands/resposta.mjs";
 
 const r = (texto, blocos = [], acoes = [], nivel = NIVEL.OBSERVAR) => ({ texto, blocos, acoes, nivel });

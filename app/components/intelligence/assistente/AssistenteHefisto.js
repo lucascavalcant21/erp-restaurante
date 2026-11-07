@@ -1,6 +1,6 @@
 "use client";
 
-// ASSISTENTE EFTO — a conversa da Inteligência com cara de WhatsApp (pedido
+// ASSISTENTE HÉFISTO — a conversa da Inteligência com cara de WhatsApp (pedido
 // do dono, 06/11/2026): papel de parede bege, balões verde-claro (você) e
 // brancos (assistente) com "rabinho", hora e ✓✓, botão redondo que vira
 // microfone quando o campo está vazio, e responder a uma pergunta direto no
@@ -17,9 +17,9 @@ import { ArrowLeft, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Che
 import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } from "../../../lib/intelligence/client/api";
 import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
 
-export const NOME_ASSISTENTE = "Assistente Efto";
+export const NOME_ASSISTENTE = "Assistente Héfisto";
 
-export const SUGESTOES_EFTO = Object.freeze([
+export const SUGESTOES_ASSISTENTE = Object.freeze([
   "Adicione 3 kg de picanha, 4 litros de xarope de guaraná",
   "Quanto tenho no estoque de óleo?",
   "Meus funcionários chegaram no horário?",
@@ -50,7 +50,7 @@ const hora = (t) => FMT_HORA.format(new Date(t || Date.now()));
 let seq = 0;
 const novoId = () => `e${Date.now().toString(36)}${++seq}`;
 const MAX_MENSAGENS = 120;
-const chaveSessao = (u) => `hefisto:efto:${u || "-"}`;
+const chaveSessao = (u) => `hefisto:assistente:${u || "-"}`;
 
 function lerSalvas(unidadeId) {
   try {
@@ -185,7 +185,7 @@ const CartaoConfirmacao = memo(function CartaoConfirmacao({ c, resolvida, ocupad
 });
 
 /** Uma resposta do assistente: um ou mais balões (lote = um balão por item). */
-const RespostaEfto = memo(function RespostaEfto({ m, ultima, ocupado, resolvidas, onComando, onRota, onContinuar, onConfirmar, onCancelar, onConfirmarTodos }) {
+const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, ocupado, resolvidas, onComando, onRota, onContinuar, onConfirmar, onCancelar, onConfirmarTodos }) {
   const r = m.resposta || {};
   const conteudo = (x, chave, primeiro) => {
     const erro = x.tipo === "erro_acao" || x.tipo === "bloqueado";
@@ -284,7 +284,7 @@ function Digitando() {
 }
 
 // ─── tela ─────────────────────────────────────────────────────────────────────
-const AssistenteEfto = forwardRef(function AssistenteEfto({ unidadeId, unidadeNome = "", perguntaInicial = null, onVoltar }, ref) {
+const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, unidadeNome = "", perguntaInicial = null, onVoltar }, ref) {
   const router = useRouter();
   const [mensagens, setMensagens] = useState([]);
   const [resolvidas, setResolvidas] = useState({});
@@ -328,7 +328,7 @@ const AssistenteEfto = forwardRef(function AssistenteEfto({ unidadeId, unidadeNo
 
   const tratar = useCallback((dados, { canal } = {}) => {
     marcarLidas();
-    adicionar({ de: "efto", resposta: dados });
+    adicionar({ de: "assistente", resposta: dados });
     if (dados?.referencia) referenciaRef.current = dados.referencia;
     const aberta = perguntaRespondivel(dados);
     setRespondendo(aberta ? { pergunta: aberta, texto: aberta.texto || dados.texto } : null);
@@ -427,7 +427,7 @@ const AssistenteEfto = forwardRef(function AssistenteEfto({ unidadeId, unidadeNo
     escutaRef.current = voz.ouvir({
       onParcial: (t) => setParcial(t),
       onFinal: (t) => { setOuvindo(false); setParcial(""); enviar(t, { canal: "voz" }); },
-      onErro: (msg) => { setOuvindo(false); adicionar({ de: "efto", resposta: { tipo: "erro_acao", texto: msg } }); },
+      onErro: (msg) => { setOuvindo(false); adicionar({ de: "assistente", resposta: { tipo: "erro_acao", texto: msg } }); },
       onFim: () => setOuvindo(false),
     });
   }, [ouvindo, voz, enviar, adicionar]);
@@ -487,12 +487,12 @@ const AssistenteEfto = forwardRef(function AssistenteEfto({ unidadeId, unidadeNo
               <Balao lado="ele" hora={Date.now()}>
                 <p>Olá! Sou o {NOME_ASSISTENTE}. Pode escrever ou mandar áudio. Eu dou entrada no estoque (cada produto no setor dele), confiro o que chegou, vejo quem chegou no horário e monto fichas técnicas com custo e lucro.</p>
               </Balao>
-              <BotoesRapidos opcoes={SUGESTOES_EFTO.map((s) => ({ id: s, rotulo: s, comando: s }))} desabilitado={ocupado} onEscolher={(o) => enviarComando(o.comando)} />
+              <BotoesRapidos opcoes={SUGESTOES_ASSISTENTE.map((s) => ({ id: s, rotulo: s, comando: s }))} desabilitado={ocupado} onEscolher={(o) => enviarComando(o.comando)} />
             </div>
           )}
 
           {mensagens.map((m, i) => (m.de === "eu" ? <MensagemMinha key={m.id} m={m} /> : (
-            <RespostaEfto key={m.id} m={m} ultima={i === mensagens.length - 1} ocupado={ocupado} resolvidas={resolvidas}
+            <RespostaAssistente key={m.id} m={m} ultima={i === mensagens.length - 1} ocupado={ocupado} resolvidas={resolvidas}
               onComando={enviarComando} onRota={(r) => router.push(r)} onContinuar={continuar}
               onConfirmar={confirmar} onCancelar={cancelar} onConfirmarTodos={confirmarTodos} />
           )))}
@@ -554,4 +554,4 @@ const AssistenteEfto = forwardRef(function AssistenteEfto({ unidadeId, unidadeNo
 
 const TELA = Object.freeze({ rota: "/dashboard/inteligencia/assistente" });
 
-export default AssistenteEfto;
+export default AssistenteHefisto;

@@ -1,4 +1,4 @@
-// Assistente Efto — entrada em lote com local pelo setor, conferência de
+// Assistente Héfisto — entrada em lote com local pelo setor, conferência de
 // recebimento, pontualidade, ficha técnica pela conversa (com cadastro do
 // ingrediente que falta), custo de X gramas e lucro a um preço.
 import test from "node:test";
@@ -75,7 +75,7 @@ async function montar() {
   let n = 0;
   let conversa = null;
   const guardar = (r) => { if (r?.referencia) conversa = r.referencia; return r; };
-  const pedir = async (texto) => guardar(await processarComando({ pedido: { texto, chave: `chave-efto-${++n}`, conversa }, ic, motor, servicoAcoes, store, nomeUsuario: "Lucas", correlationId: `c-${n}` }));
+  const pedir = async (texto) => guardar(await processarComando({ pedido: { texto, chave: `chave-assistente-${++n}`, conversa }, ic, motor, servicoAcoes, store, nomeUsuario: "Lucas", correlationId: `c-${n}` }));
   const responder = async (acaoId, valor) => guardar(await processarComando({ pedido: { continuar: { acaoId, campo: "resposta", valor } }, ic, motor, servicoAcoes, store, correlationId: "c-r" }));
   const confirmar = async (acaoId) => guardar(await servicoAcoes.confirmar({ acaoId, correlationId: "c-ok" }));
   return { pedir, responder, confirmar, db, rpcChamadas, store };

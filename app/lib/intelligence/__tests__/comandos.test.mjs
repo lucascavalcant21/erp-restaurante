@@ -503,7 +503,7 @@ test("entrada em dúvida pergunta: unidade e local", async () => {
   assert.deepEqual(r1.pergunta.opcoes.map((o) => o.id), ["kg", "g"], "picanha a granel: sem opção de embalagem");
   const r2 = await continuar(r1.pergunta.acaoId, "unidade", "kg");
   assert.equal(r2.tipo, "confirmacao", "picanha já está na Cozinha: entra lá");
-  // Assistente Efto: produto sem local entra no local do SETOR do cadastro (cozinha → Cozinha)
+  // Assistente Héfisto: produto sem local entra no local do SETOR do cadastro (cozinha → Cozinha)
   const r3 = await pedir("Recebi 1 kg de picanha suína");
   assert.equal(r3.tipo, "confirmacao", "sem local, setor cozinha: entra na Cozinha");
   assert.equal(r3.confirmacao.linhas.find((l) => l.rotulo === "Local").valor, "Cozinha");

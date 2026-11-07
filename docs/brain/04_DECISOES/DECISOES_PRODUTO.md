@@ -150,9 +150,9 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - Eventos virou a unidade `eventos`, começando vazia. Os eventos antigos ficam onde estão, e o negócio Restaurante continua com a tela deles.
 - As funções e a senha guardada no banco ficam sem uso. Apagar é ação destrutiva e depende do dono.
 
-## DP — Assistente Efto (07/11/2026)
+## DP — Assistente Héfisto (07/11/2026)
 
-Pedido do dono: a conversa da Inteligência se chama **Assistente Efto** e tem cara de WhatsApp.
+Pedido do dono: a conversa da Inteligência se chama **Assistente Héfisto** e tem cara de WhatsApp.
 
 - Tela própria em `/dashboard/inteligencia/assistente` (mesma permissão da Central, por prefixo). A Central abre a conversa por um cartão e manda a pergunta dos insights em `?q=`.
 - **Exceção ao padrão hf-\***: só nesta tela, as cores do WhatsApp (topo #008069, fundo #EFEAE2, balão #D9FDD3, botão #00A884) em variáveis `--wa-*` dentro do componente. Sem logo nem nome do WhatsApp.

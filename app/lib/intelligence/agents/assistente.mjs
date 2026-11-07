@@ -1,4 +1,4 @@
-// Respostas do Assistente Efto que não são ações: conferência de recebimento,
+// Respostas do Assistente Héfisto que não são ações: conferência de recebimento,
 // pontualidade da equipe, custo de X gramas de uma ficha e lucro de um prato
 // a um preço. Os números vêm do Metrics Engine (metrics/assistente.mjs); aqui
 // só se monta o texto, as listas e os próximos passos.

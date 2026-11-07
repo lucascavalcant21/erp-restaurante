@@ -47,7 +47,7 @@ export const INTENCOES = Object.freeze([
     id: "estoque.registrar_entrada", tipo: "acao", acao: "stock.registerEntry", agentes: ["estoque"],
     descricao: "Dar entrada de um produto no estoque (ex.: 'dei entrada de 10 kg de batata', 'chegaram 3 caixas de coca', 'produzi 5 kg de molho').",
     frases: [["dei entrada", "dar entrada", "da entrada", "de entrada", "lanca entrada", "lancar entrada", "registra entrada", "registrar entrada", "registre entrada", "lance entrada", "lance uma entrada", "entrada de", "chegou", "chegaram", "recebi", "recebemos", "produzi", "produzimos", "poe no estoque", "por no estoque", "coloca no estoque", "colocar no estoque", "coloque no estoque", "adiciona no estoque", "adicionar no estoque", "adicione no estoque", "bota no estoque", "botar no estoque",
-      // "Adicione 3 kg de picanha, 4 kg de xarope" (Assistente Efto): verbo sozinho também vale
+      // "Adicione 3 kg de picanha, 4 kg de xarope" (Assistente Héfisto): verbo sozinho também vale
       "adicione", "adiciona", "adicionar", "acrescente", "acrescenta", "coloque", "coloca", "bota", "bote", "ponha", "poe", "entrou", "entraram", "veio", "vieram"]],
     // receita/ficha é o fluxo da ficha técnica; "era pra pedir" é conferência de recebimento
     proibidas: ["quanto", "quais", "qual", "quantas", "quando", "receita", "ficha", "prato", "era pra", "era para", "pedi", "pedido", "pedimos",
@@ -170,7 +170,7 @@ export const INTENCOES = Object.freeze([
     descricao: "Criar uma compra/pedido de compra (ex.: 'crie uma compra de 5 kg de filé').",
     frases: [["crie uma compra", "criar compra", "criar uma compra", "cria uma compra", "faca uma compra", "nova compra", "crie um pedido", "fazer pedido", "faz um pedido", "lanca uma compra", "lance uma compra"]], peso: 10,
   },
-  // ── Assistente Efto ──
+  // ── Assistente Héfisto ──
   {
     id: "compras.conferir_recebimento", tipo: "pergunta", agentes: ["compras"], usaQuantidade: true,
     descricao: "Conferir o que chegou contra o que foi pedido (ex.: 'chegou 3 kg de picanha, só que era para pedir 2').",

@@ -1,4 +1,4 @@
-// MÉTRICAS DO ASSISTENTE EFTO — pontualidade da equipe, conferência de
+// MÉTRICAS DO ASSISTENTE HÉFISTO — pontualidade da equipe, conferência de
 // recebimento e custo de ficha técnica (por quantidade e por preço de venda).
 //
 // Tudo determinístico e com as MESMAS regras do ERP:

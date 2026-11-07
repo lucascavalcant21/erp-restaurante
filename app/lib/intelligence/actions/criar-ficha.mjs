@@ -1,4 +1,4 @@
-// AÇÃO recipe.create — montar uma ficha técnica conversando (Assistente Efto).
+// AÇÃO recipe.create — montar uma ficha técnica conversando (Assistente Héfisto).
 //
 //   "Vamos montar uma receita. O nome vai ser molho de tomate, e vai tomate,
 //    sal, alho, pimenta do reino."
@@ -435,7 +435,7 @@ async function preparar(ctx, params) {
         ficha: {
           nome_receita: p.nome, departamento, eh_base: p.tipo === "base", rendimento_porcoes: p.rendimento,
           rendimento_unidade: p.rendimentoUnidade, preco_venda: p.tipo === "prato" && p.precoVenda > 0 ? p.precoVenda : null,
-          versao: "1.0", status: "ativa", ativo: true, observacoes: "Criada pela conversa (Assistente Efto). Falta o modo de preparo.",
+          versao: "1.0", status: "ativa", ativo: true, observacoes: "Criada pela conversa (Assistente Héfisto). Falta o modo de preparo.",
         },
         ingredientes: fichaNova.fichas_ingredientes.map((x) => ({ insumo_id: x.insumo_id || null, subficha_id: x.subficha_id || null, quantidade: x.quantidade, fator_correcao: 0, novo: x._novo ?? null })),
         novos: novos.map(({ _novo, ...n }) => n),

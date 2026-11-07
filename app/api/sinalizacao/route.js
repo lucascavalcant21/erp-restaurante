@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { autorizarLeituraDaUnidade } from "../../../lib/server/autorizacao-unidade.mjs";
-import { carregarPermissoes, permite } from "../../../lib/server/permissoes-efetivas.mjs";
+import { autorizarLeituraDaUnidade } from "../../lib/server/autorizacao-unidade.mjs";
+import { carregarPermissoes, permite } from "../../lib/server/permissoes-efetivas.mjs";
 import {
   lerPainel, parearTela, salvarTela, trocarConteudo, desconectarTela, excluirTela,
   prepararEnvio, registrarMidia, renomearMidia, excluirMidia,
   salvarPlaylist, excluirPlaylist, salvarProgramacao, excluirProgramacao,
-} from "../../../lib/server/sinalizacao.mjs";
+} from "../../lib/server/sinalizacao.mjs";
 
 // Painel da Sinalização digital (TVs de marketing).
 //   GET  ?unidadeId=…                 telas, mídias, playlists, programação

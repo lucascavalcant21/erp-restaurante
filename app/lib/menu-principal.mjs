@@ -130,9 +130,10 @@ export const MENU_PRINCIPAL = Object.freeze([
   },
   {
     id: "cardapio", label: "Cardápio", href: "/dashboard/operacao/cardapio", icone: "UtensilsCrossed", cor: "vermelho",
-    desc: "Cardápio digital e clientes",
+    desc: "Cardápio digital, TVs e clientes",
     submodules: [
       { label: "Cardápio digital", href: "/dashboard/operacao/cardapio" },
+      { label: "Sinalização digital", href: "/dashboard/marketing/sinalizacao" },
       { label: "Engenharia de cardápio", href: "/dashboard/operacao/engenharia" },
       { label: "Clientes", href: "/dashboard/clientes" },
       { label: "Campanhas", href: "/dashboard/experience/campanhas" },

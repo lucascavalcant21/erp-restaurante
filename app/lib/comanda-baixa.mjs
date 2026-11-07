@@ -79,3 +79,24 @@ export function planejarBaixas({ porSetor, semFicha = [] }, { insumos = new Map(
 export function pagamentosDaConta(pagamentos = []) {
   return pagamentos.map((p) => ({ forma: p.forma === "vr" ? "voucher" : p.forma, valor: Math.round((Number(p.valor) || 0) * 100) / 100 })).filter((p) => p.valor > 0);
 }
+
+/**
+ * Cancelamento da venda (COM-4, 07/11/2026): o que a venda tirou do estoque e
+ * pode voltar. Lê as retiradas gravadas com a chave da venda
+ * (`venda:<vendaId>:<estoque>:<insumo>`) e soma por estoque e insumo. Volta só o
+ * que de fato saiu: nada é recalculado pela ficha de hoje.
+ */
+export function devolucoesDaVenda(movimentos = [], vendaId) {
+  const prefixo = `venda:${vendaId}:`;
+  const soma = new Map();
+  for (const m of movimentos || []) {
+    if (m?.tipo !== "saida" || !String(m.chave_idempotencia || "").startsWith(prefixo)) continue;
+    const q = Number(m.quantidade);
+    if (!(q > 0)) continue;
+    const k = `${m.estoque_id}:${m.insumo_id}`;
+    const atual = soma.get(k) || { estoque_id: m.estoque_id, insumo_id: m.insumo_id, quantidade: 0 };
+    atual.quantidade = Math.round((atual.quantidade + q) * 1000) / 1000;
+    soma.set(k, atual);
+  }
+  return [...soma.values()].map((d) => ({ ...d, chave: `cancelamento:${vendaId}:${d.estoque_id}:${d.insumo_id}` }));
+}

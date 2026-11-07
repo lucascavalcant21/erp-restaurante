@@ -12,6 +12,8 @@
 
 export const MAX_SUGESTOES = 3;
 
+const SEM_SUGESTOES = new Set(["fichas.preparo"]);
+
 const GERAIS = Object.freeze([
   "Como foi minha empresa hoje?",
   "Meus funcionários chegaram no horário?",
@@ -48,7 +50,8 @@ const POR_INTENCAO = {
   "financeiro.contas_a_vencer": () => ["Qual foi meu lucro este mês?", "Quanto vendi esta semana?"],
   "empresa.resumo_dia": () => ["O que precisa da minha atenção?", "Meus funcionários chegaram no horário?", "Quais produtos estão abaixo do mínimo?"],
   "empresa.problemas": () => ["Como foi minha empresa hoje?", "Quais contas vencem nos próximos dias?"],
-  "fichas.preparo": () => ["Vamos montar uma receita", "Como está meu CMV?"],
+  // a folha do prato/drink já termina com "Abrir a ficha": sem botões extras (pedido do dono, 07/11/2026)
+  "fichas.preparo": () => [],
   "fichas.custo_quantidade": ({ f, base }) => [
     f ? "Quanto custa 1 kg dessa receita?" : null,
     base ? "Vamos montar um prato com essa base" : null,
@@ -84,7 +87,7 @@ export function sugestoesDaResposta({ intencao = null, resposta = {}, referencia
   const gerar = POR_INTENCAO[intencao];
   let lista = gerar ? gerar({ p, f, base, preco }) : [];
   // sem assunto conhecido (erro, bloqueio, assunto sem roteiro): as gerais
-  if (!lista.length) lista = [...GERAIS];
+  if (!lista.length && !SEM_SUGESTOES.has(intencao)) lista = [...GERAIS];
   const pedido = normal(texto);
   const vistas = new Set();
   return lista.filter((s) => {

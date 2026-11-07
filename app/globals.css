@@ -469,6 +469,26 @@ textarea *,
   --hf-menu-text:     241 243 244;/* #F1F3F4 texto (15:1) */
   --hf-menu-muted:    189 193 198;/* #BDC1C6 texto secundário (9:1) */
   --hf-menu-accent:   197 161 90; /* #C5A15A dourado: item ativo */
+
+  /* ═══ CORES DE MÓDULO (pedido do dono, 07/11/2026: visual inspirado no Nina) ═══
+     SÓ para o quadradinho do ícone de um módulo/tela (lançador do Início e telas
+     de Cozinha, Bar e Salão). Cada função tem sempre a mesma cor em todo o app
+     (Estoque é sempre índigo, Etiquetas sempre azul), para o funcionário achar
+     pela cor. Não usar em botão, texto, fundo de card nem estado: aí continua o
+     branco e dourado. Ícone branco por cima (≥ 3:1), exceto amarelo e dourado,
+     que levam ícone grafite. Mapa ícone → cor: app/lib/cores-modulo.mjs. */
+  --hf-tile-amarelo:  245 183 10; /* #F5B70A ícone grafite */
+  --hf-tile-dourado:  197 161 90; /* #C5A15A ícone grafite */
+  --hf-tile-laranja:  234 88 12;  /* #EA580C */
+  --hf-tile-vermelho: 220 38 38;  /* #DC2626 */
+  --hf-tile-rosa:     219 39 119; /* #DB2777 */
+  --hf-tile-violeta:  124 58 237; /* #7C3AED */
+  --hf-tile-indigo:   79 70 229;  /* #4F46E5 */
+  --hf-tile-azul:     37 99 235;  /* #2563EB */
+  --hf-tile-ciano:    8 145 178;  /* #0891B2 */
+  --hf-tile-verde:    22 163 74;  /* #16A34A */
+  --hf-tile-grafite:  32 33 36;   /* #202124 */
+  --hf-tile-ardosia:  100 116 139;/* #64748B */
 }
 
 /* Botão dourado escrito em branco (telas antigas: "bg-hf-accent text-white") fica com o texto

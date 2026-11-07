@@ -34,12 +34,12 @@ export const SUGESTOES_ASSISTENTE = Object.freeze([
 const CORES = {
   "--wa-fundo": "#EFEAE2",
   "--wa-topo": "#008069",
-  "--wa-eu": "#D9FDD3",
+  "--wa-eu": "#BDEBAA",
   "--wa-ele": "#FFFFFF",
   "--wa-texto": "#111B21",
   "--wa-meta": "#667781",
-  "--wa-verde": "#00A884",
-  "--wa-verde-escuro": "#008069",
+  "--wa-verde": "#007A63",
+  "--wa-verde-escuro": "#005A49",
   "--wa-lido": "#53BDEB",
   "--wa-aviso": "#FFEECD",
   "--wa-barra": "rgba(246,246,246,0.96)",
@@ -84,7 +84,7 @@ function Balao({ lado, children, hora: h, lido, cauda = true, largo = false }) {
   return (
     <div className={`flex ${eu ? "justify-end" : "justify-start"} px-3 sm:px-[6%] ${cauda ? "mb-1.5" : ""}`}>
       <div
-        className={`relative ${largo ? "w-full max-w-[92%] sm:max-w-[520px]" : "max-w-[82%] sm:max-w-[520px]"} rounded-[18px] px-3 pb-1.5 pt-[7px] text-[16px] leading-[21px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${eu && cauda ? "rounded-br-[5px]" : ""} ${!eu && cauda ? "rounded-bl-[5px]" : ""}`}
+        className={`relative ${largo ? "w-full max-w-[92%] sm:max-w-[520px]" : "max-w-[82%] sm:max-w-[520px]"} rounded-[18px] px-3 pb-1.5 pt-[7px] text-[17.5px] leading-[23px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${eu && cauda ? "rounded-br-[5px]" : ""} ${!eu && cauda ? "rounded-bl-[5px]" : ""}`}
         style={{ background: cor, color: "var(--wa-texto)" }}
       >
         {cauda && (
@@ -93,7 +93,7 @@ function Balao({ lado, children, hora: h, lido, cauda = true, largo = false }) {
           </svg>
         )}
         {children}
-        <span className="float-right ml-2.5 mt-2 inline-flex translate-y-0.5 items-center gap-0.5 text-[11px] leading-none" style={{ color: "var(--wa-meta)" }}>
+        <span className="float-right ml-2.5 mt-2 inline-flex translate-y-0.5 items-center gap-0.5 text-[12.5px] leading-none" style={{ color: "var(--wa-meta)" }}>
           {hora(h)}
           {eu && (lido ? <CheckCheck size={15} style={{ color: "var(--wa-lido)" }} /> : <Check size={15} />)}
         </span>
@@ -113,7 +113,7 @@ const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabili
             type="button"
             disabled={desabilitado}
             onClick={() => onEscolher(o)}
-            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-[14px] px-3 text-center text-[15px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.99] disabled:opacity-50"
+            className="flex min-h-[46px] items-center justify-center gap-1.5 rounded-[14px] px-3 py-2 text-center text-[16.5px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.99] disabled:opacity-50"
             style={{ background: "var(--wa-ele)", color: "var(--wa-verde-escuro)" }}
           >
             {o.rota && <ExternalLink size={14} />}
@@ -133,13 +133,13 @@ function Blocos({ blocos }) {
         if (b.tipo === "lista") {
           return (
             <div key={i} className="rounded-md bg-black/[0.035] px-2 py-1.5">
-              {b.titulo && <p className="mb-0.5 text-[13px] font-semibold">{b.titulo}</p>}
+              {b.titulo && <p className="mb-0.5 text-[14.5px] font-semibold">{b.titulo}</p>}
               <ul className="space-y-0.5">
                 {(b.itens || []).slice(0, 14).map((it, j) => (
-                  <li key={j} className="flex items-baseline justify-between gap-3 text-[13px]">
+                  <li key={j} className="flex items-baseline justify-between gap-3 text-[14.5px]">
                     <span className="min-w-0">
                       {it.rotulo}
-                      {it.detalhe ? <span className="block text-[11.5px]" style={{ color: "var(--wa-meta)" }}>{it.detalhe}</span> : null}
+                      {it.detalhe ? <span className="block text-[13px]" style={{ color: "var(--wa-meta)" }}>{it.detalhe}</span> : null}
                     </span>
                     {it.valor ? <span className="shrink-0 font-semibold tabular-nums">{it.valor}</span> : null}
                   </li>
@@ -148,8 +148,8 @@ function Blocos({ blocos }) {
             </div>
           );
         }
-        if (b.tipo === "texto") return <p key={i} className="text-[12.5px]" style={{ color: "var(--wa-meta)" }}>{b.qualificador ? <strong>{b.qualificador}: </strong> : null}{b.texto}</p>;
-        if (b.tipo === "insight" && b.insight?.titulo) return <p key={i} className="text-[13px]">• {b.insight.titulo}</p>;
+        if (b.tipo === "texto") return <p key={i} className="text-[14px]" style={{ color: "var(--wa-meta)" }}>{b.qualificador ? <strong>{b.qualificador}: </strong> : null}{b.texto}</p>;
+        if (b.tipo === "insight" && b.insight?.titulo) return <p key={i} className="text-[14.5px]">• {b.insight.titulo}</p>;
         return null; // métrica: o texto da resposta já traz a frase
       })}
     </div>
@@ -159,7 +159,7 @@ function Blocos({ blocos }) {
 function Rodape({ r }) {
   const fontes = r?.fontesConsultadas || [];
   if (!fontes.length) return null;
-  return <p className="mt-1 text-[11px]" style={{ color: "var(--wa-meta)" }}>Fontes: {fontes.join(" · ")}</p>;
+  return <p className="mt-1 text-[12.5px]" style={{ color: "var(--wa-meta)" }}>Fontes: {fontes.join(" · ")}</p>;
 }
 
 const CartaoConfirmacao = memo(function CartaoConfirmacao({ c, resolvida, ocupado, onConfirmar, onCancelar }) {
@@ -167,7 +167,7 @@ const CartaoConfirmacao = memo(function CartaoConfirmacao({ c, resolvida, ocupad
   return (
     <>
       <p className="font-semibold">{c.titulo}</p>
-      <dl className="mt-1 space-y-0.5 text-[13.5px]">
+      <dl className="mt-1 space-y-0.5 text-[15px]">
         {(c.linhas || []).map((l, i) => (
           <div key={i} className="flex items-baseline justify-between gap-3">
             <dt style={{ color: "var(--wa-meta)" }}>{l.rotulo}</dt>
@@ -176,17 +176,17 @@ const CartaoConfirmacao = memo(function CartaoConfirmacao({ c, resolvida, ocupad
         ))}
       </dl>
       {c.confirmacaoExplicita && !resolvida && (
-        <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Digite CONFIRMAR" className="mt-2 h-10 w-full rounded-md border border-black/10 bg-white px-2 text-[14px] outline-none" />
+        <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Digite CONFIRMAR" className="mt-2 h-11 w-full rounded-md border border-black/10 bg-white px-2 text-[16px] outline-none" />
       )}
       {resolvida ? (
-        <p className="mt-1.5 text-[12.5px] italic" style={{ color: "var(--wa-meta)" }}>{resolvida === "confirmada" ? "Confirmado." : "Cancelado."}</p>
+        <p className="mt-1.5 text-[14px] italic" style={{ color: "var(--wa-meta)" }}>{resolvida === "confirmada" ? "Confirmado." : "Cancelado."}</p>
       ) : (
         <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-black/5 pt-1.5">
-          <button type="button" disabled={ocupado} onClick={onCancelar} className="min-h-[42px] rounded-md text-[14px] font-medium disabled:opacity-50" style={{ color: "var(--wa-meta)" }}>Cancelar</button>
-          <button type="button" disabled={ocupado || (c.confirmacaoExplicita && texto !== "CONFIRMAR")} onClick={() => onConfirmar(c.confirmacaoExplicita ? texto : null)} className="min-h-[42px] rounded-md text-[14px] font-semibold text-white disabled:opacity-50" style={{ background: "var(--wa-verde)" }}>Confirmar</button>
+          <button type="button" disabled={ocupado} onClick={onCancelar} className="min-h-[46px] rounded-md text-[16px] font-medium disabled:opacity-50" style={{ color: "var(--wa-meta)" }}>Cancelar</button>
+          <button type="button" disabled={ocupado || (c.confirmacaoExplicita && texto !== "CONFIRMAR")} onClick={() => onConfirmar(c.confirmacaoExplicita ? texto : null)} className="min-h-[46px] rounded-md text-[16px] font-semibold text-white disabled:opacity-60" style={{ background: "var(--wa-verde)" }}>Confirmar</button>
         </div>
       )}
-      {!resolvida && <p className="mt-1 text-[11px]" style={{ color: "var(--wa-meta)" }}>Nada é gravado antes de confirmar.</p>}
+      {!resolvida && <p className="mt-1 text-[12.5px]" style={{ color: "var(--wa-meta)" }}>Nada é gravado antes de confirmar.</p>}
     </>
   );
 });
@@ -209,18 +209,18 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
     return (
       <div key={chave} className="space-y-1">
         <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao}>
-          {x.item && !x.confirmacao && <p className="text-[12px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{x.item}</p>}
+          {x.item && !x.confirmacao && <p className="text-[13.5px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{x.item}</p>}
           {x.confirmacao ? (
             <CartaoConfirmacao c={x.confirmacao} resolvida={resolvida} ocupado={ocupado} onConfirmar={(t) => onConfirmar(x.confirmacao.acaoId, t)} onCancelar={() => onCancelar(x.confirmacao.acaoId)} />
           ) : x.tipo === "resultado_acao" ? (
             <>
               <p className="font-semibold">✅ {x.texto}</p>
-              <dl className="mt-1 space-y-0.5 text-[13.5px]">
+              <dl className="mt-1 space-y-0.5 text-[15px]">
                 {(x.resultado?.linhas || []).map((l, i) => (
                   <div key={i} className="flex items-baseline justify-between gap-3"><dt style={{ color: "var(--wa-meta)" }}>{l.rotulo}</dt><dd className="text-right font-medium tabular-nums">{l.valor}</dd></div>
                 ))}
               </dl>
-              {x.repetido && <p className="mt-1 text-[12px]" style={{ color: "var(--wa-meta)" }}>Já tinha sido feito — nada foi duplicado.</p>}
+              {x.repetido && <p className="mt-1 text-[13.5px]" style={{ color: "var(--wa-meta)" }}>Já tinha sido feito — nada foi duplicado.</p>}
             </>
           ) : (
             <p className="whitespace-pre-line">
@@ -260,7 +260,7 @@ const MensagemMinha = memo(function MensagemMinha({ m, cauda = true }) {
   return (
     <Balao lado="eu" hora={m.em} lido={m.lido} cauda={cauda}>
       {m.citacao && (
-        <span className="mb-1 block rounded-md border-l-4 bg-black/5 px-2 py-1 text-[12.5px]" style={{ borderColor: "var(--wa-verde)" }}>
+        <span className="mb-1 block rounded-md border-l-4 bg-black/5 px-2 py-1 text-[14px]" style={{ borderColor: "var(--wa-verde)" }}>
           <span className="block font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{NOME_ASSISTENTE}</span>
           <span className="line-clamp-2" style={{ color: "var(--wa-meta)" }}>{m.citacao}</span>
         </span>
@@ -278,7 +278,7 @@ const MensagemMinha = memo(function MensagemMinha({ m, cauda = true }) {
           </span>
         </span>
       )}
-      <span className={`whitespace-pre-line ${m.canal === "voz" ? "text-[13.5px] italic" : ""}`}>{m.texto}</span>
+      <span className={`whitespace-pre-line ${m.canal === "voz" ? "text-[15px] italic" : ""}`}>{m.texto}</span>
     </Balao>
   );
 });
@@ -519,8 +519,8 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
         </button>
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white" style={{ background: "var(--wa-verde)" }}><Bot size={22} /></span>
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-[17px] font-semibold">{NOME_ASSISTENTE}</p>
-          <p className="truncate text-[13px]" style={{ color: "var(--wa-meta)" }} aria-live="polite">{status}{unidadeNome ? ` · ${unidadeNome}` : ""}</p>
+          <p className="truncate text-[18px] font-semibold">{NOME_ASSISTENTE}</p>
+          <p className="truncate text-[14.5px]" style={{ color: "var(--wa-meta)" }} aria-live="polite">{status}{unidadeNome ? ` · ${unidadeNome}` : ""}</p>
         </div>
         {vozOk && voz.sinteseDisponivel?.() && (
           <button type="button" onClick={() => { setLerEmVoz((v) => !v); voz.calar(); }} aria-label={lerEmVoz ? "Parar de ler as respostas em voz alta" : "Ler as respostas de voz em voz alta"} className="grid h-10 w-12 shrink-0 place-items-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] active:bg-black/5">
@@ -533,15 +533,15 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2" style={{ backgroundImage: PAPEL }} aria-live="polite">
         <div className="mx-auto w-full max-w-4xl space-y-1.5">
           <div className="flex justify-center pt-1">
-            <span className="rounded-full px-3 py-1 text-[12.5px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)", color: "var(--wa-meta)" }}>Hoje</span>
+            <span className="rounded-full px-3 py-1 text-[14px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)", color: "var(--wa-meta)" }}>Hoje</span>
           </div>
           {rotuloOrigem && (
             <div className="flex justify-center px-4">
-              <span className="max-w-full truncate rounded-[7.5px] px-3 py-1 text-[12px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)", color: "var(--wa-meta)" }}>Vindo de: {rotuloOrigem}</span>
+              <span className="max-w-full truncate rounded-[7.5px] px-3 py-1 text-[13.5px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)", color: "var(--wa-meta)" }}>Vindo de: {rotuloOrigem}</span>
             </div>
           )}
           <div className="flex justify-center px-4">
-            <p className="max-w-md rounded-[7.5px] px-3 py-1.5 text-center text-[12.5px] leading-snug" style={{ background: "var(--wa-aviso)", color: "#54656F" }}>
+            <p className="max-w-md rounded-[7.5px] px-3 py-1.5 text-center text-[14px] leading-snug" style={{ background: "var(--wa-aviso)", color: "#54656F" }}>
               <Lock size={11} className="mr-1 inline -translate-y-px" />
               Respostas só com os dados da sua unidade. Nada é gravado sem você confirmar, e tudo fica na auditoria.
             </p>
@@ -572,8 +572,8 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
           {respondendo && (
             <div className="mx-1 mb-1 flex items-start gap-2 rounded-lg border-l-4 bg-white px-2.5 py-1.5" style={{ borderColor: "var(--wa-verde)" }}>
               <div className="min-w-0 flex-1">
-                <p className="text-[12.5px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>Respondendo a {NOME_ASSISTENTE}</p>
-                <p className="line-clamp-2 text-[12.5px]" style={{ color: "var(--wa-meta)" }}>{respondendo.texto}</p>
+                <p className="text-[14px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>Respondendo a {NOME_ASSISTENTE}</p>
+                <p className="line-clamp-2 text-[14px]" style={{ color: "var(--wa-meta)" }}>{respondendo.texto}</p>
               </div>
               <button type="button" onClick={() => setRespondendo(null)} aria-label="Não responder a esta pergunta" className="grid h-8 w-8 place-items-center rounded-full" style={{ color: "var(--wa-meta)" }}><X size={16} /></button>
             </div>
@@ -606,7 +606,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submeter(); } }}
                 placeholder={respondendo ? "Sua resposta" : ""}
                 aria-label={`Mensagem para o ${NOME_ASSISTENTE}`}
-                className="mb-[3px] block min-h-[38px] min-w-0 flex-1 resize-none rounded-[20px] border bg-white px-3.5 py-[8px] text-[16px] leading-5 outline-none"
+                className="mb-[3px] block min-h-[38px] min-w-0 flex-1 resize-none rounded-[20px] border bg-white px-3.5 py-[8px] text-[17px] leading-5 outline-none"
                 style={{ color: "var(--wa-texto)", borderColor: "var(--wa-linha)" }}
               />
               {texto.trim() || !vozOk ? (

@@ -18,6 +18,7 @@ import { registrarAuditoria } from "../lib/hefisto-acoes";
 import { conectarImpressoraBluetooth, imprimirEtiquetasBluetooth } from "../lib/impressaoTermica";
 import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb, imprimirFilaMdk022Usb } from "../lib/impressaoMdk022";
 import { limitarEscala, rotuloEscala, PASSO_ESCALA, ESCALA_MIN, ESCALA_MAX, carregarImagem, layoutNome } from "../lib/etiqueta-centralizada.mjs";
+import { PARAMETRO_LOTE, chaveDeNome, loteDaUrl } from "../lib/etiquetas-pedido.mjs";
 
 const UNIDADES = ["UN", "UNIDADE", "GARRAFA", "LATA", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
 const TAMANHOS = {
@@ -88,7 +89,7 @@ function Aviso({ aviso, fechar }) {
     // Confirmação de rotina ("X adicionado à fila") o operador já sabe que deu
     // certo — banner tapando a tela só atrasa a próxima etiqueta. Erro fica
     // mais tempo: esse precisa ser lido antes de sumir.
-    const timer = setTimeout(() => fecharRef.current(), aviso.tipo === "erro" ? 5200 : 1400);
+    const timer = setTimeout(() => fecharRef.current(), aviso.duracao || (aviso.tipo === "erro" ? 5200 : 1400));
     return () => clearTimeout(timer);
   }, [aviso]);
   return <div className={`etq-toast ${aviso.tipo}`}>
@@ -265,6 +266,7 @@ export default function EtiquetasRapidas() {
   const [categoriaId, setCategoriaId] = useState("");
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
+  const [catalogoPronto, setCatalogoPronto] = useState(false); // lista de produtos já lida (para a fila do Assistente)
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState(null);
   const [tipoEtiqueta, setTipoEtiqueta] = useState("aberto");
@@ -390,6 +392,7 @@ export default function EtiquetasRapidas() {
       });
       setProdutos([...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
       setCarregando(false);
+      setCatalogoPronto(true);
     });
     return () => { ativo = false; };
   }, [unidadeAtiva]);
@@ -416,12 +419,38 @@ export default function EtiquetasRapidas() {
     });
   }
 
+  // Validade padrão pelo nome, usando a lista de categorias de validade. Match simples.
+  function validadePadraoDe(nome) {
+    const cat = categorias.find(c => String(nome || "").toLocaleLowerCase("pt-BR").includes(c.nome.toLocaleLowerCase("pt-BR")));
+    return cat ? cat.dias : 3;
+  }
+
+  // Fila pedida no Assistente ("20 etiquetas de maniçoba, 30 de jambu"): chega em ?lote=
+  // e entra na fila. Não imprime sozinha: quem etiquetou, prévia e confirmação continuam aqui.
+  const loteDaConversa = useSearchParams().get(PARAMETRO_LOTE);
+  const loteAplicado = useRef(false);
+  useEffect(() => {
+    if (!loteDaConversa || loteAplicado.current || !catalogoPronto) return;
+    loteAplicado.current = true;
+    const pedidos = loteDaUrl(loteDaConversa);
+    try { router.replace("/dashboard/operacao/etiquetas" + (setorDaUrl ? `?dept=${setorDaUrl}` : "")); } catch { /* a fila já foi lida */ }
+    if (!pedidos.length) return;
+    const porNome = new Map(produtos.map(p => [chaveDeNome(p.nome), p]));
+    const novos = pedidos.map(({ nome, copias }) => {
+      const produto = porNome.get(chaveDeNome(nome)) || { id: `livre:${nome}`, nome, unidade: "UN", custo: 0, origem: "Nome livre" };
+      return { ...produto, quantidade: "", informarQuantidade: false, copias, dias: validadePadraoDe(produto.nome), conservacao: "Resfriado", codigo: gerarCodigo(), modeloEtiqueta: "validade", tipoEtiqueta, escalaNome, escalaLogo, logoEtiqueta: mostrarLogo ? logoEtiqueta : "" };
+    });
+    setFila(atual => [...atual, ...novos]);
+    setFilaAberta(true);
+    const total = novos.reduce((t, p) => t + p.copias, 0);
+    const livres = novos.filter(p => p.origem === "Nome livre").length;
+    setAviso({ tipo: "ok", texto: `${total} etiqueta${total === 1 ? "" : "s"} do Assistente na fila${livres ? ` (${livres} com nome livre)` : ""}. Escolha quem etiquetou e imprima.`, duracao: 7000 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loteDaConversa, catalogoPronto, produtos]);
+
   function abrirProduto(produto) {
     registrarRecente(produto.id);
-    // Tenta encontrar validade padrão baseada no nome usando a lista de categorias. Match fuzzy simples.
-    let validadePadrao = 3;
-    const cat = categorias.find(c => produto.nome.toLocaleLowerCase("pt-BR").includes(c.nome.toLocaleLowerCase("pt-BR")));
-    if (cat) validadePadrao = cat.dias;
+    const validadePadrao = validadePadraoDe(produto.nome);
 
     setItem({ ...produto, quantidade: "", informarQuantidade: false, copias: 1, dias: validadePadrao, conservacao: "Resfriado", codigo: gerarCodigo() });
     setCategoriaId("");

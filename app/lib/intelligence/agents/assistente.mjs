@@ -8,6 +8,7 @@ import { temValor } from "../core/contratos.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoTexto, brl, num, ddmm } from "../commands/resposta.mjs";
 import { divergenciaRecebimento, quantidadeNoRendimento, TOLERANCIA_MIN } from "../metrics/assistente.mjs";
 import { paraUnidadeDoInsumo } from "../actions/criar-ficha.mjs";
+import { casarPedido, comandoDoPedido, lerPedidoDeEtiquetas, loteParaUrl } from "../../etiquetas-pedido.mjs";
 
 const r = (texto, blocos = [], acoes = [], nivel = NIVEL.OBSERVAR) => ({ texto, blocos, acoes, nivel });
 const insuf = (m, rotulo) => r(fraseDaMetrica(m, rotulo), [blocoMetrica(m, rotulo)], [], NIVEL.OBSERVAR);
@@ -28,7 +29,8 @@ export function numerosDoTexto(texto) {
 // ─── Compras: chegou x pedido ────────────────────────────────────────────────
 export const HANDLERS_COMPRAS = {
   async "compras.foto_nota"() {
-    return r("Mande a foto da nota (DANFE): toque na câmera ao lado do campo de mensagem (ou no + para escolher da galeria) e tire a foto com a nota inteira, reta e com boa luz. Eu leio os itens, confiro com o cadastro, cadastro o que faltar e te mostro a compra para confirmar.");
+    return r("Mande a nota de um destes jeitos: a foto da DANFE (toque na câmera ao lado do campo de mensagem e fotografe a nota inteira, reta e com boa luz) ou o arquivo XML da NF-e que o fornecedor manda por e-mail (toque no + e escolha o arquivo; o XML é o mais exato). Eu leio os itens, confiro com o cadastro, cadastro o que faltar e te mostro a compra para confirmar: entra no estoque, atualiza o custo médio e cria a conta a pagar.",
+      [], [{ rotulo: "Abrir Compras", rota: "/dashboard/operacao/estoque/compras" }]);
   },
   async "compras.conferir_recebimento"({ motor, params }) {
     const [chegou, pedido] = numerosDoTexto(params.texto);
@@ -72,6 +74,45 @@ export const HANDLERS_COMPRAS = {
     const out = r(partes.join(" "), blocos, acoes, d && d.situacao !== "igual" ? NIVEL.RECOMENDAR : NIVEL.OBSERVAR);
     if (ins) out.referencia = { produto: { id: ins.id, nome: ins.nome } };
     return out;
+  },
+};
+
+// ─── Etiquetas: "quero 20 etiquetas de maniçoba e 30 de jambu" ─────────────────
+// A conversa monta a fila; quem imprime é a tela de Etiquetas (prévia, quem
+// etiquetou e confirmação). Imprimir dá entrada de produção no estoque, por
+// isso nada é impresso direto daqui.
+const capitalizar = (t) => String(t || "").charAt(0).toLocaleUpperCase("pt-BR") + String(t || "").slice(1);
+
+export const HANDLERS_ETIQUETAS = {
+  async "etiquetas.imprimir"({ motor, params }) {
+    const pedido = lerPedidoDeEtiquetas(params.texto);
+    if (!pedido.length) {
+      return { ...r("De quais produtos e quantas etiquetas de cada?"), pergunta: { campo: "produto", livre: true, texto: "Diga os produtos e quantas etiquetas de cada. Ex.: \"20 de maniçoba, 30 de jambu\".", comandoBase: "Imprimir etiquetas: {valor}" } };
+    }
+    const cat = await motor.getLabelCatalog();
+    const { achados, ambiguos, semCadastro } = cat.semPermissao
+      ? { achados: pedido.map((p) => ({ ...p, nome: capitalizar(p.termo) })), ambiguos: [], semCadastro: [] }
+      : casarPedido(cat.itens, pedido);
+
+    if (ambiguos.length) {
+      const a = ambiguos[0];
+      const resto = (nomeDoAmbiguo) => [
+        ...achados,
+        ...ambiguos.map((x) => (x === a ? { ...x, nome: nomeDoAmbiguo } : { ...x, nome: x.termo })),
+        ...semCadastro.map((x) => ({ ...x, nome: x.termo })),
+      ];
+      const texto = `Para "${a.termo}" encontrei mais de um produto. Qual deles vai na etiqueta?`;
+      return { ...r(texto), pergunta: { campo: "produto", texto, opcoes: a.opcoes.map((nome, i) => ({ id: `o${i}`, rotulo: nome, comando: comandoDoPedido(resto(nome)) })) } };
+    }
+
+    const fila = [...achados, ...semCadastro.map((x) => ({ ...x, nome: capitalizar(x.termo), origem: "Nome livre" }))];
+    const total = fila.reduce((t, i) => t + i.copias, 0);
+    const partes = [`Separei ${total} etiqueta${total === 1 ? "" : "s"}: ${fila.map((i) => `${i.copias} de ${i.nome}`).join(", ")}.`];
+    if (semCadastro.length) partes.push(`${semCadastro.map((x) => `"${x.termo}"`).join(", ")} não ${semCadastro.length === 1 ? "está" : "estão"} no cadastro desta unidade: ${semCadastro.length === 1 ? "vai" : "vão"} como etiqueta de nome livre (sem entrada no estoque).`);
+    if (cat.semPermissao) partes.push("Não tenho acesso ao cadastro para conferir os nomes; a tela de Etiquetas confere.");
+    partes.push("Abra a tela de Etiquetas: a fila já vai montada. Lá você escolhe quem etiquetou, confere a prévia e imprime.");
+    const blocos = [blocoLista("Fila de etiquetas", fila.map((i) => ({ rotulo: i.nome, valor: `${i.copias} etiqueta${i.copias === 1 ? "" : "s"}`, detalhe: i.origem || null })))];
+    return r(partes.join(" "), blocos, [{ rotulo: `Abrir etiquetas com a fila (${total})`, rota: loteParaUrl(fila) }]);
   },
 };
 

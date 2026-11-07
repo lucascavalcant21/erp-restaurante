@@ -30,3 +30,25 @@ export async function itensCitados(amb, { frase }) {
   }
   return out;
 }
+
+/**
+ * Nomes que a tela de Etiquetas lista nesta unidade: produtos do cadastro
+ * (estoque) e pré-preparos (fichas base). Só onde há permissão; só nome e
+ * origem. Serve para casar "20 etiquetas de maniçoba" com o nome certo.
+ * @returns {Promise<{ itens: {nome:string, origem:string}[], semPermissao: boolean }>}
+ */
+export async function catalogoDeEtiquetas(amb) {
+  const itens = [];
+  let algum = false;
+  if (await amb.verificador.pode("saldo_estoque")) {
+    algum = true;
+    const insumos = (await ler(amb.dbe.from("insumos").select("id, nome").order("nome"), "insumos")) || [];
+    for (const i of insumos) if (String(i.nome || "").trim()) itens.push({ nome: String(i.nome).trim(), origem: "Ingrediente" });
+  }
+  if (await amb.verificador.pode("fichas")) {
+    algum = true;
+    const fichas = (await ler(amb.dbe.from("fichas_tecnicas").select("id, nome_receita, eh_base, ativo, status").eq("eh_base", true), "fichas_tecnicas")) || [];
+    for (const f of fichas) if (f.ativo !== false && f.status !== "arquivada" && String(f.nome_receita || "").trim()) itens.push({ nome: String(f.nome_receita).trim(), origem: "Pré-preparo" });
+  }
+  return { itens, semPermissao: !algum };
+}

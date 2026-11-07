@@ -12,6 +12,7 @@ import {
   executarMovimento, desfazerMovimento, registrarAuditoria, fmtQtd, mostrarUn,
 } from "../lib/hefisto-acoes";
 import { fetchComSessao } from "../lib/api-sessao.js";
+import { loteParaUrl } from "../lib/etiquetas-pedido.mjs";
 
 const SUGESTOES = [
   "Quanto tenho de camarão?",
@@ -187,15 +188,13 @@ export default function HefistoAssistant() {
       const total = lista.reduce((s, e) => s + e.copias, 0);
       const resumo = lista.map(e => `${e.copias}× ${e.produto}`).join(", ");
       diz("bot", `Preparando ${total} etiqueta${total !== 1 ? "s" : ""}: ${resumo}. Abrindo a tela de etiquetas com a fila pronta.`);
-      try {
-        // A tela de Etiquetas lê esta fila ao abrir e já monta tudo.
-        localStorage.setItem("hefisto_etq_fila_voz", JSON.stringify(lista));
-      } catch { /* sem armazenamento: a tela abre vazia */ }
+
       await registrarAuditoria({
         unidadeId: unidadeAtiva, usuarioId: sessao?.id, usuarioNome: sessao?.nome || sessao?.email,
         comando, intencao, acao: "etiquetas.lote", modulo: "operacao", resultado: "sucesso",
       }).catch(() => {});
-      router.push(`/dashboard/operacao/etiquetas?dept=${intencao.setor || dept || "cozinha"}&fila=voz`);
+      // A tela de Etiquetas lê a fila do ?lote= ao abrir e já monta tudo.
+      router.push(`${loteParaUrl(lista.map(e => ({ nome: e.produto, copias: e.copias })))}&dept=${intencao.setor || dept || "cozinha"}`);
       return;
     }
 

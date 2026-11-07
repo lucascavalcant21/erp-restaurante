@@ -51,6 +51,7 @@ export const INTENCOES = Object.freeze([
       "adicione", "adiciona", "adicionar", "acrescente", "acrescenta", "coloque", "coloca", "bota", "bote", "ponha", "poe", "entrou", "entraram", "veio", "vieram"]],
     // receita/ficha é o fluxo da ficha técnica; "era pra pedir" é conferência de recebimento
     proibidas: ["quanto", "quais", "qual", "quantas", "quando", "receita", "ficha", "prato", "era pra", "era para", "pedi", "pedido", "pedimos",
+      "etiqueta", "etiquetas", "nota fiscal", "danfe", "nfe", "xml", "a nota", "nota do fornecedor",
       "horario", "atrasado", "atrasados", "atrasada", "atrasou", "funcionario", "funcionarios", "equipe", "pontual", "ponto"], peso: 10,
   },
   {
@@ -204,8 +205,18 @@ export const INTENCOES = Object.freeze([
   },
   {
     id: "compras.foto_nota", tipo: "pergunta", agentes: ["compras"],
-    descricao: "Lançar uma compra pela foto da nota fiscal/DANFE (ex.: 'quero lançar uma nota', 'vou mandar a foto da danfe').",
-    frases: [["danfe", "foto da nota", "lancar nota", "lancar a nota", "lancar uma nota", "nota fiscal da compra", "foto da danfe", "mandar a nota", "mandar foto da nota", "ler a nota"]], peso: 11,
+    descricao: "Lançar uma compra pela foto da nota fiscal/DANFE ou pelo XML da NF-e (ex.: 'quero lançar uma nota', 'vou mandar a foto da danfe', 'chegou a nota do fornecedor', 'tenho o XML').",
+    frases: [["danfe", "foto da nota", "lancar nota", "lancar a nota", "lancar uma nota", "nota fiscal da compra", "foto da danfe", "mandar a nota", "mandar foto da nota", "ler a nota",
+      "nota fiscal", "nfe", "nf e", "xml da nota", "xml", "nota pra lancar", "nota para lancar", "chegou a nota", "chegou nota", "nota do fornecedor",
+      "lancar compra", "lancar a compra", "lanca a compra", "lance a compra", "registrar compra", "registrar a compra", "registra a compra", "registre a compra"]],
+    proibidas: ["quanto", "quantas", "quais"], peso: 11,
+  },
+  {
+    id: "etiquetas.imprimir", tipo: "pergunta", agentes: ["estoque"],
+    descricao: "Imprimir/gerar etiquetas de produtos e preparos (ex.: 'quero 20 etiquetas de maniçoba e 30 de jambu', 'imprime 5 etiquetas de alho'): monta a fila e abre a tela de Etiquetas.",
+    frases: [["etiqueta", "etiquetas"]],
+    // "quantas etiquetas vencem?" é pergunta de validade (estoque.vencimentos)
+    proibidas: ["quantas", "quais", "vencidas", "vencida", "vencendo", "vencer", "vence", "vencem", "validade", "ativas", "ativa"], peso: 13,
   },
   {
     id: "navegar", tipo: "navegacao", agentes: [],

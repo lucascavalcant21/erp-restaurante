@@ -86,7 +86,7 @@ export default function SinalizacaoPage() {
         <nav className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }} aria-label="Áreas da Sinalização digital">
           {ABAS.map((a) => (
             <button key={a.id} onClick={() => setAba(a.id)}
-              className={`flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3.5 text-sm font-semibold transition ${aba === a.id ? "bg-hf-accent text-hf-accent-fg shadow-sm" : "border border-hf-border bg-hf-surface text-hf-text-2"}`}>
+              className={`flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition ${aba === a.id ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
               <a.icone size={16} /> {a.label}
             </button>
           ))}
@@ -330,7 +330,7 @@ function Midias({ painel, unidade, carregar, avisar, executar, abrir, podeCriar,
 
       <div className="flex gap-1.5">
         {[["todas", "Todas"], ["imagem", "Imagens"], ["video", "Vídeos"]].map(([v, l]) => (
-          <button key={v} onClick={() => setFiltro(v)} className={`min-h-10 rounded-full px-3.5 text-sm font-medium ${filtro === v ? "bg-hf-accent text-hf-accent-fg" : "border border-hf-border bg-hf-surface text-hf-text-2"}`}>{l}</button>
+          <button key={v} onClick={() => setFiltro(v)} className={`min-h-10 rounded-full px-3.5 text-sm font-medium ${filtro === v ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2"}`}>{l}</button>
         ))}
       </div>
 
@@ -764,7 +764,7 @@ function ModalRegra({ painel, regra, fechar, executar, podeExcluir }) {
       <Field label="Dias da semana (nenhum = todos)">
         <div className="grid grid-cols-7 gap-1">
           {DIAS.map((d, i) => (
-            <button key={d} onClick={() => alternarDia(i)} className={`min-h-11 rounded-lg text-xs font-semibold ${f.dias_semana.includes(i) ? "bg-hf-accent text-hf-accent-fg" : "border border-hf-border text-hf-text-2"}`}>{d}</button>
+            <button key={d} onClick={() => alternarDia(i)} className={`min-h-11 rounded-lg text-xs font-semibold ${f.dias_semana.includes(i) ? "bg-hf-menu text-white" : "border border-hf-border text-hf-text-2"}`}>{d}</button>
           ))}
         </div>
       </Field>

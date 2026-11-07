@@ -19,6 +19,7 @@ import PerguntaCartao from "../../components/intelligence/PerguntaCartao";
 import BannerErroRede from "../../components/intelligence/BannerErroRede";
 import { SecaoInteligencia as Secao, EsqueletoInteligencia } from "../../components/intelligence/SecaoInteligencia";
 import { useCentralInteligencia } from "../../components/intelligence/useCentralInteligencia";
+import CabecalhoTela from "../../components/ui/CabecalhoTela";
 
 const FMT_HORA = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 const hora = (iso) => (iso ? FMT_HORA.format(new Date(iso)) : "");
@@ -53,14 +54,7 @@ export default function CentralDeInteligencia() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 sm:px-6 lg:pt-8">
       <header className="mb-6 hf-animate-in">
-        <div className="mb-1 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-hf-accent">
-          <button onClick={() => window.history.back()} className="flex min-h-[32px] items-center gap-1 rounded-lg transition-colors hover:text-emerald-900">
-            <ArrowLeft size={14} /> Voltar
-          </button>
-          <span>· Héfisto</span>
-        </div>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h1 className="text-2xl font-black tracking-tight text-hf-text sm:text-3xl">Central de Inteligência</h1>
+        <CabecalhoTela embutido voltar="historico" titulo="Central de inteligência" subtitulo="Análises e recomendações da sua operação">
           {!c.semUnidade && (
             <div className="flex gap-2">
               <Link href="/dashboard/inteligencia/configuracoes" aria-label="Configurações da inteligência" className={BOTAO_SECUNDARIO}>
@@ -72,7 +66,7 @@ export default function CentralDeInteligencia() {
               </button>
             </div>
           )}
-        </div>
+        </CabecalhoTela>
         {!c.semUnidade && <CartaoAssistenteHefisto className="mt-4 lg:hidden" />}
         {brief && <p className="mt-2 max-w-3xl text-[16px] leading-snug text-hf-text-2">{brief.summary}</p>}
         {brief && (

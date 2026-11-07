@@ -14,6 +14,7 @@ import {
 } from "../../lib/clientes";
 import CampoDecimal from "../../components/CampoDecimal";
 import { casaBusca } from "../../lib/busca.mjs";
+import CabecalhoTela from "../../components/ui/CabecalhoTela";
 
 export default function CRMPage() {
   const router = useRouter();
@@ -367,22 +368,19 @@ export default function CRMPage() {
   return (
     <div className="min-h-screen pb-20">
       {/* HEADER DA TORRE DE CRM */}
-      <div className="px-4 pt-8 md:pt-12 pb-6 bg-hf-bg sticky top-0 z-30 border-b border-line-soft shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 max-w-6xl mx-auto">
-          <div>
-            <p className="text-3xs md:text-xs font-bold uppercase tracking-widest text-fg mb-1">Marketing</p>
-            <h1 className="text-3xl md:text-5xl font-black leading-tight tracking-tighter text-slate-800">Relacionamento.</h1>
-            <p className="text-sm font-semibold text-fg mt-2">Gestão de clientes e fidelização em <span className="text-slate-800 font-bold">{unidadeInfo.nome}</span></p>
-          </div>
+      <div className="px-4 pt-3 pb-4 sm:px-6 lg:px-8 bg-hf-bg/95 backdrop-blur sticky top-0 z-30 border-b border-hf-border">
+        <div className="max-w-6xl mx-auto">
+          <CabecalhoTela embutido titulo="Relacionamento" subtitulo={`Gestão de clientes e fidelização em ${unidadeInfo.nome || "sua unidade"}`}>
           <div className="flex items-center gap-3">
             <button onClick={() => { setActiveTab('campanhas'); setModalCampanha(true); }} className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-accent text-accent-fg font-bold text-sm hover:bg-accent hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 shadow-emerald-600/20 shadow-xl">
-              <Megaphone size={18} /> Nova Campanha
+              <Megaphone size={18} /> Nova campanha
             </button>
           </div>
+          </CabecalhoTela>
         </div>
 
         {/* NAVEGAÇÃO DE ABAS */}
-        <div className="max-w-6xl mx-auto mt-8 flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1">
+        <div className="max-w-6xl mx-auto mt-1 flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1">
           {[
             { id: "visao", label: "Visão Geral", icon: TrendingUp },
             { id: "base", label: "Base de Clientes", icon: Users },

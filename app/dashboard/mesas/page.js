@@ -12,6 +12,7 @@ import { abrirComandaDaMesa, enviarParaProducao, fetchCardapioDoSalao, fetchSala
 import { alternarObservacao, mesclarObservacoes, observacoesDoProduto, temObservacao } from "../../lib/observacoes-prontas.mjs";
 import { fetchObservacoesProntas } from "../../lib/parametros";
 import { MESA_TODA, STATUS_DO_ITEM, definirObservacao, estadoDaMesa, limparNome, mudarQuantidade, numeroDaMesa, ordenarMesas, pessoasDaComanda, resumoPorPessoa, somarAoRascunho, tempoDaMesa, totalDaComanda } from "../../lib/comandas.mjs";
+import CabecalhoTela from "../../components/ui/CabecalhoTela";
 
 const CHAVE_GARCOM = "hefisto_comandas_garcom";
 const ATUALIZAR_MS = 15000;
@@ -43,10 +44,9 @@ function Mapa({ mesas, pedidos, garcom, onTrocarGarcom, onAbrir, ocupado }) {
   const lista = ordenarMesas(mesas).filter((m) => numeroDaMesa(m).includes(busca.trim()));
   return (
     <>
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-black text-hf-text">Comandas</h1>
-        <button type="button" onClick={onTrocarGarcom} className="min-h-[44px] truncate text-sm font-bold text-hf-text-2 underline">{garcom}</button>
-      </div>
+      <CabecalhoTela embutido titulo="Comandas" subtitulo="Lançar pedidos e pedir a conta">
+        <button type="button" onClick={onTrocarGarcom} className="inline-flex min-h-[44px] max-w-full items-center truncate rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text-2 shadow-none">{garcom}</button>
+      </CabecalhoTela>
       <label className="relative mt-2 block">
         <span className="sr-only">Buscar mesa</span>
         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-muted" aria-hidden="true" />

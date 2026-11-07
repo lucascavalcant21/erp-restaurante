@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import CabecalhoTela from "./ui/CabecalhoTela";
 import { useERP } from "../context/ERPContext";
 import { canAccessRoute } from "../lib/permissions-catalog.mjs";
 import {
@@ -80,69 +81,55 @@ export default function RecipeWorkspace({
   const bar = setor === "bar";
 
   return (
-    <header className="border-b border-line bg-card shadow-sm">
-      <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5 space-y-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={abrirMenu}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-slate-50 text-muted hover:bg-elevated hover:text-fg transition"
-                title="Voltar ao menu"
-              >
-                <ArrowLeft size={19} />
-              </button>
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="flex h-11 px-3 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-line bg-slate-50 text-slate-700 hover:bg-elevated hover:text-fg transition font-bold text-xs shadow-sm active:scale-95"
-                title="Atualizar dados e recarregar a tela"
-              >
-                <RotateCw size={15} />
-                <span className="hidden sm:inline">Atualizar</span>
-              </button>
-            </div>
-            <div>
-              <div className="flex items-center gap-2.5">
-                {trocaSetor && <div className="flex items-center rounded-xl bg-elevated p-0.5 border border-slate-200/80">
+    <header className="border-b border-hf-border bg-hf-bg">
+      <div className="mx-auto max-w-[1480px]">
+        {/* Visual do Nina (07/11/2026): cabeçalho padrão; setor, total e ações à direita. */}
+        <CabecalhoTela titulo={title} subtitulo={description || undefined}>
+          {trocaSetor && <div className="flex items-center rounded-full bg-hf-elevated p-1 border border-hf-border">
                   <button
                     type="button"
                     onClick={() => router.push(`${pathname}?dept=cozinha`)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${!bar ? "bg-card text-accent shadow-sm" : "text-muted hover:text-slate-800"}`}
+                    className={`min-h-[36px] px-3 text-sm font-semibold rounded-full shadow-none transition-all ${!bar ? "bg-hf-menu text-white" : "text-hf-text-2 hover:text-hf-text"}`}
                   >
-                    👨‍🍳 Cozinha
+                    Cozinha
                   </button>
                   <button
                     type="button"
                     onClick={() => router.push(`${pathname}?dept=bar`)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${bar ? "bg-card text-zinc-700 shadow-sm" : "text-muted hover:text-slate-800"}`}
+                    className={`min-h-[36px] px-3 text-sm font-semibold rounded-full shadow-none transition-all ${bar ? "bg-hf-menu text-white" : "text-hf-text-2 hover:text-hf-text"}`}
                   >
-                    🍹 Bar
+                    Bar
                   </button>
                 </div>}
                 {Number.isFinite(Number(total)) && (
-                  <span className="rounded-full bg-elevated px-2.5 py-0.5 text-3xs font-bold text-slate-600">
+                  <span className="rounded-full border border-hf-border bg-hf-surface px-3 py-1.5 text-xs font-semibold text-hf-text-2">
                     {total} cadastrado{Number(total) === 1 ? "" : "s"}
                   </span>
                 )}
-              </div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-950 mt-1">{title}</h1>
-              {description && <p className="text-sm font-medium text-muted">{description}</p>}
-            </div>
-
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-hf-border bg-hf-surface text-hf-text-2 shadow-none hover:bg-hf-elevated"
+            title="Atualizar dados e recarregar a tela"
+            aria-label="Atualizar"
+          >
+            <RotateCw size={16} />
+          </button>
           <div className="flex flex-wrap items-center gap-2">
             {onPrimary && (
               <button
                 type="button"
                 onClick={onPrimary}
-                className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold text-accent-fg shadow-md transition-all active:scale-[.98] ${bar ? "bg-emerald-700 hover:bg-emerald-800 shadow-violet-600/20" : "bg-accent hover:bg-accent shadow-emerald-600/20"}`}
+                className="flex min-h-[44px] items-center gap-2 rounded-full bg-hf-accent px-5 text-sm font-semibold text-hf-accent-fg shadow-none transition-all active:scale-[.98]"
               >
                 <PrimaryIcon size={16} /> {primaryLabel}
               </button>
             )}
             {children}
           </div>
-        </div>
-
+        </CabecalhoTela>
+      </div>
+      <div className="mx-auto max-w-[1480px] px-4 sm:px-6 lg:px-8 space-y-4 pb-4">
         {/* Etapas de navegação rápida (Ingredientes -> Fichas técnicas -> Guia de montagem) */}
         {mostrarEtapas && <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
           {ETAPAS.map((etapa, index) => {

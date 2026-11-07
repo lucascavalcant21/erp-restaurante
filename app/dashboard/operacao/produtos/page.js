@@ -14,6 +14,7 @@ import { comFecharImpressao } from "../../../lib/imprimir";
 import { fmtBRL } from "../../../components/ui";
 import CampoDecimal from "../../../components/CampoDecimal";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 
@@ -586,21 +587,10 @@ function CardapioRunner() {
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
       
-      {/* TOPBAR */}
-      <div className="bg-card border-b border-line py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
-         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <button onClick={() => abrirMenu()} className="p-3 text-fg hover:text-slate-800 bg-white rounded-full border border-line">
-                 <ArrowLeft size={20}/>
-              </button>
-               <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-card text-success items-center justify-center shadow-inner">
-                 <Tag size={28} />
-              </div>
-              <div>
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-fg">Cardápio</h1>
-                  <p className="text-fg-soft font-bold uppercase tracking-wide sm:tracking-widest text-3xs sm:text-xs mt-1">Precificação · liga direto no PDV · CMV automático</p>
-              </div>
-            </div>
+      {/* CABEÇALHO (visual do Nina) */}
+      <div className="sticky top-0 z-10 border-b border-hf-border bg-hf-bg/95 backdrop-blur">
+        <div className="max-w-5xl mx-auto">
+          <CabecalhoTela titulo="Cardápio" subtitulo="Precificação ligada direto no PDV, com CMV automático">
             <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
                {cmvMedio !== null && (
                   <div className={`px-4 py-2.5 rounded-2xl border ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
@@ -609,13 +599,14 @@ function CardapioRunner() {
                   </div>
                )}
                <button onClick={imprimirTabelaCmv} className="flex items-center gap-2 bg-card text-fg-soft border border-line px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-white transition-colors shadow-sm" title="Planilha com preços, custos e CMV">
-                  <Printer size={18} /> <span className="hidden sm:inline">Imprimir Tabela</span>
+                  <Printer size={18} /> <span className="hidden sm:inline">Imprimir tabela</span>
                </button>
                <button onClick={abrirNovo} className="flex items-center gap-2 bg-accent text-accent-fg px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-accent transition-colors shadow-lg shadow-emerald-600/20">
-                  <Plus size={18} /> Novo Produto
+                  <Plus size={18} /> Novo produto
                </button>
             </div>
-         </div>
+          </CabecalhoTela>
+        </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">

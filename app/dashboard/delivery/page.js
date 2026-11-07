@@ -10,6 +10,7 @@ import {
 } from "../../lib/delivery";
 // Reutilizando as buscas de vendas do KDS para unificar a base e acabar com os bugs de sumiço de pedidos
 import { fetchPedidosAtivos } from "../../lib/kds";
+import CabecalhoTela from "../../components/ui/CabecalhoTela";
 
 function horaStr(iso) {
   if (!iso) return "--:--";
@@ -199,16 +200,8 @@ export default function DeliveryKanbanPage() {
       {toast && <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl font-black text-sm animate-bounce">{toast}</div>}
 
       {/* HEADER OPERACIONAL */}
-      <div className="px-6 py-4 bg-card border-b border-line flex items-center justify-between shadow-sm z-10 flex-shrink-0">
-         <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600/10 flex items-center justify-center border border-emerald-600/20 shadow-sm">
-               <Truck size={24} className="text-success" />
-            </div>
-            <div>
-               <h1 className="text-2xl font-black text-slate-800 tracking-tight">Expedição Delivery</h1>
-               <p className="text-sm font-bold text-fg">Painel de controle de envios</p>
-            </div>
-         </div>
+      <div className="px-4 py-3 sm:px-6 lg:px-8 bg-hf-bg border-b border-hf-border flex items-center justify-between gap-3 z-10 flex-shrink-0">
+         <CabecalhoTela embutido titulo="Expedição do delivery" subtitulo="Painel de controle de envios" className="!pb-0 !pt-0 min-w-0" />
 
          <div className="flex items-center gap-4">
             <div className="relative hidden md:block">

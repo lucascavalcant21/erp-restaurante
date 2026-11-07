@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTempoReal } from "../../../lib/realtime";
 import { Clock, CheckCircle, ChefHat, Check, Flame, LayoutGrid, Volume2, VolumeX, ArrowLeft, TriangleAlert, Printer } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
+import IconeModulo from "../../../components/ui/IconeModulo";
 import { fetchFilaKDS, atualizarItemKDS, entregarTicketKDS } from "../../../lib/kds";
 import { proximoStatusKDS } from "../../../lib/kds-fila.mjs";
 import { useImpressaoKds, PainelImpressaoKds } from "../../../components/kds/ImpressaoKds";
@@ -137,30 +138,28 @@ export default function KDSPage() {
       {/* HEADER DO KDS */}
       <div className="px-3 sm:px-6 pb-3 sm:pb-4 bg-hf-surface border-b border-hf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm z-50" style={{ paddingTop: "calc(var(--erp-safe-top, 0px) + 0.75rem)" }}>
          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <button onClick={() => abrirMenu()} aria-label="Voltar" className="p-2.5 sm:p-3 shrink-0 bg-hf-elevated hover:bg-hf-border text-fg hover:text-hf-text rounded-xl transition-colors active:scale-95">
-               <ArrowLeft size={24} />
+            <button onClick={() => abrirMenu()} aria-label="Voltar" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-hf-text-2 shadow-none hover:bg-hf-elevated hover:text-hf-text transition-colors active:scale-95">
+               <ArrowLeft size={20} />
             </button>
             
-            <div className="hidden sm:flex w-12 h-12 shrink-0 rounded-2xl bg-emerald-500/20 items-center justify-center border border-emerald-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)]">
-               <ChefHat size={28} className="text-slate-900" />
-            </div>
+            <IconeModulo item={{ icone: "ConciergeBell", cor: "verde" }} className="hidden sm:grid" />
 
             <div>
-               <h1 className="text-xl sm:text-2xl font-black text-hf-text tracking-tight truncate">KDS Produção</h1>
-               <p className="text-xs sm:text-sm font-bold text-fg flex items-center gap-2 mt-0.5 truncate">
+               <h1 className="text-xl sm:text-[26px] font-semibold text-hf-text tracking-tight truncate">KDS produção</h1>
+               <p className="text-xs sm:text-sm font-medium text-hf-muted flex items-center gap-2 mt-0.5 truncate">
                  {unidadeInfo.nome} <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Sync ON
                </p>
             </div>
          </div>
 
          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-4">
-            <div className="col-span-2 sm:col-span-1 flex rounded-xl border border-hf-border bg-hf-elevated p-1" role="group" aria-label="Setor">
+            <div className="col-span-2 sm:col-span-1 flex rounded-full border border-hf-border bg-hf-elevated p-1" role="group" aria-label="Setor">
                {[["cozinha", "Cozinha"], ["bar", "Bar"], ["todos", "Tudo"]].map(([id, rotulo]) => (
                   <button
                      key={id}
                      onClick={() => escolherSetor(id)}
                      aria-pressed={setor === id}
-                     className={`flex-1 px-3 sm:px-4 py-2 rounded-lg font-bold text-xs sm:text-sm uppercase tracking-wide transition-colors ${setor === id ? "bg-emerald-500 text-white" : "text-fg hover:text-hf-text"}`}
+                     className={`flex-1 min-h-[40px] px-3 sm:px-4 rounded-full font-semibold text-sm shadow-none transition-colors ${setor === id ? "bg-hf-menu text-white" : "text-hf-text-2 hover:text-hf-text"}`}
                   >
                      {rotulo}
                   </button>
@@ -168,10 +167,10 @@ export default function KDSPage() {
             </div>
             <button 
               onClick={() => setSomAtivo(!somAtivo)}
-              className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-widest transition-colors ${
-                somAtivo 
-                  ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30" 
-                  : "bg-emerald-500/20 text-slate-900 border border-emerald-500/30"
+              className={`flex min-h-[44px] items-center justify-center gap-2 px-4 rounded-full font-semibold text-sm shadow-none transition-colors border ${
+                somAtivo
+                  ? "bg-hf-surface text-hf-text border-hf-border"
+                  : "bg-hf-elevated text-hf-muted border-hf-border"
               }`}
             >
                {somAtivo ? <Volume2 size={20} /> : <VolumeX size={20} />}

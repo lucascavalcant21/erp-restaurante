@@ -23,6 +23,7 @@ import { hojeLocal } from "../../lib/contas-receber.mjs";
 import { montarCentral, intervaloCentral, PERIODOS, ROTAS } from "../../lib/central-financeira.mjs";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
 import { fmtBRL } from "../ui";
+import CabecalhoTela from "../ui/CabecalhoTela";
 
 // ─── aparência ────────────────────────────────────────────────────────────────
 const TOM = {
@@ -178,22 +179,16 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
   const subtitulo = `${unidadeInfo?.nome || "Unidade"} • ${intervalo.rotulo || "Período"}`;
 
   return (
-    <div className="min-h-screen bg-hf-bg px-3 pb-28 pt-4 font-sans text-hf-text sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-hf-bg px-4 pb-28 pt-2 font-sans text-hf-text sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-5">
 
         {/* 1. CABEÇALHO */}
-        <header className="flex flex-col gap-3 border-b border-hf-border pb-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-xl font-black tracking-tight text-hf-text sm:text-2xl">Central Financeira</h1>
-            <p className="truncate text-xs text-hf-text-2">
-              {subtitulo}{atualizadoEm && <span className="text-hf-muted"> · atualizado às {atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
-            </p>
-          </div>
+        <CabecalhoTela embutido titulo="Central financeira" subtitulo={`${subtitulo}${atualizadoEm ? ` · atualizado às ${atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}`} className="border-b border-hf-border">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex max-w-full overflow-x-auto rounded-xl border border-hf-border bg-hf-bg p-1" role="tablist" aria-label="Período">
+            <div className="flex max-w-full overflow-x-auto rounded-full border border-hf-border bg-hf-elevated p-1" role="tablist" aria-label="Período">
               {PERIODOS.map((p) => (
                 <button key={p.id} type="button" role="tab" aria-selected={periodo === p.id} onClick={() => setPeriodo(p.id)}
-                  className={`min-h-[34px] whitespace-nowrap rounded-lg px-2.5 text-xs font-bold transition ${periodo === p.id ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:text-hf-text"}`}>
+                  className={`min-h-[36px] whitespace-nowrap rounded-full px-3 text-xs font-semibold shadow-none transition ${periodo === p.id ? "bg-hf-menu text-white" : "text-hf-text-2 hover:text-hf-text"}`}>
                   {p.rotulo}
                 </button>
               ))}
@@ -217,10 +212,10 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
                 )}
               </div>
             )}
-            {podeVerFinanceiroTotal && <button type="button" className="inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text hover:border-hf-border-strong" onClick={() => router.push("/dashboard/financeiro/contas")}><Wallet size={15} />Contas a Pagar</button>}
-            {podeRota(ROTAS.dre) && <Botao icone={FileText} onClick={() => (onAbrirDRE ? onAbrirDRE() : ir(ROTAS.dre))}>DRE Gerencial</Botao>}
+            {podeVerFinanceiroTotal && <button type="button" className="inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text hover:border-hf-border-strong" onClick={() => router.push("/dashboard/financeiro/contas")}><Wallet size={15} />Contas a pagar</button>}
+            {podeRota(ROTAS.dre) && <Botao icone={FileText} onClick={() => (onAbrirDRE ? onAbrirDRE() : ir(ROTAS.dre))}>DRE gerencial</Botao>}
           </div>
-        </header>
+        </CabecalhoTela>
 
         {periodo === "personalizado" && (
           <div className="flex flex-wrap items-center gap-2 text-xs">

@@ -8,6 +8,7 @@ import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
 import { fetchMeuTreinamento } from "../../lib/treinamento";
 import { AREAS_TREINAMENTO, STATUS_MATRICULA, mensagemDeErro, progressoDaTrilha, resumirModulo } from "../../lib/treinamento-regras.mjs";
 import Boneco from "../../components/treinamento/Boneco";
+import CabecalhoTela from "../../components/ui/CabecalhoTela";
 
 const ESTADO = {
   novo: { texto: "Começar", cor: "text-hf-text-2" },
@@ -41,16 +42,10 @@ export default function MeuTreinamentoPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5 px-4 py-5 sm:px-6 sm:py-8">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-hf-text sm:text-3xl">Meu treinamento</h1>
-          <p className="mt-1 text-sm font-medium text-hf-text-2">Aprenda no seu ritmo, com os instrutores do Héfisto.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {podeEquipe && <Link href="/dashboard/treinamento/equipe" className="flex min-h-11 items-center gap-2 rounded-xl border border-hf-border px-3 text-sm font-bold text-hf-text"><UsersRound size={18} /> Equipe</Link>}
-          {podeEstudio && <Link href="/dashboard/treinamento/estudio" className="flex min-h-11 items-center gap-2 rounded-xl bg-hf-accent px-3 text-sm font-bold text-hf-accent-fg"><Clapperboard size={18} /> Héfisto Estúdio</Link>}
-        </div>
-      </header>
+      <CabecalhoTela embutido titulo="Meu treinamento" subtitulo="Aprenda no seu ritmo, com os instrutores do Héfisto.">
+          {podeEquipe && <Link href="/dashboard/treinamento/equipe" className="flex min-h-11 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text"><UsersRound size={18} /> Equipe</Link>}
+          {podeEstudio && <Link href="/dashboard/treinamento/estudio" className="flex min-h-11 items-center gap-2 rounded-full bg-hf-accent px-4 text-sm font-semibold text-hf-accent-fg"><Clapperboard size={18} /> Héfisto Estúdio</Link>}
+      </CabecalhoTela>
 
       {erro && <p role="alert" className="rounded-xl border border-hf-border bg-hf-elevated p-4 text-sm font-semibold text-hf-text">{erro}</p>}
       {!dados && !erro && <div className="h-44 animate-pulse rounded-2xl bg-hf-elevated" aria-hidden />}

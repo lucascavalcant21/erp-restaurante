@@ -145,14 +145,14 @@ body {
 
   --shadow-xs:    0 1px 2px rgba(24, 24, 27, 0.03);
   --shadow-sm:    0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
-  /* Profundidade dos cards (pedido do dono, 2026-10-13; reforçada em 2026-10-27 com o fundo
-     cinza): três camadas de sombra neutra, o card "sai" do fundo. Usada também pela regra de
-     cards no fim do arquivo e pelo shadow-card do Tailwind. */
-  --shadow-card:  0 1px 2px rgba(15, 23, 42, 0.10), 0 8px 18px -6px rgba(15, 23, 42, 0.18), 0 22px 40px -14px rgba(15, 23, 42, 0.26);
-  --shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.12), 0 16px 30px -8px rgba(15, 23, 42, 0.24), 0 34px 56px -18px rgba(15, 23, 42, 0.32);
-  /* Botões com relevo: sombra embaixo + brilho de 1 px em cima. */
-  --shadow-btn:   0 1px 1px rgba(15, 23, 42, 0.10), 0 3px 8px -2px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  --shadow-btn-claro: 0 1px 1px rgba(15, 23, 42, 0.06), 0 3px 8px -3px rgba(15, 23, 42, 0.16);
+  /* Profundidade dos cards. Visual do Nina (pedido do dono, 07/11/2026): card branco com
+     borda fina e sombra curta e suave, sem o "flutuar" de três camadas de 27/10. Usada
+     também pela regra de cards no fim do arquivo e pelo shadow-card do Tailwind. */
+  --shadow-card:  0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-hover: 0 2px 4px rgba(16, 24, 40, 0.06), 0 8px 20px -6px rgba(16, 24, 40, 0.14);
+  /* Botões: relevo discreto no visual do Nina (07/11/2026); antes sombra funda de 27/10. */
+  --shadow-btn:   0 1px 2px rgba(16, 24, 40, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --shadow-btn-claro: 0 1px 2px rgba(16, 24, 40, 0.06);
   --shadow-float: 0 24px 48px -12px rgba(15, 23, 42, 0.14), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
 }
 
@@ -160,15 +160,14 @@ body {
 @layer components {
   .erp-card {
     background-color: var(--card);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
+    border: 1px solid rgb(var(--hf-border));
+    border-radius: 18px;
     box-shadow: var(--shadow-card);
     transition: transform 280ms var(--ease-out-expo), box-shadow 280ms var(--ease-out-expo), border-color 220ms var(--ease-standard);
   }
   .erp-card:hover {
     box-shadow: var(--shadow-hover);
-    transform: translateY(-2px);
-    border-color: rgba(4, 120, 87, 0.28);
+    border-color: rgb(var(--hf-border-strong));
   }
 
   .hf-card-interactive {
@@ -205,29 +204,37 @@ body {
     box-shadow: var(--shadow-sm);
   }
 
+  /* Rótulo de campo (visual do Nina): frase normal, sem caixa alta. */
   .erp-label {
-    font-size: 11px; font-weight: 800;
-    letter-spacing: 0.1em; text-transform: uppercase;
+    font-size: 13px; font-weight: 600; line-height: 1.3;
+    color: rgb(var(--hf-text-2));
+  }
+  /* Rótulo de seção: cinza, discreto ("Da preparação ao fechamento"). */
+  .erp-section-label {
+    font-size: 13px; font-weight: 500; line-height: 1.3;
+    color: rgb(var(--hf-muted));
   }
 
   .erp-btn {
     display: inline-flex; align-items: center; justify-content: center;
     gap: 8px; height: 48px; padding: 0 24px;
-    border-radius: var(--radius-md); font-size: 15px; font-weight: 800;
+    border-radius: 999px; font-size: 15px; font-weight: 600;
     border: 1px solid transparent; white-space: nowrap;
     transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   .erp-btn:active { transform: scale(0.94); }
 
+  /* Botão principal: pílula preta (grafite) com letra branca, lisa. Pedido do dono
+     (07/11/2026): "botão preto com letras brancas, vai ficar mais bonito". */
   .erp-btn-primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-    color: var(--accent-fg);
-    box-shadow: 0 4px 14px rgba(5,150,105,0.3), inset 0 1px 1px rgba(255,255,255,0.2);
-    border: 1px solid rgba(0,0,0,0.1);
+    background: rgb(var(--hf-menu));
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+    border: 1px solid transparent;
   }
   .erp-btn-primary:hover {
-    box-shadow: 0 8px 24px rgba(5,150,105,0.4), inset 0 1px 1px rgba(255,255,255,0.3);
-    transform: translateY(-2px);
+    background: rgb(var(--hf-menu-hover));
+    box-shadow: 0 2px 6px rgba(16, 24, 40, 0.12);
   }
 
   .erp-btn-ghost {
@@ -337,7 +344,10 @@ body {
 /* App instalado no computador (mouse) não tem barra de status: sem o recuo. */
 @media (max-width: 1279px) and (pointer: coarse), (max-width: 767px), (pointer: coarse) and (display-mode: standalone), (pointer: coarse) and (display-mode: fullscreen) {
   :root {
-    --erp-safe-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 1.25rem));
+    /* Só a altura real da barra de status + 4 px (pedido do dono, 07/11/2026: "tem um
+       espaço muito grande" no topo do iPhone). Antes somava 20 px a mais, com mínimo de
+       56 px. O mínimo de 48 px cobre o entalhe quando o navegador informa 0. */
+    --erp-safe-top: max(3rem, calc(env(safe-area-inset-top, 0px) + 0.25rem));
   }
 
   /* Garante que qualquer modal/janela centralizada ou bottom-sheet fique abaixo da barra de status no celular/tablet */
@@ -613,4 +623,39 @@ textarea *,
 }
 @media (prefers-reduced-motion: reduce) {
   .hf-logo-feliz, .hf-perna-feliz, .hf-logo-cambalhota { animation: none; }
+}
+
+/* ═══ VISUAL DO NINA DENTRO DAS TELAS (pedido do dono, 07/11/2026) ═══════
+   As telas foram escritas com peso 900 (font-black) em quase tudo: 2.100 usos.
+   No Nina o peso é contido: título 600, números 700. Em vez de editar tela por
+   tela, dentro da área das telas o "black" vira 700 e o "extrabold" vira 650
+   (a Inter é variável). Fora disso (menu, login) nada muda. Títulos de página
+   (h1) ficam em 600 com letras mais juntas. */
+.erp-main-scroll .font-black { font-weight: 700; }
+.erp-main-scroll .font-extrabold { font-weight: 650; }
+.erp-main-scroll h1.font-black,
+.erp-main-scroll h1.font-extrabold,
+.erp-main-scroll h1.font-bold { font-weight: 600; letter-spacing: -0.015em; }
+/* Rótulos em CAIXA ALTA com espaçamento largo (uppercase tracking-widest) eram o
+   jeito antigo de rotular seção; no Nina o rótulo é frase normal em cinza. */
+.erp-main-scroll :is(p, span, h2, h3, h4, div, label).uppercase:is([class*="tracking-wide"], [class*="tracking-widest"], [class*="tracking-wider"]) {
+  letter-spacing: 0.02em;
+}
+/* Tela com o cabeçalho novo já tem a seta e a trilha: a faixa fixa de voltar some. */
+body[data-cabecalho-tela] .erp-barra-universo { display: none; }
+
+/* ═══ BOTÃO DE AÇÃO PRETO (pedido do dono, 07/11/2026) ═══════════════════
+   "Esse botão dourado dá pra mudar por um botão preto com letras brancas."
+   Todo botão ou link cheio de dourado (bg-hf-accent, bg-accent e a escala
+   emerald-*, que no código é a dourada) vira grafite com letra branca, inclusive
+   a aba ou o filtro selecionado. O dourado continua na marca: anel de foco,
+   textos de destaque, selos e contadores dentro do botão.
+   Para manter um botão dourado de propósito: classe `hf-manter-dourado`. */
+:is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado) {
+  background-color: rgb(var(--hf-menu)) !important;
+  background-image: none !important;
+  color: #fff !important;
+}
+:is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado):not(:disabled):hover {
+  background-color: rgb(var(--hf-menu-hover)) !important;
 }

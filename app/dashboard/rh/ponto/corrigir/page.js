@@ -17,6 +17,7 @@ import { useERP } from "../../../../context/ERPContext";
 import { fetchColaboradores, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica } from "../../../../lib/rh";
 import { fetchPontosMes, corrigirBatida, salvarAjusteDiaCompleto, CAMPO_POR_TIPO } from "../../../../lib/ponto";
 import { fetchPins } from "../../../../lib/seguranca";
+import CabecalhoTela from "../../../../components/ui/CabecalhoTela";
 
 const TIPOS = [
   ["entrada", "Entrada"],
@@ -339,24 +340,9 @@ export default function CorrigirPontoPage() {
 
   return (
     <div className="min-h-screen bg-hf-bg pb-16 text-fg font-sans">
-      <header className="border-b border-line bg-card px-4 pb-4 sm:px-7 sm:py-5" style={{ paddingTop: "calc(var(--erp-safe-top, 3.5rem) + 0.75rem)" }}>
-        <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-slate-900 hover:bg-slate-100 transition-colors"
-            aria-label="Voltar"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl font-black sm:text-2xl flex items-center gap-2">
-              <Clock3 size={22} className="text-emerald-600 shrink-0" />
-              Ajuste e Correção de Ponto
-            </h1>
-            <p className="text-xs sm:text-sm font-semibold text-fg">
-              Ajuste batidas esquecidas, escalas de domingo e turnos noturnos com registro oficial
-            </p>
-          </div>
+      <header className="border-b border-hf-border bg-hf-bg px-4 pb-2 pt-3 sm:px-7">
+        <div className="mx-auto max-w-3xl">
+          <CabecalhoTela embutido voltar="historico" titulo="Ajuste e correção de ponto" subtitulo="Batidas esquecidas, escalas de domingo e turnos noturnos, com registro oficial" />
         </div>
       </header>
 

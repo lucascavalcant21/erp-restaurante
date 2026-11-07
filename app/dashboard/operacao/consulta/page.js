@@ -8,6 +8,7 @@ import { ChevronDown, Search, UtensilsCrossed } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchConsultaDaArea } from "../../../lib/area-anotacoes";
 import { AREAS_DA_EQUIPE, areaValida, buscarNaConsulta, montarConsulta } from "../../../lib/consulta-area.mjs";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 const brl = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const qtd = (v) => (v == null ? "" : String(Math.round(Number(v) * 1000) / 1000).replace(".", ","));
@@ -74,8 +75,7 @@ function Consulta() {
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-3xl bg-hf-bg px-4 pb-16 pt-4">
-      <h1 className="text-xl font-black text-hf-text">Buscar na {area === "bar" ? "carta do bar" : "cozinha"}</h1>
-      <p className="text-sm text-hf-text-2">Fichas, montagem e cardápio {area === "bar" ? "do Bar" : `da ${AREAS_DA_EQUIPE[area]}`}.</p>
+      <CabecalhoTela embutido titulo={`Buscar na ${area === "bar" ? "carta do bar" : "cozinha"}`} subtitulo={`Fichas, montagem e cardápio ${area === "bar" ? "do Bar" : `da ${AREAS_DA_EQUIPE[area]}`}.`} />
       <label className="relative mt-3 block">
         <span className="sr-only">Buscar prato, drink ou ingrediente</span>
         <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-muted" aria-hidden="true" />

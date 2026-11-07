@@ -6,6 +6,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchEngenharia } from "../../../lib/engenharia";
 import { BarChart, ArrowLeft, Star, Heart, Puzzle, Ghost, TrendingUp, AlertTriangle } from "lucide-react";
 import { PageHeader, PageBody, Card, EmptyState, fmtBRL } from "../../../components/ui";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 // Matriz de classificação para estilos
 const MATRIZ = {
@@ -49,17 +50,8 @@ function EngenhariaRunner() {
   return (
     <div className="min-h-screen bg-hf-bg font-sans pb-24">
       {/* HEADER */}
-      <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-5xl mx-auto flex items-center gap-3 sm:gap-4">
-         <button onClick={() => abrirMenu()} className="w-12 h-12 rounded-full bg-card border border-line text-fg flex items-center justify-center hover:bg-card transition-colors">
-            <ArrowLeft size={20} />
-         </button>
-         <div className="hidden sm:flex w-16 h-16 shrink-0 rounded-3xl bg-card text-success items-center justify-center shadow-inner">
-            <BarChart size={32} />
-         </div>
-         <div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-fg">Engenharia de Cardápio</h1>
-            <p className="text-fg-soft font-bold uppercase tracking-widest text-xs mt-1">Matriz de Lucratividade • {unidadeInfo?.nome}</p>
-         </div>
+      <div className="max-w-5xl mx-auto">
+        <CabecalhoTela titulo="Engenharia de cardápio" subtitulo="Matriz de lucratividade dos pratos e drinks" />
       </div>
 
       <PageBody className="max-w-5xl">

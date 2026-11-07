@@ -179,27 +179,21 @@ export default function PainelRH({
 
   const BotaoSec = ({ icon: Icon, children, onClick, disabled }) => (
     <button type="button" onClick={onClick} disabled={disabled}
-      className="flex min-h-10 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-white disabled:opacity-60">
+      className="flex min-h-10 items-center gap-1.5 rounded-full border border-hf-border bg-hf-surface px-3.5 text-xs font-semibold text-hf-text-2 shadow-none hover:bg-hf-elevated disabled:opacity-60">
       <Icon size={14} /> {children}
     </button>
   );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 px-4 pb-6 pt-4 sm:px-6 sm:pt-5">
-      {/* Cabeçalho */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-fg sm:text-3xl">RH e equipe</h1>
-          <p className="mt-0.5 text-xs font-semibold text-subtle">{unidadeInfo?.nome || "Unidade"} · {dataLonga}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={onNovo} className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-bold text-accent-fg hover:opacity-90">
-            <UserPlus size={16} /> Novo funcionário
-          </button>
-          <button type="button" onClick={() => router.push("/dashboard/rh/fechamento")} className="flex min-h-11 items-center gap-2 rounded-xl border border-emerald-200 bg-card px-4 text-sm font-bold text-accent-strong hover:bg-accent-soft">
-            <ClipboardList size={16} /> Fechar folha
-          </button>
-        </div>
+    <div className="space-y-4 px-4 pb-6 pt-4 sm:px-6 lg:px-8">
+      {/* Ações principais (o título "Equipe" está no cabeçalho, RhNav) */}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={onNovo} className="flex min-h-11 items-center gap-2 rounded-full bg-hf-accent px-5 text-sm font-semibold text-hf-accent-fg shadow-none">
+          <UserPlus size={16} /> Novo funcionário
+        </button>
+        <button type="button" onClick={() => router.push("/dashboard/rh/fechamento")} className="flex min-h-11 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-5 text-sm font-semibold text-hf-text shadow-none hover:bg-hf-elevated">
+          <ClipboardList size={16} /> Fechar folha
+        </button>
       </div>
       <div className="flex flex-wrap gap-2">
         <BotaoSec icon={Users} onClick={() => router.push("/dashboard/rh/extra")}>Extras</BotaoSec>

@@ -20,6 +20,7 @@ import { hasPermission, permissionKey } from "../../../../lib/permissions-catalo
 import { fmtBRL } from "../../../../components/ui";
 import { X, ChevronDown } from "lucide-react";
 import CampoDecimal from "../../../../components/CampoDecimal";
+import CabecalhoTela from "../../../../components/ui/CabecalhoTela";
 
 const fmtData = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 const fmtHora = (d) => (d ? new Date(d).toLocaleString("pt-BR") : "—");
@@ -89,11 +90,10 @@ function Cmv() {
 
   return (
     <div className="min-h-screen pb-24 bg-hf-bg text-slate-800">
-      <div className="bg-hf-bg border-b border-hf-border px-4 sm:px-8 pt-6 pb-5 text-hf-text">
+      <div className="border-b border-hf-border pb-5 text-hf-text">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">CMV Real</h1>
-          <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Estoque inicial + compras − estoque final · entre inventários fechados</p>
-          <div className="mt-4 flex flex-wrap gap-2 items-center">
+          <CabecalhoTela titulo="CMV real" subtitulo="Estoque inicial + compras − estoque final, entre inventários fechados" />
+          <div className="px-4 sm:px-6 lg:px-8 flex flex-wrap gap-2 items-center">
             <select value={modo} onChange={(e) => setModo(e.target.value)} className="h-10 px-3 rounded-xl bg-hf-elevated border border-hf-border font-bold text-sm">
               <option value="contagens">Entre contagens</option><option value="par">Escolher duas contagens</option>
               <option value="semana">Esta semana</option><option value="semana_anterior">Semana anterior</option>

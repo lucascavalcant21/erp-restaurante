@@ -10,6 +10,7 @@ import { useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Search, X, Plus, Inbox } from "lucide-react";
 import CampoDecimal from "./CampoDecimal";
+import CabecalhoTela from "./ui/CabecalhoTela";
 
 // ── Formatadores ───────────────────────────────────────────────
 export function fmtBRL(v, dec = 2) {
@@ -24,47 +25,25 @@ export function fmtPct(v, dec = 1) {
 export function fmtData(iso) { return iso ? new Date(iso).toLocaleDateString("pt-BR") : "—"; }
 
 // ── Cabeçalho de página ────────────────────────────────────────
-export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel = "Novo", back = true, children }) {
-  const router = useRouter();
+export function PageHeader({ title, subtitle, icon, onAction, actionLabel = "Novo", back = true, children }) {
+  // Visual do Nina (07/11/2026): trilha, ícone colorido do menu, título e ações.
+  // `back` continua voltando uma página, como antes.
   return (
-    <div className="erp-page-header sticky top-0 z-20 border-b px-3 sm:px-5 py-3 sm:py-4 flex flex-col md:flex-row md:items-center gap-3 bg-hf-bg/90 backdrop-blur min-w-0"
-      style={{ borderColor: "var(--line-soft)" }}>
-      <div className="erp-page-header-main flex items-center gap-2.5 sm:gap-3 w-full md:w-auto min-w-0">
-        {back && (
-          <button onClick={() => router.back()}
-            aria-label="Voltar"
-            className="w-9 h-9 rounded-xl flex items-center justify-center erp-card active:scale-95 transition-transform flex-shrink-0">
-            <ArrowLeft size={18} style={{ color: "var(--muted)" }} />
-          </button>
-        )}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg md:text-xl font-black leading-tight flex items-center gap-2 min-w-0" style={{ color: "var(--fg)" }}>
-            {Icon && (
-              <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent-soft)" }}>
-                <Icon size={16} style={{ color: "var(--accent-strong)" }} />
-              </span>
-            )}
-            <span className="erp-page-title min-w-0">{title}</span>
-          </h1>
-          {subtitle && <p className="erp-page-subtitle text-xs md:text-sm font-semibold mt-0.5" style={{ color: "var(--dim)" }}>{subtitle}</p>}
-        </div>
-      </div>
-      <div className="erp-page-header-actions flex flex-wrap items-center gap-2 w-full md:w-auto md:ml-auto min-w-0">
-        {children}
-        {onAction && (
-          <button onClick={onAction}
-            className="erp-btn erp-btn-primary !min-h-10 !h-auto text-xs md:text-sm active:scale-95 transition-transform w-full md:w-auto">
-            <Plus size={14} /> {actionLabel}
-          </button>
-        )}
-      </div>
-    </div>
+    <CabecalhoTela titulo={title} subtitulo={subtitle} icone={icon} voltar={back ? "historico" : false} fixo className="erp-page-header">
+      {children}
+      {onAction && (
+        <button onClick={onAction}
+          className="erp-btn erp-btn-primary !min-h-11 !h-auto !rounded-full text-sm active:scale-95 transition-transform w-full md:w-auto">
+          <Plus size={15} /> {actionLabel}
+        </button>
+      )}
+    </CabecalhoTela>
   );
 }
 
 // ── Container de conteúdo ──────────────────────────────────────
 export function PageBody({ children, className = "", ...rest }) {
-  return <div className={`erp-page-body w-full min-w-0 px-3 sm:px-4 md:px-6 pt-4 pb-12 md:pb-16 space-y-4 md:space-y-6 ${className}`} {...rest}>{children}</div>;
+  return <div className={`erp-page-body w-full min-w-0 px-4 sm:px-6 lg:px-8 pt-3 pb-12 md:pb-16 space-y-4 md:space-y-6 ${className}`} {...rest}>{children}</div>;
 }
 
 // ── Cartão genérico ────────────────────────────────────────────
@@ -73,7 +52,7 @@ export function Card({ children, className = "", ...rest }) {
 }
 
 export function SectionLabel({ children }) {
-  return <p className="erp-label mb-2">{children}</p>;
+  return <p className="erp-section-label mb-2.5">{children}</p>;
 }
 
 // ── KPI ────────────────────────────────────────────────────────
@@ -88,21 +67,21 @@ export function Kpi({ icon: Icon, label, value, onClick, active = false, note })
       role={isClickable ? "button" : undefined}
       tabIndex={isClickable ? 0 : undefined}
       onKeyDown={isClickable ? (e) => (e.key === "Enter" || e.key === " ") && onClick(e) : undefined}
-      className={`erp-card erp-kpi-card p-4 sm:p-5 md:p-6 xl:p-8 relative overflow-hidden flex flex-col justify-between group min-w-0 transition-all ${
+      className={`erp-card erp-kpi-card p-4 sm:p-5 relative overflow-hidden flex flex-col justify-between group min-w-0 transition-all ${
         isClickable
           ? "cursor-pointer hover:shadow-md hover:border-accent active:scale-[0.98]"
           : ""
       } ${active ? "ring-2 ring-accent bg-accent-soft" : ""}`}
     >
-      <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
-        <p className="text-xs font-bold tracking-wider uppercase min-w-0 break-words" style={{ color: "var(--muted)" }}>{label}</p>
-        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105" style={{ background: "var(--accent-soft)" }}>
-          {Icon && <Icon size={20} style={{ color: "var(--accent-strong)" }} />}
+      <div className="flex items-center gap-2.5 mb-3 min-w-0">
+        <div className="w-9 h-9 rounded-[11px] grid place-items-center flex-shrink-0 bg-hf-elevated text-hf-text-2 transition-transform group-hover:scale-105">
+          {Icon && <Icon size={18} strokeWidth={1.9} aria-hidden="true" />}
         </div>
+        <p className="text-[13px] font-medium text-hf-muted min-w-0 break-words">{label}</p>
       </div>
       <div>
-        <p className="text-2xl sm:text-3xl font-black tracking-tight mt-auto min-w-0 break-words" style={{ color: "var(--fg)" }}>{value}</p>
-        {note && <p className="text-xs font-medium text-muted mt-1">{note}</p>}
+        <p className="text-2xl sm:text-[28px] font-semibold tracking-tight tabular-nums mt-auto min-w-0 break-words text-hf-text">{value}</p>
+        {note && <p className="text-xs font-medium text-hf-muted mt-1">{note}</p>}
       </div>
     </div>
   );
@@ -144,11 +123,10 @@ export function Chips({ options, value, onChange }) {
         const label = typeof o === "string" ? o : o.label;
         const ativo = v === value;
         return (
-          <button key={v} onClick={() => onChange(v)}
-            className="flex-shrink-0 text-2xs font-bold px-3 py-1.5 rounded-full transition-all active:scale-95"
-            style={ativo
-              ? { background: "var(--accent-strong)", color: "var(--accent-fg)" }
-              : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+          <button key={v} onClick={() => onChange(v)} aria-pressed={ativo}
+            className={`flex-shrink-0 min-h-[36px] text-sm font-semibold px-3.5 rounded-full shadow-none transition-all active:scale-95 ${ativo
+              ? "bg-hf-menu text-white"
+              : "border border-hf-border bg-hf-surface text-hf-text-2 hover:bg-hf-elevated"}`}>
             {label}
           </button>
         );

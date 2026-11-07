@@ -131,6 +131,7 @@ function Blocos({ blocos }) {
   return (
     <div className="mt-1.5 space-y-2">
       {blocos.map((b, i) => {
+        if (b.tipo === "lista" && !(b.itens || []).length) return null; // lista vazia: o texto já diz
         if (b.tipo === "lista") {
           return (
             <div key={i} className="rounded-md bg-black/[0.035] px-2 py-1.5">
@@ -313,7 +314,13 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
   const [parcial, setParcial] = useState("");
   const [lerEmVoz, setLerEmVoz] = useState(false);
   const [vozOk, setVozOk] = useState(false);
-  const voz = useMemo(() => provedorDeVoz(), []);
+  // iPhone: grava e o servidor transcreve; Android/Chrome: reconhecimento do navegador.
+  // Se o do navegador falhar, passa a gravar (forcarGravada).
+  const unidadeRef = useRef(unidadeId);
+  unidadeRef.current = unidadeId;
+  const [forcarGravada, setForcarGravada] = useState(false);
+  const [transcrevendo, setTranscrevendo] = useState(false);
+  const voz = useMemo(() => provedorDeVoz({ unidadeAtual: () => unidadeRef.current, forcarGravada }), [forcarGravada]);
   const referenciaRef = useRef(null);
   const ocupadoRef = useRef(false);
   const escutaRef = useRef(null);
@@ -476,25 +483,31 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
 
   // ─── voz ───
   const alternarMicrofone = useCallback(() => {
-    if (ouvindo) { escutaRef.current?.parar(); setOuvindo(false); return; }
+    if (ouvindo) {
+      // gravação: parar = enviar o áudio para transcrever (como soltar o botão no WhatsApp)
+      if (voz.nome === "gravada") setTranscrevendo(true);
+      escutaRef.current?.parar();
+      setOuvindo(false);
+      return;
+    }
     voz.calar();
     setParcial("");
     setOuvindo(true);
     escutaRef.current = voz.ouvir({
       onParcial: (t) => setParcial(t),
-      onFinal: (t) => { setOuvindo(false); setParcial(""); enviar(t, { canal: "voz" }); },
+      onFinal: (t) => { setOuvindo(false); setTranscrevendo(false); setParcial(""); enviar(t, { canal: "voz" }); },
       onErro: (msg) => {
         setOuvindo(false);
-        // iPhone (principalmente o app na tela inicial) costuma negar o reconhecimento de voz
-        // do navegador; o ditado do teclado funciona no campo de mensagem.
-        const ios = typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
-        const texto = ios ? `${msg} No iPhone, toque no campo Mensagem e use o microfone do teclado para ditar.` : msg;
+        setTranscrevendo(false);
+        // o reconhecimento do navegador falhou: daqui em diante grava e transcreve no servidor
+        const trocou = voz.nome !== "gravada" && !forcarGravada && provedorDeVoz({ forcarGravada: true }).nome === "gravada";
+        if (trocou) setForcarGravada(true);
+        const texto = trocou ? `${msg} Mudei para gravar o áudio: toque no microfone de novo, fale e toque no quadrado para enviar.` : msg;
         adicionar({ de: "assistente", resposta: { tipo: "erro_acao", texto, sugestoes: SUGESTOES_ASSISTENTE.slice(0, 3) } });
-        if (ios) setTimeout(() => campoRef.current?.focus(), 50);
       },
-      onFim: () => setOuvindo(false),
+      onFim: () => { setOuvindo(false); setTranscrevendo(false); },
     });
-  }, [ouvindo, voz, enviar, adicionar]);
+  }, [ouvindo, voz, enviar, adicionar, forcarGravada]);
 
   const submeter = (e) => {
     e?.preventDefault();
@@ -512,7 +525,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
   }, [texto]);
 
   const vazio = mensagens.length === 0;
-  const status = ouvindo ? "ouvindo…" : lendoNota ? "lendo a nota…" : ocupado ? "digitando…" : "online";
+  const status = ouvindo ? (voz.nome === "gravada" ? "gravando áudio…" : "ouvindo…") : transcrevendo ? "transcrevendo áudio…" : lendoNota ? "lendo a nota…" : ocupado ? "digitando…" : "online";
 
   return (
     <div className="flex h-full min-h-0 flex-col" style={{ ...CORES, background: "var(--wa-fundo)" }}>
@@ -565,7 +578,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
               onComando={enviarComando} onRota={(r) => router.push(r)} onContinuar={continuar}
               onConfirmar={confirmar} onCancelar={cancelar} onConfirmarTodos={confirmarTodos} />
           )))}
-          {ocupado && <Digitando />}
+          {(ocupado || transcrevendo) && <Digitando />}
           <div ref={fimRef} className="h-1" />
         </div>
       </div>
@@ -584,9 +597,9 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
           )}
           {ouvindo ? (
             <div className="flex items-center gap-2 pb-1">
-              <div className="flex min-h-[46px] flex-1 items-center gap-2 rounded-3xl bg-white px-4 text-[15px]">
+              <div className="flex min-h-[46px] min-w-0 flex-1 items-center gap-2 rounded-3xl bg-white px-4 text-[16px]">
                 <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
-                <span className="min-w-0 flex-1 truncate" style={{ color: parcial ? "var(--wa-texto)" : "var(--wa-meta)" }}>{parcial || "Ouvindo… pode falar"}</span>
+                <span className="min-w-0 flex-1 truncate" style={{ color: parcial ? "var(--wa-texto)" : "var(--wa-meta)" }}>{parcial || (voz.nome === "gravada" ? "Preparando o microfone…" : "Ouvindo… pode falar")}</span>
               </div>
               <button type="button" onClick={alternarMicrofone} aria-label="Parar e enviar" className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow" style={{ background: "var(--wa-verde)" }}><Square size={18} fill="currentColor" /></button>
             </div>
@@ -623,7 +636,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                     className="grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50" style={{ color: "var(--wa-texto)" }}>
                     <Camera size={25} strokeWidth={1.8} />
                   </button>
-                  <button type="button" onClick={alternarMicrofone} disabled={ocupado} aria-label="Gravar áudio" className="mb-[1px] grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition active:scale-95 disabled:opacity-60" style={{ background: "var(--wa-verde)" }}>
+                  <button type="button" onClick={alternarMicrofone} disabled={ocupado || transcrevendo} aria-label="Gravar áudio" className="mb-[1px] grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition active:scale-95 disabled:opacity-60" style={{ background: "var(--wa-verde)" }}>
                     <Mic size={21} />
                   </button>
                 </>

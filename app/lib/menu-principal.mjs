@@ -10,13 +10,21 @@
 // Cozinha, Bar e Salão são "universos" (pedido do dono, 03/11/2026): o clique no
 // menu abre uma tela de cards só daquela área, e o voltar de qualquer card
 // retorna a ela. Os cards ficam aqui, em `secoes`, pela mesma regra da lista
-// única. `icone` é o nome de um ícone do lucide-react (UniversoArea.js).
+// única. `icone` é o nome de um ícone do lucide-react (ui/IconeModulo.js).
+//
+// Visual do Nina (pedido do dono, 07/11/2026): cada área tem `icone`, `cor` e
+// `desc` curta para o lançador de módulos do Início; a cor dos cards sai do
+// ícone (app/lib/cores-modulo.mjs). `destaque` é o card grande grafite no topo
+// do universo (o KDS na Cozinha e no Bar, as comandas no Salão): ele sai da
+// grade para não aparecer duas vezes.
 
 export const MENU_PRINCIPAL = Object.freeze([
-{ id: "inteligencia", label: "Inteligência", href: "/dashboard/inteligencia", exigeInteligencia: true },
+  { id: "inteligencia", label: "Inteligência", href: "/dashboard/inteligencia", exigeInteligencia: true, icone: "BrainCircuit", cor: "violeta", desc: "Análises e recomendações" },
   {
-    id: "cozinha", label: "Cozinha", href: "/dashboard/cozinha", icone: "ChefHat",
+    id: "cozinha", label: "Cozinha", href: "/dashboard/cozinha", icone: "ChefHat", cor: "laranja",
+    desc: "Preparo, produção e KDS",
     titulo: "Cozinha", subtitulo: "Tudo o que a cozinha usa no dia a dia",
+    destaque: { href: "/dashboard/cozinha/kds?setor=cozinha", acao: "Abrir KDS", setorKds: "cozinha" },
     secoes: [
       { titulo: "Hoje", cards: [
         { label: "Consulta", desc: "Fichas, montagem e cardápio", href: "/dashboard/operacao/consulta?dept=cozinha", icone: "Search" },
@@ -47,8 +55,10 @@ export const MENU_PRINCIPAL = Object.freeze([
     ],
   },
   {
-    id: "bar", label: "Bar", href: "/dashboard/bar", icone: "GlassWater",
+    id: "bar", label: "Bar", href: "/dashboard/bar", icone: "GlassWater", cor: "azul",
+    desc: "Drinks, produção e KDS",
     titulo: "Bar", subtitulo: "Tudo o que o bar usa no dia a dia",
+    destaque: { href: "/dashboard/cozinha/kds?setor=bar", acao: "Abrir KDS", setorKds: "bar" },
     secoes: [
       { titulo: "Hoje", cards: [
         { label: "Consulta", desc: "Fichas, montagem e cardápio", href: "/dashboard/operacao/consulta?dept=bar", icone: "Search" },
@@ -80,8 +90,10 @@ export const MENU_PRINCIPAL = Object.freeze([
     ],
   },
   {
-    id: "salao", label: "Salão", href: "/dashboard/salao", icone: "Store",
+    id: "salao", label: "Salão", href: "/dashboard/salao", icone: "Store", cor: "rosa",
+    desc: "Comandas, caixa e delivery",
     titulo: "Salão", subtitulo: "Tudo o que o salão usa no dia a dia",
+    destaque: { href: "/dashboard/mesas", acao: "Abrir comandas" },
     secoes: [
       { titulo: "Atendimento", cards: [
         { label: "Comandas", desc: "Lançar pedidos e pedir a conta", href: "/dashboard/mesas", icone: "ConciergeBell" },
@@ -103,7 +115,8 @@ export const MENU_PRINCIPAL = Object.freeze([
     ],
   },
   {
-    id: "estoque", label: "Estoque", href: "/dashboard/operacao/estoque",
+    id: "estoque", label: "Estoque", href: "/dashboard/operacao/estoque", icone: "Package", cor: "indigo",
+    desc: "Saldos, compras e CMV",
     submodules: [
       { label: "Estoque", href: "/dashboard/operacao/estoque" },
       { label: "Produtos e ingredientes", href: "/dashboard/operacao/ingredientes" },
@@ -116,7 +129,8 @@ export const MENU_PRINCIPAL = Object.freeze([
     ],
   },
   {
-    id: "cardapio", label: "Cardápio", href: "/dashboard/operacao/cardapio",
+    id: "cardapio", label: "Cardápio", href: "/dashboard/operacao/cardapio", icone: "UtensilsCrossed", cor: "vermelho",
+    desc: "Cardápio digital e clientes",
     submodules: [
       { label: "Cardápio digital", href: "/dashboard/operacao/cardapio" },
       { label: "Engenharia de cardápio", href: "/dashboard/operacao/engenharia" },
@@ -126,7 +140,8 @@ export const MENU_PRINCIPAL = Object.freeze([
     ],
   },
   {
-    id: "operacao", label: "Operação", href: "/dashboard/operacao/inteligente",
+    id: "operacao", label: "Operação", href: "/dashboard/operacao/inteligente", icone: "ClipboardList", cor: "ardosia",
+    desc: "Controles, limpeza e manutenção",
     submodules: [
       { label: "Central operacional", href: "/dashboard/operacao/inteligente" },
       { label: "Controles e checklists", href: "/dashboard/operacao/controles" },
@@ -136,10 +151,11 @@ export const MENU_PRINCIPAL = Object.freeze([
       { label: "Manutenção", href: "/dashboard/operacao/manutencao" },
     ],
   },
-  { id: "eventos", label: "Eventos", href: "/dashboard/reservas-eventos" },
-  { id: "marmitaria", label: "Marmitaria", href: "/dashboard/marmitaria" },
+  { id: "eventos", label: "Eventos", href: "/dashboard/reservas-eventos", icone: "PartyPopper", cor: "amarelo", desc: "Funil, agenda e reservas" },
+  { id: "marmitaria", label: "Marmitaria", href: "/dashboard/marmitaria", icone: "Soup", cor: "dourado", desc: "Pedidos, produção e entregas" },
   {
-    id: "rh", label: "Equipe", href: "/dashboard/rh",
+    id: "rh", label: "Equipe", href: "/dashboard/rh", icone: "Users", cor: "ciano",
+    desc: "Ponto, escala e folha",
     submodules: [
       { label: "Painel da equipe", href: "/dashboard/rh" },
       { label: "Quadro de funcionários", href: "/dashboard/rh?aba=quadro" },
@@ -153,7 +169,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       { label: "Héfisto Estúdio", href: "/dashboard/treinamento/estudio" },
     ],
   },
-  { id: "financeiro", label: "Financeiro", href: "/dashboard/financeiro" },
+  { id: "financeiro", label: "Financeiro", href: "/dashboard/financeiro", icone: "Wallet", cor: "verde", desc: "Contas, caixa e DRE" },
 ]);
 
 /** Áreas que esta sessão vê no menu. */

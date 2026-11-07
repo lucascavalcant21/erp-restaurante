@@ -92,3 +92,16 @@ export function pedidoFicaPronto(pedido, itensDoPedido) {
   const itens = Array.isArray(itensDoPedido) ? itensDoPedido : [];
   return itens.length > 0 && itens.every((i) => ["pronto", "entregue", "cancelado"].includes(i.status_kds));
 }
+
+/**
+ * Quantos pedidos esperam em cada setor (07/11/2026). A tela da Cozinha
+ * mostra "Bar 1" na aba do lado: antes, um pedido só de bebida não aparecia na
+ * Cozinha e parecia que não tinha chegado.
+ */
+export function contarPorSetor(linhas) {
+  return {
+    cozinha: montarFilaKDS(linhas, "cozinha").length,
+    bar: montarFilaKDS(linhas, "bar").length,
+    todos: montarFilaKDS(linhas, "todos").length,
+  };
+}

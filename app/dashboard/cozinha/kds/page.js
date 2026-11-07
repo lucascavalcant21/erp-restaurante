@@ -44,7 +44,7 @@ export default function KDSPage() {
     } catch { /* segue */ }
   }, []);
   const [painelImpressao, setPainelImpressao] = useState(false);
-  const impressao = useImpressaoKds({ unidadeId: unidadeAtiva, setor, unidadeNome: unidadeInfo?.nome || "" });
+  const impressao = useImpressaoKds({ unidadeId: unidadeAtiva, setor });
   const { processarFila } = impressao;
   const escolherSetor = (s) => {
     setSetor(s);
@@ -127,10 +127,11 @@ export default function KDSPage() {
       <PainelImpressaoKds
         aberto={painelImpressao}
         fechar={() => setPainelImpressao(false)}
-        cfg={impressao.cfg}
-        mudar={impressao.mudar}
+        setor={setor}
+        auto={impressao.cfg.auto}
+        mudarAuto={impressao.mudarAuto}
         aviso={impressao.aviso}
-        imprimirTeste={() => impressao.imprimir([{ id: "teste", origem: "Teste de impressão", identificacao: null, cliente: null, itens: [{ id: "teste-1", nome: "Via de teste", quantidade: 1, observacao: "Se saiu, está tudo certo." }] }], { marcar: false })}
+        imprimirTeste={() => impressao.imprimir([{ id: "teste", origem: "Teste de impressão", identificacao: null, cliente: null, itens: (setor === "todos" ? ["cozinha", "bar"] : [setor]).map((s) => ({ id: `teste-${s}`, setor: s, nome: "Via de teste", quantidade: 1, observacao: "Se saiu, está tudo certo." })) }], { marcar: false })}
       />
 
       {/* HEADER DO KDS */}

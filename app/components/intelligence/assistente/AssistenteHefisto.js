@@ -183,7 +183,7 @@ const CartaoConfirmacao = memo(function CartaoConfirmacao({ c, resolvida, ocupad
       ) : (
         <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-black/5 pt-1.5">
           <button type="button" disabled={ocupado} onClick={onCancelar} className="min-h-[46px] rounded-md text-[16px] font-medium disabled:opacity-50" style={{ color: "var(--wa-meta)" }}>Cancelar</button>
-          <button type="button" disabled={ocupado || (c.confirmacaoExplicita && texto !== "CONFIRMAR")} onClick={() => onConfirmar(c.confirmacaoExplicita ? texto : null)} className="min-h-[46px] rounded-md text-[16px] font-semibold text-white disabled:opacity-60" style={{ background: "var(--wa-verde)" }}>Confirmar</button>
+          <button type="button" disabled={ocupado || (c.confirmacaoExplicita && texto !== "CONFIRMAR")} onClick={() => onConfirmar(c.confirmacaoExplicita ? texto : null)} className="min-h-[46px] rounded-md text-[16px] font-semibold text-white disabled:opacity-75" style={{ background: "var(--wa-verde-escuro)" }}>Confirmar</button>
         </div>
       )}
       {!resolvida && <p className="mt-1 text-[12.5px]" style={{ color: "var(--wa-meta)" }}>Nada é gravado antes de confirmar.</p>}

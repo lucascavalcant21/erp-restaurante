@@ -4,7 +4,7 @@ import { carregarPermissoes, permite } from "../../lib/server/permissoes-efetiva
 import {
   lerPainel, parearTela, salvarTela, trocarConteudo, desconectarTela, excluirTela,
   prepararEnvio, registrarMidia, renomearMidia, excluirMidia,
-  salvarPlaylist, excluirPlaylist, salvarProgramacao, excluirProgramacao,
+  salvarPlaylist, excluirPlaylist, salvarProgramacao, excluirProgramacao, previaRoteiro,
 } from "../../lib/server/sinalizacao.mjs";
 
 // Painel da Sinalização digital (TVs de marketing).
@@ -21,6 +21,7 @@ const EDITAR = ["clientes.signage.edit"];
 const EXCLUIR = ["clientes.signage.delete"];
 
 const ACOES = {
+  previa: { chaves: VER, f: (a, c) => previaRoteiro(a.db, c.unidadeId, c) },
   parear: { chaves: CRIAR, f: (a, c, o) => parearTela(a.db, c.unidadeId, c, o) },
   salvar_tela: { chaves: EDITAR, f: (a, c) => salvarTela(a.db, c.unidadeId, c) },
   trocar_conteudo: { chaves: EDITAR, f: (a, c) => trocarConteudo(a.db, c.unidadeId, c) },

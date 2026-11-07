@@ -77,7 +77,8 @@ test("programação: validação de horário, datas e prioridade", () => {
   assert.equal(validarProgramacao({ ...base, playlist_id: "x" }).ok, false);
   assert.equal(validarProgramacao({ ...base, hora_inicio: "11:00" }).ok, false, "só início");
   assert.equal(validarProgramacao({ ...base, hora_inicio: "25:00", hora_fim: "26:00" }).ok, false);
-  assert.equal(validarProgramacao({ ...base, hora_inicio: "11:00", hora_fim: "11:00" }).ok, false);
+  const igual = validarProgramacao({ ...base, hora_inicio: "11:00", hora_fim: "11:00" });
+  assert.deepEqual([igual.ok, igual.regra.hora_inicio, igual.regra.hora_fim], [true, null, null], "horários iguais = dia inteiro");
   assert.equal(validarProgramacao({ ...base, data_inicio: "2026-11-10", data_fim: "2026-11-01" }).ok, false);
   const r = validarProgramacao({ ...base, dias_semana: [5, 1, 1, 9], prioridade: 5000, tela_ids: [T1, "x"] }).regra;
   assert.deepEqual(r.dias_semana, [1, 5]);
@@ -185,4 +186,15 @@ test("tela dividida: cada item num lado; todo lado precisa de conteúdo; o rotei
   const urls = new Map([[M1, "u1"], [M2, "u2"]]);
   const r = montarRoteiro({ itens: ok.playlist.itens, midias, urls });
   assert.deepEqual(r.map((s) => [s.nome, s.zona, s.duracao_seg]), [["A", 0, 8], ["B", 1, 20]]);
+});
+
+test("ajuste na TV: inteira (padrão), preencher ou dividir; vale na playlist e na arte fixa", () => {
+  assert.equal(normalizarItem({ tipo: "midia", midia_id: M1 }).ajuste, "inteira");
+  assert.equal(normalizarItem({ tipo: "midia", midia_id: M1, ajuste: "dividir" }).ajuste, "dividir");
+  assert.equal(normalizarItem({ tipo: "midia", midia_id: M1, ajuste: "esticar" }).ajuste, "inteira", "valor desconhecido volta ao padrão");
+  assert.deepEqual(normalizarConteudo({ tipo: "midia", id: M1, ajuste: "preencher" }), { tipo: "midia", id: M1, ajuste: "preencher" });
+  assert.deepEqual(normalizarConteudo({ tipo: "midia", id: M1, ajuste: "inteira" }), { tipo: "midia", id: M1 });
+  assert.deepEqual(normalizarConteudo({ tipo: "playlist", id: P1, ajuste: "dividir" }), { tipo: "playlist", id: P1 });
+  const r = montarRoteiro({ itens: [{ tipo: "midia", midia_id: M1, ajuste: "preencher" }], midias: new Map([[M1, { id: M1, tipo: "imagem", nome: "A" }]]), urls: new Map([[M1, "u"]]) });
+  assert.equal(r[0].ajuste, "preencher");
 });

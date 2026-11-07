@@ -4,7 +4,9 @@
 
 import { fetchComSessao } from "../../lib/api-sessao";
 import { supabase } from "../../lib/supabase";
-import { MonitorPlay, Utensils } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { MonitorPlay, RefreshCw, Utensils } from "lucide-react";
+import { Palco, FiltroNitidez } from "./PalcoTv";
 
 export async function chamar(unidadeId, acao, dados = {}) {
   const r = await fetchComSessao("/api/sinalizacao", {
@@ -59,8 +61,8 @@ export const tamanhoLegivel = (b) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).to
 export const segundos = (s) => (s == null ? "" : s >= 60 ? `${Math.floor(s / 60)} min ${Math.round(s % 60)} s` : `${Math.round(s)} s`);
 
 /** Miniatura de uma mídia (ou do cardápio) no formato da tela. */
-export function Miniatura({ midia, cardapio = false, orientacao = "horizontal", className = "" }) {
-  const proporcao = orientacao === "vertical" ? "aspect-[9/16]" : "aspect-video";
+export function Miniatura({ midia, cardapio = false, orientacao = "horizontal", className = "", proporcao: forcada }) {
+  const proporcao = forcada || (orientacao === "vertical" ? "aspect-[9/16]" : "aspect-video");
   return (
     <div className={`relative overflow-hidden rounded-xl bg-hf-elevated ${proporcao} ${className}`}>
       {midia?.url && midia.tipo === "imagem" && (
@@ -92,3 +94,73 @@ export function Selo({ children, tom = "neutro" }) {
 }
 
 export const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+// ─── Prévia: "Ver como fica na TV" ───────────────────────────────────────────
+
+export const AJUSTES_TV = [
+  ["inteira", "Inteira"],
+  ["preencher", "Preencher"],
+  ["dividir", "Dividir em 2"],
+];
+export const AJUDA_AJUSTE = {
+  inteira: "A arte toda, com o fundo preenchido pela própria arte desfocada.",
+  preencher: "Enche a tela sem desfocar; corta as sobras (em cima e embaixo).",
+  dividir: "Metade de cima à esquerda e metade de baixo à direita: enche a TV deitada sem desfocar. Em vídeo vale como Preencher.",
+};
+
+/**
+ * Uma TV pequena no painel, rodando o MESMO palco da TV de verdade (lados,
+ * tempos, ajuste, realce e cardápio com preço). `itens` (playlist em edição)
+ * ou `conteudo` (arte/playlist escolhida em Trocar conteúdo).
+ */
+export function PreviaTv({ unidadeId, itens, conteudo, orientacao = "horizontal" }) {
+  const [aberta, setAberta] = useState(false);
+  const [estado, setEstado] = useState({ carregando: false, roteiro: [], loja: null, erro: "", chave: 0 });
+  const pedido = JSON.stringify({ itens: itens || null, conteudo: conteudo || null });
+
+  const montar = useCallback(async () => {
+    setEstado((e) => ({ ...e, carregando: true, erro: "" }));
+    try {
+      const r = await chamar(unidadeId, "previa", JSON.parse(pedido));
+      setEstado((e) => ({ carregando: false, roteiro: r.roteiro || [], loja: r.loja, erro: "", chave: e.chave + 1 }));
+    } catch (err) {
+      setEstado((e) => ({ ...e, carregando: false, erro: err.message }));
+    }
+  }, [unidadeId, pedido]);
+
+  // Mudou a playlist com a prévia aberta: refaz depois de uma pausa curta.
+  useEffect(() => {
+    if (!aberta) return undefined;
+    const t = setTimeout(montar, 600);
+    return () => clearTimeout(t);
+  }, [aberta, montar]);
+
+  const vertical = orientacao === "vertical";
+  return (
+    <div className="mb-4">
+      <button type="button" onClick={() => setAberta((a) => !a)} className="erp-btn erp-btn-ghost !min-h-11 w-full text-sm">
+        <MonitorPlay size={16} /> {aberta ? "Fechar prévia" : "Ver como fica na TV"}
+      </button>
+      {aberta && (
+        <div className="mt-2 rounded-2xl bg-hf-menu p-2.5">
+          <div className={`relative mx-auto overflow-hidden rounded-lg bg-black ${vertical ? "aspect-[9/16] max-h-[420px]" : "aspect-video w-full"}`}
+            style={{ containerType: "size", ...(vertical ? { height: "min(420px, 70vh)" } : {}) }}>
+            <FiltroNitidez />
+            {estado.roteiro.length > 0 && <Palco roteiro={estado.roteiro} loja={estado.loja} vertical={vertical} chave={`p${estado.chave}`} />}
+            {!estado.roteiro.length && (
+              <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-white/60">
+                {estado.carregando ? "Montando a prévia…" : estado.erro || "Nada para mostrar ainda. Adicione uma arte ou o cardápio."}
+              </div>
+            )}
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-2 px-1">
+            <p className="text-[11px] text-white/60">Prévia com os mesmos tempos, lados, ajuste e realce da TV.</p>
+            <button type="button" onClick={montar} className="flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-white/80">
+              <RefreshCw size={13} /> Recomeçar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -7,7 +7,8 @@ import { consumoDaVenda, devolucoesDaVenda, pagamentosDaConta, planejarBaixas } 
 import { registrarMovimentoMulti } from "./estoques-multiplos";
 
 const OFFLINE = "Sistema indisponível no momento.";
-const ITENS = "id, produto_id, quantidade, valor_unitario, observacao, status_kds, created_at, pessoa, produtos ( nome_produto )";
+// updated_at e tempo_preparo_base: contagem regressiva e "pronto há X min" na comanda do garçom.
+const ITENS = "id, produto_id, quantidade, valor_unitario, observacao, status_kds, created_at, updated_at, pessoa, produtos ( nome_produto, tempo_preparo_base )";
 
 export async function fetchSalao(unidadeId) {
   if (!isSupabaseReady()) return { mesas: [], pedidos: [], error: OFFLINE };
@@ -182,4 +183,13 @@ export async function venderNoBalcao({ unidadeId, caixaId, itens, pagamentos, de
   });
   if (r.error) { await desfazer(); return { error: r.error }; }
   return { data: { id: pedido.id, venda_id: r.data?.venda_id, total: plano.total }, faltas: r.faltas || [], error: null };
+}
+
+/** O garçom levou o item pronto à mesa: sai do aviso e da fila de prontos. */
+export async function marcarItemServido(itemId) {
+  if (!isSupabaseReady()) return { error: OFFLINE };
+  const { error } = await supabase.from("pedidos_itens")
+    .update({ status_kds: "entregue", updated_at: new Date().toISOString() })
+    .eq("id", itemId).eq("status_kds", "pronto");
+  return { error: error?.message || null };
 }

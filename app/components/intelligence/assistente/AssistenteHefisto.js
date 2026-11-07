@@ -439,7 +439,15 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
     escutaRef.current = voz.ouvir({
       onParcial: (t) => setParcial(t),
       onFinal: (t) => { setOuvindo(false); setParcial(""); enviar(t, { canal: "voz" }); },
-      onErro: (msg) => { setOuvindo(false); adicionar({ de: "assistente", resposta: { tipo: "erro_acao", texto: msg } }); },
+      onErro: (msg) => {
+        setOuvindo(false);
+        // iPhone (principalmente o app na tela inicial) costuma negar o reconhecimento de voz
+        // do navegador; o ditado do teclado funciona no campo de mensagem.
+        const ios = typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+        const texto = ios ? `${msg} No iPhone, toque no campo Mensagem e use o microfone do teclado para ditar.` : msg;
+        adicionar({ de: "assistente", resposta: { tipo: "erro_acao", texto, sugestoes: SUGESTOES_ASSISTENTE.slice(0, 3) } });
+        if (ios) setTimeout(() => campoRef.current?.focus(), 50);
+      },
       onFim: () => setOuvindo(false),
     });
   }, [ouvindo, voz, enviar, adicionar]);

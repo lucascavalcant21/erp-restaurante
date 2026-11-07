@@ -14,6 +14,7 @@ import { palavras } from "./interpretador-regras.mjs";
 import { motivoDaEntrada, MOTIVOS_ENTRADA } from "../actions/registrar-entrada.mjs";
 import { dividirEmItens } from "./lote.mjs";
 import { paramsDoComando } from "../actions/criar-ficha.mjs";
+import { responderLivre } from "../agents/geral.mjs";
 import { sugestoesDaResposta } from "./sugestoes.mjs";
 import { notaSchema } from "../actions/lancar-nota.mjs";
 import { responderPergunta } from "../agents/orquestrador.mjs";
@@ -189,7 +190,11 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
         pergunta: { campo: "produto", texto: "De qual produto você está falando?", opcoes: produtoCtx.ambiguo.map((p) => ({ id: p.id, rotulo: `${p.nome || "produto"} (${p.origem === "tela" ? "tela aberta" : "conversa"})`, comando: `${base} de ${p.nome}` })).filter((o) => !/ de (null|undefined)$/.test(o.comando)) },
       };
     } else if (!intencao) {
-      resposta = { tipo: "nao_entendi", texto: "Não entendi o pedido. Veja exemplos do que eu sei responder:", sugestoes: EXEMPLOS };
+      // nenhum comando pronto: o agente geral responde com os dados do sistema (nunca "não sei")
+      const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS });
+      resposta = { ...livre.resposta, agentes: ["geral"] };
+      if (livre.ia) ia = { ...(ia || {}), ...livre.ia };
+      trilha.passar("explicacao", NIVEL.ANALISAR);
     } else if (intencao.tipo === "navegacao") {
       const d = DESTINOS[interp.destino];
       const [caminho, busca = ""] = d.rota.split("?");

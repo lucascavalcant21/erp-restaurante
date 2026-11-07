@@ -162,7 +162,9 @@ function Blocos({ blocos }) {
 function Rodape({ r }) {
   const fontes = r?.fontesConsultadas || [];
   if (!fontes.length) return null;
-  return <p className="mt-1 text-[12.5px]" style={{ color: "var(--wa-meta)" }}>Fontes: {fontes.join(" · ")}</p>;
+  // muitas fontes (resumo do dia, agente geral): as 4 primeiras e quantas mais
+  const resto = fontes.length - 4;
+  return <p className="mt-1 text-[12.5px]" style={{ color: "var(--wa-meta)" }}>Fontes: {fontes.slice(0, 4).join(" · ")}{resto > 0 ? ` · e mais ${resto}` : ""}</p>;
 }
 
 const CartaoConfirmacao = memo(function CartaoConfirmacao({ c, resolvida, ocupado, onConfirmar, onCancelar }) {

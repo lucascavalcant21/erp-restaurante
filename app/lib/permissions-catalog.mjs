@@ -240,6 +240,10 @@ export const PERMISSION_MODULES = [
       // As mesmas chaves (clientes.loyalty.*) são conferidas no banco pelas funções da FIDELIDADE-1.
       { id: "loyalty", label: "Fidelidade e cadastro", route: "/dashboard/clientes/fidelidade", actions: ["view", "edit", "confirm"] },
       { id: "coupons", label: "Cupons", route: "/dashboard/marketing/cupons", actions: CRUD },
+      // Sinalização digital (TVs de marketing, 07/11/2026): parear TV (create),
+      // enviar arte/vídeo (create), trocar conteúdo, playlists e programação
+      // (edit), excluir (delete). Conferido no servidor em /api/sinalizacao.
+      { id: "signage", label: "Sinalização digital (TVs)", route: "/dashboard/marketing/sinalizacao", actions: CRUD },
     ],
   },
   {

@@ -182,3 +182,13 @@ Decisões:
 - Abas e áreas (Financeiro, RH, Eventos, Marmitaria, Estoque) viram faixa de pílulas.
 - Ficam com layout próprio, só herdando fonte e cores: KDS, Ponto (quiosque), Caixa e mesas, Green Dot, escolha de quem etiqueta e identificação do garçom, Héfisto Intelligence (tema escuro).
 - **Botão preto (07/11/2026, pedido do dono):** "esse botão dourado dá pra mudar por um botão preto com letras brancas, vai ficar mais bonito". Botões de ação e abas/filtros selecionados passam a grafite (`hf-menu`) com letra branca, por uma regra única no `globals.css`. O dourado fica para a marca (foco, selos, contadores, bordas).
+
+## DP — Sinalização digital nas TVs (07/11/2026, decisões do dono)
+
+- Fica dentro do Héfisto (Cardápio → Sinalização digital, `/dashboard/marketing/sinalizacao`), permissão `clientes.signage.*`.
+- A TV roda por **link web** (`/tv`) com **código de 4 números**, igual ao Nina; app Android TV fica para depois.
+- A TV mostra também o **cardápio com o preço do Héfisto** (o mesmo do QR Code, promoção incluída). Sem preço, o prato não aparece.
+- **Só o restaurante** por enquanto; mídias por unidade (acervo compartilhado entre lojas: depois).
+- Playlist com **versão** (V1, V2…) e selo **Publicada** quando está numa tela ou numa regra ligada.
+- Vídeo até **50 MB** (limite do plano FREE do Supabase); imagem até 25 MB.
+- Programação: vence a maior prioridade; empate, a mais recente; fora dos horários vale o conteúdo fixo da tela; horário que vira a noite conta para o dia em que começou.

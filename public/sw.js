@@ -3,7 +3,7 @@
  * que não sejam GET, para nunca servir dado de operação desatualizado.
  * Para navegações/estáticos same-origin usa network-first com fallback ao cache.
  */
-const CACHE = "hefisto-shell-v8";
+const CACHE = "hefisto-shell-v9";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -17,7 +17,9 @@ self.addEventListener("message", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => caches.delete(k)))
+      // As mídias da TV (/tv, Sinalização digital) ficam: são o que a TV
+      // toca sem internet, e baixar de novo 50 MB de vídeo a cada deploy não faz sentido.
+      Promise.all(keys.filter((k) => !k.startsWith("hefisto-tv-")).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });

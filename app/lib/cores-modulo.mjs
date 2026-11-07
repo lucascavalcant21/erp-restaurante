@@ -23,7 +23,7 @@ const POR_ICONE = Object.freeze({
   CookingPot: "violeta", Coqueteleira: "violeta", WandSparkles: "violeta",
   Salad: "verde", Citrus: "verde", Sparkles: "verde",
   // Pedidos e atendimento
-  ConciergeBell: "grafite", UtensilsCrossed: "laranja", Smartphone: "azul",
+  ConciergeBell: "grafite", UtensilsCrossed: "laranja", Smartphone: "azul", MonitorPlay: "rosa",
   Bike: "vermelho", Users: "rosa", MessageSquareText: "azul",
   // Estoque e compras
   Package: "indigo", Carrot: "laranja", Wine: "laranja", ShoppingCart: "vermelho",

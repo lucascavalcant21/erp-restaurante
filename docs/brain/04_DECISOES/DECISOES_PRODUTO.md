@@ -181,3 +181,4 @@ Decisões:
 - Global: sombras curtas (substituem as sombras fundas de 27/10), botões em pílula lisa (sem degradê), rótulos sem caixa alta, peso das letras contido dentro das telas (font-black vira 700).
 - Abas e áreas (Financeiro, RH, Eventos, Marmitaria, Estoque) viram faixa de pílulas.
 - Ficam com layout próprio, só herdando fonte e cores: KDS, Ponto (quiosque), Caixa e mesas, Green Dot, escolha de quem etiqueta e identificação do garçom, Héfisto Intelligence (tema escuro).
+- **Botão preto (07/11/2026, pedido do dono):** "esse botão dourado dá pra mudar por um botão preto com letras brancas, vai ficar mais bonito". Botões de ação e abas/filtros selecionados passam a grafite (`hf-menu`) com letra branca, por uma regra única no `globals.css`. O dourado fica para a marca (foco, selos, contadores, bordas).

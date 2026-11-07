@@ -224,15 +224,16 @@ body {
   }
   .erp-btn:active { transform: scale(0.94); }
 
-  /* Botão principal no visual do Nina: pílula dourada lisa, sem degradê. */
+  /* Botão principal: pílula preta (grafite) com letra branca, lisa. Pedido do dono
+     (07/11/2026): "botão preto com letras brancas, vai ficar mais bonito". */
   .erp-btn-primary {
-    background: rgb(var(--hf-accent));
-    color: rgb(var(--hf-accent-fg));
+    background: rgb(var(--hf-menu));
+    color: #fff;
     box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
     border: 1px solid transparent;
   }
   .erp-btn-primary:hover {
-    filter: brightness(1.04);
+    background: rgb(var(--hf-menu-hover));
     box-shadow: 0 2px 6px rgba(16, 24, 40, 0.12);
   }
 
@@ -639,3 +640,19 @@ textarea *,
 }
 /* Tela com o cabeçalho novo já tem a seta e a trilha: a faixa fixa de voltar some. */
 body[data-cabecalho-tela] .erp-barra-universo { display: none; }
+
+/* ═══ BOTÃO DE AÇÃO PRETO (pedido do dono, 07/11/2026) ═══════════════════
+   "Esse botão dourado dá pra mudar por um botão preto com letras brancas."
+   Todo botão ou link cheio de dourado (bg-hf-accent, bg-accent e a escala
+   emerald-*, que no código é a dourada) vira grafite com letra branca, inclusive
+   a aba ou o filtro selecionado. O dourado continua na marca: anel de foco,
+   textos de destaque, selos e contadores dentro do botão.
+   Para manter um botão dourado de propósito: classe `hf-manter-dourado`. */
+:is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado) {
+  background-color: rgb(var(--hf-menu)) !important;
+  background-image: none !important;
+  color: #fff !important;
+}
+:is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado):not(:disabled):hover {
+  background-color: rgb(var(--hf-menu-hover)) !important;
+}

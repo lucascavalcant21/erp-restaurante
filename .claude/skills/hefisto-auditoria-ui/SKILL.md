@@ -12,7 +12,8 @@ Para testar e publicar, siga `hefisto-entrega`.
 - **Design system branco e dourado (decisão do dono, 31/10/2026).** Use só os tokens `hf-*` (`app/globals.css` + `tailwind.config.js`):
   - fundo e cards brancos: `bg-hf-bg`, `bg-hf-surface`, `bg-hf-elevated` (#F7F7F8);
   - texto e borda: `text-hf-text`, `text-hf-muted`, `border-hf-border`;
-  - dourado principal `bg-hf-accent`, com texto `text-hf-accent-fg` (escuro). `text-hf-accent` já sai no dourado escuro legível;
+  - **botão de ação e aba/filtro selecionado: preto (grafite) com letra branca** — `bg-hf-menu text-white` (pedido do dono, 07/11/2026). Uma regra no `globals.css` já pinta de preto qualquer botão com fundo dourado (`bg-hf-accent`, `bg-accent`, `bg-emerald-500…800`); para manter um dourado de propósito, classe `hf-manter-dourado`;
+  - dourado `hf-accent` fica para a marca: anel de foco, selos, contadores, bordas de destaque. `text-hf-accent` já sai no dourado escuro legível;
   - menu grafite `bg-hf-menu`;
   - estados: `hf-success` (verde, só positivo), `hf-warning`, `hf-danger`.
 - **Cores de módulo (07/11/2026, visual do Nina):** o quadradinho do ícone de uma tela ou área usa `<IconeModulo item={…} />` (`app/components/ui/IconeModulo.js`), com a cor de `app/lib/cores-modulo.mjs` (tokens `hf-tile-*`). Junto com as cores do WhatsApp na tela do Assistente Héfisto, é a única exceção ao "sem azul/violeta": nunca em botão, texto, fundo ou estado. Card novo no menu com ícone novo: dê a cor em `cores-modulo.mjs` (a trava `cores-modulo.test.mjs` cobra).

@@ -123,11 +123,10 @@ export function Chips({ options, value, onChange }) {
         const label = typeof o === "string" ? o : o.label;
         const ativo = v === value;
         return (
-          <button key={v} onClick={() => onChange(v)}
-            className="flex-shrink-0 text-2xs font-bold px-3 py-1.5 rounded-full transition-all active:scale-95"
-            style={ativo
-              ? { background: "var(--accent-strong)", color: "var(--accent-fg)" }
-              : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+          <button key={v} onClick={() => onChange(v)} aria-pressed={ativo}
+            className={`flex-shrink-0 min-h-[36px] text-sm font-semibold px-3.5 rounded-full shadow-none transition-all active:scale-95 ${ativo
+              ? "bg-hf-menu text-white"
+              : "border border-hf-border bg-hf-surface text-hf-text-2 hover:bg-hf-elevated"}`}>
             {label}
           </button>
         );

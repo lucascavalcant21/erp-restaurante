@@ -6,6 +6,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchResumoFolhaMensal, fecharFolhaMensal } from "../../../lib/rh";
 import { ArrowLeft, Save, Loader2, DollarSign, Calculator, AlertTriangle, Info, ReceiptText } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 export default function FechamentoFolhaPage() {
   const router = useRouter();
@@ -87,14 +88,10 @@ export default function FechamentoFolhaPage() {
   return (
     <div className="min-h-screen bg-hf-bg font-sans pb-24">
       {/* Header Escuro */}
-      <div className="bg-hf-bg pt-8 pb-12 px-6 relative text-hf-text border-b border-hf-border" style={{ paddingTop: "calc(var(--erp-safe-top, 2.75rem) + 1rem)" }}>
+      <div className="bg-hf-bg pt-3 pb-12 px-4 sm:px-6 lg:px-8 relative text-hf-text border-b border-hf-border">
          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
             <div>
-               <button onClick={() => abrirMenu()} className="text-subtle hover:text-hf-text mb-4 flex items-center gap-2 font-bold transition-colors">
-                  <ArrowLeft size={18}/> Voltar
-               </button>
-               <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Fechamento de Folha</h1>
-               <p className="text-subtle font-bold uppercase tracking-widest text-xs mt-1">Geração de Holerites e CMO Automático</p>
+               <CabecalhoTela embutido titulo="Fechamento de folha" subtitulo="Holerites e custo de mão de obra do mês" className="!pb-0 !pt-0" />
             </div>
             
             <div className="flex gap-4 items-center bg-hf-elevated p-2 pl-4 rounded-2xl border border-hf-border">

@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 import { MarmitariaProvider, useMarmitaria } from "../../components/marmitaria/contexto";
 import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
+import CabecalhoTela from "../../components/ui/CabecalhoTela";
 
 const FICHA = "/dashboard/marmitaria/marmitas";
 const ESTOQUE = "/dashboard/marmitaria/estoque";
@@ -42,20 +43,15 @@ export default function MarmitariaLayout({ children }) {
   return (
     <MarmitariaProvider>
       <div className="min-h-full bg-hf-bg">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-4 sm:px-6">
-          <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-hf-accent">Operação</p>
-              <h1 className="text-xl font-black text-hf-text sm:text-2xl">Marmitaria &amp; Delivery</h1>
-            </div>
-          </header>
-          <nav aria-label="Áreas da marmitaria" className="mb-4 grid grid-cols-3 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:inline-flex sm:max-w-full sm:flex-wrap">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-3 sm:px-6 lg:px-8">
+          <CabecalhoTela embutido titulo="Marmitaria e delivery" subtitulo="Pedidos, produção, entregas e compras da marmitaria" />
+          <nav aria-label="Áreas da marmitaria" className="mb-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
             {AREAS.map((a) => {
               const ativo = (a.exato ? pathname === a.href : (pathname === a.href || pathname.startsWith(`${a.href}/`)) && !(a.exceto || []).some((x) => pathname.startsWith(x)))
                 || (a.tambem || []).some((x) => pathname.startsWith(x));
               return (
                 <Link key={a.href} href={a.href} aria-current={ativo ? "page" : undefined}
-                  className={`flex min-h-[48px] items-center justify-center rounded-xl px-1 text-center text-[12px] font-semibold min-[360px]:text-[13px] leading-tight transition sm:min-h-[38px] sm:px-4 sm:text-sm ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
+                  className={`flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-full px-4 text-sm font-semibold transition ${ativo ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
                   {a.rotulo}
                 </Link>
               );

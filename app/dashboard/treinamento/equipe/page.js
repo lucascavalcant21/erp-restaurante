@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronRight, UserPlus } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEquipe, fetchTrilhas, matricular } from "../../../lib/treinamento";
 import { AREAS_TREINAMENTO, STATUS_MATRICULA, mensagemDeErro } from "../../../lib/treinamento-regras.mjs";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 const CAMPO = "min-h-12 w-full rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text";
 
@@ -40,8 +41,7 @@ export default function EquipeTreinamentoPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5 px-4 py-5 sm:px-6 sm:py-8">
-      <Link href="/dashboard/treinamento" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-hf-text"><ArrowLeft size={18} /> Treinamento</Link>
-      <h1 className="text-2xl font-black tracking-tight text-hf-text sm:text-3xl">Treinamento da equipe</h1>
+      <CabecalhoTela embutido voltarPara="/dashboard/treinamento" titulo="Treinamento da equipe" subtitulo="Quem está fazendo cada aula e em que ponto parou" />
       {(!unidadeAtiva || unidadeAtiva === "todas") && <p className="text-sm font-semibold text-hf-text">Escolha uma unidade para ver a equipe.</p>}
       {erro && <p role="alert" className="rounded-xl border border-hf-border bg-hf-elevated p-3 text-sm font-semibold text-hf-text">{erro}</p>}
 

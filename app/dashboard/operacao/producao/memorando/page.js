@@ -10,6 +10,7 @@ import { calcularConsumoProducao, fetchEstoque } from "../../../../lib/estoque";
 import { fetchMemorandoOperacao, salvarMemorandoOperacao } from "../../../../lib/memorandos";
 import { registrarAuditoria } from "../../../../lib/hefisto-acoes";
 import { imprimirHtml } from "../../../../lib/imprimir";
+import CabecalhoTela from "../../../../components/ui/CabecalhoTela";
 
 const numero = valor => Number(String(valor ?? "").replace(",", ".")) || 0;
 const escapar = valor => String(valor ?? "").replace(/[&<>"']/g, caractere => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[caractere]));
@@ -229,15 +230,15 @@ export default function MemorandoProducaoPage() {
   if (!unidadeAtiva || unidadeAtiva === "todas") return <div className="p-10 text-center font-bold text-fg">Selecione uma unidade para criar o memorando.</div>;
 
   return <div className="min-h-screen bg-hf-bg pb-24 text-slate-800">
-    <header className="sticky top-0 z-20 border-b border-line bg-hf-bg/95 px-4 py-4 backdrop-blur sm:px-6">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3"><button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-white text-slate-900"><ArrowLeft size={20}/></button><div><h1 className="text-2xl font-black tracking-tight">Produção do {nomeSetorAtivo}</h1><p className="text-xs font-bold text-fg">Lista separada · {unidadeInfo?.nome}</p></div></div>
+    <header className="sticky top-0 z-20 border-b border-hf-border bg-hf-bg/95 px-4 pb-3 pt-3 backdrop-blur sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <CabecalhoTela embutido voltar="historico" titulo={`Produção do ${nomeSetorAtivo}`} subtitulo="Lista separada por setor" className="min-w-0 flex-1" />
         <div className="flex flex-wrap items-center gap-2"><input type="date" value={dataReferencia} onChange={e => setDataReferencia(e.target.value)} className="h-11 rounded-xl border border-line bg-card px-3 font-bold"/><select value={status} onChange={e => setStatus(e.target.value)} className="h-11 rounded-xl border border-line bg-card px-3 font-bold"><option value="rascunho">Rascunho</option><option value="confirmado">Confirmado</option></select><button onClick={salvar} disabled={salvando} className="flex h-11 items-center gap-2 rounded-xl bg-accent px-4 font-black text-accent-fg disabled:opacity-50"><Save size={18}/>{salvando ? "Salvando..." : "Salvar"}</button><button onClick={enviarProducaoWhatsApp} className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft"><Share2 size={18}/>Produção no WhatsApp</button><button onClick={enviarComprasWhatsApp} className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft"><Share2 size={18}/>Compras no WhatsApp</button><button onClick={imprimir} className="flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white"><Printer size={18}/>Imprimir</button></div>
       </div>
     </header>
 
     <main className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
-      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-200 p-1.5"><button onClick={() => setSetorAtivo("cozinha")} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl font-black ${setorAtivo === "cozinha" ? "bg-accent text-accent-fg shadow" : "text-slate-900"}`}><ChefHat size={19}/>Cozinha</button><button onClick={() => setSetorAtivo("bar")} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl font-black ${setorAtivo === "bar" ? "bg-emerald-800 text-white shadow" : "text-slate-900"}`}><GlassWater size={19}/>Bar</button></div>
+      <div className="grid grid-cols-2 gap-1 rounded-full border border-hf-border bg-hf-elevated p-1"><button onClick={() => setSetorAtivo("cozinha")} className={`flex min-h-11 items-center justify-center gap-2 rounded-full font-semibold shadow-none ${setorAtivo === "cozinha" ? "bg-hf-menu text-white" : "text-hf-text-2"}`}><ChefHat size={19}/>Cozinha</button><button onClick={() => setSetorAtivo("bar")} className={`flex min-h-11 items-center justify-center gap-2 rounded-full font-semibold shadow-none ${setorAtivo === "bar" ? "bg-hf-menu text-white" : "text-hf-text-2"}`}><GlassWater size={19}/>Bar</button></div>
       {aviso && <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-accent-soft px-4 py-3 text-sm font-bold text-accent-strong"><span>{aviso}</span><button onClick={() => setAviso("")} className="text-success">×</button></div>}
       {loading ? <div className="p-16 text-center font-bold text-subtle">Carregando fichas e estoque...</div> : setorAtivo === "cozinha" ? <SetorPlanejamento titulo="Produção da Cozinha" icone={ChefHat} cor="bg-emerald-700" fichas={fichasCozinha} plano={cozinha} colaboradores={colaboradores} alterar={(id, patch) => alterarPlano(setCozinha, id, patch)}/> : <SetorPlanejamento titulo="Produção do Bar" icone={GlassWater} cor="bg-emerald-800" fichas={fichasBar} plano={bar} colaboradores={colaboradores} alterar={(id, patch) => alterarPlano(setBar, id, patch)}/>}
 

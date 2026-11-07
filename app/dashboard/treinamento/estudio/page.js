@@ -14,6 +14,7 @@ import {
   AREAS_TREINAMENTO, DEMONSTRACOES_DISPONIVEIS, cenasParaTocar, demonstracaoDaCena, mensagemDeErro, pendenciasDeFichas, temPreencher,
 } from "../../../lib/treinamento-regras.mjs";
 import PalcoDoBoneco from "../../../components/treinamento/PalcoDoBoneco";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 const CAMPO = "w-full rounded-xl border border-hf-border bg-hf-surface p-3 text-sm font-medium text-hf-text";
 const BOTAO = "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-hf-border px-3 text-sm font-bold text-hf-text disabled:opacity-50";
@@ -224,11 +225,7 @@ export default function EstudioPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-5 sm:px-6 sm:py-8">
-      <Link href="/dashboard/treinamento" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-hf-text"><ArrowLeft size={18} /> Treinamento</Link>
-      <header>
-        <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight text-hf-text sm:text-3xl"><Clapperboard className="text-hf-accent" aria-hidden /> Héfisto Estúdio</h1>
-        <p className="mt-1 text-sm font-medium text-hf-text-2">Crie e edite aulas, falas dos bonecos, provas e situações. A equipe só vê o que você aprovar.</p>
-      </header>
+      <CabecalhoTela embutido voltarPara="/dashboard/treinamento" titulo="Héfisto Estúdio" subtitulo="Crie e edite aulas, falas dos bonecos, provas e situações. A equipe só vê o que você aprovar." />
       {aviso && <p role="status" className="rounded-xl border border-hf-border bg-hf-elevated p-3 text-sm font-semibold text-hf-text">{aviso}</p>}
       {(!unidadeAtiva || unidadeAtiva === "todas") && <p className="text-sm font-semibold text-hf-text">Escolha uma unidade.</p>}
 

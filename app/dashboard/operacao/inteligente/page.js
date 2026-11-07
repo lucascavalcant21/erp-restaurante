@@ -16,6 +16,7 @@ import {
   gerarExecucoesDoDia, fetchExecucoes, fetchNaoConformidades,
 } from "../../../lib/operacao-inteligente";
 import { calcularScore, isoData } from "../../../lib/operacao-agenda.mjs";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 const CORES = {
   AGENDADA: { rotulo: "Agendado", cor: "bg-card text-slate-900 border-line" },
@@ -89,39 +90,36 @@ export default function CentralOperacional() {
 
   return (
     <div className="min-h-screen bg-hf-bg pb-20">
-      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-fg sm:text-xl">Central Operacional</h1>
-            <p className="text-xs font-bold text-fg">Rotinas do dia, atrasos e não conformidades</p>
-          </div>
+      <div className="sticky top-0 z-20 border-b border-hf-border bg-hf-bg/95 backdrop-blur">
+        <div className="mx-auto max-w-6xl">
+        <CabecalhoTela titulo="Central operacional" subtitulo="Rotinas do dia, atrasos e não conformidades">
           <input type="date" value={dia} onChange={e => setDia(e.target.value)}
-            className="h-11 rounded-xl border border-line bg-card px-3 font-bold text-fg-soft" />
+            className="h-11 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text-2" />
           <button onClick={() => carregar({ gerar: true })} disabled={gerando}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft disabled:opacity-60">
+            className="flex h-11 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none hover:bg-hf-elevated disabled:opacity-60">
             <RefreshCw size={17} className={gerando ? "animate-spin" : ""} /> Atualizar
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/rankings")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
+            className="flex h-11 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none hover:bg-hf-elevated">
             <Trophy size={17} /> Rankings
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/tv")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
+            className="flex h-11 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none hover:bg-hf-elevated">
             <MonitorPlay size={17} /> Modo TV
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
+            className="flex h-11 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none hover:bg-hf-elevated">
             <ClipboardList size={17} /> Processos
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/nao-conformidades")}
-            className="flex h-11 items-center gap-2 rounded-xl bg-accent px-4 font-black text-accent-fg hover:bg-accent">
+            className="flex h-11 items-center gap-2 rounded-full bg-hf-accent px-4 text-sm font-semibold text-hf-accent-fg shadow-none">
             <ShieldAlert size={18} /> Não conformidades
           </button>
+        </CabecalhoTela>
         </div>
       </div>
 
-      <main className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
+      <main className="mx-auto max-w-6xl space-y-5 px-4 py-4 sm:px-6 lg:px-8">
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
           <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-fg">Selecione uma unidade específica.</div>
         ) : (

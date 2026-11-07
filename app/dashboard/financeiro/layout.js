@@ -34,14 +34,15 @@ export default function FinanceiroLayout({ children }) {
   return (
     <>
       {areas.length > 1 && conhecida && (
-        <div className="bg-hf-bg px-3 pt-3 sm:px-6 print:hidden">
-          <nav aria-label="Áreas do financeiro" className="mx-auto grid max-w-7xl grid-cols-4 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 lg:grid-cols-7">
+        <div className="bg-hf-bg px-4 pt-3 sm:px-6 lg:px-8 print:hidden">
+          {/* Visual do Nina (07/11/2026): uma faixa de pílulas que rola de lado no celular. */}
+          <nav aria-label="Áreas do financeiro" className="mx-auto flex max-w-7xl gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
             {areas.map((a) => {
               const ativo = a.exato ? pathname === a.href : pathname === a.href || pathname.startsWith(`${a.href}/`);
               return (
                 <Link key={a.href} href={a.href} aria-current={ativo ? "page" : undefined}
-                  className={`flex min-h-[44px] items-center justify-center rounded-xl px-1.5 text-center text-sm font-semibold leading-tight transition ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
-                  {a.curto ? <><span className="lg:hidden">{a.curto}</span><span className="hidden lg:inline">{a.rotulo}</span></> : a.rotulo}
+                  className={`flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-full px-4 text-sm font-semibold transition ${ativo ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
+                  {a.rotulo}
                 </Link>
               );
             })}

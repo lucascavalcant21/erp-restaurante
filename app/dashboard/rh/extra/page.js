@@ -10,6 +10,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade, excluirReciboPrestacao } from "../../../lib/rh";
 import { faixaCompras, andarPeriodo, rotuloPeriodo, isoData } from "../../../lib/compras.mjs";
 import { imprimirReciboExtra } from "../../../lib/recibo-extra";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 const fmtBRL = (valor) => Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (valor) => valor ? new Date(`${String(valor).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—";
@@ -101,15 +102,9 @@ export default function CadastroExtrasPage() {
   return (
     <div className="min-h-screen bg-slate-100/80 pb-16 text-fg">
       {/* HEADER COMPACTO E ORGANIZADO */}
-      <header className="border-b border-line bg-card px-4 py-3.5 sm:px-6">
+      <header className="border-b border-hf-border bg-hf-bg px-4 py-3 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl border border-line text-slate-900 hover:bg-white" aria-label="Voltar"><ArrowLeft size={18} /></button>
-            <div>
-              <h1 className="text-xl font-black text-fg">Recibos e Extras</h1>
-              <p className="text-xs font-semibold text-fg">Recibos para funcionários extras e fixos · {unidadeInfo?.nome || "unidade ativa"}</p>
-            </div>
-          </div>
+          <CabecalhoTela embutido voltar="historico" titulo="Recibos e extras" subtitulo="Recibos para funcionários extras e fixos" className="!pb-0 !pt-0 min-w-0" />
 
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => router.push("/dashboard/rh/extra/novo")} className="flex h-9 items-center gap-1.5 rounded-xl bg-accent px-3.5 text-xs font-bold text-accent-fg shadow-sm hover:bg-accent">
@@ -164,7 +159,7 @@ export default function CadastroExtrasPage() {
           </div>
 
           <div className="rounded-2xl border border-emerald-200 bg-card p-2.5 sm:p-3 shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-1">
+            <div className="flex flex-wrap items-center justify-between gap-1">
               <span className="text-3xs font-bold uppercase tracking-wider text-emerald-800 shrink-0">Pago no período</span>
               <div className="flex gap-0.5 bg-card p-0.5 rounded-lg shrink-0">
                 {[["dia", "Dia"], ["semana", "Sem."], ["mes", "Mês"]].map(([v, r]) => (

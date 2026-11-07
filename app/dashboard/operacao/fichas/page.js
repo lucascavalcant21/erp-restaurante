@@ -1,4 +1,5 @@
 "use client";
+import IconeModulo from "../../../components/ui/IconeModulo";
 
 function comprimirFotoParaIA(file, maxDim = 1000, qualidade = 0.70) {
   return new Promise((resolve, reject) => {
@@ -2473,21 +2474,22 @@ function FichasRunner() {
   return (
     <div className=" min-h-screen bg-transparent pb-24 text-slate-800">
       
-      <header className="border-b border-line bg-card">
-        <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
+      <header className="border-b border-hf-border bg-hf-bg">
+        <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={abrirMenu} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-transparent text-fg hover:text-fg" title="Voltar ao menu">
-                <ArrowLeft size={19} />
+              <button onClick={abrirMenu} className="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-hf-text-2 shadow-none hover:bg-hf-elevated hover:text-hf-text" title="Voltar ao menu" aria-label="Voltar">
+                <ArrowLeft size={18} />
               </button>
+              <IconeModulo item={{ icone: deptUrl === "bar" ? "Martini" : "BookOpen" }} />
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-black tracking-tight text-slate-950">Fichas Técnicas</h1>
-                <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200" role="group" aria-label="Setor">
+                <h1 className="text-[22px] font-semibold tracking-tight text-hf-text sm:text-[26px]">Fichas técnicas</h1>
+                <div className="flex items-center gap-1 rounded-full bg-hf-elevated p-1 border border-hf-border" role="group" aria-label="Setor">
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/operacao/fichas?dept=cozinha")}
                     aria-pressed={deptUrl !== "bar"}
-                    className={`px-3.5 py-1.5 text-sm font-black rounded-lg transition-all ${deptUrl !== "bar" ? "bg-emerald-700 text-white shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-900"}`}
+                    className={`min-h-[36px] px-3.5 text-sm font-semibold rounded-full shadow-none transition-all ${deptUrl !== "bar" ? "bg-hf-menu text-white" : "text-hf-text-2 hover:text-hf-text"}`}
                   >
                     👨‍🍳 Cozinha
                   </button>
@@ -2495,7 +2497,7 @@ function FichasRunner() {
                     type="button"
                     onClick={() => router.push("/dashboard/operacao/fichas?dept=bar")}
                     aria-pressed={deptUrl === "bar"}
-                    className={`px-3.5 py-1.5 text-sm font-black rounded-lg transition-all ${deptUrl === "bar" ? "bg-emerald-700 text-white shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-900"}`}
+                    className={`min-h-[36px] px-3.5 text-sm font-semibold rounded-full shadow-none transition-all ${deptUrl === "bar" ? "bg-hf-menu text-white" : "text-hf-text-2 hover:text-hf-text"}`}
                   >
                     🍹 Bar
                   </button>

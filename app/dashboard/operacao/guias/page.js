@@ -16,6 +16,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchGuias, removerGuia, salvarGuia, semearGuias, TIPOS_GUIA } from "../../../lib/guias";
 import { MODELOS_GUIA_USO, TIPOS_USO, totalPassos } from "../../../lib/guia-uso.mjs";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 const esc = (v) => String(v == null ? "" : v).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const iconeDoTipo = (tipo) => (tipo === "equipamento" ? Wrench : Beaker);
@@ -283,25 +284,22 @@ export default function GuiaDeUso() {
 
   return (
     <div className="min-h-screen bg-hf-bg pb-16">
-      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/operacao/controles")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-fg sm:text-xl">Guia de uso</h1>
-            <p className="text-xs font-bold text-fg">Como usar e como higienizar cada produto e equipamento</p>
-          </div>
+      <div className="sticky top-0 z-20 border-b border-hf-border bg-hf-bg/95 backdrop-blur">
+        <div className="mx-auto max-w-5xl">
+        <CabecalhoTela titulo="Guia de uso" subtitulo="Como usar e como higienizar cada produto e equipamento">
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setEditando(v => !v)}
               className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold transition-colors ${editando ? "bg-accent text-accent-fg hover:bg-accent" : "border border-line bg-card text-fg-soft hover:bg-white"}`}>
               <Save size={15} /> {editando ? "Concluir edição" : "Editar"}
             </button>
-            <button onClick={imprimirPlanilha} title="Tudo numa tabela só" className="flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft hover:bg-white">
+            <button onClick={imprimirPlanilha} title="Tudo numa tabela só" className="flex h-11 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none hover:bg-hf-elevated">
               <Table size={15} /> Planilha
             </button>
-            <button onClick={imprimirCartazes} title="Um guia por página, para o lado do equipamento" className="flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white hover:bg-slate-800">
+            <button onClick={imprimirCartazes} title="Um guia por página, para o lado do equipamento" className="flex h-11 items-center gap-2 rounded-full bg-hf-menu px-4 text-sm font-semibold text-white shadow-none hover:bg-hf-menu-hover">
               <Printer size={15} /> Cartaz
             </button>
           </div>
+        </CabecalhoTela>
         </div>
       </div>
 

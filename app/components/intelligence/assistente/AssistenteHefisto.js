@@ -17,7 +17,7 @@ import { ChevronLeft, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, C
 import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } from "../../../lib/intelligence/client/api";
 import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
 import { fetchComSessao } from "../../../lib/api-sessao";
-import { notaDoOcr, reduzirImagem } from "./nota.mjs";
+import { MAX_XML_BYTES, notaDoOcr, notaDoXml, reduzirImagem } from "./nota.mjs";
 import FolhaFicha from "../FolhaFicha";
 
 export const NOME_ASSISTENTE = "Assistente Héfisto";
@@ -461,6 +461,17 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
   const [lendoNota, setLendoNota] = useState(false);
   const enviarFoto = useCallback(async (arquivo) => {
     if (!arquivo || ocupadoRef.current) return;
+    // XML da NF-e: dado exato do fornecedor, sem leitura de foto
+    if (/\.xml$/i.test(arquivo.name || "") || /xml/i.test(arquivo.type || "")) {
+      adicionar({ de: "eu", texto: `XML da nota${arquivo.name ? ` (${arquivo.name.slice(0, 60)})` : ""}` });
+      setRespondendo(null);
+      if (arquivo.size > MAX_XML_BYTES) { adicionar({ de: "assistente", resposta: { tipo: "erro_acao", texto: "Esse arquivo é grande demais para ser o XML de uma nota." } }); return; }
+      let lido;
+      try { lido = notaDoXml(await arquivo.text()); } catch { lido = { nota: null, erro: "Não consegui abrir esse arquivo." }; }
+      if (!lido.nota) { adicionar({ de: "assistente", resposta: { tipo: "erro_acao", texto: lido.erro } }); return; }
+      await executar(() => perguntarAoHefisto(unidadeId, { nota: lido.nota, chave: novaChaveDeEnvio(), tela: TELA, conversa: referenciaRef.current }), "Não consegui lançar a nota.");
+      return;
+    }
     let foto;
     try {
       foto = await reduzirImagem(arquivo);
@@ -608,11 +619,11 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
           ) : (
             <form onSubmit={submeter} className="flex items-end gap-1 pb-0.5">
               {/* + abre a galeria; a câmera abre direto a câmera traseira (foto da nota) */}
-              <input ref={fotoRef} type="file" accept="image/*" className="hidden" aria-hidden="true" tabIndex={-1}
+              <input ref={fotoRef} type="file" accept="image/*,.xml,text/xml,application/xml" className="hidden" aria-hidden="true" tabIndex={-1}
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) enviarFoto(f); }} />
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" aria-hidden="true" tabIndex={-1}
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) enviarFoto(f); }} />
-              <button type="button" onClick={() => fotoRef.current?.click()} disabled={ocupado} aria-label="Escolher foto da galeria (nota fiscal)"
+              <button type="button" onClick={() => fotoRef.current?.click()} disabled={ocupado} aria-label="Escolher foto ou XML da nota fiscal"
                 className="grid h-11 w-10 shrink-0 place-items-center rounded-full disabled:opacity-50" style={{ color: "var(--wa-texto)" }}>
                 <Plus size={28} strokeWidth={1.8} />
               </button>

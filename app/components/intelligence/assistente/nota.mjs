@@ -32,6 +32,51 @@ export function notaDoOcr(ocr) {
   return Object.fromEntries(Object.entries(nota).filter(([, v]) => v != null));
 }
 
+// ─── XML da NF-e (o arquivo que o fornecedor manda junto com a DANFE) ────────
+// Dado exato do emissor, sem leitura de foto. Lido com expressões simples
+// (roda igual no navegador e nos testes); só os campos da compra.
+export const MAX_XML_BYTES = 2 * 1024 * 1024;
+const ENTIDADES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+const desescapar = (t) => String(t).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);/gi, (m, e) => (e[0] === "#" ? String.fromCodePoint(e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : ENTIDADES[e.toLowerCase()]));
+const re = (nome, g = "") => new RegExp(`<(?:[\\w-]+:)?${nome}(?:\\s[^>]*)?>([\\s\\S]*?)</(?:[\\w-]+:)?${nome}>`, g);
+const bloco = (xml, nome) => (xml.match(re(nome)) || [])[1] ?? null;
+const campo = (xml, nome) => { const b = xml != null ? bloco(xml, nome) : null; return b == null ? null : desescapar(b.trim()); };
+const valor = (xml, nome) => { const t = campo(xml, nome); const n = t == null || t === "" ? NaN : Number(t); return Number.isFinite(n) ? n : null; };
+
+/**
+ * XML da NF-e → o mesmo formato do /api/ocr, já limpo por notaDoOcr.
+ * @returns {{ nota: object|null, erro: string|null }}
+ */
+export function notaDoXml(xml) {
+  const t = String(xml || "");
+  if (!/<(?:[\w-]+:)?infNFe\b/.test(t)) return { nota: null, erro: "Esse arquivo não é o XML de uma NF-e. Mande o XML que veio do fornecedor (ou a foto da DANFE)." };
+  const inf = bloco(t, "infNFe") ?? t;
+  const dets = [...inf.matchAll(re("det", "g"))].map((m) => m[1]);
+  if (!dets.length) return { nota: null, erro: "O XML não tem itens." };
+  if (dets.length > 60) return { nota: null, erro: `A nota tem ${dets.length} itens; pela conversa vão até 60. Lance pela tela de Compras.` };
+  const emit = bloco(inf, "emit");
+  const ide = bloco(inf, "ide");
+  const tot = bloco(inf, "ICMSTot");
+  const chave = (t.match(/<(?:[\w-]+:)?infNFe\b[^>]*\bId="NFe(\d{44})"/) || [])[1] || campo(t, "chNFe");
+  const emissao = campo(ide, "dhEmi") || campo(ide, "dEmi");
+  const ocr = {
+    fornecedor: campo(emit, "xNome") || campo(emit, "xFant"),
+    cnpj: campo(emit, "CNPJ") || campo(emit, "CPF"),
+    numero: campo(ide, "nNF"), serie: campo(ide, "serie"), chave_acesso: chave,
+    data_emissao: emissao ? emissao.slice(0, 10) : null,
+    valor_total: valor(tot, "vNF"), valor_frete: valor(tot, "vFrete"), valor_desconto: valor(tot, "vDesc"),
+    vencimentos: [...(bloco(inf, "cobr") || "").matchAll(re("dup", "g"))].map((m) => ({ data: campo(m[1], "dVenc"), valor: valor(m[1], "vDup") })),
+    itens: dets.map((d) => {
+      const prod = bloco(d, "prod") || "";
+      return { codigo: campo(prod, "cProd"), nome: campo(prod, "xProd"), un: campo(prod, "uCom"), qtd: valor(prod, "qCom"), valor_unitario: valor(prod, "vUnCom"), preco: valor(prod, "vProd") };
+    }),
+  };
+  const nota = notaDoOcr(ocr);
+  if (!nota) return { nota: null, erro: "Não encontrei itens com nome e quantidade no XML." };
+  if (nota.itens.length !== dets.length) return { nota: null, erro: "Algum item do XML veio sem nome ou quantidade. Lance pela tela de Compras." };
+  return { nota: { ...nota, origem: "xml" }, erro: null };
+}
+
 /** Reduz a foto para enviar (navegador). Devolve { dataUrl, miniatura }. */
 export async function reduzirImagem(arquivo, { lado = 1600, qualidade = 0.82, ladoMiniatura = 240 } = {}) {
   const url = URL.createObjectURL(arquivo);

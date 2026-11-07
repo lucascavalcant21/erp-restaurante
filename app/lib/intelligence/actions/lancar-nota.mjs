@@ -59,6 +59,8 @@ export const notaSchema = s.object({
   valor_desconto: s.opcional(s.number({ min: 0, max: 10000000 })),
   vencimentos: s.opcional(s.array(s.object({ data: s.string({ max: 10 }), valor: s.opcional(s.number({ min: 0, max: 100000000 })) }), { max: 24 })),
   itens: s.array(itemNota, { min: 1, max: MAX_ITENS_NOTA }),
+  // de onde veio a leitura: foto da DANFE (lida por OCR) ou XML da NF-e (dado exato do emissor)
+  origem: s.opcional(s.enum(["foto", "xml"])),
 });
 
 // ─── Unidades e tamanhos ─────────────────────────────────────────────────────
@@ -365,7 +367,7 @@ async function preparar(ctx, params) {
       payload: {
         unidade_id: ctx.escopo.unidadeId,
         fornecedor: fornecedor ? { id: fornecedor.id } : fornNome ? { nome: fornNome.slice(0, 120) } : null,
-        compra: { numero_documento: nota.numero ? String(nota.numero).trim() : null, data_compra: dataCompra, data_recebimento: hoje, data_vencimento: venc, valor_frete: frete, valor_desconto: desconto, forma_pagamento: venc === hoje ? null : "a_prazo", observacao: "Lançada pela foto da nota (Assistente Héfisto)." },
+        compra: { numero_documento: nota.numero ? String(nota.numero).trim() : null, data_compra: dataCompra, data_recebimento: hoje, data_vencimento: venc, valor_frete: frete, valor_desconto: desconto, forma_pagamento: venc === hoje ? null : "a_prazo", observacao: nota.origem === "xml" ? "Lançada pelo XML da NF-e (Assistente Héfisto)." : "Lançada pela foto da nota (Assistente Héfisto)." },
         hoje,
         itens: linhas.map((l) => ({
           insumo_id: l.ins.id, nome: l.ins.nome, unidade_medida: l.ins.unidade_medida, estoque_id: l.estoqueId,

@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SQL = fs.readFileSync(path.join(raiz, "db", "SINAL_1_SINALIZACAO_DIGITAL.sql"), "utf8");
+const SQL2 = fs.readFileSync(path.join(raiz, "db", "SINAL_2_HORARIO_FUNCIONAMENTO.sql"), "utf8");
 const pular = !process.env.PGLITE && "PGLITE não informado";
 const IMPRESSAO = "902d3121ff098c8bee0e2b508246c485";
 const TABELAS = ["sinal_telas", "sinal_midias", "sinal_playlists", "sinal_programacoes", "sinal_pareamentos"];
@@ -99,4 +100,16 @@ test("restrições: token em hash, código no alfabeto, horário em par, datas e
   // Apagar a playlist leva as regras dela junto (nunca regra apontando para o nada).
   await pg.query("delete from public.sinal_playlists where id = $1", [pl]);
   assert.equal((await pg.query("select count(*)::int n from public.sinal_programacoes")).rows[0].n, 0);
+});
+
+test("SINAL-2: só adiciona a coluna horario; existentes ficam null; aborta na segunda vez", { skip: pular }, async () => {
+  const pg = await banco();
+  const limpo = SQL2.replace(/\/\*[\s\S]*?\*\//g, "").toLowerCase();
+  assert.doesNotMatch(limpo.replace(/\$\$[\s\S]*?\$\$/g, ""), /\bdrop\b|\bdelete\b|\bupdate\s|\btruncate\b|\bgrant\b|\bpolicy\b/);
+  await pg.query("insert into public.sinal_telas (unidade_id, nome) values ('seldeestrela', 'Parede 01')");
+  await pg.exec(SQL2);
+  assert.equal((await pg.query("select horario from public.sinal_telas")).rows[0].horario, null);
+  await pg.query(`update public.sinal_telas set horario = '{"inicio":"10:00","fim":"23:00","dias":[]}'`);
+  await assert.rejects(() => pg.query(`update public.sinal_telas set horario = '[1]'`), /check/i);
+  await assert.rejects(() => pg.exec(SQL2), /já existe/);
 });

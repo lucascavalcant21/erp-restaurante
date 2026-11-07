@@ -249,3 +249,22 @@ test("prévia: o mesmo roteiro da TV, só com mídias da própria unidade, sem g
   const fixa = await previaRoteiro(db, U, { conteudo: { tipo: "midia", id: M1, ajuste: "preencher" } }, { agora: AGORA });
   assert.equal(fixa.roteiro[0].ajuste, "preencher");
 });
+
+test("horário de funcionamento: fora do horário a TV recebe tela apagada; o painel mostra 'fora do horário'", async () => {
+  const { salvarTela } = await import("./sinalizacao.mjs");
+  const db = bancoFalso(comConteudo(), [`${U}/${"b".repeat(24)}.png`]);
+  await trocarConteudo(db, U, { tela_ids: [T_ID], conteudo: { tipo: "midia", id: M1 } });
+  const r = await salvarTela(db, U, { id: T_ID, nome: "Parede 01", orientacao: "horizontal", horario: { inicio: "10:00", fim: "23:00" } });
+  assert.equal(r.ok, true);
+  assert.deepEqual(db.dados.sinal_telas.find((t) => t.id === T_ID).horario, { inicio: "10:00", fim: "23:00", dias: [] });
+  const dentro = await conteudoDaTela(db, { segredo: "S".repeat(43), agora: AGORA }); // 12:00
+  assert.equal(dentro.roteiro.length, 1);
+  const fora = await conteudoDaTela(db, { segredo: "S".repeat(43), agora: new Date("2026-11-10T03:00:00Z") }); // 00:00
+  assert.deepEqual([fora.apagada, fora.roteiro.length], [true, 0]);
+  const painel = await lerPainel(db, U, { agora: new Date("2026-11-10T03:00:00Z") });
+  assert.equal(painel.telas.find((t) => t.id === T_ID).fora_horario, true);
+  await salvarTela(db, U, { id: T_ID, nome: "Parede 01", horario: null });
+  assert.equal(db.dados.sinal_telas.find((t) => t.id === T_ID).horario, null, "sem horário = sempre ligada");
+  await salvarTela(db, U, { id: T_ID, nome: "Parede 01" });
+  assert.equal(db.dados.sinal_telas.find((t) => t.id === T_ID).horario, null, "salvar sem mandar horário não mexe nele");
+});

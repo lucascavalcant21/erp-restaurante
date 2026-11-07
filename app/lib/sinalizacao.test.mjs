@@ -198,3 +198,19 @@ test("ajuste na TV: inteira (padrão), preencher ou dividir; vale na playlist e 
   const r = montarRoteiro({ itens: [{ tipo: "midia", midia_id: M1, ajuste: "preencher" }], midias: new Map([[M1, { id: M1, tipo: "imagem", nome: "A" }]]), urls: new Map([[M1, "u"]]) });
   assert.equal(r[0].ajuste, "preencher");
 });
+
+test("horário de funcionamento: fora do horário a tela apaga; atravessa a meia-noite; dias", async () => {
+  const { normalizarHorario, dentroDoHorario } = await import("./sinalizacao.mjs");
+  assert.equal(normalizarHorario(null), null);
+  assert.equal(normalizarHorario({ inicio: "10:00", fim: "10:00" }), null, "iguais = sempre ligada");
+  assert.equal(normalizarHorario({ inicio: "25:00", fim: "10:00" }), null);
+  assert.deepEqual(normalizarHorario({ inicio: "10:00", fim: "23:00", dias: [0, 1, 2, 3, 4, 5, 6] }), { inicio: "10:00", fim: "23:00", dias: [] });
+  const loja = { inicio: "10:00", fim: "23:00" };
+  assert.equal(dentroDoHorario(loja, em("2026-11-09T12:00:00")), true);
+  assert.equal(dentroDoHorario(loja, em("2026-11-09T23:30:00")), false);
+  assert.equal(dentroDoHorario(loja, em("2026-11-09T09:59:00")), false);
+  assert.equal(dentroDoHorario(null, em("2026-11-09T03:00:00")), true, "sem horário: sempre");
+  const noite = { inicio: "18:00", fim: "02:00", dias: [5] }; // sexta à noite
+  assert.equal(dentroDoHorario(noite, em("2026-11-14T01:00:00")), true, "madrugada de sábado ainda é a sexta");
+  assert.equal(dentroDoHorario(noite, em("2026-11-13T12:00:00")), false);
+});

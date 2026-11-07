@@ -156,6 +156,9 @@ function CartaoTela({ tela, midiasPorId, playlistsPorId, abrir, podeEditar }) {
         <Miniatura midia={midia} cardapio={cardapio} orientacao="horizontal" />
         <div className="absolute left-2 top-2 rounded-full bg-white shadow-sm"><Selo tom={st.tom}>{st.texto}</Selo></div>
         <div className="absolute right-2 top-2 rounded-full bg-white shadow-sm"><Selo>{tela.orientacao === "vertical" ? "Vertical" : "Horizontal"}</Selo></div>
+        {tela.fora_horario && tela.status === "no_ar" && (
+          <p className="absolute inset-x-2 bottom-2 rounded-lg bg-white/90 px-2 py-1 text-[11px] font-semibold text-hf-text-2">Fora do horário · tela apagada · liga às {tela.horario?.inicio}</p>
+        )}
         {tela.status === "sem_contato" && (
           <p className="absolute inset-x-2 bottom-2 rounded-lg bg-white/90 px-2 py-1 text-[11px] font-semibold text-hf-warning">{rotuloSemContato(tela.ultimo_contato)}</p>
         )}
@@ -602,7 +605,14 @@ function ModalTela({ tela, fechar, executar, abrir, podeExcluir }) {
   const [local, setLocal] = useState(tela.local || "");
   const [orientacao, setOrientacao] = useState(tela.orientacao);
   const [ativa, setAtiva] = useState(tela.ativa !== false);
+  // Horário de funcionamento (SINAL-2): fora dele a tela fica preta sozinha.
+  const [comHorario, setComHorario] = useState(!!tela.horario);
+  const [liga, setLiga] = useState(tela.horario?.inicio || "10:00");
+  const [desliga, setDesliga] = useState(tela.horario?.fim || "23:00");
+  const [dias, setDias] = useState(tela.horario?.dias || []);
   const [erro, setErro] = useState("");
+  const alternarDia = (d) => setDias((l) => (l.includes(d) ? l.filter((x) => x !== d) : [...l, d].sort()));
+  const horario = comHorario ? { inicio: liga, fim: desliga, dias } : null;
 
   const acao = async (fn) => { setErro(""); try { await fn(); fechar(); } catch (e) { setErro(e.message); } };
   return (
@@ -620,8 +630,36 @@ function ModalTela({ tela, fechar, executar, abrir, podeExcluir }) {
         <span className="text-sm text-hf-text">Tela ligada (desligada mostra só o aviso de pausa)</span>
         <Toggle active={ativa} onChange={() => setAtiva((a) => !a)} />
       </div>
+      <section className="mb-4 rounded-2xl border border-hf-border p-3">
+        <div className="flex min-h-11 items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-hf-text">Horário de funcionamento</p>
+            <p className="text-xs text-hf-muted">{comHorario ? "Fora do horário, a tela fica preta sozinha e acende na hora certa." : "Sempre ligada."}</p>
+          </div>
+          <Toggle active={comHorario} onChange={() => setComHorario((v) => !v)} />
+        </div>
+        {comHorario && (
+          <div className="mt-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Liga às"><TextInput type="time" value={liga} onChange={(e) => setLiga(e.target.value)} className="min-w-0" /></Field>
+              <Field label="Apaga às"><TextInput type="time" value={desliga} onChange={(e) => setDesliga(e.target.value)} className="min-w-0" /></Field>
+            </div>
+            <p className="-mt-2 mb-2 text-xs text-hf-muted">{desliga < liga ? `Atravessa a meia-noite: apaga às ${desliga} do dia seguinte.` : "Apagar antes de ligar atravessa a meia-noite."}</p>
+            <p className="erp-label mb-1.5">Dias (nenhum = todos)</p>
+            <div className="grid grid-cols-7 gap-1">
+              {DIAS.map((d, i) => (
+                <button key={d} type="button" onClick={() => alternarDia(i)} className={`min-h-11 rounded-lg text-xs font-semibold ${dias.includes(i) ? "bg-hf-menu text-white" : "border border-hf-border text-hf-text-2"}`}>{d}</button>
+              ))}
+            </div>
+            {dias.length > 0 && dias.length < 7 && <p className="mt-1 text-xs text-hf-muted">Nos dias desmarcados a tela fica apagada o dia todo.</p>}
+          </div>
+        )}
+      </section>
       {tela.aparelho && <p className="mb-3 truncate text-xs text-hf-muted">Aparelho: {tela.aparelho}</p>}
-      <Btn onClick={() => acao(() => executar("salvar_tela", { id: tela.id, nome, local, orientacao, ativa }, "Tela salva"))} className="!min-h-12 w-full">Salvar</Btn>
+      <Btn onClick={() => {
+        if (comHorario && liga === desliga) return setErro("Liga e apaga no mesmo horário: para ficar sempre ligada, desligue o horário de funcionamento.");
+        return acao(() => executar("salvar_tela", { id: tela.id, nome, local, orientacao, ativa, horario }, "Tela salva. A TV aplica em até 15 segundos."));
+      }} className="!min-h-12 w-full">Salvar</Btn>
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {tela.pareada ? (
           <button onClick={() => window.confirm("Desconectar? A TV volta a mostrar um código.") && acao(() => executar("desconectar_tela", { id: tela.id }, "TV desconectada"))} className="erp-btn erp-btn-ghost !min-h-11 text-sm"><Power size={16} /> Desconectar TV</button>

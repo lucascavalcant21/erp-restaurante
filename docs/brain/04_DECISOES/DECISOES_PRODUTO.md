@@ -194,3 +194,5 @@ Decisões:
 - Playlist com **versão** (V1, V2…) e selo **Publicada** quando está numa tela ou numa regra ligada.
 - Vídeo até **50 MB** (limite do plano FREE do Supabase); imagem até 25 MB.
 - Programação: vence a maior prioridade; empate, a mais recente; fora dos horários vale o conteúdo fixo da tela; horário que vira a noite conta para o dia em que começou.
+- (07/11/2026, à tarde) Tela dividida em 2 ou 3 lados; foto fora do formato com fundo desfocado; realce das fotos só na exibição; ajuste por arte (inteira, preencher, dividir em 2); prévia "Ver como fica na TV" no painel; regra de programação no modelo do Nina (horários iguais = dia inteiro).
+- (07/11/2026, noite) **Horário de funcionamento** por TV (SINAL-2): fora dele a tela fica preta sozinha e acende na hora. A TV física continua ligada (para desligar de verdade, usar o timer da própria TV).

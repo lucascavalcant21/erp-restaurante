@@ -124,7 +124,7 @@ export function bancoFalso(tabelas = {}, { ignorarFiltros = false, erros = {}, r
       single() { st.unico = "single"; return b; },
       maybeSingle() { st.unico = "maybe"; return b; },
       insert(linhas) {
-        const lista = (Array.isArray(linhas) ? linhas : [linhas]).map((l) => ({ id: l.id || `id-${Math.random().toString(16).slice(2, 10)}`, ...l }));
+        const lista = (Array.isArray(linhas) ? linhas : [linhas]).map((l) => ({ id: l.id || crypto.randomUUID(), ...l }));
         const chaves = unicos[tabela];
         const dup = chaves && lista.some((l) => (dados[tabela] || []).some((x) => chaves.every((k) => String(x[k]) === String(l[k]))));
         const res = dup ? { data: null, error: { message: "duplicate key value violates unique constraint", code: "23505" } } : null;

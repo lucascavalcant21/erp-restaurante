@@ -9,6 +9,7 @@ import { DADOS_INSUFICIENTES, NATUREZA, temValor } from "../core/contratos.mjs";
 import { normalizar } from "../metrics/produtos.mjs";
 import { somarDias } from "../core/periodos.mjs";
 import { generateDailyBrief } from "../insights/daily-brief.mjs";
+import { HANDLERS_COMPRAS, HANDLERS_RH, HANDLERS_FICHAS } from "./assistente.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoInsight, blocoTexto, brl, num, ddmm, valorFormatado } from "../commands/resposta.mjs";
 
 const r = (texto, blocos = [], acoes = [], nivel = NIVEL.OBSERVAR) => ({ texto, blocos, acoes, nivel });
@@ -43,6 +44,7 @@ export const AgenteVendas = {
 // ─── Compras ─────────────────────────────────────────────────────────────────
 export const AgenteCompras = {
   id: "compras", nome: "PurchaseAgent",
+  ...HANDLERS_COMPRAS,
   async "compras.total"({ motor, params }) {
     const m = await motor.getPurchasesTotal(params.periodo || "semana");
     if (!temValor(m)) return insuf(m, "Compras");
@@ -242,6 +244,7 @@ export const AgenteFinanceiro = {
 // ─── RH ──────────────────────────────────────────────────────────────────────
 export const AgenteRH = {
   id: "rh", nome: "HumanResourcesAgent",
+  ...HANDLERS_RH,
   async "custos.cmo"({ motor }) {
     const m = await motor.getCMO();
     if (!temValor(m)) return insuf(m, "CMO");
@@ -275,6 +278,7 @@ export const AgenteRH = {
 // ─── Operações (resumo do dia: consulta vários agentes) ──────────────────────
 export const AgenteOperacoes = {
   id: "operacoes", nome: "OperationsAgent",
+  ...HANDLERS_FICHAS,
   async "fichas.preparo"({ motor, params }) {
     if (!params.produto) return { ...r("De qual prato ou drink?"), pergunta: { campo: "produto", texto: "De qual prato ou drink você quer a ficha?", livre: true, comandoBase: "Como faz {valor}?" } };
     const m = await motor.getRecipe({ termo: params.produto });

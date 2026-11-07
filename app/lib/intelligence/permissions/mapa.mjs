@@ -24,6 +24,12 @@ export const PERMISSOES = Object.freeze({
   // ficha técnica (sem custo): quem vê as fichas da cozinha, do bar ou o módulo de fichas
   fichas: ["fichas.recipes.view", "cozinha.recipes.view", "bar.recipes.view"],
   escala: ["rh.overview.view", "rh.employees.view", "rh.orgchart.view"],
+  // pontualidade: quem vê o relógio de ponto ou o painel do RH (horário de entrada, sem valores)
+  ponto: ["ponto.clock.view", "rh.overview.view"],
+  // custo de ficha e lucro de prato: quem vê o custo nas fichas
+  custo_fichas: ["fichas.recipes.view_costs", "cozinha.recipes.view_costs", "bar.recipes.view_costs"],
+  // criar ficha pela conversa (e cadastrar o ingrediente que falta nela): quem cria ficha na tela
+  criar_ficha: ["fichas.recipes.create", "cozinha.recipes.create", "bar.recipes.create"],
   // as mesmas chaves que _estoque_pode('movimentar', unidade, 'entrada') aceita no banco (EST-MOV-1)
   registrar_entrada: ["estoque.entries.create", "estoque.movements.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
   registrar_perda: ["estoque.losses.record_loss", "estoque.movements.create", "estoque.outputs.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
@@ -45,6 +51,9 @@ export const ROTULO_CAPACIDADE = Object.freeze({
   fichas: "fichas técnicas",
   registrar_perda: "registrar perda",
   registrar_entrada: "dar entrada no estoque",
+  ponto: "ponto da equipe",
+  custo_fichas: "custo das fichas técnicas",
+  criar_ficha: "criar ficha técnica",
 });
 
 /**

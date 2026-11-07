@@ -149,3 +149,16 @@ Substitui as decisões de 11/10 ("sem fundo preto"), 27/10 (fundo cinza) e 29/10
 - A troca de negócio é um menu no topo. Trocar muda a unidade do app, então RH, ingredientes e fichas passam a ser os do negócio aberto.
 - Eventos virou a unidade `eventos`, começando vazia. Os eventos antigos ficam onde estão, e o negócio Restaurante continua com a tela deles.
 - As funções e a senha guardada no banco ficam sem uso. Apagar é ação destrutiva e depende do dono.
+
+## DP — Assistente Héfisto (07/11/2026)
+
+Pedido do dono: a conversa da Inteligência se chama **Assistente Héfisto** e tem cara de WhatsApp.
+
+- Tela própria em `/dashboard/inteligencia/assistente` (mesma permissão da Central, por prefixo). A Central abre a conversa por um cartão e manda a pergunta dos insights em `?q=`.
+- **Exceção ao padrão hf-\***: só nesta tela, as cores do WhatsApp (topo #008069, fundo #EFEAE2, balão #D9FDD3, botão #00A884) em variáveis `--wa-*` dentro do componente. Sem logo nem nome do WhatsApp.
+- Por baixo é o mesmo Command Bus, com confirmação no servidor e auditoria. Voz só troca a entrada (fala → texto).
+- Entrada sem local: vai para o estoque com o nome do **setor do cadastro** ("cozinha" → Cozinha, "bar" → Bar), se o produto está nele ou ainda em nenhum. Sem setor, continua perguntando.
+- Várias coisas numa frase ("3 kg de picanha, 4 L de xarope"): a origem é perguntada uma vez e cada item vira uma ação com prévia própria; "Confirmar todos" confirma uma por uma.
+- Ficha pela conversa (`recipe.create`): o ingrediente que não existe é cadastrado junto com a ficha, só no Confirmar, no formato da tela de Ingredientes. Custo pela conta da tela de fichas (`custoDeProduzirFicha`). A ficha sai `ativa`, com observação de que falta o modo de preparo.
+- Lucro de prato é **SIMULAÇÃO** (preço − custo da ficha), sem impostos, taxa, embalagem e mão de obra.
+- Pontualidade: horário combinado = entrada do cadastro do colaborador; atraso no minuto exato, tolerância de 5 min (CLT art. 58, § 1º) só indicada.

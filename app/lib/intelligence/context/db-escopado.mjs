@@ -61,6 +61,7 @@ export const TABELAS = Object.freeze({
   colaboradores: { tenant: true, rotulo: "Cadastro de colaboradores" },
   rh_recibos_prestacao: { tenant: true, rotulo: "Recibos de extras" },
   rh_folgas_esporadicas: { tenant: true, rotulo: "Folgas lançadas" },
+  registro_ponto: { tenant: true, rotulo: "Ponto batido" },
   fornecedores: { tenant: true, rotulo: "Fornecedores" },
   etiquetas: { tenant: true, rotulo: "Etiquetas de validade" },
   config_sistema: { tenant: true, rotulo: "Resultado do mês (valores informados pelo dono)" },

@@ -14,10 +14,10 @@ const UNIDADES = {
   g: "g", gr: "g", grama: "g", gramas: "g",
   l: "l", litro: "l", litros: "l", lt: "l",
   ml: "ml", mililitro: "ml", mililitros: "ml",
-  un: "un", unidade: "un", unidades: "un", und: "un", pecas: "un", peca: "un",
+  un: "un", unidade: "un", unidades: "un", und: "un", pecas: "un", peca: "un", porcao: "un", porcoes: "un",
 };
 const PREPOSICOES = new Set(["de", "da", "do", "das", "dos"]);
-const PARADAS = new Set(["por", "porque", "pq", "pois", "motivo", "que", "hoje", "ontem", "agora", "devido", "na", "no", "em", "pela", "pelo", "e", "esta", "essa", "nessa", "nesta", "semana", "mes", "estoque", "aqui"]);
+const PARADAS = new Set(["por", "porque", "pq", "pois", "motivo", "que", "hoje", "ontem", "agora", "devido", "na", "no", "em", "pela", "pelo", "e", "esta", "essa", "nessa", "nesta", "semana", "mes", "estoque", "aqui", "so", "mas", "porem", "era"]);
 const DESTINO_PALAVRAS = {
   estoque: "estoque", estoques: "estoque", compras: "compras", compra: "compras", contas: "contas_pagar", conta: "contas_pagar", boletos: "contas_pagar",
   financeiro: "financeiro", cmv: "cmv", dre: "dre", validade: "validade", validades: "validade", ficha: "fichas", fichas: "fichas",
@@ -168,6 +168,16 @@ export function interpretarPorRegras(texto) {
     const RUIDO = new Set(["como", "faz", "fazer", "se", "faco", "prepara", "preparar", "preparo", "modo", "de", "do", "da", "dos", "das", "o", "a", "os", "as", "um", "uma", "receita", "ficha", "tecnica", "ingredientes", "que", "vai", "no", "na", "qual", "quais", "e", "me", "mostra", "mostre", "passa", "manda", "voce", "sabe", "quero", "ver"]);
     const resto = ps.filter((w) => !RUIDO.has(w));
     produto = resto.length ? resto.slice(0, 6).join(" ") : null;
+  } else if (escolhida?.id === "compras.conferir_recebimento") {
+    produto = extrairProduto(ps, q.fim >= 0 ? q.fim + 1 : posicaoDoGatilho(ps, escolhida));
+  } else if (escolhida?.id === "fichas.custo_quantidade" || escolhida?.id === "fichas.lucro_preco") {
+    // "quanto custa 200 g do molho de tomate?" / "vou vender o risoto por 48": tira o pedido, números e
+    // demonstrativos ("dessa receita" = a ficha da conversa); o que sobra é o nome da ficha
+    const RUIDO = new Set(["quanto", "custa", "sai", "fica", "da", "qual", "o", "a", "os", "as", "e", "valor", "custo", "de", "do", "das", "dos", "um", "uma",
+      "vou", "vender", "vendo", "vende", "vendendo", "cobrar", "cobro", "cobrando", "preco", "venda", "por", "reais", "real", "r", "se", "eu", "agora", "ele", "ela", "lucro", "margem", "quanto", "lucro", "fica", "ficaria", "da", "seria", "meu", "minha",
+      "esse", "essa", "este", "esta", "desse", "dessa", "deste", "desta", "nesse", "nessa", "isso", "disso", "receita", "ficha", "base", "prato", "porcao", "porcoes", "tecnica", "no", "na", "em", "com", "pra", "para"]);
+    const resto = ps.filter((w) => !RUIDO.has(w) && !ehNumero(w) && !UNIDADES[w]);
+    produto = resto.length ? resto.slice(0, 6).join(" ") : null;
   } else if (escolhida?.id === "estoque.saldo_produto" || escolhida?.id === "produto.explicar_variacao" || escolhida?.id === "compras.total") {
     // em "por que ... aumentou", o produto nunca vem depois do verbo
     const verboVar = escolhida.id === "produto.explicar_variacao" ? ps.findIndex((w) => VERBOS_VARIACAO.has(w)) : -1;
@@ -186,7 +196,7 @@ export function interpretarPorRegras(texto) {
   if (escolhida?.requerProduto && !produto) escolhida = candidatas.find((c) => !c.requerProduto) || escolhida;
 
   const id = escolhida?.id || "desconhecido";
-  const acao = escolhida?.tipo === "acao";
+  const acao = escolhida?.tipo === "acao" || escolhida?.usaQuantidade === true;
   const bruto = {
     intencao: id,
     periodo: extrairPeriodo(ps),

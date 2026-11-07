@@ -34,6 +34,8 @@ export function formatarResposta(r) {
     if (opc.length) linhas.push(...opc.map((o) => `• pergunte ao Héfisto: ${o.comando || o.rotulo}`));
   }
   if (r.tipo === "navegacao" && r.rota) linhas.push(`${ORIGEM_APP}${r.rota}`);
+  // vários itens numa frase (Assistente Héfisto): uma linha por item
+  if (r.tipo === "lote" && Array.isArray(r.itens)) linhas.push(...r.itens.slice(0, 12).map((x) => `• ${x.item ? `${x.item}: ` : ""}${x.texto || ""}`));
   return linhas.join("\n").trim() || "Não consegui responder agora.";
 }
 

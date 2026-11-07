@@ -14,6 +14,7 @@ import { fichaDoPrato } from "./fichas.mjs";
 import { saldoDoProduto, vencimentos, divergenciasEstoque, perdas, abaixoDoMinimo } from "./estoque.mjs";
 import { contasAPagar, lucroDoMes, ticketMedioDoMes } from "./financeiro.mjs";
 import { cmv, cmo } from "./custos.mjs";
+import { pontualidadeDoDia, conferenciaRecebimento, custoDeFicha } from "./assistente.mjs";
 
 /** Métricas pedidas na especificação que os dados atuais NÃO suportam — e por quê. */
 export const SEM_BASE = Object.freeze({
@@ -56,6 +57,9 @@ export function criarMotorDeMetricas(p) {
     getLastPurchase: (op) => ultimaCompraDoProduto(amb, op),
     getSchedule: (op) => escalaDoDia(amb, op),
     getRecipe: (op) => fichaDoPrato(amb, op),
+    getRecipeCost: (op) => custoDeFicha(amb, op),
+    getPunctuality: () => pontualidadeDoDia(amb),
+    getReceivingCheck: (op) => conferenciaRecebimento(amb, op),
     getProductStock: (op) => saldoDoProduto(amb, op),
     getExpiringProducts: (op) => vencimentos(amb, op),
     getStockVariance: (op) => divergenciasEstoque(amb, op),

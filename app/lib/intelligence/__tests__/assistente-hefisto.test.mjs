@@ -294,3 +294,35 @@ test("ficha pela conversa respeita a permissão de criar ficha", async () => {
   assert.equal(r.tipo, "bloqueado");
   assert.ok(!db.dados.fichas_tecnicas.some((f) => /molho/i.test(f.nome_receita)));
 });
+
+// ── Etiquetas pela conversa (07/11/2026: "Eu quero 20 etiquetas maniçoba, 30 de jambu") ──
+test("etiquetas: monta a fila com os nomes do cadastro e abre a tela de Etiquetas", async () => {
+  const { pedir } = await montar();
+  const r = await pedir("Eu quero 20 etiquetas de alho , 30 de caldo de camarão e 2 de vatapá");
+  assert.equal(r.interpretacao.intencao, "etiquetas.imprimir");
+  assert.match(r.texto, /Separei 52 etiquetas: 20 de Alho, 30 de Caldo de camarão, 2 de Vatapá\./);
+  assert.match(r.texto, /"vatapá" não está no cadastro/, "Vatapá Baiano não é pré-preparo e a ficha da loja B não vale");
+  const rota = r.acoes.find((a) => a.rota)?.rota || "";
+  assert.ok(rota.startsWith("/dashboard/operacao/etiquetas?lote="));
+  assert.deepEqual(JSON.parse(decodeURIComponent(rota.split("lote=")[1])), [[20, "Alho"], [30, "Caldo de camarão"], [2, "Vatapá"]]);
+});
+
+test("etiquetas: nome parcial casa com o cadastro; sem produto, pergunta quais", async () => {
+  const { pedir } = await montar();
+  const r = await pedir("10 etiquetas de xarope, 5 de alho");
+  assert.match(r.texto, /10 de Xarope de guaraná, 5 de Alho/);
+  const s = await pedir("imprime 3 etiquetas de sal");
+  assert.match(s.texto, /3 de Sal Fino/);
+  const vazio = await pedir("quero imprimir etiquetas");
+  assert.equal(vazio.interpretacao.intencao, "etiquetas.imprimir");
+  assert.match(vazio.texto, /quais produtos/i);
+});
+
+test("nota fiscal: frases do dia a dia levam ao lançamento pela foto ou pelo XML", async () => {
+  const { pedir } = await montar();
+  for (const t of ["chegou a nota do fornecedor", "tenho uma nota pra lançar", "quero lançar o XML da nota", "registrar a compra"]) {
+    const r = await pedir(t);
+    assert.equal(r.interpretacao.intencao, "compras.foto_nota", t);
+    assert.match(r.texto, /XML da NF-e/);
+  }
+});

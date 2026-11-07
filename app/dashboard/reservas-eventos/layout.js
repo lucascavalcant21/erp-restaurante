@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 import { BookOpen, CalendarDays, Calculator, Target, UtensilsCrossed } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
+import CabecalhoTela from "../../components/ui/CabecalhoTela";
 
 const BASE = "/dashboard/reservas-eventos";
 const FUNIL = `${BASE}/eventos`;
@@ -38,22 +39,18 @@ export default function ReservasEventosLayout({ children }) {
 
   return (
     <div className="min-h-full bg-hf-bg">
-      <div className="mx-auto w-full max-w-[1500px] px-4 pb-16 pt-4 sm:px-6">
-        <header className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-hf-accent">Operação</p>
-          <h1 className="text-xl font-black text-hf-text sm:text-2xl">Eventos &amp; Reservas</h1>
-          {unidadeInfo?.nome && <p className="text-sm text-hf-text-2">{unidadeInfo.nome}</p>}
-        </header>
+      <div className="mx-auto w-full max-w-[1500px] px-4 pb-16 pt-3 sm:px-6 lg:px-8">
+        <CabecalhoTela embutido titulo="Eventos e reservas" subtitulo="Funil, agenda, reservas e orçamentos" />
         {areas.length > 1 && (
-          <nav aria-label="Áreas de eventos e reservas" className={`mb-5 grid gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:max-w-3xl ${areas.length > 4 ? "grid-cols-5" : areas.length > 3 ? "grid-cols-4" : "grid-cols-3"}`}>
+          <nav aria-label="Áreas de eventos e reservas" className="mb-5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
             {areas.map((a) => {
               const ativo = a.ativo ? a.ativo(pathname) : pathname === a.href || pathname.startsWith(`${a.href}/`);
               const Icone = a.icone;
               return (
                 <Link key={a.href} href={a.href} aria-current={ativo ? "page" : undefined}
-                  className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-2 text-center text-sm font-semibold transition ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
-                  <Icone size={16} className="hidden shrink-0 sm:block" />
-                  <span className="sm:hidden">{a.curto}</span><span className="hidden whitespace-nowrap sm:inline">{a.rotulo}</span>
+                  className={`flex min-h-[40px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition ${ativo ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
+                  <Icone size={16} className="shrink-0" />
+                  {a.rotulo}
                 </Link>
               );
             })}

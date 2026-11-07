@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { useERP } from "../../../context/ERPContext";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 const LOCAIS_EXIBICAO = [
   { id: "abertura", label: "Abertura do Cardápio", desc: "Exibido logo na recepção do cliente" },
@@ -270,31 +271,18 @@ export default function CampanhasIAPage() {
   }, [campanhas]);
 
   return (
-    <div className="p-4 sm:p-7 max-w-7xl mx-auto space-y-6 text-slate-800">
+    <div className="px-4 pb-8 pt-2 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6 text-slate-800">
       
-      {/* HEADER DA PÁGINA */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-2xs font-bold uppercase tracking-wider text-emerald-600 mb-1">
-            <Sparkles size={14} />
-            <span>Héfisto Experience • Inteligência Comercial</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Campanhas Inteligentes de Vendas (IA)
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Incentive produtos de alta margem e drinks autorais apresentados no momento certo pelo Concierge.
-          </p>
-        </div>
-
+      {/* CABEÇALHO (visual do Nina) */}
+      <CabecalhoTela embutido titulo="Campanhas de vendas" subtitulo="Produtos de alta margem e drinks autorais apresentados no momento certo pelo Concierge" className="border-b border-hf-border">
         <button
           onClick={() => setModalNova(true)}
-          className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition active:scale-95 shrink-0"
+          className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-hf-accent px-5 text-sm font-semibold text-hf-accent-fg shadow-none active:scale-95"
         >
           <Plus size={18} />
-          <span>Criar Nova Campanha IA</span>
+          <span>Nova campanha</span>
         </button>
-      </div>
+      </CabecalhoTela>
 
       {/* FEEDBACK TOAST */}
       {aviso && (

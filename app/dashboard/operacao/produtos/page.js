@@ -362,7 +362,7 @@ function CardapioRunner() {
        ...form,
        categoria: categoriaFinal,
        unidade_id: unidadeAtiva,
-       tempo_preparo_base: Number(form.tempo_preparo_base),
+       tempo_preparo_base: Math.min(240, Math.max(1, Math.round(Number(form.tempo_preparo_base)) || 15)),
        preco_venda: Number(form.preco_venda),
        composicao: composicaoFinal.length ? composicaoFinal : null,
        ficha_id: composicaoFinal[0]?.ficha_id || null
@@ -714,6 +714,16 @@ function CardapioRunner() {
                            <option value="bar">Bar</option>
                         </select>
                      </div>
+                  </div>
+
+                  {/* Tempo de preparo (07/11/2026): o garçom vê a contagem regressiva do
+                      item na comanda a partir do lançamento. */}
+                  <div>
+                     <label htmlFor="tempo-preparo" className="text-xs font-bold text-fg uppercase tracking-widest">Tempo de preparo (minutos)</label>
+                     <input id="tempo-preparo" type="number" inputMode="numeric" min={1} max={240} value={form.tempo_preparo_base}
+                        onChange={e=>setForm({...form, tempo_preparo_base: e.target.value.replace(/\D/g, "").slice(0, 3)})}
+                        className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
+                     <p className="mt-1 text-xs text-fg">Do lançamento do garçom até ficar pronto. A comanda mostra quanto falta.</p>
                   </div>
 
                   {/* PRATO PRONTO — a montagem é feita na Ficha Técnica; aqui

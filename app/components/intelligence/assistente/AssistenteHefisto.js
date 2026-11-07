@@ -284,7 +284,9 @@ function Digitando() {
 }
 
 // ─── tela ─────────────────────────────────────────────────────────────────────
-const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, unidadeNome = "", perguntaInicial = null, onVoltar }, ref) {
+const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, unidadeNome = "", perguntaInicial = null, tela = null, rotuloOrigem = null, onVoltar, onPerguntaInicialEnviada = null }, ref) {
+  // tela de origem (atalho Alt+H de outra página): rota e registro aberto viram contexto da conversa
+  const TELA = tela || TELA_PADRAO;
   const router = useRouter();
   const [mensagens, setMensagens] = useState([]);
   const [resolvidas, setResolvidas] = useState({});
@@ -360,7 +362,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
     adicionar({ de: "eu", texto: exibir || limpo, canal });
     setRespondendo(null);
     await executar(() => perguntarAoHefisto(unidadeId, { texto: limpo, chave: novaChaveDeEnvio(), canal, tela: TELA, conversa: referenciaRef.current }), "Não consegui responder agora.", { canal });
-  }, [adicionar, executar, unidadeId]);
+  }, [adicionar, executar, unidadeId, TELA]);
 
   const continuar = useCallback(async (pergunta, valor, rotulo = null, { canal = "texto" } = {}) => {
     if (ocupadoRef.current) return;
@@ -372,7 +374,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
       continuar: { acaoId: pergunta.acaoId, campo: pergunta.campo, valor: numero == null || !Number.isFinite(numero) ? bruto.slice(0, 120) : null, valorNumero: Number.isFinite(numero) ? numero : null },
       tela: TELA,
     }), "Não consegui continuar.", { canal });
-  }, [adicionar, executar, unidadeId]);
+  }, [adicionar, executar, unidadeId, TELA]);
 
   /** Mensagem do campo: responde a pergunta aberta ou vira pedido novo. */
   const enviar = useCallback((t, { canal = "texto" } = {}) => {
@@ -387,17 +389,27 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
       return executar(() => perguntarAoHefisto(unidadeId, { texto: comando.slice(0, 500), chave: novaChaveDeEnvio(), canal, tela: TELA, conversa: referenciaRef.current }), "Não consegui responder agora.", { canal });
     }
     return enviarComando(limpo, { canal });
-  }, [respondendo, continuar, enviarComando, adicionar, executar, unidadeId]);
+  }, [respondendo, continuar, enviarComando, adicionar, executar, unidadeId, TELA]);
 
   useImperativeHandle(ref, () => ({ enviar: enviarComando }), [enviarComando]);
 
-  // pergunta vinda da Central (?q=)
+  // Alt+H / busca com pergunta enquanto já se está aqui: a pergunta entra nesta conversa
+  useEffect(() => {
+    const aoPerguntar = (e) => { const t = e?.detail?.texto; if (t) enviarComando(t); else campoRef.current?.focus(); };
+    window.addEventListener("hefisto:perguntar", aoPerguntar);
+    return () => window.removeEventListener("hefisto:perguntar", aoPerguntar);
+  }, [enviarComando]);
+
+  // pergunta vinda da Central ou do atalho (?q=): manda uma vez só. A função mais nova vem
+  // por ref, porque um re-render no meio cancelaria o envio (e o ref "iniciou" já marcado
+  // impediria tentar de novo).
+  const enviarRef = useRef(enviarComando);
+  enviarRef.current = enviarComando;
   useEffect(() => {
     if (!perguntaInicial || iniciou.current || !unidadeId) return;
     iniciou.current = true;
-    const t = setTimeout(() => enviarComando(perguntaInicial), 150);
-    return () => clearTimeout(t);
-  }, [perguntaInicial, unidadeId, enviarComando]);
+    setTimeout(() => { enviarRef.current(perguntaInicial); onPerguntaInicialEnviada?.(); }, 150);
+  }, [perguntaInicial, unidadeId, onPerguntaInicialEnviada]);
 
   const resolver = useCallback((acaoId, estado) => setResolvidas((x) => ({ ...x, [acaoId]: estado })), []);
   const confirmar = useCallback(async (acaoId, t) => {
@@ -475,6 +487,11 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
           <div className="flex justify-center pt-1">
             <span className="rounded-[7.5px] px-3 py-1 text-[12.5px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)", color: "var(--wa-meta)" }}>HOJE</span>
           </div>
+          {rotuloOrigem && (
+            <div className="flex justify-center px-4">
+              <span className="max-w-full truncate rounded-[7.5px] px-3 py-1 text-[12px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)", color: "var(--wa-meta)" }}>Vindo de: {rotuloOrigem}</span>
+            </div>
+          )}
           <div className="flex justify-center px-4">
             <p className="max-w-md rounded-[7.5px] px-3 py-1.5 text-center text-[12.5px] leading-snug" style={{ background: "var(--wa-aviso)", color: "#54656F" }}>
               <Lock size={11} className="mr-1 inline -translate-y-px" />
@@ -552,6 +569,6 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
   );
 });
 
-const TELA = Object.freeze({ rota: "/dashboard/inteligencia/assistente" });
+const TELA_PADRAO = Object.freeze({ rota: "/dashboard/inteligencia/assistente" });
 
 export default AssistenteHefisto;

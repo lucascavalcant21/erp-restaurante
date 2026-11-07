@@ -1,18 +1,16 @@
 "use client";
 
-// Atalho global do Héfisto: um botão pequeno e discreto que abre a conversa
-// num painel lateral (desktop) ou bottom sheet (celular), levando o contexto
-// da tela atual (rota e, quando a tela informa, o produto aberto). Não ocupa a
-// tela enquanto fechado. Na própria Central de Inteligência ele some (lá a
-// conversa já está na página).
+// Atalho global do Héfisto (Alt+H, menu, busca): abre o Assistente Héfisto
+// (/dashboard/inteligencia/assistente) levando o contexto da tela atual (rota e,
+// quando a tela informa, o registro aberto). Pedido do dono, 07/11/2026: a
+// conversa é uma só, a tela estilo WhatsApp; o painel lateral saiu.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
-import { Sparkles, X } from "lucide-react";
+import { useCallback, useEffect, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { useHefistoPageContext } from "../../context/HefistoPageContext";
 import { hasPermission } from "../../lib/permissions-catalog.mjs";
-import ConversaHefisto from "./ConversaHefisto";
+import { linkDoAssistente } from "./assistente/origem.mjs";
 
 // Tipos de entidade das telas (useContextoInteligencia e telas antigas) → tipos do servidor.
 const TIPOS_DA_TELA = {
@@ -43,31 +41,32 @@ export const rotuloDaEntidade = (e) => (e ? `${ROTULO_TIPO[e.tipo] || "Registro"
 export default function PainelHefisto() {
   const pathname = usePathname() || "";
   const searchParams = useSearchParams();
-  const { unidadeAtiva, sessao } = useERP() || {};
+  const router = useRouter();
+  const { sessao } = useERP() || {};
   const { pageContext } = useHefistoPageContext();
-  const [aberto, setAberto] = useState(false);
-  const conversa = useRef(null);
-  const pendente = useRef(null);
+  const atual = useRef({ pathname, busca: "", pageContext: null });
+  atual.current = { pathname, busca: searchParams?.toString() || "", pageContext };
+  const pode = !!sessao && !(sessao.gerenciado && !hasPermission(sessao, "dashboard.intelligence.view"));
 
+  // Alt+H, atalhos do menu e perguntas da busca abrem o Assistente Héfisto (tela estilo
+  // WhatsApp), levando a pergunta e o contexto desta tela (rota e registro aberto).
+  // Nas telas da Inteligência quem atende é a própria tela (Central ou o assistente).
   const abrir = useCallback((texto = null) => {
-    setAberto(true);
-    if (texto) pendente.current = texto;
-  }, []);
+    const { pathname: p, busca, pageContext: pc } = atual.current;
+    if (p.startsWith("/dashboard/inteligencia")) return;
+    router.push(linkDoAssistente({ texto, tela: telaAtual(p, busca, pc) }));
+  }, [router]);
 
   useEffect(() => {
-    if (aberto && pendente.current && conversa.current) {
-      const t = pendente.current;
-      pendente.current = null;
-      setTimeout(() => conversa.current?.enviar(t), 120);
-    }
-  }, [aberto]);
-
-  useEffect(() => {
+    if (!pode) return undefined;
     const aoPerguntar = (e) => abrir(e?.detail?.texto || null);
-    const aoAlternar = () => setAberto((v) => !v);
+    const aoAlternar = () => abrir(null);
     const teclas = (e) => {
-      if (e.altKey && (e.key === "h" || e.key === "H")) { e.preventDefault(); setAberto((v) => !v); }
-      if (e.key === "Escape") setAberto(false);
+      if (e.altKey && (e.key === "h" || e.key === "H")) {
+        e.preventDefault();
+        if (atual.current.pathname.startsWith("/dashboard/inteligencia/assistente")) window.dispatchEvent(new CustomEvent("hefisto:perguntar", { detail: {} }));
+        else abrir(null);
+      }
     };
     window.addEventListener("hefisto:perguntar", aoPerguntar);
     window.addEventListener("hefisto:toggle-copilot", aoAlternar);
@@ -77,49 +76,8 @@ export default function PainelHefisto() {
       window.removeEventListener("hefisto:toggle-copilot", aoAlternar);
       window.removeEventListener("keydown", teclas);
     };
-  }, [abrir]);
+  }, [abrir, pode]);
 
-  useEffect(() => { setAberto(false); }, [unidadeAtiva]);
-
-  if (pathname.startsWith("/dashboard/inteligencia")) return null;
-  // Só para quem pode usar a inteligência (o servidor confere de novo).
-  if (!sessao || (sessao.gerenciado && !hasPermission(sessao, "dashboard.intelligence.view"))) return null;
-
-  const semUnidade = !unidadeAtiva || unidadeAtiva === "todas";
-  const tela = telaAtual(pathname, searchParams?.toString() || "", pageContext);
-
-  return (
-    <>
-      {/* Sem o botão flutuante (pedido do dono, 28/10/2026: "tire isso"). O painel
-          abre pelo Alt+H e pelos atalhos do menu (eventos hefisto:perguntar/toggle-copilot). */}
-
-      {aberto && (
-        <div className="fixed inset-0 z-[150] print:hidden" role="dialog" aria-modal="true" aria-label="Pergunte ao Héfisto">
-          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setAberto(false)} />
-          <section className="absolute inset-x-0 bottom-0 flex max-h-[90dvh] flex-col rounded-t-3xl bg-[#F7F8F7] shadow-2xl sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[440px] sm:rounded-none sm:rounded-l-3xl">
-            <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-slate-300 sm:hidden" aria-hidden="true" />
-            <header className="flex items-start justify-between gap-3 px-4 pb-2 pt-3 sm:pt-[calc(var(--erp-safe-top,0px)+1rem)]">
-              <div className="min-w-0">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">Héfisto</p>
-                <h2 className="text-lg font-black text-slate-900">Pergunte ao Héfisto</h2>
-                <p className="truncate text-[12px] text-slate-500">
-                  Contexto: {tela.entidade ? `${rotuloDaEntidade(tela.entidade)} · ` : ""}{pathname.replace("/dashboard", "") || "início"}
-                </p>
-              </div>
-              <button type="button" onClick={() => setAberto(false)} aria-label="Fechar" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-slate-500 hover:bg-slate-200">
-                <X size={20} />
-              </button>
-            </header>
-            <div className="flex min-h-0 flex-1 flex-col px-4 pb-3">
-              {semUnidade ? (
-                <p className="rounded-2xl bg-white p-4 text-[14px] text-slate-700">Selecione uma unidade para conversar com o Héfisto: as respostas são sempre de uma unidade por vez.</p>
-              ) : (
-                <ConversaHefisto ref={conversa} unidadeId={unidadeAtiva} tela={tela} autoFoco altura="100%" onNavegar={() => setAberto(false)} />
-              )}
-            </div>
-          </section>
-        </div>
-      )}
-    </>
-  );
+  // Sem botão flutuante (pedido do dono, 28/10/2026) e sem painel: a conversa é uma tela só.
+  return null;
 }

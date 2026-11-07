@@ -147,3 +147,39 @@ test("folha do prato: preparo numerado com detalhe e montagem da tela de Montage
   assert.equal(folha.foto, null);
   assert.match(r.texto, /Montagem: 1\) 200 g de vatapá no prato fundo 2\) 4 camarões por cima/);
 });
+
+// ─── Receita base ou prato? Foto e sem botões extras (pedido do dono, 07/11/2026) ───
+function comBaseEPratos(t) {
+  comDrinks(t);
+  const vat = t.fichas_tecnicas.find((f) => f.id === F_VAT_CAM);
+  vat.eh_base = true; // como no banco real: "Vatapá de Camarão" é a receita base
+  t.produtos = [
+    { unidade_id: "loja-a", ficha_id: F_VAT_CAM, nome_produto: "Vatapá", imagem_url: "https://exemplo.supabase.co/storage/v1/object/public/anexos/produtos/vatapa.jpeg" },
+    { unidade_id: "loja-b", ficha_id: F_VAT_CAM, nome_produto: "Vatapá B", imagem_url: "https://b.exemplo/foto-da-b.jpg" },
+  ];
+}
+
+test("'como fazer um vatapá' com receita base e pratos: pergunta primeiro receita ou prato", async () => {
+  const { pedir } = await montar({ extra: comBaseEPratos });
+  const r = await pedir("Como fazer um vatapá");
+  assert.match(r.pergunta.texto, /receita base e 1 prato de Vatapá\. Você quer a receita \(o preparo\) ou o prato\?/);
+  assert.deepEqual(r.pergunta.opcoes.map((o) => o.comando), ["Como faz a receita base de Vatapá?", "Como faz o prato de Vatapá?"]);
+  assert.ok(!r.sugestoes?.length);
+});
+
+test("escolheu a receita: abre a base direto, com a foto do cardápio desta unidade e sem sugestões no fim", async () => {
+  const { pedir } = await montar({ extra: comBaseEPratos });
+  const r = await pedir("Como faz a receita base de Vatapá?");
+  const folha = r.blocos.find((b) => b.tipo === "folha").folha;
+  assert.equal(folha.nome, "Vatapá de Camarão");
+  assert.equal(folha.tipo, "base");
+  assert.equal(folha.foto, "https://exemplo.supabase.co/storage/v1/object/public/anexos/produtos/vatapa.jpeg");
+  assert.ok(!r.sugestoes?.length, "a folha termina só com Abrir a ficha");
+  assert.equal(r.acoes.length, 1);
+});
+
+test("escolheu o prato: só os pratos (aqui um só, abre direto)", async () => {
+  const { pedir } = await montar({ extra: comBaseEPratos });
+  const r = await pedir("Como faz o prato de Vatapá?");
+  assert.equal(r.blocos.find((b) => b.tipo === "folha")?.folha.nome, "Vatapá Baiano");
+});

@@ -56,7 +56,9 @@ test("montagem: tira a lista de ingredientes e o título; passos gravados têm p
 test("copo e gelo da Montagem; foto só https", () => {
   assert.deepEqual(servicoDaMontagem('[{"nome":"Copo Long Drink","tipo":"copo"},{"nome":"Cubos de gelo","tipo":"liquido"}]'), { copo: "Copo Long Drink", gelo: "Cubos de gelo" });
   assert.deepEqual(servicoDaMontagem(null), { copo: null, gelo: null });
-  assert.equal(fotoSegura("/9j/4AAQSkZJRg", "javascript:alert(1)", "https://x.supabase.co/a.jpg"), "https://x.supabase.co/a.jpg");
+  assert.equal(fotoSegura("javascript:alert(1)", "data:image/svg+xml;base64,PHN2Zz4=", "https://x.supabase.co/a.jpg"), "https://x.supabase.co/a.jpg");
+  assert.equal(fotoSegura("/9j/4AAQSkZJRg=="), "data:image/jpeg;base64,/9j/4AAQSkZJRg==", "foto salva em base64 na ficha");
+  assert.equal(fotoSegura("/9j/" + "A".repeat(800_000)), null, "base64 grande demais fica de fora");
   assert.equal(fotoSegura("http://inseguro/a.jpg"), null);
 });
 
@@ -77,4 +79,20 @@ test("ícones só enfeitam pelo nome (nunca mudam o que está na ficha)", () => 
   assert.equal(iconeDoIngrediente("Coisa desconhecida"), "•");
   assert.equal(iconeDoServico("copo", "Taça Martini"), "🍸");
   assert.equal(iconeDoServico("copo", "Copo Old Fashioned"), "🥃");
+});
+
+test("nome da Montagem escrito de outro jeito ainda casa com a ficha", async () => {
+  const { chaveDeNome } = await import("../metrics/fichas.mjs");
+  assert.equal(chaveDeNome("Moqueca de pirarucu - 2 pessoas"), chaveDeNome("Moqueca de pirarucu - 2P"));
+  assert.equal(chaveDeNome("Vatapá de camarão "), chaveDeNome("Vatapa de Camarão"));
+  assert.notEqual(chaveDeNome("Moqueca de pirarucu - 1P"), chaveDeNome("Moqueca de pirarucu - 2P"));
+});
+
+test("receita base ou prato, pelo que a pessoa disse", async () => {
+  const { tipoDeFichaPedido, nomeLegivel } = await import("../agents/especialistas.mjs");
+  assert.equal(tipoDeFichaPedido("Como faz a receita base de Vatapá?"), "base");
+  assert.equal(tipoDeFichaPedido("Como faz o prato de Vatapá?"), "prato");
+  assert.equal(tipoDeFichaPedido("Como faz o drink de caipirinha?"), "prato");
+  assert.equal(tipoDeFichaPedido("Como fazer um vatapá"), null);
+  assert.equal(nomeLegivel("vatapa", ["Adicional - vatapá de camarão", "Vatapá Paraense"]), "Vatapá");
 });

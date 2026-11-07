@@ -345,10 +345,23 @@ body {
 @media (max-width: 1279px) and (pointer: coarse), (max-width: 767px), (pointer: coarse) and (display-mode: standalone), (pointer: coarse) and (display-mode: fullscreen) {
   :root {
     /* Só a altura real da barra de status + 4 px (pedido do dono, 07/11/2026: "tem um
-       espaço muito grande" no topo do iPhone). Antes somava 20 px a mais, com mínimo de
-       56 px. O mínimo de 48 px cobre o entalhe quando o navegador informa 0. */
-    --erp-safe-top: max(3rem, calc(env(safe-area-inset-top, 0px) + 0.25rem));
+       espaço muito grande" no topo do iPhone e, depois, no tablet). No Android (navegador
+       ou app instalado) a página já começa abaixo da barra de status e o navegador informa
+       0: o antigo mínimo de 48 px virava uma faixa vazia acima do menu. */
+    --erp-safe-top: calc(env(safe-area-inset-top, 0px) + 0.25rem);
   }
+}
+/* iPhone/iPad com o app instalado na tela inicial: a página fica por baixo da barra de
+   status; o mínimo de 48 px cobre o entalhe se o iOS informar 0. -webkit-touch-callout
+   só existe no Safari do iOS. */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone), (display-mode: fullscreen) {
+    :root {
+      --erp-safe-top: max(3rem, calc(env(safe-area-inset-top, 0px) + 0.25rem));
+    }
+  }
+}
+@media (max-width: 1279px) and (pointer: coarse), (max-width: 767px), (pointer: coarse) and (display-mode: standalone), (pointer: coarse) and (display-mode: fullscreen) {
 
   /* Garante que qualquer modal/janela centralizada ou bottom-sheet fique abaixo da barra de status no celular/tablet */
   div.fixed.inset-0.justify-center,

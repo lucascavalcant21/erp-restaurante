@@ -70,7 +70,7 @@ export function Projecao({ p, dias, metaMes, equilibrioMes, plano }) {
         <div className="mt-3 rounded-xl border border-hf-border bg-hf-elevated p-3 text-sm text-hf-text">
           <p className="font-black">Faltam {brl(p.falta)} para a meta.</p>
           {p.precisaPorDia !== null && <p>Nos {p.restantes} dias que restam, venda {brl(p.precisaPorDia)} por dia.</p>}
-          {plano && <p className="mt-1">Estratégia: {inteiro(plano.unidades)} {plano.nome} a mais{plano.porDia ? `, cerca de ${inteiro(plano.porDia)} por dia` : ""}. É o item de maior lucro por pedido, com {brl(plano.lucroExtra)} de lucro adicional.</p>}
+          {plano && <p className="mt-1">Estratégia: {inteiro(plano.unidades)} {plano.nome} a mais{plano.porDia ? `, cerca de ${inteiro(plano.porDia)} por dia` : ""}. {plano.tipo === "margem" ? `É o prato de maior margem de contribuição entre os que já vendem, com ${brl(plano.lucroExtra)} de margem a mais.` : `É o item de maior lucro por pedido, com ${brl(plano.lucroExtra)} de lucro adicional.`}</p>}
         </div>
       )}
     </>

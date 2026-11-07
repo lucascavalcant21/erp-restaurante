@@ -188,3 +188,62 @@ export function movimentoRecente(vendas = [], hojeIso) {
   if (!(anterior > 0)) return null;
   return { atual, anterior, variacaoPct: Math.round(((atual - anterior) / anterior) * 100) };
 }
+
+/* ── Vendas por prato no Restaurante (07/11/2026) ───────────────────────────
+   As comandas pagas (salão e balcão) guardam o produto de cada item em
+   pedidos_itens. Aqui se junta isso à margem de contribuição de cada prato
+   (preço − ingredientes − embalagem − imposto e taxa do cartão), calculada das
+   fichas pela mesma conta da Pizza do prato. Custo fixo fica de fora de
+   propósito: já está no ponto de equilíbrio. */
+
+/** Margem de contribuição de um prato. null quando a ficha não sustenta o número. */
+export function contribuicaoDoPrato({ preco = 0, custoIngredientes = 0, custoEmbalagem = 0, impostoPct = 0, taxaMaquininhaPct = 0, semCusto = false, semRendimento = false } = {}) {
+  const p = num(preco);
+  if (!(p > 0) || semCusto || semRendimento) return null;
+  return r2(p - num(custoIngredientes) - num(custoEmbalagem) - (p * (num(impostoPct) + num(taxaMaquininhaPct))) / 100);
+}
+
+/**
+ * itens: itens das comandas pagas do mês ({ produto_id, quantidade, valor_unitario, status_kds }).
+ * produtos: { id, nome, departamento, ativo, preco, contribuicao } (contribuicao pode ser null).
+ * Devolve cada produto com unidades, faturamento e margem no mês, a lista dos
+ * que menos saem (pratos e bebidas à parte) e quantos itens não têm produto.
+ */
+export function vendasPorPrato(itens = [], produtos = []) {
+  const vendas = new Map();
+  let semProduto = 0;
+  for (const i of itens || []) {
+    if (!i || i.status_kds === "cancelado") continue;
+    const q = num(i.quantidade);
+    if (!(q > 0)) continue;
+    if (!i.produto_id) { semProduto += q; continue; }
+    const v = vendas.get(i.produto_id) || { unidades: 0, faturamento: 0 };
+    v.unidades += q;
+    v.faturamento = r2(v.faturamento + r2(q * num(i.valor_unitario)));
+    vendas.set(i.produto_id, v);
+  }
+  const ehBebida = (p) => /bar|bebida|drink/i.test(String(p.departamento || ""));
+  const linhas = (produtos || []).filter((p) => p && p.ativo !== false).map((p) => {
+    const v = vendas.get(p.id) || { unidades: 0, faturamento: 0 };
+    const contribuicao = typeof p.contribuicao === "number" ? p.contribuicao : null;
+    return {
+      id: p.id, nome: p.nome, tipo: ehBebida(p) ? "bebida" : "prato", preco: num(p.preco),
+      unidades: v.unidades, faturamento: v.faturamento, contribuicao,
+      margemNoMes: contribuicao === null ? null : r2(contribuicao * v.unidades),
+    };
+  });
+  const totalUnidades = linhas.reduce((t, l) => t + l.unidades, 0);
+  const menos = (tipo) => linhas.filter((l) => l.tipo === tipo).sort((a, b) => a.unidades - b.unidades || a.nome.localeCompare(b.nome, "pt-BR")).slice(0, 5);
+  return {
+    temVendas: totalUnidades > 0,
+    totalUnidades,
+    semProduto,
+    maisMargem: linhas.filter((l) => l.margemNoMes !== null && l.unidades > 0).sort((a, b) => b.margemNoMes - a.margemNoMes).slice(0, 5),
+    pratosParados: totalUnidades > 0 ? menos("prato") : [],
+    bebidasParadas: totalUnidades > 0 ? menos("bebida") : [],
+    // Para a estratégia: só pratos com margem confiável e que já venderam no mês.
+    candidatos: linhas.filter((l) => l.contribuicao !== null && l.contribuicao > 0 && l.unidades > 0 && l.preco > 0)
+      .map((l) => ({ nome: l.nome, preco: l.preco, lucro: l.contribuicao })),
+    semMargem: linhas.filter((l) => l.unidades > 0 && l.contribuicao === null).length,
+  };
+}

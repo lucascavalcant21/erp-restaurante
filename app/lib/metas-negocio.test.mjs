@@ -92,3 +92,51 @@ test("movimento compara duas semanas sem inventar", () => {
   assert.deepEqual(movimentoRecente(v, "2026-11-06"), { atual: 30, anterior: 40, variacaoPct: -25 });
   assert.equal(movimentoRecente([{ data: "2026-11-05", quantidade: 30 }], "2026-11-06"), null);
 });
+
+test("restaurante: margem de contribuição do prato e recusa quando a ficha não sustenta", async () => {
+  const { contribuicaoDoPrato } = await import("./metas-negocio.mjs");
+  // 50 − 15 − 1 − 50 × (4 + 3)% = 30,50
+  assert.equal(contribuicaoDoPrato({ preco: 50, custoIngredientes: 15, custoEmbalagem: 1, impostoPct: 4, taxaMaquininhaPct: 3 }), 30.5);
+  assert.equal(contribuicaoDoPrato({ preco: 50, semCusto: true }), null);
+  assert.equal(contribuicaoDoPrato({ preco: 50, semRendimento: true, custoIngredientes: 10 }), null);
+  assert.equal(contribuicaoDoPrato({ preco: 0, custoIngredientes: 1 }), null);
+});
+
+test("restaurante: vendas por prato, mais margem, parados e candidatos da estratégia", async () => {
+  const { vendasPorPrato, estrategia } = await import("./metas-negocio.mjs");
+  const produtos = [
+    { id: "a", nome: "Tacacá", departamento: "Cozinha", preco: 35, contribuicao: 20 },
+    { id: "b", nome: "Pato no tucupi", departamento: "cozinha", preco: 80, contribuicao: 45 },
+    { id: "c", nome: "Maniçoba", departamento: "cozinha", preco: 60, contribuicao: null },
+    { id: "d", nome: "Suco de cupuaçu", departamento: "Bar", preco: 12, contribuicao: 8 },
+    { id: "e", nome: "Caipirinha", departamento: "bar", preco: 25, contribuicao: 18 },
+    { id: "z", nome: "Inativo", departamento: "cozinha", preco: 10, contribuicao: 5, ativo: false },
+  ];
+  const itens = [
+    { produto_id: "a", quantidade: 10, valor_unitario: 35 },
+    { produto_id: "b", quantidade: 2, valor_unitario: 80 },
+    { produto_id: "b", quantidade: 1, valor_unitario: 80, status_kds: "cancelado" },
+    { produto_id: "c", quantidade: 3, valor_unitario: 60 },
+    { produto_id: "d", quantidade: 4, valor_unitario: 12 },
+    { produto_id: null, quantidade: 1, valor_unitario: 5 },
+  ];
+  const v = vendasPorPrato(itens, produtos);
+  assert.equal(v.temVendas, true);
+  assert.equal(v.totalUnidades, 19);
+  assert.equal(v.semProduto, 1);
+  assert.deepEqual(v.maisMargem.map((l) => [l.nome, l.margemNoMes]), [["Tacacá", 200], ["Pato no tucupi", 90], ["Suco de cupuaçu", 32]]);
+  assert.deepEqual(v.pratosParados.map((l) => [l.nome, l.unidades]), [["Pato no tucupi", 2], ["Maniçoba", 3], ["Tacacá", 10]]);
+  assert.deepEqual(v.bebidasParadas.map((l) => [l.nome, l.unidades]), [["Caipirinha", 0], ["Suco de cupuaçu", 4]]);
+  assert.equal(v.semMargem, 1, "Maniçoba vendeu, mas a ficha não sustenta a margem");
+  // A estratégia escolhe a maior margem por unidade entre os que já venderam.
+  const e = estrategia({ ok: true, falta: 1600, restantes: 10 }, v.candidatos);
+  assert.deepEqual([e.nome, e.unidades, e.porDia, e.lucroExtra], ["Pato no tucupi", 20, 2, 900]);
+});
+
+test("restaurante: sem vendas no mês não há parados nem estratégia", async () => {
+  const { vendasPorPrato } = await import("./metas-negocio.mjs");
+  const v = vendasPorPrato([], [{ id: "a", nome: "Tacacá", preco: 35, contribuicao: 20 }]);
+  assert.equal(v.temVendas, false);
+  assert.deepEqual(v.pratosParados, []);
+  assert.deepEqual(v.candidatos, []);
+});

@@ -162,3 +162,15 @@ Pedido do dono: a conversa da Inteligência se chama **Assistente Héfisto** e t
 - Ficha pela conversa (`recipe.create`): o ingrediente que não existe é cadastrado junto com a ficha, só no Confirmar, no formato da tela de Ingredientes. Custo pela conta da tela de fichas (`custoDeProduzirFicha`). A ficha sai `ativa`, com observação de que falta o modo de preparo.
 - Lucro de prato é **SIMULAÇÃO** (preço − custo da ficha), sem impostos, taxa, embalagem e mão de obra.
 - Pontualidade: horário combinado = entrada do cadastro do colaborador; atraso no minuto exato, tolerância de 5 min (CLT art. 58, § 1º) só indicada.
+
+## DP — Visual inspirado no Nina (07/11/2026, pedido do dono)
+
+O dono mandou telas do Nina (Severina) e pediu o mesmo visual no Héfisto. Análise:
+- **Fonte:** Inter (sans-serif neutra, títulos em peso 600 com espaçamento apertado, descrições cinza pequenas). O Héfisto passa da Plus Jakarta Sans para a Inter.
+- **Cores:** fundo branco, cards brancos com borda fina e quase sem sombra; cada módulo com um **ícone colorido** (quadrado de canto arredondado, ícone branco). Destaque em card grafite com botão branco em pílula.
+- **Posições:** trilha pequena no topo ("unidade / área") com a data à direita; título grande; card de destaque; seções com rótulo cinza; cards em grade com ícone à esquerda, título, descrição e seta ↗ no canto.
+
+Decisões:
+- **Cores de módulo** (`hf-tile-*`, `app/lib/cores-modulo.mjs`) entram como exceção à regra "sem azul/violeta": valem **só** para o quadradinho do ícone. Botão, texto, fundo e estado continuam no branco e dourado. A cor sai da função (Estoque sempre índigo, Etiquetas sempre azul), não da área.
+- O card grafite de destaque usa `bg-hf-menu` (mesmo grafite do menu): KDS na Cozinha e no Bar, com a fila real; Comandas no Salão.
+- Feito nas telas de Cozinha, Bar, Salão e no Início (lançador de módulos). As outras telas herdam só a fonte.

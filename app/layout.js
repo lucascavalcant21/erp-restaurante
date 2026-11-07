@@ -1,13 +1,14 @@
 import "./globals.css";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import { ERPProvider } from "./context/ERPContext";
 import RegisterSW from "./components/RegisterSW";
 import AvisoNovaVersao from "./components/AvisoNovaVersao";
 import PullToRefresh from "./components/PullToRefresh";
 import InstallPrompt from "./components/InstallPrompt";
 
-// Fonte oficial do app (variável, hospedada pelo próprio Next — sem CDN externo)
-const fonteApp = Plus_Jakarta_Sans({
+// Fonte oficial do app (variável, hospedada pelo próprio Next — sem CDN externo).
+// Inter desde 07/11/2026 (pedido do dono: visual do Nina); antes Plus Jakarta Sans.
+const fonteApp = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-app",

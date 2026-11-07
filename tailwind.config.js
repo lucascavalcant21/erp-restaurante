@@ -93,6 +93,19 @@ module.exports = {
           "menu-text":     "rgb(var(--hf-menu-text) / <alpha-value>)",
           "menu-muted":    "rgb(var(--hf-menu-muted) / <alpha-value>)",
           "menu-accent":   "rgb(var(--hf-menu-accent) / <alpha-value>)",
+          // Cores de módulo: só o quadradinho do ícone (globals.css, app/lib/cores-modulo.mjs).
+          "tile-amarelo":  "rgb(var(--hf-tile-amarelo) / <alpha-value>)",
+          "tile-dourado":  "rgb(var(--hf-tile-dourado) / <alpha-value>)",
+          "tile-laranja":  "rgb(var(--hf-tile-laranja) / <alpha-value>)",
+          "tile-vermelho": "rgb(var(--hf-tile-vermelho) / <alpha-value>)",
+          "tile-rosa":     "rgb(var(--hf-tile-rosa) / <alpha-value>)",
+          "tile-violeta":  "rgb(var(--hf-tile-violeta) / <alpha-value>)",
+          "tile-indigo":   "rgb(var(--hf-tile-indigo) / <alpha-value>)",
+          "tile-azul":     "rgb(var(--hf-tile-azul) / <alpha-value>)",
+          "tile-ciano":    "rgb(var(--hf-tile-ciano) / <alpha-value>)",
+          "tile-verde":    "rgb(var(--hf-tile-verde) / <alpha-value>)",
+          "tile-grafite":  "rgb(var(--hf-tile-grafite) / <alpha-value>)",
+          "tile-ardosia":  "rgb(var(--hf-tile-ardosia) / <alpha-value>)",
         },
       },
       borderRadius: {
@@ -106,10 +119,10 @@ module.exports = {
         float: "var(--shadow-float)",
       },
       fontFamily: {
-        // A fonte do app e Plus Jakarta Sans, carregada pelo next/font no
-        // app/layout.js e exposta como --font-app. Aqui dizia "Inter", que nao
-        // e carregada em lugar nenhum: as 36 telas que usam `font-sans`
-        // caiam na fonte do sistema e destoavam do resto do app.
+        // A fonte do app e a Inter (desde 07/11/2026; antes Plus Jakarta Sans),
+        // carregada pelo next/font no app/layout.js e exposta como --font-app.
+        // `font-sans` aponta para a variavel, nunca para o nome da fonte: o nome
+        // solto nao e carregado em lugar nenhum e cairia na fonte do sistema.
         sans: ["var(--font-app)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
       },
       fontSize: {

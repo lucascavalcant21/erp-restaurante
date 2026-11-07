@@ -8,7 +8,7 @@ export default function CozinhaHubPage() {
   return (
     <UniversoArea id="cozinha">
       <section aria-label="Resumo de hoje" className="space-y-3">
-        <h2 className="text-sm font-extrabold text-hf-text-2">Resumo de hoje</h2>
+        <h2 className="text-[13px] font-medium text-hf-muted">Resumo de hoje</h2>
         <CozinhaHub embutido />
       </section>
     </UniversoArea>

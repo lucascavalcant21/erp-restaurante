@@ -41,11 +41,11 @@ async function custosMedios(amb, ids) {
  * candidato, devolve a lista para o usuário escolher (nada de chutar).
  * @returns {Promise<{ tipo: "metrica"|"ambiguo"|"nao_encontrado", ... }>}
  */
-export async function saldoDoProduto(amb, { termo = null, insumoId = null } = {}) {
+export async function saldoDoProduto(amb, { termo = null, insumoId = null, frase = null } = {}) {
   const periodo = { de: amb.hoje, ate: amb.hoje, rotulo: `agora (${ddmm(amb.hoje)})` };
   return medir(amb, { id: "saldo_produto", capacidade: "saldo_estoque", periodo }, async (consultas) => {
     const insumos = await ler(amb.dbe.from("insumos").select(CAMPOS_INSUMO).order("nome"), "insumos") || [];
-    const candidatos = insumoId ? insumos.filter((i) => i.id === insumoId) : candidatosDoTermo(insumos, termo);
+    const candidatos = insumoId ? insumos.filter((i) => i.id === insumoId) : candidatosDoTermo(insumos, termo, 8, { frase, parcial: true });
     if (!candidatos.length) {
       return insuficiente({ metrica: "saldo_produto", periodo, escopo: amb.escopo, apuradoEm: amb.apuradoEm, consultas: consultas(),
         motivo: `Não encontrei "${String(termo || "").slice(0, 60)}" no cadastro de produtos desta unidade.`, faltando: ["produto no cadastro"], detalhes: { naoEncontrado: true } });

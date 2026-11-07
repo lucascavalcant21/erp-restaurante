@@ -18,6 +18,7 @@ import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } fro
 import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
 import { fetchComSessao } from "../../../lib/api-sessao";
 import { notaDoOcr, reduzirImagem } from "./nota.mjs";
+import FolhaFicha from "../FolhaFicha";
 
 export const NOME_ASSISTENTE = "Assistente Héfisto";
 
@@ -148,6 +149,7 @@ function Blocos({ blocos }) {
             </div>
           );
         }
+        if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} />;
         if (b.tipo === "texto") return <p key={i} className="text-[14px]" style={{ color: "var(--wa-meta)" }}>{b.qualificador ? <strong>{b.qualificador}: </strong> : null}{b.texto}</p>;
         if (b.tipo === "insight" && b.insight?.titulo) return <p key={i} className="text-[14.5px]">• {b.insight.titulo}</p>;
         return null; // métrica: o texto da resposta já traz a frase
@@ -206,9 +208,11 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
       ...(ultima ? x.sugestoes || [] : []).map((s) => ({ id: s, rotulo: s, comando: s })),
       ...(x.acoes || []).map((a, i) => ({ id: `a${i}`, rotulo: a.rotulo, comando: a.comando, rota: a.rota })),
     ];
+    // com a folha do prato/drink, o cartaz já diz tudo: o texto longo fica só para a leitura em voz alta
+    const temFolha = (x.blocos || []).some((b) => b.tipo === "folha" && b.folha?.nome);
     return (
       <div key={chave} className="space-y-1">
-        <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao}>
+        <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao || temFolha}>
           {x.item && !x.confirmacao && <p className="text-[13.5px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{x.item}</p>}
           {x.confirmacao ? (
             <CartaoConfirmacao c={x.confirmacao} resolvida={resolvida} ocupado={ocupado} onConfirmar={(t) => onConfirmar(x.confirmacao.acaoId, t)} onCancelar={() => onCancelar(x.confirmacao.acaoId)} />
@@ -222,7 +226,7 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
               </dl>
               {x.repetido && <p className="mt-1 text-[13.5px]" style={{ color: "var(--wa-meta)" }}>Já tinha sido feito — nada foi duplicado.</p>}
             </>
-          ) : (
+          ) : temFolha ? null : (
             <p className="whitespace-pre-line">
               {x.tipo === "bloqueado" && <ShieldAlert size={15} className="mr-1 inline -translate-y-px text-amber-600" />}
               {erro && x.tipo !== "bloqueado" && <AlertTriangle size={15} className="mr-1 inline -translate-y-px text-amber-600" />}

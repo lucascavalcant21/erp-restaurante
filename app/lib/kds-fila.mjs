@@ -11,7 +11,7 @@
 export const STATUS_NA_FILA = ["pendente", "preparando", "pronto"];
 
 // Pedido nesses estados já saiu da cozinha (pago, servido, despachado ou cancelado).
-const PEDIDO_FORA_DA_COZINHA = new Set(["cancelado", "recusado", "pago", "entregue", "fechado", "finalizado", "concluido", "saiu"]);
+const PEDIDO_FORA_DA_COZINHA = new Set(["cancelado", "recusado", "transferido", "pago", "entregue", "fechado", "finalizado", "concluido", "saiu"]);
 
 // Só pedidos online mudam de estado quando a cozinha termina: a comanda do salão
 // fica "aberto" até o garçom fechar a conta.

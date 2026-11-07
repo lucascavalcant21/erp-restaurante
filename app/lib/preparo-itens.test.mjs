@@ -62,3 +62,14 @@ test("aviso de pronto: só o que ficou pronto agora, do garçom ou da comanda se
   pedidos[0].pedidos_itens[1].status_kds = "entregue";
   assert.equal(prontosNovos({ vistos: r3.vistos, pedidos, mesas, garcom: "Larissa" }).alertas.length, 0);
 });
+
+test("tempo de preparo em lote: só o que mudou e é válido", async () => {
+  const { alteracoesDeTempo, minutosValidos } = await import("./preparo-itens.mjs");
+  assert.equal(minutosValidos("50"), 50);
+  assert.equal(minutosValidos("7,6"), 8);
+  assert.equal(minutosValidos("0"), null);
+  assert.equal(minutosValidos("300"), null);
+  assert.equal(minutosValidos("abc"), null);
+  const produtos = [{ id: "a", tempo_preparo_base: 15 }, { id: "b", tempo_preparo_base: 15 }, { id: "c", tempo_preparo_base: 15 }, { id: "d", tempo_preparo_base: 15 }];
+  assert.deepEqual(alteracoesDeTempo(produtos, { a: "50", b: "15", c: "", d: "999" }), [{ id: "a", tempo: 50 }]);
+});

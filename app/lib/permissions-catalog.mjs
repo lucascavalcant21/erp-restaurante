@@ -132,13 +132,18 @@ export const PERMISSION_MODULES = [
     id: "salao", label: "Salão",
     pages: [
       { id: "overview", label: "Visão do salão", route: "/dashboard/modulo/salao", actions: ["view"] },
-      { id: "tables", label: "Mesas", route: "/dashboard/mesas", actions: ["view", "create", "edit", "cancel", "view_values"] },
+      // cancel: cancelar item enviado; move: trocar e juntar mesas, transferir item.
+      // O caixa liga ou desliga os dois para cada garçom (Equipe do salão, 07/11/2026).
+      { id: "tables", label: "Mesas", route: "/dashboard/mesas", actions: ["view", "create", "edit", "cancel", "move", "view_values"] },
       { id: "training", label: "Treinamentos", route: "/dashboard/salao/treinamento", actions: CRUD },
       { id: "training_pick", label: "Escolher área de treinamento", route: "/dashboard/treinamentos", actions: CRUD },
       { id: "notes", label: "Observações", route: "/dashboard/operacao/observacoes", actions: CRUD },
       // Cobre por prefixo /dashboard/salao/mesas e /dashboard/salao/online.
       // cancel: cancelar venda já recebida (COM-4, 07/11/2026). Só gerente: o caixa recebe, não desfaz.
       { id: "sector", label: "Operação do salão", route: "/dashboard/salao", actions: ["view", "create", "edit", "confirm", "cancel", "view_values"] },
+      // Painel do caixa (07/11/2026): equipe do salão com as permissões de cada garçom, e tempo de preparo dos produtos.
+      { id: "team", label: "Equipe do salão e permissões dos garçons", route: "/dashboard/salao/equipe", actions: ["view", "edit"] },
+      { id: "prep_time", label: "Tempo de preparo dos produtos", route: "/dashboard/salao/tempo-preparo", actions: ["view", "edit"] },
     ],
   },
   {

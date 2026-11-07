@@ -61,6 +61,36 @@ export const CONTAS_RAPIDAS = Object.freeze([
     permissoes: ["salao.tables.view", "salao.tables.create", TREINAMENTO],
   },
   {
+    // Caixa (07/11/2026): controla o salão, a equipe e as configurações da
+    // operação. Diferente do garçom: recebe, cancela venda, dá ou tira de cada
+    // garçom trocar mesa e cancelar item, ajusta tempo de preparo, cardápio,
+    // impressão, e acompanha o financeiro. Não apaga lançamento financeiro nem
+    // aprova pagamento: isso continua com o dono.
+    id: "caixa",
+    codigo: "conta-caixa",
+    // Única conta rápida de gerência (decisão do dono, 07/11/2026): edita e vê
+    // valores. Continua sem excluir, aprovar, ajustar estoque, ver custo ou mexer em ajustes.
+    gerencia: true,
+    nome: "Caixa (gerente do salão)",
+    descricao: "Conta do caixa: recebe as contas, controla os garçons, o tempo de preparo, o cardápio, a impressão e acompanha o financeiro.",
+    setor: "Salão",
+    icone: "Wallet",
+    paginaInicial: "/dashboard/salao/caixa",
+    pode: ["Receber e cancelar vendas", "Liberar para cada garçom trocar mesa e cancelar item", "Ajustar tempo de preparo, cardápio e acompanhamentos", "Configurar a impressão", "Acompanhar o financeiro"],
+    naoPode: ["Apagar lançamento financeiro", "Aprovar pagamento", "Criar usuários"],
+    permissoes: [
+      "salao.overview.view", "salao.tables.view", "salao.tables.create", "salao.tables.edit", "salao.tables.cancel", "salao.tables.move", "salao.tables.view_values",
+      "salao.sector.view", "salao.sector.create", "salao.sector.edit", "salao.sector.confirm", "salao.sector.cancel", "salao.sector.view_values",
+      "salao.team.view", "salao.team.edit", "salao.prep_time.view", "salao.prep_time.edit", "salao.notes.view", "salao.notes.create", "salao.notes.edit",
+      "cozinha.sector.view", "bar.sector.view",
+      "cardapio.products.view", "cardapio.products.create", "cardapio.products.edit",
+      "configuracoes.printing.view", "configuracoes.printing.edit",
+      "financeiro.cashflow.view", "financeiro.cashflow.create", "financeiro.cashflow.edit", "financeiro.cashflow.view_values", "financeiro.cashflow.export",
+      "financeiro.dre.view", "financeiro.monthly_result.view", "financeiro.pizza_lucro.view",
+      TREINAMENTO,
+    ],
+  },
+  {
     id: "somente-ponto",
     // Perfil que já existe no banco: não se cria outro igual.
     codigo: "somente-ponto",

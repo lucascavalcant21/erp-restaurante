@@ -185,6 +185,28 @@ export async function venderNoBalcao({ unidadeId, caixaId, itens, pagamentos, de
   return { data: { id: pedido.id, venda_id: r.data?.venda_id, total: plano.total }, faltas: r.faltas || [], error: null };
 }
 
+// COM-5: trocar e juntar mesas e cancelar item enviado. A permissão é conferida no
+// banco (salao.tables.move / salao.tables.cancel); a mensagem do banco já é a do usuário.
+async function rpcDoSalao(nome, args) {
+  if (!isSupabaseReady()) return { error: OFFLINE, amigavel: true };
+  const { data, error } = await supabase.rpc(nome, args);
+  if (!error) return { data, error: null };
+  const deUsuario = error.code === "P0001" && error.message;
+  return { error: deUsuario || "Não consegui salvar. Tente de novo.", amigavel: true };
+}
+
+/** Leva a comanda inteira para uma mesa livre. */
+export const trocarMesa = (pedidoId, mesaDestinoId) => rpcDoSalao("comanda_trocar_mesa", { p_pedido_id: pedidoId, p_mesa_destino: mesaDestinoId });
+
+/** Junta a comanda de origem na de destino (as duas abertas). A de origem sai da mesa. */
+export const juntarMesas = (pedidoOrigemId, pedidoDestinoId) => rpcDoSalao("comanda_juntar", { p_origem: pedidoOrigemId, p_destino: pedidoDestinoId });
+
+/** Passa itens para a comanda de outra mesa (abre uma, se a mesa estiver livre). */
+export const transferirItens = (itemIds, mesaDestinoId, garcom = "") => rpcDoSalao("comanda_transferir_itens", { p_itens: itemIds, p_mesa_destino: mesaDestinoId, p_garcom: garcom || null });
+
+/** Cancela item já enviado, com motivo. Comanda paga só se cancela pelo caixa. */
+export const cancelarItemEnviado = (itemId, motivo) => rpcDoSalao("comanda_cancelar_item", { p_item_id: itemId, p_motivo: motivo });
+
 /** O garçom levou o item pronto à mesa: sai do aviso e da fila de prontos. */
 export async function marcarItemServido(itemId) {
   if (!isSupabaseReady()) return { error: OFFLINE };

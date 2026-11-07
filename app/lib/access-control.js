@@ -41,3 +41,11 @@ export function formatLastAccess(value) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 }
 
+
+/* Equipe do salão (07/11/2026): o caixa liga ou desliga "trocar e juntar
+ * mesas" e "cancelar item enviado" de cada garçom. Rota estreita no servidor. */
+export const fetchEquipeDoSalao = (unidadeId) =>
+  request(`/api/salao/equipe?unidade=${encodeURIComponent(unidadeId)}`);
+
+export const definirPermissaoDoGarcom = (unidadeId, usuarioId, acao, ligado) =>
+  request("/api/salao/equipe", { method: "POST", body: JSON.stringify({ unidade: unidadeId, usuarioId, acao, ligado }) });

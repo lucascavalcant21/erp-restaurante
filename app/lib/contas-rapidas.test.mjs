@@ -20,7 +20,9 @@ test("nenhum modelo tem curinga nem dá edição, exclusão ou custo", () => {
     for (const p of c.permissoes) {
       assert.ok(!p.includes("*"), `${c.id}: ${p}`);
       if (c.id === "chefe-bar" && p === "treinamento.team.approve") continue; // líder aprova a prática da equipe
-      assert.ok(!/\.(edit|delete|view_costs|view_margin|view_values|settings|approve|adjust_stock)$/.test(p), `${c.id}: ${p}`);
+      // O Caixa (gerencia) edita e vê valores; ninguém exclui, aprova, ajusta estoque, vê custo ou mexe em ajustes.
+      const proibido = c.gerencia ? /\.(delete|view_costs|view_margin|settings|approve|adjust_stock)$/ : /\.(edit|delete|view_costs|view_margin|view_values|settings|approve|adjust_stock)$/;
+      assert.ok(!proibido.test(p), `${c.id}: ${p}`);
     }
   }
 });
@@ -99,4 +101,23 @@ test("conta da área: busca, anota e só retira do estoque", async () => {
     assert.equal(canAccessRoute(sessao, "/dashboard/operacao/anotacoes", ""), false);
     assert.equal(canAccessRoute(sessao, "/dashboard/operacao/montagem", `?dept=${area}`), false); // a tela de montagem edita e exclui
   }
+});
+
+test("caixa: única conta de gerência; controla o salão e os garçons, sem excluir nem aprovar", () => {
+  assert.deepEqual(CONTAS_RAPIDAS.filter((c) => c.gerencia).map((c) => c.id), ["caixa"]);
+  const s = sessaoDe("caixa");
+  assert.ok(ve(s, "/dashboard/salao/caixa"));
+  assert.ok(ve(s, "/dashboard/salao/equipe"));
+  assert.ok(ve(s, "/dashboard/salao/tempo-preparo"));
+  assert.ok(ve(s, "/dashboard/operacao/produtos"));
+  assert.ok(ve(s, "/dashboard/configuracoes/impressao"));
+  assert.ok(ve(s, "/dashboard/financeiro"));
+  assert.ok(ve(s, "/dashboard/cozinha/kds"));
+  assert.ok(!ve(s, "/dashboard/configuracoes/usuarios"));
+  assert.ok(!hasPermission(s, "financeiro.cashflow.delete"));
+  assert.ok(!hasPermission(s, "financeiro.cashflow.approve"));
+  const g = sessaoDe("garcom");
+  assert.ok(!hasPermission(g, "salao.tables.move"), "garçom começa sem trocar mesa");
+  assert.ok(!hasPermission(g, "salao.tables.cancel"), "garçom começa sem cancelar item");
+  assert.ok(!ve(g, "/dashboard/salao/equipe"));
 });

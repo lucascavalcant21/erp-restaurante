@@ -96,6 +96,7 @@ export const MENU_PRINCIPAL = Object.freeze([
     destaque: { href: "/dashboard/mesas", acao: "Abrir comandas" },
     secoes: [
       { titulo: "Atendimento", cards: [
+        { label: "Painel do caixa", desc: "Salão inteiro, equipe, tempo de preparo e financeiro", href: "/dashboard/salao/caixa", icone: "Wallet" },
         { label: "Comandas", desc: "Lançar pedidos e pedir a conta", href: "/dashboard/mesas", icone: "ConciergeBell" },
         { label: "Caixa e mesas", desc: "Receber as contas e vender no balcão", href: "/dashboard/salao/mesas", icone: "UtensilsCrossed" },
         { label: "Pedidos online", desc: "Pedidos do cardápio e QR Code", href: "/dashboard/salao/online", icone: "Smartphone" },

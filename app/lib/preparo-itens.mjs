@@ -73,3 +73,22 @@ export function prontosNovos({ vistos = new Set(), pedidos = [], mesas = [], gar
   }
   return { alertas, vistos: novos };
 }
+
+/** Minutos digitados na tela de tempo de preparo: inteiro de 1 a 240, ou null. */
+export function minutosValidos(v) {
+  const n = Number(String(v ?? "").replace(",", "."));
+  if (!Number.isFinite(n)) return null;
+  const m = Math.round(n);
+  return m >= 1 && m <= 240 ? m : null;
+}
+
+/** O que mudou na tela de tempo de preparo: [{ id, tempo }] só dos válidos e diferentes. */
+export function alteracoesDeTempo(produtos = [], editados = {}) {
+  const out = [];
+  for (const p of produtos || []) {
+    if (!(p.id in editados)) continue;
+    const m = minutosValidos(editados[p.id]);
+    if (m !== null && m !== Number(p.tempo_preparo_base)) out.push({ id: p.id, tempo: m });
+  }
+  return out;
+}

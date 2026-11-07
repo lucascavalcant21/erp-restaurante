@@ -3,14 +3,15 @@
 // Comandas do garçom: escolhe a mesa, lança por pessoa, envia à cozinha e ao bar
 // e pede a conta. Quem recebe é o caixa, em /dashboard/salao/mesas.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check, Minus, Plus, Receipt, Search, Send, X } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRightLeft, Ban, Combine, Minus, Plus, Receipt, Search, Send, X } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { fetchColaboradores } from "../../lib/rh";
 import { equipeParaEtiquetar } from "../../lib/equipe-area.mjs";
-import { abrirComandaDaMesa, enviarParaProducao, fetchCardapioDoSalao, fetchSalao, marcarItemServido, pedirConta } from "../../lib/comandas";
+import { abrirComandaDaMesa, cancelarItemEnviado, enviarParaProducao, fetchCardapioDoSalao, fetchSalao, juntarMesas, marcarItemServido, pedirConta, trocarMesa } from "../../lib/comandas";
 import { prontosDaComanda, prontosNovos, relogio, situacaoDoItem } from "../../lib/preparo-itens.mjs";
 import { useTempoReal } from "../../lib/realtime";
+import { hasPermission } from "../../lib/permissions-catalog.mjs";
 import { alternarObservacao, mesclarObservacoes, observacoesDoProduto, temObservacao } from "../../lib/observacoes-prontas.mjs";
 import { fetchObservacoesProntas } from "../../lib/parametros";
 import { MESA_TODA, STATUS_DO_ITEM, definirObservacao, estadoDaMesa, limparNome, mudarQuantidade, numeroDaMesa, ordenarMesas, pessoasDaComanda, resumoPorPessoa, somarAoRascunho, tempoDaMesa, totalDaComanda } from "../../lib/comandas.mjs";
@@ -78,8 +79,64 @@ function Mapa({ mesas, pedidos, garcom, onTrocarGarcom, onAbrir, ocupado }) {
   );
 }
 
+const MOTIVOS_PRONTOS = ["Cliente desistiu", "Lançado errado", "Demorou demais", "Faltou produto"];
+
+// Cancelar item enviado: só para quem o caixa liberou. Motivo obrigatório.
+function CancelarItem({ item, ocupado, onCancelar, onFechar }) {
+  const [motivo, setMotivo] = useState("");
+  const valido = motivo.trim().length >= 3;
+  return (
+    <div className="rounded-xl border-2 border-hf-danger/40 bg-hf-danger/5 p-3">
+      <p className="text-sm font-black text-hf-text">Cancelar {item.quantidade}× {item.produtos?.nome_produto || "item"}?</p>
+      <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Motivo">
+        {MOTIVOS_PRONTOS.map((m) => (
+          <button key={m} type="button" aria-pressed={motivo === m} onClick={() => setMotivo(m)}
+            className={`min-h-[40px] rounded-full border px-3 text-xs font-bold ${motivo === m ? "border-hf-danger bg-hf-danger text-white" : "border-hf-border bg-hf-surface text-hf-text"}`}>{m}</button>
+        ))}
+      </div>
+      <input value={motivo} maxLength={200} onChange={(e) => setMotivo(e.target.value)} placeholder="Ou escreva o motivo" aria-label="Motivo do cancelamento"
+        className="mt-2 h-11 w-full rounded-xl border border-hf-border bg-hf-surface px-3 text-base text-hf-text outline-none focus:border-hf-danger" />
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <button type="button" onClick={onFechar} className="min-h-[48px] rounded-xl border border-hf-border bg-hf-surface text-sm font-bold text-hf-text">Voltar</button>
+        <button type="button" disabled={!valido || ocupado} onClick={() => onCancelar(motivo.trim())} className="min-h-[48px] rounded-xl bg-hf-danger text-sm font-black text-white disabled:opacity-50">Cancelar item</button>
+      </div>
+      <p className="mt-2 text-xs text-hf-text-2">Fica registrado quem cancelou e o motivo. A cozinha deixa de ver o item.</p>
+    </div>
+  );
+}
+
+// Trocar de mesa (vai para uma livre) ou juntar com outra mesa aberta.
+function MoverMesa({ modo, mesa, mesas, pedidos, ocupado, onConfirmar, onFechar }) {
+  const [destino, setDestino] = useState(null);
+  const abertas = useMemo(() => new Map(pedidos.map((p) => [p.mesa_id, p])), [pedidos]);
+  const opcoes = ordenarMesas(mesas).filter((m) => m.id !== mesa.id && (modo === "trocar" ? !abertas.has(m.id) : abertas.has(m.id)));
+  const titulo = modo === "trocar" ? `Levar a mesa ${numeroDaMesa(mesa)} para` : `Juntar a mesa ${numeroDaMesa(mesa)} na mesa`;
+  return (
+    <div className="mt-2 rounded-2xl border-2 border-hf-accent/50 bg-hf-accent/5 p-3">
+      <p className="text-sm font-black text-hf-text">{titulo}</p>
+      {modo === "juntar" && <p className="text-xs text-hf-text-2">Os itens desta mesa vão para a outra comanda, e esta mesa fica livre.</p>}
+      <ul className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-6">
+        {opcoes.map((m) => (
+          <li key={m.id}>
+            <button type="button" aria-pressed={destino?.id === m.id} onClick={() => setDestino(m)}
+              className={`min-h-[52px] w-full rounded-xl border-2 text-lg font-black ${destino?.id === m.id ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border bg-hf-surface text-hf-text"}`}>{numeroDaMesa(m)}</button>
+          </li>
+        ))}
+      </ul>
+      {!opcoes.length && <p className="mt-2 text-sm text-hf-text-2">{modo === "trocar" ? "Nenhuma mesa livre agora." : "Nenhuma outra mesa com comanda aberta."}</p>}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button type="button" onClick={onFechar} className="min-h-[48px] rounded-xl border border-hf-border bg-hf-surface text-sm font-bold text-hf-text">Voltar</button>
+        <button type="button" disabled={!destino || ocupado} onClick={() => onConfirmar(destino, abertas.get(destino.id))}
+          className="min-h-[48px] rounded-xl bg-hf-accent text-sm font-black text-hf-accent-fg disabled:opacity-50">
+          {destino ? `${modo === "trocar" ? "Trocar" : "Juntar"} para a ${numeroDaMesa(destino)}` : "Escolha a mesa"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Item já enviado: situação, contagem regressiva até ficar pronto e "Servido".
-function ItemEnviado({ item: i, agora, servir, ocupado }) {
+function ItemEnviado({ item: i, agora, servir, ocupado, podeCancelar, onPedirCancelar }) {
   const s = situacaoDoItem(i, agora);
   const riscado = s.estado === "cancelado";
   return (
@@ -102,6 +159,10 @@ function ItemEnviado({ item: i, agora, servir, ocupado }) {
       )}
       {s.estado === "servido" && <span className="shrink-0 text-xs font-semibold text-hf-text-2">Servido</span>}
       {riscado && <span className="shrink-0 text-xs font-semibold">{STATUS_DO_ITEM.cancelado || "Cancelado"}</span>}
+      {podeCancelar && !riscado && (
+        <button type="button" disabled={ocupado} onClick={onPedirCancelar} aria-label={`Cancelar ${i.produtos?.nome_produto || "item"}`}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hf-border text-hf-danger disabled:opacity-60"><Ban size={18} aria-hidden="true" /></button>
+      )}
     </li>
   );
 }
@@ -123,7 +184,9 @@ function tocarAviso() {
   try { navigator.vibrate?.([200, 100, 200]); } catch { /* sem vibração */ }
 }
 
-function Comanda({ mesa, pedido, produtos, obsProntas, onVoltar, aoMudar }) {
+function Comanda({ mesa, pedido, mesas, pedidos, produtos, obsProntas, podeMover, podeCancelarItem, onVoltar, onIrParaMesa, aoMudar }) {
+  const [mover, setMover] = useState(null); // "trocar" | "juntar"
+  const [cancelando, setCancelando] = useState(null);
   const [rascunho, setRascunho] = useState([]);
   const [extras, setExtras] = useState([]);
   const [pessoa, setPessoa] = useState("");
@@ -163,9 +226,18 @@ function Comanda({ mesa, pedido, produtos, obsProntas, onVoltar, aoMudar }) {
     setOcupado(true); setErro(null);
     try {
       const r = await acao();
-      if (r?.error) { setErro(r.error.includes("sem preço") ? r.error : "Não consegui salvar. Tente de novo."); return; }
+      if (r?.error) { setErro(r.amigavel || r.error.includes("sem preço") ? r.error : "Não consegui salvar. Tente de novo."); return false; }
       await aoMudar();
+      return true;
     } finally { setOcupado(false); }
+  }
+  async function moverPara(destino, pedidoDestino) {
+    const ok = await agir(() => (mover === "trocar" ? trocarMesa(pedido.id, destino.id) : juntarMesas(pedido.id, pedidoDestino?.id)));
+    if (ok) { setMover(null); onIrParaMesa(destino.id); }
+  }
+  async function cancelarItem(motivo) {
+    const ok = await agir(() => cancelarItemEnviado(cancelando.id, motivo));
+    if (ok) setCancelando(null);
   }
   const enviar = () => agir(async () => { const r = await enviarParaProducao(pedido.id, mesa.id, rascunho); if (!r.error) setRascunho([]); return r; });
 
@@ -178,6 +250,13 @@ function Comanda({ mesa, pedido, produtos, obsProntas, onVoltar, aoMudar }) {
       </div>
       {pediuConta && <p className="mt-1 rounded-xl bg-hf-warning/15 px-3 py-2 text-sm font-bold text-hf-text">Conta pedida. O caixa já pode receber.</p>}
       {erro && <p role="alert" className="mt-2 text-sm font-bold text-hf-danger">{erro}</p>}
+      {podeMover && (
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button type="button" aria-pressed={mover === "trocar"} onClick={() => setMover((m) => (m === "trocar" ? null : "trocar"))} className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl border text-sm font-bold ${mover === "trocar" ? "border-hf-accent bg-hf-accent/15 text-hf-text" : "border-hf-border bg-hf-surface text-hf-text-2"}`}><ArrowRightLeft size={16} aria-hidden="true" />Trocar de mesa</button>
+          <button type="button" aria-pressed={mover === "juntar"} onClick={() => setMover((m) => (m === "juntar" ? null : "juntar"))} className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl border text-sm font-bold ${mover === "juntar" ? "border-hf-accent bg-hf-accent/15 text-hf-text" : "border-hf-border bg-hf-surface text-hf-text-2"}`}><Combine size={16} aria-hidden="true" />Juntar mesas</button>
+        </div>
+      )}
+      {mover && <MoverMesa key={mover} modo={mover} mesa={mesa} mesas={mesas} pedidos={pedidos} ocupado={ocupado} onConfirmar={moverPara} onFechar={() => setMover(null)} />}
 
       <section aria-label="De quem é o pedido" className="mt-3">
         <p className="text-xs font-bold uppercase tracking-wide text-hf-muted">Para quem</p>
@@ -221,14 +300,19 @@ function Comanda({ mesa, pedido, produtos, obsProntas, onVoltar, aoMudar }) {
         <section aria-label="Já enviado" className="mt-4">
           <h2 className="text-sm font-black text-hf-text">Já enviado</h2>
           <ul className="mt-2 space-y-1.5">
-            {itens.map((i) => <ItemEnviado key={i.id} item={i} agora={agora} servir={() => agir(() => marcarItemServido(i.id))} ocupado={ocupado} />)}
+            {itens.map((i) => (
+              <Fragment key={i.id}>
+                <ItemEnviado item={i} agora={agora} servir={() => agir(() => marcarItemServido(i.id))} ocupado={ocupado} podeCancelar={podeCancelarItem} onPedirCancelar={() => setCancelando(i)} />
+                {cancelando?.id === i.id && <li><CancelarItem item={i} ocupado={ocupado} onCancelar={cancelarItem} onFechar={() => setCancelando(null)} /></li>}
+              </Fragment>
+            ))}
           </ul>
           {resumo.length > 1 && (
             <ul className="mt-3 rounded-xl border border-hf-border p-3 text-sm">
               {resumo.map((g) => <li key={g.pessoa} className="flex justify-between gap-3"><span className="truncate font-semibold text-hf-text">{g.pessoa}</span><span className="tabular-nums text-hf-text">{brl(g.total)}</span></li>)}
             </ul>
           )}
-          <p className="mt-2 text-xs text-hf-text-2">Para cancelar item enviado, fale com o caixa.</p>
+          {!podeCancelarItem && <p className="mt-2 text-xs text-hf-text-2">Para cancelar item enviado, fale com o caixa.</p>}
           <button type="button" disabled={ocupado} onClick={() => agir(() => pedirConta(mesa.id, !pediuConta))} className={`mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border-2 font-bold disabled:opacity-60 ${pediuConta ? "border-hf-border text-hf-text-2" : "border-hf-warning text-hf-text"}`}>
             {pediuConta ? <><X size={18} aria-hidden="true" />Desfazer pedido de conta</> : <><Receipt size={18} aria-hidden="true" />Pedir a conta</>}
           </button>
@@ -272,7 +356,12 @@ function Comanda({ mesa, pedido, produtos, obsProntas, onVoltar, aoMudar }) {
 }
 
 export default function ComandasPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, sessao, usuarioLogado } = useERP();
+  // Garçom com login próprio (07/11/2026): a tela já sabe quem é; sem escolher nome.
+  // Login compartilhado ou do caixa: continua escolhendo o nome.
+  const loginDoGarcom = !!sessao?.gerenciado && !hasPermission(sessao, "salao.sector.view") && !!usuarioLogado?.nome;
+  const podeMover = !sessao?.gerenciado || hasPermission(sessao, "salao.tables.move");
+  const podeCancelarItem = !sessao?.gerenciado || hasPermission(sessao, "salao.tables.cancel");
   const [dados, setDados] = useState(null);
   const [produtos, setProdutos] = useState([]);
   const [obsProntas, setObsProntas] = useState(() => mesclarObservacoes(null));
@@ -308,10 +397,11 @@ export default function ComandasPage() {
     fetchCardapioDoSalao(unidadeAtiva).then((r) => setProdutos(r.data));
     fetchObservacoesProntas(unidadeAtiva).then((r) => setObsProntas(mesclarObservacoes(r?.data))).catch(() => {});
     fetchColaboradores(unidadeAtiva).then((r) => setEquipe(equipeParaEtiquetar(r.data)));
-    try { setGarcom(localStorage.getItem(CHAVE_GARCOM) || ""); } catch { /* escolhe de novo */ }
+    if (loginDoGarcom) setGarcom(usuarioLogado.nome);
+    else { try { setGarcom(localStorage.getItem(CHAVE_GARCOM) || ""); } catch { /* escolhe de novo */ } }
     const t = setInterval(carregar, ATUALIZAR_MS);
     return () => clearInterval(t);
-  }, [unidadeAtiva, carregar]);
+  }, [unidadeAtiva, carregar, loginDoGarcom, usuarioLogado?.nome]);
 
   function escolherGarcom(nome) {
     setGarcom(nome);
@@ -356,7 +446,7 @@ export default function ComandasPage() {
         )}
         {!garcom ? <EscolherGarcom equipe={equipe} onEscolher={escolherGarcom} />
           : !dados ? <p className="text-sm text-hf-muted">Carregando mesas…</p>
-            : mesa && pedido ? <Comanda key={mesa.id} mesa={mesa} pedido={pedido} produtos={produtos} obsProntas={obsProntas} onVoltar={() => setMesaId(null)} aoMudar={carregar} />
+            : mesa && pedido ? <Comanda key={mesa.id} mesa={mesa} pedido={pedido} mesas={dados.mesas} pedidos={dados.pedidos} produtos={produtos} obsProntas={obsProntas} podeMover={podeMover} podeCancelarItem={podeCancelarItem} onVoltar={() => setMesaId(null)} onIrParaMesa={setMesaId} aoMudar={carregar} />
               : <Mapa mesas={dados.mesas} pedidos={dados.pedidos} garcom={garcom} ocupado={ocupado} onTrocarGarcom={() => escolherGarcom("")} onAbrir={abrirMesa} />}
       </div>
     </div>

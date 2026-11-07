@@ -14,6 +14,7 @@ import { palavras } from "./interpretador-regras.mjs";
 import { motivoDaEntrada, MOTIVOS_ENTRADA } from "../actions/registrar-entrada.mjs";
 import { dividirEmItens } from "./lote.mjs";
 import { paramsDoComando } from "../actions/criar-ficha.mjs";
+import { sugestoesDaResposta } from "./sugestoes.mjs";
 import { responderPergunta } from "../agents/orquestrador.mjs";
 import { criarTrilha, NIVEL } from "../core/niveis.mjs";
 import { auditar, ETAPA_AUDITORIA } from "../audit/auditoria.mjs";
@@ -209,8 +210,11 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
     // a ficha citada continua valendo na conversa até outra ser citada
     ficha: fichaCitada || (pedido.conversa?.ficha?.id ? { id: pedido.conversa.ficha.id, nome: pedido.conversa.ficha.nome || null } : null),
   } : null;
+  // próximos passos: toda resposta termina com o que dá para perguntar em seguida
+  const sugestoes = sugestoesDaResposta({ intencao: intencao?.id || null, resposta, referencia, interpretacao: interp, texto: pedido.texto || "" });
   const final = {
     ...resposta,
+    ...(sugestoes.length ? { sugestoes } : {}),
     referencia,
     interpretacao: interp ? {
       intencao: intencao?.id || interp.intencao, origem, confianca: interp.confianca, periodo: interp.periodo, produto: interp.produto,

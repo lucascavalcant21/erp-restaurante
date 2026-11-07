@@ -286,6 +286,16 @@ export const AgenteOperacoes = {
     if (m.status === "insuficiente" && m.detalhes?.ambiguo) {
       return { ...r(m.motivo), pergunta: { campo: "produto", texto: m.motivo, opcoes: m.detalhes.opcoes.map((o) => ({ id: o.id, rotulo: o.nome, comando: `Como faz ${o.nome}?` })) } };
     }
+    if (m.status === "insuficiente" && params.produto && (m.faltando || []).includes("ficha técnica do prato")) {
+      // não há ficha: em vez de parar, oferece montar agora (e o agente geral orienta se a pessoa pedir)
+      const nome = String(params.produto).slice(0, 60);
+      const base = insuf(m, "Ficha técnica");
+      return { ...base, texto: `${base.texto} Quer que eu monte essa ficha com você agora?`,
+        pergunta: { campo: "produto", texto: "Quer que eu monte essa ficha com você agora?", opcoes: [
+          { id: "montar", rotulo: `Montar a ficha de ${nome}`, comando: `Vamos montar uma receita, o nome vai ser ${nome}` },
+          { id: "ver", rotulo: "Ver as fichas cadastradas", rota: "/dashboard/operacao/fichas" },
+        ] } };
+    }
     if (!temValor(m)) return insuf(m, "Ficha técnica");
     const { ficha: f, ingredientes, etapas, outras, folha } = m.detalhes;
     const partes = [`${f.nome}${f.rendimento ? ` rende ${f.rendimento}` : ""}${f.porcaoG ? ` (porção de ${num(f.porcaoG)} g)` : ""}.`];

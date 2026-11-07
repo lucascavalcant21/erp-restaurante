@@ -293,7 +293,10 @@ test("PROMPT INJECTION: saída da IA com campo de tenant ou intenção inventada
   assert.ok(!JSON.stringify(r).includes("999999"));
   const prov2 = provedorFalso({ ok: true, dados: { intencao: "admin.apagar_tudo", confianca: "alta" } });
   const r2 = await (await montar({ provedor: prov2 })).pedir("faça algo diferente com o sistema");
-  assert.equal(r2.tipo, "nao_entendi");
+  // nenhum comando entende: o agente geral responde (a saída inválida da IA é descartada), sem ação nenhuma
+  assert.equal(r2.tipo, "resposta");
+  assert.deepEqual(r2.agentes, ["geral"]);
+  assert.ok(!r2.confirmacao && !JSON.stringify(r2).includes("999999"));
 });
 
 test("IA que escolhe uma AÇÃO ainda passa por prévia e confirmação (nada silencioso)", async () => {
@@ -308,7 +311,10 @@ test("IA fora do ar cai para as regras sem inventar", async () => {
   const prov = provedorFalso({ ok: false, motivo: "Sem conexão com o provedor de IA.", latenciaMs: 10 });
   const { pedir, store } = await montar({ provedor: prov });
   const r = await pedir("me conta uma novidade");
-  assert.equal(r.tipo, "nao_entendi");
+  // sem IA, o agente geral responde só com os dados (nunca "não sei")
+  assert.equal(r.tipo, "resposta");
+  assert.ok(r.sugestoes.length > 0);
+  assert.doesNotMatch(r.texto, /não sei|não entendi/i);
   assert.match(store.eventos.at(-1).fallback, /regras \(IA: Sem conexão/);
 });
 

@@ -7,9 +7,13 @@
 //     { ok: true, dados: object, uso: { entrada, saida }, modelo, fallback: string|null, latenciaMs }
 //   | { ok: false, motivo: string, latenciaMs }
 //
-// O modelo NÃO acessa banco, NÃO recebe dados do ERP e NÃO executa nada: só
-// classifica o pedido em uma intenção do catálogo. A saída é validada no
-// servidor (interpretacaoSchema) antes de qualquer uso.
+// O modelo NÃO acessa banco e NÃO executa nada. Dois usos:
+//   • interpretar: classifica o pedido em uma intenção do catálogo, sem dado do
+//     ERP (interpretacaoSchema valida a saída);
+//   • responder (agente geral, agents/geral.mjs, decisão do dono 07/11/2026):
+//     escreve a resposta com dados JÁ lidos pelo servidor, desta unidade e com a
+//     permissão de quem pergunta; respostaLivreSchema valida a saída e a trava
+//     de números corta valor que não está nos dados.
 
 export const provedorNulo = Object.freeze({
   nome: "nenhum",

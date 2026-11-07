@@ -1,4 +1,4 @@
-// Prompt do INTERPRETADOR (o único uso de modelo de IA no Core hoje).
+// Prompt do INTERPRETADOR (o outro uso de modelo é o agente geral, agents/geral.mjs).
 //
 // O modelo recebe só: o catálogo de intenções, o pedido do usuário e o módulo
 // da tela. NENHUM dado do banco (nomes, descrições, observações de clientes,

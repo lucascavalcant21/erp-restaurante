@@ -8,7 +8,8 @@
 // Configuração por ambiente: ANTHROPIC_API_KEY (obrigatória para ligar),
 // HEFISTO_IA_MODELO (padrão claude-haiku-5-5: entender a pergunta, barato),
 // HEFISTO_IA_MODELO_CRIACAO (padrão claude-sonnet-5-5: criar evento, promoção,
-// sugestões), HEFISTO_IA_DESLIGADA=1 desliga. Decisão do dono, 29/10/2026:
+// sugestões), HEFISTO_IA_MODELO_RESPOSTA (agente geral do Assistente; padrão
+// = HEFISTO_IA_MODELO), HEFISTO_IA_DESLIGADA=1 desliga. Decisão do dono, 29/10/2026:
 // "a melhor e mais barata" — Haiku no dia a dia, Sonnet só para criar.
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -34,7 +35,7 @@ export function criarProvedorAnthropic({ apiKey = process.env.ANTHROPIC_API_KEY,
     // tarefa "criar": montar evento, promoção ou sugestão (Sonnet); o resto, Haiku.
     async interpretar({ sistema, texto, esquemaJson, tarefa = "entender" }) {
       const inicio = Date.now();
-      const usar = tarefa === "criar" ? modeloCriacao : modelo;
+      const usar = tarefa === "criar" ? modeloCriacao : tarefa === "responder" ? process.env.HEFISTO_IA_MODELO_RESPOSTA || modelo : modelo;
       try {
         const r = await client.beta.messages.create({
           model: usar,

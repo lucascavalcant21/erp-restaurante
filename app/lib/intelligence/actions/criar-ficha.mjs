@@ -434,7 +434,9 @@ async function preparar(ctx, params) {
         unidade_id: ctx.escopo.unidadeId,
         ficha: {
           nome_receita: p.nome, departamento, eh_base: p.tipo === "base", rendimento_porcoes: p.rendimento,
-          rendimento_unidade: p.rendimentoUnidade, preco_venda: p.tipo === "prato" && p.precoVenda > 0 ? p.precoVenda : null,
+          rendimento_unidade: p.rendimentoUnidade,
+          // preco_venda é NOT NULL (padrão 0) no banco real: base e "definir depois" gravam 0, como a tela
+          preco_venda: p.tipo === "prato" && p.precoVenda > 0 ? p.precoVenda : 0,
           versao: "1.0", status: "ativa", ativo: true, observacoes: "Criada pela conversa (Assistente Héfisto). Falta o modo de preparo.",
         },
         ingredientes: fichaNova.fichas_ingredientes.map((x) => ({ insumo_id: x.insumo_id || null, subficha_id: x.subficha_id || null, quantidade: x.quantidade, fator_correcao: 0, novo: x._novo ?? null })),

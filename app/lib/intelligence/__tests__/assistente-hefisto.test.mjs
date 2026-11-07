@@ -240,6 +240,8 @@ test("ficha pela conversa: cadastra o que falta, custo, 200 g, base → prato co
   assert.match(r.texto, /^Base criada\. Molho de tomate custa R\$\s?33,62 e rende 3 kg/);
   const ficha = db.dados.fichas_tecnicas.find((f) => f.nome_receita === "Molho de tomate");
   assert.ok(ficha && ficha.eh_base === true && ficha.unidade_id === A && ficha.rendimento_unidade === "kg");
+  assert.equal(ficha.preco_venda, 0, "preco_venda é NOT NULL no banco real");
+  for (const [c, v] of Object.entries(ficha)) assert.notEqual(v, null, `coluna ${c} sem null na ficha nova`);
   const novo = db.dados.insumos.find((i) => i.nome === "Pimenta do reino");
   assert.ok(novo && novo.unidade_id === A && novo.preco_normalizado === 50 && novo.departamento === "cozinha");
   assert.equal(db.dados.fichas_ingredientes.filter((i) => i.ficha_id === ficha.id).length, 4);

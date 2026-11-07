@@ -26,6 +26,7 @@ import { fmtBRL } from "../../../../components/ui";
 import { Plus, Search, X, Trash2, ShoppingCart, AlertTriangle, Loader2, History, Lock, Check } from "lucide-react";
 import CampoDecimal from "../../../../components/CampoDecimal";
 import { useContextoInteligencia } from "../../../../components/intelligence/useContextoInteligencia";
+import CabecalhoTela from "../../../../components/ui/CabecalhoTela";
 
 const fmtData = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 const normal = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -87,17 +88,15 @@ function Compras() {
 
   return (
     <div className="min-h-screen pb-24 bg-hf-bg text-slate-800">
-      <div className="bg-hf-bg border-b border-hf-border px-4 sm:px-8 pt-6 pb-5 text-hf-text">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Compras</h1>
-            <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Entrada de mercadoria · custo médio · conta a pagar · compra não é CMV</p>
-          </div>
-          {pode("create") && <button onClick={() => { setForm(formVazio()); irAba("nova"); }} className="px-4 py-3 bg-hf-accent text-hf-accent-fg hover:brightness-110 font-black rounded-2xl flex items-center gap-2 text-sm"><Plus size={18} /> Nova compra</button>}
+      <div className="border-b border-hf-border pb-4 text-hf-text">
+        <div className="max-w-6xl mx-auto">
+          <CabecalhoTela titulo="Compras" subtitulo="Entrada de mercadoria, custo médio e conta a pagar. Compra não é CMV.">
+            {pode("create") && <button onClick={() => { setForm(formVazio()); irAba("nova"); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-hf-accent px-5 text-sm font-semibold text-hf-accent-fg shadow-none"><Plus size={18} /> Nova compra</button>}
+          </CabecalhoTela>
         </div>
-        <div className="max-w-6xl mx-auto mt-4 flex gap-2">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-2 overflow-x-auto">
           {[["compras", "Compras"], ["nova", form.id ? "Editar rascunho" : "Nova compra"], ["custos", "Custo médio"]].map(([id, r]) => (
-            <button key={id} onClick={() => irAba(id)} className={`px-4 py-2 rounded-xl text-sm font-black ${aba === id ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-elevated border border-hf-border"}`}>{r}</button>
+            <button key={id} onClick={() => irAba(id)} className={`min-h-[40px] whitespace-nowrap px-4 rounded-full text-sm font-semibold ${aba === id ? "bg-hf-menu text-white" : "bg-hf-surface border border-hf-border text-hf-text-2 hover:bg-hf-elevated"}`}>{r}</button>
           ))}
         </div>
       </div>

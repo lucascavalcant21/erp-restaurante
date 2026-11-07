@@ -17,6 +17,7 @@ import { dataOperacional, ehEstoqueavel, unidadeProducao, totaisPorUnidade, prev
 import { salvarPlanoProducao } from "../../../lib/memorandos";
 import { fmtBRL } from "../../../components/ui";
 import { casaBusca } from "../../../lib/busca.mjs";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 // guard evita loop infinito se alguém criar uma referência circular.
@@ -326,40 +327,27 @@ function ProducaoRunner() {
         <label>Dia do planejamento <input type="date" value={dataPlano} onChange={e => setDataPlano(e.target.value)} className="rounded border p-2" /></label>
         <label><input type="checkbox" checked={incluirPratos} onChange={e => setIncluirPratos(e.target.checked)} /> Incluir pratos para consumo imediato</label>
       </div>
-      {/* TOPBAR */}
-      <div className="bg-card border-b border-line py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
-         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <button onClick={() => abrirMenu()} className="p-3 text-fg hover:text-slate-800 bg-white rounded-full border border-line">
-                 <ArrowLeft size={20}/>
-              </button>
-               <div className={`hidden sm:flex w-14 h-14 shrink-0 rounded-2xl items-center justify-center shadow-inner ${isBar ? 'bg-card text-success' : 'bg-card text-success'}`}>
-                 {isBar ? <Droplets size={28} /> : <Flame size={28} />}
+      {/* CABEÇALHO (visual do Nina) */}
+      <div className="sticky top-0 z-10 bg-hf-bg/95 backdrop-blur">
+        <div className="mx-auto max-w-5xl">
+          <CabecalhoTela titulo="Produção do dia" subtitulo="Baixa automática de estoque">
+            <button onClick={() => router.push("/dashboard/operacao/producao/memorando")} className="inline-flex min-h-[44px] items-center gap-2 whitespace-nowrap rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none hover:bg-hf-elevated">
+              <ClipboardList size={17}/> <span className="hidden sm:inline">Memorando de amanhã</span><span className="sm:hidden">Memorando</span>
+            </button>
+            <button onClick={() => setModalPlanejar(true)} className="inline-flex min-h-[44px] items-center gap-2 whitespace-nowrap rounded-full bg-hf-menu px-4 text-sm font-semibold text-white shadow-none hover:bg-hf-menu-hover">
+              <ClipboardList size={17}/> <span className="hidden sm:inline">Planejar e imprimir o dia</span><span className="sm:hidden">Planejar</span>
+              {itensPlanejados.length > 0 && <span className="rounded-full bg-hf-accent px-1.5 py-0.5 text-3xs font-bold text-hf-accent-fg">{itensPlanejados.length}</span>}
+            </button>
+            {cmvMedio !== null && (
+              <div className={`rounded-full border px-3.5 py-1.5 ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
+                <p className={`text-sm font-semibold ${corCmv(cmvMedio).text}`}>CMV médio {cmvMedio.toFixed(1)}%</p>
               </div>
-              <div>
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-fg">Produção do Dia</h1>
-                 <p className="text-fg-soft font-bold uppercase tracking-widest text-xs mt-1">Baixa Automática de Estoque</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
-               <button onClick={() => router.push("/dashboard/operacao/producao/memorando")} className="flex items-center gap-2 bg-accent text-accent-fg px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-accent transition-colors shadow-lg">
-                  <ClipboardList size={18}/> <span className="hidden sm:inline">Memorando de Amanhã</span><span className="sm:hidden">Memorando</span>
-               </button>
-               <button onClick={() => setModalPlanejar(true)} className="flex items-center gap-2 bg-slate-900 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-800 transition-colors shadow-lg">
-                  <ClipboardList size={18}/> <span className="hidden sm:inline">Planejar & Imprimir o Dia</span><span className="sm:hidden">Planejar</span>
-                  {itensPlanejados.length > 0 && <span className="bg-emerald-500 text-white text-3xs font-bold px-1.5 py-0.5 rounded-full">{itensPlanejados.length}</span>}
-               </button>
-               {cmvMedio !== null && (
-                  <div className={`px-4 py-2.5 rounded-2xl border ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
-                     <p className={`text-3xs font-bold uppercase tracking-widest ${corCmv(cmvMedio).text}`}>CMV Médio</p>
-                     <p className={`text-xl font-black ${corCmv(cmvMedio).text}`}>{cmvMedio.toFixed(1)}%</p>
-                  </div>
-               )}
-               <button onClick={toggleFullscreen} className="p-3 text-fg hover:text-slate-800 bg-white rounded-full border border-line" title="Tela Cheia">
-                  <Maximize size={20}/>
-               </button>
-            </div>
-         </div>
+            )}
+            <button onClick={toggleFullscreen} className="grid h-11 w-11 place-items-center rounded-full border border-hf-border bg-hf-surface text-hf-text-2 shadow-none hover:bg-hf-elevated" title="Tela cheia" aria-label="Tela cheia">
+              <Maximize size={18}/>
+            </button>
+          </CabecalhoTela>
+        </div>
       </div>
 
       <section className="mx-auto mt-4 max-w-5xl px-4 sm:px-6">

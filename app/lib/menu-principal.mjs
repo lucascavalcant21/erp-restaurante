@@ -299,3 +299,29 @@ export function inicioDaArea(pathname, { search = "", origem = null } = {}) {
   // já está na página da área: volta ao início do app
   return rotaDe(area.href) === p ? "/dashboard" : area.href;
 }
+
+/**
+ * Onde a tela está no menu, para o cabeçalho das páginas (visual do Nina,
+ * 07/11/2026): a área (trilha "Cozinha / Produção do dia") e o card ou item do
+ * menu que abre a tela (ícone colorido e nome). Mesma regra do "voltar": o
+ * universo de origem e o setor da URL decidem telas compartilhadas.
+ * @returns {{ area: object|null, item: object|null }}
+ */
+export function telaDaRota(pathname, search = "", origem = null) {
+  const p = String(pathname || "");
+  const universo = universoDaRota(p, search, origem);
+  const area = universo || areaDaRota(p);
+  if (!area) return { area: null, item: null };
+  const candidatos = [
+    ...cardsDaArea(area).filter((c) => cardCasa(c, p, search)),
+    ...(area.submodules || []).filter((s) => casaRota(p, rotaDe(s.href))),
+  ];
+  // o link mais específico vence (Compras e custo médio não é Estoque)
+  let item = null; let tam = -1;
+  for (const c of candidatos) {
+    const r = rotaDe(c.href).length;
+    if (r > tam) { item = c; tam = r; }
+  }
+  if (item && !item.icone) item = { ...item, icone: area.icone, cor: area.cor };
+  return { area, item: item || null };
+}

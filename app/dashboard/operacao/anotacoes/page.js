@@ -10,6 +10,7 @@ import { fetchColaboradores } from "../../../lib/rh";
 import { equipeParaEtiquetar } from "../../../lib/equipe-area.mjs";
 import { criarAnotacao, fetchAnotacoes, marcarAnotacao } from "../../../lib/area-anotacoes";
 import { areaValida, diaIso, ordenarAnotacoes, validarAnotacao } from "../../../lib/consulta-area.mjs";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 const UNIDADES = ["un", "kg", "g", "L", "ml", "pacote", "caixa"];
 const campoCls = "h-12 w-full min-w-0 rounded-xl border border-hf-border bg-hf-surface px-3 text-base text-hf-text outline-none focus:border-hf-accent";
@@ -91,7 +92,7 @@ function Anotacoes() {
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-3xl bg-hf-bg px-4 pb-16 pt-4">
-      <h1 className="text-xl font-black text-hf-text">Anotações {area === "bar" ? "do bar" : "da cozinha"}</h1>
+      <CabecalhoTela embutido titulo={`Anotações ${area === "bar" ? "do bar" : "da cozinha"}`} />
       <div role="tablist" aria-label="Tipo de anotação" className="mt-3 flex gap-2">
         <button type="button" role="tab" aria-selected={tipo === "producao"} className={chip(tipo === "producao")} onClick={() => { setTipo("producao"); setErro(null); }}>Produção</button>
         <button type="button" role="tab" aria-selected={tipo === "compra"} className={chip(tipo === "compra")} onClick={() => { setTipo("compra"); setErro(null); }}>Pedir compra</button>

@@ -48,6 +48,7 @@ import {
 import { fmtBRL } from "../../../components/ui";
 import CampoDecimal from "../../../components/CampoDecimal";
 import { mascaraCpfCnpj, mascaraTelefone } from "../../../lib/mascaras.mjs";
+import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 
 export default function ComprasHubPage() {
   const router = useRouter();
@@ -322,36 +323,22 @@ export default function ComprasHubPage() {
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
 
-      {/* CABEÇALHO SUPERIOR */}
-      <div className="bg-hf-bg border-b border-hf-border pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 text-hf-text">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <button onClick={() => abrirMenu()} className="p-3 bg-hf-elevated hover:bg-hf-border rounded-full transition-colors cursor-pointer">
-              <ArrowLeft size={20} />
-            </button>
-            <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-emerald-500/20 text-emerald-700 items-center justify-center">
-              <ShoppingCart size={30} />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Hub de Compras & Recebimento</h1>
-              <p className="text-subtle font-bold uppercase tracking-widest text-xs mt-1">
-                Arquitetura Integrada: Estoque • Lotes • Custos Cascata • Contas a Pagar
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 w-full md:w-auto">
+      {/* CABEÇALHO (visual do Nina) */}
+      <div>
+        <div className="max-w-7xl mx-auto">
+          <CabecalhoTela titulo="Compras e recebimento" subtitulo="Cotações, pedidos e conferência da entrega">
             <button
               onClick={() => { setPedidoParaReceber(null); setItensRecebimento([]); setAbaAtiva("recebimento"); }}
-              className="flex-1 md:flex-none px-5 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer text-sm"
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-hf-accent px-5 text-sm font-semibold text-hf-accent-fg shadow-none active:scale-95 md:w-auto"
             >
-              <PackagePlus size={18} /> Nova Conferência (Tablet)
+              <PackagePlus size={18} /> Nova conferência
             </button>
-          </div>
+          </CabecalhoTela>
         </div>
-
+      </div>
+      <div className="px-4 sm:px-8">
         {/* NAVEGAÇÃO DE ABAS */}
-        <div className="max-w-7xl mx-auto mt-8 flex border-b border-hf-border gap-2 overflow-x-auto scrollbar-none">
+        <div className="max-w-7xl mx-auto mt-1 flex border-b border-hf-border gap-2 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setAbaAtiva("necessidade")}
             className={`px-5 py-3 font-black text-sm rounded-t-2xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${

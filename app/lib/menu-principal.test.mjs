@@ -105,3 +105,19 @@ test("treinamento: volta ao universo de onde veio e, sem origem, não finge ser 
   assert.equal(universoDaRota("/dashboard/treinamento", "", null), null);
   assert.equal(universoDaRota("/dashboard/treinamento/modulo/1", "?m=2", null), null);
 });
+
+test("cabeçalho das telas: área e card de onde a tela foi aberta", async () => {
+  const { telaDaRota } = await import("./menu-principal.mjs");
+  let t = telaDaRota("/dashboard/operacao/producao", "?dept=bar");
+  assert.equal(t.area.id, "bar"); assert.equal(t.item.label, "Produção do dia");
+  t = telaDaRota("/dashboard/operacao/etiquetas", "?dept=cozinha");
+  assert.equal(t.area.id, "cozinha"); assert.equal(t.item.icone, "Tag");
+  t = telaDaRota("/dashboard/operacao/estoque/compras", "");
+  assert.equal(t.area.id, "estoque"); assert.equal(t.item.label, "Compras e custo médio");
+  assert.equal(t.item.icone, "Package", "item do submenu herda o ícone da área");
+  t = telaDaRota("/dashboard/operacao/validade", "", "bar");
+  assert.equal(t.area.id, "bar");
+  t = telaDaRota("/dashboard/financeiro", "");
+  assert.equal(t.area.id, "financeiro"); assert.equal(t.item, null);
+  assert.deepEqual(telaDaRota("/dashboard/xyz"), { area: null, item: null });
+});

@@ -8,7 +8,7 @@ import { temValor } from "../core/contratos.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoTexto, brl, num, ddmm } from "../commands/resposta.mjs";
 import { divergenciaRecebimento, quantidadeNoRendimento, TOLERANCIA_MIN } from "../metrics/assistente.mjs";
 import { paraUnidadeDoInsumo } from "../actions/criar-ficha.mjs";
-import { casarPedido, comandoDoPedido, lerPedidoDeEtiquetas, loteParaUrl } from "../../etiquetas-pedido.mjs";
+import { VALIDADES_RAPIDAS, casarPedido, chaveDeNome, comandoDoPedido, lerPedidoDeEtiquetas, loteParaUrl } from "../../etiquetas-pedido.mjs";
 
 const r = (texto, blocos = [], acoes = [], nivel = NIVEL.OBSERVAR) => ({ texto, blocos, acoes, nivel });
 const insuf = (m, rotulo) => r(fraseDaMetrica(m, rotulo), [blocoMetrica(m, rotulo)], [], NIVEL.OBSERVAR);
@@ -86,13 +86,23 @@ const capitalizar = (t) => String(t || "").charAt(0).toLocaleUpperCase("pt-BR") 
 export const HANDLERS_ETIQUETAS = {
   async "etiquetas.imprimir"({ motor, params }) {
     const pedido = lerPedidoDeEtiquetas(params.texto);
+    const [cat, hab] = await Promise.all([pedido.length ? motor.getLabelCatalog() : null, motor.getUsualLabels()]);
+    const habituais = hab.itens || [];
+    const daCasa = new Map(habituais.map((h) => [chaveDeNome(h.nome), h]));
+
     if (!pedido.length) {
-      return { ...r("De quais produtos e quantas etiquetas de cada?"), pergunta: { campo: "produto", livre: true, texto: "Diga os produtos e quantas etiquetas de cada. Ex.: \"20 de maniçoba, 30 de jambu\".", comandoBase: "Imprimir etiquetas: {valor}" } };
+      if (!habituais.length) {
+        return { ...r("De quais produtos e quantas etiquetas de cada?"), pergunta: { campo: "produto", livre: true, texto: "Diga os produtos e quantas etiquetas de cada. Ex.: \"20 de maniçoba, 30 de jambu\".", comandoBase: "Imprimir etiquetas: {valor}" } };
+      }
+      const texto = `Estas são as etiquetas que você mais pede (últimos ${hab.dias} dias). Toque nas que quer, ajuste a quantidade e a validade e mande para a impressão. Se faltar alguma, escreva o nome no fim da lista.`;
+      return r(texto, [blocoEtiquetas([], habituais)]);
     }
-    const cat = await motor.getLabelCatalog();
-    const { achados, ambiguos, semCadastro } = cat.semPermissao
-      ? { achados: pedido.map((p) => ({ ...p, nome: capitalizar(p.termo) })), ambiguos: [], semCadastro: [] }
-      : casarPedido(cat.itens, pedido);
+
+    // o nome que a casa já usa nas etiquetas vale primeiro ("jambu" → "Jambu"), depois o cadastro
+    const catalogo = [...habituais.map((h) => ({ nome: h.nome, origem: "Habitual" })), ...(cat?.semPermissao ? [] : cat?.itens || [])];
+    const { achados, ambiguos, semCadastro } = catalogo.length
+      ? casarPedido(catalogo, pedido)
+      : { achados: pedido.map((p) => ({ ...p, nome: capitalizar(p.termo) })), ambiguos: [], semCadastro: [] };
 
     if (ambiguos.length) {
       const a = ambiguos[0];
@@ -105,16 +115,31 @@ export const HANDLERS_ETIQUETAS = {
       return { ...r(texto), pergunta: { campo: "produto", texto, opcoes: a.opcoes.map((nome, i) => ({ id: `o${i}`, rotulo: nome, comando: comandoDoPedido(resto(nome)) })) } };
     }
 
-    const fila = [...achados, ...semCadastro.map((x) => ({ ...x, nome: capitalizar(x.termo), origem: "Nome livre" }))];
+    const fila = [...achados, ...semCadastro.map((x) => ({ ...x, nome: capitalizar(x.termo), origem: "Nome livre" }))]
+      .map((i) => ({ ...i, dias: daCasa.get(chaveDeNome(i.nome))?.dias ?? null }));
     const total = fila.reduce((t, i) => t + i.copias, 0);
     const partes = [`Separei ${total} etiqueta${total === 1 ? "" : "s"}: ${fila.map((i) => `${i.copias} de ${i.nome}`).join(", ")}.`];
     if (semCadastro.length) partes.push(`${semCadastro.map((x) => `"${x.termo}"`).join(", ")} não ${semCadastro.length === 1 ? "está" : "estão"} no cadastro desta unidade: ${semCadastro.length === 1 ? "vai" : "vão"} como etiqueta de nome livre (sem entrada no estoque).`);
-    if (cat.semPermissao) partes.push("Não tenho acesso ao cadastro para conferir os nomes; a tela de Etiquetas confere.");
-    partes.push("Abra a tela de Etiquetas: a fila já vai montada. Lá você escolhe quem etiquetou, confere a prévia e imprime.");
-    const blocos = [blocoLista("Fila de etiquetas", fila.map((i) => ({ rotulo: i.nome, valor: `${i.copias} etiqueta${i.copias === 1 ? "" : "s"}`, detalhe: i.origem || null })))];
-    return r(partes.join(" "), blocos, [{ rotulo: `Abrir etiquetas com a fila (${total})`, rota: loteParaUrl(fila) }]);
+    if (cat?.semPermissao) partes.push("Não tenho acesso ao cadastro para conferir os nomes; a tela de Etiquetas confere.");
+    partes.push(habituais.length ? "Quer mais alguma? Na lista abaixo estão as que você costuma pedir: toque para incluir e ajuste a quantidade e a validade de cada uma." : "Ajuste a quantidade e a validade na lista abaixo e mande para a impressão.");
+    return r(partes.join(" "), [blocoEtiquetas(fila, habituais)], [{ rotulo: `Abrir etiquetas com a fila (${total})`, rota: loteParaUrl(fila) }]);
   },
 };
+
+/**
+ * Lista para tocar e escolher (Assistente Héfisto): as pedidas agora já
+ * marcadas e as de costume para incluir. Quantidade e validade de costume são
+ * REAIS (histórico); validade sem histórico fica em branco (a tela usa o padrão).
+ */
+function blocoEtiquetas(selecionadas, habituais) {
+  const ja = new Set(selecionadas.map((i) => chaveDeNome(i.nome)));
+  return {
+    tipo: "etiquetas",
+    selecionadas: selecionadas.map((i) => ({ nome: i.nome, copias: i.copias, dias: i.dias ?? null, origem: i.origem || null })),
+    habituais: habituais.filter((h) => !ja.has(chaveDeNome(h.nome))).slice(0, 12).map((h) => ({ nome: h.nome, copias: h.copias, dias: h.dias ?? null, vezes: h.vezes })),
+    validades: [...VALIDADES_RAPIDAS],
+  };
+}
 
 // ─── RH: quem chegou no horário ──────────────────────────────────────────────
 export const HANDLERS_RH = {

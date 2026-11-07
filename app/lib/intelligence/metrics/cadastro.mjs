@@ -6,6 +6,8 @@
 
 import { ler } from "../context/db-escopado.mjs";
 import { candidatosDoTermo } from "./produtos.mjs";
+import { agruparHabituais } from "../../etiquetas-pedido.mjs";
+import { somarDias } from "../core/periodos.mjs";
 
 const LIMITE = 6;
 
@@ -51,4 +53,18 @@ export async function catalogoDeEtiquetas(amb) {
     for (const f of fichas) if (f.ativo !== false && f.status !== "arquivada" && String(f.nome_receita || "").trim()) itens.push({ nome: String(f.nome_receita).trim(), origem: "Pré-preparo" });
   }
   return { itens, semPermissao: !algum };
+}
+
+export const DIAS_HABITUAIS = 60;
+
+/**
+ * As etiquetas que esta unidade mais imprimiu nos últimos 60 dias: nome,
+ * quantas costuma pedir e a validade mais usada (REAL, do histórico).
+ * Sem permissão de validades/etiquetas: lista vazia.
+ */
+export async function etiquetasHabituais(amb, { limite = 15 } = {}) {
+  if (!(await amb.verificador.pode("validade"))) return { itens: [], semPermissao: true };
+  const desde = somarDias(amb.hoje, -DIAS_HABITUAIS);
+  const linhas = (await ler(amb.dbe.from("etiquetas").select("produto, copias, validade_dias, created_at").gte("created_at", `${desde}T00:00:00Z`).order("created_at", { ascending: false }).limit(3000), "etiquetas")) || [];
+  return { itens: agruparHabituais(linhas, limite), semPermissao: false, dias: DIAS_HABITUAIS };
 }

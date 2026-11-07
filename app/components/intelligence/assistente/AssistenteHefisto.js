@@ -13,9 +13,11 @@
 
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Lock } from "lucide-react";
+import { ChevronLeft, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Lock, Camera, Plus } from "lucide-react";
 import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } from "../../../lib/intelligence/client/api";
 import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
+import { fetchComSessao } from "../../../lib/api-sessao";
+import { notaDoOcr, reduzirImagem } from "./nota.mjs";
 
 export const NOME_ASSISTENTE = "Assistente Héfisto";
 
@@ -24,6 +26,7 @@ export const SUGESTOES_ASSISTENTE = Object.freeze([
   "Quanto tenho no estoque de óleo?",
   "Meus funcionários chegaram no horário?",
   "Chegou 3 kg de picanha, só que era para pedir 2",
+  "Quero lançar uma nota pela foto",
   "Vamos montar uma receita. O nome vai ser molho de tomate, e vai tomate, sal, alho, pimenta do reino",
   "Como foi minha empresa hoje?",
 ]);
@@ -39,7 +42,8 @@ const CORES = {
   "--wa-verde-escuro": "#008069",
   "--wa-lido": "#53BDEB",
   "--wa-aviso": "#FFEECD",
-  "--wa-barra": "#F0F2F5",
+  "--wa-barra": "rgba(246,246,246,0.96)",
+  "--wa-linha": "#D1D1D6",
 };
 
 // Papel de parede: rabiscos leves repetidos (SVG inline, sem imagem externa).
@@ -72,21 +76,24 @@ function perguntaRespondivel(r) {
 }
 
 // ─── balões ───────────────────────────────────────────────────────────────────
+// Balão no jeito do WhatsApp do iPhone: cantos bem redondos e o "rabinho" EMBAIXO,
+// só no último balão de uma sequência do mesmo lado.
 function Balao({ lado, children, hora: h, lido, cauda = true, largo = false }) {
   const eu = lado === "eu";
+  const cor = eu ? "var(--wa-eu)" : "var(--wa-ele)";
   return (
-    <div className={`flex ${eu ? "justify-end" : "justify-start"} px-2 sm:px-[6%]`}>
+    <div className={`flex ${eu ? "justify-end" : "justify-start"} px-3 sm:px-[6%] ${cauda ? "mb-1.5" : ""}`}>
       <div
-        className={`relative ${largo ? "w-full max-w-[92%] sm:max-w-[520px]" : "max-w-[85%] sm:max-w-[520px]"} rounded-[7.5px] px-2.5 pb-1.5 pt-1.5 text-[14.5px] leading-[19px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${eu && cauda ? "rounded-tr-none" : ""} ${!eu && cauda ? "rounded-tl-none" : ""}`}
-        style={{ background: eu ? "var(--wa-eu)" : "var(--wa-ele)", color: "var(--wa-texto)" }}
+        className={`relative ${largo ? "w-full max-w-[92%] sm:max-w-[520px]" : "max-w-[82%] sm:max-w-[520px]"} rounded-[18px] px-3 pb-1.5 pt-[7px] text-[16px] leading-[21px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${eu && cauda ? "rounded-br-[5px]" : ""} ${!eu && cauda ? "rounded-bl-[5px]" : ""}`}
+        style={{ background: cor, color: "var(--wa-texto)" }}
       >
         {cauda && (
-          <svg viewBox="0 0 8 13" width="8" height="13" className={`absolute top-0 ${eu ? "-right-2" : "-left-2 -scale-x-100"}`} aria-hidden="true">
-            <path d="M5.188 1H0v11.193l6.467-8.625C7.526 2.156 6.958 1 5.188 1z" fill={eu ? "var(--wa-eu)" : "var(--wa-ele)"} />
+          <svg viewBox="0 0 12 17" width="12" height="17" className={`absolute bottom-0 ${eu ? "-right-[6px]" : "-left-[6px] -scale-x-100"}`} aria-hidden="true">
+            <path d="M0 0C0.6 9.5 4 14.5 12 17H0Z" fill={cor} />
           </svg>
         )}
         {children}
-        <span className="float-right ml-3 mt-1.5 inline-flex translate-y-0.5 items-center gap-0.5 text-[11px] leading-none" style={{ color: "var(--wa-meta)" }}>
+        <span className="float-right ml-2.5 mt-2 inline-flex translate-y-0.5 items-center gap-0.5 text-[11px] leading-none" style={{ color: "var(--wa-meta)" }}>
           {hora(h)}
           {eu && (lido ? <CheckCheck size={15} style={{ color: "var(--wa-lido)" }} /> : <Check size={15} />)}
         </span>
@@ -98,15 +105,15 @@ function Balao({ lado, children, hora: h, lido, cauda = true, largo = false }) {
 const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabilitado }) {
   if (!opcoes?.length) return null;
   return (
-    <div className="flex justify-start px-2 sm:px-[6%]">
-      <div className="grid w-full max-w-[85%] gap-1 sm:max-w-[520px]">
+    <div className="flex justify-start px-3 pb-1.5 sm:px-[6%]">
+      <div className="grid w-full max-w-[82%] gap-1 sm:max-w-[520px]">
         {opcoes.map((o, i) => (
           <button
             key={`${o.id || o.rotulo}-${i}`}
             type="button"
             disabled={desabilitado}
             onClick={() => onEscolher(o)}
-            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-[7.5px] px-3 text-center text-[14px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.99] disabled:opacity-50"
+            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-[14px] px-3 text-center text-[15px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.99] disabled:opacity-50"
             style={{ background: "var(--wa-ele)", color: "var(--wa-verde-escuro)" }}
           >
             {o.rota && <ExternalLink size={14} />}
@@ -185,9 +192,9 @@ const CartaoConfirmacao = memo(function CartaoConfirmacao({ c, resolvida, ocupad
 });
 
 /** Uma resposta do assistente: um ou mais balões (lote = um balão por item). */
-const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, ocupado, resolvidas, onComando, onRota, onContinuar, onConfirmar, onCancelar, onConfirmarTodos }) {
+const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: caudaGrupo = true, ocupado, resolvidas, onComando, onRota, onContinuar, onConfirmar, onCancelar, onConfirmarTodos }) {
   const r = m.resposta || {};
-  const conteudo = (x, chave, primeiro) => {
+  const conteudo = (x, chave, primeiro, cauda) => {
     const erro = x.tipo === "erro_acao" || x.tipo === "bloqueado";
     const resolvida = x.confirmacao ? resolvidas[x.confirmacao.acaoId] : null;
     // escolhas e sugestões só valem na última mensagem (como os botões de resposta do WhatsApp);
@@ -201,7 +208,7 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, ocupado
     ];
     return (
       <div key={chave} className="space-y-1">
-        <Balao lado="ele" hora={m.em} cauda={primeiro} largo={!!x.confirmacao}>
+        <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao}>
           {x.item && !x.confirmacao && <p className="text-[12px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{x.item}</p>}
           {x.confirmacao ? (
             <CartaoConfirmacao c={x.confirmacao} resolvida={resolvida} ocupado={ocupado} onConfirmar={(t) => onConfirmar(x.confirmacao.acaoId, t)} onCancelar={() => onCancelar(x.confirmacao.acaoId)} />
@@ -220,7 +227,7 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, ocupado
               {x.tipo === "bloqueado" && <ShieldAlert size={15} className="mr-1 inline -translate-y-px text-amber-600" />}
               {erro && x.tipo !== "bloqueado" && <AlertTriangle size={15} className="mr-1 inline -translate-y-px text-amber-600" />}
               {x.texto}
-              {x.pergunta?.texto && x.pergunta.texto !== x.texto ? `\n${x.pergunta.texto}` : ""}
+              {x.pergunta?.texto && !String(x.texto || "").includes(x.pergunta.texto) ? `\n${x.pergunta.texto}` : ""}
             </p>
           )}
           <Blocos blocos={x.blocos} />
@@ -238,25 +245,30 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, ocupado
     const pendentes = r.itens.filter((x) => x.confirmacao && !resolvidas[x.confirmacao.acaoId]);
     return (
       <div className="space-y-1">
-        <Balao lado="ele" hora={m.em}><p>{r.texto}</p></Balao>
-        {r.itens.map((x, i) => conteudo(x, `${m.id}-${i}`, false))}
+        <Balao lado="ele" hora={m.em} cauda={false}><p>{r.texto}</p></Balao>
+        {r.itens.map((x, i) => conteudo(x, `${m.id}-${i}`, false, caudaGrupo && i === r.itens.length - 1))}
         {pendentes.length > 1 && (
           <BotoesRapidos opcoes={[{ id: "todos", rotulo: `Confirmar todos (${pendentes.length})` }]} desabilitado={ocupado} onEscolher={() => onConfirmarTodos(pendentes.map((x) => x.confirmacao.acaoId))} />
         )}
       </div>
     );
   }
-  return conteudo(r, m.id, true);
+  return conteudo(r, m.id, true, caudaGrupo);
 });
 
-const MensagemMinha = memo(function MensagemMinha({ m }) {
+const MensagemMinha = memo(function MensagemMinha({ m, cauda = true }) {
   return (
-    <Balao lado="eu" hora={m.em} lido={m.lido}>
+    <Balao lado="eu" hora={m.em} lido={m.lido} cauda={cauda}>
       {m.citacao && (
         <span className="mb-1 block rounded-md border-l-4 bg-black/5 px-2 py-1 text-[12.5px]" style={{ borderColor: "var(--wa-verde)" }}>
           <span className="block font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{NOME_ASSISTENTE}</span>
           <span className="line-clamp-2" style={{ color: "var(--wa-meta)" }}>{m.citacao}</span>
         </span>
+      )}
+      {m.imagem && (
+        // miniatura da foto enviada (a foto inteira não fica guardada no navegador)
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={m.imagem} alt="Foto da nota enviada" className="mb-1 block max-h-56 w-auto rounded-md object-cover" />
       )}
       {m.canal === "voz" && (
         <span className="mb-0.5 flex items-center gap-2" aria-label="Mensagem de voz">
@@ -274,7 +286,7 @@ const MensagemMinha = memo(function MensagemMinha({ m }) {
 function Digitando() {
   return (
     <div className="flex justify-start px-2 sm:px-[6%]" role="status" aria-label="Assistente digitando">
-      <div className="relative rounded-[7.5px] rounded-tl-none px-3.5 py-3 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)" }}>
+      <div className="relative rounded-[18px] rounded-bl-[5px] px-3.5 py-3 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)" }}>
         <span className="flex gap-1">
           {[0, 1, 2].map((i) => <span key={i} className="h-2 w-2 animate-bounce rounded-full" style={{ background: "var(--wa-meta)", animationDelay: `${i * 0.15}s` }} />)}
         </span>
@@ -430,6 +442,34 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
     }
   }, [confirmar]);
 
+  // ─── foto da nota (DANFE) ───
+  const fotoRef = useRef(null);
+  const cameraRef = useRef(null);
+  const [lendoNota, setLendoNota] = useState(false);
+  const enviarFoto = useCallback(async (arquivo) => {
+    if (!arquivo || ocupadoRef.current) return;
+    let foto;
+    try {
+      foto = await reduzirImagem(arquivo);
+    } catch {
+      adicionar({ de: "assistente", resposta: { tipo: "erro_acao", texto: "Não consegui abrir essa foto. Tente tirar de novo." } });
+      return;
+    }
+    adicionar({ de: "eu", texto: "Foto da nota", imagem: foto.miniatura });
+    setRespondendo(null);
+    setLendoNota(true);
+    await executar(async () => {
+      const r = await fetchComSessao("/api/ocr", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageBase64: foto.dataUrl }) });
+      const lido = await r.json().catch(() => null);
+      if (!r.ok) return { ok: false, dados: { erro: "Não consegui ler a foto agora. Tente de novo em instantes." } };
+      const nota = notaDoOcr(lido);
+      if (!nota) return { ok: false, dados: { erro: "Não encontrei os itens da nota nessa foto. Tire de novo com a nota inteira, reta e com boa luz." } };
+      setLendoNota(false);
+      return perguntarAoHefisto(unidadeId, { nota, chave: novaChaveDeEnvio(), tela: TELA, conversa: referenciaRef.current });
+    }, "Não consegui lançar a nota.");
+    setLendoNota(false);
+  }, [adicionar, executar, unidadeId, TELA]);
+
   // ─── voz ───
   const alternarMicrofone = useCallback(() => {
     if (ouvindo) { escutaRef.current?.parar(); setOuvindo(false); return; }
@@ -468,22 +508,22 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
   }, [texto]);
 
   const vazio = mensagens.length === 0;
-  const status = ouvindo ? "ouvindo…" : ocupado ? "digitando…" : "online";
+  const status = ouvindo ? "ouvindo…" : lendoNota ? "lendo a nota…" : ocupado ? "digitando…" : "online";
 
   return (
     <div className="flex h-full min-h-0 flex-col" style={{ ...CORES, background: "var(--wa-fundo)" }}>
       {/* topo */}
-      <header className="flex min-h-[60px] shrink-0 items-center gap-2 px-2 text-white shadow-sm" style={{ background: "var(--wa-topo)" }}>
-        <button type="button" onClick={onVoltar || (() => router.back())} aria-label="Voltar" className="grid h-11 w-10 place-items-center rounded-full active:bg-white/10">
-          <ArrowLeft size={22} />
+      <header className="flex min-h-[58px] shrink-0 items-center gap-2.5 border-b px-2.5 backdrop-blur-md" style={{ background: "var(--wa-barra)", borderColor: "var(--wa-linha)", color: "var(--wa-texto)" }}>
+        <button type="button" onClick={onVoltar || (() => router.back())} aria-label="Voltar" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] active:bg-black/5">
+          <ChevronLeft size={26} strokeWidth={2.2} />
         </button>
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/95" style={{ color: "var(--wa-verde-escuro)" }}><Bot size={22} /></span>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white" style={{ background: "var(--wa-verde)" }}><Bot size={22} /></span>
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-[16.5px] font-semibold">{NOME_ASSISTENTE}</p>
-          <p className="truncate text-[12.5px] text-white/85" aria-live="polite">{status}{unidadeNome ? ` · ${unidadeNome}` : ""}</p>
+          <p className="truncate text-[17px] font-semibold">{NOME_ASSISTENTE}</p>
+          <p className="truncate text-[13px]" style={{ color: "var(--wa-meta)" }} aria-live="polite">{status}{unidadeNome ? ` · ${unidadeNome}` : ""}</p>
         </div>
         {vozOk && voz.sinteseDisponivel?.() && (
-          <button type="button" onClick={() => { setLerEmVoz((v) => !v); voz.calar(); }} aria-label={lerEmVoz ? "Parar de ler as respostas em voz alta" : "Ler as respostas de voz em voz alta"} className="grid h-11 w-11 place-items-center rounded-full active:bg-white/10">
+          <button type="button" onClick={() => { setLerEmVoz((v) => !v); voz.calar(); }} aria-label={lerEmVoz ? "Parar de ler as respostas em voz alta" : "Ler as respostas de voz em voz alta"} className="grid h-10 w-12 shrink-0 place-items-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] active:bg-black/5">
             {lerEmVoz ? <Volume2 size={21} /> : <VolumeX size={21} />}
           </button>
         )}
@@ -493,7 +533,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2" style={{ backgroundImage: PAPEL }} aria-live="polite">
         <div className="mx-auto w-full max-w-4xl space-y-1.5">
           <div className="flex justify-center pt-1">
-            <span className="rounded-[7.5px] px-3 py-1 text-[12.5px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)", color: "var(--wa-meta)" }}>HOJE</span>
+            <span className="rounded-full px-3 py-1 text-[12.5px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)", color: "var(--wa-meta)" }}>Hoje</span>
           </div>
           {rotuloOrigem && (
             <div className="flex justify-center px-4">
@@ -516,8 +556,8 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
             </div>
           )}
 
-          {mensagens.map((m, i) => (m.de === "eu" ? <MensagemMinha key={m.id} m={m} /> : (
-            <RespostaAssistente key={m.id} m={m} ultima={i === mensagens.length - 1} ocupado={ocupado} resolvidas={resolvidas}
+          {mensagens.map((m, i) => (m.de === "eu" ? <MensagemMinha key={m.id} m={m} cauda={mensagens[i + 1]?.de !== "eu"} /> : (
+            <RespostaAssistente key={m.id} m={m} ultima={i === mensagens.length - 1} cauda={mensagens[i + 1]?.de !== m.de || i === mensagens.length - 1} ocupado={ocupado} resolvidas={resolvidas}
               onComando={enviarComando} onRota={(r) => router.push(r)} onContinuar={continuar}
               onConfirmar={confirmar} onCancelar={cancelar} onConfirmarTodos={confirmarTodos} />
           )))}
@@ -527,7 +567,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
       </div>
 
       {/* campo de mensagem */}
-      <div className="shrink-0 px-1.5 pt-1.5" style={{ background: "var(--wa-barra)", paddingBottom: "max(6px, env(safe-area-inset-bottom, 0px))" }}>
+      <div className="shrink-0 border-t px-2 pt-1.5 backdrop-blur-md" style={{ background: "var(--wa-barra)", borderColor: "var(--wa-linha)", paddingBottom: "max(8px, env(safe-area-inset-bottom, 0px))" }}>
         <div className="mx-auto w-full max-w-4xl">
           {respondendo && (
             <div className="mx-1 mb-1 flex items-start gap-2 rounded-lg border-l-4 bg-white px-2.5 py-1.5" style={{ borderColor: "var(--wa-verde)" }}>
@@ -547,7 +587,16 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
               <button type="button" onClick={alternarMicrofone} aria-label="Parar e enviar" className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow" style={{ background: "var(--wa-verde)" }}><Square size={18} fill="currentColor" /></button>
             </div>
           ) : (
-            <form onSubmit={submeter} className="flex items-end gap-1.5 pb-1">
+            <form onSubmit={submeter} className="flex items-end gap-1 pb-0.5">
+              {/* + abre a galeria; a câmera abre direto a câmera traseira (foto da nota) */}
+              <input ref={fotoRef} type="file" accept="image/*" className="hidden" aria-hidden="true" tabIndex={-1}
+                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) enviarFoto(f); }} />
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" aria-hidden="true" tabIndex={-1}
+                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) enviarFoto(f); }} />
+              <button type="button" onClick={() => fotoRef.current?.click()} disabled={ocupado} aria-label="Escolher foto da galeria (nota fiscal)"
+                className="grid h-11 w-10 shrink-0 place-items-center rounded-full disabled:opacity-50" style={{ color: "var(--wa-texto)" }}>
+                <Plus size={28} strokeWidth={1.8} />
+              </button>
               <textarea
                 ref={campoRef}
                 rows={1}
@@ -555,19 +604,25 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                 maxLength={500}
                 onChange={(e) => setTexto(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submeter(); } }}
-                placeholder={respondendo ? "Sua resposta" : "Mensagem"}
+                placeholder={respondendo ? "Sua resposta" : ""}
                 aria-label={`Mensagem para o ${NOME_ASSISTENTE}`}
-                className="min-h-[46px] min-w-0 flex-1 resize-none rounded-3xl border-0 bg-white px-4 py-[13px] text-[15px] leading-5 outline-none"
-                style={{ color: "var(--wa-texto)" }}
+                className="mb-[3px] block min-h-[38px] min-w-0 flex-1 resize-none rounded-[20px] border bg-white px-3.5 py-[8px] text-[16px] leading-5 outline-none"
+                style={{ color: "var(--wa-texto)", borderColor: "var(--wa-linha)" }}
               />
               {texto.trim() || !vozOk ? (
-                <button type="submit" disabled={!texto.trim() || ocupado} aria-label="Enviar" className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow transition active:scale-95 disabled:opacity-60" style={{ background: "var(--wa-verde)" }}>
-                  <Send size={20} className="translate-x-px" />
+                <button type="submit" disabled={!texto.trim() || ocupado} aria-label="Enviar" className="mb-[1px] grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition active:scale-95 disabled:opacity-60" style={{ background: "var(--wa-verde)" }}>
+                  <Send size={19} className="translate-x-px" />
                 </button>
               ) : (
-                <button type="button" onClick={alternarMicrofone} disabled={ocupado} aria-label="Gravar áudio" className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow transition active:scale-95 disabled:opacity-60" style={{ background: "var(--wa-verde)" }}>
-                  <Mic size={21} />
-                </button>
+                <>
+                  <button type="button" onClick={() => cameraRef.current?.click()} disabled={ocupado} aria-label="Tirar foto da nota fiscal"
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50" style={{ color: "var(--wa-texto)" }}>
+                    <Camera size={25} strokeWidth={1.8} />
+                  </button>
+                  <button type="button" onClick={alternarMicrofone} disabled={ocupado} aria-label="Gravar áudio" className="mb-[1px] grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition active:scale-95 disabled:opacity-60" style={{ background: "var(--wa-verde)" }}>
+                    <Mic size={21} />
+                  </button>
+                </>
               )}
             </form>
           )}

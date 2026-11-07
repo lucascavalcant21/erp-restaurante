@@ -19,6 +19,15 @@ async function token() {
   }
 }
 
+const ehFormulario = (x) => typeof FormData !== "undefined" && x instanceof FormData;
+
+/** Áudio gravado → texto (POST /api/intelligence/voz). Não grava nada no servidor. */
+export function transcreverAudio(unidadeId, blob, { sinal } = {}) {
+  const corpo = new FormData();
+  corpo.append("audio", blob, blob.type?.includes("webm") ? "voz.webm" : "voz.m4a");
+  return chamar("/api/intelligence/voz", { unidadeId, corpo, sinal, timeoutMs: 45000 });
+}
+
 export function novaChaveDeEnvio() {
   try { return `env-${crypto.randomUUID()}`; } catch { return `env-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`; }
 }
@@ -61,9 +70,10 @@ async function chamar(caminho, { unidadeId, metodo = "POST", corpo = null, sinal
       headers: {
         Authorization: `Bearer ${t}`,
         "x-hefisto-unidade": unidadeId,
-        ...(corpo ? { "Content-Type": "application/json" } : {}),
+        ...(corpo && !ehFormulario(corpo) ? { "Content-Type": "application/json" } : {}),
       },
-      body: corpo ? JSON.stringify(corpo) : undefined,
+      // áudio vai como formulário (o navegador põe o Content-Type com o boundary)
+      body: corpo ? (ehFormulario(corpo) ? corpo : JSON.stringify(corpo)) : undefined,
       signal: controladorInterno.signal,
       cache: "no-store",
     });

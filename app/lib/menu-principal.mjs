@@ -108,7 +108,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       { titulo: "Rotina da equipe", cards: [
         { label: "Checklist operacional", desc: "Abertura e conferência", href: "/dashboard/operacao/rotina?dept=salao&tipo=operacional", icone: "CheckSquare" },
         { label: "Checklist de limpeza", desc: "Limpeza do salão", href: "/dashboard/operacao/rotina?dept=salao&tipo=limpeza", icone: "SprayCan" },
-        { label: "Observações", desc: "Observações padrão dos pedidos", href: "/dashboard/operacao/observacoes", icone: "MessageSquareText" },
+        { label: "Observações prontas", desc: "Botões do garçom por setor e categoria", href: "/dashboard/configuracoes/impressao?aba=observacoes", icone: "MessageSquareText" },
         { label: "Treinamento", desc: "Aulas com os instrutores do salão", href: "/dashboard/treinamento?area=salao", icone: "GraduationCap" },
         { label: "Guias de uso", desc: "Equipamentos e produtos", href: "/dashboard/operacao/guias", icone: "FileText" },
       ] },
@@ -130,9 +130,10 @@ export const MENU_PRINCIPAL = Object.freeze([
   },
   {
     id: "cardapio", label: "Cardápio", href: "/dashboard/operacao/cardapio", icone: "UtensilsCrossed", cor: "vermelho",
-    desc: "Cardápio digital e clientes",
+    desc: "Cardápio digital, TVs e clientes",
     submodules: [
       { label: "Cardápio digital", href: "/dashboard/operacao/cardapio" },
+      { label: "Sinalização digital", href: "/dashboard/marketing/sinalizacao" },
       { label: "Engenharia de cardápio", href: "/dashboard/operacao/engenharia" },
       { label: "Clientes", href: "/dashboard/clientes" },
       { label: "Campanhas", href: "/dashboard/experience/campanhas" },

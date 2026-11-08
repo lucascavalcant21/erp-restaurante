@@ -672,3 +672,52 @@ body[data-cabecalho-tela] .erp-barra-universo { display: none; }
 :is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado):not(:disabled):hover {
   background-color: rgb(var(--hf-menu-hover)) !important;
 }
+
+/* ═══ IDENTIDADE "GESTÃO" — Marmitaria e Eventos (pedido do dono, 08/11/2026) ═══
+   "Quero essa identidade deles": o visual do dashboard de gestão de referência
+   (vermelho, barra de áreas preta com ícone em cima do nome, cards brancos sobre
+   fundo areia, barras em degradê laranja → vermelho). Vale SÓ dentro de
+   `.tema-gestao` (layouts da Marmitaria e de Eventos); o resto do Héfisto segue
+   branco e dourado. Os tokens hf-* são redefinidos aqui, então as telas antigas
+   desses módulos mudam sem editar arquivo por arquivo.
+   Contraste: branco sobre #DC2626 4,8:1; #B91C1C sobre branco 6,5:1. */
+.tema-gestao {
+  --hf-bg:            245 243 240;/* #F5F3F0 areia */
+  --hf-surface:       255 255 255;
+  --hf-elevated:      248 246 243;/* #F8F6F3 */
+  --hf-border:        232 228 223;/* #E8E4DF */
+  --hf-border-strong: 214 208 200;
+  --hf-accent:        220 38 38;  /* #DC2626 vermelho da marca */
+  --hf-accent-fg:     255 255 255;
+  --hf-accent-text:   185 28 28;  /* #B91C1C texto vermelho sobre branco */
+  --hf-danger:        153 27 27;  /* #991B1B: negativo fica mais escuro que a marca */
+  --hf-menu:          23 23 23;   /* #171717 barra preta */
+  --hf-menu-hover:    38 38 38;
+  --hf-menu-border:   55 55 55;
+  --hf-menu-accent:   220 38 38;
+  --gestao-grad-de:   #F97316;    /* laranja do topo das barras */
+  --gestao-grad-ate:  #DC2626;
+  --accent:        #DC2626;
+  --accent-strong: #B91C1C;
+  --accent-fg:     #FFFFFF;
+  --accent-soft:   rgba(220,38,38,0.12);
+  background-color: rgb(var(--hf-bg));
+}
+/* Botão de ação, aba e filtro selecionado: vermelho com letra branca (no resto
+   do app eles são pretos). */
+.tema-gestao :is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado) {
+  background-color: rgb(var(--hf-accent)) !important;
+  background-image: linear-gradient(180deg, #EF4444, #DC2626) !important;
+  color: #fff !important;
+  box-shadow: 0 1px 2px rgba(127, 29, 29, 0.25), 0 4px 12px -4px rgba(220, 38, 38, 0.45);
+}
+.tema-gestao :is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado):not(:disabled):hover {
+  background-color: #B91C1C !important;
+  background-image: linear-gradient(180deg, #DC2626, #B91C1C) !important;
+}
+/* Texto e borda dourados das telas antigas (escala emerald) viram vermelho. */
+.tema-gestao [class~="text-emerald-600"], .tema-gestao [class~="text-emerald-700"], .tema-gestao [class~="text-emerald-800"] { color: rgb(var(--hf-accent-text)); }
+.tema-gestao [class~="border-emerald-500"], .tema-gestao [class~="border-emerald-600"] { border-color: rgb(var(--hf-accent)); }
+/* Barra em degradê das peças do painel gerencial. */
+.gestao-barra { background-image: linear-gradient(180deg, var(--gestao-grad-de, #F97316), var(--gestao-grad-ate, #DC2626)); }
+.gestao-barra-h { background-image: linear-gradient(90deg, var(--gestao-grad-de, #F97316), var(--gestao-grad-ate, #DC2626)); }

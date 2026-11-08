@@ -71,6 +71,9 @@ export const TABELAS = Object.freeze({
   fichas_montagem_passos: { tenant: true, rotulo: "Passos de montagem" },
   montagem: { tenant: true, rotulo: "Montagem (fotos e passo a passo)" },
   produtos: { tenant: true, rotulo: "Cardápio (produtos de venda)" },
+  op_processos: { tenant: true, rotulo: "Procedimentos da casa" },
+  op_secoes: { tenant: false, pai: { tabela: "op_processos", coluna: "processo_id" }, rotulo: "Seções do procedimento" },
+  op_itens: { tenant: false, pai: { tabela: "op_processos", coluna: "processo_id" }, rotulo: "Passos do procedimento" },
   fichas_ingredientes: { tenant: false, pai: { tabela: "fichas_tecnicas", coluna: "ficha_id" }, rotulo: "Ingredientes da ficha" },
   fin_categorias: { tenant: false, rotulo: "Plano de contas" },
 });

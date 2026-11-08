@@ -15,6 +15,8 @@ export async function fetchProcessos(unidadeId, { incluirArquivados = false } = 
   if (!isSupabaseReady() || !unidadeId) return { data: [] };
   let q = supabase.from("op_processos").select("*").eq("unidade_id", String(unidadeId));
   if (!incluirArquivados) q = q.eq("arquivado", false);
+  // procedimentos da casa (Inteligência > Procedimentos) são texto para o Assistente, não checklist de execução
+  q = q.or("categoria.is.null,categoria.neq.procedimento");
   const { data, error } = await q.order("nome");
   return { data: data || [], error: err(error) };
 }

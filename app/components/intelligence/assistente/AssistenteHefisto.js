@@ -20,6 +20,7 @@ import { fetchComSessao } from "../../../lib/api-sessao";
 import { MAX_XML_BYTES, notaDoOcr, notaDoXml, reduzirImagem } from "./nota.mjs";
 import FolhaFicha from "../FolhaFicha";
 import ListaEtiquetas from "./ListaEtiquetas";
+import PassosProcedimento from "../PassosProcedimento";
 
 export const NOME_ASSISTENTE = "Assistente Héfisto";
 
@@ -171,6 +172,7 @@ function Blocos({ blocos, onRota, onComando }) {
           );
         }
         if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} onComando={onComando} />;
+        if (b.tipo === "passos") return <PassosProcedimento key={i} bloco={b} />;
         if (b.tipo === "etiquetas") return <ListaEtiquetas key={i} bloco={b} onRota={onRota} />;
         if (b.tipo === "texto") return <p key={i} className="text-[14px]" style={{ color: "var(--wa-meta)" }}>{b.qualificador ? <strong>{b.qualificador}: </strong> : null}{b.texto}</p>;
         if (b.tipo === "insight" && b.insight?.titulo) return <p key={i} className="text-[14.5px]">• {b.insight.titulo}</p>;
@@ -235,7 +237,8 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
       ...(x.acoes || []).filter((a) => !(temEtiquetas && String(a.rota || "").includes("?lote="))).map((a, i) => ({ id: `a${i}`, rotulo: a.rotulo, comando: a.comando, rota: a.rota })),
     ];
     // com a folha do prato/drink, o cartaz já diz tudo: o texto longo fica só para a leitura em voz alta
-    const temFolha = (x.blocos || []).some((b) => b.tipo === "folha" && b.folha?.nome);
+    // idem para o procedimento da casa (os passos numerados já estão no bloco)
+    const temFolha = (x.blocos || []).some((b) => (b.tipo === "folha" && b.folha?.nome) || (b.tipo === "passos" && b.passos?.length));
     return (
       <div key={chave} className="space-y-1">
         <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao || temFolha || temEtiquetas}>

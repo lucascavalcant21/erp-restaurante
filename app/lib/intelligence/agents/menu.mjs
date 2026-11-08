@@ -7,6 +7,9 @@
 // Só leitura: os atalhos levam aos mesmos comandos de sempre (fichas, estoque,
 // salão), com as mesmas permissões. Nada aqui grava.
 
+import { procedimentosDaUnidade } from "./procedimentos.mjs";
+import { procedimentoParaTexto } from "../../procedimentos.mjs";
+
 const sem = (v) => String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const r = (texto, extra = {}) => ({ tipo: "resposta", texto, blocos: [], acoes: [], ...extra });
 const op = (rotulo, comando, id = null) => ({ id: id || sem(rotulo).replace(/[^a-z0-9]+/g, "-").slice(0, 40), rotulo, comando });
@@ -64,6 +67,14 @@ const LIVRES = {
   prato: () => livre("De qual prato ou drink?", "Como faz {valor}?"),
 };
 
+const ehMontagem = (nome) => /\bmont(ar|agem|e|o)\b/.test(sem(nome));
+async function daCasaSalao(motor) {
+  const dbe = motor?.ambiente?.dbe;
+  if (!dbe) return [];
+  const { lista } = await procedimentosDaUnidade(dbe);
+  return lista.filter((p) => p.area === "salao" || p.area === "geral");
+}
+
 function areaDoTexto(t) {
   if (/\bcozinha\b/.test(t)) return "cozinha";
   if (/\bbar\b/.test(t)) return "bar";
@@ -73,15 +84,29 @@ function areaDoTexto(t) {
 }
 
 export const HANDLERS_MENU = {
-  async "assistente.menu"({ params }) {
+  async "assistente.menu"({ motor, params }) {
     const t = sem(params.texto);
+    if (/outro problema/.test(t)) return livre("Conte rapidinho o que aconteceu.", "Situação no salão: {valor}. Como resolvo?");
     if (/\bproblemas?\b/.test(t)) {
+      // os que a casa cadastrou vêm primeiro; o padrão só aparece para o que não tem cadastro
+      const daCasa = (await daCasaSalao(motor)).filter((p) => !ehMontagem(p.nome));
       return escolha("O que aconteceu?", [
-        ...PROBLEMAS_SALAO.map((p) => op(p, `Situação no salão: ${p.toLowerCase()}. Como resolvo?`)),
+        ...daCasa.map((p) => op(p.nome, `Situação no salão: ${p.nome.toLowerCase()}. Como resolvo?`)),
+        ...PROBLEMAS_SALAO.filter((p) => !procedimentoParaTexto(daCasa, p)).map((p) => op(p, `Situação no salão: ${p.toLowerCase()}. Como resolvo?`)),
         op("Outro problema (escrever)", "Atalhos: outro problema"),
       ]);
     }
-    if (/outro problema/.test(t)) return livre("Conte rapidinho o que aconteceu.", "Situação no salão: {valor}. Como resolvo?");
+    if (/atalhos:? ambiente\b/.test(t)) {
+      // ambientes que a casa já ensinou a montar (jardim, varanda…) viram botão
+      const montagens = (await daCasaSalao(motor)).filter((p) => ehMontagem(p.nome) && !/\bmesas?\b/.test(sem(p.nome)));
+      if (montagens.length) {
+        return escolha("Qual ambiente?", [
+          ...montagens.map((p) => op(p.nome, `Montagem no salão: ${p.nome.toLowerCase()}`)),
+          op("Outro ambiente (escrever)", "Atalhos: outro ambiente"),
+        ]);
+      }
+    }
+    if (/outro ambiente/.test(t)) return LIVRES.ambiente();
     for (const [chave, f] of Object.entries(LIVRES)) if (new RegExp(`atalhos:? ${chave}\\b`).test(t)) return f();
     const area = areaDoTexto(t);
     if (area) return escolha(AREAS[area].texto, AREAS[area].opcoes);

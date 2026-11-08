@@ -142,8 +142,14 @@ export function comandoDoPedido(itens) {
 // ─── Fila na URL da tela de Etiquetas (?lote=) ───────────────────────────────
 export const PARAMETRO_LOTE = "lote";
 
+const diasValidos = (d) => d !== null && d !== undefined && d !== "" && Number.isInteger(Number(d)) && Number(d) >= 0 && Number(d) <= 3650;
+
+/** [cópias, nome] ou [cópias, nome, dias de validade] quando a validade foi escolhida. */
 export function loteParaUrl(itens) {
-  const lista = (itens || []).slice(0, MAX_ITENS).map((i) => [Math.max(1, Math.min(MAX_COPIAS, Math.floor(Number(i.copias) || 1))), String(i.nome || i.termo || "").slice(0, 80)]);
+  const lista = (itens || []).slice(0, MAX_ITENS).map((i) => {
+    const linha = [Math.max(1, Math.min(MAX_COPIAS, Math.floor(Number(i.copias) || 1))), String(i.nome || i.termo || "").slice(0, 80)];
+    return diasValidos(i.dias) ? [...linha, Number(i.dias)] : linha;
+  });
   return `/dashboard/operacao/etiquetas?${PARAMETRO_LOTE}=${encodeURIComponent(JSON.stringify(lista))}`;
 }
 
@@ -152,7 +158,44 @@ export function loteDaUrl(valor) {
   try {
     const bruto = JSON.parse(String(valor || ""));
     if (!Array.isArray(bruto)) return [];
-    return bruto.slice(0, MAX_ITENS).map((x) => (Array.isArray(x) ? { copias: Number(x[0]), nome: String(x[1] ?? "").trim().slice(0, 80) } : null))
+    return bruto.slice(0, MAX_ITENS).map((x) => (Array.isArray(x) ? { copias: Number(x[0]), nome: String(x[1] ?? "").trim().slice(0, 80), ...(diasValidos(x[2]) ? { dias: Number(x[2]) } : {}) } : null))
       .filter((x) => x && x.nome && Number.isInteger(x.copias) && x.copias >= 1 && x.copias <= MAX_COPIAS);
   } catch { return []; }
+}
+
+// ─── Etiquetas que a casa sempre pede (histórico da tabela etiquetas) ────────
+export const VALIDADES_RAPIDAS = Object.freeze([1, 3, 7, 15, 30, 60, 90]);
+const mediana = (xs) => { const a = [...xs].sort((x, y) => x - y); return a.length ? a[Math.floor((a.length - 1) / 2)] : null; };
+const moda = (xs) => { const c = new Map(); let melhor = null; let n = 0; for (const x of xs) { const k = (c.get(x) || 0) + 1; c.set(x, k); if (k > n || (k === n && x > melhor)) { n = k; melhor = x; } } return melhor; };
+
+/**
+ * Agrupa as etiquetas impressas por produto ("Vatapá" e "Vatapa" juntas):
+ * quantas vezes pediu, quantas etiquetas costuma pedir (mediana), a validade
+ * mais usada e a última vez. Mais pedidas primeiro. Números REAIS do histórico.
+ * @param {{produto:string, copias?:number, validade_dias?:number, created_at?:string}[]} linhas
+ */
+export function agruparHabituais(linhas, limite = 15) {
+  const grupos = new Map();
+  for (const l of linhas || []) {
+    const nome = String(l?.produto || "").trim();
+    const k = chave(nome);
+    if (!k) continue;
+    const g = grupos.get(k) || { nomes: new Map(), copias: [], dias: [], vezes: 0, etiquetas: 0, ultima: "" };
+    g.nomes.set(nome, (g.nomes.get(nome) || 0) + 1);
+    const c = Math.max(1, Math.floor(Number(l.copias) || 1));
+    g.copias.push(c);
+    g.etiquetas += c;
+    if (l.validade_dias !== null && l.validade_dias !== undefined && Number.isInteger(Number(l.validade_dias)) && Number(l.validade_dias) >= 0) g.dias.push(Number(l.validade_dias));
+    g.vezes += 1;
+    const d = String(l.created_at || "").slice(0, 10);
+    if (d > g.ultima) g.ultima = d;
+    grupos.set(k, g);
+  }
+  return [...grupos.values()]
+    .map((g) => ({
+      nome: [...g.nomes.entries()].sort((a, b) => b[1] - a[1] || b[0].localeCompare(a[0], "pt-BR"))[0][0],
+      vezes: g.vezes, etiquetas: g.etiquetas, copias: Math.min(MAX_COPIAS, mediana(g.copias)), dias: moda(g.dias), ultima: g.ultima || null,
+    }))
+    .sort((a, b) => b.vezes - a.vezes || b.etiquetas - a.etiquetas || a.nome.localeCompare(b.nome, "pt-BR"))
+    .slice(0, limite);
 }

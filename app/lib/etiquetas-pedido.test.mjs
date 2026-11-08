@@ -53,3 +53,23 @@ test("fila na URL: ida e volta, e desconfiança", () => {
   assert.deepEqual(loteDaUrl("[[0,\"x\"],[2.5,\"y\"],[101,\"z\"],[3,\"\"],\"lixo\",[4,\"ok\"]]"), [{ copias: 4, nome: "ok" }]);
   assert.deepEqual(loteDaUrl("não é json"), []);
 });
+
+test("etiquetas habituais: agrupa grafias, mediana das cópias, validade mais usada", async () => {
+  const { agruparHabituais } = await import("./etiquetas-pedido.mjs");
+  const h = agruparHabituais([
+    { produto: "Vatapá", copias: 2, validade_dias: 90, created_at: "2026-10-31T10:00:00Z" },
+    { produto: "Vatapa", copias: 1, validade_dias: 60, created_at: "2026-10-22T10:00:00Z" },
+    { produto: "Vatapá", copias: 4, validade_dias: 90, created_at: "2026-10-30T10:00:00Z" },
+    { produto: "Açaí", copias: 2, validade_dias: 30, created_at: "2026-11-06T10:00:00Z" },
+    { produto: "  ", copias: 9 },
+  ]);
+  assert.deepEqual(h, [
+    { nome: "Vatapá", vezes: 3, etiquetas: 7, copias: 2, dias: 90, ultima: "2026-10-31" },
+    { nome: "Açaí", vezes: 1, etiquetas: 2, copias: 2, dias: 30, ultima: "2026-11-06" },
+  ]);
+});
+
+test("fila na URL leva a validade escolhida", () => {
+  const url = loteParaUrl([{ copias: 2, nome: "Açaí", dias: 30 }, { copias: 1, nome: "Goma", dias: null }, { copias: 1, nome: "X", dias: 99999 }]);
+  assert.deepEqual(loteDaUrl(decodeURIComponent(url.split("lote=")[1])), [{ copias: 2, nome: "Açaí", dias: 30 }, { copias: 1, nome: "Goma" }, { copias: 1, nome: "X" }]);
+});

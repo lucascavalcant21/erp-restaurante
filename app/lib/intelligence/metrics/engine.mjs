@@ -11,7 +11,7 @@ import { faturamento, historicoDiario } from "./faturamento.mjs";
 import { compras, variacoesDePreco, ultimaCompraDoProduto } from "./compras.mjs";
 import { escalaDoDia } from "./rh.mjs";
 import { fichaDoPrato } from "./fichas.mjs";
-import { itensCitados, catalogoDeEtiquetas } from "./cadastro.mjs";
+import { itensCitados, catalogoDeEtiquetas, etiquetasHabituais } from "./cadastro.mjs";
 import { saldoDoProduto, vencimentos, divergenciasEstoque, perdas, abaixoDoMinimo } from "./estoque.mjs";
 import { contasAPagar, lucroDoMes, ticketMedioDoMes } from "./financeiro.mjs";
 import { cmv, cmo } from "./custos.mjs";
@@ -62,6 +62,8 @@ export function criarMotorDeMetricas(p) {
     findMentioned: (op) => itensCitados(amb, op),
     // nomes da tela de Etiquetas (produtos e pré-preparos) para casar o pedido de etiquetas
     getLabelCatalog: () => catalogoDeEtiquetas(amb),
+    // as etiquetas que a unidade mais imprime (quantidade e validade de costume)
+    getUsualLabels: (op) => etiquetasHabituais(amb, op),
     getRecipeCost: (op) => custoDeFicha(amb, op),
     getPunctuality: () => pontualidadeDoDia(amb),
     getReceivingCheck: (op) => conferenciaRecebimento(amb, op),

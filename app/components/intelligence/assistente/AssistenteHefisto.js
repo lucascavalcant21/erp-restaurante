@@ -19,6 +19,7 @@ import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
 import { fetchComSessao } from "../../../lib/api-sessao";
 import { MAX_XML_BYTES, notaDoOcr, notaDoXml, reduzirImagem } from "./nota.mjs";
 import FolhaFicha from "../FolhaFicha";
+import ListaEtiquetas from "./ListaEtiquetas";
 
 export const NOME_ASSISTENTE = "Assistente Héfisto";
 
@@ -126,7 +127,7 @@ const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabili
   );
 });
 
-function Blocos({ blocos }) {
+function Blocos({ blocos, onRota }) {
   if (!blocos?.length) return null;
   return (
     <div className="mt-1.5 space-y-2">
@@ -151,6 +152,7 @@ function Blocos({ blocos }) {
           );
         }
         if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} />;
+        if (b.tipo === "etiquetas") return <ListaEtiquetas key={i} bloco={b} onRota={onRota} />;
         if (b.tipo === "texto") return <p key={i} className="text-[14px]" style={{ color: "var(--wa-meta)" }}>{b.qualificador ? <strong>{b.qualificador}: </strong> : null}{b.texto}</p>;
         if (b.tipo === "insight" && b.insight?.titulo) return <p key={i} className="text-[14.5px]">• {b.insight.titulo}</p>;
         return null; // métrica: o texto da resposta já traz a frase
@@ -206,16 +208,18 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
     // links para telas continuam em todas
     const opcoes = ultima && x.pergunta?.opcoes?.length && !(x.pergunta.acaoId && resolvidas[x.pergunta.acaoId])
       ? x.pergunta.opcoes.map((o) => ({ ...o, _pergunta: x.pergunta })) : [];
+    const temEtiquetas = (x.blocos || []).some((b) => b.tipo === "etiquetas");
     const rapidos = [
       ...opcoes,
       ...(ultima ? x.sugestoes || [] : []).map((s) => ({ id: s, rotulo: s, comando: s })),
-      ...(x.acoes || []).map((a, i) => ({ id: `a${i}`, rotulo: a.rotulo, comando: a.comando, rota: a.rota })),
+      // com a lista de etiquetas, o botão Imprimir da lista substitui o link da fila
+      ...(x.acoes || []).filter((a) => !(temEtiquetas && String(a.rota || "").includes("?lote="))).map((a, i) => ({ id: `a${i}`, rotulo: a.rotulo, comando: a.comando, rota: a.rota })),
     ];
     // com a folha do prato/drink, o cartaz já diz tudo: o texto longo fica só para a leitura em voz alta
     const temFolha = (x.blocos || []).some((b) => b.tipo === "folha" && b.folha?.nome);
     return (
       <div key={chave} className="space-y-1">
-        <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao || temFolha}>
+        <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao || temFolha || temEtiquetas}>
           {x.item && !x.confirmacao && <p className="text-[13.5px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{x.item}</p>}
           {x.confirmacao ? (
             <CartaoConfirmacao c={x.confirmacao} resolvida={resolvida} ocupado={ocupado} onConfirmar={(t) => onConfirmar(x.confirmacao.acaoId, t)} onCancelar={() => onCancelar(x.confirmacao.acaoId)} />
@@ -237,7 +241,7 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
               {x.pergunta?.texto && !String(x.texto || "").includes(x.pergunta.texto) ? `\n${x.pergunta.texto}` : ""}
             </p>
           )}
-          <Blocos blocos={x.blocos} />
+          <Blocos blocos={x.blocos} onRota={onRota} />
           {primeiro && <Rodape r={r} />}
         </Balao>
         <BotoesRapidos

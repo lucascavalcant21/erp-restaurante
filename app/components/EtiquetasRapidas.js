@@ -436,9 +436,9 @@ export default function EtiquetasRapidas() {
     try { router.replace("/dashboard/operacao/etiquetas" + (setorDaUrl ? `?dept=${setorDaUrl}` : "")); } catch { /* a fila já foi lida */ }
     if (!pedidos.length) return;
     const porNome = new Map(produtos.map(p => [chaveDeNome(p.nome), p]));
-    const novos = pedidos.map(({ nome, copias }) => {
+    const novos = pedidos.map(({ nome, copias, dias }) => {
       const produto = porNome.get(chaveDeNome(nome)) || { id: `livre:${nome}`, nome, unidade: "UN", custo: 0, origem: "Nome livre" };
-      return { ...produto, quantidade: "", informarQuantidade: false, copias, dias: validadePadraoDe(produto.nome), conservacao: "Resfriado", codigo: gerarCodigo(), modeloEtiqueta: "validade", tipoEtiqueta, escalaNome, escalaLogo, logoEtiqueta: mostrarLogo ? logoEtiqueta : "" };
+      return { ...produto, quantidade: "", informarQuantidade: false, copias, dias: Number.isInteger(dias) ? dias : validadePadraoDe(produto.nome), conservacao: "Resfriado", codigo: gerarCodigo(), modeloEtiqueta: "validade", tipoEtiqueta, escalaNome, escalaLogo, logoEtiqueta: mostrarLogo ? logoEtiqueta : "" };
     });
     setFila(atual => [...atual, ...novos]);
     setFilaAberta(true);

@@ -47,6 +47,15 @@ function tabelas() {
   // compra em rascunho com 2 kg de picanha pedidos
   t.vw_compras.push({ id: "c9", unidade_id: A, data_compra: HOJE, status: "rascunho", valor_itens: 130, valor_total: 130, fornecedor_id: null, created_at: `${HOJE}T10:00:00Z` });
   t.compras_itens.push({ id: "i9", unidade_id: A, compra_id: "c9", insumo_id: PICANHA, quantidade_embalagens: 2, quantidade_pedida_embalagens: 2, conteudo_por_embalagem: 1000, quantidade_base: 2000, unidade_base: "g", valor_total: 130 });
+  // histórico de etiquetas impressas (a casa sempre pede açaí e "Jambu"); a loja B não pode aparecer
+  t.etiquetas.push(
+    { unidade_id: A, produto: "Açaí", copias: 2, validade_dias: 30, created_at: "2026-10-06T12:00:00Z", status: "ativa" },
+    { unidade_id: A, produto: "Açaí", copias: 3, validade_dias: 30, created_at: "2026-10-05T12:00:00Z", status: "baixada" },
+    { unidade_id: A, produto: "Acai", copias: 2, validade_dias: 30, created_at: "2026-10-01T12:00:00Z", status: "baixada" },
+    { unidade_id: A, produto: "Jambu", copias: 1, validade_dias: 7, created_at: "2026-10-04T12:00:00Z", status: "ativa" },
+    { unidade_id: A, produto: "Goma antiga", copias: 1, validade_dias: 7, created_at: "2026-06-01T12:00:00Z", status: "baixada" },
+    { unidade_id: "loja-b", produto: "Segredo da B", copias: 50, validade_dias: 1, created_at: "2026-10-06T12:00:00Z", status: "ativa" },
+  );
   return t;
 }
 
@@ -307,7 +316,7 @@ test("etiquetas: monta a fila com os nomes do cadastro e abre a tela de Etiqueta
   assert.deepEqual(JSON.parse(decodeURIComponent(rota.split("lote=")[1])), [[20, "Alho"], [30, "Caldo de camarão"], [2, "Vatapá"]]);
 });
 
-test("etiquetas: nome parcial casa com o cadastro; sem produto, pergunta quais", async () => {
+test("etiquetas: nome parcial casa com o cadastro; sem produto, mostra as de costume", async () => {
   const { pedir } = await montar();
   const r = await pedir("10 etiquetas de xarope, 5 de alho");
   assert.match(r.texto, /10 de Xarope de guaraná, 5 de Alho/);
@@ -315,7 +324,7 @@ test("etiquetas: nome parcial casa com o cadastro; sem produto, pergunta quais",
   assert.match(s.texto, /3 de Sal Fino/);
   const vazio = await pedir("quero imprimir etiquetas");
   assert.equal(vazio.interpretacao.intencao, "etiquetas.imprimir");
-  assert.match(vazio.texto, /quais produtos/i);
+  assert.match(vazio.texto, /etiquetas que você mais pede/);
 });
 
 test("nota fiscal: frases do dia a dia levam ao lançamento pela foto ou pelo XML", async () => {
@@ -325,4 +334,25 @@ test("nota fiscal: frases do dia a dia levam ao lançamento pela foto ou pelo XM
     assert.equal(r.interpretacao.intencao, "compras.foto_nota", t);
     assert.match(r.texto, /XML da NF-e/);
   }
+});
+
+test("etiquetas: lista as que a casa sempre pede, com quantidade e validade de costume", async () => {
+  const { pedir } = await montar();
+  const r = await pedir("quero imprimir etiquetas");
+  assert.match(r.texto, /etiquetas que você mais pede/);
+  const b = r.blocos.find((x) => x.tipo === "etiquetas");
+  assert.deepEqual(b.selecionadas, []);
+  assert.deepEqual(b.habituais.map((h) => [h.nome, h.copias, h.dias, h.vezes]), [["Açaí", 2, 30, 3], ["Jambu", 1, 7, 1]]);
+  assert.ok(!JSON.stringify(r).includes("Segredo da B"), "histórico da loja B não aparece");
+  assert.ok(!JSON.stringify(r).includes("Goma antiga"), "só os últimos 60 dias");
+});
+
+test("etiquetas: o nome que a casa usa vale primeiro e a pergunta oferece mais", async () => {
+  const { pedir } = await montar();
+  const r = await pedir("Eu quero 20 etiquetas de jambu, 5 de alho");
+  assert.match(r.texto, /Separei 25 etiquetas: 20 de Jambu, 5 de Alho\. Quer mais alguma\?/);
+  const b = r.blocos.find((x) => x.tipo === "etiquetas");
+  assert.deepEqual(b.selecionadas.map((i) => [i.nome, i.copias, i.dias]), [["Jambu", 20, 7], ["Alho", 5, null]]);
+  assert.deepEqual(b.habituais.map((h) => h.nome), ["Açaí"], "as pedidas agora não se repetem nas de costume");
+  assert.deepEqual(b.validades, [1, 3, 7, 15, 30, 60, 90]);
 });

@@ -525,7 +525,7 @@ function ModalParear({ painel, dados, fechar, executar }) {
 function ModalTrocar({ painel, dados, fechar, executar, unidadeId }) {
   const [tipo, setTipo] = useState(dados.conteudo?.tipo || (painel.playlists.length ? "playlist" : "midia"));
   const [id, setId] = useState(dados.conteudo?.id || "");
-  const [ajuste, setAjuste] = useState(dados.conteudo?.ajuste || "inteira");
+  const [ajuste, setAjuste] = useState(dados.conteudo?.ajuste || "auto");
   const [telas, setTelas] = useState(dados.telas === "todas" ? painel.telas.map((t) => t.id) : dados.telas || []);
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -695,7 +695,7 @@ function ItemDaSequencia({ it, i, ordem, painel, midiasPorId, mudar, mover, remo
           </div>
         )}
         {it.tipo === "midia" && (
-          <Select value={it.ajuste || "inteira"} onChange={(e) => mudar(i, "ajuste", e.target.value)} className="!h-10 !w-full text-xs" aria-label="Ajuste na TV" title={AJUDA_AJUSTE[it.ajuste || "inteira"]}>
+          <Select value={it.ajuste || "auto"} onChange={(e) => mudar(i, "ajuste", e.target.value)} className="!h-10 !w-full text-xs" aria-label="Ajuste na TV" title={AJUDA_AJUSTE[it.ajuste || "auto"]}>
             {AJUSTES_TV.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </Select>
         )}

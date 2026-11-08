@@ -36,7 +36,24 @@ export const MAX_LADOS = 3;
 //   inteira   — a arte toda, fundo com ela mesma desfocada (padrão);
 //   preencher — enche a tela cortando as sobras (em cima e embaixo, ou nos lados);
 //   dividir   — metade de cima à esquerda e metade de baixo à direita (foto em pé numa TV deitada).
-export const AJUSTES = Object.freeze(["inteira", "preencher", "dividir"]);
+export const AJUSTES = Object.freeze(["auto", "inteira", "preencher", "dividir"]);
+
+/**
+ * Proporção máxima entre a arte e a área para o Automático encher a tela.
+ * 1,4 cobre foto deitada do celular (4:3) e de câmera (3:2) numa TV 16:9
+ * (corta no máximo ~13% em cima e embaixo); foto em pé numa TV deitada passa
+ * disso e fica inteira, com o fundo desfocado.
+ */
+export const LIMITE_PREENCHER = 1.4;
+
+/** O Automático decide pela medida real: "preencher" quando a arte cabe quase toda, senão "inteira". */
+export function ajusteAutomatico(larguraMidia, alturaMidia, larguraArea, alturaArea) {
+  const medidas = [larguraMidia, alturaMidia, larguraArea, alturaArea];
+  if (!medidas.every((n) => Number.isFinite(n) && n > 0)) return "inteira";
+  const a = larguraMidia / alturaMidia;
+  const b = larguraArea / alturaArea;
+  return Math.max(a, b) / Math.min(a, b) <= LIMITE_PREENCHER ? "preencher" : "inteira";
+}
 
 export const LIMITES = Object.freeze({ itensPorPlaylist: 60, telasPorRegra: 500, nome: 80, porPagina: { min: 3, max: 12, padrao: 6 } });
 
@@ -136,6 +153,17 @@ export function codecDoVideo(bytes) {
   return "desconhecido";
 }
 
+/**
+ * O Storage confere o tipo gravado no próprio arquivo (o .mov do iPhone vem
+ * como video/quicktime), não o tipo pedido no envio: refaz o arquivo com o
+ * tipo certo, sem mudar nenhum byte do vídeo.
+ */
+export function arquivoComTipo(arquivo, mime) {
+  if (!arquivo || arquivo.type === mime) return arquivo;
+  const nome = String(arquivo.name || "arquivo").replace(/\.mov$/i, ".mp4");
+  return new File([arquivo], nome, { type: mime, lastModified: arquivo.lastModified });
+}
+
 export const ERRO_HEVC = "Este vídeo está em \"Alta eficiência\" (HEVC) e muitas TVs não tocam. No iPhone: Ajustes → Câmera → Formatos → \"Mais compatível\", grave de novo e envie. Ou exporte em MP4 (H.264) pelo CapCut ou Canva.";
 
 /** Orientação pela proporção (largura × altura); sem medida, "horizontal". */
@@ -169,7 +197,7 @@ export function normalizarItem(item) {
   const zona = Number.isFinite(z) ? limitar(z, 0, MAX_LADOS - 1) : 0;
   if (item.tipo === "midia") {
     if (!uuidValido(item.midia_id)) return null;
-    const ajuste = AJUSTES.includes(item.ajuste) ? item.ajuste : "inteira";
+    const ajuste = AJUSTES.includes(item.ajuste) ? item.ajuste : "auto";
     return { tipo: "midia", midia_id: item.midia_id, duracao_seg, zona, ajuste };
   }
   if (item.tipo === "cardapio") {
@@ -217,7 +245,7 @@ export function normalizarConteudo(c) {
   if (!c || typeof c !== "object") return null;
   if (c.tipo === "playlist" && uuidValido(c.id)) return { tipo: "playlist", id: c.id };
   if (c.tipo === "midia" && uuidValido(c.id)) {
-    return { tipo: "midia", id: c.id, ...(AJUSTES.includes(c.ajuste) && c.ajuste !== "inteira" ? { ajuste: c.ajuste } : {}) };
+    return { tipo: "midia", id: c.id, ...(AJUSTES.includes(c.ajuste) && c.ajuste !== "auto" ? { ajuste: c.ajuste } : {}) };
   }
   return null;
 }

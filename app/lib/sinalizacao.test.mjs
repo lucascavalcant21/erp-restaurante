@@ -188,12 +188,14 @@ test("tela dividida: cada item num lado; todo lado precisa de conteúdo; o rotei
   assert.deepEqual(r.map((s) => [s.nome, s.zona, s.duracao_seg]), [["A", 0, 8], ["B", 1, 20]]);
 });
 
-test("ajuste na TV: inteira (padrão), preencher ou dividir; vale na playlist e na arte fixa", () => {
-  assert.equal(normalizarItem({ tipo: "midia", midia_id: M1 }).ajuste, "inteira");
+test("ajuste na TV: automático (padrão), inteira, preencher ou dividir; vale na playlist e na arte fixa", () => {
+  assert.equal(normalizarItem({ tipo: "midia", midia_id: M1 }).ajuste, "auto");
+  assert.equal(normalizarItem({ tipo: "midia", midia_id: M1, ajuste: "inteira" }).ajuste, "inteira", "quem escolheu Inteira continua com Inteira");
   assert.equal(normalizarItem({ tipo: "midia", midia_id: M1, ajuste: "dividir" }).ajuste, "dividir");
-  assert.equal(normalizarItem({ tipo: "midia", midia_id: M1, ajuste: "esticar" }).ajuste, "inteira", "valor desconhecido volta ao padrão");
+  assert.equal(normalizarItem({ tipo: "midia", midia_id: M1, ajuste: "esticar" }).ajuste, "auto", "valor desconhecido volta ao padrão");
   assert.deepEqual(normalizarConteudo({ tipo: "midia", id: M1, ajuste: "preencher" }), { tipo: "midia", id: M1, ajuste: "preencher" });
-  assert.deepEqual(normalizarConteudo({ tipo: "midia", id: M1, ajuste: "inteira" }), { tipo: "midia", id: M1 });
+  assert.deepEqual(normalizarConteudo({ tipo: "midia", id: M1, ajuste: "inteira" }), { tipo: "midia", id: M1, ajuste: "inteira" });
+  assert.deepEqual(normalizarConteudo({ tipo: "midia", id: M1, ajuste: "auto" }), { tipo: "midia", id: M1 });
   assert.deepEqual(normalizarConteudo({ tipo: "playlist", id: P1, ajuste: "dividir" }), { tipo: "playlist", id: P1 });
   const r = montarRoteiro({ itens: [{ tipo: "midia", midia_id: M1, ajuste: "preencher" }], midias: new Map([[M1, { id: M1, tipo: "imagem", nome: "A" }]]), urls: new Map([[M1, "u"]]) });
   assert.equal(r[0].ajuste, "preencher");
@@ -226,4 +228,32 @@ test("vídeo do iPhone: .mov sobe como MP4; HEVC é avisado", async () => {
   assert.equal(codecDoVideo(comCodec("hvc1")), "hevc");
   assert.equal(codecDoVideo(comCodec("hev1")), "hevc");
   assert.equal(codecDoVideo(new Uint8Array([1, 2, 3])), "desconhecido");
+});
+
+test("o .mov sobe marcado como MP4 (o Storage confere a marca do próprio arquivo), com os mesmos bytes", async () => {
+  const { arquivoComTipo } = await import("./sinalizacao.mjs");
+  const mov = new File([new Uint8Array([1, 2, 3, 4])], "IMG_1.MOV", { type: "video/quicktime" });
+  const mp4 = arquivoComTipo(mov, "video/mp4");
+  assert.equal(mp4.type, "video/mp4");
+  assert.equal(mp4.name, "IMG_1.mp4");
+  assert.deepEqual([...new Uint8Array(await mp4.arrayBuffer())], [1, 2, 3, 4]);
+  // A biblioteca do Supabase manda o arquivo num formulário: a parte vai com a marca do arquivo.
+  const form = new FormData();
+  form.append("", mp4);
+  assert.equal(form.get("").type, "video/mp4");
+  const foto = new File([new Uint8Array([9])], "a.jpg", { type: "image/jpeg" });
+  assert.equal(arquivoComTipo(foto, "image/jpeg"), foto, "foto não muda");
+});
+
+test("Automático: foto deitada enche a TV deitada; foto em pé fica inteira; medida faltando não arrisca corte", async () => {
+  const { ajusteAutomatico } = await import("./sinalizacao.mjs");
+  assert.equal(ajusteAutomatico(4032, 3024, 1920, 1080), "preencher", "foto deitada do iPhone (4:3) na TV 16:9");
+  assert.equal(ajusteAutomatico(6000, 4000, 1920, 1080), "preencher", "foto de câmera (3:2)");
+  assert.equal(ajusteAutomatico(1920, 1080, 1920, 1080), "preencher", "arte no tamanho certo");
+  assert.equal(ajusteAutomatico(3024, 4032, 1920, 1080), "inteira", "foto em pé na TV deitada");
+  assert.equal(ajusteAutomatico(1080, 1920, 1920, 1080), "inteira", "story 9:16 na TV deitada");
+  assert.equal(ajusteAutomatico(3024, 4032, 960, 1080), "preencher", "foto em pé num lado da tela dividida em 2");
+  assert.equal(ajusteAutomatico(1080, 1080, 1920, 1080), "inteira", "quadrada cortaria 44%");
+  assert.equal(ajusteAutomatico(0, 0, 1920, 1080), "inteira");
+  assert.equal(ajusteAutomatico(4032, 3024, 0, 0), "inteira");
 });

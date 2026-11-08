@@ -8,7 +8,8 @@
 // são contêineres, e tudo se ajusta ao espaço real — TV inteira, girada,
 // dividida ou a telinha da prévia.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ajusteAutomatico } from "../../lib/sinalizacao.mjs";
 
 // Realce das fotos na TV (pedido do dono, 07/11/2026: "mais bonita, mais nítida,
 // mais viva"): cores um pouco mais vivas, contraste leve e nitidez suave.
@@ -60,24 +61,32 @@ export function SlideCardapio({ pagina, loja, vertical }) {
 
 function Midia({ slide, aoTerminar, carregar }) {
   const [src, setSrc] = useState(null);
+  // Automático: começa como "inteira" e decide pela medida real da arte e da área.
+  const [decidido, setDecidido] = useState(null);
+  const caixa = useRef(null);
   useEffect(() => {
     let vivo = true;
     setSrc(null);
+    setDecidido(null);
     Promise.resolve(carregar ? carregar(slide) : slide.url).then((u) => { if (vivo) setSrc(u); });
     return () => { vivo = false; };
   }, [slide, carregar]);
+  const medir = useCallback((largura, altura) => {
+    const area = caixa.current;
+    if (area) setDecidido(ajusteAutomatico(largura, altura, area.clientWidth, area.clientHeight));
+  }, []);
   if (!src) return <div className="h-full w-full bg-black" />;
-  const ajuste = slide.ajuste || "inteira";
+  const pedido = slide.ajuste || "auto";
+  const ajuste = pedido === "auto" ? decidido || "inteira" : pedido;
   if (slide.tipo === "video") {
     // Vídeo: inteira ou preencher (dividir em dois tocaria o vídeo duas vezes: pesa na TV).
     return (
-      <video key={slide.chave} src={src} className={`h-full w-full bg-black ${ajuste === "inteira" ? "object-contain" : "object-cover"}`}
-        autoPlay muted playsInline onEnded={aoTerminar} onError={aoTerminar} />
+      <div ref={caixa} className="h-full w-full bg-black">
+        <video key={slide.chave} src={src} className={`h-full w-full bg-black ${ajuste === "inteira" ? "object-contain" : "object-cover"}`}
+          autoPlay muted playsInline onEnded={aoTerminar} onError={aoTerminar}
+          onLoadedMetadata={(e) => medir(e.currentTarget.videoWidth, e.currentTarget.videoHeight)} />
+      </div>
     );
-  }
-  if (ajuste === "preencher") {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img key={slide.chave} src={src} alt="" className="h-full w-full bg-black object-cover" style={{ filter: REALCE }} onError={aoTerminar} />;
   }
   if (ajuste === "dividir") {
     // Metade de cima à esquerda, metade de baixo à direita: a foto em pé vira
@@ -96,12 +105,17 @@ function Midia({ slide, aoTerminar, carregar }) {
     );
   }
   // Inteira: a arte toda; o fundo é a própria arte ampliada e desfocada (sem faixa preta).
+  // Preencher: a mesma foto cobrindo a área toda, sem fundo.
+  const cheia = ajuste === "preencher";
   return (
-    <div key={slide.chave} className="relative h-full w-full overflow-hidden bg-black">
+    <div ref={caixa} key={slide.chave} className="relative h-full w-full overflow-hidden bg-black">
+      {!cheia && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
+      )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" className="relative h-full w-full object-contain" style={{ filter: REALCE }} onError={aoTerminar} />
+      <img src={src} alt="" className={`relative h-full w-full ${cheia ? "object-cover" : "object-contain"}`} style={{ filter: REALCE }}
+        onError={aoTerminar} onLoad={(e) => medir(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)} />
     </div>
   );
 }

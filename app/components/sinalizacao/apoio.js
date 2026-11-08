@@ -7,7 +7,7 @@ import { supabase } from "../../lib/supabase";
 import { useCallback, useEffect, useState } from "react";
 import { MonitorPlay, RefreshCw, Utensils } from "lucide-react";
 import { Palco, FiltroNitidez } from "./PalcoTv";
-import { mimeParaEnvio, codecDoVideo, ERRO_HEVC } from "../../lib/sinalizacao.mjs";
+import { mimeParaEnvio, codecDoVideo, arquivoComTipo, ERRO_HEVC } from "../../lib/sinalizacao.mjs";
 
 export async function chamar(unidadeId, acao, dados = {}) {
   const r = await fetchComSessao("/api/sinalizacao", {
@@ -56,7 +56,7 @@ export async function enviarArquivo(unidadeId, arquivo) {
   const base = { nome: arquivo.name.replace(/\.[^.]+$/, "").slice(0, 80), mime, tamanho: arquivo.size };
   const medidas = await medirArquivo(arquivo);
   const prep = await chamar(unidadeId, "preparar_envio", base);
-  const { error } = await supabase.storage.from("sinalizacao").uploadToSignedUrl(prep.caminho, prep.token, arquivo, { contentType: mime });
+  const { error } = await supabase.storage.from("sinalizacao").uploadToSignedUrl(prep.caminho, prep.token, arquivoComTipo(arquivo, mime), { contentType: mime });
   if (error) throw new Error("O arquivo não subiu. Confira a internet e tente de novo.");
   return chamar(unidadeId, "registrar_midia", { ...base, ...medidas, caminho: prep.caminho });
 }
@@ -102,11 +102,13 @@ export const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 // ─── Prévia: "Ver como fica na TV" ───────────────────────────────────────────
 
 export const AJUSTES_TV = [
+  ["auto", "Automático (recomendado)"],
   ["inteira", "Inteira"],
   ["preencher", "Preencher"],
   ["dividir", "Dividir em 2"],
 ];
 export const AJUDA_AJUSTE = {
+  auto: "Foto deitada numa TV deitada enche a tela toda (corta um pouco em cima e embaixo). Foto em pé fica inteira, com o fundo desfocado.",
   inteira: "A arte toda, com o fundo preenchido pela própria arte desfocada.",
   preencher: "Enche a tela sem desfocar; corta as sobras (em cima e embaixo).",
   dividir: "Metade de cima à esquerda e metade de baixo à direita: enche a TV deitada sem desfocar. Em vídeo vale como Preencher.",

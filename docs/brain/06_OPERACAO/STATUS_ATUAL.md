@@ -51,6 +51,14 @@ Branch `claude/sharp-meitner-0i36gu` (PR em rascunho):
 - Evidência: TESTADO EM MOCK (Playwright 390/1366 px com Supabase falso), TESTADO LOCAL (app/lib 530/531; a falha é a trava de RLS dos SQLs da Experience, já vermelha antes), build OK. Preview e produção: NÃO VALIDADO.
 - **Rodada 2 (Estoque, Financeiro, painel):** Financeiro com barra de áreas (Visão geral, A pagar, A receber, Caixa, DRE, Pizza, CMV); `/fluxo`, `/documentos` e `/margem` redirecionam (gravavam/liam tabelas fora do financeiro novo, B-024); CMV sem 0% inventado (B-023); Contas a Pagar em cartões no celular; Pizza do Lucro visível no celular; paleta sem fundo preto no Estoque e no Financeiro; abas do Estoque à vista no celular; painel inicial com faturamento vazio compacto. Simulador com o **esquema e o volume reais** (369 produtos, 374 saldos, 350 movimentos; leitura só). Mesmo resultado de testes; build OK.
 
+## 08/11/2026 — Marmitaria e Eventos: identidade "Gestão" e Dashboard gerencial (pedido do dono)
+
+Branch `claude/painel-gerencial-marmitaria-eventos` (PR em rascunho):
+- **Identidade "Gestão"** (vermelho, barra de áreas preta com ícone, fundo areia) só nos dois módulos, por `.tema-gestao`.
+- **Dashboard gerencial** da Marmitaria e dos Eventos: KPIs, maiores margens com foto, rosca de custos, análise do produto/evento, faturamento × custos fixos (lucro × meta nos eventos), maiores custos, custo operacional por dia/hora/minuto e ponto de equilíbrio sem e com lucro (marmitaria), funil e ano (eventos). Contas em `app/lib/painel-gerencial.mjs`.
+- **Precificação** da marmitaria com a foto do prato em cima, código da ficha e selo "Margem alcançada". Configurações ganha "Horas de operação por dia".
+- Evidência: TESTADO LOCAL (`painel-gerencial.test.mjs` 11/11; `app/lib` 990 ok, as 13 falhas são as mesmas da `main`, testes de banco sem PGLITE; catálogo de permissões e navegação OK), build OK (Google Fonts simulado). TESTADO EM MOCK (Playwright 390/820/1366 px, Supabase falso com marmitas, vendas e eventos de exemplo: sem rolagem lateral, sem erro de página). Preview e produção: NÃO VALIDADO.
+
 ## 07/11/2026 — Visual inspirado no Nina (pedido do dono)
 
 Branch `claude/visual-nina-modulos` (PR em rascunho):

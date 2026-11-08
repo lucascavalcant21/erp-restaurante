@@ -73,13 +73,13 @@ export function TituloGestao({ antes = "Visão", destaque = "geral", icone: Icon
 export function CartaoKpi({ icone: Icone, rotulo, valor, formato = "brl", nota, natureza, destaque = false, semDado = "Dados insuficientes" }) {
   const vazio = valor === null || valor === undefined;
   return (
-    <div className={`flex min-w-0 items-start gap-3 rounded-2xl p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_18px_-8px_rgba(0,0,0,0.12)] ${destaque ? "bg-gradient-to-br from-hf-success to-[rgb(6_95_70)] text-white" : "border border-hf-border bg-hf-surface"}`}>
-      {Icone && <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${destaque ? "bg-white/15 text-white" : "bg-hf-accent/10 text-hf-accent"}`}><Icone size={18} /></span>}
-      <div className="min-w-0 flex-1">
-        <p className={`truncate text-xs font-medium ${destaque ? "text-white/80" : "text-hf-muted"}`}>{rotulo}</p>
-        <p className={`mt-0.5 break-words tabular-nums ${vazio ? `text-xs font-semibold ${destaque ? "text-white/80" : "text-hf-muted"}` : `text-lg font-bold ${!destaque && Number(valor) < 0 ? "text-hf-danger" : ""}`}`}>{vazio ? semDado : valorTxt(valor, formato)}</p>
-        {(nota || natureza) && <div className={`mt-1 flex flex-wrap items-center gap-1.5 text-[11px] ${destaque ? "text-white/80" : "text-hf-muted"}`}>{natureza && !destaque && <Natureza tipo={natureza} />}{nota && <span>{nota}</span>}</div>}
+    <div className={`min-w-0 rounded-2xl p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_18px_-8px_rgba(0,0,0,0.12)] ${destaque ? "bg-gradient-to-br from-hf-success to-[rgb(6_95_70)] text-white" : "border border-hf-border bg-hf-surface"}`}>
+      <div className="flex min-w-0 items-center gap-2">
+        {Icone && <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${destaque ? "bg-white/15 text-white" : "bg-hf-accent/10 text-hf-accent"}`}><Icone size={16} /></span>}
+        <p className={`min-w-0 text-xs font-medium leading-tight ${destaque ? "text-white/85" : "text-hf-muted"}`}>{rotulo}</p>
       </div>
+      <p className={`mt-2 whitespace-nowrap tabular-nums ${vazio ? `text-xs font-semibold ${destaque ? "text-white/80" : "text-hf-muted"}` : `text-[17px] font-bold tracking-tight sm:text-lg ${!destaque && Number(valor) < 0 ? "text-hf-danger" : ""}`}`}>{vazio ? semDado : valorTxt(valor, formato)}</p>
+      {(nota || natureza) && <div className={`mt-1 flex flex-wrap items-center gap-1.5 text-[11px] leading-tight ${destaque ? "text-white/80" : "text-hf-muted"}`}>{natureza && !destaque && <Natureza tipo={natureza} />}{nota && <span>{nota}</span>}</div>}
     </div>
   );
 }
@@ -155,24 +155,24 @@ const TONS = [
 
 /** Rosca (SVG) com o total no meio e a legenda ao lado. fatias: [{ rotulo, valor, pct }] */
 export function Rosca({ fatias = [], total, rotuloTotal }) {
-  const raio = 52;
+  const raio = 56;
   const volta = 2 * Math.PI * raio;
   let inicio = 0;
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
-      <div className="relative h-44 w-44 shrink-0">
+      <div className="relative h-48 w-48 shrink-0">
         <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90" role="img" aria-label={`${rotuloTotal || "Total"}: ${brl(total)}`}>
-          <circle cx="70" cy="70" r={raio} fill="none" stroke="rgb(var(--hf-elevated))" strokeWidth="22" />
+          <circle cx="70" cy="70" r={raio} fill="none" stroke="rgb(var(--hf-elevated))" strokeWidth="16" />
           {fatias.map((f, i) => {
             const tam = (f.pct / 100) * volta;
-            const el = <circle key={f.rotulo} cx="70" cy="70" r={raio} fill="none" stroke={TONS[i % TONS.length]} strokeWidth="22" strokeDasharray={`${Math.max(tam - 1.5, 0.5)} ${volta}`} strokeDashoffset={-inicio} />;
+            const el = <circle key={f.rotulo} cx="70" cy="70" r={raio} fill="none" stroke={TONS[i % TONS.length]} strokeWidth="16" strokeDasharray={`${Math.max(tam - 1.5, 0.5)} ${volta}`} strokeDashoffset={-inicio} />;
             inicio += tam;
             return el;
           })}
         </svg>
         <div className="absolute inset-0 grid place-items-center text-center">
           <div>
-            <p className="text-base font-bold tabular-nums text-hf-text">{brl(total)}</p>
+            <p className="max-w-[112px] text-sm font-bold leading-tight tabular-nums text-hf-text">{brl(total)}</p>
             {rotuloTotal && <p className="text-[11px] text-hf-muted">{rotuloTotal}</p>}
           </div>
         </div>

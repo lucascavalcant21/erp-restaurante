@@ -254,6 +254,8 @@ export const PERMISSION_MODULES = [
       { id: "quick_budget", label: "Simulador do evento (mesa, buffet, bar, equipe)", route: "/dashboard/reservas-eventos/rapido", actions: ["view", "create", "view_costs"] },
       // Metas do mês e do ano: lucro e faturamento contratados (06/11/2026). Mostra valores e custos.
       { id: "goals", label: "Metas dos eventos", route: "/dashboard/reservas-eventos/metas", actions: ["view", "edit"] },
+      // Dashboard gerencial dos eventos (08/11/2026): contratado, margens, custos e funil. Mostra valores e custos.
+      { id: "management", label: "Dashboard gerencial dos eventos", route: "/dashboard/reservas-eventos/gerencial", actions: ["view"] },
       { id: "budget", label: "Eventos e Reservas", route: "/dashboard/reservas-eventos/eventos", actions: [...CRUD, "approve", "reject", "view_values", "view_costs", "print"] },
       { id: "operation", label: "Eventos na operação", route: "/dashboard/operacao/eventos", actions: [...CRUD, "confirm", "cancel"] },
       // Cobre por prefixo /dashboard/reservas-eventos/agenda, /reservas e
@@ -318,6 +320,8 @@ export const PERMISSION_MODULES = [
       // Seis áreas (14/10/2026). Os ids antigos que continuam servem às mesmas
       // funções; os que sumiram (pedidos, cardápio, precificação…) viraram abas.
       { id: "overview", label: "Visão Geral", route: "/dashboard/marmitaria", actions: [...VIEW_EXPORT, "view_values"] },
+      // Dashboard gerencial (08/11/2026): margens, custos fixos, ponto de equilíbrio e resultado.
+      { id: "management", label: "Dashboard gerencial", route: "/dashboard/marmitaria/gerencial", actions: ["view", "view_values", "view_margin"] },
       { id: "recipes", label: "Ficha técnica, embalagens, cardápio e preços", route: "/dashboard/marmitaria/marmitas", actions: [...CRUD, "view_costs", "view_margin"] },
       { id: "stock", label: "Estoque e Produção", route: "/dashboard/marmitaria/estoque", actions: [...CRUD, "transfer", "confirm", "view_costs"] },
       { id: "hr", label: "Funcionários e CMO", route: "/dashboard/marmitaria/funcionarios", actions: [...CRUD, "view_values"] },

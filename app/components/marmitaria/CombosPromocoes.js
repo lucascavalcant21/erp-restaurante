@@ -8,7 +8,7 @@
 // config_sistema; o preço de cada plataforma, em marmitaria_precificacao_canais.
 
 import { useState } from "react";
-import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronUp, UtensilsCrossed, CupSoda, IceCreamCone, SlidersHorizontal } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronUp, UtensilsCrossed, CupSoda, IceCreamCone, SlidersHorizontal, CheckCircle2 } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, Selo, brl, markupPctTxt, markupTxt, inputCls, lerNumero, pctTxt } from "./ui";
 import {
@@ -138,8 +138,8 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
 
 const ICONE_GRUPO = { marmita: UtensilsCrossed, bebida: CupSoda, sobremesa: IceCreamCone };
 
-const BORDA_VEREDITO = { ok: "border-l-hf-accent", baixo: "border-l-hf-warning", prejuizo: "border-l-hf-danger", lucro: "border-l-hf-border", sem_dados: "border-l-hf-border" };
-const VEREDITO_COR = { ok: "bg-hf-accent/10 text-hf-accent", baixo: "bg-hf-warning/10 text-hf-warning", prejuizo: "bg-hf-danger/10 text-hf-danger", lucro: "bg-hf-elevated text-hf-text-2", sem_dados: "bg-hf-elevated text-hf-muted" };
+const BORDA_VEREDITO = { ok: "border-b-hf-success", baixo: "border-b-hf-warning", prejuizo: "border-b-hf-danger", lucro: "border-b-hf-border", sem_dados: "border-b-hf-border" };
+const VEREDITO_COR = { ok: "bg-hf-success/10 text-hf-success", baixo: "bg-hf-warning/10 text-hf-warning", prejuizo: "bg-hf-danger/10 text-hf-danger", lucro: "bg-hf-elevated text-hf-text-2", sem_dados: "bg-hf-elevated text-hf-muted" };
 const SECOES_CARDAPIO = [["promocoes", "Promoções"], ["combos", "Combos"], ["marmitas", "Sozinhos"]];
 
 // Cardápio como o cliente vê (estilo iFood) e, ao lado, o lucro de cada item.
@@ -178,21 +178,25 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
           return blocos.map(([titulo, itens]) => (
             <div key={`${sec}-${titulo}`}>
               <p className="mb-2 flex items-center gap-2 text-sm font-black text-hf-text">{titulo} <span className="rounded-full bg-hf-elevated px-2 text-xs text-hf-text-2">{itens.length}</span></p>
-              <ul className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+              <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {itens.map((l) => {
                   const img = l.ficha?.imagem;
                   const abrir = aberto === l.id;
                   const c = l.ficha ? custos.get(l.ficha.id) : null;
                   return (
-                    <li key={l.id} className={`rounded-2xl border border-hf-border border-l-4 bg-hf-surface p-3 ${BORDA_VEREDITO[l.veredito.id] || ""}`}>
-                      <div className="flex items-start gap-3">
-                        <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-hf-elevated text-hf-muted">{img ? <img src={img} alt="" className="h-full w-full object-cover" /> : <UtensilsCrossed size={20} />}</div>
-                        <div className="min-w-0 flex-1">
+                    <li key={l.id} className={`overflow-hidden rounded-2xl border border-hf-border border-b-4 bg-hf-surface ${BORDA_VEREDITO[l.veredito.id] || ""}`}>
+                      {/* Identidade "Gestão" (08/11/2026): a foto do prato em cima, com o código da ficha. */}
+                      <div className="relative h-36 bg-gradient-to-br from-hf-elevated to-hf-border">
+                        {img ? <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-hf-muted"><UtensilsCrossed size={28} /></span>}
+                        {l.ficha?.codigo && <span className="absolute left-2 top-2 rounded-md bg-hf-accent px-1.5 py-0.5 text-[11px] font-bold text-white">{l.ficha.codigo}</span>}
+                      </div>
+                      <div className="p-3">
+                        <div className="min-w-0">
                           {l.rotulo && l.secao !== "marmitas" ? <span className="mb-0.5 inline-block rounded-md bg-hf-danger/10 px-1.5 py-0.5 text-[11px] font-black text-hf-danger">{l.rotulo}</span> : null}
                           <p className="break-words text-sm font-bold text-hf-text">{l.nome}</p>
+                          <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${VEREDITO_COR[l.veredito.id]}`}>{l.veredito.id === "ok" && <CheckCircle2 size={12} />}{l.veredito.rotulo}</span>
                           {l.descricao && <p className="text-xs text-hf-muted">{l.descricao}</p>}
                         </div>
-                      </div>
                       <dl className="mt-3 grid grid-cols-4 gap-2 text-center">
                         <Numero r="Preço" v={l.semPreco ? "—" : brl(l.precoPago)} riscado={l.precoCheio > l.precoPago ? brl(l.precoCheio) : null} />
                         <Numero r="Custo" v={l.custo == null ? "—" : brl(l.custo)} />
@@ -203,7 +207,6 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
                         <div className="min-w-0">
                           <p className="text-[11px] font-bold uppercase text-hf-muted">{rotuloLucro}</p>
                           <p className={`text-xl font-black tabular-nums ${l.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{l.lucro == null ? "—" : brl(l.lucro)} <span className="text-xs font-bold text-hf-text-2">{l.lucro == null ? "" : pctTxt(l.lucroPct)}</span></p>
-                          <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-black ${VEREDITO_COR[l.veredito.id]}`}>{l.veredito.rotulo}</span>
                         </div>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
@@ -222,6 +225,7 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
                           {l.secao === "marmitas" ? <Comparacao s={{ ...l.sim, sem: l.sim.com }} rotuloSem="Preço cheio" rotuloCom="Preço cheio" unico rotuloLucro={rotuloLucro} /> : <Comparacao s={l.sim} rotuloSem={l.secao === "combos" ? "Separado" : "Sem promoção"} rotuloCom={l.secao === "combos" ? "Combo" : "Com promoção"} rotuloLucro={rotuloLucro} />}
                         </div>
                       )}
+                      </div>
                     </li>
                   );
                 })}

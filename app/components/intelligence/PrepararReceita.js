@@ -73,7 +73,12 @@ export default function PrepararReceita({ folha, onComando }) {
       {etapa === "checar" ? (
         <>
           <p className="text-[16px] font-semibold">Marque o que você tem</p>
-          {temEstoque ? <Botao onClick={pelaEstoque}>Preencher pelo estoque</Botao> : null}
+          {temEstoque ? (
+            <div className="space-y-1">
+              <Botao onClick={pelaEstoque}>Preencher pelo estoque</Botao>
+              <p className="text-[12.5px]" style={{ color: META }}>Usa o saldo do sistema. Se o estoque não estiver em dia, confira na prateleira e ajuste.</p>
+            </div>
+          ) : null}
           <ul className="space-y-2.5">
             {ings.map((ing, i) => {
               const d = disp[i] || { estado: "tem" };

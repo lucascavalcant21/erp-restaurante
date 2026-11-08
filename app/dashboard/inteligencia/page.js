@@ -11,7 +11,7 @@
 import { useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Loader2, ShieldCheck, ChevronDown, History, Settings, ArrowLeft, Bot, Mic, MessageCircle } from "lucide-react";
+import { RefreshCw, Loader2, ShieldCheck, ChevronDown, History, Settings, ArrowLeft, Bot, Mic, MessageCircle, ClipboardList } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { MetricaCartao, SeloCobertura } from "../../components/intelligence/Blocos";
 import InsightCartao from "../../components/intelligence/InsightCartao";
@@ -57,6 +57,9 @@ export default function CentralDeInteligencia() {
         <CabecalhoTela embutido voltar="historico" titulo="Central de inteligência" subtitulo="Análises e recomendações da sua operação">
           {!c.semUnidade && (
             <div className="flex gap-2">
+              <Link href="/dashboard/inteligencia/procedimentos" aria-label="Procedimentos da casa" className={BOTAO_SECUNDARIO}>
+                <ClipboardList size={16} /> <span className="hidden sm:inline">Procedimentos</span>
+              </Link>
               <Link href="/dashboard/inteligencia/configuracoes" aria-label="Configurações da inteligência" className={BOTAO_SECUNDARIO}>
                 <Settings size={16} /> <span className="hidden sm:inline">Configurações</span>
               </Link>

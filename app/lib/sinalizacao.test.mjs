@@ -214,3 +214,16 @@ test("horário de funcionamento: fora do horário a tela apaga; atravessa a meia
   assert.equal(dentroDoHorario(noite, em("2026-11-14T01:00:00")), true, "madrugada de sábado ainda é a sexta");
   assert.equal(dentroDoHorario(noite, em("2026-11-13T12:00:00")), false);
 });
+
+test("vídeo do iPhone: .mov sobe como MP4; HEVC é avisado", async () => {
+  const { mimeParaEnvio, codecDoVideo } = await import("./sinalizacao.mjs");
+  assert.equal(mimeParaEnvio("IMG_1234.MOV", "video/quicktime"), "video/mp4");
+  assert.equal(mimeParaEnvio("IMG_1234.mov", ""), "video/mp4");
+  assert.equal(mimeParaEnvio("a.jpg", "image/jpeg"), "image/jpeg");
+  assert.equal(validarEnvio({ mime: mimeParaEnvio("v.mov", "video/quicktime"), tamanho: 1000 }).ok, true);
+  const comCodec = (fourcc) => new Uint8Array([0, 0, 0, 0x20, 0x73, 0x74, 0x73, 0x64, ...Buffer.from(fourcc), 0, 1]);
+  assert.equal(codecDoVideo(comCodec("avc1")), "h264");
+  assert.equal(codecDoVideo(comCodec("hvc1")), "hevc");
+  assert.equal(codecDoVideo(comCodec("hev1")), "hevc");
+  assert.equal(codecDoVideo(new Uint8Array([1, 2, 3])), "desconhecido");
+});

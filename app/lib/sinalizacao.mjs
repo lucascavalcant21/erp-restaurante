@@ -106,6 +106,38 @@ export function validarEnvio({ nome, mime, tamanho } = {}) {
   return { ok: true, tipo: f.tipo, ext: f.ext, mime: String(mime).toLowerCase(), tamanho: bytes, nome: n };
 }
 
+/**
+ * Vídeo do iPhone (.mov, video/quicktime): quando o vídeo dentro é H.264, é o
+ * mesmo formato do MP4 e a TV toca; sobe como video/mp4. (Pedido do dono,
+ * 08/11/2026: o vídeo do celular não era aceito.)
+ */
+export function mimeParaEnvio(nome = "", tipo = "") {
+  const t = String(tipo || "").toLowerCase();
+  if (t === "video/quicktime" || /\.mov$/i.test(String(nome))) return "video/mp4";
+  if (!t && /\.mp4$/i.test(String(nome))) return "video/mp4";
+  if (!t && /\.jpe?g$/i.test(String(nome))) return "image/jpeg";
+  if (!t && /\.png$/i.test(String(nome))) return "image/png";
+  return t;
+}
+
+/**
+ * Codec do vídeo pela "etiqueta" gravada no arquivo (MP4/MOV): avc1 = H.264
+ * (toca em toda TV); hvc1/hev1 = HEVC ("Alta eficiência" do iPhone: muitas
+ * TVs não tocam). Procura nos bytes; não depende do navegador.
+ */
+export function codecDoVideo(bytes) {
+  const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+  const tem = (a, c, d, e) => {
+    for (let i = 0; i + 3 < b.length; i++) if (b[i] === a && b[i + 1] === c && b[i + 2] === d && b[i + 3] === e) return true;
+    return false;
+  };
+  if (tem(0x61, 0x76, 0x63, 0x31)) return "h264"; // avc1
+  if (tem(0x68, 0x76, 0x63, 0x31) || tem(0x68, 0x65, 0x76, 0x31)) return "hevc"; // hvc1 / hev1
+  return "desconhecido";
+}
+
+export const ERRO_HEVC = "Este vídeo está em \"Alta eficiência\" (HEVC) e muitas TVs não tocam. No iPhone: Ajustes → Câmera → Formatos → \"Mais compatível\", grave de novo e envie. Ou exporte em MP4 (H.264) pelo CapCut ou Canva.";
+
 /** Orientação pela proporção (largura × altura); sem medida, "horizontal". */
 export function orientacaoPorMedida(largura, altura) {
   const l = Number(largura);

@@ -12,7 +12,7 @@
 
 export const MAX_SUGESTOES = 3;
 
-const SEM_SUGESTOES = new Set(["fichas.preparo"]);
+const SEM_SUGESTOES = new Set(["fichas.preparo", "salao.orientacao"]);
 
 const GERAIS = Object.freeze([
   "Como foi minha empresa hoje?",
@@ -52,6 +52,8 @@ const POR_INTENCAO = {
   "empresa.problemas": () => ["Como foi minha empresa hoje?", "Quais contas vencem nos próximos dias?"],
   // a folha do prato/drink já termina com "Abrir a ficha": sem botões extras (pedido do dono, 07/11/2026)
   "fichas.preparo": () => [],
+  // salão: o passo a passo da casa já é a resposta (o "Editar procedimento" fica como único botão)
+  "salao.orientacao": () => [],
   "fichas.custo_quantidade": ({ f, base }) => [
     f ? "Quanto custa 1 kg dessa receita?" : null,
     base ? "Vamos montar um prato com essa base" : null,

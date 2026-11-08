@@ -147,7 +147,7 @@ export function respostaSemModelo(texto, dados, exemplos = []) {
  * @returns {Promise<{ resposta: object, ia: object|null }>}
  */
 /** Foco do salão: passo a passo curto para o garçom resolver agora (pedido do dono, 08/11/2026). */
-export const FOCO_SALAO = `Este pedido vem do SALÃO (garçom, atendimento). Responda como um maître experiente: até 6 passos curtos numerados ("1. …"), práticos, para fazer AGORA, e diga quando chamar o gerente ou o responsável. Se for montagem (mesa, ambiente), liste o que colocar e em que ordem. A casa ainda não cadastrou o jeito dela de fazer isso: deixe claro que é a orientação padrão (SUGESTÃO) e, no fim, uma frase dizendo que o dono pode cadastrar o padrão da casa em Operação, Checklists. Alergia: nunca garanta que um prato é seguro; mande confirmar a ficha e falar com a cozinha.`;
+export const FOCO_SALAO = `Este pedido vem do SALÃO (garçom, atendimento). Responda como um maître experiente: até 6 passos curtos numerados ("1. …"), práticos, para fazer AGORA, e diga quando chamar o gerente ou o responsável. Se for montagem (mesa, ambiente), liste o que colocar e em que ordem. A casa ainda não cadastrou o jeito dela de fazer isso: deixe claro que é a orientação padrão (SUGESTÃO) e, no fim, uma frase dizendo que a casa pode cadastrar o jeito dela em Inteligência, Procedimentos da casa. Alergia: nunca garanta que um prato é seguro; mande confirmar a ficha e falar com a cozinha.`;
 
 export async function responderLivre({ texto, motor, store = null, provedor = null, nomeUsuario = "", exemplos = [], foco = null }) {
   const dados = await coletarContexto({ texto, motor, store, nomeUsuario });

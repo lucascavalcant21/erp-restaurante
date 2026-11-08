@@ -20,7 +20,8 @@ import { notaSchema } from "../actions/lancar-nota.mjs";
 import { responderPergunta } from "../agents/orquestrador.mjs";
 import { criarTrilha, NIVEL } from "../core/niveis.mjs";
 import { auditar, ETAPA_AUDITORIA } from "../audit/auditoria.mjs";
-import { canAccessRoute } from "../../permissions-catalog.mjs";
+import { canAccessRoute, hasPermission } from "../../permissions-catalog.mjs";
+import { buscarProcedimento } from "../agents/procedimentos.mjs";
 
 export const pedidoSchema = s.object({
   texto: s.opcional(s.string({ min: 1, max: 500 })),
@@ -190,10 +191,18 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
         pergunta: { campo: "produto", texto: "De qual produto você está falando?", opcoes: produtoCtx.ambiguo.map((p) => ({ id: p.id, rotulo: `${p.nome || "produto"} (${p.origem === "tela" ? "tela aberta" : "conversa"})`, comando: `${base} de ${p.nome}` })).filter((o) => !/ de (null|undefined)$/.test(o.comando)) },
       };
     } else if (intencao?.id === "salao.orientacao") {
-      // salão: passo a passo de orientação pelo agente geral (SUGESTÃO; nada é gravado)
-      const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS, foco: FOCO_SALAO });
-      resposta = { ...livre.resposta, agentes: ["geral"] };
-      if (livre.ia) ia = { ...(ia || {}), ...livre.ia };
+      // salão: primeiro o procedimento que a casa cadastrou (REAL, sem modelo de linguagem);
+      // sem cadastro, o passo a passo padrão do agente geral (SUGESTÃO). Nada é gravado.
+      const sessaoServidor = { gerenciado: true, super_admin: ic.usuario.superAdmin, permissions: [...(ic.permissoes || [])] };
+      const podeEditar = hasPermission(sessaoServidor, "dashboard.intelligence.settings") || canAccessRoute(sessaoServidor, "/dashboard/operacao/inteligente");
+      const daCasa = await buscarProcedimento({ texto: pedido.texto, dbe: motor.ambiente.dbe, podeEditar });
+      if (daCasa.resposta) {
+        resposta = daCasa.resposta;
+      } else {
+        const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS, foco: FOCO_SALAO });
+        resposta = { ...livre.resposta, agentes: ["geral"], acoes: [...(livre.resposta.acoes || []), ...(daCasa.cadastrar ? [daCasa.cadastrar] : [])] };
+        if (livre.ia) ia = { ...(ia || {}), ...livre.ia };
+      }
       trilha.passar("explicacao", NIVEL.ANALISAR);
     } else if (!intencao) {
       // nenhum comando pronto: o agente geral responde com os dados do sistema (nunca "não sei")

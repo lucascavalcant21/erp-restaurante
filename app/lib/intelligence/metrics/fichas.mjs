@@ -80,13 +80,25 @@ export function fichaDoPrato(amb, { termo, frase = null, fichaId = null, tipo = 
     const idsInsumo = [...new Set(ings.map((i) => i.insumo_id).filter(Boolean))];
     const insumos = idsInsumo.length ? new Map(((await ler(amb.dbe.from("insumos").select("id, nome, unidade_medida").in("id", idsInsumo), "insumos")) || []).map((i) => [i.id, i])) : new Map();
     const porId = new Map(todas.map((f) => [f.id, f]));
+    // Saldo em estoque de cada produto da ficha (para "tenho tudo?" e adaptar a receita): só com permissão de estoque.
+    const saldos = new Map();
+    if (idsInsumo.length && (await amb.verificador.pode("saldo_estoque"))) {
+      for (const it of (await lerOpcional(amb.dbe.from("estoque_itens").select("insumo_id, quantidade_atual").in("insumo_id", idsInsumo), "estoque_itens"))) {
+        saldos.set(it.insumo_id, (saldos.get(it.insumo_id) || 0) + (Number(it.quantidade_atual) || 0));
+      }
+      if (saldos.size) fontes.push(fonte("estoque_itens", "Saldo em estoque dos ingredientes"));
+    }
     const ingredientes = ings.map((i) => {
+      const qtd = Number(i.quantidade);
       if (i.subficha_id) {
         const b = porId.get(i.subficha_id);
-        return { nome: b ? `${b.nome_receita} (base da casa)` : "Base (não encontrada)", quantidade: quantidadeLegivel(i.quantidade, b?.rendimento_unidade || "un") };
+        const un = b?.rendimento_unidade || "un";
+        return { nome: b ? `${b.nome_receita} (base da casa)` : "Base (não encontrada)", quantidade: quantidadeLegivel(i.quantidade, un), qtd: Number.isFinite(qtd) ? qtd : null, unidade: un, base: true, estoque: null };
       }
       const ins = insumos.get(i.insumo_id);
-      return { nome: ins?.nome || "Produto não encontrado no cadastro", quantidade: quantidadeLegivel(i.quantidade, ins?.unidade_medida) };
+      const un = ins?.unidade_medida || "un";
+      return { nome: ins?.nome || "Produto não encontrado no cadastro", quantidade: quantidadeLegivel(i.quantidade, un), qtd: Number.isFinite(qtd) ? qtd : null, unidade: un, base: false,
+        estoque: saldos.has(i.insumo_id) ? Math.round(saldos.get(i.insumo_id) * 1000) / 1000 : null };
     });
     let etapas = [];
     try {
@@ -130,5 +142,73 @@ export function fichaDoPrato(amb, { termo, frase = null, fichaId = null, tipo = 
         outras: achadas.filter((f) => f.id !== ficha.id).slice(0, 4).map((f) => f.nome_receita),
       },
     });
+  });
+}
+
+/**
+ * Lista de fichas para escolher com um toque (cozinha, bar; receitas base ou pratos/drinks).
+ * Só nome, setor e tipo — sem custo nem preço.
+ */
+export function listarFichas(amb, { departamento = null, base = null } = {}) {
+  const periodo = { de: amb.hoje, ate: amb.hoje, rotulo: "cadastro atual" };
+  return medir(amb, { id: "fichas_lista", capacidade: "fichas", periodo }, async (consultas) => {
+    const fontes = [fonte("fichas_tecnicas", "Fichas técnicas cadastradas")];
+    const todas = ((await ler(amb.dbe.from("fichas_tecnicas").select("id, nome_receita, nome_comercial, departamento, eh_base, ativo, status, categoria"), "fichas_tecnicas")) || [])
+      .filter((f) => f.ativo !== false && f.status !== "arquivada")
+      .filter((f) => !departamento || (departamento === "bar" ? f.departamento === "bar" : f.departamento !== "bar"))
+      .filter((f) => base == null || !!f.eh_base === base)
+      .map((f) => ({ id: f.id, nome: String(f.nome_receita || f.nome_comercial || "").trim(), departamento: f.departamento || null, base: !!f.eh_base, categoria: f.categoria || null }))
+      .filter((f) => f.nome)
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    if (!todas.length) {
+      return insuficiente({ metrica: "fichas_lista", periodo, escopo: amb.escopo, apuradoEm: amb.apuradoEm, fontes, consultas: consultas(),
+        motivo: "Não há fichas técnicas cadastradas para isso nesta unidade.", faltando: ["fichas técnicas"] });
+    }
+    return metrica({ metrica: "fichas_lista", valor: todas.length, unidade: "fichas", periodo, fontes, consultas: consultas(), escopo: amb.escopo,
+      completude: 1, confianca: CONFIANCA.ALTA, natureza: NATUREZA.REAL, apuradoEm: amb.apuradoEm, observacoes: ["Conforme o cadastro de fichas."], detalhes: { fichas: todas } });
+  });
+}
+
+/**
+ * "Onde vai o leite de coco?": fichas que usam o produto, direto ou dentro de uma
+ * base da casa (até dois níveis: base dentro de base). Quantidade = a da ficha.
+ */
+export function ondeVai(amb, { termo, frase = null } = {}) {
+  const periodo = { de: amb.hoje, ate: amb.hoje, rotulo: "cadastro atual" };
+  return medir(amb, { id: "fichas_onde_vai", capacidade: "fichas", periodo }, async (consultas) => {
+    const fontes = [fonte("insumos", "Cadastro de produtos"), fonte("fichas_tecnicas", "Fichas técnicas"), fonte("fichas_ingredientes", "Ingredientes das fichas")];
+    const insumos = (await ler(amb.dbe.from("insumos").select("id, nome, nome_interno, unidade_medida").order("nome"), "insumos")) || [];
+    const achados = candidatosDoTermo(insumos, termo || "", 8, { frase, parcial: true });
+    if (!achados.length) {
+      return insuficiente({ metrica: "fichas_onde_vai", periodo, escopo: amb.escopo, apuradoEm: amb.apuradoEm, fontes, consultas: consultas(),
+        motivo: `Não achei o produto "${termo}" no cadastro desta unidade.`, faltando: ["produto no cadastro"] });
+    }
+    const exatos = achados.filter((i) => ehNomeExato(i, termo || ""));
+    if (achados.length > 1 && exatos.length !== 1) {
+      return insuficiente({ metrica: "fichas_onde_vai", periodo, escopo: amb.escopo, apuradoEm: amb.apuradoEm, fontes, consultas: consultas(),
+        motivo: `Achei ${achados.length} produtos com esse nome. Qual deles?`, faltando: ["escolher o produto"],
+        detalhes: { ambiguo: true, opcoes: achados.map((i) => ({ id: i.id, nome: String(i.nome).trim() })) } });
+    }
+    const insumo = exatos[0] || achados[0];
+    const fichas = ((await ler(amb.dbe.from("fichas_tecnicas").select("id, nome_receita, nome_comercial, departamento, eh_base, ativo, status, rendimento_unidade"), "fichas_tecnicas")) || [])
+      .filter((f) => f.ativo !== false && f.status !== "arquivada");
+    const porId = new Map(fichas.map((f) => [f.id, f]));
+    const ings = fichas.length ? (await ler(amb.dbe.from("fichas_ingredientes").select("ficha_id, insumo_id, subficha_id, quantidade").in("ficha_id", fichas.map((f) => f.id)), "fichas_ingredientes")) || [] : [];
+    const usos = new Map(); // ficha_id → { via, quantidade }
+    for (const i of ings) if (i.insumo_id === insumo.id && porId.has(i.ficha_id)) usos.set(i.ficha_id, { via: null, quantidade: quantidadeLegivel(i.quantidade, insumo.unidade_medida) });
+    for (let nivel = 0; nivel < 2; nivel++) {
+      const bases = new Set([...usos.keys()].filter((id) => porId.get(id)?.eh_base));
+      for (const i of ings) {
+        if (!i.subficha_id || !bases.has(i.subficha_id) || usos.has(i.ficha_id) || !porId.has(i.ficha_id)) continue;
+        usos.set(i.ficha_id, { via: String(porId.get(i.subficha_id).nome_receita || "").trim(), quantidade: null });
+      }
+    }
+    const lista = [...usos.entries()].map(([id, u]) => {
+      const f = porId.get(id);
+      return { id, nome: String(f.nome_receita || f.nome_comercial || "").trim(), departamento: f.departamento || null, base: !!f.eh_base, via: u.via, quantidade: u.quantidade };
+    }).sort((a, b) => Number(a.base) - Number(b.base) || a.nome.localeCompare(b.nome, "pt-BR"));
+    return metrica({ metrica: "fichas_onde_vai", valor: lista.length, unidade: "fichas", periodo, fontes, consultas: consultas(), escopo: amb.escopo,
+      completude: 1, confianca: CONFIANCA.ALTA, natureza: NATUREZA.REAL, apuradoEm: amb.apuradoEm, observacoes: ["Conforme os ingredientes cadastrados nas fichas."],
+      detalhes: { produto: { id: insumo.id, nome: String(insumo.nome).trim() }, fichas: lista } });
   });
 }

@@ -10,7 +10,7 @@ import { criarAmbiente, medir } from "./base.mjs";
 import { faturamento, historicoDiario } from "./faturamento.mjs";
 import { compras, variacoesDePreco, ultimaCompraDoProduto } from "./compras.mjs";
 import { escalaDoDia } from "./rh.mjs";
-import { fichaDoPrato } from "./fichas.mjs";
+import { fichaDoPrato, listarFichas, ondeVai } from "./fichas.mjs";
 import { itensCitados, catalogoDeEtiquetas, etiquetasHabituais } from "./cadastro.mjs";
 import { saldoDoProduto, vencimentos, divergenciasEstoque, perdas, abaixoDoMinimo } from "./estoque.mjs";
 import { contasAPagar, lucroDoMes, ticketMedioDoMes } from "./financeiro.mjs";
@@ -58,6 +58,8 @@ export function criarMotorDeMetricas(p) {
     getLastPurchase: (op) => ultimaCompraDoProduto(amb, op),
     getSchedule: (op) => escalaDoDia(amb, op),
     getRecipe: (op) => fichaDoPrato(amb, op),
+    listRecipes: (op) => listarFichas(amb, op),
+    whereUsed: (op) => ondeVai(amb, op),
     // o que a pergunta cita do cadastro (agente geral): só nomes, onde há permissão
     findMentioned: (op) => itensCitados(amb, op),
     // nomes da tela de Etiquetas (produtos e pré-preparos) para casar o pedido de etiquetas

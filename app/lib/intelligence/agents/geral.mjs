@@ -146,7 +146,10 @@ export function respostaSemModelo(texto, dados, exemplos = []) {
 /**
  * @returns {Promise<{ resposta: object, ia: object|null }>}
  */
-export async function responderLivre({ texto, motor, store = null, provedor = null, nomeUsuario = "", exemplos = [] }) {
+/** Foco do salão: passo a passo curto para o garçom resolver agora (pedido do dono, 08/11/2026). */
+export const FOCO_SALAO = `Este pedido vem do SALÃO (garçom, atendimento). Responda como um maître experiente: até 6 passos curtos numerados ("1. …"), práticos, para fazer AGORA, e diga quando chamar o gerente ou o responsável. Se for montagem (mesa, ambiente), liste o que colocar e em que ordem. A casa ainda não cadastrou o jeito dela de fazer isso: deixe claro que é a orientação padrão (SUGESTÃO) e, no fim, uma frase dizendo que o dono pode cadastrar o padrão da casa em Operação, Checklists. Alergia: nunca garanta que um prato é seguro; mande confirmar a ficha e falar com a cozinha.`;
+
+export async function responderLivre({ texto, motor, store = null, provedor = null, nomeUsuario = "", exemplos = [], foco = null }) {
   const dados = await coletarContexto({ texto, motor, store, nomeUsuario });
   const fallback = () => {
     const r = respostaSemModelo(texto, dados, exemplos);
@@ -154,7 +157,7 @@ export async function responderLivre({ texto, motor, store = null, provedor = nu
   };
   if (!provedor?.disponivel?.()) return { resposta: fallback(), ia: null };
 
-  const resp = await provedor.interpretar({ sistema: promptDoAgenteGeral(), texto: mensagemDoAgente(texto, dados), esquemaJson: respostaLivreSchema.json(), tarefa: "responder" });
+  const resp = await provedor.interpretar({ sistema: foco ? `${promptDoAgenteGeral()}\n\n${foco}` : promptDoAgenteGeral(), texto: mensagemDoAgente(texto, dados), esquemaJson: respostaLivreSchema.json(), tarefa: "responder" });
   const meta = { provedor: provedor.nome, modelo: resp.modelo || provedor.modelo || null, uso: resp.uso || null, latenciaMs: resp.latenciaMs ?? null, fallback: resp.fallback || null, agente: "geral" };
   if (!resp.ok) return { resposta: fallback(), ia: { ...meta, erro: resp.motivo } };
   const v = respostaLivreSchema.parse(resp.dados);

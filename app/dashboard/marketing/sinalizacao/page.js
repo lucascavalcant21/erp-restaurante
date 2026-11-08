@@ -12,7 +12,8 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { usePermission } from "../../../components/access-control/PermissionGate";
 import { PageHeader, PageBody, Card, Modal, Field, TextInput, Select, Btn, Toast, Toggle, EmptyState, SkeletonList } from "../../../components/ui";
-import { chamar, lerPainel, enviarArquivo, tamanhoLegivel, segundos, Miniatura, Selo, DIAS, PreviaTv, AJUSTES_TV, AJUDA_AJUSTE } from "../../../components/sinalizacao/apoio";
+import { chamar, lerPainel, enviarArquivo, tamanhoLegivel, segundos, Miniatura, Selo, DIAS, PreviaTv, AJUSTES_TV, AJUDA_AJUSTE, TRANSICOES_TV, VELOCIDADES_TV } from "../../../components/sinalizacao/apoio";
+import { DemoTransicao } from "../../../components/sinalizacao/PalcoTv";
 import { regraVale, rotuloSemContato, LIMITE_BYTES, DURACAO } from "../../../lib/sinalizacao.mjs";
 
 const ABAS = [
@@ -699,6 +700,14 @@ function ItemDaSequencia({ it, i, ordem, painel, midiasPorId, mudar, mover, remo
             {AJUSTES_TV.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </Select>
         )}
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          <Select value={it.transicao || "esmaecer"} onChange={(e) => mudar(i, "transicao", e.target.value)} className="!h-10 !w-full text-xs" aria-label="Transição ao entrar">
+            {TRANSICOES_TV.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </Select>
+          <Select value={it.velocidade || "media"} onChange={(e) => mudar(i, "velocidade", e.target.value)} disabled={it.transicao === "nenhuma"} className="!h-10 !w-full text-xs" aria-label="Velocidade da transição">
+            {VELOCIDADES_TV.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </Select>
+        </div>
         <label className="flex items-center gap-1.5 text-xs text-hf-muted">
           Tempo
           <input type="number" inputMode="numeric" min={DURACAO.min} max={DURACAO.max} value={it.duracao_seg ?? ""} placeholder={m?.tipo === "video" ? "vídeo inteiro" : String(it.tipo === "cardapio" ? DURACAO.cardapio : DURACAO.imagem)}
@@ -738,7 +747,11 @@ function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir, unidad
   });
   const mudar = (i, campo, v) => setItens((l) => l.map((x, k) => (k === i ? { ...x, [campo]: v } : x)));
   const remover = (i) => setItens((l) => l.filter((_, k) => k !== i));
-  const adicionar = (item) => setItens((l) => [...l, { ...item, zona: escolhendo ?? 0 }]);
+  // "Aplicar a todos" (como no PowerPoint): a mesma transição em todos os slides.
+  const [transicaoGeral, setTransicaoGeral] = useState(() => playlist?.itens?.[0]?.transicao || "esmaecer");
+  const [velocidadeGeral, setVelocidadeGeral] = useState(() => playlist?.itens?.[0]?.velocidade || "media");
+  const aplicarATodos = () => setItens((l) => l.map((x) => ({ ...x, transicao: transicaoGeral, velocidade: velocidadeGeral })));
+  const adicionar = (item) => setItens((l) => [...l, { ...item, zona: escolhendo ?? 0, transicao: transicaoGeral, velocidade: velocidadeGeral }]);
   const dividir = (n) => {
     setLados(n);
     // Quem estava num lado que deixou de existir vai para o último lado.
@@ -798,6 +811,24 @@ function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir, unidad
         </Field>
       )}
 
+      <Field label="Transição entre os slides">
+        <div className="flex gap-3 rounded-2xl border border-hf-border bg-hf-elevated/60 p-2.5">
+          <DemoTransicao transicao={transicaoGeral} velocidade={velocidadeGeral} className="w-28 shrink-0 self-center sm:w-36" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              <Select value={transicaoGeral} onChange={(e) => setTransicaoGeral(e.target.value)} className="!h-10 !w-full text-sm" aria-label="Transição">
+                {TRANSICOES_TV.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </Select>
+              <Select value={velocidadeGeral} onChange={(e) => setVelocidadeGeral(e.target.value)} disabled={transicaoGeral === "nenhuma"} className="!h-10 !w-full text-sm" aria-label="Velocidade">
+                {VELOCIDADES_TV.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </Select>
+            </div>
+            <button onClick={aplicarATodos} disabled={!itens.length} className="erp-btn erp-btn-ghost !min-h-10 w-full text-sm">Aplicar a todos os slides</button>
+            <p className="text-[11px] text-hf-muted">Cada slide também pode ter a sua transição (abaixo). Ela acontece quando o slide entra.</p>
+          </div>
+        </div>
+      </Field>
+
       {Array.from({ length: lados }, (_, z) => {
         const doLado = itens.map((it, i) => ({ it, i })).filter((x) => x.it.zona === z);
         return (
@@ -811,7 +842,7 @@ function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir, unidad
             </ol>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <button onClick={() => setEscolhendo((e) => (e === z ? null : z))} className="erp-btn erp-btn-ghost !min-h-11 text-sm"><ImageIcon size={16} /> Adicionar arte ou vídeo</button>
-              <button onClick={() => setItens((l) => [...l, { tipo: "cardapio", titulo: "Cardápio", categoria_ids: [], por_pagina: lados > 1 ? 5 : 6, duracao_seg: DURACAO.cardapio, zona: z }])} disabled={!painel.cardapioDisponivel}
+              <button onClick={() => setItens((l) => [...l, { tipo: "cardapio", titulo: "Cardápio", categoria_ids: [], por_pagina: lados > 1 ? 5 : 6, duracao_seg: DURACAO.cardapio, zona: z, transicao: transicaoGeral, velocidade: velocidadeGeral }])} disabled={!painel.cardapioDisponivel}
                 className="erp-btn erp-btn-ghost !min-h-11 text-sm"><Utensils size={16} /> Cardápio com preço do Héfisto</button>
             </div>
             {escolhendo === z && (

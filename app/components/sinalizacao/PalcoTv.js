@@ -9,7 +9,7 @@
 // dividida ou a telinha da prévia.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ajusteAutomatico } from "../../lib/sinalizacao.mjs";
+import { ajusteAutomatico, transicaoDaTroca } from "../../lib/sinalizacao.mjs";
 
 // Realce das fotos na TV (pedido do dono, 07/11/2026: "mais bonita, mais nítida,
 // mais viva"): cores um pouco mais vivas, contraste leve e nitidez suave.
@@ -75,7 +75,8 @@ function Midia({ slide, aoTerminar, carregar }) {
     const area = caixa.current;
     if (area) setDecidido(ajusteAutomatico(largura, altura, area.clientWidth, area.clientHeight));
   }, []);
-  if (!src) return <div className="h-full w-full bg-black" />;
+  // Carregando: transparente, para a transição não piscar preto por cima do slide anterior.
+  if (!src) return <div className="h-full w-full" />;
   const pedido = slide.ajuste || "auto";
   const ajuste = pedido === "auto" ? decidido || "inteira" : pedido;
   if (slide.tipo === "video") {
@@ -121,25 +122,110 @@ function Midia({ slide, aoTerminar, carregar }) {
 }
 
 /**
+ * Animações das transições (o slide que ENTRA traz o efeito, como no
+ * PowerPoint). "entra" anima a camada nova; "sai", a que está indo embora.
+ * Tudo em transform/opacity/clip-path/mask: a GPU da TV dá conta.
+ */
+const ANIMACOES = {
+  esmaecer: { entra: "hf-tr-esmaecer" },
+  empurrar: { entra: "hf-tr-entra-direita", sai: "hf-tr-sai-esquerda" },
+  cobrir: { entra: "hf-tr-entra-direita" },
+  revelar: { entra: "hf-tr-revelar" },
+  dividir: { entra: "hf-tr-dividir" },
+  forma: { entra: "hf-tr-forma" },
+  persianas: { entra: "hf-tr-persianas" },
+  cubo: { entra: "hf-tr-cubo-entra", sai: "hf-tr-cubo-sai", palco3d: true },
+  zoom: { entra: "hf-tr-zoom-entra", sai: "hf-tr-zoom-sai" },
+};
+
+const CSS_TRANSICOES = `
+@property --hf-persiana { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+@keyframes hf-tr-esmaecer { from { opacity: 0 } to { opacity: 1 } }
+@keyframes hf-tr-entra-direita { from { transform: translateX(100%) } to { transform: translateX(0) } }
+@keyframes hf-tr-sai-esquerda { from { transform: translateX(0) } to { transform: translateX(-100%) } }
+@keyframes hf-tr-revelar { from { clip-path: inset(0 100% 0 0) } to { clip-path: inset(0 0 0 0) } }
+@keyframes hf-tr-dividir { from { clip-path: inset(0 50% 0 50%) } to { clip-path: inset(0 0 0 0) } }
+@keyframes hf-tr-forma { from { clip-path: circle(0% at 50% 50%) } to { clip-path: circle(75% at 50% 50%) } }
+@keyframes hf-tr-persianas { from { --hf-persiana: 0% } to { --hf-persiana: 10% } }
+@keyframes hf-tr-cubo-entra {
+  from { transform: translateZ(-50cqw) rotateY(90deg) translateZ(50cqw) }
+  to { transform: translateZ(-50cqw) rotateY(0deg) translateZ(50cqw) } }
+@keyframes hf-tr-cubo-sai {
+  from { transform: translateZ(-50cqw) rotateY(0deg) translateZ(50cqw) }
+  to { transform: translateZ(-50cqw) rotateY(-90deg) translateZ(50cqw) } }
+@keyframes hf-tr-zoom-entra { from { opacity: 0; transform: scale(0.3) } to { opacity: 1; transform: scale(1) } }
+@keyframes hf-tr-zoom-sai { from { opacity: 1; transform: scale(1) } to { opacity: 0; transform: scale(1.25) } }
+.hf-tr-persianas {
+  -webkit-mask-image: repeating-linear-gradient(to right, #000 0 var(--hf-persiana), transparent var(--hf-persiana) 10%);
+  mask-image: repeating-linear-gradient(to right, #000 0 var(--hf-persiana), transparent var(--hf-persiana) 10%);
+}
+`;
+
+/** As animações das transições (uma vez por palco; repetir não faz mal). */
+export function EstilosTransicao() {
+  return <style>{CSS_TRANSICOES}</style>;
+}
+
+function conteudoDoSlide(slide, { loja, vertical, carregar, aoTerminar }) {
+  return slide.tipo === "cardapio"
+    ? <SlideCardapio pagina={slide.pagina} loja={loja} vertical={vertical} />
+    : <Midia slide={slide} aoTerminar={aoTerminar} carregar={carregar} />;
+}
+
+/**
  * Um lado da tela tocando a sua sequência, com os seus tempos. Tela inteira
  * = um lado só. `aoMostrar` conta ao painel o que está passando (lado 1).
+ * Na troca ficam duas camadas: a que sai (mesmo elemento, sem recarregar a
+ * foto nem reiniciar o vídeo) e a que entra, com a transição do slide novo.
  */
 export function Sequencia({ slides, loja, vertical, aoMostrar, carregar }) {
-  const [indice, setIndice] = useState(0);
-  const slide = slides.length ? slides[indice % slides.length] : null;
-  const proximo = useCallback(() => setIndice((i) => (slides.length ? (i + 1) % slides.length : 0)), [slides.length]);
+  const total = slides.length;
+  const [camadas, setCamadas] = useState([{ id: 0, i: 0, efeito: "nenhuma", ms: 0 }]);
+  const atual = camadas[camadas.length - 1];
+  const slide = total ? slides[atual.i % total] : null;
+  const proximo = useCallback(() => setCamadas((cs) => {
+    if (!total) return cs;
+    const cur = cs[cs.length - 1];
+    const i = (cur.i + 1) % total;
+    // Um slide só (vídeo em repetição): recomeça sem transição.
+    const { efeito, ms } = total > 1 ? transicaoDaTroca(slides[i]) : { efeito: "nenhuma", ms: 0 };
+    const nova = { id: cur.id + 1, i, efeito, ms };
+    return ms > 0 ? [cur, nova] : [nova];
+  }), [slides, total]);
   useEffect(() => { aoMostrar?.(slide); }, [slide, aoMostrar]);
+  // Fim da transição: a camada que saiu é descartada.
+  useEffect(() => {
+    if (camadas.length < 2) return undefined;
+    const t = setTimeout(() => setCamadas((cs) => cs.slice(-1)), atual.ms + 80);
+    return () => clearTimeout(t);
+  }, [camadas.length, atual.id, atual.ms]);
   // Tempo de cada slide (o vídeo avança sozinho no fim; o tempo é a rede de segurança).
   useEffect(() => {
-    if (!slide || (slides.length < 2 && slide.tipo !== "video")) return undefined;
+    if (!slide || (total < 2 && slide.tipo !== "video")) return undefined;
     const extra = slide.tipo === "video" ? 5 : 0;
     const t = setTimeout(proximo, (slide.duracao_seg + extra) * 1000);
     return () => clearTimeout(t);
-  }, [slide, indice, proximo, slides.length]);
+  }, [slide, atual.id, proximo, total]);
   if (!slide) return <div className="h-full w-full bg-black" />;
-  return slide.tipo === "cardapio"
-    ? <SlideCardapio pagina={slide.pagina} loja={loja} vertical={vertical} />
-    : <Midia slide={slide} aoTerminar={proximo} carregar={carregar} />;
+  const anim = camadas.length > 1 ? ANIMACOES[atual.efeito] || {} : {};
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-black" style={anim.palco3d ? { perspective: "150cqw" } : undefined}>
+      {camadas.map((c, k) => {
+        const entrando = k === camadas.length - 1;
+        const nome = entrando ? anim.entra : anim.sai;
+        const estilo = {
+          zIndex: entrando ? 2 : 1,
+          ...(nome ? { animation: `${nome} ${atual.ms}ms cubic-bezier(.4,0,.2,1) both` } : {}),
+          ...(anim.palco3d ? { backfaceVisibility: "hidden" } : {}),
+        };
+        return (
+          <div key={c.id} className={`absolute inset-0 ${nome === "hf-tr-persianas" ? nome : ""}`} style={estilo}>
+            {conteudoDoSlide(slides[c.i % total], { loja, vertical, carregar, aoTerminar: entrando ? proximo : undefined })}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 /**
@@ -152,11 +238,44 @@ export function Palco({ roteiro = [], loja = null, vertical = false, carregar, a
   const porLado = Array.from({ length: lados }, (_, z) => roteiro.filter((sl) => (sl.zona ?? 0) === z));
   return (
     <div key={chave || "palco"} className="flex h-full w-full">
+      <EstilosTransicao />
       {porLado.map((slides, z) => (
         <div key={z} className="relative h-full min-w-0 flex-1 overflow-hidden" style={{ containerType: "size" }}>
           <Sequencia slides={slides} loja={loja} vertical={vertical || lados > 1} aoMostrar={z === 0 ? aoMostrar : undefined} carregar={carregar} />
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Miniatura animada do efeito (como a prévia do PowerPoint ao escolher a
+ * transição): dois cartões trocando com o efeito e a velocidade escolhidos.
+ */
+export function DemoTransicao({ transicao, velocidade, className = "" }) {
+  const [passo, setPasso] = useState({ n: 0, efeito: "nenhuma", ms: 0 });
+  useEffect(() => {
+    const trocar = () => setPasso((p) => ({ n: p.n + 1, ...transicaoDaTroca({ transicao, velocidade }) }));
+    trocar();
+    const t = setInterval(trocar, 2200);
+    return () => clearInterval(t);
+  }, [transicao, velocidade]);
+  const anim = ANIMACOES[passo.efeito] || {};
+  const cartoes = [passo.n - 1, passo.n];
+  const cor = (n) => (n % 2 ? "from-amber-500 to-rose-600" : "from-sky-500 to-emerald-600");
+  return (
+    <div className={`relative aspect-video overflow-hidden rounded-lg bg-black ${className}`} style={{ containerType: "size", ...(anim.palco3d ? { perspective: "150cqw" } : {}) }} aria-hidden>
+      <EstilosTransicao />
+      {cartoes.map((n, k) => {
+        const entrando = k === 1;
+        const nome = entrando ? anim.entra : anim.sai;
+        return (
+          <div key={n} className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br text-[18cqh] font-black text-white ${cor(n)} ${nome === "hf-tr-persianas" ? nome : ""}`}
+            style={{ zIndex: entrando ? 2 : 1, ...(nome ? { animation: `${nome} ${passo.ms}ms cubic-bezier(.4,0,.2,1) both` } : {}), ...(anim.palco3d ? { backfaceVisibility: "hidden" } : {}) }}>
+            {n % 2 ? "B" : "A"}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -107,6 +107,26 @@ export const AJUSTES_TV = [
   ["preencher", "Preencher"],
   ["dividir", "Dividir em 2"],
 ];
+/** Transições entre slides, com os nomes do PowerPoint. */
+export const TRANSICOES_TV = [
+  ["esmaecer", "Esmaecer"],
+  ["empurrar", "Empurrar"],
+  ["cobrir", "Cobrir"],
+  ["revelar", "Revelar"],
+  ["dividir", "Dividir"],
+  ["forma", "Forma (círculo)"],
+  ["persianas", "Persianas"],
+  ["cubo", "Cubo"],
+  ["zoom", "Zoom"],
+  ["aleatoria", "Aleatória"],
+  ["nenhuma", "Nenhuma (corte seco)"],
+];
+export const VELOCIDADES_TV = [
+  ["rapida", "Rápida (0,5 s)"],
+  ["media", "Média (0,9 s)"],
+  ["lenta", "Lenta (1,5 s)"],
+];
+
 export const AJUDA_AJUSTE = {
   auto: "Foto deitada numa TV deitada enche a tela toda (corta um pouco em cima e embaixo). Foto em pé fica inteira, com o fundo desfocado.",
   inteira: "A arte toda, com o fundo preenchido pela própria arte desfocada.",

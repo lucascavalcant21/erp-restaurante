@@ -14,7 +14,7 @@ import s from "./detalhe.module.css";
 // servidor cobra (precoDaLinha).
 
 // `inicial` (Editar no pedido): { quantidade, observacao, opcoes, viagem } da linha; o botão vira "Salvar alterações".
-export default function TabletDetalhe({ cardapio, produto, idioma = "pt", mesa = "", onFechar, onAdicionar, podePedir = true, inicial = null }) {
+export default function TabletDetalhe({ cardapio, produto, idioma = "pt", mesa = "", totem = false, onFechar, onAdicionar, podePedir = true, inicial = null }) {
   const T = (k, v) => textoDelivery(idioma, k, v);
   const [escolhas, setEscolhas] = useState({});
   const [qtd, setQtd] = useState(1);
@@ -124,7 +124,7 @@ export default function TabletDetalhe({ cardapio, produto, idioma = "pt", mesa =
             <div className={s.pe}>
               {tentou && faltando ? <span className={s.falta} role="alert">{T("falta_escolher", { grupo: faltando.nome })}</span> : null}
               <div className={s.peLinha}>
-                {mesa ? (
+                {mesa || totem ? (
                   <Segmentado tom="principal" largura={226} rotulo={`${T("aqui")} / ${T("viagem")}`} valor={viagem} onMudar={setViagem}
                     opcoes={[{ id: "aqui", rotulo: T("aqui") }, { id: "viagem", rotulo: T("viagem") }]} />
                 ) : null}

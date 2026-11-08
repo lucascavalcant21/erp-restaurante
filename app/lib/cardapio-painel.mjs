@@ -205,3 +205,43 @@ export function traducoesDoProduto(config, { id, temDescricao }) {
     return { idioma: lang, nome, status, rotulo: { ok: "Traduzida", parcial: "Falta a descrição", falta: "Sem tradução" }[status] };
   });
 }
+
+
+// ─── Modelos de grupo (autoatendimento, pedido do dono 08/11/2026) ───────────
+
+/** "Escolha o ponto": escolha única obrigatória, sem custo. */
+export const MODELO_PONTO = Object.freeze({
+  nome: "Escolha o ponto", tipo: "adicional", min: 1, max: 1,
+  opcoes: [{ nome: "Mal passado", preco: 0 }, { nome: "Ao ponto", preco: 0 }, { nome: "Bem passado", preco: 0 }],
+});
+
+const BASICOS = /^(sal|sal fino|sal grosso|acucar|agua|oleo|oleo de soja|azeite|gelo|ingrediente|tempero|caldo|fermento|vinagre|embalagem|guardanapo|papel|pote|copo|tampa|sacola)$/;
+const sem = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/**
+ * "Deseja retirar algo?" com os ingredientes da ficha: o nome de estoque vira
+ * nome de cliente ("Camarão 40/60" → "Camarão", "Cebola roxa - kg" → "Cebola roxa"),
+ * sem básicos (sal, óleo, água, gelo, embalagem), sem repetidos, até 12.
+ * É só um rascunho: o dono confere e salva no editor do grupo.
+ */
+export function opcoesDeRetirar(nomes = [], limite = 12) {
+  const out = [];
+  const vistos = new Set();
+  for (const bruto of nomes) {
+    let n = String(bruto || "").split(/\s+-\s+|\(|,/)[0];
+    n = n.replace(/\b\d+([.,]\d+)?\s*(kg|g|gr|ml|l|lt|un|und|cx|pct)\b/gi, "").replace(/\b\d+\/\d+\b/g, "").replace(/\s{2,}/g, " ").trim();
+    if (n.length < 2) continue;
+    const chave = sem(n);
+    if (BASICOS.test(chave) || vistos.has(chave)) continue;
+    vistos.add(chave);
+    out.push({ nome: n.charAt(0).toUpperCase() + n.slice(1), preco: 0 });
+    if (out.length >= limite) break;
+  }
+  return out;
+}
+
+/** Grupo "Deseja retirar algo?" pronto para revisar (null quando a ficha não tem o que tirar). */
+export function grupoRetirarDaFicha(nomes) {
+  const opcoes = opcoesDeRetirar(nomes);
+  return opcoes.length ? { nome: "Deseja retirar algo?", tipo: "retirar", min: 0, max: opcoes.length, opcoes } : null;
+}

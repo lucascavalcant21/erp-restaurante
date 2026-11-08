@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { DIAS_SEMANA, TIPOS_GRUPO, formatarPreco, normalizarGrupo, regraDoGrupo } from "../../../lib/cardapio-digital.mjs";
-import { mover } from "../../../lib/cardapio-painel.mjs";
+import { MODELO_PONTO, grupoRetirarDaFicha, mover } from "../../../lib/cardapio-painel.mjs";
 import { Icone } from "../ui";
 import MenuPainel from "./MenuPainel";
 import s from "./painel.module.css";
@@ -21,13 +21,24 @@ const ROTULOS_CANAL = { tablet: "Tablet", qr: "QR da mesa", delivery: "Delivery"
 const STATUS_CLASSE = { ok: s.statusOk, parcial: s.statusParcial, falta: s.statusFalta };
 const normal = (v) => String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-function EditorGrupo({ inicial, onSalvar, onCancelar }) {
+function EditorGrupo({ inicial, onSalvar, onCancelar, ingredientes = [] }) {
   const [g, setG] = useState(() => inicial || { nome: "", tipo: "adicional", min: 0, max: 1, opcoes: [{ nome: "", preco: 0 }] });
+  // Atalhos do autoatendimento (pedido do dono, 08/11/2026): o grupo vem pronto para revisar.
+  const retirar = inicial ? null : grupoRetirarDaFicha(ingredientes);
   const muda = (campo, v) => setG((x) => ({ ...x, [campo]: v }));
   const mudaOpcao = (i, campo, v) => setG((x) => ({ ...x, opcoes: x.opcoes.map((o, k) => (k === i ? { ...o, [campo]: v } : o)) }));
   const pronto = normalizarGrupo({ ...g, opcoes: g.opcoes.map((o) => ({ ...o, preco: String(o.preco).replace(",", ".") })) });
   return (
     <div className={s.editorGrupo}>
+      {!inicial ? (
+        <div className={s.inteira} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span className={s.campoNota}>Começar de um modelo:</span>
+          <button type="button" className={s.botaoP} onClick={() => setG(structuredClone(MODELO_PONTO))}>Ponto da carne</button>
+          {retirar ? (
+            <button type="button" className={s.botaoP} onClick={() => setG(structuredClone(retirar))}>Retirar ingredientes da ficha ({retirar.opcoes.length})</button>
+          ) : null}
+        </div>
+      ) : null}
       <label className={`${s.campo} ${s.inteira}`}>Nome do grupo
         <input className={s.entrada} value={g.nome} onChange={(e) => muda("nome", e.target.value)} placeholder="Ex.: Ponto da carne" />
       </label>
@@ -66,7 +77,7 @@ function EditorGrupo({ inicial, onSalvar, onCancelar }) {
 }
 
 export default function PainelProduto({
-  nomeLoja, itensMenu, produto, temFicha, form, setForm, categorias = [], estacao, alergenicos, podeConter, grupos = [], setGrupos,
+  nomeLoja, itensMenu, produto, temFicha, form, setForm, categorias = [], estacao, alergenicos, podeConter, grupos = [], setGrupos, ingredientesFicha = [],
   usos = {}, traducoes = [], onSalvar, salvando, erros = [], mensagem, onEnviarArquivo, links = {},
 }) {
   const [enviando, setEnviando] = useState(false);
@@ -252,7 +263,7 @@ export default function PainelProduto({
                   </select>
                 </label>
               ) : null}
-              {editando === "novo" ? <EditorGrupo onCancelar={() => setEditando(null)} onSalvar={(g) => salvarGrupo({ ...g, id: novoId() })} /> : null}
+              {editando === "novo" ? <EditorGrupo ingredientes={ingredientesFicha} onCancelar={() => setEditando(null)} onSalvar={(g) => salvarGrupo({ ...g, id: novoId() })} /> : null}
               {!ligados.length && editando !== "novo" ? <span className={s.campoNota}>Sem adicionais: o cliente pede o prato como está, com observação.</span> : null}
               {ligados.map((g, i) => (editando === g.id ? (
                 <EditorGrupo key={g.id} inicial={g} onCancelar={() => setEditando(null)} onSalvar={salvarGrupo} />

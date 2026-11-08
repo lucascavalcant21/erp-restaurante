@@ -63,6 +63,7 @@ export default async function CardapioPage({ params, searchParams }) {
         inicial={r.ok ? r.cardapio : null}
         carregadoEm={r.ok ? Date.now() : null}
         mesa={limparMesa(typeof sp.mesa === "string" ? sp.mesa : "")}
+        totem={sp.totem === "1" && !sp.mesa}
         pratoInicial={typeof sp.prato === "string" ? sp.prato.slice(0, 64) : ""}
         previa={sp.previa === "1"}
       />

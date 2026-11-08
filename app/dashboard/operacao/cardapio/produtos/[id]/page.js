@@ -13,7 +13,7 @@ import PainelProduto from "../../../../../components/cardapio-digital/painel/Pai
 import { categoriasEfetivas, juntarProdutosEFichas, normalizarConfigCardapio } from "../../../../../lib/cardapio-digital.mjs";
 import { errosDoFormulario, formularioDoProduto, itemDoFormulario, traducoesDoProduto, usosDosGrupos } from "../../../../../lib/cardapio-painel.mjs";
 import { setorDoProduto } from "../../../../../lib/kds-fila.mjs";
-import { carregarPainelCardapio, lerAlergenicosDaFicha, salvarProdutoDoPainel } from "../../../../../lib/cardapio-painel-dados";
+import { carregarPainelCardapio, lerAlergenicosDaFicha, lerIngredientesDaFicha, salvarProdutoDoPainel } from "../../../../../lib/cardapio-painel-dados";
 import { enviarArquivoCardapio } from "../../../../../lib/cardapio-editor";
 
 const LISTA = "/dashboard/operacao/cardapio/produtos";
@@ -30,6 +30,7 @@ export default function EditarProdutoPage({ params }) {
   const [form, setForm] = useState(null);
   const [inicial, setInicial] = useState(null);
   const [grupos, setGrupos] = useState([]);
+  const [ingredientes, setIngredientes] = useState([]);
   const [salvando, setSalvando] = useState(false);
   const [erros, setErros] = useState([]);
 
@@ -49,6 +50,7 @@ export default function EditarProdutoPage({ params }) {
     setGrupos(cfg.grupos);
     setErro("");
     setAlerg(await lerAlergenicosDaFicha(unidadeAtiva, ficha?.id));
+    setIngredientes(await lerIngredientesDaFicha(unidadeAtiva, ficha?.id).catch(() => []));
   }, [unidadeAtiva, id]);
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -107,6 +109,7 @@ export default function EditarProdutoPage({ params }) {
         podeConter={alerg.podeConter}
         grupos={grupos}
         setGrupos={setGrupos}
+        ingredientesFicha={ingredientes}
         usos={usosDosGrupos(dados.config)}
         traducoes={traducoes}
         onSalvar={salvar}

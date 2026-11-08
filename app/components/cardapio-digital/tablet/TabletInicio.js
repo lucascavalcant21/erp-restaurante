@@ -40,7 +40,7 @@ function CardPrato({ produto, qtd, onAbrir, onAdicionar, podePedir, idioma, T })
 }
 
 export default function TabletInicio({
-  cardapio, idioma = "pt", mesa = "", carrinho = [], totalSacola = 0, offline = "",
+  cardapio, idioma = "pt", mesa = "", totem = false, ladoPedido = null, onConta, carrinho = [], totalSacola = 0, offline = "",
   secaoAtiva, busca = "", onBusca, resultados = [], filtrando = false, selos = [], onSelos,
   onAbrirPrato, onAdicionar, onIrSecao, onAbrirSacola, onAbrirIdiomas, temIdiomas, onChamar, onRecomendar, temRecomendar,
   acompanhamento = null, onAbrirPedidos, linkCadastro, visitante = true, podePedir = true, banners = null, onConvite, onWifi,
@@ -66,7 +66,7 @@ export default function TabletInicio({
           </div>
           <div className={s.marcaTextos}>
             <span className={s.marcaNome}>{unidade.nome}</span>
-            {mesa ? <span className={s.marcaMesa}>{T("mesa_n", { n: mesa })}</span> : null}
+            {mesa ? <span className={s.marcaMesa}>{T("mesa_n", { n: mesa })}</span> : totem ? <span className={s.marcaMesa}>{T("autoatendimento")}</span> : null}
           </div>
         </div>
         {temRecomendar ? (
@@ -87,6 +87,7 @@ export default function TabletInicio({
         </nav>
         <div className={s.lateralPe}>
           {mesa && onChamar ? <button type="button" className={s.acaoLateral} onClick={onChamar}><Icone nome="sino" tamanho={18} />{T("chamar_garcom")}</button> : null}
+          {mesa && onConta ? <button type="button" className={s.acaoLateral} onClick={onConta}><Icone nome="pedidos" tamanho={18} />{T("minha_conta")}</button> : null}
           {temIdiomas || onWifi ? (
             <div className={s.acoesPequenas}>
               {temIdiomas ? <button type="button" className={s.acaoLateral} onClick={onAbrirIdiomas} aria-label="Idioma · Language"><Icone nome="globo" tamanho={18} />{T("idioma_botao")}</button> : null}
@@ -162,7 +163,10 @@ export default function TabletInicio({
         {cardapio.textos?.rodape ? <p className={s.rodape} style={{ whiteSpace: "pre-line" }}>{cardapio.textos.rodape}</p> : null}
       </main>
 
-      <div className={s.flutuantes}>
+      {/* "Seu pedido" fixo ao lado (tablet deitado largo): sem o botão flutuante "Ver pedido". */}
+      {ladoPedido}
+
+      <div className={s.flutuantes} style={ladoPedido ? { right: 380 } : undefined}>
         {acompanhamento ? (
           <button type="button" className={s.acompanha} onClick={onAbrirPedidos}>
             <span className={s.acompanhaTopo}><strong>{mesa ? T("pedido_n_mesa", { mesa }) : T("pedidos")}</strong>{acompanhamento.hora ? <span className={s.acompanhaHora}>{acompanhamento.hora}</span> : null}</span>
@@ -174,7 +178,7 @@ export default function TabletInicio({
             <span className={s.acompanhaNota}>{T("some_quando_pronto")}</span>
           </button>
         ) : null}
-        {podePedir && qtdSacola > 0 ? (
+        {podePedir && qtdSacola > 0 && !ladoPedido ? (
           <button type="button" className={s.sacola} onClick={onAbrirSacola} data-sacola="">
             <span className={s.sacolaQtd}>{qtdSacola}</span>{T("ver_pedido_mesa")}<span className={s.sacolaTotal}>{formatarPreco(totalSacola, idioma)}</span>
           </button>

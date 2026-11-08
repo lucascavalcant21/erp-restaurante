@@ -16,6 +16,7 @@ import s from "./carrinho.module.css";
 export default function TabletCarrinho({
   cardapio, idioma = "pt", mesa = "", carrinho = [], nome = "", onNome, erro = "", enviando = false,
   onFechar, onEnviar, alterarQtd, remover, mudarViagem, onAbrirPrato, onEditar, cliente = null, desconto = 0, onEntrar, onSairCliente,
+  fixo = false, totem = false,
 }) {
   const T = (k, v) => textoDelivery(idioma, k, v);
   const linhas = useMemo(() => linhasDaSacola(carrinho, cardapio), [carrinho, cardapio]);
@@ -25,20 +26,29 @@ export default function TabletCarrinho({
   const precisaNome = String(nome || "").trim().length < 2;
   const pct = cardapio.fidelidade?.cadastro?.desconto_pct || 0;
 
-  return (
-    <div className={s.fundo} role="dialog" aria-modal="true" aria-labelledby="t-pedido" lang={idioma} onClick={(e) => { if (e.target === e.currentTarget) onFechar?.(); }}>
-      <aside className={s.painel}>
+  // `fixo` (tablet deitado largo, pedido do dono 08/11/2026): o "Seu pedido" fica
+  // sempre ao lado do cardápio, como no autoatendimento; sem fundo escuro nem fechar.
+  // `totem` (balcão): o nome é obrigatório e "Para viagem" é o padrão de quem leva.
+  const painel = (
+      <aside className={`${s.painel} ${fixo ? s.painelFixo : ""}`} aria-labelledby="t-pedido" lang={idioma}>
         <header className={s.topo}>
           <span className={s.topoIcone} aria-hidden="true"><Icone nome="pedidos" tamanho={20} /></span>
           <span className={s.topoTextos}>
             <h2 id="t-pedido" className={s.titulo}>{T("seu_pedido")}</h2>
             <span className={s.sub}>{[mesa ? T("mesa_n", { n: mesa }) : "", T("n_itens", { n: qtd })].filter(Boolean).join(" · ")}</span>
           </span>
-          <BotaoRedondo tipo="fechar" rotulo={T("fechar")} onClick={onFechar} />
+          {fixo ? null : <BotaoRedondo tipo="fechar" rotulo={T("fechar")} onClick={onFechar} />}
         </header>
 
         <div className={s.lista}>
-          {!linhas.length ? <p className={s.vazio}>{T("sacola_vazia")}</p> : null}
+          {!linhas.length ? (
+            fixo ? (
+              <div className={s.vazioFixo}>
+                <span className={s.vazioIcone} aria-hidden="true"><Icone nome="pedidos" tamanho={28} /></span>
+                <p className={s.vazio}>{T("pedido_vazio_toque")}</p>
+              </div>
+            ) : <p className={s.vazio}>{T("sacola_vazia")}</p>
+          ) : null}
           {linhas.map((l) => {
             const linha = porChave.get(l.chave) || {};
             return (
@@ -65,9 +75,9 @@ export default function TabletCarrinho({
 
         {linhas.length ? (
           <div className={s.pe}>
-            {precisaNome ? (
+            {precisaNome || totem ? (
               <label className={s.nome}>
-                <span>{T("seu_nome")}</span>
+                <span>{totem ? T("nome_para_chamar") : T("seu_nome")}</span>
                 <input className={s.nomeCampo} value={nome} onChange={(e) => onNome?.(e.target.value)} maxLength={60} autoComplete="given-name" />
               </label>
             ) : null}
@@ -82,17 +92,27 @@ export default function TabletCarrinho({
             {desconto > 0 ? <div className={s.descontoLinha}><span><PalavraDesconto idioma={idioma} espacoAntes={false} /></span><strong>−{formatarPreco(desconto, idioma)}</strong></div> : null}
             <div className={s.subtotal}><span>{T("subtotal")}</span><strong>{formatarPreco(Math.max(0, tot.total - desconto), idioma)}</strong></div>
             {erro ? <span role="alert" className={s.erro}>{erro}</span> : null}
-            <Botao tamanho={58} larguraTotal iconeDireita="seta" disabled={enviando || precisaNome} onClick={onEnviar}>{enviando ? T("enviando") : T("enviar_cozinha")}</Botao>
-            <button type="button" className={s.continuar} onClick={onFechar}>{T("continuar_escolhendo")}</button>
+            <Botao tamanho={58} larguraTotal iconeDireita="seta" disabled={enviando || precisaNome} onClick={onEnviar}>{enviando ? T("enviando") : totem ? T("finalizar_pedido") : T("enviar_cozinha")}</Botao>
+            {fixo ? null : <button type="button" className={s.continuar} onClick={onFechar}>{T("continuar_escolhendo")}</button>}
           </div>
         ) : null}
       </aside>
+  );
+  if (fixo) return painel;
+  return (
+    <div className={s.fundo} role="dialog" aria-modal="true" aria-labelledby="t-pedido" lang={idioma} onClick={(e) => { if (e.target === e.currentTarget) onFechar?.(); }}>
+      {painel}
     </div>
   );
 }
 
-/** "Pedido enviado para a cozinha!" — volta sozinho ao cardápio (TabletEnviado). */
-export function TabletEnviado({ cardapio, idioma = "pt", mesa = "", nome = "", resultado = {}, segundos = 12, onVoltar }) {
+/**
+ * "Pedido enviado!" (TabletEnviado). Como no autoatendimento: o número do pedido
+ * em destaque (no totem é a senha que o cliente guarda) e as etapas Recebido →
+ * Em preparo → Pronto, que andam sozinhas com o acompanhamento. Volta ao cardápio.
+ */
+const ETAPAS_TELA = ["recebido", "preparo", "pronto"];
+export function TabletEnviado({ cardapio, idioma = "pt", mesa = "", totem = false, nome = "", resultado = {}, etapaAtual = "recebido", segundos = 12, onVoltar }) {
   const T = (k, v) => textoDelivery(idioma, k, v);
   const [resta, setResta] = useState(segundos);
   useEffect(() => {
@@ -103,11 +123,29 @@ export function TabletEnviado({ cardapio, idioma = "pt", mesa = "", nome = "", r
   const cb = cardapio.fidelidade?.cashback;
   const pontos = cb ? pontosDoGasto(resultado.total || 0, cb) : 0;
   const pct = cardapio.fidelidade?.cadastro?.desconto_pct;
+  const passo = Math.max(0, ETAPAS_TELA.indexOf(etapaAtual === "saiu" || etapaAtual === "entregue" ? "pronto" : etapaAtual));
   return (
     <div className={s.enviado} role="status" lang={idioma}>
       <span className={s.check} aria-hidden="true"><Icone nome="check" tamanho={40} traco={2.6} /></span>
-      <h2 className={s.enviadoTitulo}>{T("enviado_titulo")}</h2>
-      <p className={s.enviadoSub}>{T("obrigado_mesa", { nome: nome || "—", mesa })}</p>
+      <h2 className={s.enviadoTitulo}>{totem ? T("pedido_realizado") : T("enviado_titulo")}</h2>
+      {resultado.numero ? (
+        totem ? (
+          <div className={s.numeroCaixa}>
+            <span className={s.numeroRotulo}>{T("seu_numero")}</span>
+            <strong className={s.numero}>{resultado.numero}</strong>
+            <span className={s.numeroNota}>{T("guarde_numero")}</span>
+          </div>
+        ) : <p className={s.numeroLinha}>{T("pedido_numero", { n: resultado.numero })}</p>
+      ) : null}
+      <p className={s.enviadoSub}>{totem ? T("pague_no_caixa") : T("obrigado_mesa", { nome: nome || "—", mesa })}</p>
+      <ol className={s.etapas} aria-label={T("pedido_numero", { n: resultado.numero || "" })}>
+        {ETAPAS_TELA.map((e, i) => (
+          <li key={e} className={`${s.etapaPasso} ${i <= passo ? s.etapaFeita : ""}`} aria-current={i === passo ? "step" : undefined}>
+            <span className={s.etapaBola} aria-hidden="true">{i < passo ? <Icone nome="check" tamanho={14} traco={3} /> : i + 1}</span>
+            <span>{T(`etapa_${e}`)}</span>
+          </li>
+        ))}
+      </ol>
       {resultado.desconto > 0 || pontos > 0 ? (
         <div className={s.cards}>
           {resultado.desconto > 0 ? (
@@ -124,7 +162,7 @@ export function TabletEnviado({ cardapio, idioma = "pt", mesa = "", nome = "", r
           ) : null}
         </div>
       ) : null}
-      <button type="button" className={s.voltar} onClick={onVoltar}>{T("voltando_em", { s: Math.max(0, resta) })}</button>
+      <button type="button" className={s.voltar} onClick={onVoltar}>{totem ? `${T("novo_pedido")} · ${Math.max(0, resta)}s` : T("voltando_em", { s: Math.max(0, resta) })}</button>
       <div className={s.trilho} aria-hidden="true"><div className={s.barra} style={{ animationDuration: `${segundos}s` }} /></div>
     </div>
   );

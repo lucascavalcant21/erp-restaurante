@@ -177,7 +177,7 @@ export function veredito(lucroPct, metaPct = null, semCusto = false, falta = nul
   if (lucroPct < 0) return { id: "prejuizo", rotulo: "Prejuízo" };
   const meta = metaPct == null || metaPct === "" ? null : n(metaPct);
   if (meta == null) return { id: "lucro", rotulo: "Dá lucro" };
-  return lucroPct >= meta ? { id: "ok", rotulo: "Faz sentido" } : { id: "baixo", rotulo: `Abaixo da meta (${meta.toLocaleString("pt-BR")}%)` };
+  return lucroPct >= meta ? { id: "ok", rotulo: "Margem alcançada" } : { id: "baixo", rotulo: `Abaixo da meta (${meta.toLocaleString("pt-BR")}%)` };
 }
 
 /**

@@ -46,7 +46,7 @@ export default function ConfiguracoesPage() {
       // O dono avisou que será MEI: vale de saída, até ele salvar outra escolha.
       regime: c.rateio?.regime ?? (base.configSalva ? "" : "mei"),
       margem_alvo_pct: c.doResultado?.margem_alvo_pct ? "" : vazio(c.margem_alvo_pct),
-      encargos: { ...c.encargos }, rateio: { meta_lucro_reais: vazio(c.rateio?.meta_lucro_reais), meta_faturamento_mes: vazio(c.rateio?.meta_faturamento_mes), dias_operacao_mes: vazio(c.rateio?.dias_operacao_mes), padrao_pct: vazio(c.rateio?.padrao_pct), por_categoria: { ...(c.rateio?.por_categoria || {}), }, marmitas_mes: vazio(c.rateio?.marmitas_mes), cmo_mes: vazio(c.rateio?.cmo_mes), custos_fixos: (c.rateio?.custos_fixos || []).map((x) => ({ nome: x.nome, valor: vazio(x.valor) })) },
+      encargos: { ...c.encargos }, rateio: { meta_lucro_reais: vazio(c.rateio?.meta_lucro_reais), meta_faturamento_mes: vazio(c.rateio?.meta_faturamento_mes), dias_operacao_mes: vazio(c.rateio?.dias_operacao_mes), horas_operacao_dia: vazio(c.rateio?.horas_operacao_dia), padrao_pct: vazio(c.rateio?.padrao_pct), por_categoria: { ...(c.rateio?.por_categoria || {}), }, marmitas_mes: vazio(c.rateio?.marmitas_mes), cmo_mes: vazio(c.rateio?.cmo_mes), custos_fixos: (c.rateio?.custos_fixos || []).map((x) => ({ nome: x.nome, valor: vazio(x.valor) })) },
       centros_diretos: c.centros_diretos,
     });
   }, [base]);
@@ -74,7 +74,7 @@ export default function ConfiguracoesPage() {
     try {
       const r = await salvarConfig(unidadeId, {
         canais, tributos_pct: t, margem_alvo_pct: m, encargos,
-        rateio: { padrao_pct: lerNumero(cfg.rateio.padrao_pct), por_categoria: porCat, regime: mei ? "mei" : "", meta_lucro_reais: lerNumero(cfg.rateio.meta_lucro_reais), meta_faturamento_mes: lerNumero(cfg.rateio.meta_faturamento_mes), dias_operacao_mes: lerNumero(cfg.rateio.dias_operacao_mes),
+        rateio: { padrao_pct: lerNumero(cfg.rateio.padrao_pct), por_categoria: porCat, regime: mei ? "mei" : "", meta_lucro_reais: lerNumero(cfg.rateio.meta_lucro_reais), meta_faturamento_mes: lerNumero(cfg.rateio.meta_faturamento_mes), dias_operacao_mes: lerNumero(cfg.rateio.dias_operacao_mes), horas_operacao_dia: lerNumero(cfg.rateio.horas_operacao_dia),
           marmitas_mes: lerNumero(cfg.rateio.marmitas_mes), cmo_mes: lerNumero(cfg.rateio.cmo_mes),
           custos_fixos: cfg.rateio.custos_fixos.map((x) => ({ nome: String(x.nome || "").trim(), valor: lerNumero(x.valor) })).filter((x) => x.nome) },
         centros_diretos: cfg.centros_diretos,
@@ -143,6 +143,7 @@ export default function ConfiguracoesPage() {
           <Campo rotulo="Meta de lucro (R$ por marmita)" dica="Se preencher, vale no lugar da porcentagem: o preço sugerido garante esse valor no bolso."><CampoNumero valor={cfg.rateio.meta_lucro_reais} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, meta_lucro_reais: v } })} placeholder="ex.: 10" /></Campo>
           <Campo rotulo="Meta de faturamento do mês (R$)" dica="Usada em Faturamento, na aba Metas."><CampoNumero valor={cfg.rateio.meta_faturamento_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, meta_faturamento_mes: v } })} placeholder="ex.: 150000" /></Campo>
           <Campo rotulo="Dias de operação no mês" dica="Divide os custos por dia e define o ponto de equilíbrio."><CampoNumero valor={cfg.rateio.dias_operacao_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, dias_operacao_mes: v } })} placeholder="ex.: 26" /></Campo>
+          <Campo rotulo="Horas de operação por dia" dica="Mostra o custo operacional por hora e por minuto no Dashboard gerencial."><CampoNumero valor={cfg.rateio.horas_operacao_dia} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, horas_operacao_dia: v } })} placeholder="ex.: 9" /></Campo>
         </div>
       </Secao>
 

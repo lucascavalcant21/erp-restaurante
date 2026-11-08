@@ -315,16 +315,16 @@ function Midias({ painel, unidade, carregar, avisar, executar, abrir, podeCriar,
             className="flex min-h-[132px] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-hf-border-strong bg-hf-elevated px-4 text-center">
             <Upload size={24} className="text-hf-accent" />
             <span className="text-sm font-semibold text-hf-text">Enviar fotos ou vídeos</span>
-            <span className="text-xs text-hf-muted">JPG, PNG ou WebP até 25 MB · vídeo MP4 (H.264/AAC) até 50 MB · vários de uma vez</span>
+            <span className="text-xs text-hf-muted">Fotos JPG, PNG ou WebP até 25 MB · vídeos MP4 ou do iPhone (.mov) até 50 MB · vários de uma vez</span>
           </button>
-          <input ref={entrada} type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4" className="hidden"
+          <input ref={entrada} type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,.mov" className="hidden"
             onChange={(e) => { if (e.target.files?.length) enviar(e.target.files); e.target.value = ""; }} />
           {enviando.length > 0 && (
             <ul className="space-y-1">
               {enviando.map((x, i) => (
-                <li key={i} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="min-w-0 truncate text-hf-text">{x.nome}</span>
-                  <span className={`shrink-0 text-xs font-medium ${x.erro ? "text-hf-danger" : x.estado === "Pronto" ? "text-hf-success" : "text-hf-muted"}`}>{x.estado}</span>
+                <li key={i} className={`text-sm ${x.erro ? "rounded-xl bg-hf-danger/10 p-2.5" : "flex items-center justify-between gap-3"}`}>
+                  <span className={`min-w-0 text-hf-text ${x.erro ? "block font-semibold" : "truncate"}`}>{x.nome}</span>
+                  <span className={`text-xs font-medium ${x.erro ? "mt-0.5 block text-hf-danger" : `shrink-0 ${x.estado === "Pronto" ? "text-hf-success" : "text-hf-muted"}`}`}>{x.estado}</span>
                 </li>
               ))}
             </ul>

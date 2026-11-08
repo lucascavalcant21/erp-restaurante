@@ -7,6 +7,7 @@ import { supabase } from "../../lib/supabase";
 import { useCallback, useEffect, useState } from "react";
 import { MonitorPlay, RefreshCw, Utensils } from "lucide-react";
 import { Palco, FiltroNitidez } from "./PalcoTv";
+import { mimeParaEnvio, codecDoVideo, ERRO_HEVC } from "../../lib/sinalizacao.mjs";
 
 export async function chamar(unidadeId, acao, dados = {}) {
   const r = await fetchComSessao("/api/sinalizacao", {
@@ -49,10 +50,13 @@ export function medirArquivo(arquivo) {
 
 /** Envio em 3 passos: endereço assinado → arquivo direto ao Storage → registro no acervo. */
 export async function enviarArquivo(unidadeId, arquivo) {
-  const base = { nome: arquivo.name.replace(/\.[^.]+$/, "").slice(0, 80), mime: arquivo.type, tamanho: arquivo.size };
+  // .mov do iPhone com H.264 = mesmo vídeo do MP4: sobe como video/mp4. HEVC: avisa.
+  const mime = mimeParaEnvio(arquivo.name, arquivo.type);
+  if (mime === "video/mp4" && codecDoVideo(new Uint8Array(await arquivo.arrayBuffer())) === "hevc") throw new Error(ERRO_HEVC);
+  const base = { nome: arquivo.name.replace(/\.[^.]+$/, "").slice(0, 80), mime, tamanho: arquivo.size };
   const medidas = await medirArquivo(arquivo);
   const prep = await chamar(unidadeId, "preparar_envio", base);
-  const { error } = await supabase.storage.from("sinalizacao").uploadToSignedUrl(prep.caminho, prep.token, arquivo, { contentType: arquivo.type });
+  const { error } = await supabase.storage.from("sinalizacao").uploadToSignedUrl(prep.caminho, prep.token, arquivo, { contentType: mime });
   if (error) throw new Error("O arquivo não subiu. Confira a internet e tente de novo.");
   return chamar(unidadeId, "registrar_midia", { ...base, ...medidas, caminho: prep.caminho });
 }

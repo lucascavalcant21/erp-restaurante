@@ -741,19 +741,30 @@ export function rotuloDaChamada(p) {
   return `#${p?.numero_pedido || String(p?.id || "").slice(0, 4)}`;
 }
 
+/** Senha do totem gravada na identificação ("Totem · Senha 042" → "042"); sem senha, "". */
+export function senhaDaChamada(p) {
+  const m = String(p?.identificacao || "").match(/Senha\s+(\d{1,4})\b/i);
+  return m ? m[1] : "";
+}
+
+/** Pedido que vai para o painel de senhas: balcão, delivery, iFood e o totem (a mesa é servida na mesa). */
+export const vaiParaChamada = (p) => TIPOS_CHAMADA.includes(p?.tipo_pedido) || (p?.tipo_pedido === "qrcode" && String(p?.cliente_nome || "").startsWith("[TOTEM]"));
+
 /** Só rótulo, status e horário. Telefone, endereço e valor nunca saem. */
 export async function lerChamadaPublica({ db, unidade }) {
   if (!idValido(unidade)) return falha(404, "nao_encontrado", "Unidade não encontrada.");
   try {
     const { data, error } = await db.from("pedidos")
       // numero_pedido não existe em produção (a tela antiga pedia e ficava vazia).
-      .select("id, cliente_nome, status, updated_at, tipo_pedido")
-      .eq("unidade_id", unidade).in("tipo_pedido", TIPOS_CHAMADA).in("status", STATUS_CHAMADA)
-      .order("updated_at", { ascending: false }).limit(60);
+      .select("id, cliente_nome, status, updated_at, tipo_pedido, identificacao")
+      .eq("unidade_id", unidade).in("tipo_pedido", [...TIPOS_CHAMADA, "qrcode"]).in("status", STATUS_CHAMADA)
+      .order("updated_at", { ascending: false }).limit(80);
     if (error) return falha(503, "indisponivel", "Chamada indisponível no momento.");
     return {
       ok: true,
-      pedidos: (data || []).map((p) => ({ id: p.id, rotulo: rotuloDaChamada(p), status: p.status, updated_at: p.updated_at })),
+      // Totem: a senha que o cliente guardou sai em destaque (pedido do dono, 08/11/2026).
+      pedidos: (data || []).filter(vaiParaChamada).slice(0, 60)
+        .map((p) => ({ id: p.id, rotulo: rotuloDaChamada(p), senha: senhaDaChamada(p), status: p.status, updated_at: p.updated_at })),
     };
   } catch {
     return falha(503, "indisponivel", "Chamada indisponível no momento.");

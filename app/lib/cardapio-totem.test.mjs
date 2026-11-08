@@ -131,3 +131,19 @@ test("modelos do editor: ponto da carne e 'Deseja retirar algo?' com os ingredie
   const l = precoDaLinha(prato, { retirar: [g.opcoes[0].id] });
   assert.deepEqual([l.ok, l.preco, l.texto], [true, 40, "Sem: Cebola"], "tirar não muda o preço e a cozinha lê 'Sem'");
 });
+
+test("painel de senhas: o totem aparece com a senha; a mesa não (é servida na mesa)", async () => {
+  const { lerChamadaPublica, senhaDaChamada, vaiParaChamada } = await import("./server/negocio-publico.mjs");
+  assert.equal(senhaDaChamada({ identificacao: "Totem · Senha 042" }), "042");
+  assert.equal(senhaDaChamada({ identificacao: "Mesa 12 · Pedido 042" }), "");
+  assert.equal(vaiParaChamada({ tipo_pedido: "qrcode", cliente_nome: "[MESA 3] Ana" }), false);
+  const db = bancoFalso({ pedidos: [
+    { id: "t1", unidade_id: "loja", tipo_pedido: "qrcode", cliente_nome: "[TOTEM] Bia Souza", identificacao: "Totem · Senha 007", status: "pronto", updated_at: "2026-11-08T15:00:00Z", cliente_telefone: "45999990000" },
+    { id: "m1", unidade_id: "loja", tipo_pedido: "qrcode", cliente_nome: "[MESA 3] Ana", status: "pronto", updated_at: "2026-11-08T15:01:00Z" },
+    { id: "b1", unidade_id: "loja", tipo_pedido: "balcao", cliente_nome: "Caio", status: "preparando", updated_at: "2026-11-08T15:02:00Z" },
+    { id: "x1", unidade_id: "outra", tipo_pedido: "qrcode", cliente_nome: "[TOTEM] Zé", identificacao: "Totem · Senha 001", status: "pronto", updated_at: "2026-11-08T15:03:00Z" },
+  ] });
+  const r = await lerChamadaPublica({ db, unidade: "loja" });
+  assert.deepEqual(r.pedidos.map((p) => [p.id, p.rotulo, p.senha]).sort(), [["b1", "CAIO", ""], ["t1", "BIA", "007"]]);
+  assert.ok(!JSON.stringify(r).includes("4599999"), "telefone nunca sai");
+});

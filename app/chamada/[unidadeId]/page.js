@@ -78,7 +78,8 @@ export default function PainelChamadaTV() {
   };
 
   // O servidor já manda o rótulo pronto (primeiro nome ou número do pedido).
-  const formatarNome = (pedido) => pedido?.rotulo || "";
+  // Pedido do totem: a SENHA vem primeiro (é o que o cliente guardou), o nome embaixo.
+  const formatarNome = (pedido) => (pedido?.senha ? `${pedido.senha} · ${pedido.rotulo || ""}` : pedido?.rotulo || "");
 
   const preparando = pedidos.filter(p => p.status !== 'pronto');
   const prontos = pedidos.filter(p => p.status === 'pronto');
@@ -97,9 +98,15 @@ export default function PainelChamadaTV() {
        {/* Alerta de Tela Cheia (Quando alguém é chamado) */}
        {ultimoChamado && (
           <div className="absolute inset-0 z-50 bg-emerald-600 flex flex-col items-center justify-center animate-pulse-fast">
+             {ultimoChamado.senha ? (
+                <p className="text-xl sm:text-[3vw] font-bold uppercase tracking-widest text-center">Senha</p>
+             ) : null}
              <h1 className="text-[16vw] sm:text-[12vw] font-black tracking-tighter leading-none text-hf-text drop-shadow-2xl text-center break-words max-w-full px-4">
-                {formatarNome(ultimoChamado)}
+                {ultimoChamado.senha || formatarNome(ultimoChamado)}
              </h1>
+             {ultimoChamado.senha && ultimoChamado.rotulo ? (
+                <p className="text-2xl sm:text-[5vw] font-black leading-tight mt-4 mb-4 text-center">{ultimoChamado.rotulo}</p>
+             ) : null}
              <p className="text-lg sm:text-[4vw] font-bold mt-4 bg-black/30 px-5 sm:px-12 py-3 sm:py-4 rounded-full uppercase tracking-widest text-center">
                 Pronto para Retirar
              </p>

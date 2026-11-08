@@ -81,6 +81,9 @@ const LARGO = "(min-width: 1024px)";
 const CELULAR = "(max-width: 767px)";
 // Tablet deitado com espaço para o cardápio e o "Seu pedido" lado a lado (iPad Air, Galaxy Tab: 1180–1280 px).
 const PEDIDO_AO_LADO = "(min-width: 1180px)";
+// Totem: segundos sem toque até perguntar "Ainda está aí?" e até limpar para o próximo cliente.
+const OCIOSO_S = 90;
+const AVISO_S = 15;
 const ERROS_POR_CODIGO = {
   limite: "erro_limite", item_indisponivel: "erro_item", loja_fechada: "erro_fechado", pedido_minimo: "erro_minimo",
   cashback_telefone: "erro_cashback_tel", cashback_mudou: "erro_cashback", cashback_sem_saldo: "erro_cashback",
@@ -164,6 +167,29 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
   // Tablet deitado largo: "Seu pedido" fixo ao lado, como no autoatendimento (pedido do dono, 08/11/2026).
   const ladoLargo = useMidia(PEDIDO_AO_LADO);
   const pedidoAoLado = tabletNovo && ladoLargo;
+  // Totem: cliente que sai no meio do pedido. Sem toque por 90 s com algo em
+  // andamento, pergunta "Ainda está aí?" e, 15 s depois, limpa para o próximo.
+  const [ocioso, setOcioso] = useState(0); // segundos restantes do aviso; 0 = sem aviso
+  const ultimoToque = useRef(Date.now());
+  const andamentoRef = useRef(false);
+  andamentoRef.current = Boolean(totem && etapa !== "enviado" && (carrinho.length || prato || folha || busca));
+  useEffect(() => {
+    if (!totem || previa) return undefined;
+    const toque = () => { ultimoToque.current = Date.now(); setOcioso(0); };
+    window.addEventListener("pointerdown", toque, true);
+    window.addEventListener("keydown", toque, true);
+    const tm = setInterval(() => {
+      if (!andamentoRef.current) { ultimoToque.current = Date.now(); setOcioso(0); return; }
+      const parado = (Date.now() - ultimoToque.current) / 1000;
+      if (parado >= OCIOSO_S + AVISO_S) {
+        setCarrinho([]); setPrato(null); setFolha(""); setBusca(""); setClienteMesa(null);
+        setForm((f) => ({ ...f, nome: "", telefone: "" }));
+        setOcioso(0); ultimoToque.current = Date.now();
+        try { window.scrollTo(0, 0); } catch { /* sem janela */ }
+      } else if (parado >= OCIOSO_S) setOcioso(Math.ceil(OCIOSO_S + AVISO_S - parado));
+    }, 1000);
+    return () => { clearInterval(tm); window.removeEventListener("pointerdown", toque, true); window.removeEventListener("keydown", toque, true); };
+  }, [totem, previa]);
   const [qrDispensado, setQrDispensado] = useState(true);
   useEffect(() => {
     try { setQrDispensado(sessionStorage.getItem(chave(unidadeId, `qr-${mesa}`)) === "1"); } catch { setQrDispensado(false); }
@@ -1218,6 +1244,18 @@ export default function CardapioDigital({ unidadeId, inicial = null, carregadoEm
       ) : null}
 
       <Aviso aviso={aviso} onFechar={fecharAviso} />
+
+      {totem && ocioso > 0 ? (
+        <div role="alertdialog" aria-modal="true" aria-labelledby="t-ocioso" lang={lingua}
+          style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ background: "var(--cd-superficie, #fff)", color: "var(--cd-texto, #111)", borderRadius: 24, padding: "28px 32px", maxWidth: 460, textAlign: "center", display: "grid", gap: 12 }}>
+            <h2 id="t-ocioso" style={{ margin: 0, fontSize: 28 }}>{TD("ainda_ai")}</h2>
+            <p style={{ margin: 0, fontSize: 17, opacity: 0.8 }}>{TD("ainda_ai_sub", { s: ocioso })}</p>
+            <button type="button" className={`${s.primario} ${s.largo}`} style={{ justifyContent: "center", minHeight: 56, fontSize: 18 }}
+              onClick={() => { ultimoToque.current = Date.now(); setOcioso(0); }}>{TD("continuar_pedido")}</button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

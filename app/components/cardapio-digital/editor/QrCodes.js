@@ -112,6 +112,12 @@ export default function QrCodes({ unidadeId, nomeLoja, mesasDoBanco, config, mud
             <Copiar texto={`${origem}${caminhoDoTotem(unidadeId)}`} />
             <a href={caminhoDoTotem(unidadeId)} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 text-sm font-bold text-hf-accent hover:bg-hf-accent/5"><ExternalLink size={16} /> Abrir</a>
           </div>
+          <p className="text-xs text-hf-muted">Painel de senhas para a TV (chama a senha quando a cozinha marca pronto):</p>
+          <p className="break-all rounded-lg bg-hf-elevated/60 px-3 py-2 font-mono text-xs text-hf-text">{`${origem}/chamada/${encodeURIComponent(unidadeId)}`}</p>
+          <div className="flex flex-wrap gap-2">
+            <Copiar texto={`${origem}/chamada/${encodeURIComponent(unidadeId)}`} />
+            <a href={`/chamada/${encodeURIComponent(unidadeId)}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 text-sm font-bold text-hf-accent hover:bg-hf-accent/5"><ExternalLink size={16} /> Abrir</a>
+          </div>
         </div>
       </Secao>
 

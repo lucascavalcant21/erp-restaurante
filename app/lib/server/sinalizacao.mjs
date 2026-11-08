@@ -15,6 +15,7 @@ import { createHash, randomBytes } from "node:crypto";
 import {
   gerarCodigo, normalizarCodigo, validarEnvio, orientacaoPorMedida, validarPlaylist, normalizarConteudo,
   validarProgramacao, resolverConteudo, montarRoteiro, midiasUsadas, statusDaTela, resumoDasTelas,
+  normalizarHorario, dentroDoHorario,
   texto, uuidValido, VALIDADE_CODIGO_MS, ORIENTACOES, INTERVALO_TV_MS,
 } from "../sinalizacao.mjs";
 import { lerCardapioPublico } from "./negocio-publico.mjs";
@@ -34,7 +35,7 @@ const ERRO_SEM_TABELAS = "A Sinalização digital ainda não foi ativada no banc
 
 // ─── LEITURA DO PAINEL ───────────────────────────────────────────────────────
 
-const COL_TELA = "id, nome, local, orientacao, conteudo, pareada_em, ultimo_contato, exibindo, aparelho, ativa, token_hash, created_at, updated_at";
+const COL_TELA = "id, nome, local, orientacao, conteudo, horario, pareada_em, ultimo_contato, exibindo, aparelho, ativa, token_hash, created_at, updated_at";
 const COL_MIDIA = "id, nome, tipo, mime, caminho, tamanho_bytes, duracao_seg, largura, altura, orientacao, versao, ativo, created_at";
 
 async function urlsAssinadas(db, midias, ttl) {
@@ -72,7 +73,7 @@ export async function lerPainel(db, unidade, { agora = new Date() } = {}) {
   const agoraMs = agora.getTime();
   const telas = (rT.data || []).map((t) => {
     const r = resolverConteudo({ tela: t, programacoes, agora });
-    return { ...telaParaPainel(t, agoraMs), agora: { origem: r.origem, conteudo: r.conteudo, regra: r.regra } };
+    return { ...telaParaPainel(t, agoraMs), fora_horario: !dentroDoHorario(t.horario, agora), agora: { origem: r.origem, conteudo: r.conteudo, regra: r.regra } };
   });
 
   // Seções do cardápio para montar a página de cardápio na playlist.
@@ -143,6 +144,8 @@ export async function salvarTela(db, unidade, corpo, { agora = new Date() } = {}
     nome, local: texto(corpo.local) || null,
     orientacao: ORIENTACOES.includes(corpo.orientacao) ? corpo.orientacao : "horizontal",
     ativa: corpo.ativa !== false, updated_at: agora.toISOString(),
+    // Horário de funcionamento (SINAL-2): null = sempre ligada.
+    ...("horario" in corpo ? { horario: normalizarHorario(corpo.horario) } : {}),
   }).eq("id", corpo.id).eq("unidade_id", unidade).select("id").maybeSingle();
   if (error) return falha(500, "Não foi possível salvar a tela.");
   if (!data) return falha(404, "Tela não encontrada nesta unidade.");
@@ -377,7 +380,7 @@ export function assinaturaDoRoteiro(slides) {
 export async function conteudoDaTela(db, { segredo, exibindo = null, aparelho = "", agora = new Date() } = {}) {
   if (!SEGREDO_RE.test(String(segredo || ""))) return ok({ estado: "novo" });
   const h = hashDe(segredo);
-  const { data: tela, error } = await db.from("sinal_telas").select("id, unidade_id, nome, orientacao, conteudo, ativa").eq("token_hash", h).maybeSingle();
+  const { data: tela, error } = await db.from("sinal_telas").select("id, unidade_id, nome, orientacao, conteudo, horario, ativa").eq("token_hash", h).maybeSingle();
   if (semTabelas(error)) return falha(503, "Serviço indisponível no momento.");
   if (error) return falha(503, "Serviço indisponível no momento.");
 
@@ -394,6 +397,8 @@ export async function conteudoDaTela(db, { segredo, exibindo = null, aparelho = 
 
   const info = { nome: tela.nome, orientacao: tela.orientacao };
   if (tela.ativa === false) return ok({ estado: "pareada", tela: info, roteiro: [], assinatura: "pausada", pausada: true, intervalo_ms: INTERVALO_TV_MS });
+  // Fora do horário de funcionamento: tela preta (a TV segue perguntando e acende sozinha na hora).
+  if (!dentroDoHorario(tela.horario, agora)) return ok({ estado: "pareada", tela: info, roteiro: [], assinatura: "apagada", apagada: true, intervalo_ms: INTERVALO_TV_MS });
 
   const { data: regras } = await db.from("sinal_programacoes")
     .select("id, nome, playlist_id, tela_ids, dias_semana, hora_inicio, hora_fim, data_inicio, data_fim, prioridade, ativa, updated_at")

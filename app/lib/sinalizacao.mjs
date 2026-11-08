@@ -303,6 +303,27 @@ export function resolverConteudo({ tela, programacoes = [], agora = new Date(), 
   return { origem: "nenhum", conteudo: null, regra: null };
 }
 
+// ─── HORÁRIO DE FUNCIONAMENTO DA TV ──────────────────────────────────────────
+// Pedido do dono (07/11/2026): fora do horário a tela fica preta sozinha.
+// { inicio: "10:00", fim: "23:00", dias: [1..5] }; sem horário = sempre ligada.
+// Fim menor que o início atravessa a meia-noite (conta para o dia em que começou).
+
+export function normalizarHorario(h) {
+  if (!h || typeof h !== "object") return null;
+  const ini = h.inicio ? String(h.inicio).slice(0, 5) : "";
+  const fim = h.fim ? String(h.fim).slice(0, 5) : "";
+  if (!HORA_RE.test(ini) || !HORA_RE.test(fim) || ini === fim) return null;
+  const dias = Array.isArray(h.dias) ? [...new Set(h.dias.map(inteiro).filter((d) => d >= 0 && d <= 6))].sort((a, b) => a - b) : [];
+  return { inicio: ini, fim, dias: dias.length === 7 ? [] : dias };
+}
+
+/** A tela deve estar acesa agora? Sem horário: sempre. */
+export function dentroDoHorario(horario, agora = new Date(), fuso = FUSO_PADRAO) {
+  const h = normalizarHorario(horario);
+  if (!h) return true;
+  return regraVale({ ativa: true, tela_ids: [], dias_semana: h.dias, hora_inicio: h.inicio, hora_fim: h.fim }, "", agora, fuso);
+}
+
 // ─── MONITORAMENTO ───────────────────────────────────────────────────────────
 
 /** "no_ar" (falou nos últimos 2,5 min), "sem_contato" ou "aguardando" (nunca falou). */

@@ -121,7 +121,7 @@ export default function PlayerTv() {
         setEstado({ fase: "codigo", codigo: r.codigo });
         return INTERVALO_CODIGO;
       }
-      setEstado({ fase: "pareada", tela: r.tela, loja: r.loja, pausada: !!r.pausada, online: true });
+      setEstado({ fase: "pareada", tela: r.tela, loja: r.loja, pausada: !!r.pausada, apagada: !!r.apagada, online: true });
       setGirar(r.tela?.orientacao === "vertical" && window.innerWidth > window.innerHeight);
       if (r.assinatura !== assinaturaRef.current) {
         assinaturaRef.current = r.assinatura;
@@ -207,10 +207,12 @@ export default function PlayerTv() {
     <main className="fixed inset-0 overflow-hidden bg-black text-white" style={{ cursor: cursor ? "default" : "none" }}>
       <FiltroNitidez />
       <div style={palco}>
-        {estado.fase === "pareada" && roteiro.length > 0 && !estado.pausada && (
+        {estado.fase === "pareada" && roteiro.length > 0 && !estado.pausada && !estado.apagada && (
           <Palco roteiro={roteiro} loja={estado.loja} vertical={vertical} carregar={midiaLocal} aoMostrar={aoMostrar} chave={assinaturaRef.current || "r"} />
         )}
-        {estado.fase === "pareada" && (!roteiro.length || estado.pausada) && (
+        {/* Fora do horário de funcionamento: tela toda preta, sem texto. */}
+        {estado.fase === "pareada" && estado.apagada && <div className="h-full w-full bg-black" />}
+        {estado.fase === "pareada" && !estado.apagada && (!roteiro.length || estado.pausada) && (
           <Espera titulo={estado.tela?.nome || "Tela"} texto={estado.pausada ? "Tela pausada no painel." : "Conectada. Escolha o conteúdo no painel do Héfisto."} />
         )}
         {estado.fase === "codigo" && <Codigo codigo={estado.codigo} />}

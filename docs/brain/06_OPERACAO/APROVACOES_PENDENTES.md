@@ -334,3 +334,17 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Decidido por:** lucas (no chat: "Sim, pode criar")
 - **Nota:** Aplicada em 07/11/2026 ~10:30 (horário de Brasília) em sessão acompanhada.
 - **Chave:** migracao:db/SINAL_1_SINALIZACAO_DIGITAL.sql
+
+### APR-023 · EXECUTADO
+
+- **Missão:** Sinalização digital — horário de funcionamento da TV (pedido do dono, 07/11/2026)
+- **Ação:** Aplicar db/SINAL_2_HORARIO_FUNCIONAMENTO.sql no Supabase real (coluna `sinal_telas.horario`)
+- **Ambiente:** supabase (produção)
+- **Risco:** LOW (uma coluna nova, nula; nenhuma linha alterada)
+- **Motivo:** fora do horário a tela fica preta sozinha.
+- **Rollback:** no cabeçalho do arquivo (drop da coluna; não rodar sem decisão do dono).
+- **Evidências:** PGlite 5/5; banco real: coluna jsonb, 0 telas com horário, authenticated sem leitura.
+- **Status:** EXECUTADO
+- **Decidido em:** 2026-11-07 20:14
+- **Decidido por:** lucas (no chat: "vamos fazer essa mudança no horário de funcionamento da tv")
+- **Chave:** migracao:db/SINAL_2_HORARIO_FUNCIONAMENTO.sql

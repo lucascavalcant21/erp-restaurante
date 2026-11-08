@@ -15,7 +15,7 @@ import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
 import { BarraDeAreas } from "../../components/gerencial/PainelGerencial";
-import { BadgeDollarSign, Boxes, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Settings, ShoppingCart, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
+import { BadgeDollarSign, Boxes, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Settings, ShoppingCart, Sparkles, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
 
 const FICHA = "/dashboard/marmitaria/marmitas";
 const ESTOQUE = "/dashboard/marmitaria/estoque";
@@ -23,11 +23,13 @@ const AREAS = [
   { href: "/dashboard/marmitaria", rotulo: "Início", exato: true, icone: Home },
   // Dashboard gerencial no modelo de gestão (pedido do dono, 08/11/2026).
   { href: "/dashboard/marmitaria/gerencial", rotulo: "Dashboard gerencial", icone: Gauge },
+  // Criar marmita (08/11/2026): tudo numa tela, pronta para vender.
+  { href: `${FICHA}/criar`, rotulo: "Criar marmita", icone: Sparkles },
   { href: `${FICHA}/produtos`, rotulo: "Cadastro de ingredientes", icone: Package },
   { href: `${FICHA}/embalagens`, rotulo: "Cadastro de embalagens", icone: Boxes },
   { href: `${ESTOQUE}/compras`, rotulo: "Compras", icone: ShoppingCart },
   { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`], icone: Warehouse },
-  { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/processos`, `${FICHA}/produtos`], icone: ClipboardList },
+  { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/criar`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/processos`, `${FICHA}/produtos`], icone: ClipboardList },
   { href: `${FICHA}/cardapio`, rotulo: "Precificação", icone: BadgeDollarSign },
   { href: `${ESTOQUE}/cozinha`, rotulo: "Produção do dia", tambem: [`${ESTOQUE}/producoes`], icone: ChefHat },
   { href: `${FICHA}/processos`, rotulo: "Montagem do prato", icone: Layers },

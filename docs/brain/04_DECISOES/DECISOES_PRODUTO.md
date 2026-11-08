@@ -206,3 +206,10 @@ Decisões:
 - **Ponto de equilíbrio com lucro (PEE)** = custos fixos ÷ (contribuição por venda − meta de lucro por venda); meta em R$ por marmita (ou % da meta × ticket médio).
 - **Horas de operação por dia** entram no `rateio` da configuração da marmitaria (JSON já existente, sem migração) para o custo por hora e por minuto.
 - "Faz sentido" na Precificação vira **"Margem alcançada"** (nome profissional, como na referência).
+
+## DP — Criar marmita numa tela só (08/11/2026, pedido do dono)
+
+- "Na marmitaria a ideia tem que ser simples, ganhar dinheiro": proteína e quantidade, empanamento ligado ou não (com o custo dele), acompanhamentos, embalagem, custo, preço sugerido, lucro, desconto, combos com bebida e/ou sobremesa, descrição e foto, e um botão que deixa tudo pronto para vender.
+- Área **Criar marmita** (`/dashboard/marmitaria/marmitas/criar`, mesma permissão da Ficha técnica). Contas em `app/lib/marmitaria/montador.mjs`.
+- Com empanamento, saem **duas fichas** (com e sem) ou só a empanada; cada uma com o preço da plataforma escolhida. Nada novo no banco: grava pela `marmitaria_salvar_ficha`; o desconto vira oferta (`marmitaria_ofertas`) e os combos entram em `marmitaria_combos`, com ids `montador-…` para salvar de novo sem duplicar.
+- Meta: com "meta de lucro por marmita" (R$) em Configurações, o preço sugerido e o selo "Meta alcançada" usam os reais; sem ela, a margem-alvo em %.

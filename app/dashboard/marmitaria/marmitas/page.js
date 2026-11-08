@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 // Ficha técnica: monta cada marmita, sobremesa e bebida e mostra só o custo,
 // já com a embalagem. Preço, taxas e lucro ficam no Cardápio.
 
@@ -47,7 +49,10 @@ function Conteudo() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><Botao onClick={nova}><Plus size={16} /> Nova ficha técnica</Botao></div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Link href="/dashboard/marmitaria/marmitas/criar" className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-hf-accent px-4 text-sm font-semibold text-white">Criar marmita pronta para vender</Link>
+        <Botao variante="secundario" onClick={nova}><Plus size={16} /> Nova ficha técnica</Botao>
+      </div>
       {aviso && <Aviso>{aviso}</Aviso>}
       <ListaDeFichas onEditar={editar} onNova={nova} />
     </div>

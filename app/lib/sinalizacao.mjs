@@ -39,6 +39,36 @@ export const MAX_LADOS = 3;
 export const AJUSTES = Object.freeze(["auto", "inteira", "preencher", "dividir"]);
 
 /**
+ * Transições entre slides, como no PowerPoint: a transição pertence ao slide
+ * que ENTRA. "aleatoria" sorteia uma das outras a cada troca; "nenhuma" corta seco.
+ */
+export const TRANSICOES = Object.freeze([
+  "esmaecer", "empurrar", "cobrir", "revelar", "dividir", "forma", "persianas", "cubo", "zoom", "aleatoria", "nenhuma",
+]);
+export const TRANSICAO_PADRAO = "esmaecer";
+/** Velocidade da transição (ms), como a "Duração" do PowerPoint. */
+export const VELOCIDADES = Object.freeze({ rapida: 500, media: 900, lenta: 1500 });
+export const VELOCIDADE_PADRAO = "media";
+
+/** As que o sorteio da "aleatoria" pode escolher. */
+const SORTEAVEIS = TRANSICOES.filter((t) => t !== "aleatoria" && t !== "nenhuma");
+
+/** Resolve a transição de um slide na hora da troca (sorteia a "aleatoria"). */
+export function transicaoDaTroca(slide, sorteio = Math.random) {
+  const pedida = TRANSICOES.includes(slide?.transicao) ? slide.transicao : TRANSICAO_PADRAO;
+  const efeito = pedida === "aleatoria" ? SORTEAVEIS[Math.min(SORTEAVEIS.length - 1, Math.floor(sorteio() * SORTEAVEIS.length))] : pedida;
+  const ms = efeito === "nenhuma" ? 0 : VELOCIDADES[slide?.velocidade] || VELOCIDADES[VELOCIDADE_PADRAO];
+  return { efeito, ms };
+}
+
+function transicaoDoItem(item) {
+  return {
+    transicao: TRANSICOES.includes(item.transicao) ? item.transicao : TRANSICAO_PADRAO,
+    velocidade: Object.hasOwn(VELOCIDADES, item.velocidade) ? item.velocidade : VELOCIDADE_PADRAO,
+  };
+}
+
+/**
  * Proporção máxima entre a arte e a área para o Automático encher a tela.
  * 1,4 cobre foto deitada do celular (4:3) e de câmera (3:2) numa TV 16:9
  * (corta no máximo ~13% em cima e embaixo); foto em pé numa TV deitada passa
@@ -198,7 +228,7 @@ export function normalizarItem(item) {
   if (item.tipo === "midia") {
     if (!uuidValido(item.midia_id)) return null;
     const ajuste = AJUSTES.includes(item.ajuste) ? item.ajuste : "auto";
-    return { tipo: "midia", midia_id: item.midia_id, duracao_seg, zona, ajuste };
+    return { tipo: "midia", midia_id: item.midia_id, duracao_seg, zona, ajuste, ...transicaoDoItem(item) };
   }
   if (item.tipo === "cardapio") {
     const categorias = Array.isArray(item.categoria_ids)
@@ -213,6 +243,7 @@ export function normalizarItem(item) {
       mostrar_descricao: item.mostrar_descricao !== false,
       duracao_seg: duracao_seg ?? DURACAO.cardapio,
       zona,
+      ...transicaoDoItem(item),
     };
   }
   return null;
@@ -472,6 +503,8 @@ export function montarRoteiro({ itens = [], midias = new Map(), urls = new Map()
         duracao_seg: duracaoDaMidia(m, item.duracao_seg),
         zona: item.zona,
         ajuste: item.ajuste,
+        transicao: item.transicao,
+        velocidade: item.velocidade,
       });
       continue;
     }
@@ -479,6 +512,7 @@ export function montarRoteiro({ itens = [], midias = new Map(), urls = new Map()
     paginas.forEach((pg, i) => slides.push({
       tipo: "cardapio", chave: `cardapio:${item.zona}:${pg.categoria}:${i}`, nome: `${pg.titulo} · ${pg.categoria}`,
       duracao_seg: item.duracao_seg, pagina: pg, zona: item.zona,
+      transicao: item.transicao, velocidade: item.velocidade,
     }));
   }
   return slides;

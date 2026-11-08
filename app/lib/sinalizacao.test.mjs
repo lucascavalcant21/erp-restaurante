@@ -257,3 +257,27 @@ test("Automático: foto deitada enche a TV deitada; foto em pé fica inteira; me
   assert.equal(ajusteAutomatico(0, 0, 1920, 1080), "inteira");
   assert.equal(ajusteAutomatico(4032, 3024, 0, 0), "inteira");
 });
+
+test("transições como no PowerPoint: padrão esmaecer/média, valores inválidos voltam ao padrão, e vão para o roteiro", async () => {
+  const { transicaoDaTroca, TRANSICOES, VELOCIDADES } = await import("./sinalizacao.mjs");
+  const padrao = normalizarItem({ tipo: "midia", midia_id: M1 });
+  assert.equal(padrao.transicao, "esmaecer");
+  assert.equal(padrao.velocidade, "media");
+  const cubo = normalizarItem({ tipo: "midia", midia_id: M1, transicao: "cubo", velocidade: "lenta" });
+  assert.deepEqual([cubo.transicao, cubo.velocidade], ["cubo", "lenta"]);
+  const ruim = normalizarItem({ tipo: "midia", midia_id: M1, transicao: "explodir", velocidade: "turbo" });
+  assert.deepEqual([ruim.transicao, ruim.velocidade], ["esmaecer", "media"]);
+  const card = normalizarItem({ tipo: "cardapio", transicao: "persianas", velocidade: "rapida" });
+  assert.deepEqual([card.transicao, card.velocidade], ["persianas", "rapida"]);
+
+  const r = montarRoteiro({ itens: [{ tipo: "midia", midia_id: M1, transicao: "empurrar", velocidade: "rapida" }], midias: new Map([[M1, { id: M1, tipo: "imagem", nome: "A" }]]), urls: new Map([[M1, "u"]]) });
+  assert.deepEqual([r[0].transicao, r[0].velocidade], ["empurrar", "rapida"]);
+
+  assert.deepEqual(transicaoDaTroca({ transicao: "zoom", velocidade: "lenta" }), { efeito: "zoom", ms: VELOCIDADES.lenta });
+  assert.deepEqual(transicaoDaTroca({ transicao: "nenhuma", velocidade: "lenta" }), { efeito: "nenhuma", ms: 0 });
+  assert.deepEqual(transicaoDaTroca({}), { efeito: "esmaecer", ms: VELOCIDADES.media }, "slide antigo, sem campo: esmaecer");
+  // Aleatória sorteia entre os efeitos de verdade (nunca "aleatoria" nem "nenhuma").
+  const sorteados = new Set([0, 0.2, 0.5, 0.8, 0.999].map((x) => transicaoDaTroca({ transicao: "aleatoria" }, () => x).efeito));
+  for (const e of sorteados) assert.ok(TRANSICOES.includes(e) && e !== "aleatoria" && e !== "nenhuma", e);
+  assert.ok(sorteados.size >= 4);
+});

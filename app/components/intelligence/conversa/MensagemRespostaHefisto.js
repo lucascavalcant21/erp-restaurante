@@ -65,7 +65,7 @@ const MensagemRespostaHefisto = memo(function MensagemRespostaHefisto({
 
       {(r.blocos || []).map((b, i) => {
         if (b.tipo === "metrica") return <MetricaCartao key={i} rotulo={b.rotulo} m={b.metrica} compacto />;
-        if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} />;
+        if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} onComando={onComando} />;
         if (b.tipo === "lista") return <ListaBloco key={i} titulo={b.titulo} itens={b.itens} />;
         if (b.tipo === "texto") return <TextoBloco key={i} texto={b.texto} qualificador={b.qualificador} />;
         if (b.tipo === "insight") return <InsightCartao key={i} insight={b.insight} onComando={onComando} compacto />;

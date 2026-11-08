@@ -149,7 +149,10 @@ export function montarFolha({ ficha, ingredientes = [], etapas = [], passosMonta
     tipo,
     descricao: limpo(ficha.descricao_comercial) || null,
     foto: fotoSegura(ficha.imagem, ficha.montagem_foto, montagem?.foto_url, fotoCardapio),
-    ingredientes: ingredientes.map((i) => ({ nome: i.nome, quantidade: i.quantidade })),
+    ingredientes: ingredientes.map((i) => ({ nome: i.nome, quantidade: i.quantidade, ...(i.qtd != null ? { qtd: i.qtd, unidade: i.unidade, base: !!i.base, estoque: i.estoque ?? null } : {}) })),
+    // para "adaptar a receita ao que eu tenho" (conta feita no aparelho, determinística: adaptar-receita.mjs)
+    rendimentoQtd: Number(ficha.rendimento_porcoes) > 0 ? Number(ficha.rendimento_porcoes) : null,
+    rendimentoUnidade: Number(ficha.rendimento_porcoes) > 0 ? ficha.rendimento_unidade || "porções" : null,
     servico,
     preparo,
     montagem: montar,

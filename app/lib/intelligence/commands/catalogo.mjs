@@ -145,7 +145,30 @@ export const INTENCOES = Object.freeze([
     id: "fichas.preparo", tipo: "pergunta", agentes: ["operacoes"],
     descricao: "Ficha técnica de um prato ou drink: ingredientes, quantidades e modo de preparo (ex.: 'como faz o vatapá?', 'ficha do risoto', 'ingredientes da caipirinha').",
     frases: [["como faz", "como fazer", "como se faz", "como faco", "como prepara", "como preparar", "modo de preparo", "receita do", "receita da", "receita de", "ficha do", "ficha da", "ficha de", "ficha tecnica", "ingredientes do", "ingredientes da", "o que vai no", "o que vai na", "preparo do", "preparo da",
-      "como monta", "como montar", "como se monta", "como monto", "montagem do", "montagem da", "montagem de", "como serve", "como servir", "passo a passo"]], peso: 6,
+      "como monta", "como montar", "como se monta", "como monto", "montagem do", "montagem da", "montagem de", "como serve", "como servir", "passo a passo",
+      // "eu quero fazer um vatapá" (funcionário que vai preparar agora)
+      "quero fazer", "vou fazer", "preciso fazer", "quero preparar", "vou preparar", "preciso preparar", "preparar o", "preparar a", "preparar um", "preparar uma"]],
+    proibidas: ["compra", "pedido", "entrada", "contagem", "inventario", "perda", "transferencia", "etiqueta", "receita nova", "nova receita", "ficha nova", "nova ficha", "montar uma receita", "pagamento", "conta"], peso: 6,
+  },
+  {
+    id: "fichas.onde_vai", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Em quais pratos, drinks e receitas base vai um ingrediente (ex.: 'onde vai leite de coco?', 'quais pratos levam camarão?').",
+    frases: [["onde vai", "onde usa", "onde uso", "onde entra", "quais pratos levam", "quais pratos usam", "que pratos levam", "que pratos usam", "quais receitas levam", "quais receitas usam", "quais drinks levam", "quais drinks usam", "em que prato vai", "em quais pratos", "o que leva", "pratos que levam", "pratos com"]], peso: 8,
+  },
+  {
+    id: "fichas.listar", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Lista de fichas para escolher com um toque: receitas da cozinha, drinks do bar, receitas base (ex.: 'receitas da cozinha', 'drinks do bar', 'bases do bar').",
+    frases: [["receitas da cozinha", "pratos da cozinha", "drinks do bar", "drinques do bar", "bebidas do bar", "bases do bar", "bases da cozinha", "receitas base", "lista de receitas", "lista de drinks", "quais receitas", "quais drinks", "todas as receitas", "todos os drinks", "xaropes do bar"]], peso: 9,
+  },
+  {
+    id: "assistente.menu", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Atalhos clicáveis por área (cozinha, bar, salão, estoque): o que o assistente faz em cada uma.",
+    frases: [["atalhos da cozinha", "atalhos do bar", "atalhos do salao", "atalhos do estoque", "atalhos", "menu do assistente", "o que voce faz", "o que voce sabe fazer", "como voce ajuda", "me ajuda", "ajuda"]], peso: 5,
+  },
+  {
+    id: "salao.orientacao", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Situação ou montagem no salão (cliente reclamou, prato demorou, montar a mesa, montar um ambiente): passo a passo de orientação.",
+    frases: [["situacao no salao", "montagem no salao", "montar a mesa", "montar uma mesa", "monto a mesa", "montar o salao", "montar o jardim", "montar a varanda", "montar o ambiente", "como resolvo", "como eu resolvo", "o que eu faco", "o que faco agora"]], peso: 9,
   },
   {
     id: "rh.escala_dia", tipo: "pergunta", agentes: ["rh"],

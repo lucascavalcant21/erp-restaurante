@@ -153,6 +153,8 @@ export function interpretarPorRegras(texto) {
     && (!it.requerDestino || destino));
   candidatas.sort((a, b) => b.peso - a.peso);
   let escolhida = candidatas[0] || null;
+  // botões do assistente clicável ("Atalhos: perda", "Atalhos do bar"): sempre o menu, mesmo com palavras de outros pedidos
+  if (ps[0] === "atalhos") escolhida = INTENCOES.find((it) => it.id === "assistente.menu") || escolhida;
 
   const q = extrairQuantidade(ps);
   let produto = null;
@@ -165,10 +167,15 @@ export function interpretarPorRegras(texto) {
     produto = resto.length ? resto.join(" ") : null;
   } else if (escolhida?.id === "fichas.preparo") {
     // "como faz o vatapá baiano?": tira as palavras do pedido e o prato é o que sobra
-    const RUIDO = new Set(["como", "faz", "fazer", "se", "faco", "prepara", "preparar", "preparo", "modo", "de", "do", "da", "dos", "das", "o", "a", "os", "as", "um", "uma", "receita", "base", "ficha", "tecnica", "ingredientes", "que", "vai", "no", "na", "qual", "quais", "e", "me", "mostra", "mostre", "passa", "manda", "voce", "sabe", "quero", "ver",
+    const RUIDO = new Set(["como", "faz", "fazer", "se", "faco", "prepara", "preparar", "vou", "preciso", "preparo", "modo", "de", "do", "da", "dos", "das", "o", "a", "os", "as", "um", "uma", "receita", "base", "ficha", "tecnica", "ingredientes", "que", "vai", "no", "na", "qual", "quais", "e", "me", "mostra", "mostre", "passa", "manda", "voce", "sabe", "quero", "ver",
       // a fala vem com "eu quero montar um… eu quero saber qual é a ficha técnica de um vatapá"
       "eu", "saber", "queria", "gostaria", "montar", "monta", "monto", "montagem", "serve", "servir", "passo", "explica", "explicar", "ensina", "ensinar",
       "drink", "drinks", "drinque", "bebida", "coquetel", "prato", "comida", "pra", "para", "por", "favor", "agora", "aqui", "esse", "essa", "isso", "tudo", "completo", "completa", "tecnico", "e", "ai"]);
+    const resto = ps.filter((w) => !RUIDO.has(w));
+    produto = resto.length ? resto.slice(0, 6).join(" ") : null;
+  } else if (escolhida?.id === "fichas.onde_vai") {
+    // "onde vai o leite de coco?" / "quais pratos levam camarão?": o que sobra é o produto
+    const RUIDO = new Set(["onde", "vai", "usa", "uso", "entra", "quais", "que", "pratos", "prato", "receitas", "receita", "drinks", "drink", "levam", "leva", "usam", "em", "o", "a", "os", "as", "de", "do", "da", "dos", "das", "com", "e", "um", "uma", "no", "na", "me", "fala", "diz"]);
     const resto = ps.filter((w) => !RUIDO.has(w));
     produto = resto.length ? resto.slice(0, 6).join(" ") : null;
   } else if (escolhida?.id === "compras.conferir_recebimento") {

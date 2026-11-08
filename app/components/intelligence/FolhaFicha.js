@@ -9,6 +9,7 @@
 
 import { memo } from "react";
 import { iconeDoIngrediente, iconeDoServico } from "./folha-icones.mjs";
+import PrepararReceita from "./PrepararReceita";
 
 const VERDE = "var(--wa-verde-escuro, var(--hf-accent))";
 const META = "var(--wa-meta, var(--hf-muted))";
@@ -39,7 +40,7 @@ function Passos({ titulo, passos }) {
   );
 }
 
-function FolhaFicha({ folha }) {
+function FolhaFicha({ folha, onComando }) {
   if (!folha?.nome) return null;
   return (
     <article className="overflow-hidden rounded-xl border border-black/[0.07] bg-white" aria-label={`Ficha de ${folha.nome}`}>
@@ -70,6 +71,9 @@ function FolhaFicha({ folha }) {
             </ul>
           </section>
         ) : null}
+
+        {/* "Vou preparar agora": tem tudo? adapta a receita ao que tem (clicável) */}
+        <PrepararReceita folha={folha} onComando={onComando} />
 
         {folha.servico?.length ? (
           <section className="grid grid-cols-2 gap-1.5">

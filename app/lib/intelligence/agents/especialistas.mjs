@@ -10,6 +10,7 @@ import { normalizar } from "../metrics/produtos.mjs";
 import { somarDias } from "../core/periodos.mjs";
 import { generateDailyBrief } from "../insights/daily-brief.mjs";
 import { HANDLERS_COMPRAS, HANDLERS_RH, HANDLERS_FICHAS, HANDLERS_ETIQUETAS } from "./assistente.mjs";
+import { HANDLERS_MENU } from "./menu.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoInsight, blocoTexto, brl, num, ddmm, valorFormatado } from "../commands/resposta.mjs";
 
 const r = (texto, blocos = [], acoes = [], nivel = NIVEL.OBSERVAR) => ({ texto, blocos, acoes, nivel });
@@ -303,6 +304,7 @@ export const AgenteRH = {
 export const AgenteOperacoes = {
   id: "operacoes", nome: "OperationsAgent",
   ...HANDLERS_FICHAS,
+  ...HANDLERS_MENU,
   async "fichas.preparo"({ motor, params }) {
     // "como faz essa?" logo depois de falar de uma ficha: vale a ficha da conversa (reconferida nesta unidade)
     if (!params.produto && !params.fichaIdContexto) return { ...r("De qual prato ou drink?"), pergunta: { campo: "produto", texto: "De qual prato ou drink você quer a ficha?", livre: true, comandoBase: "Como faz {valor}?" } };
@@ -346,7 +348,9 @@ export const AgenteOperacoes = {
     if (folha?.montagem?.length) partes.push(`Montagem: ${folha.montagem.map((p, i) => `${i + 1}) ${p.texto}`).join(" ")}`);
     // A folha (cartaz) já mostra ingredientes, copo/gelo, preparo e montagem; o texto fica para leitura em voz alta.
     const blocos = [];
-    if (folha) blocos.push({ tipo: "folha", folha });
+    // "vou preparar / quero fazer": a folha já abre perguntando se tem todos os ingredientes
+    const preparar = /\b(vou|quero|preciso|vamos)\s+(fazer|preparar)\b|\bpreparar\b/i.test(String(params.texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+    if (folha) blocos.push({ tipo: "folha", folha: preparar ? { ...folha, preparar: true } : folha });
     else {
       if (ingredientes.length) blocos.push(blocoLista(`Ingredientes — ${f.nome}`, ingredientes.map((i) => ({ rotulo: i.nome, valor: i.quantidade }))));
       if (f.modoPreparo) blocos.push(blocoTexto(f.modoPreparo, "Modo de preparo"));

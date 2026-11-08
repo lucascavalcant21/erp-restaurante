@@ -104,12 +104,30 @@ function Balao({ lado, children, hora: h, lido, cauda = true, largo = false }) {
   );
 }
 
+// Lista longa (receitas, drinks): campo de busca e rolagem, para escolher com um toque.
+const semAcento = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const AREAS_INICIO = [
+  { rotulo: "Cozinha", icone: "🍳", comando: "Atalhos da cozinha" },
+  { rotulo: "Bar", icone: "🍹", comando: "Atalhos do bar" },
+  { rotulo: "Salão", icone: "🍽️", comando: "Atalhos do salão" },
+  { rotulo: "Estoque", icone: "📦", comando: "Atalhos do estoque" },
+];
+
 const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabilitado }) {
+  const [filtro, setFiltro] = useState("");
   if (!opcoes?.length) return null;
+  const longa = opcoes.length > 8;
+  const visiveis = longa && filtro.trim() ? opcoes.filter((o) => semAcento(o.rotulo).includes(semAcento(filtro.trim()))) : opcoes;
   return (
     <div className="flex justify-start px-3 pb-1.5 sm:px-[6%]">
       <div className="grid w-full max-w-[82%] gap-1 sm:max-w-[520px]">
-        {opcoes.map((o, i) => (
+        {longa && (
+          <input type="search" value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder={`Procurar entre ${opcoes.length}…`} aria-label="Procurar na lista"
+            className="min-h-[46px] rounded-[14px] border-0 px-3 text-[16px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] outline-none" style={{ background: "var(--wa-ele)" }} />
+        )}
+        <div className={longa ? "grid max-h-[46vh] gap-1 overflow-y-auto overscroll-contain pr-0.5" : "contents"}>
+        {longa && !visiveis.length && <p className="px-2 py-2 text-[14.5px]" style={{ color: "var(--wa-meta)" }}>Nada com esse nome.</p>}
+        {visiveis.map((o, i) => (
           <button
             key={`${o.id || o.rotulo}-${i}`}
             type="button"
@@ -122,12 +140,13 @@ const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabili
             {o.rotulo}
           </button>
         ))}
+        </div>
       </div>
     </div>
   );
 });
 
-function Blocos({ blocos, onRota }) {
+function Blocos({ blocos, onRota, onComando }) {
   if (!blocos?.length) return null;
   return (
     <div className="mt-1.5 space-y-2">
@@ -151,7 +170,7 @@ function Blocos({ blocos, onRota }) {
             </div>
           );
         }
-        if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} />;
+        if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} onComando={onComando} />;
         if (b.tipo === "etiquetas") return <ListaEtiquetas key={i} bloco={b} onRota={onRota} />;
         if (b.tipo === "texto") return <p key={i} className="text-[14px]" style={{ color: "var(--wa-meta)" }}>{b.qualificador ? <strong>{b.qualificador}: </strong> : null}{b.texto}</p>;
         if (b.tipo === "insight" && b.insight?.titulo) return <p key={i} className="text-[14.5px]">• {b.insight.titulo}</p>;
@@ -241,7 +260,7 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
               {x.pergunta?.texto && !String(x.texto || "").includes(x.pergunta.texto) ? `\n${x.pergunta.texto}` : ""}
             </p>
           )}
-          <Blocos blocos={x.blocos} onRota={onRota} />
+          <Blocos blocos={x.blocos} onRota={onRota} onComando={onComando} />
           {primeiro && <Rodape r={r} />}
         </Balao>
         <BotoesRapidos
@@ -584,9 +603,22 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
           {vazio && (
             <div className="space-y-1">
               <Balao lado="ele" hora={Date.now()}>
-                <p>Olá! Sou o {NOME_ASSISTENTE}. Pode escrever ou mandar áudio. Eu dou entrada no estoque (cada produto no setor dele), confiro o que chegou, vejo quem chegou no horário e monto fichas técnicas com custo e lucro.</p>
+                <p>Olá! Sou o {NOME_ASSISTENTE}. Toque na sua área para começar. Se preferir, escreva ou mande um áudio.</p>
               </Balao>
-              <BotoesRapidos opcoes={SUGESTOES_ASSISTENTE.map((s) => ({ id: s, rotulo: s, comando: s }))} desabilitado={ocupado} onEscolher={(o) => enviarComando(o.comando)} />
+              {/* Assistente clicável (pedido do dono, 08/11/2026): o funcionário toca mais do que digita */}
+              <div className="flex justify-start px-3 pb-1.5 sm:px-[6%]">
+                <div className="grid w-full max-w-[82%] grid-cols-2 gap-1.5 sm:max-w-[520px]">
+                  {AREAS_INICIO.map((a) => (
+                    <button key={a.comando} type="button" disabled={ocupado} onClick={() => enviarComando(a.comando)}
+                      className="flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-[16px] px-2 py-3 text-center shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.98] disabled:opacity-50"
+                      style={{ background: "var(--wa-ele)", color: "var(--wa-verde-escuro)" }}>
+                      <span className="text-[30px] leading-none" aria-hidden="true">{a.icone}</span>
+                      <span className="text-[17px] font-semibold">{a.rotulo}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <BotoesRapidos opcoes={SUGESTOES_ASSISTENTE.slice(0, 3).map((s) => ({ id: s, rotulo: s, comando: s }))} desabilitado={ocupado} onEscolher={(o) => enviarComando(o.comando)} />
             </div>
           )}
 

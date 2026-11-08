@@ -124,7 +124,8 @@ test("folha do drink: copo e gelo da tela de Montagem, foto https, o que falta a
   assert.ok(folha, "sem folha");
   assert.equal(folha.tipo, "drink");
   assert.equal(folha.nome, "Caipirinha Clássica");
-  assert.deepEqual(folha.ingredientes, [{ nome: "Óleo de soja", quantidade: "50 ml" }]);
+  assert.deepEqual(folha.ingredientes.map(({ nome, quantidade, qtd, unidade }) => ({ nome, quantidade, qtd, unidade })), [{ nome: "Óleo de soja", quantidade: "50 ml", qtd: 0.05, unidade: "L" }]);
+  assert.ok(folha.ingredientes[0].estoque === null || Number.isFinite(folha.ingredientes[0].estoque), "saldo em estoque vem do sistema ou fica vazio");
   const s = Object.fromEntries(folha.servico.map((x) => [x.id, x.valor]));
   assert.deepEqual(s, { copo: "Copo Old Fashioned", gelo: "Cubos de gelo", metodo: "Macerado", guarnicao: null });
   assert.equal(folha.foto, "https://exemplo.supabase.co/storage/v1/object/public/montagem-fotos/caipi.jpg");
@@ -182,4 +183,52 @@ test("escolheu o prato: só os pratos (aqui um só, abre direto)", async () => {
   const { pedir } = await montar({ extra: comBaseEPratos });
   const r = await pedir("Como faz o prato de Vatapá?");
   assert.equal(r.blocos.find((b) => b.tipo === "folha")?.folha.nome, "Vatapá Baiano");
+});
+
+// ─── Assistente clicável (pedido do dono, 08/11/2026) ───
+const comBaseComCamarao = (t) => {
+  t.fichas_ingredientes.push({ ficha_id: "f2", insumo_id: OLEO, quantidade: 0.05 });
+  t.fichas_tecnicas.push({ id: "f3", unidade_id: "loja-a", nome_receita: "Bobó", departamento: "cozinha", ativo: true });
+  t.fichas_ingredientes.push({ ficha_id: "f3", subficha_id: "f2", quantidade: 0.5 });
+};
+
+test("'Onde vai óleo de soja?': fichas que usam direto e as que usam pela base (nada da B)", async () => {
+  const { pedir } = await montar({ extra: comBaseComCamarao });
+  const r = await pedir("Onde vai óleo de soja?");
+  assert.equal(r.interpretacao.intencao, "fichas.onde_vai");
+  assert.match(r.texto, /^Óleo de soja vai em 3 fichas: Bobó \(dentro de Caldo de camarão\); Vatapá Baiano \(100 ml\); Caldo de camarão \(50 ml\)\.$/);
+  assert.deepEqual(r.pergunta.opcoes.map((o) => o.comando), ["Como faz Bobó?", "Como faz Vatapá Baiano?", "Como faz Caldo de camarão?"]);
+  assert.ok(!JSON.stringify(r).includes("999999"));
+});
+
+test("'Onde vai um ingrediente?' sem dizer qual: pergunta com o comando pronto", async () => {
+  const { pedir } = await montar();
+  const r = await pedir("Atalhos: ingrediente");
+  assert.equal(r.pergunta.livre, true);
+  assert.equal(r.pergunta.comandoBase, "Onde vai {valor}?");
+});
+
+test("menu por área e lista de pratos com um toque ('Vou preparar …' abre a folha já perguntando)", async () => {
+  const { pedir } = await montar({ extra: comBaseComCamarao });
+  const m = await pedir("Me ajuda");
+  assert.deepEqual(m.pergunta.opcoes.map((o) => o.rotulo), ["Cozinha", "Bar", "Salão", "Estoque"]);
+  const coz = await pedir(m.pergunta.opcoes[0].comando);
+  assert.equal(coz.pergunta.opcoes[0].comando, "Pratos da cozinha");
+  const lista = await pedir("Pratos da cozinha");
+  assert.deepEqual(lista.pergunta.opcoes.map((o) => o.rotulo), ["Bobó", "Vatapá Baiano"], "só pratos da cozinha desta unidade (a base fica em 'Bases da cozinha')");
+  const folha = (await pedir(lista.pergunta.opcoes[1].comando)).blocos.find((b) => b.tipo === "folha").folha;
+  assert.equal(folha.preparar, true);
+  assert.equal(folha.rendimentoQtd, 10);
+  const leo = folha.ingredientes.find((i) => i.nome === "Óleo de soja");
+  assert.deepEqual([leo.qtd, leo.unidade], [0.1, "L"]);
+});
+
+test("salão: a situação vai para o agente com o foco de passo a passo (sem IA, responde e não grava nada)", async () => {
+  const { pedir } = await montar();
+  const p = await pedir("Atalhos: problemas");
+  assert.ok(p.pergunta.opcoes.some((o) => o.comando === "Situação no salão: o cliente tem alergia. Como resolvo?"));
+  const r = await pedir("Situação no salão: o prato está demorando. Como resolvo?");
+  assert.equal(r.interpretacao.intencao, "salao.orientacao");
+  assert.deepEqual(r.agentes, ["geral"]);
+  assert.ok(!r.confirmacao);
 });

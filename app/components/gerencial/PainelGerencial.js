@@ -8,7 +8,9 @@
 // `.tema-gestao` (globals.css). Contas em app/lib/painel-gerencial.mjs.
 // Sem dado, a peça diz o que falta: nenhum número de demonstração.
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ImageOff } from "lucide-react";
 import { alturasDasBarras } from "../../lib/painel-gerencial.mjs";
 
@@ -35,9 +37,19 @@ export function Natureza({ tipo }) {
 
 /** Barra de áreas preta: ícone em cima do nome, a área aberta em bloco vermelho. */
 export function BarraDeAreas({ areas, ativa, rotulo }) {
+  // No celular e no tablet a barra rola de lado: a área aberta (Configurações,
+  // Financeiro…) ficava fora da tela. Ao abrir, ela vem para o meio da barra.
+  const trilho = useRef(null);
+  const pathname = usePathname();
+  useEffect(() => {
+    const t = trilho.current;
+    const a = t?.querySelector("a[aria-current]");
+    if (!t || !a || t.scrollWidth <= t.clientWidth) return;
+    t.scrollLeft = Math.max(0, a.offsetLeft - (t.clientWidth - a.offsetWidth) / 2);
+  }, [pathname]);
   return (
     <nav aria-label={rotulo} className="mb-5 overflow-hidden rounded-2xl bg-hf-menu shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
-      <div className="flex overflow-x-auto [scrollbar-width:none]">
+      <div ref={trilho} className="flex overflow-x-auto [scrollbar-width:none]">
         {areas.map((a) => {
           const Icone = a.icone;
           const on = ativa(a);

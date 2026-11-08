@@ -128,6 +128,26 @@ export async function lerAlergenicosDaFicha(unidadeId, fichaId) {
 }
 
 /**
+ * Nomes dos ingredientes da ficha (produtos do estoque e bases), para montar o
+ * grupo "Deseja retirar algo?" no editor do prato. Leitura com a sessão de quem
+ * edita (RLS); sem ficha ou sem acesso, lista vazia.
+ */
+export async function lerIngredientesDaFicha(unidadeId, fichaId) {
+  if (!fichaId || !isSupabaseReady()) return [];
+  const { data: ings, error } = await supabase.from("fichas_ingredientes").select("insumo_id, subficha_id").eq("ficha_id", fichaId);
+  if (error || !ings?.length) return [];
+  const idsInsumo = [...new Set(ings.map((i) => i.insumo_id).filter(Boolean))];
+  const idsBase = [...new Set(ings.map((i) => i.subficha_id).filter(Boolean))];
+  const [rI, rB] = await Promise.all([
+    idsInsumo.length ? supabase.from("insumos").select("id, nome").eq("unidade_id", unidadeId).in("id", idsInsumo) : { data: [] },
+    idsBase.length ? supabase.from("fichas_tecnicas").select("id, nome_receita, nome_comercial").eq("unidade_id", unidadeId).in("id", idsBase) : { data: [] },
+  ]);
+  const nomeI = new Map((rI.data || []).map((i) => [i.id, i.nome]));
+  const nomeB = new Map((rB.data || []).map((f) => [f.id, f.nome_comercial || f.nome_receita]));
+  return ings.map((i) => (i.insumo_id ? nomeI.get(i.insumo_id) : nomeB.get(i.subficha_id))).filter(Boolean);
+}
+
+/**
  * Salva o produto editado no painel, cada coisa no seu dono:
  *   - nome, descrição e tempo de preparo: na ficha técnica;
  *   - capa: em produtos.imagem_url (PDV e telas antigas usam);

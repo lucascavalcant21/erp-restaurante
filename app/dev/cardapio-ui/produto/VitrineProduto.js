@@ -34,6 +34,7 @@ export default function VitrineProduto() {
     <TemaCardapio style={{ minHeight: "100vh", display: "flex" }}>
       <PainelProduto
         nomeLoja="Casa Brasa" itensMenu={MENU} produto={{ nome_produto: "Picanha na brasa", preco_venda: 89.9 }} temFicha
+        ingredientesFicha={["Picanha", "Farofa da casa", "Vinagrete - kg", "Sal grosso", "Cebola roxa", "Mandioca 1kg"]}
         form={form} setForm={setForm} categorias={[{ id: "g", nome: "Grelhados" }]} estacao="cozinha"
         alergenicos={["Glúten"]} podeConter="" grupos={grupos} setGrupos={setGrupos} usos={{ ponto: 4, adic: 6, tirar: 9 }}
         traducoes={TRAD} onSalvar={() => {}} onEnviarArquivo={async () => ({ erro: "Só na tela de verdade." })} links={{}}

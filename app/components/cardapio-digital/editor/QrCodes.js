@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { Check, Copy, Download, ExternalLink, Printer } from "lucide-react";
-import { caminhoDoCardapio, limparMesa } from "../../../lib/cardapio-link.mjs";
+import { caminhoDoCardapio, caminhoDoTotem, limparMesa } from "../../../lib/cardapio-link.mjs";
 import { normalizarWifi, textoQrWifi } from "../../../lib/cardapio-digital.mjs";
 import { Botao, Campo, Secao, inputCls } from "./ui";
 
@@ -101,6 +101,16 @@ export default function QrCodes({ unidadeId, nomeLoja, mesasDoBanco, config, mud
               <Botao variante="secundario" onClick={baixar}><Download size={16} /> Baixar QR</Botao>
               <a href={caminhoDoCardapio(unidadeId)} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 text-sm font-bold text-hf-accent hover:bg-hf-accent/5"><ExternalLink size={16} /> Abrir</a>
             </div>
+          </div>
+        </div>
+      </Secao>
+
+      <Secao titulo="Totem de autoatendimento (balcão)" subtitulo="Abra este link num tablet no balcão ou na entrada, em tela cheia. O cliente escolhe, dá o nome, recebe um número e paga no caixa. O pedido chega em Pedidos online com a senha.">
+        <div className="min-w-0 space-y-2">
+          <p className="break-all rounded-lg bg-hf-elevated/60 px-3 py-2 font-mono text-xs text-hf-text">{`${origem}${caminhoDoTotem(unidadeId)}`}</p>
+          <div className="flex flex-wrap gap-2">
+            <Copiar texto={`${origem}${caminhoDoTotem(unidadeId)}`} />
+            <a href={caminhoDoTotem(unidadeId)} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 text-sm font-bold text-hf-accent hover:bg-hf-accent/5"><ExternalLink size={16} /> Abrir</a>
           </div>
         </div>
       </Secao>

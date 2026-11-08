@@ -8,6 +8,7 @@
   margin: 0;
   padding: 0 0 12px;
   min-width: 0;
+  scroll-margin-top: 56px; /* a faixa de etapas fica por cima ao descer para a próxima */
 }
 .cabeca {
   box-sizing: border-box;
@@ -105,4 +106,68 @@
 }
 .largo .opcoes {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Etapas do prato no tablet (autoatendimento). */
+.etapas {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 0 10px;
+  background: var(--cd-superficie);
+  scrollbar-width: none;
+}
+.etapas::-webkit-scrollbar { display: none; }
+.etapa {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--cd-borda);
+  background: transparent;
+  color: var(--cd-texto-medio);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.etapaNumero {
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--cd-fundo-cinza);
+}
+.etapaNome {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.etapaFeita {
+  border-color: var(--cd-principal);
+  color: var(--cd-texto);
+  font-weight: 600;
+}
+.etapaFeita .etapaNumero {
+  background: var(--cd-principal);
+  color: var(--cd-branco);
+}
+.etapaFalta {
+  border-color: var(--cd-perigo-texto);
+  background: var(--cd-pimenta-fundo);
+  color: var(--cd-perigo-texto);
+}
+.opcaoGratis {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cd-texto-medio);
 }

@@ -222,8 +222,11 @@ export function validarPedidoPublico(corpo) {
   if (!nome || nome.length < 2) return falha(400, "parametro_invalido", "Digite seu nome.");
   const mesa = texto(cli.mesa, 10);
   if (mesa && !/^[A-Za-z0-9-]{1,10}$/.test(mesa)) return falha(400, "parametro_invalido", "Mesa inválida.");
+  // Totem de autoatendimento no balcão (pedido do dono, 08/11/2026): consumo na casa,
+  // sem mesa; o cliente dá o nome, recebe um número e paga no caixa.
+  const totem = tipo === "qrcode" && !mesa && cli.totem === true;
   const tel = soDigitos(cli.telefone);
-  const telefoneOpcional = tipo === "qrcode" && Boolean(mesa);
+  const telefoneOpcional = tipo === "qrcode" && (Boolean(mesa) || totem);
   if (tel.length || !telefoneOpcional) {
     if (tel.length < 10 || tel.length > 13) return falha(400, "parametro_invalido", "Digite seu WhatsApp com DDD.");
   }
@@ -236,6 +239,7 @@ export function validarPedidoPublico(corpo) {
   const pagamento = tipo !== "qrcode" && FORMAS.includes(cli.pagamento) ? cli.pagamento : null;
   if (tipo !== "qrcode" && cli.pagamento != null && !pagamento) return falha(400, "parametro_invalido", "Forma de pagamento inválida.");
   if (mesa) nome = `[MESA ${mesa}] ${nome}`;
+  else if (totem) nome = `[TOTEM] ${nome}`;
 
   const itens = Array.isArray(c.itens) ? c.itens : [];
   if (!itens.length || itens.length > 50) return falha(400, "parametro_invalido", "Carrinho vazio ou grande demais.");
@@ -266,7 +270,7 @@ export function validarPedidoPublico(corpo) {
   return {
     ok: true,
     pedido: {
-      unidade: c.unidade, tipo, nome, mesa: mesa || null, telefone: tel.length ? texto(cli.telefone, 20) : null,
+      unidade: c.unidade, tipo, nome, mesa: mesa || null, ...(totem ? { totem: true } : {}), telefone: tel.length ? texto(cli.telefone, 20) : null,
       endereco: tipo === "delivery" ? endereco : null, troco: !pagamento || pagamento === "dinheiro" ? texto(cli.troco, 20) : "",
       pagamento, itens: limpos, cashback, ...(cpf ? { cpf } : {}),
     },
@@ -280,7 +284,7 @@ export function validarPedidoPublico(corpo) {
  * o navegador mandou de preço é ignorado. Se os itens falharem, o pedido é
  * apagado — o cliente nunca fica com um pedido vazio na cozinha.
  */
-export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limitePorTelefone = 5, limitePorMesa = 8 }) {
+export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limitePorTelefone = 5, limitePorMesa = 8, limitePorTotem = 40 }) {
   try {
     const carga = await carregarCardapio({ db, unidade: pedido.unidade, agora: new Date(agora) });
     if (!carga.ok) {
@@ -309,7 +313,9 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
     const desde = new Date(agora - 10 * 60 * 1000).toISOString();
     const freio = pedido.telefone
       ? { coluna: "cliente_telefone", valor: pedido.telefone, limite: limitePorTelefone, msg: "Recebemos vários pedidos seguidos deste número. Aguarde alguns minutos." }
-      : { coluna: "cliente_nome", valor: `[MESA ${pedido.mesa}]%`, limite: limitePorMesa, msg: "Recebemos vários pedidos seguidos desta mesa. Chame a equipe, por favor." };
+      : pedido.totem
+        ? { coluna: "cliente_nome", valor: "[TOTEM]%", limite: limitePorTotem, msg: "Muitos pedidos seguidos no autoatendimento. Peça ajuda no caixa, por favor." }
+        : { coluna: "cliente_nome", valor: `[MESA ${pedido.mesa}]%`, limite: limitePorMesa, msg: "Recebemos vários pedidos seguidos desta mesa. Chame a equipe, por favor." };
     let contagem = db.from("pedidos").select("id", { count: "exact", head: true }).eq("unidade_id", pedido.unidade).gte("created_at", desde);
     contagem = pedido.telefone ? contagem.eq(freio.coluna, freio.valor) : contagem.like(freio.coluna, freio.valor);
     const { count, error: eC } = await contagem;
@@ -411,6 +417,14 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       await db.from("pedidos").delete().eq("id", criado.id);
       return falha(503, "indisponivel", "Não foi possível enviar agora.");
     }
+    // Número do pedido do dia (como a senha do autoatendimento): a posição deste
+    // pedido entre os do dia da unidade. Vai para a identificação, que sai em
+    // destaque na comanda da cozinha e no painel. Sem conseguir contar, segue sem número.
+    const numero = await numeroDoDia({ db, unidade: pedido.unidade, id: criado.id, agora });
+    if (numero && (pedido.totem || pedido.mesa)) {
+      const identificacao = pedido.totem ? `Totem · Senha ${numero}` : `Mesa ${pedido.mesa} · Pedido ${numero}`;
+      await db.from("pedidos").update({ identificacao }).eq("id", criado.id);
+    }
     if (cashbackUsado > 0) {
       const { error: eR } = await db.rpc("fidelidade_reservar_cashback", {
         p_unidade: pedido.unidade, p_telefone: pedido.telefone, p_pedido: criado.id, p_valor: cashbackUsado,
@@ -423,11 +437,36 @@ export async function criarPedidoPublico({ db, pedido, agora = Date.now(), limit
       }
     }
     return {
-      ok: true, id: criado.id, total, taxa: regras.taxa, cashback: cashbackUsado, desconto: descontoCadastro,
+      ok: true, id: criado.id, numero: numero || null, total, taxa: regras.taxa, cashback: cashbackUsado, desconto: descontoCadastro,
       itens: pedido.itens.map((i) => ({ id: i.id, quantidade: i.quantidade, preco: preco.get(i.id) })),
     };
   } catch {
     return falha(503, "indisponivel", "Não foi possível enviar agora.");
+  }
+}
+
+/** Início do dia em São Paulo (UTC−3, sem horário de verão desde 2019), em ISO. */
+export function inicioDoDiaSaoPaulo(agora = Date.now()) {
+  const local = new Date(Number(agora) - 3 * 3600 * 1000);
+  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 3, 0, 0)).toISOString();
+}
+
+/**
+ * Número do pedido no dia ("042"): quantos pedidos a unidade recebeu hoje até
+ * este, contando pela hora de criação gravada pelo banco (dois pedidos no
+ * mesmo instante ainda ganham números diferentes na maioria das vezes; o id
+ * continua sendo a chave). Falhou a contagem: null, e o pedido segue sem número.
+ */
+export async function numeroDoDia({ db, unidade, id, agora = Date.now() }) {
+  try {
+    const { data: eu, error: e1 } = await db.from("pedidos").select("created_at").eq("id", id).maybeSingle();
+    if (e1 || !eu?.created_at) return null;
+    const { count, error: e2 } = await db.from("pedidos").select("id", { count: "exact", head: true })
+      .eq("unidade_id", unidade).gte("created_at", inicioDoDiaSaoPaulo(agora)).lte("created_at", eu.created_at);
+    if (e2 || !(count > 0)) return null;
+    return String(count).padStart(3, "0");
+  } catch {
+    return null;
   }
 }
 

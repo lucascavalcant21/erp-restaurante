@@ -8,6 +8,9 @@ import { fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, 
 // A tabela pedidos não tem coluna "origem": a aba sai do tipo do pedido.
 const origemDe = (p) => (p.tipo_pedido === "ifood" ? "ifood" : p.tipo_pedido === "qrcode" ? "mesa" : "delivery");
 const ROTULO_ORIGEM = { ifood: "iFood", mesa: "Mesa (QR)", delivery: "Delivery" };
+// Totem do balcão (autoatendimento) entra como pedido de consumo na casa, com a senha na identificação.
+const ehTotem = (p) => String(p.cliente_nome || "").startsWith("[TOTEM]");
+const ondeDe = (p) => p.identificacao || (ehTotem(p) ? "Totem (balcão)" : "Mesa (QR)");
 // Novo pedido do cardápio digital chega como novo_online.
 const ehNovo = (p) => !p.status || ["novo_online", "aberto", "pendente", "aguardando_aceite"].includes(p.status);
 import { Bike, Check, X, ArrowLeft, Clock, MapPin, Phone, AlertCircle, Maximize, Printer } from "lucide-react";
@@ -40,6 +43,7 @@ export default function GestorOnlinePage() {
        @media print{@page{margin:0;size:80mm auto}}
     </style></head><body>
        <div class="center big">PEDIDO #${esc(p.id.substring(0,4).toUpperCase())}</div>
+       ${p.identificacao ? `<div class="center big">${esc(p.identificacao)}</div>` : ''}
        <div class="center l">${esc(p.cliente_nome || 'Cliente')}</div>
        ${p.cliente_telefone ? `<div class="center l">${esc(p.cliente_telefone)}</div>` : ''}
        ${p.endereco_entrega ? `<div class="l">${esc(p.endereco_entrega)}</div>` : ''}
@@ -195,7 +199,7 @@ export default function GestorOnlinePage() {
                               <span className="text-xs font-bold text-red-500 flex items-center gap-1"><Clock size={12}/> {calcTempo(p.created_at)} min</span>
                            </div>
                            <p className="font-bold text-slate-900 text-xs">{p.cliente_nome || "Cliente Não Informado"}</p>
-                           <p className="text-xs text-fg mt-1 truncate"><MapPin size={10} className="inline mr-1"/>{origemDe(p) === 'mesa' ? "Mesa (QR)" : (p.bairro || p.endereco_entrega || "Balcão / Retirada")}</p>
+                           <p className="text-xs text-fg mt-1 truncate"><MapPin size={10} className="inline mr-1"/>{origemDe(p) === 'mesa' ? ondeDe(p) : (p.bairro || p.endereco_entrega || "Balcão / Retirada")}</p>
                            <div className="mt-3 flex gap-2">
                               <button onClick={(e) => { e.stopPropagation(); handleRecusar(p.id); }} className="py-1.5 px-3 bg-[#E0E0E0] text-slate-900 font-bold text-xs rounded hover:bg-slate-300"><X size={14}/></button>
                               <button onClick={(e) => { e.stopPropagation(); handleAceitar(p.id); }} className="flex-1 py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Check size={14}/> ACEITAR</button>
@@ -246,7 +250,7 @@ export default function GestorOnlinePage() {
                            <p className="font-bold text-slate-900 text-xs">{p.cliente_nome || "Cliente"}</p>
                            <div className="mt-3">
                               {origemDe(p) === 'mesa' ? (
-                                 <button onClick={(e) => { e.stopPropagation(); handleServido(p.id); }} className="w-full py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Check size={14}/> SERVIDO NA MESA</button>
+                                 <button onClick={(e) => { e.stopPropagation(); handleServido(p.id); }} className="w-full py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Check size={14}/> {ehTotem(p) ? "ENTREGUE NO BALCÃO" : "SERVIDO NA MESA"}</button>
                               ) : (
                                  <button onClick={(e) => { e.stopPropagation(); handleDespachar(p.id); }} className="w-full py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Bike size={14}/> CHAMAR MOTOBOY</button>
                               )}

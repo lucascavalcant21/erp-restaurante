@@ -359,3 +359,108 @@
     animation: none;
   }
 }
+
+/* "Seu pedido" fixo ao lado do cardápio (tablet deitado largo). */
+.painelFixo {
+  position: sticky;
+  top: 0;
+  width: 360px;
+  height: 100vh;
+  flex-shrink: 0;
+  border-radius: 0;
+  border-width: 0 0 0 1px;
+  box-shadow: none;
+  animation: none;
+}
+.vazioFixo {
+  margin: auto 0;
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.vazioIcone {
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cd-carrinho-cabecalho);
+  color: var(--cd-principal);
+}
+
+/* Número do pedido e etapas na confirmação (autoatendimento). */
+.numeroCaixa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 36px 16px;
+  border-radius: 20px;
+  background: var(--cd-principal-clara);
+}
+.numeroRotulo {
+  font-size: 16px;
+  color: var(--cd-texto-medio);
+}
+.numero {
+  font-family: var(--cd-fonte-titulo), Outfit, sans-serif;
+  font-size: 76px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--cd-principal);
+  font-variant-numeric: tabular-nums;
+}
+.numeroNota {
+  font-size: 14px;
+  color: var(--cd-texto-medio);
+}
+.numeroLinha {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--cd-principal);
+  font-variant-numeric: tabular-nums;
+}
+.etapas {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.etapaPasso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cd-borda);
+  font-size: 15px;
+  color: var(--cd-texto-medio);
+}
+.etapaFeita {
+  border-color: var(--cd-principal);
+  color: var(--cd-texto);
+  font-weight: 600;
+}
+.etapaBola {
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--cd-fundo-cinza);
+}
+.etapaFeita .etapaBola {
+  background: var(--cd-principal);
+  color: var(--cd-branco);
+}

@@ -14,6 +14,11 @@ export function caminhoDoCardapio(unidade, { mesa = "" } = {}) {
   return m ? `${base}?mesa=${encodeURIComponent(m)}` : base;
 }
 
+/** Totem de autoatendimento no balcão: sem mesa, o cliente dá o nome e recebe um número. */
+export function caminhoDoTotem(unidade) {
+  return `/cardapio/${encodeURIComponent(String(unidade || ""))}?totem=1`;
+}
+
 /** Página do cadastro pelo QR (CRM + desconto do cadastro). */
 export function caminhoDoCadastro(unidade) {
   return `/cadastro/${encodeURIComponent(String(unidade || ""))}`;

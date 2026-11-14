@@ -15,6 +15,7 @@ import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo,
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { assistenteDaSessao } from "../../../lib/assistentes.mjs";
+import { canAccessRoute } from "../../../lib/permissions-catalog.mjs";
 import { ChevronLeft, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Lock, Camera, Plus } from "lucide-react";
 import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } from "../../../lib/intelligence/client/api";
 import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
@@ -117,6 +118,13 @@ const AREAS_INICIO = [
   { rotulo: "Salão", icone: "🍽️", comando: "Atalhos do salão" },
   { rotulo: "Estoque", icone: "📦", comando: "Atalhos do estoque" },
 ];
+
+// O Nico (equipe) começa por perguntas da operação; as de gestão são do Jhon (14/11/2026).
+const SUGESTOES_NICO = Object.freeze([
+  "Como faz o prato do dia?",
+  "Quero imprimir etiquetas",
+  "Aconteceu um problema no salão, como resolvo?",
+]);
 
 const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabilitado }) {
   const [filtro, setFiltro] = useState("");
@@ -336,6 +344,9 @@ function Digitando() {
 const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, unidadeNome = "", perguntaInicial = null, tela = null, rotuloOrigem = null, onVoltar, onPerguntaInicialEnviada = null }, ref) {
   const { sessao } = useERP() || {};
   const nomeAssistente = assistenteDaSessao(sessao).nome;
+  const ehNico = nomeAssistente !== "Jhon";
+  // Tablet do Nico + ponto: o ponto é um botão do Nico (decisão do dono, 14/11/2026).
+  const bateponto = !!sessao && canAccessRoute(sessao, "/dashboard/rh/ponto", "");
   // tela de origem (atalho Alt+H de outra página): rota e registro aberto viram contexto da conversa
   const TELA = tela || TELA_PADRAO;
   const router = useRouter();
@@ -625,9 +636,17 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                       <span className="text-[17px] font-semibold">{a.rotulo}</span>
                     </button>
                   ))}
+                  {bateponto && ehNico && (
+                    <button type="button" onClick={() => router.push("/dashboard/rh/ponto")}
+                      className="col-span-2 flex min-h-[86px] items-center justify-center gap-3 rounded-[16px] px-2 py-3 text-center shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.98]"
+                      style={{ background: "var(--wa-ele)", color: "var(--wa-verde-escuro)" }}>
+                      <span className="text-[30px] leading-none" aria-hidden="true">⏰</span>
+                      <span className="text-[17px] font-semibold">Bater o ponto</span>
+                    </button>
+                  )}
                 </div>
               </div>
-              <BotoesRapidos opcoes={SUGESTOES_ASSISTENTE.slice(0, 3).map((s) => ({ id: s, rotulo: s, comando: s }))} desabilitado={ocupado} onEscolher={(o) => enviarComando(o.comando)} />
+              <BotoesRapidos opcoes={(ehNico ? SUGESTOES_NICO : SUGESTOES_ASSISTENTE.slice(0, 3)).map((s) => ({ id: s, rotulo: s, comando: s }))} desabilitado={ocupado} onEscolher={(o) => enviarComando(o.comando)} />
             </div>
           )}
 

@@ -162,6 +162,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       { label: "Quadro de funcionários", href: "/dashboard/rh?aba=quadro" },
       { label: "Escala da semana", href: "/dashboard/rh?aba=escala" },
       { label: "Ponto e espelho", href: "/dashboard/rh/ponto" },
+      { label: "PIN do ponto", href: "/dashboard/rh/pins" },
       { label: "Corrigir ponto", href: "/dashboard/rh/ponto/corrigir" },
       { label: "Fechar folha", href: "/dashboard/rh/fechamento" },
       { label: "Extras e banco de horas", href: "/dashboard/rh/extra" },

@@ -187,7 +187,7 @@ export async function registrarUsuario({ nome, email, senha, papel, unidade }) {
   }
 }
 
-import { autenticarApp, lerSessaoAppLocal, encerrarSessaoAppLocal } from "./apps-config";
+import { encerrarSessaoAppLocal } from "./apps-config";
 
 // ── Login ──────────────────────────────────────────────────────
 export async function fazerLogin(email, senha) {
@@ -211,22 +211,16 @@ export async function fazerLogin(email, senha) {
     }
   }
 
-  // 2. Se falhar no Supabase ou for um App/Terminal criado em Configurações
-  try {
-    const sessaoApp = await autenticarApp(loginSlug, senha);
-    if (sessaoApp) {
-      return { ok: true, usuario: sessaoApp };
-    }
-  } catch (_) {}
+  // 2. O login antigo de "Apps e terminais" (senha conferida no navegador,
+  //    S-36) foi desligado no sistema de teste (14/11/2026, OK do dono): os
+  //    tablets são contas de verdade, criadas em "Montar um tablet".
 
   return { ok: false, erro: "Usuário ou senha incorretos." };
 }
 
 // ── Sessão ─────────────────────────────────────────────────────
 export async function lerSessao() {
-  // 1. Verifica se há uma sessão de App Terminal ativa
-  const appSess = lerSessaoAppLocal();
-  if (appSess) return appSess;
+  // A sessão de app montada no aparelho (S-36) não vale mais: só a do Supabase.
 
   if (!isSupabaseReady()) return null;
   let { data } = await supabase.auth.getSession();

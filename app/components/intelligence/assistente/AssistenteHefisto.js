@@ -41,23 +41,29 @@ export const SUGESTOES_ASSISTENTE = Object.freeze([
   "Como foi minha empresa hoje?",
 ]);
 
+// Tema escuro do WhatsApp (pedido do dono, 14/11/2026: "deixe a tela
+// completa e ponha um fundo escuro nessa página"). Os blocos que usam os
+// tokens hf-* (fichas, procedimentos, listas) ficam escuros pela classe
+// .wa-escuro do globals.css, sem editar componente por componente.
+// Contraste: texto #E9EDEF sobre #0B141A 16:1; sobre #202C33 12:1; #8696A0
+// sobre #202C33 4,6:1; branco sobre #005C4B 7,6:1.
 const CORES = {
-  "--wa-fundo": "#EFEAE2",
-  "--wa-topo": "#008069",
-  "--wa-eu": "#BDEBAA",
-  "--wa-ele": "#FFFFFF",
-  "--wa-texto": "#111B21",
-  "--wa-meta": "#667781",
-  "--wa-verde": "#007A63",
-  "--wa-verde-escuro": "#005A49",
+  "--wa-fundo": "#0B141A",
+  "--wa-topo": "#202C33",
+  "--wa-eu": "#005C4B",
+  "--wa-ele": "#202C33",
+  "--wa-texto": "#E9EDEF",
+  "--wa-meta": "#8696A0",
+  "--wa-verde": "#00A884",
+  "--wa-verde-escuro": "#00A884",
   "--wa-lido": "#53BDEB",
-  "--wa-aviso": "#FFEECD",
-  "--wa-barra": "rgba(246,246,246,0.96)",
-  "--wa-linha": "#D1D1D6",
+  "--wa-aviso": "#182229",
+  "--wa-barra": "rgba(32,44,51,0.97)",
+  "--wa-linha": "#2A3942",
 };
 
 // Papel de parede: rabiscos leves repetidos (SVG inline, sem imagem externa).
-const PAPEL = `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><g fill="none" stroke="#d6cfc4" stroke-width="1.4" stroke-linecap="round" opacity="0.55"><circle cx="18" cy="20" r="7"/><path d="M48 14l8 8M56 14l-8 8"/><path d="M84 18c6-6 14 2 8 8s-14-2-8-8z"/><rect x="12" y="52" width="14" height="10" rx="3"/><path d="M50 58c4-8 12-8 16 0"/><circle cx="94" cy="58" r="3"/><path d="M20 96l6-8 6 8z"/><path d="M52 92h16M60 84v16"/><path d="M88 92c0-6 10-6 10 0s-10 6-10 0z"/></g></svg>')}")`;
+const PAPEL = `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><g fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" opacity="0.045"><circle cx="18" cy="20" r="7"/><path d="M48 14l8 8M56 14l-8 8"/><path d="M84 18c6-6 14 2 8 8s-14-2-8-8z"/><rect x="12" y="52" width="14" height="10" rx="3"/><path d="M50 58c4-8 12-8 16 0"/><circle cx="94" cy="58" r="3"/><path d="M20 96l6-8 6 8z"/><path d="M52 92h16M60 84v16"/><path d="M88 92c0-6 10-6 10 0s-10 6-10 0z"/></g></svg>')}")`;
 
 const FMT_HORA = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 const hora = (t) => FMT_HORA.format(new Date(t || Date.now()));
@@ -588,9 +594,9 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
   const status = ouvindo ? (voz.nome === "gravada" ? "gravando áudio…" : "ouvindo…") : transcrevendo ? "transcrevendo áudio…" : lendoNota ? "lendo a nota…" : ocupado ? "digitando…" : "online";
 
   return (
-    <div className="flex h-full min-h-0 flex-col" style={{ ...CORES, background: "var(--wa-fundo)" }}>
+    <div className="wa-escuro flex h-full min-h-0 flex-col" style={{ ...CORES, background: "var(--wa-fundo)", color: "var(--wa-texto)" }}>
       {/* topo */}
-      <header className="flex min-h-[58px] shrink-0 items-center gap-2.5 border-b px-2.5 backdrop-blur-md" style={{ background: "var(--wa-barra)", borderColor: "var(--wa-linha)", color: "var(--wa-texto)" }}>
+      <header className="flex min-h-[58px] shrink-0 items-center gap-2.5 border-b px-2.5 backdrop-blur-md" style={{ background: "var(--wa-barra)", borderColor: "var(--wa-linha)", color: "var(--wa-texto)", paddingTop: "var(--erp-safe-top, env(safe-area-inset-top, 0px))" }}>
         <button type="button" onClick={onVoltar || (() => router.back())} aria-label="Voltar" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] active:bg-black/5">
           <ChevronLeft size={26} strokeWidth={2.2} />
         </button>
@@ -618,7 +624,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
             </div>
           )}
           <div className="flex justify-center px-4">
-            <p className="max-w-md rounded-[7.5px] px-3 py-1.5 text-center text-[14px] leading-snug" style={{ background: "var(--wa-aviso)", color: "#54656F" }}>
+            <p className="max-w-md rounded-[7.5px] px-3 py-1.5 text-center text-[14px] leading-snug" style={{ background: "var(--wa-aviso)", color: "#FFD279" }}>
               <Lock size={11} className="mr-1 inline -translate-y-px" />
               Respostas só com os dados da sua unidade. Nada é gravado sem você confirmar, e tudo fica na auditoria.
             </p>

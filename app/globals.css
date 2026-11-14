@@ -738,3 +738,32 @@ body[data-cabecalho-tela] .erp-barra-universo { display: none; }
 /* Barra em degradê das peças do painel gerencial. */
 .gestao-barra { background-image: linear-gradient(180deg, var(--gestao-grad-de, #F97316), var(--gestao-grad-ate, #DC2626)); }
 .gestao-barra-h { background-image: linear-gradient(90deg, var(--gestao-grad-de, #F97316), var(--gestao-grad-ate, #DC2626)); }
+
+/* ═══ Assistente (Nico e Jhon) em tela escura (dono, 14/11/2026) ═══════════
+   Os tokens hf-* dos blocos (fichas, procedimentos, listas, plano do dia)
+   viram escuros só dentro da conversa. Contraste: #E9EDEF sobre #202C33 12:1;
+   #AEBAC1 sobre #202C33 7,4:1; #8696A0 sobre #202C33 4,6:1. */
+.wa-escuro {
+  --hf-bg:            11 20 26;   /* #0B141A */
+  --hf-surface:       32 44 51;   /* #202C33 */
+  --hf-elevated:      42 57 66;   /* #2A3942 */
+  --hf-border:        52 68 78;   /* #34444E */
+  --hf-border-strong: 74 92 103;
+  --hf-text:          233 237 239;/* #E9EDEF */
+  --hf-text-2:        174 186 193;/* #AEBAC1 */
+  --hf-muted:         134 150 160;/* #8696A0 */
+  --hf-accent:        226 194 125;/* dourado claro sobre escuro */
+  --hf-accent-text:   226 194 125;
+  --hf-success:       0 168 132;  /* #00A884 */
+  --hf-warning:       255 179 71; /* #FFB347 */
+  --hf-danger:        248 113 113;/* #F87171 */
+  --hf-menu:          0 92 75;    /* #005C4B botão de ação, letra branca */
+  --hf-menu-hover:    0 110 90;
+  color-scheme: dark;
+}
+.wa-escuro .bg-white { background-color: var(--wa-ele) !important; color: var(--wa-texto); }
+.wa-escuro [class~="border-black/10"] { border-color: rgba(255, 255, 255, 0.14) !important; }
+.wa-escuro [class~="bg-black/5"] { background-color: rgba(255, 255, 255, 0.06) !important; }
+.wa-escuro [class~="bg-black/10"] { background-color: rgba(255, 255, 255, 0.12) !important; }
+.wa-escuro :is(input, textarea, select) { color: var(--wa-texto); }
+.wa-escuro :is(input, textarea)::placeholder { color: var(--wa-meta); }

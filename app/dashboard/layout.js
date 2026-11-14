@@ -1,13 +1,15 @@
 "use client";
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { lerSessao, encerrarSessao } from "../lib/auth";
+import { lerSessao, sairDoSistema } from "../lib/auth";
 import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog.mjs";
 import { universoLiberado } from "../lib/menu-principal.mjs";
 import { HefistoPageContextProvider } from "../context/HefistoPageContext";
 import TopNavigation from "../components/layout/TopNavigation";
 import { Loader2 } from "lucide-react";
 import BarraUniverso from "../components/navigation/BarraUniverso";
+import BarraInferior from "../components/layout/BarraInferior";
+import { mostraBarraInferior } from "../lib/barra-inferior.mjs";
 import CommandCenterModal from "../components/navigation/CommandCenterModal";
 import PainelHefisto from "../components/intelligence/PainelHefisto";
 import { addRecentRoute } from "../lib/user-preferences.js";
@@ -76,12 +78,7 @@ export default function DashboardLayout({ children }) {
 
   async function sair() {
     sessaoRef.current = null;
-    try {
-      localStorage.removeItem("hefisto_acesso");
-      localStorage.removeItem("erp_cred");
-      localStorage.setItem("erp_lembrar", "0");
-    } catch (_) {}
-    await encerrarSessao();
+    await sairDoSistema();
     router.replace("/login");
   }
 
@@ -113,6 +110,11 @@ export default function DashboardLayout({ children }) {
             </ProtecaoPermissao>
           </Suspense>
         </main>
+
+        {/* Abas fixas do rodapé no celular e tablet (visual Medway, 14/11/2026) */}
+        {mostraBarraInferior(pathname, sessao) && (
+          <BarraInferior sessao={sessao} onOpenSearch={() => setCommandCenterOpen(true)} />
+        )}
 
         <CommandCenterModal isOpen={commandCenterOpen} onClose={() => setCommandCenterOpen(false)} sessao={sessao} />
 

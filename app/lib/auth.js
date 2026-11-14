@@ -292,6 +292,16 @@ export async function encerrarSessao() {
   if (isSupabaseReady()) await supabase.auth.signOut();
 }
 
+/** "Sair do sistema": esquece o acesso lembrado neste aparelho e encerra a sessão. */
+export async function sairDoSistema() {
+  try {
+    localStorage.removeItem("hefisto_acesso");
+    localStorage.removeItem("erp_cred");
+    localStorage.setItem("erp_lembrar", "0");
+  } catch (_) {}
+  await encerrarSessao();
+}
+
 // ── Recuperação de senha ───────────────────────────────────────
 /** Envia e-mail com link para redefinir a senha. */
 export async function recuperarSenha(email) {

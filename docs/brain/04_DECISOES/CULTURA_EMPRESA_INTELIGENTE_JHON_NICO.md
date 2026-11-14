@@ -10,10 +10,18 @@ O Héfisto é uma **empresa inteligente**: tem o controle de tudo (ar-condiciona
 
 | | Nico | Jhon |
 |---|---|---|
+| Papel (dono, 14/11, 11:34) | **Chef de cozinha** da equipe | **Consultor** do dono |
 | Para quem | A equipe (funcionário, tablet da loja) | O dono |
 | Faz | Ficha técnica e "como faz", etiquetas, procedimentos do salão, treinamento, ponto (PIN de 4 números) | Tudo o que o Nico sabe + gestão: CMV, custo, produtos, DRE, imposto, contas, equipe |
 | Jeito | Mais tocar do que digitar, rápido | Avisa, mostra o que está acontecendo e pede aprovação |
 | Regra | **Ajuda e "dedura" para o Jhon**: o que a equipe não fez vira aviso para o Jhon. Nunca fala de dinheiro nem de gestão | **O Jhon pergunta ao Nico; o Nico não pergunta ao Jhon** |
+
+**Fluxo (dono, 14/11/2026):** "Eu mando para o Jhon; ele conversa com o Nico para encontrarem a melhor maneira de agilizar as tarefas diárias."
+
+1. O dono fala com o Jhon ("hoje tem que produzir isso, limpar o balcão, fazer as etiquetas").
+2. O Jhon confere o que falta saber (quantos quilos, quantas unidades, para quando) e combina com o Nico o plano do dia: ordem das tarefas, quem faz o quê, o que fazer antes e depois do intervalo. A ordem sai de regras e dados (prazo, tempo da ficha, quem está na escala), não de palpite.
+3. O Nico passa o plano para a equipe, com o passo a passo, a ficha em gramas e os vídeos de cada tarefa, e a equipe vai marcando.
+4. O Nico conta o andamento ao Jhon; o Jhon informa o dono ("checklist 90%", "vatapá produzido") e só pede aprovação do que precisa.
 
 Exemplos de aviso do Jhon ao dono: funcionário atrasado; ar-condicionado não desligado; checklist do bar não feito; produção do dia não feita; quem não bateu ponto.
 

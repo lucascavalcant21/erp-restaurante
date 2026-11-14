@@ -21,6 +21,6 @@ test("no servidor, o papel sai do contexto do banco", () => {
 });
 
 test("o Jhon sabe o que o Nico sabe; o Nico não entra na gestão", () => {
-  assert.match(identidadeNoPrompt(JHON), /Jhon.*tudo o que o Nico.*sabe/s);
-  assert.match(identidadeNoPrompt(NICO), /Nico.*NÃO fala de custo, CMV, margem/s);
+  assert.match(identidadeNoPrompt(JHON), /Jhon, o consultor do DONO.*tudo o que o Nico.*sabe.*combina com o Nico/s);
+  assert.match(identidadeNoPrompt(NICO), /Nico, o chef de cozinha.*NÃO fala de custo, CMV, margem/s);
 });

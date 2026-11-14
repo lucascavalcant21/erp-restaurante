@@ -365,3 +365,16 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Nota:** Aplicada em 14/11/2026. Impressão digital a327899d3c010f1012d5a0ab051005a5 (igual à do PGlite); 0 empresas sem assinatura; a empresa existente ficou Completo/cortesia; nenhum grant de tabela para anon/authenticated; anon sem EXECUTE na função (TESTADO NO SUPABASE REAL). Achado: o dono é super_admin sem unidade principal, então a função devolve null para ele (a conta mostra "Não registrado"); os 15 usuários com unidade veem o plano. Nenhuma tela publicada em produção usa a tabela: o app dos tablets não muda.
 - **Criado em:** 2026-11-14
 - **Chave:** migracao:db/SAAS_PLANOS_1_ASSINATURA.sql
+
+### APR-025 · PENDENTE
+
+- **Missão:** Ponto por PIN no tablet (decisão do dono, 14/11/2026)
+- **Ação:** Aplicar db/PONTO_PIN_1_PIN_DO_FUNCIONARIO.sql no banco do SISTEMA DE TESTE (hefisto-staging), depois que a estrutura for copiada (ACESSO-008). O banco do restaurante NÃO recebe.
+- **Ambiente:** supabase (teste)
+- **Risco:** LOW (só aditiva: duas tabelas fora da API e três funções; não muda colaboradores nem ponto)
+- **Motivo:** No tablet compartilhado, cada funcionário se identifica pelo PIN de 4 números (hoje qualquer um toca no nome de outro)
+- **Rollback:** no cabeçalho do arquivo
+- **Evidências:** PGlite com pgcrypto 17/17 (`app/lib/ponto-pin-banco.test.mjs`: PIN só como hash bcrypt, fraco e repetido recusados, só quem edita funcionários define, tablet de outra unidade não confere, inativo não bate, 5 erros travam, app não lê as tabelas). Impressão digital: 3431fd46ddd8bdb846041b38d69a7985
+- **Status:** PENDENTE
+- **Criado em:** 2026-11-14
+- **Chave:** migracao:db/PONTO_PIN_1_PIN_DO_FUNCIONARIO.sql

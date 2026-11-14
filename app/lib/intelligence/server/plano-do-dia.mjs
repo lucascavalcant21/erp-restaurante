@@ -6,17 +6,21 @@ import { conversarJhonNico } from "../agents/conversa-jhon-nico.mjs";
 import { procedimentosDaUnidade } from "../agents/procedimentos.mjs";
 import { assistenteDoContexto, JHON } from "../../assistentes.mjs";
 import { auditar, ETAPA_AUDITORIA } from "../audit/auditoria.mjs";
+import { perfilParaPrompt } from "../../implantacao.mjs";
 
 const MAX_FICHAS = 120;
 
 /** Junta os fatos do dia. Cada fonte que falha fica vazia e entra em `faltando`. */
 export async function fatosDoDia({ motor, agora = new Date(), fuso = "America/Sao_Paulo" }) {
   const faltando = [];
-  const [esc, fic, proc] = await Promise.all([
+  const [esc, fic, proc, cfg] = await Promise.all([
     motor.getSchedule().catch(() => null),
     motor.listRecipes({}).catch(() => null),
     procedimentosDaUnidade(motor.ambiente.dbe).catch(() => ({ status: "falha", lista: [] })),
+    // perfil do negócio que o Jhon montou com o dono (implantação)
+    Promise.resolve(motor.ambiente.dbe.from("config_sistema").select("params").limit(1)).catch(() => null),
   ]);
+  const perfil = cfg?.data?.[0]?.params?.perfil_negocio || null;
   const equipe = (esc?.detalhes?.trabalham || []).map((p) => ({ id: p.id, nome: p.nome, funcao: p.cargo || p.area || null, entrada: p.entrada || null, saida: p.saida || null }));
   if (!equipe.length) faltando.push(esc?.motivo || "Escala de hoje: ninguém com horário no cadastro.");
   const fichas = (fic?.detalhes?.fichas || []).slice(0, MAX_FICHAS).map((f) => ({ id: f.id, nome: f.nome }));
@@ -24,7 +28,10 @@ export async function fatosDoDia({ motor, agora = new Date(), fuso = "America/Sa
   const procedimentos = (proc?.lista || []).map((p) => ({ nome: p.nome, tipo: p.tipo || null }));
   if (proc?.status === "falha") faltando.push("Procedimentos da casa: não consegui ler.");
   const quando = new Intl.DateTimeFormat("pt-BR", { timeZone: fuso, weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(agora);
-  return { fatos: { agora: quando, equipe, fichas, procedimentos }, faltando };
+  return {
+    fatos: { agora: quando, equipe, fichas, procedimentos, perfilJhon: perfilParaPrompt(perfil, { para: "jhon" }), perfilNico: perfilParaPrompt(perfil, { para: "nico" }) },
+    faltando,
+  };
 }
 
 export function handlerPlanoDoDia() {

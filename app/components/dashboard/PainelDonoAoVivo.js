@@ -20,6 +20,9 @@ import { DestaqueDegrade, RotuloSecao } from "../ui/Medway";
 import { useMinhaAssinatura } from "../../lib/assinatura";
 import { linkCheckout, rotaLiberada } from "../../lib/planos.mjs";
 import JhonAvisa from "./JhonAvisa";
+import PerguntaDoJhon from "../implantacao/PerguntaDoJhon";
+import { carregarImplantacao, salvarResposta } from "../../lib/implantacao-dados";
+import { statusDasEtapas, proximaPergunta } from "../../lib/implantacao.mjs";
 import { lerPlanoDeHoje } from "../../lib/plano-dia-dados";
 import { andamento, fraseDoAndamento } from "../../lib/plano-dia.mjs";
 
@@ -79,6 +82,15 @@ export default function PainelDonoAoVivo() {
   const [editando, setEditando] = useState(false);
   const [aberto, setAberto] = useState(true);
   const [aviso, setAviso] = useState("");
+
+  // Implantação: primeiros passos e a próxima pergunta do Jhon (14/11/2026)
+  const [impl, setImpl] = useState(null);
+  useEffect(() => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") return;
+    carregarImplantacao(unidadeAtiva).then((d) => setImpl(d)).catch(() => {});
+  }, [unidadeAtiva]);
+  const implStatus = impl ? statusDasEtapas(impl) : null;
+  const perguntaJhon = impl && implStatus ? proximaPergunta(impl.perfil, { basicoPronto: implStatus.basicoPronto }) : null;
 
   // Andamento do plano do dia (a equipe marca no Nico; o Jhon conta aqui)
   const [planoHoje, setPlanoHoje] = useState(null);
@@ -165,6 +177,19 @@ export default function PainelDonoAoVivo() {
         />
       )}
       {aviso && <p className="text-[14px] text-hf-danger">{aviso}</p>}
+
+      {implStatus && implStatus.pct < 100 && (
+        <DestaqueDegrade
+          href="/dashboard/implantacao"
+          titulo={`Primeiros passos · ${implStatus.pct}% pronto`}
+          texto={implStatus.proxima ? `Próximo: ${implStatus.proxima.titulo}` : "Falta pouco"}
+          icone="ClipboardList"
+        />
+      )}
+      {perguntaJhon && (
+        <PerguntaDoJhon key={perguntaJhon.id} pergunta={perguntaJhon} compacta
+          onResponder={async (v) => { const r = await salvarResposta(unidadeAtiva, perguntaJhon.id, v); if (r.error) return `Não salvou: ${r.error}`; setImpl((d) => ({ ...d, perfil: r.perfil })); return null; }} />
+      )}
 
       <DestaqueDegrade
         href={assistenteLiberado ? linkJhon : linkCheckout("/dashboard/inteligencia/assistente")}

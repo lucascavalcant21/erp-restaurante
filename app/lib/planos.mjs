@@ -122,6 +122,7 @@ export const ROTAS_GRATIS = Object.freeze([
   "/dashboard/menu",
   "/dashboard/conta",
   "/dashboard/assinar",
+  "/dashboard/implantacao", // primeiros passos: o cadastro vale para todos (14/11/2026)
 ]);
 
 /** Dentro de telas liberadas, o que continua pago (custo e valores do estoque, logins de equipe e tablets). */

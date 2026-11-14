@@ -44,6 +44,7 @@ export const PERMISSION_MODULES = [
       { id: "menu", label: "Menu (liberado com o Painel geral)", route: "/dashboard/menu", actions: ["view"], comInicio: true },
       { id: "account", label: "Minha conta (liberada com o Painel geral)", route: "/dashboard/conta", actions: ["view"], comInicio: true },
       { id: "checkout", label: "Assinar o Héfisto (liberada com o Painel geral)", route: "/dashboard/assinar", actions: ["view"], comInicio: true },
+      { id: "onboarding", label: "Primeiros passos (liberada com o Painel geral)", route: "/dashboard/implantacao", actions: ["view"], comInicio: true },
       // Central de Inteligência e "Pergunte ao Héfisto". Só abre a porta: cada
       // número ainda exige a permissão da tela de onde ele vem, conferida no
       // servidor (app/lib/intelligence/permissions/mapa.mjs).

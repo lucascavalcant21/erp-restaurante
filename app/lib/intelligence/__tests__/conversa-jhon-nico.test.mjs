@@ -137,3 +137,11 @@ test("'cheguei, o que eu faço agora?' responde com o plano aprovado, só o que 
   assert.deepEqual(r.blocos[0].etapas.map((e) => e.abre?.comando), ["Vou preparar Açaí batido", "Procedimento da casa: Limpeza do balcão"]);
   assert.match(respostaDoPlano({ tarefas: [normalizarTarefa({ ordem: 1, titulo: "x", feito_em: "y" })] }).texto, /todo feito/);
 });
+
+test("o perfil do negócio chega ao Jhon inteiro e ao Nico só a operação", async () => {
+  const p = roteiro([{ mensagem: "ok", tarefas: [] }, { mensagem: "ok", aceito: true, ajustes: [] }]);
+  await conversarJhonNico({ pedido: PEDIDO, fatos: { ...fatos, perfilJhon: "PERFIL: meta R$ 150.000 por mês; tipo Marmitaria", perfilNico: "PERFIL: tipo Marmitaria" }, provedor: p });
+  assert.match(p.chamadas[0].sistema, /R\$ 150\.000/);
+  assert.match(p.chamadas[1].sistema, /Marmitaria/);
+  assert.doesNotMatch(p.chamadas[1].sistema, /R\$/);
+});

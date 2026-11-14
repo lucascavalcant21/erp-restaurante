@@ -1,6 +1,8 @@
 // MINHA CONTA — regras puras da tela de conta e do cartão de perfil do Menu
 // (pedido do dono, 14/11/2026, visual inspirado no app da Medway).
 
+import { SITUACOES, planoPorId, precoTexto } from "./planos.mjs";
+
 /** Até duas iniciais do nome ("Lucas Cavalcante Guedes" → "LG"). */
 export function iniciais(nome) {
   const partes = String(nome || "").trim().split(/\s+/).filter(Boolean);
@@ -27,21 +29,22 @@ export function linkIndicacao(nomeQuemIndica) {
 }
 
 /**
- * Situação da assinatura da empresa. O banco de produção ainda não tem plano
- * nem cobrança (a migração do Control Plane SaaS não foi aplicada em
- * 14/11/2026): sem dado, a tela diz "Não registrado", nunca inventa plano.
+ * Situação da assinatura da empresa, a partir do que hefisto_minha_assinatura()
+ * devolve ({ plano, situacao, proximo_vencimento }). Sem dado (migração
+ * SAAS_PLANOS_1 não aplicada ou empresa sem linha), a tela diz "Não
+ * registrado", nunca inventa plano.
  */
-export function situacaoAssinatura(empresa) {
-  const plano = empresa?.plano_id ? String(empresa.plano_id) : null;
+export function situacaoAssinatura(assinatura) {
+  const plano = planoPorId(assinatura?.plano);
   if (!plano) {
-    return { registrado: false, rotulo: "Não registrado", detalhe: "DADOS INSUFICIENTES: a cobrança do Héfisto ainda não foi ativada nesta empresa." };
+    return { registrado: false, plano: null, rotulo: "Não registrado", detalhe: "DADOS INSUFICIENTES: a assinatura desta empresa ainda não foi registrada." };
   }
-  const NOMES = { BASIC: "Essencial", PRO: "Profissional", PILOT_PRO: "Piloto Profissional", MULTIUNIT: "Multiunidades" };
-  const status = String(empresa?.status || "").toUpperCase();
-  const SITUACAO = { ACTIVE: "Ativa", SUSPENDED: "Suspensa", CANCELLED: "Cancelada", TRIAL: "Em teste" };
-  return {
-    registrado: true,
-    rotulo: NOMES[plano] || plano,
-    detalhe: SITUACAO[status] ? `Assinatura ${SITUACAO[status].toLowerCase()}` : "Situação não informada",
-  };
+  const situacao = SITUACOES[assinatura?.situacao] || null;
+  const partes = [situacao ? `Situação: ${situacao.toLowerCase()}` : "Situação não informada"];
+  if (plano.precoCentavos > 0 && assinatura?.situacao !== "cortesia") partes.push(`${precoTexto(plano)} por mês`);
+  if (assinatura?.proximo_vencimento) {
+    const [a, m, d] = String(assinatura.proximo_vencimento).slice(0, 10).split("-");
+    if (a && m && d) partes.push(`próximo vencimento ${d}/${m}/${a}`);
+  }
+  return { registrado: true, plano, rotulo: plano.nome, detalhe: partes.join(" · ") };
 }

@@ -27,9 +27,14 @@ test("sem plano no banco: não inventa assinatura", () => {
   assert.equal(s.registrado, false);
   assert.match(s.detalhe, /DADOS INSUFICIENTES/);
   assert.equal(situacaoAssinatura(null).registrado, false);
+  assert.equal(situacaoAssinatura({ plano: "PRO" }).registrado, false);
 });
 
-test("com plano: nome comercial e situação", () => {
-  assert.deepEqual(situacaoAssinatura({ plano_id: "PRO", status: "ACTIVE" }), { registrado: true, rotulo: "Profissional", detalhe: "Assinatura ativa" });
-  assert.equal(situacaoAssinatura({ plano_id: "XYZ" }).detalhe, "Situação não informada");
+test("plano Completo ativo mostra preço e vencimento; cortesia não mostra preço", () => {
+  assert.deepEqual(
+    situacaoAssinatura({ plano: "completo", situacao: "ativa", proximo_vencimento: "2026-12-14" }).detalhe,
+    "Situação: ativa · R$ 59,90 por mês · próximo vencimento 14/12/2026",
+  );
+  assert.equal(situacaoAssinatura({ plano: "completo", situacao: "cortesia" }).detalhe, "Situação: cortesia");
+  assert.equal(situacaoAssinatura({ plano: "gratis", situacao: "ativa" }).rotulo, "Grátis");
 });

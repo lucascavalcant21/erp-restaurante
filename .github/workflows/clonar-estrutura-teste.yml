@@ -1,0 +1,133 @@
+# CLONAR A ESTRUTURA DO BANCO PARA O SISTEMA DE TESTE
+#
+# Pedido do dono (14/11/2026): os tablets do restaurante não mudam; o Héfisto
+# vendável roda num sistema de teste com BANCO PRÓPRIO, sem os dados do
+# restaurante. Este workflow copia só a ESTRUTURA (tabelas, funções,
+# políticas, gatilhos, buckets) do banco de produção para o banco de teste.
+#
+#   · Produção: só LEITURA (pg_dump --schema-only). Nenhum dado sai.
+#   · Teste (hefisto-staging): recebe a estrutura. Se já tiver tabelas, o
+#     workflow PARA, a menos que LIMPAR_TESTE=sim esteja no arquivo
+#     .github/clonar-teste.env (apaga só o banco de TESTE).
+#   · Trava: aborta se a URL de teste apontar para o banco de produção.
+#
+# Segredos (o dono cadastra em GitHub > Settings > Secrets > Actions; nunca
+# no chat nem no código):
+#   HEFISTO_PROD_DB_URL   conexão do banco de produção (Session pooler)
+#   HEFISTO_TESTE_DB_URL  conexão do banco de teste (Session pooler)
+#
+# Roda quando há push na branch ferramenta/clonar-banco-teste (ou à mão).
+
+name: Clonar estrutura para o sistema de teste
+
+on:
+  push:
+    branches: ["ferramenta/clonar-banco-teste"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clonar-estrutura-teste
+  cancel-in-progress: false
+
+jobs:
+  clonar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROD_URL: ${{ secrets.HEFISTO_PROD_DB_URL }}
+      TESTE_URL: ${{ secrets.HEFISTO_TESTE_DB_URL }}
+      REF_PRODUCAO: sezccspqxgklicfndwxx
+      REF_TESTE: ieaoxnhujqhwmokejfcr
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir segredos e travas
+        run: |
+          set -euo pipefail
+          [ -n "${PROD_URL:-}" ] || { echo "Falta o segredo HEFISTO_PROD_DB_URL."; exit 1; }
+          [ -n "${TESTE_URL:-}" ] || { echo "Falta o segredo HEFISTO_TESTE_DB_URL."; exit 1; }
+          [ "$PROD_URL" != "$TESTE_URL" ] || { echo "As duas URLs são iguais. Nada foi feito."; exit 1; }
+          case "$TESTE_URL" in *"$REF_PRODUCAO"*) echo "A URL de TESTE aponta para a PRODUÇÃO. Nada foi feito."; exit 1;; esac
+          case "$TESTE_URL" in *"$REF_TESTE"*) ;; *) echo "A URL de TESTE não é do projeto hefisto-staging ($REF_TESTE). Nada foi feito."; exit 1;; esac
+          case "$PROD_URL" in *"$REF_PRODUCAO"*) ;; *) echo "A URL de PRODUÇÃO não é do projeto cerebro-erp. Nada foi feito."; exit 1;; esac
+
+      - name: Instalar o cliente do Postgres 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Ler a estrutura da produção (só leitura)
+        run: |
+          set -euo pipefail
+          pg_dump "$PROD_URL" --schema-only --no-owner --no-publications --no-subscriptions \
+            --schema=public --schema=hefisto_privado \
+            --exclude-table='public.backup_*' --exclude-table='public.sec_backup*' \
+            --exclude-table='public.sec_rh_backup*' --exclude-table='public.snapshot_seguranca' \
+            --file=estrutura.sql
+          # Buckets e políticas do storage (a estrutura do storage já existe no teste).
+          psql "$PROD_URL" -v ON_ERROR_STOP=1 -At -c "
+            select format('insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values (%L, %L, %L, %s, %s) on conflict (id) do nothing;',
+                          id, name, public, coalesce(file_size_limit::text, 'null'),
+                          coalesce(quote_literal(allowed_mime_types::text) || '::text[]', 'null'))
+              from storage.buckets order by id;
+            select format('drop policy if exists %I on storage.objects; create policy %I on storage.objects as %s for %s to %s%s%s;',
+                          policyname, policyname, permissive, cmd, array_to_string(roles, ', '),
+                          coalesce(' using (' || qual || ')', ''), coalesce(' with check (' || with_check || ')', ''))
+              from pg_policies where schemaname = 'storage' and tablename = 'objects' order by policyname;
+          " > storage.sql
+          echo "Estrutura: $(wc -c < estrutura.sql) bytes · $(grep -c '^CREATE TABLE' estrutura.sql) tabelas · $(grep -c '^CREATE FUNCTION' estrutura.sql) funções · $(grep -c '^CREATE POLICY' estrutura.sql) políticas"
+          echo "Storage: $(wc -l < storage.sql) comandos"
+
+      - name: Conferir o banco de teste
+        run: |
+          set -euo pipefail
+          LIMPAR=$(grep -s '^LIMPAR_TESTE=' .github/clonar-teste.env | cut -d= -f2 || true)
+          TABELAS=$(psql "$TESTE_URL" -At -c "select count(*) from pg_tables where schemaname = 'public'")
+          echo "Tabelas no teste antes: $TABELAS"
+          if [ "$TABELAS" != "0" ]; then
+            if [ "$LIMPAR" != "sim" ]; then
+              echo "O banco de TESTE já tem tabelas. Para apagar e recriar, ponha LIMPAR_TESTE=sim em .github/clonar-teste.env."
+              exit 1
+            fi
+            echo "Limpando o banco de TESTE (public e hefisto_privado)."
+            psql "$TESTE_URL" -v ON_ERROR_STOP=1 -c "
+              drop schema if exists hefisto_privado cascade;
+              drop schema public cascade;
+              create schema public;
+              grant usage on schema public to postgres, anon, authenticated, service_role;
+              grant all on schema public to postgres, service_role;
+              alter default privileges in schema public grant all on tables to postgres, anon, authenticated, service_role;
+              alter default privileges in schema public grant all on functions to postgres, anon, authenticated, service_role;
+              alter default privileges in schema public grant all on sequences to postgres, anon, authenticated, service_role;"
+          fi
+
+      - name: Aplicar a estrutura no teste
+        run: |
+          set -euo pipefail
+          # 'create schema public' do dump falha porque o schema já existe: tira só essa linha.
+          sed -i '/^CREATE SCHEMA public;$/d' estrutura.sql
+          psql "$TESTE_URL" -v ON_ERROR_STOP=1 --single-transaction -f estrutura.sql > aplicar.log
+          # Buckets e políticas do storage: se o teste recusar alguma, avisa e segue (não é dado).
+          psql "$TESTE_URL" -v ON_ERROR_STOP=1 --single-transaction -f storage.sql >> aplicar.log 2>&1 || echo "::warning::Storage não aplicado por inteiro; veja aplicar.log"
+          # Realtime: as mesmas tabelas públicas que a produção publica.
+          psql "$PROD_URL" -At -c "select format('alter publication supabase_realtime add table %I.%I;', schemaname, tablename) from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename not like 'backup_%' and tablename not like 'sec_%' order by 1" > realtime.sql
+          psql "$TESTE_URL" -f realtime.sql >> aplicar.log 2>&1 || true
+
+      - name: Conferir (impressão digital da estrutura)
+        run: |
+          set -euo pipefail
+          CONSULTA="select md5(string_agg(table_name || '.' || column_name || ':' || data_type, ',' order by table_name, column_name)) from information_schema.columns where table_schema = 'public' and table_name not like 'backup\_%' and table_name not like 'sec\_backup%' and table_name not like 'sec\_rh\_backup%' and table_name <> 'snapshot_seguranca'"
+          P=$(psql "$PROD_URL" -At -c "$CONSULTA")
+          T=$(psql "$TESTE_URL" -At -c "$CONSULTA")
+          echo "Produção: $P"
+          echo "Teste:    $T"
+          psql "$TESTE_URL" -At -c "select 'tabelas=' || count(*) from pg_tables where schemaname='public'"
+          psql "$TESTE_URL" -At -c "select 'linhas=' || coalesce(sum(n_live_tup), 0) from pg_stat_user_tables where schemaname='public'"
+          [ "$P" = "$T" ] || { echo "As estruturas não batem."; exit 1; }
+          echo "Estrutura igual à da produção, sem nenhum dado do restaurante."

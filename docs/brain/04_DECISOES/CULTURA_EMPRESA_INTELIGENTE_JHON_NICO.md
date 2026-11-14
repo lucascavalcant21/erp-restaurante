@@ -23,6 +23,8 @@ O Héfisto é uma **empresa inteligente**: tem o controle de tudo (ar-condiciona
 3. O Nico passa o plano para a equipe, com o passo a passo, a ficha em gramas e os vídeos de cada tarefa, e a equipe vai marcando.
 4. O Nico conta o andamento ao Jhon; o Jhon informa o dono ("checklist 90%", "vatapá produzido") e só pede aprovação do que precisa.
 
+**"Quero que sejam IA conversando" (dono, 14/11/2026, 11:37).** O Jhon e o Nico são dois agentes de IA que trocam mensagens de verdade (`app/lib/intelligence/agents/conversa-jhon-nico.mjs`): o Jhon propõe o plano, o Nico revisa como chef e aceita ou pede ajustes, até 3 rodadas. Travas: os dois só recebem os FATOS que o servidor leu (equipe na escala, fichas, procedimentos); quantidade só vale se o dono disse; responsável fora da escala, ficha ou procedimento inexistente saem do plano e viram pendência; nenhum dos dois vê custo; o plano é SUGESTÃO até o dono aprovar. A conversa fica visível para o dono.
+
 Exemplos de aviso do Jhon ao dono: funcionário atrasado; ar-condicionado não desligado; checklist do bar não feito; produção do dia não feita; quem não bateu ponto.
 
 ## Como o acesso funciona

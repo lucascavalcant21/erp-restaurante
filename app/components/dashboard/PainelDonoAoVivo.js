@@ -161,6 +161,14 @@ export default function PainelDonoAoVivo() {
         trancado={!assistenteLiberado}
       />
 
+      <DestaqueDegrade
+        href={assistenteLiberado ? "/dashboard/inteligencia/plano-do-dia" : linkCheckout("/dashboard/inteligencia/plano-do-dia")}
+        titulo="Plano do dia"
+        texto="Diga o que fazer hoje: o Jhon combina com o Nico"
+        icone="ClipboardList"
+        trancado={!assistenteLiberado}
+      />
+
       <JhonAvisa liberado={assistenteLiberado} linkTrancado={linkCheckout("/dashboard")} />
 
       {!dados.ok ? (

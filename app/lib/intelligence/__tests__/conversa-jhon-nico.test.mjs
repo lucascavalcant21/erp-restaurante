@@ -81,3 +81,41 @@ test("sem IA ou com falha: diz o motivo, não inventa plano", async () => {
 test("números do pedido", () => {
   assert.deepEqual([...numerosDoPedido("4 litros, 3,5 kg e 12 unidades")], [4, 3.5, 12]);
 });
+
+import { handlerPlanoDoDia, fatosDoDia } from "../server/plano-do-dia.mjs";
+
+function motorFalso({ escalaFalha = false } = {}) {
+  const tabelas = { op_processos: [{ id: "p1", nome: "Limpeza do balcão", descricao: null, setor: "geral", conteudo: { tipo: "limpeza" } }], op_secoes: [{ id: "s1", processo_id: "p1", titulo: "Passo a passo", ordem: 0 }], op_itens: [{ id: "i1", processo_id: "p1", secao_id: "s1", titulo: "Tirar tudo do balcão", ordem: 0 }] };
+  const q = (t) => { const r = { data: tabelas[t] || [], error: null }; const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, then: (f, g) => Promise.resolve(r).then(f, g) }; return o; };
+  return {
+    ambiente: { dbe: { from: q, consultas: [] } },
+    getSchedule: async () => (escalaFalha ? { status: "insuficiente", motivo: "Nenhum colaborador cadastrado nesta unidade." } : { detalhes: { trabalham: [{ id: "c1", nome: "Maria", cargo: "Cozinheira", entrada: "08:00", saida: "16:20" }] } }),
+    listRecipes: async () => ({ detalhes: { fichas: [{ id: "f-acai", nome: "Açaí batido" }] } }),
+  };
+}
+const icDono = { usuario: { superAdmin: true }, permissoes: ["*"], escopo: {}, fuso: "America/Sao_Paulo" };
+const icTablet = { usuario: { superAdmin: false, perfil: "setor" }, permissoes: ["dashboard.intelligence.view"], escopo: {} };
+const store = { registrarEvento: async () => {} };
+
+test("fatos do dia: escala, fichas e procedimentos lidos do banco; o que falta é dito", async () => {
+  const { fatos, faltando } = await fatosDoDia({ motor: motorFalso(), agora: new Date("2026-11-14T13:00:00Z") });
+  assert.deepEqual(fatos.equipe, [{ id: "c1", nome: "Maria", funcao: "Cozinheira", entrada: "08:00", saida: "16:20" }]);
+  assert.deepEqual(fatos.procedimentos, [{ nome: "Limpeza do balcão", tipo: "limpeza" }]);
+  assert.match(fatos.agora, /10:00/);
+  assert.deepEqual(faltando, []);
+  assert.deepEqual((await fatosDoDia({ motor: motorFalso({ escalaFalha: true }) })).faltando, ["Nenhum colaborador cadastrado nesta unidade."]);
+});
+
+test("plano do dia: só o dono; pedido vazio recusado; resultado com a conversa", async () => {
+  const h = handlerPlanoDoDia();
+  assert.equal((await h({ ic: icTablet, motor: motorFalso(), store, corpo: { pedido: "x" } })).status, 403);
+  assert.equal((await h({ ic: icDono, motor: motorFalso(), store, corpo: { pedido: " " } })).status, 400);
+  const p = roteiro([
+    { mensagem: "Açaí com a Maria.", tarefas: [{ titulo: "Bater açaí", tipo: "producao", ficha_id: "f-acai", procedimento: null, quantidade: 4, unidade: "L", responsavel_id: "c1", depois_do_intervalo: false, motivo: "único item" }] },
+    { mensagem: "Ok.", aceito: true, ajustes: [] },
+  ]);
+  const out = await h({ ic: icDono, motor: motorFalso(), store, corpo: { pedido: "Bater 4 litros de açaí" }, provedor: p, correlationId: "c" });
+  assert.equal(out.corpo.resultado.status, "combinado");
+  assert.equal(out.corpo.resultado.plano[0].responsavelNome, "Maria");
+  assert.equal(out.corpo.resultado.pedido, "Bater 4 litros de açaí");
+});

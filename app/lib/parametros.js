@@ -423,3 +423,12 @@ export async function salvarMetaVendas(unidadeId, meta) {
   if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade" };
   return salvarParams(unidadeId, { meta_vendas: { periodo: meta.periodo, valor: Number(meta.valor) } });
 }
+
+// Plano do dia aprovado pelo dono (Jhon + Nico, 14/11/2026). Um por unidade:
+// { data, pedido, plano: [tarefas], aprovadoPor, aprovadoEm }. O Nico da
+// equipe lê daqui.
+export async function fetchPlanoDoDia(unidadeId) {
+  const registro = await fetchRegistroConfig(unidadeId);
+  return { data: registro?.params?.plano_do_dia || null };
+}
+export const salvarPlanoDoDia = (unidadeId, plano) => salvarParams(unidadeId, { plano_do_dia: plano });

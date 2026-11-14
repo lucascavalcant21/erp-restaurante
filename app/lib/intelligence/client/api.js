@@ -107,6 +107,8 @@ async function chamar(caminho, { unidadeId, metodo = "POST", corpo = null, sinal
   }
 }
 
+// O Jhon conversa com o Nico (duas chamadas de IA por rodada, até 3): espera mais.
+export const combinarPlanoDoDia = (unidadeId, pedido, sinal) => chamar("/api/intelligence/plano-do-dia", { unidadeId, corpo: { pedido }, sinal, timeoutMs: 120000 });
 export const buscarResumoDoDia = (unidadeId, sinal) => chamar("/api/intelligence/brief", { unidadeId, metodo: "GET", sinal });
 export const perguntarAoHefisto = (unidadeId, pedido, sinal) => chamar("/api/intelligence/ask", { unidadeId, corpo: pedido, sinal });
 export const confirmarAcao = (unidadeId, acaoId, confirmacaoTexto = null) => chamar("/api/intelligence/actions/confirm", { unidadeId, corpo: { acaoId, confirmacaoTexto } });

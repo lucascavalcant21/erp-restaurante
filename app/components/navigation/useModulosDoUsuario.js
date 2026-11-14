@@ -9,10 +9,15 @@ import { useERP } from "../../context/ERPContext";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
 import { menuPrincipal, menuVisivel, universoLiberado } from "../../lib/menu-principal.mjs";
 import { negociosDoLogin, semNegociosDaTroca } from "../../lib/negocios.mjs";
+import { areaLiberada } from "../../lib/planos.mjs";
+import { useMinhaAssinatura } from "../../lib/assinatura";
 
 export default function useModulosDoUsuario() {
   const { sessao, unidades } = useERP();
-  if (!sessao) return { sessao: null, modulos: [], destino: (m) => m.href, pode: () => false };
+  const assinatura = useMinhaAssinatura(sessao);
+  if (!sessao) return { sessao: null, modulos: [], destino: (m) => m.href, pode: () => false, trancada: () => false };
+  // Área do plano Completo numa empresa no Grátis: aparece com cadeado e leva ao plano.
+  const trancada = (m) => !areaLiberada(assinatura?.plano, m.id);
 
   const pode = (rota, busca = "") => canAccessRoute(sessao, rota, busca);
   const podeInteligencia = !sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view");
@@ -26,10 +31,11 @@ export default function useModulosDoUsuario() {
 
   // Para quem não pode abrir a página da área, o link é a primeira tela liberada dela.
   const destino = (m) => {
+    if (trancada(m)) return `/dashboard/conta/plano?area=${m.id}`;
     const [rota, busca = ""] = m.href.split("?");
     if (!limitado || pode(rota, busca) || universoLiberado(rota, pode)) return m.href;
     return m.submodules?.[0]?.href || m.href;
   };
 
-  return { sessao, modulos, destino, pode };
+  return { sessao, modulos, destino, pode, trancada };
 }

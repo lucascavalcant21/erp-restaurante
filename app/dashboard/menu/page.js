@@ -9,20 +9,26 @@
 // rotas: cada pessoa só vê o que pode abrir.
 
 import Link from "next/link";
-import { EllipsisVertical, LayoutGrid } from "lucide-react";
+import { EllipsisVertical, LayoutGrid, Lock } from "lucide-react";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
 import IconeModulo from "../../components/ui/IconeModulo";
 import useModulosDoUsuario from "../../components/navigation/useModulosDoUsuario";
 import { MENU_ATALHOS, MENU_SISTEMA } from "../../lib/menu-principal.mjs";
 import { iniciais } from "../../lib/conta.mjs";
 
-function CartaoMenu({ item, href }) {
+function CartaoMenu({ item, href, trancado = false }) {
   return (
     <Link
       href={href || item.href}
-      className="group flex min-h-[124px] min-w-0 flex-col justify-between gap-4 rounded-[22px] border border-hf-border bg-hf-surface p-4 shadow-xs transition hover:border-hf-border-strong active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent sm:min-h-[132px] sm:p-5"
+      aria-label={trancado ? `${item.label} (plano Completo)` : undefined}
+      className="group relative flex min-h-[124px] min-w-0 flex-col justify-between gap-4 rounded-[22px] border border-hf-border bg-hf-surface p-4 shadow-xs transition hover:border-hf-border-strong active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent sm:min-h-[132px] sm:p-5"
     >
-      <IconeModulo item={item} tamanho="sm" />
+      <IconeModulo item={item} tamanho="sm" className={trancado ? "opacity-50" : ""} />
+      {trancado && (
+        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-hf-accent/50 px-2 py-0.5 text-[11px] font-semibold text-hf-accent">
+          <Lock size={11} aria-hidden="true" /> Completo
+        </span>
+      )}
       <span className="min-w-0">
         <span className="block text-[15px] font-semibold leading-snug text-hf-text sm:text-base">{item.label}</span>
         {item.desc && <span className="mt-0.5 block text-xs leading-snug text-hf-muted line-clamp-2">{item.desc}</span>}
@@ -41,7 +47,7 @@ function Secao({ titulo, children }) {
 }
 
 export default function MenuPage() {
-  const { sessao, modulos, destino, pode } = useModulosDoUsuario();
+  const { sessao, modulos, destino, pode, trancada } = useModulosDoUsuario();
   const liberado = (href) => {
     const [rota, busca = ""] = href.split("?");
     return pode(rota, busca);
@@ -57,7 +63,7 @@ export default function MenuPage() {
       <div className="space-y-7 px-4 sm:px-6 lg:px-8">
         {modulos.length > 0 && (
           <Secao titulo="Áreas">
-            {modulos.map((m) => <CartaoMenu key={m.id} item={m} href={destino(m)} />)}
+            {modulos.map((m) => <CartaoMenu key={m.id} item={m} href={destino(m)} trancado={trancada(m)} />)}
           </Secao>
         )}
 

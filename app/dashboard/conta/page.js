@@ -7,6 +7,7 @@
 // seta; faixa de indicação; botão Sair grande no fim) e preparação do Héfisto
 // para venda. A parte de empresa e assinatura só aparece para quem administra
 // usuários. Sem plano no banco, a assinatura diz "Não registrado".
+// Planos (14/11/2026): Grátis e Completo por R$ 89,90 por mês (app/lib/planos.mjs).
 
 import { useState } from "react";
 import Link from "next/link";
@@ -20,6 +21,7 @@ import { useERP } from "../../context/ERPContext";
 import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
 import { sairDoSistema } from "../../lib/auth";
 import { emailReal, iniciais, linkIndicacao, situacaoAssinatura } from "../../lib/conta.mjs";
+import { useMinhaAssinatura } from "../../lib/assinatura";
 
 function Linha({ icone: Icone, rotulo, valor, href, externo = false, detalhe }) {
   const corpo = (
@@ -55,13 +57,16 @@ export default function MinhaContaPage() {
   const router = useRouter();
   const { sessao, unidadeInfo } = useERP();
   const [saindo, setSaindo] = useState(false);
+  const minhaAssinatura = useMinhaAssinatura(sessao);
   if (!sessao) return null;
 
   const pode = (rota) => canAccessRoute(sessao, rota, "");
   const nome = sessao.app_nome || sessao.nome || "Usuário";
   const contato = sessao.is_app ? `Login: @${sessao.login}` : sessao.email;
   const administra = !sessao.is_app && pode("/dashboard/configuracoes/usuarios");
-  const assinatura = situacaoAssinatura(null);
+  const assinatura = minhaAssinatura === undefined
+    ? { rotulo: "Carregando…", detalhe: null }
+    : situacaoAssinatura(minhaAssinatura);
   const versao = process.env.HEFISTO_VERSAO;
 
   async function sair() {
@@ -98,7 +103,7 @@ export default function MinhaContaPage() {
           <Secao titulo="Empresa e assinatura">
             <Linha icone={ShieldCheck} rotulo="Usuários e acessos" href="/dashboard/configuracoes/usuarios" />
             {pode("/dashboard/configuracoes/apps") && <Linha icone={Tablet} rotulo="Apps e terminais" href="/dashboard/configuracoes/apps" />}
-            <Linha icone={CreditCard} rotulo="Plano e cobrança" valor={assinatura.rotulo} detalhe={assinatura.detalhe} />
+            <Linha icone={CreditCard} rotulo="Plano e assinatura" valor={assinatura.rotulo} detalhe={assinatura.detalhe} href="/dashboard/conta/plano" />
           </Secao>
         )}
 

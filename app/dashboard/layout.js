@@ -13,6 +13,8 @@ import { mostraBarraInferior } from "../lib/barra-inferior.mjs";
 import CommandCenterModal from "../components/navigation/CommandCenterModal";
 import PainelHefisto from "../components/intelligence/PainelHefisto";
 import { addRecentRoute } from "../lib/user-preferences.js";
+import { useMinhaAssinatura } from "../lib/assinatura";
+import { areaTrancadaDaRota } from "../lib/planos.mjs";
 
 function ProtecaoPermissao({ sessao, children }) {
   const router = useRouter();
@@ -29,6 +31,14 @@ function ProtecaoPermissao({ sessao, children }) {
     router.replace(fallback);
   }, [deveVerificar, permitido, pathname, router, sessao]);
 
+  // Plano Grátis (14/11/2026): área do plano Completo leva à tela do plano.
+  // Sem assinatura registrada nada é trancado (app/lib/planos.mjs).
+  const assinatura = useMinhaAssinatura(sessao);
+  const areaTrancada = permitido && assinatura ? areaTrancadaDaRota(assinatura.plano, pathname) : null;
+  useEffect(() => {
+    if (areaTrancada) router.replace(`/dashboard/conta/plano?area=${areaTrancada}`);
+  }, [areaTrancada, router]);
+
   // Recentes e frequência da Central de Comando: só tela aberta com permissão,
   // uma vez por rota (a sessão é relida a cada navegação e não pode contar 2x).
   const ultimaRota = useRef("");
@@ -39,7 +49,7 @@ function ProtecaoPermissao({ sessao, children }) {
     addRecentRoute(sessao, pathname, search);
   }, [sessao, permitido, pathname, search]);
 
-  if (!sessao || !permitido) {
+  if (!sessao || !permitido || areaTrancada) {
     return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-900"><Loader2 className="animate-spin text-emerald-600 mr-2" />Carregando área segura...</div>;
   }
   return children;

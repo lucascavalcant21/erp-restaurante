@@ -6,11 +6,12 @@
 // limitado só vê as áreas que pode abrir.
 
 import Link from "next/link";
+import { Lock } from "lucide-react";
 import IconeModulo from "../ui/IconeModulo";
 import useModulosDoUsuario from "../navigation/useModulosDoUsuario";
 
 export default function LancadorModulos() {
-  const { sessao, modulos, destino } = useModulosDoUsuario();
+  const { sessao, modulos, destino, trancada } = useModulosDoUsuario();
   if (!sessao || modulos.length === 0) return null;
 
   return (
@@ -23,7 +24,14 @@ export default function LancadorModulos() {
             href={destino(m)}
             className="group flex min-w-0 flex-col items-center gap-2 rounded-2xl px-1 py-1.5 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent"
           >
-            <IconeModulo item={m} tamanho="lg" className="transition group-hover:-translate-y-0.5 group-active:scale-95" />
+            <span className="relative">
+              <IconeModulo item={m} tamanho="lg" className={`transition group-hover:-translate-y-0.5 group-active:scale-95 ${trancada(m) ? "opacity-50" : ""}`} />
+              {trancada(m) && (
+                <span aria-label="plano Completo" className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full border-2 border-hf-surface bg-hf-menu text-hf-menu-accent">
+                  <Lock size={12} aria-hidden="true" />
+                </span>
+              )}
+            </span>
             <span className="min-w-0">
               <span className="block truncate text-[13px] font-semibold leading-tight text-hf-text">{m.label}</span>
               <span className="mt-0.5 hidden text-[11px] leading-tight text-hf-muted line-clamp-2 sm:block">{m.desc}</span>

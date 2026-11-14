@@ -19,6 +19,7 @@ import { PERIODOS_META, custosDaVenda, estrategiasDaMeta, lucroPelasFichas, prog
 import { DestaqueDegrade, RotuloSecao } from "../ui/Medway";
 import { useMinhaAssinatura } from "../../lib/assinatura";
 import { linkCheckout, rotaLiberada } from "../../lib/planos.mjs";
+import JhonAvisa from "./JhonAvisa";
 
 const brl = (v) => (v === null || v === undefined ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 const hora = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
@@ -159,6 +160,8 @@ export default function PainelDonoAoVivo() {
         icone="Sparkles"
         trancado={!assistenteLiberado}
       />
+
+      <JhonAvisa liberado={assistenteLiberado} linkTrancado={linkCheckout("/dashboard")} />
 
       {!dados.ok ? (
         <p className="rounded-[18px] border border-mw-borda bg-mw-card p-4 text-[15px] text-mw-sec">DADOS INSUFICIENTES: {dados.erro}</p>

@@ -176,6 +176,9 @@ export default function LoginPage() {
       <p className="text-sm font-medium mt-6 text-center" style={{ color: "var(--muted)" }}>
         Precisa de acesso? Solicite seu usuário ao administrador.
       </p>
+      <a href="/planos" className="mt-3 block text-center text-sm font-bold" style={{ color: "var(--accent-fg)" }}>
+        Ainda não usa o Héfisto? Conheça os planos
+      </a>
     </div>
   );
 }

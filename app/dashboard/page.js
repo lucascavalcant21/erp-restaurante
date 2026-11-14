@@ -34,6 +34,10 @@ import {
   VazioDashboard,
 } from "../components/dashboard/PainelDashboard";
 import LancadorModulos from "../components/dashboard/LancadorModulos";
+import PainelDonoAoVivo from "../components/dashboard/PainelDonoAoVivo";
+import { RotuloSecao } from "../components/ui/Medway";
+import { useERP } from "../context/ERPContext";
+import { sessaoEhDono } from "../lib/assistentes.mjs";
 import {
   PainelProximosEventos,
   PainelReservasHoje,
@@ -96,11 +100,17 @@ export default function InicioPage() {
   } = usePainelInicio();
 
   const bloco = (k) => (dados === undefined ? undefined : dados?.[k] ?? { ok: false });
+  // Dono: Início ao vivo no visual da Home da Medway (14/11/2026). Equipe: o Início de antes.
+  const { sessao: sessaoInicio } = useERP();
+  const dono = sessaoEhDono(sessaoInicio);
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+    <div className={dono ? "min-h-full bg-mw-bg" : ""}>
+    <div className={`mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8 ${dono ? "pb-8 pt-0" : "py-5 sm:py-8"}`}>
+      {dono && !semUnidade && <PainelDonoAoVivo />}
+      {dono && !semUnidade && <RotuloSecao>Operação agora</RotuloSecao>}
       {/* ── CABEÇALHO (visual do Nina, 07/11/2026): trilha, unidade, saudação e data ── */}
-      <header className="space-y-3">
+      {!dono && <header className="space-y-3">
         <div className="flex items-center justify-between gap-3 text-xs font-medium text-hf-muted">
           <p className="truncate">
             Héfisto <span aria-hidden="true">/</span> <span className="text-hf-text-2">Início</span>
@@ -135,10 +145,10 @@ export default function InicioPage() {
             </button>
           )}
         </div>
-      </header>
+      </header>}
 
-      {/* ── MÓDULOS: grade de ícones coloridos (lançador) ── */}
-      <LancadorModulos />
+      {/* ── MÓDULOS: grade de ícones coloridos (lançador); o dono tem o Menu ── */}
+      {!dono && <LancadorModulos />}
 
       {/* ── BANNER DE ERRO DE REDE SE HOUVER ── */}
       {erroRede && (
@@ -164,8 +174,8 @@ export default function InicioPage() {
         <>
           {/* ── SEÇÃO DE CARDS DE INDICADORES PRINCIPAIS ── */}
           <section className={`grid grid-cols-2 gap-3.5 sm:gap-4 ${colunasGrid}`}>
-            {/* FATURAMENTO */}
-            {pode.financeiro && (
+            {/* FATURAMENTO (o dono já vê as vendas ao vivo no painel de cima) */}
+            {pode.financeiro && !dono && (
               <CardIndicador
                 href={
                   f && !f.disponivel
@@ -439,6 +449,7 @@ export default function InicioPage() {
           </div>
         </>
       )}
+    </div>
     </div>
   );
 }

@@ -409,3 +409,17 @@ export const fetchModelosImpressao = (unidadeId) => lerObjetoDosParams(unidadeId
 export const salvarModelosImpressao = (unidadeId, modelos) => salvarParams(unidadeId, { modelos_impressao: modelos });
 export const fetchObservacoesProntas = (unidadeId) => lerObjetoDosParams(unidadeId, "observacoes_prontas");
 export const salvarObservacoesProntas = (unidadeId, obs) => salvarParams(unidadeId, { observacoes_prontas: obs });
+
+// Meta de vendas do Início do dono (pedido do dono, 14/11/2026: "pode ser
+// mensal, diária ou semanal"). Fica em params.meta_vendas = { periodo, valor }.
+export async function fetchMetaVendas(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: null };
+  const registro = await fetchRegistroConfig(unidadeId);
+  const meta = registro?.params?.meta_vendas;
+  return { data: meta && typeof meta === "object" ? meta : null };
+}
+
+export async function salvarMetaVendas(unidadeId, meta) {
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade" };
+  return salvarParams(unidadeId, { meta_vendas: { periodo: meta.periodo, valor: Number(meta.valor) } });
+}

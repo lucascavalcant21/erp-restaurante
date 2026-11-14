@@ -404,3 +404,16 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Status:** PENDENTE
 - **Criado em:** 2026-11-14
 - **Chave:** migracao:db/OP_CONTEUDO_1_FOTOS_VIDEOS_PROCEDIMENTOS.sql
+
+### APR-028 · PENDENTE
+
+- **Missão:** Plano do dia do Jhon e do Nico (pedido do dono, 14/11/2026)
+- **Ação:** Aplicar db/PLANO_DIA_1_TAREFAS_DO_DIA.sql no banco do SISTEMA DE TESTE (hefisto-staging). O banco do restaurante NÃO recebe.
+- **Ambiente:** supabase (teste)
+- **Risco:** LOW (só aditiva: duas tabelas com leitura por quem usa a inteligência na unidade e escrita só por duas funções; nada existente muda)
+- **Motivo:** O dono aprova o plano combinado pelo Jhon e pelo Nico; a equipe marca cada tarefa no Nico; o Jhon mostra o andamento
+- **Rollback:** no cabeçalho do arquivo
+- **Evidências:** PGlite 18/18 (`app/lib/plano-dia-banco.test.mjs`: só o dono aprova, outra unidade não vê nem marca, ficha e funcionário de outra unidade viram nulo, um plano ativo por dia, plano substituído não é marcado, ninguém grava direto na tabela, visitante não lê). Impressão digital: c8ae79c9c0448a3dc24cc5a3bd32f4dd
+- **Status:** PENDENTE
+- **Criado em:** 2026-11-14
+- **Chave:** migracao:db/PLANO_DIA_1_TAREFAS_DO_DIA.sql

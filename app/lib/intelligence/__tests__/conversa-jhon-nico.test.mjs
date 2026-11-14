@@ -119,3 +119,21 @@ test("plano do dia: só o dono; pedido vazio recusado; resultado com a conversa"
   assert.equal(out.corpo.resultado.plano[0].responsavelNome, "Maria");
   assert.equal(out.corpo.resultado.pedido, "Bater 4 litros de açaí");
 });
+
+import { ehPerguntaDoQueFazer, respostaDoPlano } from "../agents/plano-do-dia-nico.mjs";
+import { normalizarTarefa } from "../../plano-dia.mjs";
+
+test("'cheguei, o que eu faço agora?' responde com o plano aprovado, só o que falta", () => {
+  for (const f of ["Cheguei na cozinha, o que eu faço agora?", "Nico, o que eu tenho que fazer?", "qual a minha tarefa", "plano de hoje"]) assert.equal(ehPerguntaDoQueFazer(f), true, f);
+  assert.equal(ehPerguntaDoQueFazer("como limpo a chapa?"), false);
+  const r = respostaDoPlano({ tarefas: [
+    normalizarTarefa({ ordem: 1, titulo: "Fazer vatapá", ficha_nome: "Vatapá", quantidade: 3, unidade_medida: "kg", responsavel_nome: "Maria", feito_em: "x" }),
+    normalizarTarefa({ ordem: 2, titulo: "Bater açaí", ficha_nome: "Açaí batido", quantidade: 4, unidade_medida: "L", responsavel_nome: "João" }),
+    normalizarTarefa({ ordem: 3, titulo: "Limpar o balcão", procedimento: "Limpeza do balcão", depois_do_intervalo: true }),
+  ] });
+  assert.match(r.texto, /1 de 3 feitas/);
+  assert.match(r.texto, /2\. Bater açaí \(4 L\), João/);
+  assert.equal(r.natureza, "REAL");
+  assert.deepEqual(r.blocos[0].etapas.map((e) => e.abre?.comando), ["Vou preparar Açaí batido", "Procedimento da casa: Limpeza do balcão"]);
+  assert.match(respostaDoPlano({ tarefas: [normalizarTarefa({ ordem: 1, titulo: "x", feito_em: "y" })] }).texto, /todo feito/);
+});

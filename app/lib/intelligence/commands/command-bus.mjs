@@ -23,6 +23,7 @@ import { criarTrilha, NIVEL } from "../core/niveis.mjs";
 import { auditar, ETAPA_AUDITORIA } from "../audit/auditoria.mjs";
 import { canAccessRoute, hasPermission } from "../../permissions-catalog.mjs";
 import { buscarProcedimento } from "../agents/procedimentos.mjs";
+import { ehPerguntaDoQueFazer, planoDeHojeDoBanco, respostaDoPlano } from "../agents/plano-do-dia-nico.mjs";
 
 export const pedidoSchema = s.object({
   texto: s.opcional(s.string({ min: 1, max: 500 })),
@@ -196,7 +197,9 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       // sem cadastro, o passo a passo padrão do agente geral (SUGESTÃO). Nada é gravado.
       const sessaoServidor = { gerenciado: true, super_admin: ic.usuario.superAdmin, permissions: [...(ic.permissoes || [])] };
       const podeEditar = hasPermission(sessaoServidor, "dashboard.intelligence.settings") || canAccessRoute(sessaoServidor, "/dashboard/operacao/inteligente");
-      const daCasa = await buscarProcedimento({ texto: pedido.texto, dbe: motor.ambiente.dbe, podeEditar });
+      // "cheguei, o que eu faço agora?": com plano do dia aprovado, é ele (Jhon + Nico, 14/11/2026)
+      const planoHoje = ehPerguntaDoQueFazer(pedido.texto) ? await planoDeHojeDoBanco(motor.ambiente.dbe, motor.ambiente.hoje) : null;
+      const daCasa = planoHoje?.tarefas?.length ? { resposta: respostaDoPlano(planoHoje) } : await buscarProcedimento({ texto: pedido.texto, dbe: motor.ambiente.dbe, podeEditar });
       if (daCasa.resposta) {
         resposta = daCasa.resposta;
       } else {

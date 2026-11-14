@@ -23,6 +23,7 @@ import { fetchComSessao } from "../../../lib/api-sessao";
 import { MAX_XML_BYTES, notaDoOcr, notaDoXml, reduzirImagem } from "./nota.mjs";
 import FolhaFicha from "../FolhaFicha";
 import ListaEtiquetas from "./ListaEtiquetas";
+import PlanoDeHoje from "./PlanoDeHoje";
 import PassosProcedimento from "../PassosProcedimento";
 
 // Nome padrão. Na tela, o nome vem de quem está logado (app/lib/assistentes.mjs):
@@ -626,6 +627,8 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
               <Balao lado="ele" hora={Date.now()}>
                 <p>Olá! Sou o {nomeAssistente}. Toque na sua área para começar. Se preferir, escreva ou mande um áudio.</p>
               </Balao>
+              {/* Plano do dia aprovado pelo dono (Jhon + Nico, 14/11/2026): "cheguei, o que eu faço agora?" */}
+              <PlanoDeHoje unidadeId={unidadeId} onComando={(c) => enviarComando(c)} desabilitado={ocupado} />
               {/* Assistente clicável (pedido do dono, 08/11/2026): o funcionário toca mais do que digita */}
               <div className="flex justify-start px-3 pb-1.5 sm:px-[6%]">
                 <div className="grid w-full max-w-[82%] grid-cols-2 gap-1.5 sm:max-w-[520px]">

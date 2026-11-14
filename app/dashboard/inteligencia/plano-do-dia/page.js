@@ -13,14 +13,14 @@ import { useERP } from "../../../context/ERPContext";
 import { FundoMedway, RotuloSecao, TopoComVoltar } from "../../../components/ui/Medway";
 import { sessaoEhDono } from "../../../lib/assistentes.mjs";
 import { combinarPlanoDoDia } from "../../../lib/intelligence/client/api";
-import { fetchPlanoDoDia, salvarPlanoDoDia } from "../../../lib/parametros";
+import { aprovarPlano, lerPlanoDeHoje } from "../../../lib/plano-dia-dados";
+import { andamento, fraseDoAndamento, quantidadeDigitada } from "../../../lib/plano-dia.mjs";
 
 const EXEMPLOS = [
   "Hoje tem que bater 4 litros de açaí, fazer vatapá e limpar o balcão.",
   "Produzir 3 kg de arroz, organizar os freezers e fazer as etiquetas da produção.",
 ];
 const TIPO = { producao: "Produção", limpeza: "Limpeza", etiquetas: "Etiquetas", organizacao: "Organização", outro: "Tarefa" };
-const hojeISO = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
 
 function Balao({ m }) {
   const jhon = m.de === "jhon";
@@ -38,20 +38,35 @@ function Balao({ m }) {
   );
 }
 
-function Tarefa({ t }) {
+function Tarefa({ t, onQuantidade = null }) {
+  const [q, setQ] = useState("");
+  const [u, setU] = useState(t.tipo === "producao" ? "kg" : "un");
+  const perguntar = onQuantidade && t.quantidade == null && t.tipo === "producao";
   return (
-    <li className="flex gap-3 rounded-[20px] border border-mw-borda bg-mw-card p-4">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mw-marinho text-[15px] font-semibold text-white">{t.ordem}</span>
+    <li className={`flex gap-3 rounded-[20px] border bg-mw-card p-4 ${t.feitoEm ? "border-mw-agua/50" : "border-mw-borda"}`}>
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold text-white ${t.feitoEm ? "bg-mw-agua" : "bg-mw-marinho"}`}>{t.feitoEm ? <Check size={18} /> : t.ordem}</span>
       <div className="min-w-0 flex-1">
         <p className="text-[12px] font-semibold uppercase tracking-wide text-mw-sec">{TIPO[t.tipo] || "Tarefa"}{t.depoisDoIntervalo ? " · depois do intervalo" : ""}</p>
-        <p className="text-[16px] font-semibold text-mw-marinho">{t.titulo}</p>
+        <p className={`text-[16px] font-semibold text-mw-marinho ${t.feitoEm ? "line-through opacity-70" : ""}`}>{t.titulo}</p>
         <div className="mt-1.5 flex flex-wrap gap-1.5 text-[13.5px]">
           {t.quantidade != null && <span className="rounded-full bg-mw-suave px-2.5 py-1 font-semibold text-mw-marinho">{t.quantidade.toLocaleString("pt-BR")} {t.unidade || ""}</span>}
           <span className="inline-flex items-center gap-1 rounded-full bg-mw-suave px-2.5 py-1 text-mw-texto"><User size={13} /> {t.responsavelNome || "sem responsável"}</span>
           {t.fichaNome && <span className="inline-flex items-center gap-1 rounded-full bg-mw-suave px-2.5 py-1 text-mw-texto"><BookOpen size={13} /> {t.fichaNome}</span>}
           {t.procedimento && <span className="inline-flex items-center gap-1 rounded-full bg-mw-suave px-2.5 py-1 text-mw-texto"><BookOpen size={13} /> {t.procedimento}</span>}
         </div>
-        {t.motivo && <p className="mt-1.5 text-[13.5px] text-mw-sec">{t.motivo}</p>}
+        {t.feitoEm && <p className="mt-1.5 text-[13px] font-semibold text-mw-agua">Feito{t.feitoPorNome ? ` por ${t.feitoPorNome}` : ""} às {new Date(t.feitoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>}
+        {!t.feitoEm && t.motivo && <p className="mt-1.5 text-[13.5px] text-mw-sec">{t.motivo}</p>}
+        {perguntar && (
+          <div className="mt-2 flex items-center gap-2">
+            <input inputMode="decimal" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Quanto?" aria-label={`Quanto produzir de ${t.titulo}`}
+              className="h-11 w-24 rounded-full border border-hf-warning/60 bg-white px-3 text-[16px] text-mw-marinho" />
+            <select value={u} onChange={(e) => setU(e.target.value)} aria-label="Medida" className="h-11 rounded-full border border-mw-borda bg-white px-3 text-[15px] text-mw-marinho">
+              {["kg", "g", "L", "ml", "un", "porções"].map((x) => <option key={x}>{x}</option>)}
+            </select>
+            <button type="button" disabled={!quantidadeDigitada(q)} onClick={() => onQuantidade(quantidadeDigitada(q), u)}
+              className="h-11 rounded-full bg-mw-marinho px-4 text-[15px] font-semibold text-white shadow-none disabled:opacity-40">Ok</button>
+          </div>
+        )}
       </div>
     </li>
   );
@@ -69,9 +84,24 @@ export default function PlanoDoDia() {
   const dono = sessaoEhDono(sessao);
 
   useEffect(() => {
-    if (!unidadeAtiva || unidadeAtiva === "todas") return;
-    fetchPlanoDoDia(unidadeAtiva).then(({ data }) => { if (data?.data === hojeISO()) setAprovado(data); }).catch(() => {});
+    if (!unidadeAtiva || unidadeAtiva === "todas") return undefined;
+    let vivo = true;
+    const ler = () => lerPlanoDeHoje(unidadeAtiva).then((x) => { if (vivo && x.plano) setAprovado(x); }).catch(() => {});
+    ler();
+    // o andamento muda enquanto a equipe marca no Nico
+    const t = setInterval(ler, 60 * 1000);
+    return () => { vivo = false; clearInterval(t); };
   }, [unidadeAtiva]);
+
+  // O dono respondeu "quanto produzir?" na tela: entra no plano e sai das pendências.
+  function responderQuantidade(ordem, quantidade, unidade) {
+    setR((x) => {
+      const plano = x.plano.map((t) => (t.ordem === ordem ? { ...t, quantidade, unidade } : t));
+      const titulo = x.plano.find((t) => t.ordem === ordem)?.titulo;
+      const pendencias = x.pendencias.filter((p) => !(titulo && p.startsWith(`"${titulo}"`) && /quanto produzir|quantidade/i.test(p)));
+      return { ...x, plano, pendencias };
+    });
+  }
 
   async function mandar() {
     if (pedido.trim().length < 3 || ocupado) return;
@@ -85,11 +115,12 @@ export default function PlanoDoDia() {
   async function aprovar() {
     if (!r?.plano?.length) return;
     setSalvando(true);
-    const plano = { data: hojeISO(), pedido: r.pedido, plano: r.plano, pendencias: r.pendencias, aprovadoPor: sessao?.nome || sessao?.email || "Dono", aprovadoEm: new Date().toISOString() };
-    const s = await salvarPlanoDoDia(unidadeAtiva, plano);
+    const out = await aprovarPlano(unidadeAtiva, { pedido: r.pedido, plano: r.plano, aprovadoPor: sessao?.nome || sessao?.email || "Dono" });
     setSalvando(false);
-    if (s?.error) { setErro(`Não salvou: ${s.error}`); return; }
-    setAprovado(plano); setR(null); setPedido("");
+    if (out.error) { setErro(`Não aprovou: ${out.error}`); return; }
+    const lido = await lerPlanoDeHoje(unidadeAtiva);
+    setAprovado(lido.plano ? lido : null);
+    setR(null); setPedido("");
   }
 
   if (sessao && !dono) {
@@ -132,7 +163,7 @@ export default function PlanoDoDia() {
             {r.plano?.length > 0 && (
               <section className="space-y-3">
                 <RotuloSecao>Plano combinado ({r.natureza || "SUGESTÃO"})</RotuloSecao>
-                <ol className="space-y-2.5">{r.plano.map((t) => <Tarefa key={t.ordem} t={t} />)}</ol>
+                <ol className="space-y-2.5">{r.plano.map((t) => <Tarefa key={t.ordem} t={t} onQuantidade={(q, u) => responderQuantidade(t.ordem, q, u)} />)}</ol>
               </section>
             )}
             {(r.pendencias?.length > 0 || r.faltando?.length > 0) && (
@@ -155,14 +186,22 @@ export default function PlanoDoDia() {
           </>
         )}
 
-        {aprovado && !r && (
-          <section className="space-y-3">
-            <RotuloSecao>Plano aprovado hoje</RotuloSecao>
-            <p className="flex items-center gap-2 text-[14px] text-mw-sec"><Clock size={15} /> Por {aprovado.aprovadoPor} às {new Date(aprovado.aprovadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
-            <ol className="space-y-2.5">{(aprovado.plano || []).map((t) => <Tarefa key={t.ordem} t={t} />)}</ol>
-            <button type="button" onClick={() => router.push("/dashboard")} className="min-h-[48px] w-full rounded-full border border-mw-borda bg-mw-card text-[15px] font-semibold text-mw-marinho shadow-none">Voltar ao início</button>
-          </section>
-        )}
+        {aprovado && !r && (() => {
+          const a = andamento(aprovado.tarefas);
+          return (
+            <section className="space-y-3">
+              <RotuloSecao>Plano aprovado hoje</RotuloSecao>
+              <div className="rounded-[20px] border border-mw-borda bg-mw-card p-4">
+                <p className="text-[15.5px] font-semibold text-mw-marinho">{fraseDoAndamento(a)}</p>
+                <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-mw-suave"><div className="h-full rounded-full bg-mw-agua transition-all" style={{ width: `${a.pct}%` }} /></div>
+                <p className="mt-2 flex items-center gap-2 text-[13px] text-mw-sec"><Clock size={14} /> Aprovado por {aprovado.plano.aprovadoPor || "você"}{aprovado.plano.aprovadoEm ? ` às ${new Date(aprovado.plano.aprovadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
+                {aprovado.comProgresso === false && <p className="mt-2 text-[13px] text-hf-warning">A equipe vê o plano, mas marcar "feito" precisa da migração PLANO-DIA-1 neste banco.</p>}
+              </div>
+              <ol className="space-y-2.5">{aprovado.tarefas.map((t) => <Tarefa key={t.id || t.ordem} t={t} />)}</ol>
+              <button type="button" onClick={() => router.push("/dashboard")} className="min-h-[48px] w-full rounded-full border border-mw-borda bg-mw-card text-[15px] font-semibold text-mw-marinho shadow-none">Voltar ao início</button>
+            </section>
+          );
+        })()}
       </div>
     </FundoMedway>
   );

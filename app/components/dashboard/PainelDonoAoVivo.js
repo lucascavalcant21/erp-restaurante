@@ -20,6 +20,8 @@ import { DestaqueDegrade, RotuloSecao } from "../ui/Medway";
 import { useMinhaAssinatura } from "../../lib/assinatura";
 import { linkCheckout, rotaLiberada } from "../../lib/planos.mjs";
 import JhonAvisa from "./JhonAvisa";
+import { lerPlanoDeHoje } from "../../lib/plano-dia-dados";
+import { andamento, fraseDoAndamento } from "../../lib/plano-dia.mjs";
 
 const brl = (v) => (v === null || v === undefined ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 const hora = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
@@ -77,6 +79,17 @@ export default function PainelDonoAoVivo() {
   const [editando, setEditando] = useState(false);
   const [aberto, setAberto] = useState(true);
   const [aviso, setAviso] = useState("");
+
+  // Andamento do plano do dia (a equipe marca no Nico; o Jhon conta aqui)
+  const [planoHoje, setPlanoHoje] = useState(null);
+  useEffect(() => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") return undefined;
+    let vivo = true;
+    const ler = () => lerPlanoDeHoje(unidadeAtiva).then((x) => { if (vivo) setPlanoHoje(x?.plano ? andamento(x.tarefas) : null); }).catch(() => {});
+    ler();
+    const t = setInterval(ler, 60 * 1000);
+    return () => { vivo = false; clearInterval(t); };
+  }, [unidadeAtiva]);
 
   const carregar = useCallback(async () => {
     if (!unidadeAtiva) return;
@@ -164,7 +177,7 @@ export default function PainelDonoAoVivo() {
       <DestaqueDegrade
         href={assistenteLiberado ? "/dashboard/inteligencia/plano-do-dia" : linkCheckout("/dashboard/inteligencia/plano-do-dia")}
         titulo="Plano do dia"
-        texto="Diga o que fazer hoje: o Jhon combina com o Nico"
+        texto={planoHoje ? fraseDoAndamento(planoHoje) : "Diga o que fazer hoje: o Jhon combina com o Nico"}
         icone="ClipboardList"
         trancado={!assistenteLiberado}
       />

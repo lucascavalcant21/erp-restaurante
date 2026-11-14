@@ -63,11 +63,15 @@ export const PERIODOS = Object.freeze([
 
 export const periodoPorId = (id) => PERIODOS.find((p) => p.id === id) || null;
 
-/** Formas de pagamento aceitas (todas valem para os três períodos). */
+/**
+ * Formas de pagamento (valem para os três períodos). Dono, 14/11/2026: "por
+ * enquanto vai ser no Nubank, chave Pix" — crédito e débito entram quando o
+ * meio de cobrança online for contratado (BLQ-020).
+ */
 export const FORMAS_PAGAMENTO = Object.freeze([
-  Object.freeze({ id: "credito", nome: "Cartão de crédito" }),
-  Object.freeze({ id: "debito", nome: "Cartão de débito" }),
-  Object.freeze({ id: "pix", nome: "Pix" }),
+  Object.freeze({ id: "credito", nome: "Cartão de crédito", disponivel: false }),
+  Object.freeze({ id: "debito", nome: "Cartão de débito", disponivel: false }),
+  Object.freeze({ id: "pix", nome: "Pix", disponivel: true }),
 ]);
 
 /**
@@ -157,5 +161,17 @@ export function linkComercial(numeroBruto, { plano = null, empresa = null, perio
   const texto = preco
     ? `Olá! Quero assinar o plano ${plano.nome} do Héfisto (${condicao})${empresa ? ` para ${empresa}` : ""}.`
     : `Olá! Quero começar a usar o Héfisto no plano ${plano?.nome || "Grátis"}${empresa ? ` no ${empresa}` : ""}.`;
+  return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
+}
+
+/**
+ * Link do WhatsApp comercial para mandar o comprovante do Pix, já com a
+ * empresa, o plano, o período e o valor. Sem número configurado, null.
+ */
+export function linkComprovante(numeroBruto, { plano, periodo = "mensal", empresa = null } = {}) {
+  const numero = numeroWhatsApp(numeroBruto);
+  const preco = plano?.precoCentavos > 0 ? precoNoPeriodo(plano, periodo) : null;
+  if (!numero || !preco) return null;
+  const texto = `Olá! Paguei por Pix a assinatura do Héfisto: plano ${plano.nome}, ${preco.periodo.nome.toLowerCase()}, ${reais(preco.totalCentavos)}${empresa ? `, empresa ${empresa}` : ""}. Segue o comprovante.`;
   return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
 }

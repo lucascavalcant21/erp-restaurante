@@ -38,7 +38,7 @@ const RECURSOS = [
 const PERGUNTAS = [
   { p: "Funciona no celular e no tablet?", r: "Sim. O Héfisto abre no navegador e pode ser instalado como aplicativo no celular, no tablet e no computador." },
   { p: "O plano Grátis precisa de cartão?", r: "Não. O plano Grátis não tem cobrança." },
-  { p: "Como posso pagar o Completo?", r: "Cartão de crédito, cartão de débito ou Pix, no mensal, no semestral (20% de desconto) ou no anual (40% de desconto). Semestral e anual são pagos de uma vez." },
+  { p: "Como posso pagar o Completo?", r: "Por Pix, no mensal, no semestral (20% de desconto) ou no anual (40% de desconto). Semestral e anual são pagos de uma vez. Cartão de crédito e débito: em breve." },
   { p: "Quantas pessoas podem usar?", r: `No Grátis, até ${PLANOS.gratis.limites.usuarios} usuários em ${PLANOS.gratis.limites.unidades} unidade. No Completo, usuários e unidades sem limite.` },
   { p: "Cada funcionário vê tudo?", r: "Não. Cada pessoa recebe um perfil de acesso e só vê as telas da função dela; valores e custos podem ficar escondidos." },
 ];

@@ -64,4 +64,15 @@ test("semestral com 20% e anual com 40% de desconto, em centavos exatos", async 
   assert.deepEqual([anu.totalCentavos, anu.economiaCentavos, anu.porMesCentavos], [64728, 43152, 5394]);
   assert.equal(precoNoPeriodo(PLANO_PAGO, "trimestral"), null);
   assert.deepEqual(FORMAS_PAGAMENTO.map((f) => f.id), ["credito", "debito", "pix"]);
+  // Por enquanto só Pix (Nubank); cartões quando houver cobrança online.
+  assert.deepEqual(FORMAS_PAGAMENTO.filter((f) => f.disponivel).map((f) => f.id), ["pix"]);
+});
+
+test("comprovante do Pix vai ao WhatsApp com plano, período e valor", async () => {
+  const { linkComprovante } = await import("./planos.mjs");
+  const link = decodeURIComponent(linkComprovante("45998674041", { plano: PLANO_PAGO, periodo: "semestral", empresa: "Casa X" }));
+  assert.ok(link.startsWith("https://wa.me/5545998674041?text="));
+  assert.match(link, /plano Completo, semestral, R\$ 431,52, empresa Casa X/);
+  assert.equal(linkComprovante("", { plano: PLANO_PAGO }), null);
+  assert.equal(linkComprovante("45998674041", { plano: PLANOS.gratis }), null);
 });

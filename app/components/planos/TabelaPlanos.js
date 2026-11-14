@@ -45,9 +45,11 @@ export default function TabelaPlanos({ planoAtual = null, acao = () => null }) {
       </div>
 
       <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-sm text-hf-text-2">
-        <span className="inline-flex items-center gap-1.5"><CreditCard size={16} aria-hidden="true" /> {FORMAS_PAGAMENTO.filter((f) => f.id !== "pix").map((f) => f.nome).join(" ou ")}</span>
+        {FORMAS_PAGAMENTO.filter((f) => f.disponivel).map((f) => (
+          <span key={f.id} className="inline-flex items-center gap-1.5 font-semibold text-hf-text"><QrCode size={16} aria-hidden="true" /> Pagamento por {f.nome}</span>
+        ))}
         <span aria-hidden="true">·</span>
-        <span className="inline-flex items-center gap-1.5"><QrCode size={16} aria-hidden="true" /> Pix</span>
+        <span className="inline-flex items-center gap-1.5"><CreditCard size={16} aria-hidden="true" /> {FORMAS_PAGAMENTO.filter((f) => !f.disponivel).map((f) => f.nome.replace("Cartão de ", "")).join(" e ")}: em breve</span>
         <span className="w-full text-xs text-hf-muted">Semestral e anual são pagos de uma vez, com o desconto já aplicado.</span>
       </p>
     </div>

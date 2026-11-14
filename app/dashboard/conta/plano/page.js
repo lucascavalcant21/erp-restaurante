@@ -3,25 +3,22 @@
 // PLANO E ASSINATURA — o plano da empresa e a troca para o Completo.
 //
 // Decisão do dono (14/11/2026): plano Grátis e plano Completo, com tudo, por
-// R$ 89,90 por mês; semestral com 20% e anual com 40% de desconto; crédito,
-// débito ou Pix. Enquanto a cobrança online não existe (meio de pagamento
-// ainda não escolhido), "Assinar" abre o WhatsApp comercial configurado em
-// NEXT_PUBLIC_HEFISTO_WHATSAPP_COMERCIAL. Sem número, o botão avisa que a
-// cobrança online está em preparação. Nada é cobrado por esta tela.
+// R$ 89,90 por mês; semestral com 20% e anual com 40% de desconto. Por
+// enquanto o pagamento é por Pix na chave do dono (Nubank), com o comprovante
+// enviado no WhatsApp comercial; a liberação do plano é manual. Crédito e
+// débito entram com a cobrança online (BLQ-020). Nada é cobrado por esta tela.
 
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { CreditCard, Lock, MessageCircle } from "lucide-react";
+import { CreditCard, Lock } from "lucide-react";
 import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 import TabelaPlanos from "../../../components/planos/TabelaPlanos";
+import PagamentoPix from "../../../components/planos/PagamentoPix";
 import { useERP } from "../../../context/ERPContext";
 import { useMinhaAssinatura } from "../../../lib/assinatura";
 import { situacaoAssinatura } from "../../../lib/conta.mjs";
 import { MENU_PRINCIPAL } from "../../../lib/menu-principal.mjs";
-import { linkComercial, precoNoPeriodo, reais } from "../../../lib/planos.mjs";
 import { canAccessRoute } from "../../../lib/permissions-catalog.mjs";
-
-const WHATSAPP_COMERCIAL = process.env.NEXT_PUBLIC_HEFISTO_WHATSAPP_COMERCIAL || "";
 
 function AvisoArea() {
   const busca = useSearchParams();
@@ -66,24 +63,7 @@ export default function PlanoPage() {
           acao={(plano, periodo) => {
             if (!plano.precoCentavos || atual === "completo") return null;
             if (!administra) return <p className="text-center text-sm text-white/80">Peça ao administrador da empresa para assinar.</p>;
-            const link = linkComercial(WHATSAPP_COMERCIAL, { plano, periodo, empresa: unidadeInfo?.nome });
-            if (!link) {
-              return (
-                <p className="rounded-2xl border border-white/20 px-4 py-3 text-center text-sm text-white/80">
-                  Cobrança online em preparação. Fale com o responsável pelo Héfisto para assinar.
-                </p>
-              );
-            }
-            return (
-              <a
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-hf-surface text-base font-semibold text-hf-text transition hover:bg-hf-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent"
-              >
-                <MessageCircle size={18} aria-hidden="true" /> Assinar por {reais(precoNoPeriodo(plano, periodo).totalCentavos)}
-              </a>
-            );
+            return <PagamentoPix plano={plano} periodo={periodo} empresa={unidadeInfo?.nome} />;
           }}
         />
       </div>

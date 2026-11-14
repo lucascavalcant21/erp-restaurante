@@ -11,6 +11,7 @@ import { somarDias } from "../core/periodos.mjs";
 import { generateDailyBrief } from "../insights/daily-brief.mjs";
 import { HANDLERS_COMPRAS, HANDLERS_RH, HANDLERS_FICHAS, HANDLERS_ETIQUETAS } from "./assistente.mjs";
 import { HANDLERS_MENU } from "./menu.mjs";
+import { HANDLERS_LISTA_COMPRAS } from "./lista-compras-agente.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoInsight, blocoTexto, brl, num, ddmm, valorFormatado } from "../commands/resposta.mjs";
 
 const r = (texto, blocos = [], acoes = [], nivel = NIVEL.OBSERVAR) => ({ texto, blocos, acoes, nivel });
@@ -69,6 +70,7 @@ export const AgenteVendas = {
 export const AgenteCompras = {
   id: "compras", nome: "PurchaseAgent",
   ...HANDLERS_COMPRAS,
+  ...HANDLERS_LISTA_COMPRAS,
   async "compras.total"({ motor, params }) {
     const m = await motor.getPurchasesTotal(params.periodo || "semana");
     if (!temValor(m)) return insuf(m, "Compras");

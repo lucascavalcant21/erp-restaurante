@@ -234,6 +234,18 @@ export const INTENCOES = Object.freeze([
     frases: [["montar uma receita", "montar receita", "monta uma receita", "criar uma receita", "criar receita", "cria uma receita", "nova receita", "nova ficha", "criar ficha", "criar uma ficha", "cria uma ficha", "cadastrar ficha", "cadastrar uma ficha", "cadastrar receita", "cadastrar uma receita", "montar uma ficha", "montar ficha", "montar um prato", "monta um prato", "montar o prato", "criar um prato", "criar prato", "cadastrar um prato", "novo prato", "fazer uma ficha", "fazer uma receita", "montar uma base", "criar uma base", "nova base"]],
     proibidas: ["como monta", "como montar", "como se monta", "como faz", "como fazer", "como se faz", "ficha tecnica de", "ficha tecnica do", "ficha tecnica da"], peso: 12,
   },
+  // 14/11/2026: lista de compras pelo Jhon e "comprei tudo, faltou isso"
+  {
+    id: "compras.lista_comprei", tipo: "pergunta", agentes: ["compras"],
+    descricao: "Conferir a compra contra a lista salva: o que veio e o que faltou (ex.: 'comprei tudo, faltou o tomate', 'comprei só o arroz').",
+    frases: [["comprei tudo", "comprei so", "comprei apenas", "comprei somente", "acabei de comprar", "ja comprei", "fiz as compras", "fiz a compra", "voltei das compras", "voltei do mercado", "voltei do atacado"]], peso: 13,
+  },
+  {
+    id: "compras.lista_montar", tipo: "pergunta", agentes: ["compras"],
+    descricao: "Montar a lista de compras para mandar no WhatsApp de quem compra (ex.: 'minha lista de compras para hoje é 10 kg de arroz, 5 kg de feijão').",
+    frases: [["lista de compras", "lista de compra", "preciso comprar", "tem que comprar", "temos que comprar", "precisamos comprar", "montar a lista", "monta a lista"]],
+    proibidas: ["comprei", "faltou", "abrir", "abre", "tela"], peso: 11,
+  },
   {
     id: "compras.foto_nota", tipo: "pergunta", agentes: ["compras"],
     descricao: "Lançar uma compra pela foto da nota fiscal/DANFE ou pelo XML da NF-e (ex.: 'quero lançar uma nota', 'vou mandar a foto da danfe', 'chegou a nota do fornecedor', 'tenho o XML').",

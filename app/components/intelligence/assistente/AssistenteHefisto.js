@@ -24,6 +24,7 @@ import { MAX_XML_BYTES, notaDoOcr, notaDoXml, reduzirImagem } from "./nota.mjs";
 import FolhaFicha from "../FolhaFicha";
 import ListaEtiquetas from "./ListaEtiquetas";
 import PlanoDeHoje from "./PlanoDeHoje";
+import ListaDeCompras from "./ListaDeCompras";
 import PassosProcedimento from "../PassosProcedimento";
 
 // Nome padrão. Na tela, o nome vem de quem está logado (app/lib/assistentes.mjs):
@@ -187,6 +188,7 @@ function Blocos({ blocos, onRota, onComando }) {
         }
         if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} onComando={onComando} />;
         if (b.tipo === "passos") return <PassosProcedimento key={i} bloco={b} onComando={onComando} />;
+        if (b.tipo === "lista_compras" || b.tipo === "lista_compras_conferencia") return <ListaDeCompras key={i} bloco={b} />;
         if (b.tipo === "etiquetas") return <ListaEtiquetas key={i} bloco={b} onRota={onRota} />;
         if (b.tipo === "texto") return <p key={i} className="text-[14px]" style={{ color: "var(--wa-meta)" }}>{b.qualificador ? <strong>{b.qualificador}: </strong> : null}{b.texto}</p>;
         if (b.tipo === "insight" && b.insight?.titulo) return <p key={i} className="text-[14.5px]">• {b.insight.titulo}</p>;

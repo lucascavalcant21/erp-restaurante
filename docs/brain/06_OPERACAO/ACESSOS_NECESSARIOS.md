@@ -105,3 +105,23 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 - **Risco:** BAIXO
 - **Como validar depois:** o conector lista recursos
 - **Estado:** PENDENTE (sem missão ainda)
+
+## ACESSO-008
+
+- **Serviço:** GitHub Actions (segredos do repositório) + Supabase (senha do banco)
+- **Motivo:** sistema de teste do Héfisto vendável com banco próprio (pedido do dono, 14/11/2026: "os tablets não mudam; um sistema de teste"). O workflow `.github/workflows/clonar-estrutura-teste.yml` copia só a ESTRUTURA da produção (pg_dump --schema-only, só leitura) para o `hefisto-staging`, sem nenhum dado do restaurante
+- **O que precisa ser liberado:** em GitHub > Settings > Secrets and variables > Actions, dois segredos: `HEFISTO_PROD_DB_URL` (Supabase cerebro-erp > Connect > Session pooler, com a senha do banco) e `HEFISTO_TESTE_DB_URL` (o mesmo no hefisto-staging). Depois, um push na branch `ferramenta/clonar-banco-teste` roda a cópia
+- **Escopo mínimo:** a produção só é LIDA (estrutura); o teste é apagado e recriado (LIMPAR_TESTE=sim, aprovado pelo dono: "Só a estrutura")
+- **Risco:** MÉDIO (a URL da produção fica guardada como segredo do GitHub; pode ser apagada depois da cópia)
+- **Como validar depois:** no hefisto-staging, 218 tabelas no `public` (244 menos os backups), 0 linhas, impressão digital das colunas igual à da produção
+- **Estado:** PENDENTE
+
+## ACESSO-009
+
+- **Serviço:** Vercel (projeto erp-restaurante, variável só da branch `hefisto-teste`)
+- **Motivo:** as rotas de servidor do sistema de teste (sessão, Pix) precisam da chave secreta do banco de TESTE. Sem ela, o preview da `hefisto-teste` usa a chave geral de preview, que é a da produção, com a URL do teste: a sessão falha fechada (nenhum acesso à produção), mas as rotas de servidor não funcionam
+- **O que precisa ser liberado:** `SUPABASE_SERVICE_ROLE_KEY` = chave secreta (service_role) do hefisto-staging, tipo Sensitive, só Preview, Git branch `hefisto-teste`
+- **Escopo mínimo:** só o preview da `hefisto-teste`
+- **Risco:** BAIXO (banco de teste, sem dados do restaurante)
+- **Como validar depois:** login no preview da `hefisto-teste` e "Plano e assinatura" mostra a chave Pix
+- **Estado:** PENDENTE

@@ -20,7 +20,7 @@ export function FundoMedway({ children, className = "" }) {
 export function TituloGrande({ children, subtitulo = null, className = "" }) {
   return (
     <header className={`px-4 pb-5 pt-6 sm:px-6 ${className}`}>
-      <h1 className="text-[32px] font-semibold leading-tight tracking-tight text-mw-marinho">{children}</h1>
+      <h1 className="text-[30px] font-semibold leading-tight tracking-tight text-mw-marinho">{children}</h1>
       {subtitulo && <p className="mt-1 text-[15px] text-mw-sec">{subtitulo}</p>}
     </header>
   );
@@ -58,7 +58,7 @@ export function CartaoGrade({ href, icone, label, trancado = false, contador = n
   const conteudo = (
     <>
       <span className="relative inline-flex">
-        <Icone size={26} strokeWidth={1.6} aria-hidden="true" className={trancado ? "text-mw-sec" : "text-mw-texto"} />
+        <Icone size={24} strokeWidth={1.5} aria-hidden="true" className={trancado ? "text-mw-sec" : "text-mw-texto"} />
         {contador > 0 && (
           <span className="absolute -right-2.5 -top-2.5 grid h-6 min-w-6 place-items-center rounded-full bg-mw-marinho px-1.5 text-[12px] font-semibold text-white">
             {contador}

@@ -99,7 +99,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       {/* TOPO CLARO NO CELULAR E NO TABLET (visual da Medway, 14/11/2026): logo
           redondo, o negócio aberto com a setinha para trocar, a rotina do dia e
           o sino. O menu de três linhas só aparece nas telas sem a barra de abas. */}
-      {!sessao?.is_app && !pathname.startsWith("/dashboard/conta") && (
+      {!sessao?.is_app && !pathname.startsWith("/dashboard/conta") && pathname !== "/dashboard/menu" && (
         <header className="xl:hidden sticky top-0 z-50 w-full shrink-0 border-b border-mw-borda bg-mw-card print:hidden" style={{ paddingTop: "var(--erp-safe-top)" }}>
           <div className="flex min-h-[72px] items-center justify-between gap-3 px-4">
             <div className="flex min-w-0 items-center gap-3">

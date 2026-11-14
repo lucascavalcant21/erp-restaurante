@@ -136,6 +136,14 @@ Segurança crítica anterior ao Intelligence Core: S-01 e S-02 em [[SEGURANCA]].
 
 [[HDEV-001]] (BLOCKED, 08/10 noite): smoke de API pronto (`npm run qa:smoke`, TESTADO EM MOCK) e checklist de deploy com rollback. Falta o harness Playwright e trazer a `main`: o runner local nega comandos com rede (BLQ-007). O smoke real roda assim que BLQ-001/003 saírem.
 
+## 14/11/2026 — Upgrade visual Medway e preparação para venda (pedido do dono)
+
+Branch `claude/upgrade-visual-medway` (PR em rascunho):
+- **Barra de abas no rodapé** (celular e tablet, só telas de primeiro nível): Início, Assistente, Pesquisar, Tarefas, Menu.
+- **Tela Menu** em cartões por seção e **Minha conta** (conta, empresa e assinatura, indicação pelo WhatsApp, sair).
+- **Achado:** `empresas` no banco real não tem plano nem situação (Control Plane SaaS não aplicado). Minha conta mostra "Não registrado". Plano de venda em [[UPGRADE_VISUAL_MEDWAY_E_VENDA_2026-11-14]].
+- Evidência: TESTADO LOCAL (testes novos 9/9, app/lib 1005 ok com as 13 falhas de sempre sem PGLITE, catálogo e navegação OK, build OK) e TESTADO EM MOCK (Chrome 390/820/1366 px). Preview e produção: NÃO VALIDADO.
+
 <!-- hefisto-agent:agente:inicio -->
 ### Agente autônomo (gerado pelo runner)
 - Estado: **AGUARDANDO** · início: 2026-10-09T15:36:36.690Z · último heartbeat: 2026-10-10T21:15:23.328Z

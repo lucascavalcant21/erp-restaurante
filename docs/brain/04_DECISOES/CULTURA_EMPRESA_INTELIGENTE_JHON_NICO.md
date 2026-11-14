@@ -35,4 +35,5 @@ Exemplos de aviso do Jhon ao dono: funcionário atrasado; ar-condicionado não d
 2. Área do Administrador reorganizada e montagem dos tablets (só ponto / Nico + ponto / só Nico) com login gerado.
 3. Tela do Nico da equipe por botões, com ponto por PIN.
 4. Avisos do Jhon ao dono: atraso, falta de ponto, checklist e produção não feitos (dados que o Héfisto já tem), com "aprovar / não aprovar".
-5. Integrações de sensores (ar-condicionado, temperatura) quando o dono escolher o equipamento.
+5. **Início do dono ao vivo** (pedido do dono, 14/11/2026, 01:30): vendas do dia em tempo real e o dinheiro entrando a cada venda, meta do dia e do mês definida pelo dono, previsão de bater ou não a meta (PROJEÇÃO, com a conta mostrada), o que falta e estratégias do Jhon (SUGESTÃO), desconto dado, lucro e imposto. Tudo de dado REAL das vendas; sem dado, DADOS INSUFICIENTES. No visual da Home da Medway (faixa em degradê, barra de progresso, abas em pílula).
+6. Integrações de sensores (ar-condicionado, temperatura) quando o dono escolher o equipamento.

@@ -31,7 +31,7 @@ const RECURSOS = [
   { icone: "Smartphone", titulo: "Cardápio digital", texto: "Cardápio com QR Code na mesa, totem de autoatendimento e cardápio nas TVs do restaurante." },
   { icone: "Wallet", titulo: "Financeiro e lucro", texto: "Contas a pagar e a receber, caixa, DRE e CMV real para saber quanto sobra no bolso." },
   { icone: "Users", cor: "ciano", titulo: "Equipe e ponto", texto: "Ponto por reconhecimento facial, escala, folha, banco de horas e treinamento por função." },
-  { icone: "Sparkles", titulo: "Assistente Héfisto", texto: "Pergunte por texto ou áudio: ficha técnica, entrada no estoque, etiquetas e o ponto da equipe." },
+  { icone: "Sparkles", titulo: "Jhon e Nico", texto: "Dois assistentes: o Jhon responde ao dono sobre CMV, custo e produtos; o Nico ajuda a equipe com fichas, etiquetas, salão e ponto." },
   { icone: "PartyPopper", titulo: "Eventos e marmitaria", texto: "Orçamento de eventos em etapas e marmitaria com precificação e painel de margens." },
 ];
 

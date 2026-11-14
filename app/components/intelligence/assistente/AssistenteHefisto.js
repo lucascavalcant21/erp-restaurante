@@ -13,6 +13,8 @@
 
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useERP } from "../../../context/ERPContext";
+import { assistenteDaSessao } from "../../../lib/assistentes.mjs";
 import { ChevronLeft, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Lock, Camera, Plus } from "lucide-react";
 import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } from "../../../lib/intelligence/client/api";
 import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
@@ -22,7 +24,9 @@ import FolhaFicha from "../FolhaFicha";
 import ListaEtiquetas from "./ListaEtiquetas";
 import PassosProcedimento from "../PassosProcedimento";
 
-export const NOME_ASSISTENTE = "Assistente Héfisto";
+// Nome padrão. Na tela, o nome vem de quem está logado (app/lib/assistentes.mjs):
+// Jhon para o dono, Nico para a equipe (decisão do dono, 14/11/2026).
+export const NOME_ASSISTENTE = "Nico";
 
 export const SUGESTOES_ASSISTENTE = Object.freeze([
   "Adicione 3 kg de picanha, 4 litros de xarope de guaraná",
@@ -289,12 +293,12 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
   return conteudo(r, m.id, true, caudaGrupo);
 });
 
-const MensagemMinha = memo(function MensagemMinha({ m, cauda = true }) {
+const MensagemMinha = memo(function MensagemMinha({ m, cauda = true, nome = NOME_ASSISTENTE }) {
   return (
     <Balao lado="eu" hora={m.em} lido={m.lido} cauda={cauda}>
       {m.citacao && (
         <span className="mb-1 block rounded-md border-l-4 bg-black/5 px-2 py-1 text-[14px]" style={{ borderColor: "var(--wa-verde)" }}>
-          <span className="block font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{NOME_ASSISTENTE}</span>
+          <span className="block font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{nome}</span>
           <span className="line-clamp-2" style={{ color: "var(--wa-meta)" }}>{m.citacao}</span>
         </span>
       )}
@@ -330,6 +334,8 @@ function Digitando() {
 
 // ─── tela ─────────────────────────────────────────────────────────────────────
 const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, unidadeNome = "", perguntaInicial = null, tela = null, rotuloOrigem = null, onVoltar, onPerguntaInicialEnviada = null }, ref) {
+  const { sessao } = useERP() || {};
+  const nomeAssistente = assistenteDaSessao(sessao).nome;
   // tela de origem (atalho Alt+H de outra página): rota e registro aberto viram contexto da conversa
   const TELA = tela || TELA_PADRAO;
   const router = useRouter();
@@ -575,7 +581,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
         </button>
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white" style={{ background: "var(--wa-verde)" }}><Bot size={22} /></span>
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-[18px] font-semibold">{NOME_ASSISTENTE}</p>
+          <p className="truncate text-[18px] font-semibold">{nomeAssistente}</p>
           <p className="truncate text-[14.5px]" style={{ color: "var(--wa-meta)" }} aria-live="polite">{status}{unidadeNome ? ` · ${unidadeNome}` : ""}</p>
         </div>
         {vozOk && voz.sinteseDisponivel?.() && (
@@ -606,7 +612,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
           {vazio && (
             <div className="space-y-1">
               <Balao lado="ele" hora={Date.now()}>
-                <p>Olá! Sou o {NOME_ASSISTENTE}. Toque na sua área para começar. Se preferir, escreva ou mande um áudio.</p>
+                <p>Olá! Sou o {nomeAssistente}. Toque na sua área para começar. Se preferir, escreva ou mande um áudio.</p>
               </Balao>
               {/* Assistente clicável (pedido do dono, 08/11/2026): o funcionário toca mais do que digita */}
               <div className="flex justify-start px-3 pb-1.5 sm:px-[6%]">
@@ -625,7 +631,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
             </div>
           )}
 
-          {mensagens.map((m, i) => (m.de === "eu" ? <MensagemMinha key={m.id} m={m} cauda={mensagens[i + 1]?.de !== "eu"} /> : (
+          {mensagens.map((m, i) => (m.de === "eu" ? <MensagemMinha key={m.id} m={m} cauda={mensagens[i + 1]?.de !== "eu"} nome={nomeAssistente} /> : (
             <RespostaAssistente key={m.id} m={m} ultima={i === mensagens.length - 1} cauda={mensagens[i + 1]?.de !== m.de || i === mensagens.length - 1} ocupado={ocupado} resolvidas={resolvidas}
               onComando={enviarComando} onRota={(r) => router.push(r)} onContinuar={continuar}
               onConfirmar={confirmar} onCancelar={cancelar} onConfirmarTodos={confirmarTodos} />
@@ -641,7 +647,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
           {respondendo && (
             <div className="mx-1 mb-1 flex items-start gap-2 rounded-lg border-l-4 bg-white px-2.5 py-1.5" style={{ borderColor: "var(--wa-verde)" }}>
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>Respondendo a {NOME_ASSISTENTE}</p>
+                <p className="text-[14px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>Respondendo a {nomeAssistente}</p>
                 <p className="line-clamp-2 text-[14px]" style={{ color: "var(--wa-meta)" }}>{respondendo.texto}</p>
               </div>
               <button type="button" onClick={() => setRespondendo(null)} aria-label="Não responder a esta pergunta" className="grid h-8 w-8 place-items-center rounded-full" style={{ color: "var(--wa-meta)" }}><X size={16} /></button>
@@ -674,7 +680,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                 onChange={(e) => setTexto(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submeter(); } }}
                 placeholder={respondendo ? "Sua resposta" : ""}
-                aria-label={`Mensagem para o ${NOME_ASSISTENTE}`}
+                aria-label={`Mensagem para o ${nomeAssistente}`}
                 className="mb-[3px] block min-h-[38px] min-w-0 flex-1 resize-none rounded-[20px] border bg-white px-3.5 py-[8px] text-[17px] leading-5 outline-none"
                 style={{ color: "var(--wa-texto)", borderColor: "var(--wa-linha)" }}
               />

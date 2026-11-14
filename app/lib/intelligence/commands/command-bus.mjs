@@ -7,6 +7,7 @@
 //     navegacao → rota da lista fechada, se o usuário pode abrir
 //   → resposta tipada + auditoria do pedido (com correlation id)
 
+import { assistenteDoContexto } from "../../assistentes.mjs";
 import { s } from "../schemas/schema.mjs";
 import { intencaoPorId, DESTINOS, INTENCOES, IDS_INTENCAO } from "./catalogo.mjs";
 import { interpretar } from "./interpretar.mjs";
@@ -199,14 +200,14 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       if (daCasa.resposta) {
         resposta = daCasa.resposta;
       } else {
-        const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS, foco: FOCO_SALAO });
+        const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS, foco: FOCO_SALAO, assistente: assistenteDoContexto(ic) });
         resposta = { ...livre.resposta, agentes: ["geral"], acoes: [...(livre.resposta.acoes || []), ...(daCasa.cadastrar ? [daCasa.cadastrar] : [])] };
         if (livre.ia) ia = { ...(ia || {}), ...livre.ia };
       }
       trilha.passar("explicacao", NIVEL.ANALISAR);
     } else if (!intencao) {
       // nenhum comando pronto: o agente geral responde com os dados do sistema (nunca "não sei")
-      const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS });
+      const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS, assistente: assistenteDoContexto(ic) });
       resposta = { ...livre.resposta, agentes: ["geral"] };
       if (livre.ia) ia = { ...(ia || {}), ...livre.ia };
       trilha.passar("explicacao", NIVEL.ANALISAR);

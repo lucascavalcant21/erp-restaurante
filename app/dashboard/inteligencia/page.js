@@ -212,7 +212,7 @@ function CartaoAssistenteHefisto({ className = "" }) {
       <div className="flex items-center gap-3">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-hf-success text-white"><Bot size={24} /></span>
         <div className="min-w-0">
-          <h2 id="assistente-titulo" className="text-[17px] font-black text-hf-text">Assistente Héfisto</h2>
+          <h2 id="assistente-titulo" className="text-[17px] font-black text-hf-text">Jhon e Nico</h2>
           <p className="text-[13px] leading-snug text-hf-text-2">Converse por texto ou áudio: entrada no estoque, conferência de recebimento, ponto da equipe e fichas técnicas com custo e lucro.</p>
         </div>
       </div>

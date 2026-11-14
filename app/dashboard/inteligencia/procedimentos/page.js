@@ -119,7 +119,7 @@ function Conteudo() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-5 sm:px-6">
-      <CabecalhoTela embutido voltar="historico" titulo="Procedimentos da casa" subtitulo="O Assistente Héfisto ensina a equipe do jeito da casa. Sem procedimento, ele dá a orientação padrão, marcada como sugestão." />
+      <CabecalhoTela embutido voltar="historico" titulo="Procedimentos da casa" subtitulo="O Nico ensina a equipe do jeito da casa. Sem procedimento, ele dá a orientação padrão, marcada como sugestão." />
 
       <nav className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Áreas">
         {AREAS.map((a) => (

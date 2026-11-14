@@ -37,7 +37,7 @@ export const PLANOS = Object.freeze({
     limites: Object.freeze({ unidades: null, usuarios: null }),
     destaques: Object.freeze([
       "Tudo do Grátis",
-      "Assistente Héfisto com inteligência (texto e áudio)",
+      "Jhon, o assistente do dono (CMV, custo e produtos), e Nico, o da equipe (fichas, etiquetas, salão e ponto)",
       "Financeiro: contas a pagar e receber, caixa, DRE e CMV real",
       "Equipe: ponto, escala, folha, banco de horas e treinamento",
       "Eventos, reservas e orçamentos",

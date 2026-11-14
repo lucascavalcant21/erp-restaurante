@@ -27,7 +27,7 @@ function Conteudo() {
   if (!unidadeAtiva) {
     return (
       <div className="mx-auto max-w-md px-4 py-10 text-[15px] text-hf-text-2">
-        Selecione uma unidade para conversar com o Assistente Héfisto. Ele trabalha com uma unidade por vez e nunca mistura dados de empresas diferentes.
+        Selecione uma unidade para conversar com o assistente. Ele trabalha com uma unidade por vez e nunca mistura dados de empresas diferentes.
       </div>
     );
   }

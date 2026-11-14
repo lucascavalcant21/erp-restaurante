@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Sparkles, User, Settings, LogOut, ChevronDown, Menu, X, ChevronRight, Bell } from "lucide-react";
+import { Search, Sparkles, User, Settings, LogOut, ChevronDown, Menu, X, ChevronRight, Bell, CalendarCheck } from "lucide-react";
+import { mostraBarraInferior } from "../../lib/barra-inferior.mjs";
 import { useState, useEffect, useRef } from "react";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
 import { homeDoUsuario } from "../../lib/auth";
@@ -91,9 +92,40 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   // Quem navega pelo menu saiu do universo; a tela de cards marca a origem de novo.
   const aoClicarNoMenu = (e) => { if (e.target.closest?.("a")) limparOrigem(); };
 
+  const comBarraInferior = mostraBarraInferior(pathname, sessao);
+
   return (
     <div className="contents" onClickCapture={aoClicarNoMenu}>
-      <header className="bg-hf-menu border-b border-hf-menu-border text-hf-menu-text sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "var(--erp-safe-top)" }}>
+      {/* TOPO CLARO NO CELULAR E NO TABLET (visual da Medway, 14/11/2026): logo
+          redondo, o negócio aberto com a setinha para trocar, a rotina do dia e
+          o sino. O menu de três linhas só aparece nas telas sem a barra de abas. */}
+      {!sessao?.is_app && !pathname.startsWith("/dashboard/conta") && (
+        <header className="xl:hidden sticky top-0 z-50 w-full shrink-0 border-b border-mw-borda bg-mw-card print:hidden" style={{ paddingTop: "var(--erp-safe-top)" }}>
+          <div className="flex min-h-[72px] items-center justify-between gap-3 px-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <Link href={sessao?.gerenciado ? homeDoUsuario(sessao) : "/dashboard"} aria-label="Ir para o Início" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-mw-marinho">
+                <LogoHefisto className="h-7 w-7" />
+              </Link>
+              <TrocaNegocio sessao={sessao} pathname={pathname} claro />
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <Link href="/dashboard/tarefas" aria-label="Rotina do dia" className="grid h-12 w-12 place-items-center rounded-full text-mw-marinho hover:bg-mw-bg">
+                <CalendarCheck size={26} strokeWidth={1.6} aria-hidden="true" />
+              </Link>
+              <Link href="/dashboard/notificacoes" aria-label="Notificações" className="grid h-12 w-12 place-items-center rounded-full text-mw-marinho hover:bg-mw-bg">
+                <Bell size={26} strokeWidth={1.6} aria-hidden="true" />
+              </Link>
+              {!comBarraInferior && (
+                <button type="button" onClick={() => setMobileDrawerOpen(true)} aria-label="Abrir menu" className="grid h-12 w-12 place-items-center rounded-full text-mw-marinho shadow-none hover:bg-mw-bg">
+                  <Menu size={26} strokeWidth={1.6} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          </div>
+        </header>
+      )}
+
+      <header className={`${sessao?.is_app ? "" : "hidden xl:block"} bg-hf-menu border-b border-hf-menu-border text-hf-menu-text sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden`} style={{ paddingTop: "var(--erp-safe-top)" }}>
         <div className="h-14 flex items-center justify-between gap-3 px-4 lg:px-6 w-full">
         <div className="flex items-center gap-4 lg:gap-5 h-full min-w-0">
           {/* HAMBURGER MOBILE */}

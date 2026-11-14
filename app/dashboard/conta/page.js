@@ -16,7 +16,7 @@ import {
   Bell, Building2, ChevronRight, CreditCard, ExternalLink, FileText, Gift, Info, KeyRound,
   Loader2, LogOut, Settings, ShieldCheck, Tablet,
 } from "lucide-react";
-import CabecalhoTela from "../../components/ui/CabecalhoTela";
+import { TopoComVoltar } from "../../components/ui/Medway";
 import { useERP } from "../../context/ERPContext";
 import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
 import { sairDoSistema } from "../../lib/auth";
@@ -26,29 +26,29 @@ import { useMinhaAssinatura } from "../../lib/assinatura";
 function Linha({ icone: Icone, rotulo, valor, href, externo = false, detalhe }) {
   const corpo = (
     <>
-      <Icone size={22} strokeWidth={1.8} className="shrink-0 text-hf-text" aria-hidden="true" />
+      <Icone size={26} strokeWidth={1.7} className="shrink-0 text-mw-marinho" aria-hidden="true" />
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-medium text-hf-text">{rotulo}</span>
-        {detalhe && <span className="mt-0.5 block text-xs leading-snug text-hf-muted">{detalhe}</span>}
+        <span className="block text-[18px] font-medium text-mw-marinho">{rotulo}</span>
+        {detalhe && <span className="mt-0.5 block text-[13px] leading-snug text-mw-sec">{detalhe}</span>}
       </span>
-      {valor && <span className="max-w-[45%] shrink-0 truncate text-right text-sm text-hf-muted">{valor}</span>}
+      {valor && <span className="max-w-[45%] shrink-0 truncate text-right text-[16px] text-mw-sec">{valor}</span>}
       {href && (externo
-        ? <ExternalLink size={18} className="shrink-0 text-hf-text-2" aria-hidden="true" />
-        : <ChevronRight size={18} className="shrink-0 text-hf-text-2" aria-hidden="true" />)}
+        ? <ExternalLink size={24} strokeWidth={1.8} className="shrink-0 text-mw-marinho" aria-hidden="true" />
+        : <ChevronRight size={24} strokeWidth={2} className="shrink-0 text-mw-marinho" aria-hidden="true" />)}
     </>
   );
-  const classe = "flex min-h-[56px] items-center gap-4 px-4 py-3 sm:px-5";
+  const classe = "flex min-h-[64px] items-center gap-5 py-3";
   if (!href) return <div className={classe}>{corpo}</div>;
   return externo
-    ? <a href={href} target="_blank" rel="noopener noreferrer" className={`${classe} transition hover:bg-hf-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-hf-accent`}>{corpo}</a>
-    : <Link href={href} className={`${classe} transition hover:bg-hf-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-hf-accent`}>{corpo}</Link>;
+    ? <a href={href} target="_blank" rel="noopener noreferrer" className={`${classe} transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mw-agua`}>{corpo}</a>
+    : <Link href={href} className={`${classe} transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mw-agua`}>{corpo}</Link>;
 }
 
 function Secao({ titulo, children }) {
   return (
-    <section className="space-y-2">
-      <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-hf-muted">{titulo}</h2>
-      <div className="divide-y divide-hf-border overflow-hidden rounded-[22px] border border-hf-border bg-hf-surface shadow-xs">{children}</div>
+    <section className="space-y-1">
+      <h2 className="text-[15px] font-semibold uppercase tracking-[0.04em] text-mw-sec/80">{titulo}</h2>
+      <div>{children}</div>
     </section>
   );
 }
@@ -76,18 +76,16 @@ export default function MinhaContaPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl pb-10">
-      <CabecalhoTela titulo="Minha conta" icone={Settings} voltarPara="/dashboard/menu" />
+    <div className="min-h-full bg-mw-card pb-10">
+      <TopoComVoltar titulo="Meu perfil" voltarPara="/dashboard/menu" />
 
-      <div className="space-y-6 px-4 sm:px-6">
-        <div className="flex flex-col items-center gap-3 pt-2 text-center">
-          <span aria-hidden="true" className="grid h-24 w-24 place-items-center rounded-full bg-hf-menu text-3xl font-semibold text-white ring-4 ring-hf-surface shadow-sm">
+      <div className="mx-auto w-full max-w-2xl space-y-8 px-6">
+        <div className="pt-6">
+          <span aria-hidden="true" className="mx-auto grid h-28 w-28 place-items-center rounded-full bg-[#5A5A5A] text-4xl font-semibold text-white ring-4 ring-mw-borda">
             {iniciais(nome)}
           </span>
-          <div className="min-w-0">
-            <p className="break-words text-[26px] font-semibold leading-tight tracking-tight text-hf-text">{nome}</p>
-            {contato && <p className="mt-1 break-all text-sm text-hf-text-2">{contato}</p>}
-          </div>
+          <p className="mt-6 break-words text-[34px] font-semibold leading-[1.15] tracking-tight text-mw-marinho">{nome}</p>
+          {contato && <p className="mt-4 break-all text-center text-[17px] text-mw-sec">{contato}</p>}
         </div>
 
         <Secao titulo="Minha conta">
@@ -117,14 +115,14 @@ export default function MinhaContaPage() {
             href={linkIndicacao(nome)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-4 rounded-[22px] bg-hf-menu p-5 text-white shadow-sm transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent"
+            className="flex items-center gap-4 rounded-[18px] bg-gradient-to-r from-[#0A7C78] to-mw-marinho p-5 text-white shadow-none transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mw-agua"
           >
             <span className="min-w-0 flex-1">
-              <span className="block text-lg font-semibold leading-tight">Indique o Héfisto</span>
-              <span className="mt-1 block text-sm leading-snug text-white/75">Conte para outro restaurante pelo WhatsApp</span>
+              <span className="block text-[20px] font-semibold leading-tight">Indique o Héfisto</span>
+              <span className="mt-1 block text-[15px] leading-snug text-white/85">Conte para outro restaurante</span>
             </span>
-            <span className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border-2 border-hf-accent px-4 text-sm font-semibold text-white">
-              <Gift size={16} aria-hidden="true" /> Indicar
+            <span className="inline-flex min-h-[48px] shrink-0 items-center gap-2 rounded-full border-2 border-white px-5 text-[16px] font-semibold text-white">
+              <Gift size={16} aria-hidden="true" /> Indicar agora
             </span>
           </a>
         )}
@@ -133,7 +131,7 @@ export default function MinhaContaPage() {
           type="button"
           onClick={sair}
           disabled={saindo}
-          className="hf-botao-sair flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full border-2 border-hf-text bg-hf-surface text-base font-semibold text-hf-text transition hover:bg-hf-elevated disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent"
+          className="hf-botao-sair flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full border-2 border-mw-marinho bg-mw-card text-[18px] font-semibold text-mw-marinho shadow-none transition hover:bg-mw-bg disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mw-agua"
         >
           {saindo ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <LogOut size={18} aria-hidden="true" />}
           {sessao.is_app ? "Sair do app" : "Sair"}

@@ -512,6 +512,23 @@ textarea *,
   --hf-tile-verde:    22 163 74;  /* #16A34A */
   --hf-tile-grafite:  32 33 36;   /* #202124 */
   --hf-tile-ardosia:  100 116 139;/* #64748B */
+
+  /* ═══ VISUAL MEDWAY (pedido do dono, 14/11/2026: "analise as telas, botões,
+     cores… e vamos fazer um upgrade no Héfisto usando isso") ═══
+     Fundo cinza claro, cartão branco com borda fina, texto azul-marinho,
+     rótulo de seção azul-acinzentado e verde-água no item ativo e no
+     progresso. Usado no topo do celular, na barra de abas, no Menu, em Minha
+     conta e nas telas de cards de Cozinha, Bar e Salão. */
+  --mw-bg:          247 248 250;  /* #F7F8FA página */
+  --mw-card:        255 255 255;  /* #FFFFFF cartão */
+  --mw-borda:       226 230 237;  /* #E2E6ED borda do cartão */
+  --mw-marinho:     11 36 86;     /* #0B2456 título, botão principal */
+  --mw-texto:       35 49 82;     /* #233152 texto (12:1) */
+  --mw-sec:         86 103 138;   /* #56678A rótulo de seção, secundário (5,6:1) */
+  --mw-suave:       230 234 240;  /* #E6EAF0 botão claro (Feito, Pular), trilho */
+  --mw-agua:        14 150 128;   /* #0E9680 verde-água: aba ativa, progresso (4,6:1) */
+  --mw-agua-claro:  214 245 238;  /* #D6F5EE selo verde-água */
+  --mw-azul:        62 125 214;   /* #3E7DD6 fim do degradê */
 }
 
 /* Botão dourado escrito em branco (telas antigas: "bg-hf-accent text-white") fica com o texto

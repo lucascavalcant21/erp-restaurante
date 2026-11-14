@@ -6,13 +6,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ListChecks, Menu, Search, Sparkles } from "lucide-react";
+import { BrainCircuit, Home, Menu, Search, SquareCheck } from "lucide-react";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
 import { homeDoUsuario } from "../../lib/auth";
 import { abaAtiva, abasVisiveis } from "../../lib/barra-inferior.mjs";
 import { assistenteDaSessao } from "../../lib/assistentes.mjs";
 
-const ICONES = { Home, ListChecks, Menu, Search, Sparkles };
+// Ícones como os da Medway: casa, cérebro (assistente), lupa, quadrado com check e menu.
+const ICONES = { Home, ListChecks: SquareCheck, Menu, Search, Sparkles: BrainCircuit };
 
 export default function BarraInferior({ sessao, onOpenSearch }) {
   const pathname = usePathname() || "";
@@ -31,7 +32,7 @@ export default function BarraInferior({ sessao, onOpenSearch }) {
   return (
     <nav
       aria-label="Navegação principal"
-      className="erp-barra-inferior shrink-0 border-t border-hf-border bg-hf-surface/95 backdrop-blur xl:hidden print:hidden"
+      className="erp-barra-inferior shrink-0 border-t border-mw-borda bg-mw-card xl:hidden print:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
@@ -42,13 +43,13 @@ export default function BarraInferior({ sessao, onOpenSearch }) {
             <>
               <span
                 aria-hidden="true"
-                className={`absolute inset-x-3 top-0 h-[3px] rounded-b-full transition-colors ${acesa ? "bg-hf-accent" : "bg-transparent"}`}
+                className={`absolute inset-x-2 top-0 h-[3px] rounded-b-full transition-colors ${acesa ? "bg-mw-agua" : "bg-transparent"}`}
               />
-              <Icone size={23} strokeWidth={acesa ? 2.2 : 1.8} aria-hidden="true" />
-              <span className={`text-[11px] leading-none ${acesa ? "font-semibold" : "font-medium"}`}>{aba.id === "assistente" ? assistenteDaSessao(sessao).nome : aba.label}</span>
+              <Icone size={26} strokeWidth={1.6} aria-hidden="true" />
+              <span className="text-[12px] font-medium leading-none">{aba.id === "assistente" ? assistenteDaSessao(sessao).nome : aba.label}</span>
             </>
           );
-          const classe = `relative flex min-h-[60px] w-full flex-col items-center justify-center gap-1 px-1 pt-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-hf-accent ${acesa ? "text-hf-text" : "text-hf-muted hover:text-hf-text-2"}`;
+          const classe = `relative flex min-h-[64px] w-full flex-col items-center justify-center gap-1 px-1 pt-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-mw-agua ${acesa ? "text-mw-agua" : "text-mw-texto hover:text-mw-marinho"}`;
           return (
             <li key={aba.id} className="flex-1">
               {aba.href ? (

@@ -23,7 +23,6 @@ export const ABAS = Object.freeze([
 const ROTAS_COM_BARRA = new Set([
   "/dashboard",
   "/dashboard/menu",
-  "/dashboard/conta",
   "/dashboard/tarefas",
   "/dashboard/notificacoes",
   "/dashboard/cozinha",

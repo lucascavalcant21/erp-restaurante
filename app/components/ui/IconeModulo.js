@@ -4,10 +4,10 @@
 // pedido do dono em 07/11/2026). A cor vem de app/lib/cores-modulo.mjs.
 
 import {
-  Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
-  CookingPot, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, MonitorPlay, NotebookPen,
-  Package, PartyPopper, Salad, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan, Star,
-  StickyNote, Store, Tag, Thermometer, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
+  Bell, Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
+  CookingPot, CreditCard, FileText, GlassWater, GraduationCap, Hourglass, Info, ListChecks, Martini, MessageSquareText, MonitorPlay, NotebookPen,
+  Package, PartyPopper, Plug, Salad, Search, Settings, ShieldCheck, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan, Star,
+  StickyNote, Store, Tablet, Tag, Thermometer, UserRound, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
 } from "lucide-react";
 import { corDoModulo, iconeClaroSobre } from "../../lib/cores-modulo.mjs";
 
@@ -21,6 +21,7 @@ export function Coqueteleira({ strokeWidth = 2, size, ...props }) {
 }
 
 export const ICONES_MODULO = {
+  Bell, CreditCard, Info, ListChecks, Plug, Settings, ShieldCheck, Tablet, UserRound,
   Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
   CookingPot, Coqueteleira, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, MonitorPlay,
   NotebookPen, Package, PartyPopper, Salad, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan,

@@ -173,6 +173,21 @@ export const MENU_PRINCIPAL = Object.freeze([
   { id: "financeiro", label: "Financeiro", href: "/dashboard/financeiro", icone: "Wallet", cor: "verde", desc: "Contas, caixa e DRE" },
 ]);
 
+// Tela "Menu" do celular (pedido do dono, 14/11/2026, visual da Medway): além
+// das áreas acima, os atalhos pessoais e as telas do sistema, em grade de
+// cartões por seção. Cada item passa pelo guard de rotas antes de aparecer.
+export const MENU_ATALHOS = Object.freeze([
+  { label: "Minhas tarefas", desc: "Checklists e pendências", href: "/dashboard/tarefas", icone: "ListChecks" },
+  { label: "Notificações", desc: "Avisos do sistema", href: "/dashboard/notificacoes", icone: "Bell" },
+]);
+
+export const MENU_SISTEMA = Object.freeze([
+  { label: "Configurações", desc: "Empresa, unidades e preferências", href: "/dashboard/configuracoes", icone: "Settings" },
+  { label: "Usuários e acessos", desc: "Equipe, perfis e permissões", href: "/dashboard/configuracoes/usuarios", icone: "ShieldCheck" },
+  { label: "Apps e terminais", desc: "Tablets, KDS e totens da loja", href: "/dashboard/configuracoes/apps", icone: "Tablet" },
+  { label: "Integrações", desc: "iFood, pagamentos e fiscal", href: "/dashboard/configuracoes/integracoes", icone: "Plug" },
+]);
+
 /** Áreas que esta sessão vê no menu. */
 export function menuPrincipal({ podeInteligencia = false } = {}) {
   return MENU_PRINCIPAL.filter((m) => !m.exigeInteligencia || podeInteligencia);

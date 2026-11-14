@@ -34,6 +34,9 @@ const POR_ICONE = Object.freeze({
   // Áreas do menu
   BrainCircuit: "violeta", ChefHat: "laranja", GlassWater: "azul", Store: "rosa",
   ClipboardList: "verde", PartyPopper: "rosa", Soup: "amarelo", Wallet: "verde",
+  // Menu do celular e Minha conta (14/11/2026)
+  ListChecks: "verde", Bell: "amarelo", Settings: "ardosia", ShieldCheck: "grafite",
+  Tablet: "azul", Plug: "violeta", CreditCard: "verde", UserRound: "ardosia", Info: "ardosia",
 });
 
 /** Tom do ícone de um card ou área do menu: `cor` explícita vence o ícone. */

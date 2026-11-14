@@ -6,34 +6,12 @@
 // limitado só vê as áreas que pode abrir.
 
 import Link from "next/link";
-import { useERP } from "../../context/ERPContext";
-import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
-import { menuPrincipal, menuVisivel, universoLiberado } from "../../lib/menu-principal.mjs";
-import { negociosDoLogin, semNegociosDaTroca } from "../../lib/negocios.mjs";
 import IconeModulo from "../ui/IconeModulo";
+import useModulosDoUsuario from "../navigation/useModulosDoUsuario";
 
 export default function LancadorModulos() {
-  const { sessao, unidades } = useERP();
-  if (!sessao) return null;
-
-  const pode = (rota, busca) => canAccessRoute(sessao, rota, busca);
-  const podeInteligencia = !sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view");
-  const todos = menuPrincipal({ podeInteligencia });
-  const limitado = !!sessao.gerenciado || !!sessao.is_app;
-  const liberados = limitado
-    ? menuVisivel(todos, (rota, busca) => pode(rota, busca) || universoLiberado(rota, pode))
-    : todos;
-  // Marmitaria e Eventos que estão na troca de negócio do topo não se repetem aqui.
-  const negocios = sessao.is_app ? [] : negociosDoLogin(unidades, (rota) => pode(rota));
-  const modulos = semNegociosDaTroca(liberados, negocios);
-  if (modulos.length === 0) return null;
-
-  // Para quem não pode abrir a página da área, o link é a primeira tela liberada dela.
-  const destino = (m) => {
-    const [rota, busca = ""] = m.href.split("?");
-    if (!limitado || pode(rota, busca) || universoLiberado(rota, pode)) return m.href;
-    return m.submodules?.[0]?.href || m.href;
-  };
+  const { sessao, modulos, destino } = useModulosDoUsuario();
+  if (!sessao || modulos.length === 0) return null;
 
   return (
     <section aria-label="Módulos" className="space-y-3">

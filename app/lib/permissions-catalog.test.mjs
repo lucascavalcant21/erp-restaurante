@@ -87,6 +87,14 @@ conferir("agenda herda da visão geral de Reservas & Eventos", pageForRoute("/da
 conferir("o funil continua com a entrada própria", pageForRoute("/dashboard/reservas-eventos/eventos", "")?.page?.id, "budget");
 conferir("quem só vê o funil NAO abre o orçamento com custo", canAccessRoute(soFunil, "/dashboard/operacao/orcamento", ""), "false");
 
+// ── Menu e Minha conta (barra inferior, 14/11/2026) ──────────────────────
+// Quem vê a tela inicial abre o próprio Menu e a própria conta; quem não tem
+// nem a tela inicial, não. E isso não abre nenhuma tela filha de verdade.
+conferir("garcom entra no Menu", canAccessRoute(garcom, "/dashboard/menu", ""), "true");
+conferir("garcom entra em Minha conta", canAccessRoute(garcom, "/dashboard/conta", ""), "true");
+conferir("sem nada NAO entra no Menu", canAccessRoute(semNada, "/dashboard/menu", ""), "false");
+conferir("garcom continua sem a folha", canAccessRoute(garcom, "/dashboard/rh/fechamento", ""), "false");
+
 // ── TRAVA: nenhuma tela pode cair na entrada generica /dashboard ─────────
 // Esta e a regressao que deixou o sistema inteiro aberto. Como /dashboard e
 // prefixo de tudo, uma tela nova sem entrada no catalogo casa com ela e herda

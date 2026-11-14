@@ -37,6 +37,12 @@ export const PERMISSION_MODULES = [
     id: "dashboard", label: "Dashboard",
     pages: [
       { id: "overview", label: "Painel geral", route: "/dashboard", actions: ["view", "view_values", "export"] },
+      // Telas pessoais da barra inferior (14/11/2026): quem vê o Painel geral
+      // abre o próprio Menu e a própria conta. O conteúdo já sai filtrado pelas
+      // permissões de cada área, e a parte de empresa só aparece para quem
+      // administra usuários.
+      { id: "menu", label: "Menu (liberado com o Painel geral)", route: "/dashboard/menu", actions: ["view"], comInicio: true },
+      { id: "account", label: "Minha conta (liberada com o Painel geral)", route: "/dashboard/conta", actions: ["view"], comInicio: true },
       // Central de Inteligência e "Pergunte ao Héfisto". Só abre a porta: cada
       // número ainda exige a permissão da tela de onde ele vem, conferida no
       // servidor (app/lib/intelligence/permissions/mapa.mjs).
@@ -411,7 +417,8 @@ export function canAccessRoute(session, pathname, search = "") {
   }
   const found = maisEspecificas(pagesForRoute(pathname, search));
   if (!found.length) return false;
-  return found.some(({ module, page }) => hasPermission(session, permissionKey(module.id, page.id, "view")));
+  return found.some(({ module, page }) => hasPermission(session, permissionKey(module.id, page.id, "view"))
+    || (page.comInicio && hasPermission(session, permissionKey("dashboard", "overview", "view"))));
 }
 
 export function permittedRoutes(session) {

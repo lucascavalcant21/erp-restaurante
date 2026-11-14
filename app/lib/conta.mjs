@@ -1,7 +1,7 @@
 // MINHA CONTA — regras puras da tela de conta e do cartão de perfil do Menu
 // (pedido do dono, 14/11/2026, visual inspirado no app da Medway).
 
-import { SITUACOES, planoPorId, precoTexto } from "./planos.mjs";
+import { FORMAS_PAGAMENTO, SITUACOES, planoPorId, precoNoPeriodo, reais } from "./planos.mjs";
 
 /** Até duas iniciais do nome ("Lucas Cavalcante Guedes" → "LG"). */
 export function iniciais(nome) {
@@ -41,7 +41,14 @@ export function situacaoAssinatura(assinatura) {
   }
   const situacao = SITUACOES[assinatura?.situacao] || null;
   const partes = [situacao ? `Situação: ${situacao.toLowerCase()}` : "Situação não informada"];
-  if (plano.precoCentavos > 0 && assinatura?.situacao !== "cortesia") partes.push(`${precoTexto(plano)} por mês`);
+  if (plano.precoCentavos > 0 && assinatura?.situacao !== "cortesia") {
+    const preco = precoNoPeriodo(plano, assinatura?.periodicidade || "mensal") || precoNoPeriodo(plano, "mensal");
+    partes.push(preco.periodo.meses === 1
+      ? `${reais(preco.totalCentavos)} por mês`
+      : `${preco.periodo.nome}: ${reais(preco.totalCentavos)} (${preco.periodo.descontoPct}% de desconto)`);
+    const forma = FORMAS_PAGAMENTO.find((f) => f.id === assinatura?.forma_pagamento);
+    if (forma) partes.push(forma.nome);
+  }
   if (assinatura?.proximo_vencimento) {
     const [a, m, d] = String(assinatura.proximo_vencimento).slice(0, 10).split("-");
     if (a && m && d) partes.push(`próximo vencimento ${d}/${m}/${a}`);

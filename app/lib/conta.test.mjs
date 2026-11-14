@@ -33,8 +33,12 @@ test("sem plano no banco: não inventa assinatura", () => {
 test("plano Completo ativo mostra preço e vencimento; cortesia não mostra preço", () => {
   assert.deepEqual(
     situacaoAssinatura({ plano: "completo", situacao: "ativa", proximo_vencimento: "2026-12-14" }).detalhe,
-    "Situação: ativa · R$ 59,90 por mês · próximo vencimento 14/12/2026",
+    "Situação: ativa · R$ 89,90 por mês · próximo vencimento 14/12/2026",
   );
   assert.equal(situacaoAssinatura({ plano: "completo", situacao: "cortesia" }).detalhe, "Situação: cortesia");
+  assert.equal(
+    situacaoAssinatura({ plano: "completo", situacao: "ativa", periodicidade: "anual", forma_pagamento: "pix" }).detalhe,
+    "Situação: ativa · Anual: R$ 647,28 (40% de desconto) · Pix",
+  );
   assert.equal(situacaoAssinatura({ plano: "gratis", situacao: "ativa" }).rotulo, "Grátis");
 });

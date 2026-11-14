@@ -75,7 +75,7 @@ async function comoUsuario(uid, consulta) {
 }
 
 const a = await comoUsuario(U_A, "select public.hefisto_minha_assinatura() as r");
-conferir("a casa do dono fica no Completo por cortesia", a.linhas?.[0]?.r, { plano: "completo", situacao: "cortesia", proximo_vencimento: null, valor_mensal_centavos: null });
+conferir("a casa do dono fica no Completo por cortesia", a.linhas?.[0]?.r, { plano: "completo", situacao: "cortesia", periodicidade: "mensal", forma_pagamento: null, proximo_vencimento: null, valor_mensal_centavos: null });
 
 const b = await comoUsuario(U_B, "select public.hefisto_minha_assinatura() as r");
 conferir("cliente novo vê só a assinatura da empresa dele", b.linhas?.[0]?.r?.plano, "gratis");
@@ -103,6 +103,13 @@ conferir("só existem os dois planos", plano.rows[0].n, 0);
 let invalido = null;
 try { await pg.exec(`update public.empresa_assinatura set plano = 'PRO' where empresa_id = '${EMP_B}'`); } catch (e) { invalido = e.message; }
 conferir("plano fora da lista é recusado pelo banco", /check/i.test(invalido || ""), true);
+
+let forma = null;
+try { await pg.exec(`update public.empresa_assinatura set forma_pagamento = 'boleto' where empresa_id = '${EMP_B}'`); } catch (e) { forma = e.message; }
+conferir("forma de pagamento fora de crédito, débito e Pix é recusada", /check/i.test(forma || ""), true);
+await pg.exec(`update public.empresa_assinatura set periodicidade = 'anual', forma_pagamento = 'pix' where empresa_id = '${EMP_B}'`);
+const anual = await comoUsuario(U_B, "select public.hefisto_minha_assinatura() as r");
+conferir("assinatura anual no Pix aparece para o cliente", [anual.linhas?.[0]?.r?.periodicidade, anual.linhas?.[0]?.r?.forma_pagamento], ["anual", "pix"]);
 
 let repetida = null;
 try { await pg.exec(sql); } catch (e) { repetida = e.message; }

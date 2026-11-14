@@ -4,9 +4,11 @@
    STATUS: ESCRITA, NÃO APLICADA. Aguarda aprovação do dono (APR-SAAS-1 em
    docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md).
 
-   DECISÃO DO DONO (14/11/2026): "Plano grátis e plano pago com tudo por
-   59,90". A lista de planos, preços e áreas fica em app/lib/planos.mjs; o
-   banco só guarda QUAL plano a empresa tem e a situação da cobrança.
+   DECISÕES DO DONO (14/11/2026): plano Grátis e plano Completo ("com tudo")
+   por R$ 89,90 por mês; semestral com 20% e anual com 40% de desconto;
+   crédito, débito ou Pix. A lista de planos, preços, períodos e descontos
+   fica em app/lib/planos.mjs; o banco guarda QUAL plano a empresa tem, o
+   período, a forma de pagamento e a situação da cobrança.
 
    CONFERIDO NO BANCO REAL (14/11/2026, leitura): empresas tem só id (uuid),
    nome, documento, ativo e created_at; 1 empresa, 3 unidades; a empresa do
@@ -18,7 +20,9 @@
    FAZ (uma transação; só aditiva):
      1. tabela empresa_assinatura (uma linha por empresa): plano
         ('gratis' | 'completo'), situacao ('ativa' | 'em_teste' | 'atrasada' |
-        'cancelada' | 'cortesia'), valor_mensal_centavos, proximo_vencimento,
+        'cancelada' | 'cortesia'), periodicidade ('mensal' | 'semestral' |
+        'anual'), forma_pagamento ('credito' | 'debito' | 'pix'),
+        valor_mensal_centavos, proximo_vencimento,
         provedor e provedor_ref (para o meio de cobrança, ainda não escolhido),
         criado_em e atualizado_em;
      2. RLS ligado SEM política e sem grant de escrita: o app não lê nem grava
@@ -31,7 +35,7 @@
    nem cobra ninguém.
 
    VERIFICAÇÃO: o select do fim devolve a impressão digital das colunas
-   (md5 de nome:tipo, em ordem), que deve ser 5b2bfebae4bab11967b71ab394be0e4e
+   (md5 de nome:tipo, em ordem), que deve ser a327899d3c010f1012d5a0ab051005a5
    (conferida no PGlite por app/lib/saas-planos-banco.test.mjs), e quantas
    empresas ficaram sem assinatura (tem que ser 0).
 
@@ -62,6 +66,8 @@ create table public.empresa_assinatura (
   empresa_id uuid primary key references public.empresas(id) on delete restrict,
   plano text not null default 'gratis' check (plano in ('gratis', 'completo')),
   situacao text not null default 'ativa' check (situacao in ('ativa', 'em_teste', 'atrasada', 'cancelada', 'cortesia')),
+  periodicidade text not null default 'mensal' check (periodicidade in ('mensal', 'semestral', 'anual')),
+  forma_pagamento text check (forma_pagamento is null or forma_pagamento in ('credito', 'debito', 'pix')),
   valor_mensal_centavos integer check (valor_mensal_centavos is null or valor_mensal_centavos >= 0),
   proximo_vencimento date,
   provedor text,
@@ -87,6 +93,8 @@ as $$
   select jsonb_build_object(
            'plano', a.plano,
            'situacao', a.situacao,
+           'periodicidade', a.periodicidade,
+           'forma_pagamento', a.forma_pagamento,
            'valor_mensal_centavos', a.valor_mensal_centavos,
            'proximo_vencimento', a.proximo_vencimento
          )

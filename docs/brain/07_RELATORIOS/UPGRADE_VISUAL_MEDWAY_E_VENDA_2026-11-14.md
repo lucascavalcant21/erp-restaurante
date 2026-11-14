@@ -83,3 +83,10 @@ O que entra em cada plano é **SUGESTÃO** desta sessão (o dono decidiu os dois
 - TESTADO LOCAL: `planos.test.mjs` 7/7 (inclui 431,52 e 647,28 exatos), `conta.test.mjs` 6/6, `barra-inferior.test.mjs` 4/4; `saas-planos-banco.test.mjs` 12/12 com PGLITE; `app/lib` sem falhas novas; catálogo de permissões OK; build OK.
 - TESTADO EM MOCK (Chrome 390/820/1366, Supabase falso): /planos sem rolagem lateral; empresa no Grátis vê 5 cadeados no Menu e /dashboard/financeiro leva a "Plano e assinatura"; empresa sem assinatura abre o Financeiro normalmente e a conta mostra "Não registrado"; sem erro de página.
 - Preview e produção: NÃO VALIDADO. Migração: NÃO APLICADA.
+
+## 5. Pagamento por Pix e separação do restaurante (14/11/2026, 00:45–00:50)
+
+- **APR-024 aplicada** no banco real (impressão digital a327899d…, TESTADO NO SUPABASE REAL). Nenhuma tela publicada usa a tabela nova.
+- **Pix (Nubank):** a tela Plano e assinatura mostra o valor do período, a chave Pix (servida por `/api/assinatura/pix` só para administrador logado; a chave fica na variável `HEFISTO_PIX_CHAVE` do servidor, não no código, que é público, nem no JavaScript) e "Enviar comprovante" no WhatsApp comercial (45 99867-4041). O plano é liberado à mão depois da conferência. Crédito e débito aparecem como "em breve".
+- **Decisão do dono:** os tablets do restaurante não mudam. A `main` e o deploy de produção ficam como estão; o produto vendável vai para um **sistema de teste separado** (linha `hefisto-teste`). O PR #278 passa a apontar para `hefisto-teste`, não para a `main`.
+- **Pendente (decisão do dono):** o banco do sistema de teste. Recomendado: um projeto Supabase próprio, só com a estrutura do banco atual e sem os dados do restaurante, para que nada feito no teste apareça nos tablets.

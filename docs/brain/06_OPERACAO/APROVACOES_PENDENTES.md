@@ -349,7 +349,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Decidido por:** lucas (no chat: "vamos fazer essa mudança no horário de funcionamento da tv")
 - **Chave:** migracao:db/SINAL_2_HORARIO_FUNCIONAMENTO.sql
 
-### APR-024 · PENDENTE
+### APR-024 · EXECUTADO
 
 - **Missão:** Planos e assinatura do Héfisto (pedido do dono, 14/11/2026)
 - **Ação:** Aplicar db/SAAS_PLANOS_1_ASSINATURA.sql no Supabase real (tabela nova `empresa_assinatura` fora da API e função `hefisto_minha_assinatura()`)
@@ -359,6 +359,9 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Impacto:** A empresa que já existe (a casa do dono) entra no plano Completo como cortesia, sem valor; nada muda para quem usa hoje
 - **Rollback:** drop function if exists public.hefisto_minha_assinatura(); drop table if exists public.empresa_assinatura;
 - **Evidências:** PGlite 12/12 (`app/lib/saas-planos-banco.test.mjs`: cortesia para a casa do dono, cada empresa vê só a sua, o app não lê nem grava a tabela, visitante sem login não chama a função, plano e forma de pagamento fora da lista recusados, rodar de novo aborta). Impressão digital esperada: a327899d3c010f1012d5a0ab051005a5
-- **Status:** PENDENTE
+- **Status:** EXECUTADO
+- **Decidido em:** 2026-11-14 00:45
+- **Decidido por:** lucas (no chat: "1. Aprovo")
+- **Nota:** Aplicada em 14/11/2026. Impressão digital a327899d3c010f1012d5a0ab051005a5 (igual à do PGlite); 0 empresas sem assinatura; a empresa existente ficou Completo/cortesia; nenhum grant de tabela para anon/authenticated; anon sem EXECUTE na função (TESTADO NO SUPABASE REAL). Achado: o dono é super_admin sem unidade principal, então a função devolve null para ele (a conta mostra "Não registrado"); os 15 usuários com unidade veem o plano. Nenhuma tela publicada em produção usa a tabela: o app dos tablets não muda.
 - **Criado em:** 2026-11-14
 - **Chave:** migracao:db/SAAS_PLANOS_1_ASSINATURA.sql

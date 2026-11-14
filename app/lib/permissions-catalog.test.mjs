@@ -92,6 +92,7 @@ conferir("quem só vê o funil NAO abre o orçamento com custo", canAccessRoute(
 // nem a tela inicial, não. E isso não abre nenhuma tela filha de verdade.
 conferir("garcom entra no Menu", canAccessRoute(garcom, "/dashboard/menu", ""), "true");
 conferir("garcom entra em Minha conta", canAccessRoute(garcom, "/dashboard/conta", ""), "true");
+conferir("garcom entra no checkout", canAccessRoute(garcom, "/dashboard/assinar", ""), "true");
 conferir("sem nada NAO entra no Menu", canAccessRoute(semNada, "/dashboard/menu", ""), "false");
 conferir("garcom continua sem a folha", canAccessRoute(garcom, "/dashboard/rh/fechamento", ""), "false");
 

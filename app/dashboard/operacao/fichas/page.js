@@ -26,6 +26,9 @@ function comprimirFotoParaIA(file, maxDim = 1000, qualidade = 0.70) {
 
 import { useState, useEffect, useMemo, useRef, Suspense, Fragment } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useMinhaAssinatura } from "../../../lib/assinatura";
+import { linkCheckout, podeCriarFicha, planoPorId } from "../../../lib/planos.mjs";
+import { supabase as clienteSupabaseLimite } from "../../../lib/supabase";
 import { useERP } from "../../../context/ERPContext";
 import {
   atualizarCategoriaFicha, atualizarOrdemFicha, excluirFichasLote, fetchFichas, fetchInsumos,
@@ -938,7 +941,22 @@ function FichasRunner() {
     setModalNovo(true);
   };
 
-  const abrirOpcaoNovo = () => {
+  // Plano Grátis: até 5 fichas técnicas (decisão do dono, 14/11/2026). A 6ª
+  // leva ao checkout. Conta no banco, por unidade; sem plano registrado, livre.
+  const assinaturaPlano = useMinhaAssinatura(sessao);
+  const dentroDoLimiteDeFichas = async () => {
+    const plano = planoPorId(assinaturaPlano?.plano);
+    if (!plano || plano.limites?.fichas == null) return true;
+    const { count, error } = await clienteSupabaseLimite
+      .from("fichas_tecnicas").select("id", { count: "exact", head: true }).eq("unidade_id", unidadeAtiva);
+    if (error) return true; // sem contagem não se bloqueia o cadastro
+    if (podeCriarFicha(plano.id, count || 0)) return true;
+    router.push(linkCheckout("/dashboard/operacao/fichas"));
+    return false;
+  };
+
+  const abrirOpcaoNovo = async () => {
+    if (!(await dentroDoLimiteDeFichas())) return;
     if (modoFicha === "preparos") return abrirNova();
     setModalEscolhaNovo(true);
   };

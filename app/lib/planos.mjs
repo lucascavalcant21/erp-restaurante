@@ -6,12 +6,12 @@
 //     ele tinha dito 59,90; vale o último);
 //   · "crédito, débito e Pix; semestral com 20% de desconto e anual com 40%".
 //
-// O que entra no Grátis é SUGESTÃO desta sessão (o dono decidiu os dois
-// planos e o preço, não a lista): para mudar, mexa só em AREAS_GRATIS e nos
-// limites. A página pública /planos, a tela de assinatura e o cadeado do menu
+// O que entra no Grátis foi aprovado pelo dono (14/11/2026, "pode ser; usar
+// o sistema de comandas tá bloqueado"): ingredientes e produtos, até 5 fichas
+// técnicas, estoque simples, checklists, 1 unidade e 1 usuário. O resto
+// aparece com cadeado e leva ao checkout (/dashboard/assinar). Nico e Jhon
+// (os assistentes) só no Completo. A página pública /planos, a tela de assinatura e o cadeado do menu
 // saem daqui. Preço é valor em centavos (inteiro), nunca número quebrado.
-
-import { areaDaRota } from "./menu-principal.mjs";
 
 export const PLANOS = Object.freeze({
   gratis: Object.freeze({
@@ -19,14 +19,13 @@ export const PLANOS = Object.freeze({
     nome: "Grátis",
     precoCentavos: 0,
     resumo: "Para organizar a operação do dia a dia, sem pagar nada.",
-    limites: Object.freeze({ unidades: 1, usuarios: 3 }),
+    limites: Object.freeze({ unidades: 1, usuarios: 1, fichas: 5 }),
     destaques: Object.freeze([
-      "Cozinha, Bar e Salão com cards de cada área",
-      "Comandas, caixa e cardápio digital com QR Code",
+      "Cadastro de ingredientes e produtos",
+      "Até 5 fichas técnicas",
       "Estoque com entrada, retirada e contagem",
-      "Fichas técnicas e etiquetas de produção",
-      "Checklists de abertura, fechamento e limpeza",
-      "1 unidade e até 3 usuários",
+      "Checklists de abertura e fechamento",
+      "1 unidade e 1 usuário (o dono)",
     ]),
   }),
   completo: Object.freeze({
@@ -34,9 +33,10 @@ export const PLANOS = Object.freeze({
     nome: "Completo",
     precoCentavos: 8990,
     resumo: "Tudo o que o Héfisto faz, para administrar o restaurante inteiro.",
-    limites: Object.freeze({ unidades: null, usuarios: null }),
+    limites: Object.freeze({ unidades: null, usuarios: null, fichas: null }),
     destaques: Object.freeze([
-      "Tudo do Grátis",
+      "Tudo do Grátis, sem limite de fichas técnicas",
+      "Comandas, caixa, KDS, etiquetas e cardápio digital",
       "Jhon, o assistente do dono (CMV, custo e produtos), e Nico, o da equipe (fichas, etiquetas, salão e ponto)",
       "Financeiro: contas a pagar e receber, caixa, DRE e CMV real",
       "Equipe: ponto, escala, folha, banco de horas e treinamento",
@@ -92,9 +92,6 @@ export function precoNoPeriodo(plano, periodoId = "mensal") {
   };
 }
 
-/** Áreas do menu (ids de menu-principal.mjs) que o plano Grátis abre. */
-export const AREAS_GRATIS = Object.freeze(["cozinha", "bar", "salao", "estoque", "cardapio", "operacao"]);
-
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 /** Centavos em reais: 8990 → "R$ 89,90". */
@@ -107,25 +104,74 @@ export const precoTexto = (plano) => reais(plano?.precoCentavos);
 export const planoPorId = (id) => PLANOS[String(id || "").toLowerCase()] || null;
 
 /**
- * A área está liberada para este plano? Plano desconhecido (empresa sem
- * assinatura registrada, banco sem a migração) NÃO tranca nada: o cliente
- * de hoje não pode perder tela por falta de dado de cobrança.
+ * Telas que o plano Grátis abre (rota exata ou filhas). Tudo o mais dentro de
+ * /dashboard fica com cadeado. As telas de cards de Cozinha, Bar e Salão
+ * abrem para mostrar o que existe, com cadeado em cada card pago.
  */
-export function areaLiberada(planoId, areaId) {
-  const plano = planoPorId(planoId);
-  if (!plano || plano.id === "completo") return true;
-  return AREAS_GRATIS.includes(areaId);
-}
+export const ROTAS_GRATIS = Object.freeze([
+  "/dashboard/operacao/ingredientes",
+  "/dashboard/operacao/fichas",
+  "/dashboard/operacao/estoque",
+  "/dashboard/operacao/rotina",
+  "/dashboard/tarefas",
+  "/dashboard/cozinha",
+  "/dashboard/bar",
+  "/dashboard/salao",
+  "/dashboard/configuracoes",
+  "/dashboard/notificacoes",
+  "/dashboard/menu",
+  "/dashboard/conta",
+  "/dashboard/assinar",
+]);
+
+/** Dentro de telas liberadas, o que continua pago (custo e valores do estoque, logins de equipe e tablets). */
+export const ROTAS_PAGAS_DENTRO = Object.freeze([
+  "/dashboard/operacao/estoque/painel",
+  "/dashboard/operacao/estoque/cmv",
+  "/dashboard/operacao/estoque/compras",
+  "/dashboard/operacao/estoque/calendario",
+  "/dashboard/cozinha/kds",
+  "/dashboard/salao/mesas",
+  "/dashboard/salao/online",
+  "/dashboard/configuracoes/usuarios",
+  "/dashboard/configuracoes/perfis",
+  "/dashboard/configuracoes/apps",
+  "/dashboard/configuracoes/integracoes",
+  "/dashboard/configuracoes/automacoes",
+]);
+
+const casa = (p, r) => p === r || p.startsWith(`${r}/`);
 
 /**
- * A tela abre neste plano? A área dona da tela sai do menu (areaDaRota);
- * tela sem área (Início, Menu, Minha conta, Configurações) sempre abre.
- * Devolve o id da área trancada, ou null quando abre.
+ * A tela abre neste plano? Plano desconhecido (empresa sem assinatura
+ * registrada) NÃO tranca nada: o cliente de hoje não pode perder tela por
+ * falta de dado de cobrança. A tela inicial sempre abre.
  */
-export function areaTrancadaDaRota(planoId, pathname) {
-  const area = areaDaRota(pathname);
-  if (!area || areaLiberada(planoId, area.id)) return null;
-  return area.id;
+export function rotaLiberada(planoId, href) {
+  const plano = planoPorId(planoId);
+  if (!plano || plano.id === "completo") return true;
+  const p = String(href || "").split("?")[0].replace(/\/+$/, "") || "/";
+  if (p === "/dashboard" || !p.startsWith("/dashboard")) return true;
+  if (ROTAS_PAGAS_DENTRO.some((r) => casa(p, r))) return false;
+  return ROTAS_GRATIS.some((r) => casa(p, r));
+}
+
+/** A área do menu abre? Cozinha, Bar e Salão abrem (cards trancados um a um). */
+export function areaLiberada(planoId, area) {
+  const href = typeof area === "string" ? null : area?.href;
+  if (!href) return rotaLiberada(planoId, area ? `/dashboard/${area}` : "/dashboard");
+  return rotaLiberada(planoId, href);
+}
+
+/** Endereço do checkout, lembrando de onde a pessoa veio. */
+export const linkCheckout = (deRota) => `/dashboard/assinar${deRota ? `?de=${encodeURIComponent(String(deRota).slice(0, 200))}` : ""}`;
+
+/** Ainda cabe mais uma ficha técnica neste plano? (sem plano registrado, sim) */
+export function podeCriarFicha(planoId, totalFichas) {
+  const plano = planoPorId(planoId);
+  const limite = plano?.limites?.fichas;
+  if (!plano || limite == null) return true;
+  return Number(totalFichas) < limite;
 }
 
 /** Situações da assinatura gravadas no banco (db/SAAS_PLANOS_1.sql). */

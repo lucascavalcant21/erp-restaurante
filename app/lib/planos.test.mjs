@@ -1,7 +1,7 @@
 // Planos do Héfisto (decisão do dono, 14/11/2026). Rode: node --test app/lib/planos.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
-import { AREAS_GRATIS, PLANOS, PLANO_PAGO, areaLiberada, planoPorId, precoTexto } from "./planos.mjs";
+import { PLANOS, PLANO_PAGO, planoPorId, precoTexto } from "./planos.mjs";
 import { MENU_PRINCIPAL } from "./menu-principal.mjs";
 
 test("dois planos: Grátis e Completo por R$ 89,90", () => {
@@ -11,21 +11,35 @@ test("dois planos: Grátis e Completo por R$ 89,90", () => {
   assert.equal(precoTexto(PLANOS.gratis), "R$ 0,00");
 });
 
-test("as áreas do Grátis existem no menu", () => {
-  const ids = MENU_PRINCIPAL.map((m) => m.id);
-  for (const a of AREAS_GRATIS) assert.ok(ids.includes(a), a);
+test("Grátis: ingredientes, fichas, estoque simples e checklists; o resto com cadeado", async () => {
+  const { rotaLiberada, areaLiberada, podeCriarFicha, linkCheckout } = await import("./planos.mjs");
+  for (const r of ["/dashboard", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fichas/123", "/dashboard/operacao/estoque",
+    "/dashboard/operacao/estoque/contagens", "/dashboard/operacao/rotina", "/dashboard/cozinha", "/dashboard/conta/plano", "/dashboard/assinar", "/dashboard/menu"]) {
+    assert.equal(rotaLiberada("gratis", r), true, r);
+  }
+  // comandas bloqueadas (dono, 14/11/2026), Nico/Jhon, financeiro, equipe, etiquetas, KDS, custo do estoque, logins
+  for (const r of ["/dashboard/mesas", "/dashboard/salao/mesas", "/dashboard/inteligencia/assistente", "/dashboard/financeiro/dre", "/dashboard/rh/ponto",
+    "/dashboard/operacao/etiquetas", "/dashboard/cozinha/kds", "/dashboard/operacao/estoque/painel", "/dashboard/configuracoes/usuarios",
+    "/dashboard/configuracoes/apps", "/dashboard/marmitaria", "/dashboard/reservas-eventos", "/dashboard/operacao/cardapio"]) {
+    assert.equal(rotaLiberada("gratis", r), false, r);
+  }
+  const area = (id) => MENU_PRINCIPAL.find((m) => m.id === id);
+  assert.equal(areaLiberada("gratis", area("cozinha")), true);
+  assert.equal(areaLiberada("gratis", area("estoque")), true);
+  for (const id of ["inteligencia", "financeiro", "rh", "eventos", "marmitaria", "cardapio", "operacao"]) assert.equal(areaLiberada("gratis", area(id)), false, id);
+  assert.equal(podeCriarFicha("gratis", 4), true);
+  assert.equal(podeCriarFicha("gratis", 5), false);
+  assert.equal(podeCriarFicha("completo", 500), true);
+  assert.equal(linkCheckout("/dashboard/mesas"), "/dashboard/assinar?de=%2Fdashboard%2Fmesas");
 });
 
-test("Completo abre tudo; Grátis tranca o que é do pago", () => {
-  for (const m of MENU_PRINCIPAL) assert.equal(areaLiberada("completo", m.id), true, m.id);
-  assert.equal(areaLiberada("gratis", "cozinha"), true);
-  for (const id of ["inteligencia", "financeiro", "rh", "eventos", "marmitaria"]) assert.equal(areaLiberada("gratis", id), false, id);
-});
-
-test("sem plano registrado não tranca nada (cliente de hoje não perde tela)", () => {
-  assert.equal(areaLiberada(null, "financeiro"), true);
-  assert.equal(areaLiberada("PRO", "financeiro"), true);
-  assert.equal(planoPorId("COMPLETO")?.id, "completo");
+test("Completo e empresa sem assinatura não trancam nada", async () => {
+  const { rotaLiberada } = await import("./planos.mjs");
+  for (const r of ["/dashboard/mesas", "/dashboard/financeiro", "/dashboard/inteligencia"]) {
+    assert.equal(rotaLiberada("completo", r), true);
+    assert.equal(rotaLiberada(null, r), true);
+    assert.equal(rotaLiberada("PRO", r), true);
+  }
 });
 
 test("link comercial só existe com número de WhatsApp válido", async () => {
@@ -40,17 +54,6 @@ test("link comercial só existe com número de WhatsApp válido", async () => {
   assert.match(anual, /anual, R\$ 647,28 com 40% de desconto/);
 });
 
-test("no Grátis, telas de área paga ficam trancadas; o resto abre", async () => {
-  const { areaTrancadaDaRota } = await import("./planos.mjs");
-  assert.equal(areaTrancadaDaRota("gratis", "/dashboard/financeiro/dre"), "financeiro");
-  assert.equal(areaTrancadaDaRota("gratis", "/dashboard/rh/ponto"), "rh");
-  assert.equal(areaTrancadaDaRota("gratis", "/dashboard/mesas"), null);
-  assert.equal(areaTrancadaDaRota("gratis", "/dashboard/operacao/estoque"), null);
-  assert.equal(areaTrancadaDaRota("gratis", "/dashboard/conta/plano"), null);
-  assert.equal(areaTrancadaDaRota("gratis", "/dashboard"), null);
-  assert.equal(areaTrancadaDaRota("completo", "/dashboard/financeiro/dre"), null);
-  assert.equal(areaTrancadaDaRota(null, "/dashboard/financeiro/dre"), null);
-});
 
 test("semestral com 20% e anual com 40% de desconto, em centavos exatos", async () => {
   const { precoNoPeriodo, PERIODOS, FORMAS_PAGAMENTO } = await import("./planos.mjs");

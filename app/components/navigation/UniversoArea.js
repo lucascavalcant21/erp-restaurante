@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Lock } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { homeDoUsuario } from "../../lib/auth";
 import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
 import { universoPorId } from "../../lib/menu-principal.mjs";
 import { fetchFilaKDS } from "../../lib/kds";
 import IconeModulo from "../ui/IconeModulo";
+import { useMinhaAssinatura } from "../../lib/assinatura";
+import { linkCheckout, rotaLiberada } from "../../lib/planos.mjs";
 
 // Tela de cards de Cozinha, Bar ou Salão. A lista mora em menu-principal.mjs.
 // Visual inspirado no Nina (pedido do dono, 07/11/2026): trilha e data no topo,
@@ -44,7 +46,7 @@ function useResumoKds(unidadeId, setor) {
   return resumo;
 }
 
-function CardDestaque({ card, destaque, resumo }) {
+function CardDestaque({ card, destaque, resumo, trancado = false }) {
   return (
     <section
       aria-label={card.label}
@@ -68,31 +70,38 @@ function CardDestaque({ card, destaque, resumo }) {
         </div>
       </div>
       <Link
-        href={card.href}
-        className="inline-flex min-h-[48px] shrink-0 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-hf-menu shadow-none transition hover:bg-hf-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent"
+        href={trancado ? linkCheckout(card.href) : card.href}
+        className="inline-flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-hf-menu shadow-none transition hover:bg-hf-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent"
       >
+        {trancado && <Lock size={16} aria-hidden="true" />}
         {destaque.acao}
       </Link>
     </section>
   );
 }
 
-function CardModulo({ card }) {
+// Plano Grátis (14/11/2026): o card pago aparece com cadeado e leva ao checkout.
+function CardModulo({ card, trancado = false }) {
   return (
     <Link
-      href={card.href}
+      href={trancado ? linkCheckout(card.href) : card.href}
+      aria-label={trancado ? `${card.label} (plano Completo)` : undefined}
       className="group relative flex min-h-[76px] min-w-0 items-center gap-3.5 rounded-[18px] border border-hf-border bg-hf-surface p-3.5 shadow-xs transition hover:border-hf-border-strong hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent sm:min-h-[84px] sm:items-start sm:p-4"
     >
-      <IconeModulo item={card} tamanho="md" />
+      <IconeModulo item={card} tamanho="md" className={trancado ? "opacity-50" : ""} />
       <span className="min-w-0 flex-1 pr-5">
         <span className="block text-[15px] font-semibold leading-snug tracking-tight text-hf-text">{card.label}</span>
         <span className="mt-0.5 block text-[13px] leading-snug text-hf-muted line-clamp-2">{card.desc}</span>
       </span>
-      <ArrowUpRight
-        size={16}
-        aria-hidden="true"
-        className="absolute right-3.5 top-3.5 text-hf-muted transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-hf-text"
-      />
+      {trancado ? (
+        <Lock size={15} aria-hidden="true" className="absolute right-3.5 top-3.5 text-hf-accent" />
+      ) : (
+        <ArrowUpRight
+          size={16}
+          aria-hidden="true"
+          className="absolute right-3.5 top-3.5 text-hf-muted transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-hf-text"
+        />
+      )}
     </Link>
   );
 }
@@ -128,7 +137,9 @@ export default function UniversoArea({ id, children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   [universo, sessao, limitado, cardDestaque]);
 
-  const resumo = useResumoKds(cardDestaque ? unidadeAtiva : null, destaque?.setorKds);
+  const assinatura = useMinhaAssinatura(sessao);
+  const trancado = (card) => !rotaLiberada(assinatura?.plano, card.href);
+  const resumo = useResumoKds(cardDestaque && !trancado(cardDestaque) ? unidadeAtiva : null, destaque?.setorKds);
 
   // Para quem começa aqui, esta tela já é o início: uma seta não levaria a lugar nenhum.
   const telaInicial = limitado && homeDoUsuario(sessao) === universo.href;
@@ -160,13 +171,13 @@ export default function UniversoArea({ id, children }) {
           </div>
         </header>
 
-        {cardDestaque && <CardDestaque card={cardDestaque} destaque={destaque} resumo={resumo} />}
+        {cardDestaque && <CardDestaque card={cardDestaque} destaque={destaque} resumo={resumo} trancado={trancado(cardDestaque)} />}
 
         {secoes.map((secao) => (
           <section key={secao.titulo} aria-label={secao.titulo} className="space-y-3">
             <h2 className="text-[13px] font-medium text-hf-muted">{secao.titulo}</h2>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
-              {secao.cards.map((card) => <CardModulo key={card.href} card={card} />)}
+              {secao.cards.map((card) => <CardModulo key={card.href} card={card} trancado={trancado(card)} />)}
             </div>
           </section>
         ))}

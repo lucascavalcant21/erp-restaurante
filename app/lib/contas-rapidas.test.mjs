@@ -100,3 +100,23 @@ test("conta da área: busca, anota e só retira do estoque", async () => {
     assert.equal(canAccessRoute(sessao, "/dashboard/operacao/montagem", `?dept=${area}`), false); // a tela de montagem edita e exclui
   }
 });
+
+test("tablets do Nico abrem no assistente, sem custo nem gestão; só o Nico + ponto bate ponto", () => {
+  for (const id of ["tablet-nico", "tablet-nico-ponto"]) {
+    const s = sessaoDe(id);
+    assert.ok(ve(s, "/dashboard/inteligencia/assistente"), `${id} abre o Nico`);
+    assert.ok(ve(s, "/dashboard/operacao/fichas", "dept=cozinha"), `${id} vê ficha da cozinha`);
+    assert.equal(podeVerCustosFicha(s, "cozinha"), false);
+    for (const rota of ["/dashboard/financeiro", "/dashboard/rh", "/dashboard/configuracoes/usuarios", "/dashboard/financeiro/dre"]) {
+      assert.ok(!ve(s, rota), `${id} NÃO abre ${rota}`);
+    }
+    assert.equal(contaRapidaPorId(id).trocarSenha, false);
+  }
+  assert.ok(ve(sessaoDe("tablet-nico-ponto"), "/dashboard/rh/ponto"));
+  assert.ok(!ve(sessaoDe("tablet-nico"), "/dashboard/rh/ponto"));
+});
+
+test("tipo de acesso de todo modelo é aceito pelo banco (usuarios_erp_tipo_acesso_check, 14/11/2026)", () => {
+  const aceitos = ["administrador", "gerente", "supervisor", "funcionario", "personalizado", "setor", "consulta", "terminal_ponto"];
+  for (const c of CONTAS_RAPIDAS) assert.ok(aceitos.includes(c.tipoAcesso || "funcionario"), `${c.id}: ${c.tipoAcesso}`);
+});

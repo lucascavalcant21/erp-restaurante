@@ -188,6 +188,26 @@ export const MENU_SISTEMA = Object.freeze([
   { label: "Integrações", desc: "iFood, pagamentos e fiscal", href: "/dashboard/configuracoes/integracoes", icone: "Plug" },
 ]);
 
+// ÁREA DO ADMINISTRADOR (decisão do dono, 14/11/2026): o Menu do dono vira
+// a "Área do administrador", organizada e com destaque. Só o dono vê; a equipe
+// vê o próprio Menu, filtrado pelas permissões. `area` aponta para uma área de
+// MENU_PRINCIPAL (o link segue as regras dela); `href` é uma tela direta.
+export const ADMIN_SECOES = Object.freeze([
+  { titulo: "Operação", itens: [{ area: "salao" }, { area: "cozinha" }, { area: "bar" }, { area: "operacao" }] },
+  { titulo: "Cadastros", itens: [
+    { label: "Fichas técnicas", href: "/dashboard/operacao/fichas", icone: "BookOpen" },
+    { label: "Ingredientes e produtos", href: "/dashboard/operacao/ingredientes", icone: "Carrot" },
+    { area: "estoque" }, { area: "cardapio" },
+  ] },
+  { titulo: "Gestão", itens: [{ area: "financeiro" }, { area: "rh" }, { area: "eventos" }, { area: "marmitaria" }, { area: "inteligencia" }] },
+  { titulo: "Acessos e sistema", itens: [
+    { label: "Usuários e acessos", href: "/dashboard/configuracoes/usuarios", icone: "ShieldCheck" },
+    { label: "Tablets da casa", href: "/dashboard/configuracoes/usuarios?conta=tablet", icone: "Tablet" },
+    { label: "Integrações", href: "/dashboard/configuracoes/integracoes", icone: "Plug" },
+    { label: "Configurações", href: "/dashboard/configuracoes", icone: "Settings" },
+  ] },
+]);
+
 /** Áreas que esta sessão vê no menu. */
 export function menuPrincipal({ podeInteligencia = false } = {}) {
   return MENU_PRINCIPAL.filter((m) => !m.exigeInteligencia || podeInteligencia);

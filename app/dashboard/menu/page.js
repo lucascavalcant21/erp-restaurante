@@ -10,8 +10,9 @@ import Link from "next/link";
 import { Building2, ChevronRight, EllipsisVertical } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import useModulosDoUsuario from "../../components/navigation/useModulosDoUsuario";
-import { CartaoGrade, FundoMedway, GradeCartoes, RotuloSecao, TituloGrande } from "../../components/ui/Medway";
-import { MENU_ATALHOS, MENU_SISTEMA } from "../../lib/menu-principal.mjs";
+import { CartaoGrade, DestaqueDegrade, FundoMedway, GradeCartoes, RotuloSecao, TituloGrande } from "../../components/ui/Medway";
+import { sessaoEhDono } from "../../lib/assistentes.mjs";
+import { ADMIN_SECOES, MENU_ATALHOS, MENU_SISTEMA } from "../../lib/menu-principal.mjs";
 import { iniciais } from "../../lib/conta.mjs";
 import { useMinhaAssinatura } from "../../lib/assinatura";
 import { linkCheckout, rotaLiberada } from "../../lib/planos.mjs";
@@ -31,11 +32,22 @@ export default function MenuPage() {
   const atalhos = MENU_ATALHOS.filter((i) => liberado(i.href));
   const sistema = sessao?.is_app ? [] : MENU_SISTEMA.filter((i) => liberado(i.href));
   const versao = process.env.HEFISTO_VERSAO;
+  const dono = sessaoEhDono(sessao);
+
+  // Área do administrador (só o dono): seções da casa, com "Montar um tablet" em destaque.
+  const cartaoAdmin = (i) => {
+    if (i.area) {
+      const m = modulos.find((x) => x.id === i.area);
+      return m ? <CartaoGrade key={m.id} href={destino(m)} icone={m.icone} label={m.label} trancado={trancada(m)} /> : null;
+    }
+    return item(i);
+  };
+  const tabletPago = !rotaLiberada(assinatura?.plano, "/dashboard/configuracoes/usuarios");
 
   return (
     <FundoMedway>
       <div className="mx-auto w-full max-w-5xl">
-        <TituloGrande>Menu</TituloGrande>
+        <TituloGrande subtitulo={dono ? "Só você vê esta área" : null}>{dono ? "Área do administrador" : "Menu"}</TituloGrande>
 
         <div className="space-y-8 px-4 sm:px-6">
           <Link
@@ -50,7 +62,27 @@ export default function MenuPage() {
             <ChevronRight size={20} className="shrink-0 text-mw-sec" aria-hidden="true" />
           </Link>
 
-          {modulos.length > 0 && (
+          {dono && (
+            <DestaqueDegrade
+              href={tabletPago ? linkCheckout("/dashboard/configuracoes/usuarios") : "/dashboard/configuracoes/usuarios?conta=tablet"}
+              titulo="Montar um tablet"
+              texto="Só ponto, Nico + ponto ou só Nico: o login sai pronto"
+              icone="Tablet"
+              trancado={tabletPago}
+            />
+          )}
+
+          {dono && ADMIN_SECOES.map((secao) => {
+            const cartoes = secao.itens.map(cartaoAdmin).filter(Boolean);
+            return cartoes.length ? (
+              <section key={secao.titulo} className="space-y-3">
+                <RotuloSecao>{secao.titulo}</RotuloSecao>
+                <GradeCartoes>{cartoes}</GradeCartoes>
+              </section>
+            ) : null;
+          })}
+
+          {!dono && modulos.length > 0 && (
             <section className="space-y-3">
               <RotuloSecao>Áreas</RotuloSecao>
               <GradeCartoes>
@@ -68,7 +100,7 @@ export default function MenuPage() {
             </section>
           )}
 
-          {sistema.length > 0 && (
+          {!dono && sistema.length > 0 && (
             <section className="space-y-3">
               <RotuloSecao>Outros</RotuloSecao>
               <GradeCartoes>

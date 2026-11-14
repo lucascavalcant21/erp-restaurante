@@ -29,6 +29,7 @@
 | S-33 | `api/dashboard/experience/intelligence` sem login, com a service role: devolve pedidos e faturamento da unidade | ALTO | Leitura do código, 03/11. Produção: NÃO VALIDADO | Corrigido no branch `claude/rotas-com-login`: sessão, unidade e permissão da tela. TESTADO LOCAL (`sec-api-1`, `sec-rotas-2`) |
 | S-34 | `api/apps/audit` sem login para ler e gravar registros de acesso | MÉDIO | Leitura do código, 03/11. Produção: NÃO VALIDADO | Corrigido no branch `claude/rotas-com-login`: sessão nas duas direções e leitura por permissão. TESTADO LOCAL. App sem sessão do Supabase guarda o registro só no aparelho |
 | S-35 | Repositório público com nomes de funcionários, ajustes de ponto e menções a atestados | ALTO | TESTADO: clone sem credenciais, 03/11 | Aberto: o dono torna privado no GitHub |
+| S-36 | "Apps e terminais" antigos: login do tablet conferido no navegador, senha em texto aberto em `config_sistema.params.apps_config` (e no localStorage) e sessão do app montada no aparelho | ALTO | Leitura do código, 14/11/2026 (`app/lib/apps-config.js`, `autenticarApp`). Produção: NÃO VALIDADO | Aberto. No sistema de teste os tablets passam a ser contas de verdade do Supabase criadas no servidor ("Montar um tablet" = contas rápidas `tablet-nico`, `tablet-nico-ponto`, `somente-ponto`). Próximo: aposentar o login antigo de apps e apagar as senhas guardadas (precisa do OK do dono) |
 
 ## O que já protege (validado)
 

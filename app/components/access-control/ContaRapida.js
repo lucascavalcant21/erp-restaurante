@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChefHat, Clock, Copy, KeyRound, Loader2, Martini, Minus, Wine, X } from "lucide-react";
+import { Check, ChefHat, Clock, Copy, KeyRound, Loader2, Martini, Minus, Sparkles, Wine, X } from "lucide-react";
 import { accessCommand } from "../../lib/access-control";
 import { CONTAS_RAPIDAS, contaRapidaPorId, gerarSenhaTemporaria, sugerirLogin } from "../../lib/contas-rapidas.mjs";
 
-const ICONES = { ChefHat, Clock, Martini, Wine };
+const ICONES = { ChefHat, Clock, Martini, Sparkles, Wine };
 const CAMPO = "min-h-11 w-full rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent";
 
 /** Criar um acesso em três passos: função, nome e senha. */
-export default function ContaRapida({ onFechar, onCriada }) {
-  const [modeloId, setModeloId] = useState(CONTAS_RAPIDAS[0].id);
+export default function ContaRapida({ onFechar, onCriada, modeloInicial = null }) {
+  const [modeloId, setModeloId] = useState(contaRapidaPorId(modeloInicial)?.id || CONTAS_RAPIDAS[0].id);
   const [nome, setNome] = useState("");
   const [login, setLogin] = useState("");
   const [loginEditado, setLoginEditado] = useState(false);

@@ -88,5 +88,11 @@ O que entra em cada plano é **SUGESTÃO** desta sessão (o dono decidiu os dois
 
 - **APR-024 aplicada** no banco real (impressão digital a327899d…, TESTADO NO SUPABASE REAL). Nenhuma tela publicada usa a tabela nova.
 - **Pix (Nubank):** a tela Plano e assinatura mostra o valor do período, a chave Pix (servida por `/api/assinatura/pix` só para administrador logado; a chave fica na variável `HEFISTO_PIX_CHAVE` do servidor, não no código, que é público, nem no JavaScript) e "Enviar comprovante" no WhatsApp comercial (45 99867-4041). O plano é liberado à mão depois da conferência. Crédito e débito aparecem como "em breve".
-- **Decisão do dono:** os tablets do restaurante não mudam. A `main` e o deploy de produção ficam como estão; o produto vendável vai para um **sistema de teste separado** (linha `hefisto-teste`). O PR #278 passa a apontar para `hefisto-teste`, não para a `main`.
+- **Decisão do dono:** os tablets do restaurante não mudam. A `main` e o deploy de produção ficam como estão; o produto vendável vai para um **sistema de teste separado** (linha `hefisto-teste`). O PR #278 foi **fechado** (não entra na `main`); todo o trabalho está na branch `hefisto-teste`. As variáveis da Vercel (`NEXT_PUBLIC_HEFISTO_WHATSAPP_COMERCIAL`, `HEFISTO_PIX_CHAVE`, `HEFISTO_PIX_BANCO`) valem **só no preview da branch `hefisto-teste`**: a produção não as recebe. Conferido: produção continua no deploy de `2966950` (main).
 - **Pendente (decisão do dono):** o banco do sistema de teste. Recomendado: um projeto Supabase próprio, só com a estrutura do banco atual e sem os dados do restaurante, para que nada feito no teste apareça nos tablets.
+
+### Sistema de teste: banco (14/11/2026, 01:10)
+
+- Banco de teste: projeto Supabase `hefisto-staging` (ieaoxnhujqhwmokejfcr), plano FREE, sem custo novo. Tem 25 tabelas antigas, **todas com 0 linhas**; a produção tem 244 tabelas, 190 funções, 264 políticas e 116 gatilhos.
+- Próximo passo (aguarda o OK do dono porque apaga o esquema antigo do banco de teste): recriar no teste a estrutura da produção, **sem nenhum dado do restaurante**, e ligar o preview da `hefisto-teste` a ele. O dono precisa colar na Vercel a chave secreta (service role) do banco de teste, só para a branch `hefisto-teste`.
+- O que já está no banco de PRODUÇÃO desta rodada: `empresa_assinatura` e `hefisto_minha_assinatura()` (APR-024). Nenhuma tela publicada usa; os tablets não veem diferença.

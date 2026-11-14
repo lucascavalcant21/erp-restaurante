@@ -142,7 +142,8 @@ Branch `claude/upgrade-visual-medway` (PR em rascunho):
 - **Barra de abas no rodapé** (celular e tablet, só telas de primeiro nível): Início, Assistente, Pesquisar, Tarefas, Menu.
 - **Tela Menu** em cartões por seção e **Minha conta** (conta, empresa e assinatura, indicação pelo WhatsApp, sair).
 - **Achado:** `empresas` no banco real não tem plano nem situação (Control Plane SaaS não aplicado). Minha conta mostra "Não registrado". Plano de venda em [[UPGRADE_VISUAL_MEDWAY_E_VENDA_2026-11-14]].
-- Evidência: TESTADO LOCAL (testes novos 9/9, app/lib 1005 ok com as 13 falhas de sempre sem PGLITE, catálogo e navegação OK, build OK) e TESTADO EM MOCK (Chrome 390/820/1366 px). Preview e produção: NÃO VALIDADO.
+- **Planos (decisão do dono):** Grátis e Completo por R$ 89,90/mês (semestral −20% = R$ 431,52; anual −40% = R$ 647,28; crédito, débito ou Pix). Página pública `/planos`, tela Plano e assinatura, cadeado nas áreas pagas para quem está no Grátis. Migração `SAAS_PLANOS_1` escrita e testada no PGlite, **APR-024 pendente**; cobrança online em BLQ-020.
+- Evidência: TESTADO LOCAL (testes novos, PGlite 12/12, app/lib sem falhas novas, catálogo e navegação OK, build OK) e TESTADO EM MOCK (Chrome 390/820/1366 px). Preview e produção: NÃO VALIDADO.
 
 <!-- hefisto-agent:agente:inicio -->
 ### Agente autônomo (gerado pelo runner)

@@ -348,3 +348,17 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Decidido em:** 2026-11-07 20:14
 - **Decidido por:** lucas (no chat: "vamos fazer essa mudança no horário de funcionamento da tv")
 - **Chave:** migracao:db/SINAL_2_HORARIO_FUNCIONAMENTO.sql
+
+### APR-024 · PENDENTE
+
+- **Missão:** Planos e assinatura do Héfisto (pedido do dono, 14/11/2026)
+- **Ação:** Aplicar db/SAAS_PLANOS_1_ASSINATURA.sql no Supabase real (tabela nova `empresa_assinatura` fora da API e função `hefisto_minha_assinatura()`)
+- **Ambiente:** supabase (produção)
+- **Risco:** LOW (só aditiva: tabela e função novas; não altera empresas, unidades, usuários nem RLS de outras tabelas)
+- **Motivo:** Sem ela o Héfisto não sabe o plano de cada empresa: Minha conta mostra "Não registrado" e o plano Grátis não tranca nada
+- **Impacto:** A empresa que já existe (a casa do dono) entra no plano Completo como cortesia, sem valor; nada muda para quem usa hoje
+- **Rollback:** drop function if exists public.hefisto_minha_assinatura(); drop table if exists public.empresa_assinatura;
+- **Evidências:** PGlite 12/12 (`app/lib/saas-planos-banco.test.mjs`: cortesia para a casa do dono, cada empresa vê só a sua, o app não lê nem grava a tabela, visitante sem login não chama a função, plano e forma de pagamento fora da lista recusados, rodar de novo aborta). Impressão digital esperada: a327899d3c010f1012d5a0ab051005a5
+- **Status:** PENDENTE
+- **Criado em:** 2026-11-14
+- **Chave:** migracao:db/SAAS_PLANOS_1_ASSINATURA.sql

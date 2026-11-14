@@ -55,3 +55,31 @@ Ordem sugerida, do que bloqueia a primeira venda ao que melhora a conversão:
 | 8 | Marca neutra do cliente: tirar dados da casa (Sel de Estrela, nomes de pratos) dos textos, exemplos e modelos padrão | A levantar | Não |
 | 9 | Suporte: canal, base de ajuda, tela "Ajuda" no Menu (a Medway tem) | Não existe | Sim: canal de suporte |
 | 10 | Material de venda: apresentação, vídeo de demonstração e uma empresa de demonstração com dados de exemplo | Não existe | Parcial |
+
+## 4. Planos e preços (decisões do dono, 14/11/2026)
+
+- "Plano grátis e plano pago com tudo por 59,90" e logo depois "o Héfisto vai ser 89,90": vale **R$ 89,90 por mês**.
+- "Crédito, débito e Pix; semestral com 20% de desconto e anual com 40%".
+
+| Período | Conta (centavos inteiros) | Total | Por mês |
+|---|---|---|---|
+| Mensal | 8.990 | R$ 89,90 | R$ 89,90 |
+| Semestral (−20%) | 8.990 × 6 × 0,8 | R$ 431,52 | R$ 71,92 |
+| Anual (−40%) | 8.990 × 12 × 0,6 | R$ 647,28 | R$ 53,94 |
+
+O que entra em cada plano é **SUGESTÃO** desta sessão (o dono decidiu os dois planos e os preços, não a lista): Grátis = Cozinha, Bar, Salão, Estoque, Cardápio e Operação, 1 unidade e até 3 usuários; Completo = tudo (Inteligência e Assistente, Financeiro, Equipe, Eventos, Marmitaria, integrações), sem limite. Mudar é só em `app/lib/planos.mjs`.
+
+### Entregue
+
+- `app/lib/planos.mjs`: fonte única de planos, preços, períodos, descontos e formas de pagamento; conta do preço determinística e testada.
+- `db/SAAS_PLANOS_1_ASSINATURA.sql` (aditiva, **APR-024 pendente**): `empresa_assinatura` fora da API (plano, situação, período, forma de pagamento, vencimento, provedor) e `hefisto_minha_assinatura()`; a casa do dono entra como Completo por cortesia. Substitui a antiga `migracao_control_plane_saas.sql`, nunca aplicada.
+- Página pública **/planos** (a raiz continua no login, que é o endereço do app instalado): o que o Héfisto faz, os dois planos com Mensal/Semestral/Anual, crédito/débito/Pix e perguntas frequentes. Sem depoimento nem número inventado. Link "Conheça os planos" no login.
+- **Plano e assinatura** dentro do app (`/dashboard/conta/plano`), aberto por Minha conta.
+- **Plano Grátis tranca as áreas do Completo**: cadeado no Menu e no Início e a tela leva ao plano. Sem assinatura registrada nada é trancado. A trava é só no navegador por enquanto; a trava no servidor/banco vem junto da cobrança.
+- "Assinar" e "Começar grátis" abrem o WhatsApp comercial (`NEXT_PUBLIC_HEFISTO_WHATSAPP_COMERCIAL`) enquanto não há cobrança online (BLQ-020).
+
+### Evidência
+
+- TESTADO LOCAL: `planos.test.mjs` 7/7 (inclui 431,52 e 647,28 exatos), `conta.test.mjs` 6/6, `barra-inferior.test.mjs` 4/4; `saas-planos-banco.test.mjs` 12/12 com PGLITE; `app/lib` sem falhas novas; catálogo de permissões OK; build OK.
+- TESTADO EM MOCK (Chrome 390/820/1366, Supabase falso): /planos sem rolagem lateral; empresa no Grátis vê 5 cadeados no Menu e /dashboard/financeiro leva a "Plano e assinatura"; empresa sem assinatura abre o Financeiro normalmente e a conta mostra "Não registrado"; sem erro de página.
+- Preview e produção: NÃO VALIDADO. Migração: NÃO APLICADA.

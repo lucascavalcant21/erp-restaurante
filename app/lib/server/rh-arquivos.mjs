@@ -80,6 +80,15 @@ export const FONTES = Object.freeze({
     ler: [...LER_RH, "rh.orgchart.view"], escrever: ESCREVER_RH, apagar: APAGAR_RH,
     legado: [{ bucket: "anexos", aceita: (p) => p.startsWith("fotos/") }],
   },
+  // Ficha do funcionário (RH-FICHA-1): a cópia assinada de cada registro
+  // (advertência, termo de uniforme, ata de reunião, quebra…).
+  registro_colab: {
+    tabela: "rh_registros_colab", coluna: "arquivo_url", dono: "colaborador", colunaDono: "colaborador_id",
+    categoria: "registros", extensoes: EXT_DOC, maxBytes: 15 * MB,
+    // Cópia assinada é prova: ninguém apaga, nem o super admin.
+    ler: LER_RH, escrever: ESCREVER_RH, apagar: [], naoApaga: true,
+    legado: [],
+  },
   // Abas do cadastro legado (/dashboard/rh/funcionario/[id]).
   holerite: {
     tabela: "holerites", coluna: "arquivo_url", dono: "funcionario", colunaDono: "func_id",
@@ -316,6 +325,7 @@ export async function prepararEnvio({ db, usuario, perms, fonteId, donoId, unida
 export async function removerArquivo({ db, usuario, perms, fonteId, id, hostEsperado }) {
   const fonte = FONTES[fonteId];
   if (!fonte) return falha(400, ERRO.FONTE, "Tipo de arquivo desconhecido.");
+  if (fonte.naoApaga) return falha(403, ERRO.SEM_PERMISSAO, "Documento assinado da ficha não se apaga. Anule o registro com motivo.");
   if (!idValido(id)) return falha(400, ERRO.PARAMETRO, "Identificador inválido.");
   let registro;
   let dono;

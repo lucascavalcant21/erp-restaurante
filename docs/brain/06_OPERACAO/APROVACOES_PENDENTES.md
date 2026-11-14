@@ -378,3 +378,29 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Status:** PENDENTE
 - **Criado em:** 2026-11-14
 - **Chave:** migracao:db/PONTO_PIN_1_PIN_DO_FUNCIONARIO.sql
+
+### APR-026 · PENDENTE
+
+- **Missão:** Ficha do funcionário (pedido do dono, 14/11/2026)
+- **Ação:** Aplicar db/RH_FICHA_1_REGISTROS_DO_FUNCIONARIO.sql no banco do SISTEMA DE TESTE (hefisto-staging), depois que a estrutura for copiada (ACESSO-008). O banco do restaurante NÃO recebe.
+- **Ambiente:** supabase (teste)
+- **Risco:** LOW (só aditiva: uma tabela nova `rh_registros_colab` com RLS por permissão de RH, sem delete, e um gatilho)
+- **Motivo:** Advertências verbais e por escrito, ocorrências, quebras, uniformes, reuniões e documentos de cada funcionário, com a cópia assinada no bucket privado
+- **Rollback:** no cabeçalho do arquivo
+- **Evidências:** PGlite 18/18 (`app/lib/ficha-funcionario-banco.test.mjs`: unidade vem do cadastro e não do corpo, outra unidade não vê nem grava, tablet sem RH não lê, conteúdo não muda depois de criado, anular exige motivo, recusa exige testemunhas, ninguém apaga, visitante não lê). Impressão digital: 13996d29be16a222dc78a9a7738a39f2
+- **Status:** PENDENTE
+- **Criado em:** 2026-11-14
+- **Chave:** migracao:db/RH_FICHA_1_REGISTROS_DO_FUNCIONARIO.sql
+
+### APR-027 · PENDENTE
+
+- **Missão:** Procedimentos da casa com fotos e vídeos (pedido do dono, 14/11/2026)
+- **Ação:** Aplicar db/OP_CONTEUDO_1_FOTOS_VIDEOS_PROCEDIMENTOS.sql no banco do SISTEMA DE TESTE (hefisto-staging). O banco do restaurante NÃO recebe.
+- **Ambiente:** supabase (teste)
+- **Risco:** LOW (só aditiva: coluna `conteudo jsonb not null default '{}'` em op_processos e op_itens; RLS não muda)
+- **Motivo:** Tipo do procedimento (rotina, limpeza, equipamento), voltagem e lugar do equipamento, produto, quantidade, fotos e vídeos de cada passo
+- **Rollback:** no cabeçalho do arquivo
+- **Evidências:** PGlite 7/7 (`app/lib/procedimentos-conteudo-banco.test.mjs`). Impressão digital: 09d81d652d476b94c5b327e76440869b
+- **Status:** PENDENTE
+- **Criado em:** 2026-11-14
+- **Chave:** migracao:db/OP_CONTEUDO_1_FOTOS_VIDEOS_PROCEDIMENTOS.sql

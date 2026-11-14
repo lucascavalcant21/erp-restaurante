@@ -15,7 +15,7 @@ import { palavras } from "./interpretador-regras.mjs";
 import { motivoDaEntrada, MOTIVOS_ENTRADA } from "../actions/registrar-entrada.mjs";
 import { dividirEmItens } from "./lote.mjs";
 import { paramsDoComando } from "../actions/criar-ficha.mjs";
-import { responderLivre, FOCO_SALAO } from "../agents/geral.mjs";
+import { responderLivre, FOCO_SALAO, FOCO_ROTINA, ehPedidoDeRotina } from "../agents/geral.mjs";
 import { sugestoesDaResposta } from "./sugestoes.mjs";
 import { notaSchema } from "../actions/lancar-nota.mjs";
 import { responderPergunta } from "../agents/orquestrador.mjs";
@@ -200,7 +200,8 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       if (daCasa.resposta) {
         resposta = daCasa.resposta;
       } else {
-        const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS, foco: FOCO_SALAO, assistente: assistenteDoContexto(ic) });
+        const foco = ehPedidoDeRotina(pedido.texto) ? FOCO_ROTINA : FOCO_SALAO;
+        const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS, foco, assistente: assistenteDoContexto(ic) });
         resposta = { ...livre.resposta, agentes: ["geral"], acoes: [...(livre.resposta.acoes || []), ...(daCasa.cadastrar ? [daCasa.cadastrar] : [])] };
         if (livre.ia) ia = { ...(ia || {}), ...livre.ia };
       }

@@ -8,7 +8,7 @@
 // salão), com as mesmas permissões. Nada aqui grava.
 
 import { procedimentosDaUnidade } from "./procedimentos.mjs";
-import { procedimentoParaTexto } from "../../procedimentos.mjs";
+import { procedimentoParaTexto, MODELOS, TIPOS_PROCEDIMENTO } from "../../procedimentos.mjs";
 
 const sem = (v) => String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const r = (texto, extra = {}) => ({ tipo: "resposta", texto, blocos: [], acoes: [], ...extra });
@@ -43,9 +43,33 @@ export const AREAS = Object.freeze({
     op("Registrar uma perda", "Atalhos: perda"),
     op("O que está vencendo?", "O que está vencendo?"),
   ] },
+  // opções montadas na hora (opcoesDeRotina): procedimentos da casa e modelos
+  limpeza: { rotulo: "Limpeza e equipamentos", texto: "Limpeza, rotinas e equipamentos: o que você vai fazer?", opcoes: [] },
 });
 
-export const COMANDO_AREA = Object.freeze({ cozinha: "Atalhos da cozinha", bar: "Atalhos do bar", salao: "Atalhos do salão", estoque: "Atalhos do estoque" });
+// 14/11/2026: rotinas, limpeza e equipamentos (procedimentos da casa com foto e vídeo).
+// As opções saem dos procedimentos cadastrados; o que a casa ainda não ensinou
+// aparece pelo nome do modelo e o Nico responde com a orientação padrão.
+const TIPOS_DA_ROTINA = ["rotina", "limpeza", "equipamento"];
+
+export const COMANDO_AREA = Object.freeze({ cozinha: "Atalhos da cozinha", bar: "Atalhos do bar", salao: "Atalhos do salão", estoque: "Atalhos do estoque", limpeza: "Atalhos de limpeza e equipamentos" });
+
+async function opcoesDeRotina(motor) {
+  const dbe = motor?.ambiente?.dbe;
+  const daCasa = dbe ? (await procedimentosDaUnidade(dbe)).lista.filter((p) => TIPOS_DA_ROTINA.includes(p.tipo)) : [];
+  const nomes = new Set(daCasa.map((p) => sem(p.nome)));
+  const todos = [
+    ...daCasa,
+    ...MODELOS.filter((m) => TIPOS_DA_ROTINA.includes(m.tipo) && !nomes.has(sem(m.nome))),
+  ];
+  const ordem = (p) => TIPOS_DA_ROTINA.indexOf(p.tipo);
+  return todos
+    .sort((a, b) => ordem(a) - ordem(b) || a.nome.localeCompare(b.nome, "pt-BR"))
+    .map((p) => {
+      const tipo = TIPOS_PROCEDIMENTO.find((t) => t.id === p.tipo);
+      return op(`${p.nome}${tipo && p.tipo === "equipamento" ? " (equipamento)" : ""}`, `Procedimento da casa: ${p.nome}`);
+    });
+}
 
 export const PROBLEMAS_SALAO = Object.freeze([
   "O cliente reclamou da comida",
@@ -80,6 +104,7 @@ function areaDoTexto(t) {
   if (/\bbar\b/.test(t)) return "bar";
   if (/\bsalao\b/.test(t)) return "salao";
   if (/\bestoque\b/.test(t)) return "estoque";
+  if (/\blimpeza\b|\bequipamentos?\b|\brotinas?\b/.test(t)) return "limpeza";
   return null;
 }
 
@@ -109,6 +134,7 @@ export const HANDLERS_MENU = {
     if (/outro ambiente/.test(t)) return LIVRES.ambiente();
     for (const [chave, f] of Object.entries(LIVRES)) if (new RegExp(`atalhos:? ${chave}\\b`).test(t)) return f();
     const area = areaDoTexto(t);
+    if (area === "limpeza") return escolha(AREAS.limpeza.texto, await opcoesDeRotina(motor));
     if (area) return escolha(AREAS[area].texto, AREAS[area].opcoes);
     return escolha("Em que área você está agora?", Object.entries(AREAS).map(([k, a]) => op(a.rotulo, COMANDO_AREA[k], k)));
   },

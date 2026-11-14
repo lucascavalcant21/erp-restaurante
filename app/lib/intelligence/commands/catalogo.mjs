@@ -52,7 +52,9 @@ export const INTENCOES = Object.freeze([
     // receita/ficha é o fluxo da ficha técnica; "era pra pedir" é conferência de recebimento
     proibidas: ["quanto", "quais", "qual", "quantas", "quando", "receita", "ficha", "prato", "era pra", "era para", "pedi", "pedido", "pedimos",
       "etiqueta", "etiquetas", "nota fiscal", "danfe", "nfe", "xml", "a nota", "nota do fornecedor",
-      "horario", "atrasado", "atrasados", "atrasada", "atrasou", "funcionario", "funcionarios", "equipe", "pontual", "ponto"], peso: 10,
+      "horario", "atrasado", "atrasados", "atrasada", "atrasou", "funcionario", "funcionarios", "equipe", "pontual", "ponto",
+      // "chegou o fechamento, o que eu tenho que fazer?" é rotina, não entrada de estoque (14/11/2026)
+      "fechamento", "abertura", "tenho que fazer", "que eu faco", "faco agora"], peso: 10,
   },
   {
     id: "empresa.resumo_dia", tipo: "pergunta", agentes: ["operacoes", "vendas", "financeiro", "estoque"],
@@ -167,8 +169,14 @@ export const INTENCOES = Object.freeze([
   },
   {
     id: "salao.orientacao", tipo: "pergunta", agentes: ["operacoes"],
-    descricao: "Situação ou montagem no salão (cliente reclamou, prato demorou, montar a mesa, montar um ambiente): passo a passo de orientação.",
-    frases: [["situacao no salao", "montagem no salao", "montar a mesa", "montar uma mesa", "monto a mesa", "montar o salao", "montar o jardim", "montar a varanda", "montar o ambiente", "como resolvo", "como eu resolvo", "o que eu faco", "o que faco agora"]], peso: 9,
+    descricao: "Procedimento da casa: situação ou montagem no salão, abertura e fechamento, limpeza (chapa, fogão, piso) e uso de equipamento (voltagem, higienização, onde fica): passo a passo com fotos e vídeos.",
+    frases: [["situacao no salao", "montagem no salao", "montar a mesa", "montar uma mesa", "monto a mesa", "montar o salao", "montar o jardim", "montar a varanda", "montar o ambiente", "como resolvo", "como eu resolvo", "o que eu faco", "o que faco agora",
+      // 14/11/2026: rotina, limpeza e equipamento (procedimentos da casa com foto e vídeo)
+      "procedimento da casa", "fechamento do restaurante", "fechamento da cozinha", "fechamento do bar", "fechamento do salao", "chegou o fechamento", "hora do fechamento", "fazer o fechamento",
+      "fechar o restaurante", "fechar a cozinha", "abertura da cozinha", "abertura do restaurante", "abrir o restaurante", "abrir a cozinha", "cheguei na cozinha", "cheguei no bar",
+      "o que eu tenho que fazer", "o que tenho que fazer", "como limpar", "como limpo", "como higienizar", "como higienizo", "como lavar", "como lavo",
+      "como usar", "como usa", "como uso", "como ligar", "como ligo", "como manusear", "qual a voltagem", "e 110 ou 220", "e 220 ou 110"]], peso: 9,
+    proibidas: ["caixa", "folha", "mes", "dre", "imposto"],
   },
   {
     id: "rh.escala_dia", tipo: "pergunta", agentes: ["rh"],

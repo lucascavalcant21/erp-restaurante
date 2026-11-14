@@ -211,7 +211,7 @@ test("'Onde vai um ingrediente?' sem dizer qual: pergunta com o comando pronto",
 test("menu por área e lista de pratos com um toque ('Vou preparar …' abre a folha já perguntando)", async () => {
   const { pedir } = await montar({ extra: comBaseComCamarao });
   const m = await pedir("Me ajuda");
-  assert.deepEqual(m.pergunta.opcoes.map((o) => o.rotulo), ["Cozinha", "Bar", "Salão", "Estoque"]);
+  assert.deepEqual(m.pergunta.opcoes.map((o) => o.rotulo), ["Cozinha", "Bar", "Salão", "Estoque", "Limpeza e equipamentos"]);
   const coz = await pedir(m.pergunta.opcoes[0].comando);
   assert.equal(coz.pergunta.opcoes[0].comando, "Pratos da cozinha");
   const lista = await pedir("Pratos da cozinha");

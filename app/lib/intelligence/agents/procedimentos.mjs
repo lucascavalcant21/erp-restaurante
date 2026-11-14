@@ -8,7 +8,7 @@
 //
 // Só leitura, pelo banco escopado da unidade (op_processos → seções → itens).
 
-import { CATEGORIA, MODELOS, montarProcedimentos, procedimentoParaTexto } from "../../procedimentos.mjs";
+import { CATEGORIA, MODELOS, montarProcedimentos, procedimentoParaTexto, procedimentoDoPasso, TIPOS_PROCEDIMENTO } from "../../procedimentos.mjs";
 
 export const ROTA_PROCEDIMENTOS = "/dashboard/inteligencia/procedimentos";
 export const rotaCadastro = (nome) => `${ROTA_PROCEDIMENTOS}${nome ? `?novo=${encodeURIComponent(String(nome).slice(0, 120))}` : ""}`;
@@ -16,14 +16,18 @@ export const rotaCadastro = (nome) => `${ROTA_PROCEDIMENTOS}${nome ? `?novo=${en
 /** Procedimentos ativos da unidade. `falha` quando a leitura não deu (a resposta cai no padrão). */
 export async function procedimentosDaUnidade(dbe) {
   try {
-    const r = await dbe.from("op_processos").select("id, nome, descricao, setor, updated_at").eq("categoria", CATEGORIA).eq("arquivado", false).order("nome").limit(200);
+    // Com a migração OP-CONTEUDO-1 vêm fotos, vídeos e detalhes; sem ela, só o texto.
+    const ler = (extra) => Promise.resolve(dbe.from("op_processos").select(`id, nome, descricao, setor, updated_at${extra}`).eq("categoria", CATEGORIA).eq("arquivado", false).order("nome").limit(200));
+    let extra = ", conteudo";
+    let r = await ler(extra);
+    if (r.error && /conteudo/i.test(r.error.message || "")) { extra = ""; r = await ler(extra); }
     if (r.error) return { status: "falha", lista: [] };
     const procs = r.data || [];
     if (!procs.length) return { status: "ok", lista: [] };
     const ids = procs.map((p) => p.id);
     const [s, i] = await Promise.all([
       dbe.from("op_secoes").select("id, processo_id, titulo, ordem").in("processo_id", ids),
-      dbe.from("op_itens").select("id, processo_id, secao_id, titulo, ordem").in("processo_id", ids).limit(5000),
+      dbe.from("op_itens").select(`id, processo_id, secao_id, titulo, ordem${extra}`).in("processo_id", ids).limit(5000),
     ]);
     if (s.error || i.error) return { status: "falha", lista: [] };
     return { status: "ok", lista: montarProcedimentos(procs, s.data, i.data).filter((p) => p.passos.length) };
@@ -33,13 +37,33 @@ export async function procedimentosDaUnidade(dbe) {
   }
 }
 
+/** Comando que abre um procedimento pelo nome (botão "Ver como faz"). */
+export const comandoDoProcedimento = (nome) => `Procedimento da casa: ${nome}`;
+
 /** Resposta com o procedimento cadastrado (bloco "passos"). */
-export function respostaDoProcedimento(p, { podeEditar = false } = {}) {
-  const linhas = p.passos.map((x, i) => `${i + 1}. ${x}`);
-  const texto = [`${p.nome}, do jeito da casa:`, ...linhas, ...(p.gerente.length ? [`Chame o gerente quando: ${p.gerente.join("; ")}.`] : [])].join("\n");
+export function respostaDoProcedimento(p, { podeEditar = false, lista = [] } = {}) {
+  const etapas = (p.etapas?.length ? p.etapas : p.passos.map((texto) => ({ texto }))).map((e) => {
+    const abre = procedimentoDoPasso(e, lista);
+    return { ...e, abre: abre ? { nome: abre.nome, comando: comandoDoProcedimento(abre.nome) } : null };
+  });
+  const linha = (e, i) => `${i + 1}. ${e.texto}${e.produto ? ` (${e.produto}${e.quantidade ? `, ${e.quantidade}` : ""})` : e.quantidade ? ` (${e.quantidade})` : ""}`;
+  const eq = p.equipamento || {};
+  const texto = [
+    `${p.nome}, do jeito da casa:`,
+    ...(eq.voltagem ? [`Voltagem: ${eq.voltagem}.`] : []),
+    ...etapas.map(linha),
+    ...(eq.local ? [`Onde fica: ${eq.local}.`] : []),
+    ...(p.gerente.length ? [`Chame o gerente quando: ${p.gerente.join("; ")}.`] : []),
+  ].join("\n");
+  const tipo = TIPOS_PROCEDIMENTO.find((t) => t.id === p.tipo);
   return {
     tipo: "resposta", texto, natureza: "REAL", agentes: ["operacoes"],
-    blocos: [{ tipo: "passos", rotulo: "Procedimento da casa", titulo: p.nome, quando: p.quando || null, passos: p.passos, gerente: p.gerente }],
+    blocos: [{
+      tipo: "passos", rotulo: tipo && tipo.id !== "resolver" ? `${tipo.rotulo} · jeito da casa` : "Procedimento da casa",
+      titulo: p.nome, quando: p.quando || null, passos: p.passos, etapas, gerente: p.gerente,
+      equipamento: Object.keys(eq).length ? eq : null, midias: p.midias || [],
+      marcar: p.tipo === "rotina" || p.tipo === "limpeza",
+    }],
     acoes: podeEditar ? [{ rotulo: "Editar procedimento", rota: rotaCadastro(p.nome) }] : [],
   };
 }
@@ -51,7 +75,7 @@ export function respostaDoProcedimento(p, { podeEditar = false } = {}) {
 export async function buscarProcedimento({ texto, dbe, podeEditar = false }) {
   const { lista } = await procedimentosDaUnidade(dbe);
   const achado = procedimentoParaTexto(lista, texto);
-  if (achado) return { resposta: respostaDoProcedimento(achado, { podeEditar }) };
+  if (achado) return { resposta: respostaDoProcedimento(achado, { podeEditar, lista }) };
   const modelo = procedimentoParaTexto(MODELOS, texto);
   return { resposta: null, cadastrar: podeEditar ? { rotulo: "Cadastrar o jeito da casa", rota: rotaCadastro(modelo?.nome || null) } : null, lista };
 }

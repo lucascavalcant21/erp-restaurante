@@ -117,6 +117,7 @@ const AREAS_INICIO = [
   { rotulo: "Bar", icone: "🍹", comando: "Atalhos do bar" },
   { rotulo: "Salão", icone: "🍽️", comando: "Atalhos do salão" },
   { rotulo: "Estoque", icone: "📦", comando: "Atalhos do estoque" },
+  { rotulo: "Limpeza e equipamentos", icone: "🧽", comando: "Atalhos de limpeza e equipamentos" },
 ];
 
 // O Nico (equipe) começa por perguntas da operação; as de gestão são do Jhon (14/11/2026).
@@ -184,7 +185,7 @@ function Blocos({ blocos, onRota, onComando }) {
           );
         }
         if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} onComando={onComando} />;
-        if (b.tipo === "passos") return <PassosProcedimento key={i} bloco={b} />;
+        if (b.tipo === "passos") return <PassosProcedimento key={i} bloco={b} onComando={onComando} />;
         if (b.tipo === "etiquetas") return <ListaEtiquetas key={i} bloco={b} onRota={onRota} />;
         if (b.tipo === "texto") return <p key={i} className="text-[14px]" style={{ color: "var(--wa-meta)" }}>{b.qualificador ? <strong>{b.qualificador}: </strong> : null}{b.texto}</p>;
         if (b.tipo === "insight" && b.insight?.titulo) return <p key={i} className="text-[14.5px]">• {b.insight.titulo}</p>;
@@ -628,9 +629,9 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
               {/* Assistente clicável (pedido do dono, 08/11/2026): o funcionário toca mais do que digita */}
               <div className="flex justify-start px-3 pb-1.5 sm:px-[6%]">
                 <div className="grid w-full max-w-[82%] grid-cols-2 gap-1.5 sm:max-w-[520px]">
-                  {AREAS_INICIO.map((a) => (
+                  {AREAS_INICIO.map((a, idx) => (
                     <button key={a.comando} type="button" disabled={ocupado} onClick={() => enviarComando(a.comando)}
-                      className="flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-[16px] px-2 py-3 text-center shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.98] disabled:opacity-50"
+                      className={`${idx === AREAS_INICIO.length - 1 && AREAS_INICIO.length % 2 ? "col-span-2 " : ""}flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-[16px] px-2 py-3 text-center shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.98] disabled:opacity-50`}
                       style={{ background: "var(--wa-ele)", color: "var(--wa-verde-escuro)" }}>
                       <span className="text-[30px] leading-none" aria-hidden="true">{a.icone}</span>
                       <span className="text-[17px] font-semibold">{a.rotulo}</span>

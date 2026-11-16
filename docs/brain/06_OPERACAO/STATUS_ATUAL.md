@@ -152,3 +152,10 @@ Branch `claude/upgrade-visual-medway` (PR em rascunho):
 - Último resultado: nenhuma missão READY; confere de novo
 - Próxima missão READY: nenhuma
 <!-- hefisto-agent:agente:fim -->
+
+## 16/11/2026 — Marmitaria em sequência, Jhon monta marmita, raio-x do preço (pedido do dono)
+
+- `hefisto-teste` (commits 8a9b853 → c568ca1): sequência de 9 passos na marmitaria (muda para o dia a dia quando concluída), custos variáveis por marmita, planos por app, calculadora por app, guia de montagem impresso, nome e segmento do delivery.
+- Inteligência: `marmita.create` ("Jhon, vamos montar uma marmita"), `marmitaria.raio_x` (quem leva quanto do preço, componente mais caro) e `marmitaria.montagem` (Nico: como monta).
+- Evidência: TESTADO LOCAL (884 testes de `app/lib` com PGlite, 219 da inteligência, build) e TESTADO EM MOCK (Chrome 390 px). No banco de teste e no preview: NÃO VALIDADO (falta a cópia da estrutura, ACESSO-008).
+- Pendente: vários deliveries por unidade (HDEV-014); sobremesa no combo pela conversa; renomear "marmita" para o item do segmento (lanche, pizza) nas telas.

@@ -15,6 +15,7 @@ import { palavras } from "./interpretador-regras.mjs";
 import { motivoDaEntrada, MOTIVOS_ENTRADA } from "../actions/registrar-entrada.mjs";
 import { dividirEmItens } from "./lote.mjs";
 import { paramsDoComando } from "../actions/criar-ficha.mjs";
+import { paramsDoComando as paramsDaMarmita } from "../actions/criar-marmita.mjs";
 import { responderLivre, FOCO_SALAO, FOCO_ROTINA, ehPedidoDeRotina } from "../agents/geral.mjs";
 import { sugestoesDaResposta } from "./sugestoes.mjs";
 import { notaSchema } from "../actions/lancar-nota.mjs";
@@ -227,7 +228,7 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       trilha.passar("recomendacao", NIVEL.RECOMENDAR);
       if (usaProduto && semProdutoDito && produtoCtx && !produtoCtx.ambiguo) params.insumoId = produtoCtx.id;
       if (intencao.acao === "stock.registerEntry") params.motivoEntrada = motivoDaEntrada(pedido.texto);
-      const paramsAcao = intencao.acao === "recipe.create" ? paramsDoComando(pedido.texto, conversa) : params;
+      const paramsAcao = intencao.acao === "recipe.create" ? paramsDoComando(pedido.texto, conversa) : intencao.acao === "marmita.create" ? paramsDaMarmita(pedido.texto) : params;
       resposta = await servicoAcoes.iniciar({ acaoId: intencao.acao, params: paramsAcao, comando: pedido.texto, chave: pedido.chave, correlationId });
       trilha.passar("acao", NIVEL.AGIR);
     } else {

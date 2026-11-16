@@ -234,6 +234,13 @@ export const INTENCOES = Object.freeze([
     frases: [["montar uma receita", "montar receita", "monta uma receita", "criar uma receita", "criar receita", "cria uma receita", "nova receita", "nova ficha", "criar ficha", "criar uma ficha", "cria uma ficha", "cadastrar ficha", "cadastrar uma ficha", "cadastrar receita", "cadastrar uma receita", "montar uma ficha", "montar ficha", "montar um prato", "monta um prato", "montar o prato", "criar um prato", "criar prato", "cadastrar um prato", "novo prato", "fazer uma ficha", "fazer uma receita", "montar uma base", "criar uma base", "nova base"]],
     proibidas: ["como monta", "como montar", "como se monta", "como faz", "como fazer", "como se faz", "ficha tecnica de", "ficha tecnica do", "ficha tecnica da"], peso: 12,
   },
+  // 16/11/2026: "Jhon, vamos montar uma marmita" (conversa: componentes, gramas, embalagem, app, preço, combo, montagem)
+  {
+    id: "marmitaria.criar", tipo: "acao", acao: "marmita.create", agentes: ["operacoes"],
+    descricao: "Montar uma marmita nova conversando com o Jhon: componentes, gramas, ficha do que é feito aqui, embalagem, app, preço pela calculadora, combo e montagem (ex.: 'Jhon, vamos montar uma marmita', 'criar uma marmita nova').",
+    frases: [["montar uma marmita", "monta uma marmita", "montar a marmita nova", "montar marmita nova", "criar uma marmita", "criar marmita", "cria uma marmita", "nova marmita", "marmita nova", "cadastrar uma marmita", "cadastrar marmita", "vamos montar uma marmita", "montar uma quentinha", "nova quentinha"]],
+    proibidas: ["como monta", "como montar", "como se monta", "guia"], peso: 15,
+  },
   // 16/11/2026: raio-x do preço da marmita (quem leva quanto, componente mais caro)
   {
     id: "marmitaria.raio_x", tipo: "pergunta", agentes: ["operacoes"],

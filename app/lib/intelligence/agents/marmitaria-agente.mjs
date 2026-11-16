@@ -23,7 +23,7 @@ const tentar = async (p) => { try { return await p; } catch (e) { if (e?.name ==
 
 /** Tudo o que o raio-x precisa, lido pela unidade da sessão. */
 export async function carregarDadosDaMarmitaria(dbe, hoje) {
-  const cfgRows = await ler(dbe.from("marmitaria_configuracoes").select("canais, tributos_pct, rateio, encargos").limit(1), "marmitaria_configuracoes");
+  const cfgRows = await ler(dbe.from("marmitaria_configuracoes").select("canais, tributos_pct, margem_lucro_alvo_pct, rateio, encargos").limit(1), "marmitaria_configuracoes");
   const cfg = cfgRows?.[0] || {};
   const rateio = cfg.rateio && typeof cfg.rateio === "object" ? cfg.rateio : {};
   const { todas } = await carregarFichasComCusto(dbe);
@@ -65,7 +65,10 @@ export async function carregarDadosDaMarmitaria(dbe, hoje) {
   const vendidasMes = (vendas || []).reduce((t, v) => t + (Number(v.quantidade) || 0), 0);
   const embutidos = custosEmbutidos({ cmoMes, vendidasMes, config: { rateio } });
   const tributosPct = rateio.regime === "mei" ? 0 : n(cfg.tributos_pct);
-  return { canais: (cfg.canais || []).map(normalizarCanal).filter((c) => c.id), marmitas, fichas: todas, insumos, embutidos, tributosPct, pessoas, temConfig: cfgRows?.length > 0 };
+  return {
+    canais: (cfg.canais || []).map(normalizarCanal).filter((c) => c.id), marmitas, fichas: todas, insumos, embutidos, tributosPct, pessoas, temConfig: cfgRows?.length > 0,
+    margemAlvoPct: n(cfg.margem_lucro_alvo_pct), lucroAlvoReais: n(rateio.meta_lucro_reais) > 0 ? n(rateio.meta_lucro_reais) : null,
+  };
 }
 
 function raioX(d, marmita, texto) {

@@ -120,6 +120,7 @@ export function composicaoDoPreco({ linha, custoFicha = null, embutidos = null }
     { id: "embalagens", rotulo: "Embalagens", valor: emb },
     { id: "cmo", rotulo: "CMO (equipe)", valor: r.cmo, filhos: pedacos(embutidos?.cmoLinhas || [], embutidos?.cmoMes, r.cmo || 0) },
     { id: "fixos", rotulo: "Custos fixos", valor: r.fixos, filhos: pedacos(embutidos?.fixosLinhas || [], embutidos?.fixosMes, r.fixos || 0) },
+    { id: "variaveis", rotulo: "Custos variáveis", valor: r.extras || 0, filhos: pedacos(embutidos?.variaveisLinhas || [], embutidos?.variaveisPorMarmita, r.extras || 0) },
     { id: "taxas", rotulo: "Taxas e entrega", valor: r2(r.variaveis), filhos: taxas },
     { id: "impostos", rotulo: "Impostos", valor: r.tributos },
     { id: "promocao", rotulo: "Promoção", valor: r.promocao },

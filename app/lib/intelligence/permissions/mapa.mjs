@@ -34,6 +34,10 @@ export const PERMISSOES = Object.freeze({
   confirmar_compra: ["estoque.purchases.confirm"],
   // as mesmas chaves que _estoque_pode('movimentar', unidade, 'entrada') aceita no banco (EST-MOV-1)
   registrar_entrada: ["estoque.entries.create", "estoque.movements.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
+  // raio-x do preço da marmita (equipe só como total por marmita): quem vê a margem na marmitaria
+  lucro_marmitaria: ["marmitaria.recipes.view_margin", "marmitaria.management.view_margin", "marmitaria.financial.view_margin"],
+  // guia de montagem da marmita (sem custo): quem vê as fichas da marmitaria ou da cozinha
+  fichas_marmitaria: ["marmitaria.recipes.view", "marmitaria.stock.view", "fichas.recipes.view", "cozinha.recipes.view"],
   registrar_perda: ["estoque.losses.record_loss", "estoque.movements.create", "estoque.outputs.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
 });
 
@@ -57,6 +61,8 @@ export const ROTULO_CAPACIDADE = Object.freeze({
   custo_fichas: "custo das fichas técnicas",
   criar_ficha: "criar ficha técnica",
   confirmar_compra: "confirmar compras",
+  lucro_marmitaria: "margem da marmitaria",
+  fichas_marmitaria: "fichas da marmitaria",
 });
 
 /**

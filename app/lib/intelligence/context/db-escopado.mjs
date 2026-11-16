@@ -76,6 +76,12 @@ export const TABELAS = Object.freeze({
   op_itens: { tenant: false, pai: { tabela: "op_processos", coluna: "processo_id" }, rotulo: "Passos do procedimento" },
   fichas_ingredientes: { tenant: false, pai: { tabela: "fichas_tecnicas", coluna: "ficha_id" }, rotulo: "Ingredientes da ficha" },
   fin_categorias: { tenant: false, rotulo: "Plano de contas" },
+  // Marmitaria (raio-x do preço, 16/11/2026)
+  marmitaria_configuracoes: { tenant: true, rotulo: "Custos e apps da marmitaria" },
+  marmitaria_fichas_embalagens: { tenant: true, rotulo: "Embalagens das marmitas" },
+  marmitaria_precificacao_canais: { tenant: true, rotulo: "Preço das marmitas por app" },
+  marmitaria_rh_alocacoes: { tenant: true, rotulo: "Equipe da marmitaria" },
+  marmitaria_vendas: { tenant: true, rotulo: "Vendas da marmitaria" },
 });
 
 // Métodos de filtro/ordem permitidos. `or` fica de fora de propósito.

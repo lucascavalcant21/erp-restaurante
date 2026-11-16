@@ -75,8 +75,10 @@ export function lucroDoPedido({ paga, custo, canal = CANAL_DIRETO, tributosPct =
   const porMarmita = (v) => (v == null ? null : r2(v * pos(marmitas)));
   const cmo = porMarmita(embutidos?.cmoPorMarmita);
   const fixos = porMarmita(embutidos?.fixosPorMarmita);
-  const lucro = r.margemContribuicao == null ? null : r2(r.margemContribuicao - (cmo || 0) - (fixos || 0));
-  return { ...r, cmo, fixos, lucro, lucroPct: lucro == null || !(r.receita > 0) ? null : r2((lucro / r.receita) * 100) };
+  // Custos variáveis por marmita (gás, talher, sachê…: Configurações, 16/11/2026).
+  const extras = embutidos?.variaveisPorMarmita > 0 ? porMarmita(embutidos.variaveisPorMarmita) : 0;
+  const lucro = r.margemContribuicao == null ? null : r2(r.margemContribuicao - (cmo || 0) - (fixos || 0) - extras);
+  return { ...r, cmo, fixos, extras, lucro, lucroPct: lucro == null || !(r.receita > 0) ? null : r2((lucro / r.receita) * 100) };
 }
 
 /**

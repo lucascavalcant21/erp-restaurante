@@ -234,6 +234,19 @@ export const INTENCOES = Object.freeze([
     frases: [["montar uma receita", "montar receita", "monta uma receita", "criar uma receita", "criar receita", "cria uma receita", "nova receita", "nova ficha", "criar ficha", "criar uma ficha", "cria uma ficha", "cadastrar ficha", "cadastrar uma ficha", "cadastrar receita", "cadastrar uma receita", "montar uma ficha", "montar ficha", "montar um prato", "monta um prato", "montar o prato", "criar um prato", "criar prato", "cadastrar um prato", "novo prato", "fazer uma ficha", "fazer uma receita", "montar uma base", "criar uma base", "nova base"]],
     proibidas: ["como monta", "como montar", "como se monta", "como faz", "como fazer", "como se faz", "ficha tecnica de", "ficha tecnica do", "ficha tecnica da"], peso: 12,
   },
+  // 16/11/2026: raio-x do preço da marmita (quem leva quanto, componente mais caro)
+  {
+    id: "marmitaria.raio_x", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Raio-x do preço das marmitas: para onde vai cada real (ingredientes, embalagem, app, imposto, equipe, pró-labore, aluguel, energia), o lucro e o componente mais caro (ex.: 'como são nossas marmitas?', 'quem está ganhando quanto na marmita de frango?', 'qual o componente mais caro da marmita?').",
+    frases: [["marmita", "marmitas", "quentinha", "quentinhas"], ["raio x", "raio-x", "ganhando quanto", "quem ganha", "quem esta ganhando", "quanto sobra", "quanto ta sobrando", "quanto esta sobrando", "sobrando", "lucro", "lucrando", "componente mais caro", "mais caro", "mais cara", "quanto custa", "custo da", "custo de", "custo do", "como sao nossas", "como estao nossas", "como esta a", "como ta a", "margem", "pra onde vai", "para onde vai", "reajustar", "tirando"]],
+    proibidas: ["montar", "monta", "como monta", "como montar", "cadastrar", "criar", "vender hoje", "produzir"], peso: 12,
+  },
+  {
+    id: "marmitaria.montagem", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Guia de montagem de uma marmita: o que vai, quanto (g/un/ml), embalagens e o passo a passo (ex.: 'Nico, como monta a marmita de frango?', 'montagem da marmita de carne').",
+    frases: [["marmita", "marmitas", "quentinha"], ["como monta", "como montar", "como se monta", "como monto", "montagem", "guia", "o que vai na", "o que vai no", "quanto vai", "quantas gramas", "passo a passo"]],
+    proibidas: ["vamos montar", "montar uma", "montar a ficha", "criar", "cadastrar", "lucro", "mais caro", "ganhando"], peso: 10,
+  },
   // 14/11/2026: lista de compras pelo Jhon e "comprei tudo, faltou isso"
   {
     id: "compras.lista_comprei", tipo: "pergunta", agentes: ["compras"],

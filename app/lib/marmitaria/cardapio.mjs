@@ -73,13 +73,21 @@ export function custosEmbutidos({ cmoMes = 0, cmoLinhas = [], fixosContasMes = 0
   const porMarmita = (v) => (v === null || marmitasMes === null ? null : r2(v / marmitasMes));
   const cmoPorMarmita = porMarmita(equipe);
   const fixosPorMarmita = porMarmita(fixos);
+  // Custos variáveis por marmita (dono, 16/11/2026): gás, talher, sachê,
+  // etiqueta… valor que o dono informa por unidade, REAL. A embalagem não
+  // entra aqui: já está na ficha técnica de cada marmita.
+  const variaveisLinhas = (Array.isArray(r.custos_variaveis) ? r.custos_variaveis : [])
+    .filter((c) => String(c?.nome || "").trim() && numero(c?.valor) > 0)
+    .map((c) => ({ nome: String(c.nome).trim(), valor: r2(numero(c.valor)) }));
+  const variaveisPorMarmita = variaveisLinhas.length ? r2(variaveisLinhas.reduce((t, c) => t + c.valor, 0)) : 0;
   const faltando = [];
   if (marmitasMes === null) faltando.push("marmitas por mês");
   if (equipe === null) faltando.push("equipe");
   if (fixos === null) faltando.push("custos fixos");
   return {
     marmitasMes, cmoMes: equipe, fixosMes: fixos, fixosLinhas: mapa, cmoLinhas: preenchido(r.cmo_mes) ? [] : cmoLinhas, cmoPorMarmita, fixosPorMarmita,
-    totalPorMarmita: cmoPorMarmita === null && fixosPorMarmita === null ? null : r2((cmoPorMarmita || 0) + (fixosPorMarmita || 0)),
+    variaveisLinhas, variaveisPorMarmita,
+    totalPorMarmita: cmoPorMarmita === null && fixosPorMarmita === null && !variaveisPorMarmita ? null : r2((cmoPorMarmita || 0) + (fixosPorMarmita || 0) + variaveisPorMarmita),
     faltando, completo: faltando.length === 0,
   };
 }

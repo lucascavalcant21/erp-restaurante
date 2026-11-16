@@ -46,7 +46,8 @@ export function BarraDeAreas({ areas, ativa, rotulo }) {
     const a = t?.querySelector("a[aria-current]");
     if (!t || !a || t.scrollWidth <= t.clientWidth) return;
     t.scrollLeft = Math.max(0, a.offsetLeft - (t.clientWidth - a.offsetWidth) / 2);
-  }, [pathname]);
+    // A lista de áreas pode trocar sem mudar de rota (marmitaria: sequência ↔ dia a dia).
+  }, [pathname, areas.map((x) => x.href).join("|")]);
   return (
     <nav aria-label={rotulo} className="mb-5 overflow-hidden rounded-2xl bg-hf-menu shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
       <div ref={trilho} className="flex overflow-x-auto [scrollbar-width:none]">

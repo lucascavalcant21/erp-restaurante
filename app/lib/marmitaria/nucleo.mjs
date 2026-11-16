@@ -145,6 +145,10 @@ export function normalizarCanal(c = {}) {
   const out = {
     id, nome: String(c.nome || id).trim() || id, ativo: c.ativo !== false,
     modalidade: String(c.modalidade || "").trim(),
+    // Planos (dono, 16/11/2026): o mesmo app pode ter mais de um plano (ex.:
+    // iFood Básico e iFood Entrega), cada um com as suas taxas. Cada plano é
+    // um canal; "plataforma" agrupa os planos do mesmo app.
+    plataforma: String(c.plataforma || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 30) || null,
     comissao_base: c.comissao_base === "bruto" ? "bruto" : "receita",
     pagamento_na_comissao: !!c.pagamento_na_comissao,
     itens_por_pedido: Math.max(1, parseNumero(c.itens_por_pedido) || 1),
@@ -154,6 +158,19 @@ export function normalizarCanal(c = {}) {
     out[k] = v === "" || v === null || v === undefined ? null : Math.max(0, parseNumero(v));
   }
   return out;
+}
+
+/** Novo plano de um app já cadastrado: mesmo app, taxas em branco, id único. */
+export function novoPlanoDoCanal(canal, usados = []) {
+  const base = normalizarCanal(canal);
+  const plataforma = base.plataforma || base.id;
+  const ids = new Set(usados);
+  let n = 2;
+  while (ids.has(`${plataforma}_p${n}`)) n++;
+  return {
+    ...normalizarCanal({ id: `${plataforma}_p${n}`, nome: `${MODELOS_CANAL.find((m) => m.id === plataforma)?.nome || base.nome.split(" · ")[0]} · Plano ${n}`, plataforma, comissao_base: base.comissao_base }),
+    comissao_pct: "", taxa_pagamento_pct: "", taxa_fixa_pedido: "", entrega_subsidiada_pedido: "", promocao_pct: "", itens_por_pedido: base.itens_por_pedido,
+  };
 }
 
 // Canal conta como configurado quando o dono preencheu ao menos as taxas que

@@ -11,31 +11,55 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MarmitariaProvider, useMarmitaria } from "../../components/marmitaria/contexto";
+import { JornadaProvider, useJornada } from "../../components/marmitaria/useJornada";
+import { PASSOS, ROTAS } from "../../lib/marmitaria/jornada.mjs";
 import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
 import { BarraDeAreas } from "../../components/gerencial/PainelGerencial";
-import { BadgeDollarSign, Boxes, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Settings, ShoppingCart, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
+import { BadgeDollarSign, BarChart3, Boxes, Calculator, CheckCircle2, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Settings, ShoppingCart, Smartphone, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
 
 const FICHA = "/dashboard/marmitaria/marmitas";
 const ESTOQUE = "/dashboard/marmitaria/estoque";
+// Dia a dia (depois da sequência concluída).
 const AREAS = [
   { href: "/dashboard/marmitaria", rotulo: "Início", exato: true, icone: Home },
-  // Dashboard gerencial no modelo de gestão (pedido do dono, 08/11/2026).
-  { href: "/dashboard/marmitaria/gerencial", rotulo: "Dashboard gerencial", icone: Gauge },
-  { href: `${FICHA}/produtos`, rotulo: "Cadastro de ingredientes", icone: Package },
-  { href: `${FICHA}/embalagens`, rotulo: "Cadastro de embalagens", icone: Boxes },
+  { href: `${FICHA}/lucro`, rotulo: "Vendas e faturamento", icone: TrendingUp },
+  { href: `${ESTOQUE}/cozinha`, rotulo: "Produção do dia", tambem: [`${ESTOQUE}/producoes`], icone: ChefHat },
   { href: `${ESTOQUE}/compras`, rotulo: "Compras", icone: ShoppingCart },
   { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`], icone: Warehouse },
   { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/processos`, `${FICHA}/produtos`], icone: ClipboardList },
-  { href: `${FICHA}/cardapio`, rotulo: "Precificação", icone: BadgeDollarSign },
-  { href: `${ESTOQUE}/cozinha`, rotulo: "Produção do dia", tambem: [`${ESTOQUE}/producoes`], icone: ChefHat },
-  { href: `${FICHA}/processos`, rotulo: "Montagem do prato", icone: Layers },
-  { href: `${FICHA}/lucro`, rotulo: "Faturamento", icone: TrendingUp },
-  { href: "/dashboard/marmitaria/funcionarios", rotulo: "Funcionários", icone: Users },
-  { href: "/dashboard/marmitaria/financeiro", rotulo: "Financeiro", icone: Wallet },
-  { href: "/dashboard/marmitaria/configuracoes", rotulo: "Configurações", icone: Settings },
+  { href: `${FICHA}/cardapio`, rotulo: "Preço e combos", icone: BadgeDollarSign },
+  { href: `${FICHA}/processos`, rotulo: "Guia de montagem", icone: Layers },
+  { href: `${FICHA}/produtos`, rotulo: "Ingredientes", icone: Package },
+  { href: `${FICHA}/embalagens`, rotulo: "Embalagens", icone: Boxes },
+  { href: "/dashboard/marmitaria/funcionarios", rotulo: "Equipe", icone: Users },
+  { href: "/dashboard/marmitaria/configuracoes", rotulo: "Custos e apps", icone: Settings },
+  { href: "/dashboard/marmitaria/financeiro", rotulo: "DRE e financeiro", icone: Wallet },
+  // Dashboard gerencial no modelo de gestão (pedido do dono, 08/11/2026).
+  { href: "/dashboard/marmitaria/gerencial", rotulo: "Dashboard gerencial", icone: Gauge },
 ];
+
+// Sequência de implantação (pedido do dono, 16/11/2026): nove passos
+// numerados, na ordem. Concluída, a barra vira a do dia a dia.
+const ICONES_PASSO = { empresa: Users, custos: Calculator, apps: Smartphone, ingredientes: Package, embalagens: Boxes, fichas: ClipboardList, preco: BadgeDollarSign, montagem: Layers, dre: BarChart3 };
+function areasDaJornada(jornada) {
+  const status = Object.fromEntries((jornada?.passos || []).map((p) => [p.id, p.status]));
+  const exatos = new Set([ROTAS.fichas, "/dashboard/marmitaria/configuracoes"]);
+  return [
+    { href: "/dashboard/marmitaria", rotulo: "Início", exato: true, icone: Home },
+    ...PASSOS.map((p) => ({
+      href: p.rota,
+      rotulo: `${p.numero}. ${p.titulo}`,
+      icone: status[p.id] === "feito" ? CheckCircle2 : ICONES_PASSO[p.id],
+      exato: exatos.has(p.rota),
+      tambem: p.id === "preco" ? [`${FICHA}/combos`] : p.id === "fichas" ? [`${FICHA}/nova`, `${FICHA}/editar`] : [],
+    })),
+    { href: `${ESTOQUE}/compras`, rotulo: "Compras", icone: ShoppingCart },
+    { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`], icone: Warehouse },
+  ];
+}
+
 
 function Estado() {
   const { unidadeId, carregando, erro, base } = useMarmitaria();
@@ -45,19 +69,32 @@ function Estado() {
   return null;
 }
 
-export default function MarmitariaLayout({ children }) {
+function Barra() {
   const pathname = usePathname() || "";
+  const { jornada } = useJornada();
+  // Enquanto não sabe (carregando), mostra o dia a dia: quem já concluiu não vê a sequência piscar.
+  const naJornada = jornada && !jornada.concluida;
+  const areas = naJornada ? areasDaJornada(jornada) : AREAS;
+  return (
+    <BarraDeAreas rotulo={naJornada ? "Sequência de implantação da marmitaria" : "Áreas da marmitaria"} areas={areas}
+      ativa={(a) => (a.exato ? pathname === a.href : (pathname === a.href || pathname.startsWith(`${a.href}/`)) && !(a.exceto || []).some((x) => pathname.startsWith(x)))
+        || (a.tambem || []).some((x) => pathname.startsWith(x))} />
+  );
+}
+
+export default function MarmitariaLayout({ children }) {
   return (
     <MarmitariaProvider>
-      <div className="tema-gestao min-h-full bg-hf-bg">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-3 sm:px-6 lg:px-8">
-          <CabecalhoTela embutido titulo="Marmitaria e delivery" subtitulo="Pedidos, produção, entregas e compras da marmitaria" />
-          <BarraDeAreas rotulo="Áreas da marmitaria" areas={AREAS} ativa={(a) => (a.exato ? pathname === a.href : (pathname === a.href || pathname.startsWith(`${a.href}/`)) && !(a.exceto || []).some((x) => pathname.startsWith(x)))
-            || (a.tambem || []).some((x) => pathname.startsWith(x))} />
-          <Estado />
-          {children}
+      <JornadaProvider>
+        <div className="tema-gestao min-h-full bg-hf-bg">
+          <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-3 sm:px-6 lg:px-8">
+            <CabecalhoTela embutido titulo="Marmitaria e delivery" subtitulo="Pedidos, produção, entregas e compras da marmitaria" />
+            <Barra />
+            <Estado />
+            {children}
+          </div>
         </div>
-      </div>
+      </JornadaProvider>
     </MarmitariaProvider>
   );
 }

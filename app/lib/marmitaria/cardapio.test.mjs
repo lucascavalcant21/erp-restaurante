@@ -109,3 +109,12 @@ test("composição do preço: soma o preço e abre por funcionário e por conta"
   assert.deepEqual(por.taxas.filhos.map((f) => f.rotulo), ["Comissão da plataforma", "Maquininha e pagamento", "Entrega"]);
   assert.equal(c.linhas.reduce((t, l) => t + l.valor, 0), 100);
 });
+
+test("custos variáveis por marmita somam no custo embutido (16/11/2026)", () => {
+  const e = custosEmbutidos({ cmoMes: 5000, fixosContasMes: 2500, vendidasMes: 1000, config: { rateio: { custos_variaveis: [{ nome: "Gás", valor: "0,35" }, { nome: "Talher e guardanapo", valor: 0.4 }, { nome: "", valor: 9 }, { nome: "Etiqueta", valor: "" }] } } });
+  assert.deepEqual([e.cmoPorMarmita, e.fixosPorMarmita, e.variaveisPorMarmita, e.totalPorMarmita], [5, 2.5, 0.75, 8.25]);
+  assert.deepEqual(e.variaveisLinhas.map((x) => x.nome), ["Gás", "Talher e guardanapo"]);
+  const so = custosEmbutidos({ config: { rateio: { custos_variaveis: [{ nome: "Gás", valor: 1 }] } } });
+  assert.equal(so.totalPorMarmita, 1, "sem equipe e fixos, o variável ainda conta");
+  assert.equal(so.completo, false);
+});

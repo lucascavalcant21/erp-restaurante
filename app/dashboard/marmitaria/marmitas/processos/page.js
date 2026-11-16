@@ -3,16 +3,19 @@
 // Processos da marmitaria: o passo a passo de cada marmita, da montagem até o
 // motoboy, e quais embalagens servem para ela. Fica sob /marmitas para herdar a
 // mesma permissão de rota. Os processos ficam em config_sistema.
+// Guia impresso (16/11/2026): "Imprimir guia" por marmita e "Imprimir todos".
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, Check, ClipboardList, ImagePlus, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, ClipboardList, ImagePlus, Plus, Printer, Trash2 } from "lucide-react";
+import { imprimirGuias } from "../../../../components/marmitaria/imprimirGuia";
+import { useJornada } from "../../../../components/marmitaria/useJornada";
 import { useMarmitaria } from "../../../../components/marmitaria/contexto";
 import { ehEmbalagem } from "../../../../components/marmitaria/BuscaItens";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, inputCls } from "../../../../components/marmitaria/ui";
 import { fetchProcessosMarmitaria, salvarProcessosMarmitaria } from "../../../../lib/parametros";
 import { uploadFotoMontagem } from "../../../../lib/montagem";
 import { novaChave } from "../../../../lib/marmitaria/dados";
-import { ETAPAS, moverEtapa, normalizarProcesso, resumoDoProcesso } from "../../../../lib/marmitaria/processos.mjs";
+import { ETAPAS, guiaDeMontagem, moverEtapa, normalizarProcesso, resumoDoProcesso } from "../../../../lib/marmitaria/processos.mjs";
 import { ordenarCategorias } from "../../../../lib/marmitaria/cardapio.mjs";
 
 function Etapa({ etapa, grupo, nome, mudar, tirar, mover }) {
@@ -53,6 +56,8 @@ function Etapa({ etapa, grupo, nome, mudar, tirar, mover }) {
   );
 }
 
+const guiaDe = (base, marmita, processo) => guiaDeMontagem({ marmita, processo, insumos: base.insumos, fichas: base.fichas });
+
 function Editor({ marmita, inicial, onVoltar, onSalvar }) {
   const { base } = useMarmitaria();
   const [p, setP] = useState(() => normalizarProcesso(inicial));
@@ -74,7 +79,10 @@ function Editor({ marmita, inicial, onVoltar, onSalvar }) {
   return (
     <div className="space-y-4">
       <button type="button" onClick={onVoltar} className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-2 text-sm font-semibold text-hf-text-2 hover:bg-hf-elevated"><ArrowLeft size={16} /> Voltar para os processos</button>
-      <h2 className="text-lg font-black text-hf-text">{marmita.nome_receita}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-black text-hf-text">{marmita.nome_receita}</h2>
+        <Botao type="button" variante="secundario" onClick={() => imprimirGuias([guiaDe(base, marmita, p)])}><Printer size={16} /> Imprimir guia</Botao>
+      </div>
       <Secao titulo="Embalagens que servem" subtitulo="Toque nas embalagens que podem ser usadas nesta marmita.">
         {!embalagens.length ? <p className="text-sm text-hf-text-2">Cadastre as embalagens primeiro.</p> : (
           <div className="flex flex-wrap gap-1.5">
@@ -113,6 +121,7 @@ function Editor({ marmita, inicial, onVoltar, onSalvar }) {
 
 export default function ProcessosPage() {
   const { base, carregando, unidadeId } = useMarmitaria();
+  const { recarregarJornada } = useJornada();
   const [processos, setProcessos] = useState({});
   const [abertoId, setAbertoId] = useState(null);
   useEffect(() => { if (unidadeId) fetchProcessosMarmitaria(unidadeId).then((r) => setProcessos(r.data || {})); }, [unidadeId]);
@@ -124,14 +133,19 @@ export default function ProcessosPage() {
       onSalvar={async (p) => {
         const todos = { ...processos, [aberto.id]: p };
         const r = await salvarProcessosMarmitaria(unidadeId, todos);
-        if (!r?.error) setProcessos(todos);
+        if (!r?.error) { setProcessos(todos); recarregarJornada(); }
         return r;
       }} />;
   }
 
   const categorias = ordenarCategorias(base.marmitas.map((m) => m.categoria || "Sem categoria"));
   return (
-    <Secao titulo="Montagem do prato" subtitulo="Como cada item é montado, fechado e entregue.">
+    <Secao titulo="Guia de montagem" subtitulo="Como cada marmita é montada, fechada e entregue. Toque numa marmita para escrever o passo a passo.">
+      {base.marmitas.some((m) => m.ativo !== false) && (
+        <div className="mb-3 flex justify-end">
+          <Botao type="button" variante="secundario" onClick={() => imprimirGuias(base.marmitas.filter((m) => m.ativo !== false).map((m) => guiaDe(base, m, processos[m.id])))}><Printer size={16} /> Imprimir todos os guias</Botao>
+        </div>
+      )}
       {!base.marmitas.length && <p className="text-sm text-hf-text-2">Monte as fichas técnicas primeiro.</p>}
       <div className="space-y-4">
         {categorias.map((c) => (

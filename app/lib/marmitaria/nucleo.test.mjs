@@ -382,3 +382,16 @@ test("pacote: 23 reais com 30 unidades dá 0,7667 cada", async () => {
   assert.equal(custoPorUnidadeDoPacote(23, 0), null);
   assert.equal(custoPorUnidadeDoPacote(23, ""), null);
 });
+
+import { novoPlanoDoCanal, normalizarCanal as normCanal } from "./nucleo.mjs";
+test("planos do mesmo app: id único, taxas em branco, agrupados pela plataforma (16/11/2026)", () => {
+  const p2 = novoPlanoDoCanal({ id: "ifood", nome: "iFood", comissao_pct: 12, taxa_pagamento_pct: 3.2 }, ["ifood"]);
+  assert.equal(p2.id, "ifood_p2");
+  assert.equal(p2.nome, "iFood · Plano 2");
+  assert.equal(p2.plataforma, "ifood");
+  assert.equal(p2.comissao_pct, "");
+  const p3 = novoPlanoDoCanal(p2, ["ifood", "ifood_p2"]);
+  assert.equal(p3.id, "ifood_p3");
+  assert.equal(p3.nome, "iFood · Plano 3");
+  assert.equal(normCanal({ id: "keeta" }).plataforma, null);
+});

@@ -37,6 +37,7 @@ export function JornadaProvider({ children }) {
       alocacoes: aloc,
       temVendas: vendas == null ? null : vendas > 0,
       concluidaSalva: Boolean(cfg?.data?.[0]?.params?.marmitaria_jornada_concluida),
+      delivery: cfg?.data?.[0]?.params?.delivery || null,
     });
   }, [unidadeId]);
   useEffect(() => { setExtra(null); ler(); }, [ler, base]);
@@ -45,7 +46,7 @@ export function JornadaProvider({ children }) {
     if (!base || !extra) return null;
     return statusDaJornada({
       unidade: base.unidade, config: base.config, insumosLista: base.insumosLista, marmitas: base.marmitas, custos,
-      processos: extra.processos, alocacoes: extra.alocacoes, temVendas: extra.temVendas, concluidaSalva: extra.concluidaSalva,
+      delivery: extra.delivery, processos: extra.processos, alocacoes: extra.alocacoes, temVendas: extra.temVendas, concluidaSalva: extra.concluidaSalva,
       ehEmbalagem, precoDoInsumo: precoNormalizadoDoInsumo,
     });
   }, [base, extra, custos]);
@@ -58,8 +59,15 @@ export function JornadaProvider({ children }) {
   }, [unidadeId]);
   useEffect(() => { if (jornada?.acabouDeConcluir) concluir(); }, [jornada?.acabouDeConcluir, concluir]);
 
-  const valor = useMemo(() => ({ jornada, recarregarJornada: ler, concluir }), [jornada, ler, concluir]);
+  // Nome e segmento do delivery (passo 1).
+  const salvarDelivery = useCallback(async (d) => {
+    if (!unidadeId) return { error: "Selecione uma unidade." };
+    const r = await salvarParams(unidadeId, { delivery: d });
+    if (!r?.error) setExtra((x) => (x ? { ...x, delivery: d } : x));
+    return r;
+  }, [unidadeId]);
+  const valor = useMemo(() => ({ jornada, delivery: extra?.delivery || null, recarregarJornada: ler, concluir, salvarDelivery }), [jornada, extra, ler, concluir, salvarDelivery]);
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }
 
-export const useJornada = () => useContext(Ctx) || { jornada: null, recarregarJornada: () => {}, concluir: async () => {} };
+export const useJornada = () => useContext(Ctx) || { jornada: null, delivery: null, recarregarJornada: () => {}, concluir: async () => {}, salvarDelivery: async () => ({}) };

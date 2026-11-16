@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import { MarmitariaProvider, useMarmitaria } from "../../components/marmitaria/contexto";
 import { JornadaProvider, useJornada } from "../../components/marmitaria/useJornada";
 import { PASSOS, ROTAS } from "../../lib/marmitaria/jornada.mjs";
+import { tituloDoDelivery } from "../../lib/marmitaria/delivery.mjs";
 import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
@@ -69,6 +70,11 @@ function Estado() {
   return null;
 }
 
+function Titulo() {
+  const { delivery } = useJornada();
+  return <CabecalhoTela embutido titulo={tituloDoDelivery(delivery)} subtitulo="Pedidos, produção, entregas e compras do delivery" />;
+}
+
 function Barra() {
   const pathname = usePathname() || "";
   const { jornada } = useJornada();
@@ -88,7 +94,7 @@ export default function MarmitariaLayout({ children }) {
       <JornadaProvider>
         <div className="tema-gestao min-h-full bg-hf-bg">
           <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-3 sm:px-6 lg:px-8">
-            <CabecalhoTela embutido titulo="Marmitaria e delivery" subtitulo="Pedidos, produção, entregas e compras da marmitaria" />
+            <Titulo />
             <Barra />
             <Estado />
             {children}

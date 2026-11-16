@@ -16,7 +16,7 @@ const base = {
 
 test("a sequência é a do dono, em nove passos", () => {
   assert.deepEqual(PASSOS.map((p) => `${p.numero}. ${p.titulo}`), [
-    "1. Empresa e equipe", "2. Custos fixos e variáveis", "3. Apps e taxas", "4. Ingredientes", "5. Embalagens",
+    "1. Delivery e equipe", "2. Custos fixos e variáveis", "3. Apps e taxas", "4. Ingredientes", "5. Embalagens",
     "6. Ficha técnica", "7. Preço e combos", "8. Guia de montagem", "9. DRE",
   ]);
 });

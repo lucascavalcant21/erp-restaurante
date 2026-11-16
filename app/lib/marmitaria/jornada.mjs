@@ -28,7 +28,7 @@ export const ROTAS = Object.freeze({
 });
 
 export const PASSOS = Object.freeze([
-  { id: "empresa", titulo: "Empresa e equipe", texto: "Dados da empresa e quem trabalha na marmitaria." },
+  { id: "empresa", titulo: "Delivery e equipe", texto: "Nome e segmento do delivery e quem trabalha nele." },
   { id: "custos", titulo: "Custos fixos e variáveis", texto: "Contas do mês, pró-labore, imposto e o que gasta por marmita." },
   { id: "apps", titulo: "Apps e taxas", texto: "iFood, 99, Keeta, balcão… com as taxas de cada plano." },
   { id: "ingredientes", titulo: "Ingredientes", texto: "O que você compra, com o preço." },
@@ -61,12 +61,13 @@ export function statusDaJornada(d = {}) {
   const embalagens = insumos.filter((i) => ehEmb(i));
 
   const st = {};
-  // 1. Empresa e equipe
-  const empresaOk = Boolean(String(d.unidade?.nome_fantasia || d.unidade?.nome || "").trim());
+  // 1. Delivery e equipe
+  // O nome do delivery (passo 1) ou, sem ele, o nome da unidade.
+  const empresaOk = Boolean(String(d.delivery?.nome || d.unidade?.nome_fantasia || d.unidade?.nome || "").trim());
   const equipeOk = (d.alocacoes ?? 0) > 0 || preenchido(r.cmo_mes);
   st.empresa = d.alocacoes == null && !preenchido(r.cmo_mes)
     ? { status: "sem_dado", detalhe: "Não consegui conferir a equipe agora." }
-    : { status: empresaOk && equipeOk ? "feito" : "pendente", detalhe: !empresaOk ? "Falta o nome da empresa." : !equipeOk ? "Falta dizer quem trabalha na marmitaria." : `${d.alocacoes || 0} na equipe` };
+    : { status: empresaOk && equipeOk ? "feito" : "pendente", detalhe: !empresaOk ? "Falta o nome do delivery." : !equipeOk ? "Falta dizer quem trabalha na marmitaria." : `${d.alocacoes || 0} na equipe` };
 
   // 2. Custos fixos e variáveis (+ imposto e volume, sem eles não há custo por marmita)
   const fixos = (Array.isArray(r.custos_fixos) ? r.custos_fixos : []).filter((c) => String(c?.nome || "").trim() && pos(c?.valor)).length;

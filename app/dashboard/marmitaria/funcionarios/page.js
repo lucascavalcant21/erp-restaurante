@@ -8,6 +8,7 @@ import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Indicador, Secao, SemDados, brl, inputCls, pctTxt, lerNumero } from "../../../components/marmitaria/ui";
 import { carregarEquipe, criarFuncionario, salvarAlocacao, fetchVendas } from "../../../lib/marmitaria/dados";
 import { cmoMarmitaria, encargosDaConfig, resumoVendas, periodo } from "../../../lib/marmitaria/nucleo.mjs";
+import SeuDelivery from "../../../components/marmitaria/SeuDelivery";
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
 const VAZIO = () => ({ nome: "", cargo: "", salario: "", vale_alimentacao: "", vale_transporte: "", data_admissao: hoje(), turno: "" });
@@ -66,6 +67,7 @@ export default function FuncionariosPage() {
 
   return (
     <div className="space-y-4">
+      <SeuDelivery />
       <div className="grid gap-3 sm:grid-cols-3">
         <Indicador rotulo="CMO do mês" valor={cmo?.linhas.length ? cmo.total : null} natureza="estimativa" nota="salário + encargos + provisões + benefícios + diárias pagas" destaque />
         <Indicador rotulo="% do faturamento" valor={cmo?.linhas.length && rv.receita > 0 ? (cmo.total / rv.receita) * 100 : null} formato="pct" natureza="estimativa" nota={rv.receita > 0 ? `sobre ${brl(rv.receita)} vendidos no mês` : "sem vendas lançadas no mês"} />

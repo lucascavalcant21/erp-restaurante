@@ -23,4 +23,5 @@ Ideias ainda sem forma de missão ficam em [[IDEIAS_DO_DONO]] e [[PEDIDOS_NOVOS]
 | [[HDEV-007]] | HI-06 — Voz / WhatsApp | BACKLOG | 3 | HDEV-001 | BLQ-006 | 0 |
 | [[HDEV-012]] | Ecossistema por área: contas de cozinha, bar e salão que só consultam, anotam e retiram | BACKLOG | 3 | – | – | 0 |
 | [[HDEV-013]] | Sistema de comandas: garçom lança por pessoa, caixa recebe | BACKLOG | 3 | – | – | 0 |
+| [[HDEV-014]] | Vários deliveries na mesma unidade (marmitas, hamburgueria…): cada um com nome, segmento, apps, fichas, custos e DRE próprios. Pede migração aditiva (delivery_operacoes + operacao_id nas tabelas marmitaria_*), com dono aprovando | BACKLOG | 3 | – | – | 0 |
 <!-- hefisto-agent:indice:fim -->

@@ -25,8 +25,23 @@ import { carregarDadosDaMarmitaria } from "../agents/marmitaria-agente.mjs";
 import { custoDaMarmita, normalizarCanal, precoSugerido, resultadoPorCanal } from "../../marmitaria/nucleo.mjs";
 import { lucroDoPedido } from "../../marmitaria/promocoes.mjs";
 import { calcularPrecoNormalizado } from "../../ingredientes-utils.mjs";
+import { plataformaDoTexto } from "../../marmitaria/concorrentes.mjs";
+import { CHAVE_PARAMS, comVitrine, normalizarOrganizador, salvarItem, adicionarCategoria, vitrineDe } from "../../marmitaria/organizador.mjs";
+
+/** A marmita nova entra na vitrine do app em que vai ser vendida (Organizador de plataforma), em "Marmitas". */
+export function vitrineComMarmita(orgAtual, { plataforma, nome, fichaId, preco, componentes = [] }) {
+  if (!plataforma) return null;
+  let v = vitrineDe(orgAtual, plataforma);
+  if (v.categorias.some((c) => c.itens.some((i) => i.ficha_id === fichaId || fold(i.nome) === fold(nome)))) return null;
+  let cat = v.categorias.find((c) => fold(c.nome) === "marmitas");
+  if (!cat) { const r = adicionarCategoria(v, "Marmitas"); if (r.erro) return null; v = r.vitrine; cat = v.categorias.find((c) => fold(c.nome) === "marmitas"); }
+  const descricao = componentes.length ? componentes.join(", ") : "";
+  const r = salvarItem(v, cat.id, { nome, ficha_id: fichaId, preco, descricao });
+  return r.erro ? null : comVitrine(orgAtual, plataforma, r.vitrine);
+}
 
 export const MAX_COMP = 8;
+export const MAX_LOTE = 10;
 const MAX_SUB = 10;
 const MAX_EMB = 6;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -67,6 +82,11 @@ const comboSchema = s.object({
 });
 
 export const paramsSchema = s.object({
+  // "vamos montar umas marmitas" (dono, 17/11/2026): quantas nesta rodada, qual é esta e se é nesta unidade
+  quantas: s.opcional(s.number({ min: 1, max: MAX_LOTE, inteiro: true })),
+  ordem: s.opcional(s.number({ min: 1, max: MAX_LOTE, inteiro: true })),
+  unidadeOk: s.opcional(s.boolean()),
+  unidadeEscolha: s.opcional(s.enum(["outra", "nova"])),
   nome: s.opcional(s.string({ min: 1, max: 80 })),
   total: s.opcional(s.number({ min: 1, max: MAX_COMP, inteiro: true })),
   comps: s.opcional(s.array(compSchema, { max: MAX_COMP })),
@@ -86,7 +106,36 @@ export const paramsSchema = s.object({
 });
 
 /** "Vamos montar uma marmita, o nome vai ser Frango empanado com fritas" → { nome } */
+const NUMEROS = { uma: 1, um: 1, duas: 2, dois: 2, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10 };
+const numeroDe = (t) => { const n = Number(t); return Number.isInteger(n) ? n : NUMEROS[t] || null; };
+const PALAVRA_NUM = "(\\d+|uma|um|duas|dois|tres|quatro|cinco|seis|sete|oito|nove|dez)";
+
+/** "vamos montar 3 marmitas", "a marmita 2 de 3 nesta unidade" → { quantas, ordem, unidadeOk } */
+export function loteDoComando(texto) {
+  const f = fold(texto);
+  const out = {};
+  const deTotal = f.match(new RegExp(`marmita ${PALAVRA_NUM} de ${PALAVRA_NUM}\\b`));
+  if (deTotal) {
+    const o = numeroDe(deTotal[1]); const q = numeroDe(deTotal[2]);
+    if (q >= 1 && q <= MAX_LOTE && o >= 1 && o <= q) { out.quantas = q; out.ordem = o; }
+  } else {
+    const qtd = f.match(new RegExp(`\\b(?:mais )?${PALAVRA_NUM} (?:marmitas|quentinhas)\\b`));
+    const q = qtd ? numeroDe(qtd[1]) : null;
+    if (q >= 1 && q <= MAX_LOTE) { out.quantas = q; out.ordem = 1; }
+  }
+  if (/\b(nesta|nessa|desta|dessa|aqui na|aqui nesta|na mesma) unidade\b/.test(f)) out.unidadeOk = true;
+  return out;
+}
+
 export function paramsDoComando(texto) {
+  const lote = loteDoComando(texto);
+  // "umas marmitas" sem número: pergunta quantas; uma só ("uma marmita") segue direto
+  const plural = /\b(umas|as|algumas|varias) marmitas\b|\bmontar marmitas\b/.test(fold(texto));
+  const nomeLido = nomeDoComando(texto);
+  return { ...lote, ...(nomeLido.nome ? nomeLido : { nome: null }), ...(!plural && !lote.quantas ? { quantas: 1, ordem: 1, unidadeOk: true } : {}) };
+}
+
+function nomeDoComando(texto) {
   const f = fold(texto);
   const m = f.match(/\b(?:o nome (?:dela|dele|da marmita)?\s*(?:vai ser|e|sera)|chamad[ao]|com o nome(?: de)?|marmita (?:de|do|da)(?! (?:hoje|agora)\b))\s+/);
   if (!m) return { nome: null };
@@ -146,6 +195,17 @@ export function aplicarResposta(params, _campo, valor) {
   const e = Number.isInteger(pend.indice) ? p.embs[pend.indice] : null;
   const tirar = /^(tirar|tira|remover|remove|nao vai|sem esse|retirar)\b/.test(f);
   switch (pend.tipo) {
+    case "quantas": {
+      const n = numeroDe((f.match(/\d+/) || [])[0] || f.split(/\s+/)[0]);
+      if (n >= 1 && n <= MAX_LOTE) { p.quantas = n; p.ordem = p.ordem || 1; } else p.aviso = `Diga um número de 1 a ${MAX_LOTE}.`;
+      break;
+    }
+    case "unidade":
+      if (f === "aqui" || /^(nesta|nessa|aqui|esta|essa|sim)\b/.test(f)) p.unidadeOk = true;
+      else if (f === "outra" || /\boutra\b|ja temos|que ja tem/.test(f)) p.unidadeEscolha = "outra";
+      else if (f === "nova" || /\bnova\b|criar/.test(f)) p.unidadeEscolha = "nova";
+      else p.aviso = "Não entendi a unidade.";
+      break;
     case "nome": if (limpar(v).length >= 2) p.nome = cap(v).slice(0, 80); else p.aviso = "Preciso de um nome."; break;
     case "total": {
       const n = Number((f.match(/\d+/) || [])[0] || { um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5, seis: 6 }[f.split(/\s+/)[0]]);
@@ -328,7 +388,17 @@ async function preparar(ctx, params) {
   const p = params || {};
   const aviso = p.aviso || null;
   const comps = p.comps || [];
-  if (!p.nome) return pergunta("nome", "Vamos montar. Qual vai ser o nome da marmita?", { aviso });
+  if (!p.quantas) {
+    return pergunta("quantas", "Bora. Vamos montar quantas marmitas agora?", { aviso, opcoes: [1, 2, 3, 4, 5, 6].map((n) => ({ id: String(n), rotulo: String(n) })).concat([{ id: "outro", rotulo: "Outro número (digite)", livre: true }]) });
+  }
+  if (p.unidadeEscolha === "outra") return { erro: "Para montar em outra unidade que já temos, troque para ela no topo do app e me diga de novo: \"vamos montar as marmitas nesta unidade\". Nada foi gravado." };
+  if (p.unidadeEscolha === "nova") return { erro: "Unidade nova se cria em Configurações › Negócios (no plano Grátis cabe um negócio; nos pagos, mais de um). Depois de criar, troque para ela no topo e me chame de novo. Nada foi gravado." };
+  if (!p.unidadeOk) {
+    const qtas = p.quantas === 1 ? "essa marmita" : `essas ${p.quantas} marmitas`;
+    return pergunta("unidade", `Vai montar ${qtas} nesta unidade (a que está aberta no topo) ou em outra?`, { aviso, opcoes: [{ id: "aqui", rotulo: "Nesta unidade" }, { id: "outra", rotulo: "Outra que já temos" }, { id: "nova", rotulo: "Uma unidade nova" }] });
+  }
+  const daVez = p.quantas > 1 ? `Marmita ${p.ordem || 1} de ${p.quantas}: ` : "";
+  if (!p.nome) return pergunta("nome", `${daVez || "Vamos montar. "}${daVez ? "qual" : "Qual"} vai ser o nome${daVez ? " dela" : " da marmita"}?`, { aviso });
   if (!p.total) return pergunta("total", `${p.nome}: são quantos componentes?`, { aviso, opcoes: [1, 2, 3, 4, 5, 6].map((n) => ({ id: String(n), rotulo: String(n) })) });
   if (comps.length < p.total) {
     const k = comps.length + 1;
@@ -552,7 +622,8 @@ async function preparar(ctx, params) {
         canalNovo,
         combo: combo ? { nome: combo.nome, preco: combo.preco, bebida: { nome: combo.bebida.insumo.nome, insumo_id: combo.bebida.insumo.id, preco: combo.bebida.preco } } : null,
         etapas,
-        resumo: { nome: p.nome, custo: custo.total, preco: p.preco, canal: canal.nome, lucro: resultado.lucro, lucroPct: resultado.lucroPct, combo: combo ? { nome: combo.nome, preco: combo.preco } : null },
+        vitrine: { plataforma: plataformaDoTexto(canal.nome) || plataformaDoTexto(canal.id) || null, componentes: linhas.map((l) => l.nome).filter(Boolean).slice(0, 12) },
+        resumo: { quantas: p.quantas || 1, ordem: p.ordem || 1, nome: p.nome, custo: custo.total, preco: p.preco, canal: canal.nome, lucro: resultado.lucro, lucroPct: resultado.lucroPct, combo: combo ? { nome: combo.nome, preco: combo.preco } : null },
       },
     },
   };
@@ -626,7 +697,9 @@ async function executar(ctx, payload) {
   // 6. Guia de montagem e combo (config da unidade): relê e acrescenta, sem apagar o que existe
   const { data: reg } = await db.from("config_sistema").select("id, params").eq("unidade_id", unidade).maybeSingle();
   const params = reg?.params || {};
+  const naVitrine = payload.vitrine ? vitrineComMarmita(normalizarOrganizador(params[CHAVE_PARAMS]), { ...payload.vitrine, nome: m.nome, fichaId: String(mm.id), preco: m.preco_venda }) : null;
   const patch = {
+    ...(naVitrine ? { [CHAVE_PARAMS]: naVitrine } : {}),
     marmitaria_processos: { ...(params.marmitaria_processos || {}), [mm.id]: { embalagens: m.embalagens.map((x) => id(x.insumo_id)), etapas: payload.etapas.map((t, i) => ({ id: `ia-${i + 1}`, grupo: "montagem", titulo: t, texto: "", minutos: "", graus: "", foto: "" })) } },
     ...(payload.combo ? { marmitaria_combos: [...(Array.isArray(params.marmitaria_combos) ? params.marmitaria_combos : []), { id: `combo-${String(mm.id).slice(0, 8)}`, nome: payload.combo.nome, modelo: "comida_bebida", itens: [{ grupo: "marmita", id: mm.id }, { grupo: "bebida", id: bebidaId }], preco: String(payload.combo.preco) }].slice(0, 30) } : {}),
   };
@@ -637,13 +710,16 @@ async function executar(ctx, payload) {
       : await db.from("config_sistema").insert([{ unidade_id: unidade, params: patch }]);
     if (e4) return { ok: true, resultado: { ...payload.resumo, marmitaId: mm.id, avisoMontagem: "A marmita foi criada, mas o guia de montagem e o combo não foram salvos. Salve em Guia de montagem e em Preço e combos." }, antes: null, depois: { marmitaId: mm.id } };
   }
-  return { ok: true, resultado: { ...payload.resumo, marmitaId: mm.id, codigo: mm.codigo || null }, antes: null, depois: { marmitaId: mm.id } };
+  return { ok: true, resultado: { ...payload.resumo, marmitaId: mm.id, codigo: mm.codigo || null, naVitrine: naVitrine ? payload.vitrine.plataforma : null }, antes: null, depois: { marmitaId: mm.id } };
 }
 
 function resumoResultado(rec) {
   const r = rec.resultado || {};
+  const proxima = r.quantas > 1 && r.ordem < r.quantas ? r.ordem + 1 : null;
+  const vitrine = r.naVitrine ? ` Ela já entrou no Delivery e na vitrine do ${r.canal} (Organizador de plataforma); falta a foto.` : " Ela já entrou no Delivery.";
+  const seguir = proxima ? ` Agora a marmita ${proxima} de ${r.quantas}.` : r.quantas > 1 ? ` Pronto: as ${r.quantas} marmitas estão montadas.` : "";
   return {
-    texto: `Marmita criada: ${r.nome}${r.codigo ? ` (${r.codigo})` : ""}. Custo ${brl(r.custo)}, vende a ${brl(r.preco)} no ${r.canal}${r.lucro != null ? `, sobram ${brl(r.lucro)} de lucro` : ""}.${r.combo ? ` Combo ${r.combo.nome} a ${brl(r.combo.preco)}.` : ""} Sobremesa no combo fica para depois, em Preço e combos.${r.avisoMontagem ? ` ${r.avisoMontagem}` : ""}`,
+    texto: `Marmita criada: ${r.nome}${r.codigo ? ` (${r.codigo})` : ""}. Custo ${brl(r.custo)}, vende a ${brl(r.preco)} no ${r.canal}${r.lucro != null ? `, sobram ${brl(r.lucro)} de lucro` : ""}.${r.combo ? ` Combo ${r.combo.nome} a ${brl(r.combo.preco)}.` : ""} Sobremesa no combo fica para depois, em Preço e combos.${r.avisoMontagem ? ` ${r.avisoMontagem}` : ""}${vitrine}${seguir}`,
     linhas: [
       { rotulo: "Marmita", valor: r.nome },
       { rotulo: "Custo", valor: brl(r.custo) },
@@ -651,8 +727,8 @@ function resumoResultado(rec) {
       ...(r.lucro != null ? [{ rotulo: "Lucro por marmita", valor: brl(r.lucro) }] : []),
       ...(r.combo ? [{ rotulo: "Combo", valor: `${r.combo.nome} · ${brl(r.combo.preco)}` }] : []),
     ],
-    sugestoes: [`Raio-x da marmita ${r.nome}`, `Como monta a marmita ${r.nome}?`],
-    acoes: [{ rotulo: "Imprimir o guia de montagem", rota: "/dashboard/marmitaria/marmitas/processos" }, { rotulo: "Abrir preço e combos", rota: "/dashboard/marmitaria/marmitas/cardapio" }],
+    sugestoes: [...(proxima ? [`Vamos montar a marmita ${proxima} de ${r.quantas} nesta unidade`] : []), `Raio-x da marmita ${r.nome}`, `Como monta a marmita ${r.nome}?`],
+    acoes: [{ rotulo: "Imprimir o guia de montagem", rota: "/dashboard/marmitaria/marmitas/processos" }, { rotulo: "Abrir preço e combos", rota: "/dashboard/marmitaria/marmitas/cardapio" }, ...(r.naVitrine ? [{ rotulo: "Abrir o organizador", rota: "/dashboard/marmitaria/marmitas/organizador" }] : [])],
     referencia: null,
   };
 }
@@ -666,7 +742,7 @@ export const criarMarmita = Object.freeze({
   risco: "MEDIUM",
   disponivel: true,
   precisaConfirmacao: true,
-  campos: ["nome", "total", "comps", "embs", "embOk", "canalId", "canalNovo", "lucroReais", "lucroPct", "preco", "combo", "etapas", "montagemOk", "pendente", "aviso", "resposta"],
+  campos: ["quantas", "ordem", "unidadeOk", "unidadeEscolha", "nome", "total", "comps", "embs", "embOk", "canalId", "canalNovo", "lucroReais", "lucroPct", "preco", "combo", "etapas", "montagemOk", "pendente", "aviso", "resposta"],
   validacoes: [
     "ingrediente, embalagem e ficha existem na unidade (ou são cadastrados junto, com o preço informado)",
     "quantidade na unidade do cadastro (g↔kg, ml↔L)",

@@ -11,6 +11,9 @@
 
 import { s } from "../schemas/schema.mjs";
 
+// "vamos montar 3 marmitas" (montagem de várias marmitas pelo Jhon, 17/11/2026)
+const NUMEROS_LOTE = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "duas", "tres", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez"];
+
 export const PERIODOS = Object.freeze(["hoje", "ontem", "semana", "semana_passada", "ultimos_7_dias", "mes", "mes_passado", "ultimos_30_dias"]);
 export const UNIDADES = Object.freeze(["kg", "g", "l", "ml", "un"]);
 export const MOTIVOS_PERDA = Object.freeze(["limpeza", "validade", "erro_producao", "dano", "outro"]);
@@ -237,8 +240,8 @@ export const INTENCOES = Object.freeze([
   // 16/11/2026: "Jhon, vamos montar uma marmita" (conversa: componentes, gramas, embalagem, app, preço, combo, montagem)
   {
     id: "marmitaria.criar", tipo: "acao", acao: "marmita.create", agentes: ["operacoes"],
-    descricao: "Montar uma marmita nova conversando com o Jhon: componentes, gramas, ficha do que é feito aqui, embalagem, app, preço pela calculadora, combo e montagem (ex.: 'Jhon, vamos montar uma marmita', 'criar uma marmita nova').",
-    frases: [["montar uma marmita", "monta uma marmita", "montar a marmita nova", "montar marmita nova", "criar uma marmita", "criar marmita", "cria uma marmita", "nova marmita", "marmita nova", "cadastrar uma marmita", "cadastrar marmita", "vamos montar uma marmita", "montar uma quentinha", "nova quentinha"]],
+    descricao: "Montar uma ou várias marmitas novas conversando com o Jhon (quantas, em qual unidade, nome de cada uma): componentes, gramas, ficha do que é feito aqui, embalagem, app, preço pela calculadora, combo e montagem (ex.: 'Jhon, vamos montar uma marmita', 'criar uma marmita nova').",
+    frases: [["montar uma marmita", "monta uma marmita", "montar a marmita nova", "montar marmita nova", "criar uma marmita", "criar marmita", "cria uma marmita", "nova marmita", "marmita nova", "cadastrar uma marmita", "cadastrar marmita", "vamos montar uma marmita", "montar uma quentinha", "nova quentinha", "montar umas marmitas", "montar marmitas", "montar as marmitas", "montar algumas marmitas", "montar a marmita", "marmitas agora", ...NUMEROS_LOTE.flatMap((n) => [`montar ${n} marmitas`, `montar mais ${n} marmitas`, `fazer ${n} marmitas`])]],
     proibidas: ["como monta", "como montar", "como se monta", "guia"], peso: 15,
   },
   // 16/11/2026: raio-x do preço da marmita (quem leva quanto, componente mais caro)

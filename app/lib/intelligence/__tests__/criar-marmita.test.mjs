@@ -116,3 +116,54 @@ test("executor grava pela função da tela, na unidade da sessão, e troca as ch
   const outra = await criarMarmita.executar({ dbUsuario: db, escopo: { unidadeId: "22222222-2222-4222-8222-222222222222" } }, prep.pronto.payload);
   assert.equal(outra.ok, false);
 });
+
+// "Jhon, vamos montar umas marmitas agora" (dono, 17/11/2026): quantas, em qual
+// unidade, nome de cada uma; a marmita entra no Delivery e na vitrine do app.
+test("várias marmitas: pergunta quantas e a unidade antes do nome; 'marmita 2 de 3' segue a rodada", async () => {
+  const { prep, perguntas } = await conversar("Jhon, vamos montar umas marmitas agora", {
+    quantas: "3", unidade: "aqui", nome: "Frango grelhado",
+    total: "1", componente: "filé de frango 150 g", embalagens: "nenhuma", canal: "ifood", lucro: "15%", preco: "sim", combo: "agora não", montagem: "sim",
+  });
+  assert.match(perguntas[0], /quantas marmitas/);
+  assert.match(perguntas[1], /essas 3 marmitas nesta unidade/);
+  assert.match(perguntas[2], /^Marmita 1 de 3: qual vai ser o nome dela\?/);
+  assert.deepEqual([prep.pronto.payload.resumo.quantas, prep.pronto.payload.resumo.ordem], [3, 1]);
+  assert.equal(prep.pronto.payload.vitrine.plataforma, "ifood");
+  assert.deepEqual(prep.pronto.payload.vitrine.componentes, ["Filé de frango"]);
+  const r2 = await conversar("Vamos montar a marmita 2 de 3 nesta unidade", { nome: "Parmegiana", total: "1", componente: "filé de frango 150 g", embalagens: "nenhuma", canal: "ifood", lucro: "15%", preco: "sim", combo: "agora não", montagem: "sim" });
+  assert.match(r2.perguntas[0], /^Marmita 2 de 3: qual/);
+  const res = criarMarmita.resumoResultado({ resultado: { ...prep.pronto.payload.resumo, naVitrine: "ifood" } });
+  assert.match(res.texto, /entrou no Delivery e na vitrine do iFood/);
+  assert.match(res.texto, /Agora a marmita 2 de 3\./);
+  assert.equal(res.sugestoes[0], "Vamos montar a marmita 2 de 3 nesta unidade");
+  const fim = criarMarmita.resumoResultado({ resultado: { ...prep.pronto.payload.resumo, ordem: 3 } });
+  assert.match(fim.texto, /as 3 marmitas estão montadas/);
+});
+
+test("outra unidade ou unidade nova: não grava nada aqui e explica como trocar", async () => {
+  await assert.rejects(conversar("vamos montar 2 marmitas", { unidade: "outra" }), /troque para ela no topo/);
+  await assert.rejects(conversar("vamos montar 2 marmitas", { unidade: "nova" }), /Configurações › Negócios/);
+  assert.deepEqual(paramsDoComando("Jhon, vamos montar uma marmita"), { nome: null, quantas: 1, ordem: 1, unidadeOk: true });
+});
+
+test("executor põe a marmita na vitrine do app (categoria Marmitas) sem duplicar", async () => {
+  const { prep } = await conversar("vamos montar uma marmita, o nome vai ser Teste", {
+    total: "1", componente: "filé de frango 150 g", embalagens: "nenhuma", canal: "ifood", lucro: "15%", preco: "sim", combo: "agora não", montagem: "sim",
+  });
+  const chamadas = [];
+  const db = {
+    rpc: async (nome, args) => { chamadas.push({ nome, args }); return nome === "marmitaria_salvar_ficha" ? { data: { id: "99999999-0000-4000-8000-000000000009" }, error: null } : { data: true, error: null }; },
+    from: () => { const o = { select: () => o, eq: () => o, maybeSingle: async () => ({ data: { id: "cfg", params: {} } }), insert: () => o, update: () => o }; return o; },
+  };
+  const r = await criarMarmita.executar({ dbUsuario: db, escopo: { unidadeId: U } }, prep.pronto.payload);
+  assert.equal(r.resultado.naVitrine, "ifood");
+  const org = chamadas.find((c) => c.nome === "merge_config_sistema_params").args.p_patch.organizador_plataforma;
+  const item = org.plataformas.ifood.categorias[0];
+  assert.equal(item.nome, "Marmitas");
+  assert.equal(item.itens[0].nome, "Teste");
+  assert.equal(item.itens[0].ficha_id, "99999999-0000-4000-8000-000000000009");
+  assert.equal(item.itens[0].preco, prep.pronto.payload.marmita.preco_venda);
+  const { vitrineComMarmita } = await import("../actions/criar-marmita.mjs");
+  assert.equal(vitrineComMarmita(org, { plataforma: "ifood", nome: "teste", fichaId: "outro", preco: 10 }), null, "mesmo nome não duplica");
+  assert.equal(vitrineComMarmita(org, { plataforma: null, nome: "X" }), null, "app sem vitrine conhecida: não põe");
+});

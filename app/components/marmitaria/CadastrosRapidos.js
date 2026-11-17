@@ -186,9 +186,10 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
         <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Ex.: Arroz branco cozido" /></Campo>
         {/* rendimento e unidade juntos (dono, 17/11/2026: "no rendimento não está a unidade de medida") */}
         <Campo rotulo="Rendimento" className="sm:col-span-2">
-          <div className="flex gap-2">
-            <CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" className="min-w-0 flex-1" aria-label="Rendimento" />
-            <select className={`${inputCls} w-[120px] shrink-0`} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })} aria-label="Unidade do rendimento">
+          {/* grade fixa: o número ocupa o resto e a unidade tem 112 px (com flex, o w-full dos dois brigava e o número sumia no celular) */}
+          <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
+            <CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" className="min-w-0" aria-label="Rendimento" />
+            <select className={`${inputCls} min-w-0`} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })} aria-label="Unidade do rendimento">
               <option value="kg">kg</option><option value="g">g</option><option value="l">L</option><option value="ml">ml</option><option value="un">unidades</option>
             </select>
           </div>

@@ -20,8 +20,8 @@ const numero = (v) => {
 /** Em que parte de um combo o item entra, pela categoria da ficha. */
 export function grupoDaCategoria(categoria) {
   const c = semAcento(categoria);
-  if (/refrigerante|suco|bebida|agua/.test(c)) return "bebida";
-  if (/sobremesa|doce/.test(c)) return "sobremesa";
+  if (/refrigerante|refri|suco|bebida|agua|cerveja|energetico|drink/.test(c)) return "bebida";
+  if (/sobremesa|doce|pudim|mousse|bolo|torta|sorvete|acai/.test(c)) return "sobremesa";
   return "marmita";
 }
 

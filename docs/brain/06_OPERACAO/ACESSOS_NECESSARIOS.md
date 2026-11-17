@@ -25,7 +25,7 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 - **Escopo mínimo:** só esses domínios
 - **Risco:** BAIXO
 - **Como validar depois:** `curl -s -o /dev/null -w '%{http_code}' https://app.hefisto.com.br/api/intelligence/brief` deve dar 401 (sem sessão)
-- **Estado:** PENDENTE
+- **Estado:** PENDENTE. Agora pesa mais: em 17/11/2026 o sistema de teste virou o sistema novo do restaurante (DECISOES_PRODUTO)
 
 ## ACESSO-002
 
@@ -125,3 +125,9 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 - **Risco:** BAIXO (banco de teste, sem dados do restaurante)
 - **Como validar depois:** login no preview da `hefisto-teste` e "Plano e assinatura" mostra a chave Pix
 - **Estado:** PENDENTE
+
+## ACESSO-010
+
+- **Serviço:** Vercel (OPENAI_API_KEY)
+- **Motivo:** áudio do Jhon ("Transcrição de voz não configurada no servidor") e leitura de fotos no sistema novo
+- **Estado:** RESOLVIDO em 17/11/2026, com OK do dono ("Liberar a mesma chave"): a variável existente passou de "só produção" para "produção + preview". Ninguém viu o valor. Efeito colateral aceito: todas as versões de preview passam a ter a chave

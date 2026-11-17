@@ -395,3 +395,15 @@ test("planos do mesmo app: id único, taxas em branco, agrupados pela plataforma
   assert.equal(p3.nome, "iFood · Plano 3");
   assert.equal(normCanal({ id: "keeta" }).plataforma, null);
 });
+
+test("DRE: custos fixos cadastrados entram como previsto sem contas, e não somam de novo com contas", () => {
+  const fixosCadastrados = [{ nome: "Aluguel", valor: 5000 }, { nome: "Luz", valor: "3000" }, { nome: "", valor: 10 }, { nome: "Gás", valor: 0 }];
+  const sem = dreMarmitaria({ fixosCadastrados });
+  const op = sem.linhas.find((l) => l.id === "operacionais");
+  assert.equal(op.valor, 8000);
+  assert.equal(op.natureza, "estimado");
+  assert.deepEqual(op.filhos.map((f) => f.rotulo), ["Aluguel (previsto)", "Luz (previsto)"]);
+  const contas = [{ natureza: "despesa_operacional", categoria_codigo: "aluguel", valorMarmitaria: 4800, criterio: "direto" }];
+  const com = dreMarmitaria({ fixosCadastrados, contas });
+  assert.equal(com.linhas.find((l) => l.id === "operacionais").valor, 4800);
+});

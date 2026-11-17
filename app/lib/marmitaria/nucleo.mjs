@@ -696,7 +696,7 @@ export function contasDaMarmitaria(contas = [], mes, { centrosDiretos = ["marmit
  *   cmvReal: cmvRealDosEstoques(...); cmvPrev: cmvPrevisto(...) — usado só se o real faltar, marcado ESTIMATIVA
  *   cmo:     cmoMarmitaria(...)
  */
-export function dreMarmitaria({ vendas = [], contas = [], cmvReal = null, cmvPrev = null, cmo = null, tributosPct = null, nomesCategoria = new Map(), nomesCanal = new Map() } = {}) {
+export function dreMarmitaria({ vendas = [], contas = [], cmvReal = null, cmvPrev = null, cmo = null, tributosPct = null, nomesCategoria = new Map(), nomesCanal = new Map(), fixosCadastrados = [] } = {}) {
   const rv = resumoVendas(vendas);
   const linhas = [];
   const alertas = [];
@@ -788,10 +788,19 @@ export function dreMarmitaria({ vendas = [], contas = [], cmvReal = null, cmvPre
     const rateado = opContas.some((c) => (GRUPO_OPERACIONAL[c.categoria_codigo] || "Outras despesas") === grupo && c.criterio.startsWith("rateio"));
     filhosOp.push({ rotulo: rateado ? `${grupo} (inclui rateio)` : grupo, valor, natureza: "real" });
   }
+  // Dono, 17/11/2026: os custos fixos cadastrados (Custos e apps) entram no DRE.
+  // Sem conta operacional lançada no mês, entram como ESTIMATIVA (o previsto);
+  // com contas lançadas, valem as contas (o real) e o previsto não soma de novo.
+  const fixosOk = (fixosCadastrados || []).map((f) => ({ nome: String(f?.nome || "").trim(), valor: parseNumero(f?.valor) })).filter((f) => f.nome && f.valor > 0);
+  let notaFixos = null;
+  if (fixosOk.length && !opContas.length) {
+    for (const f of fixosOk) filhosOp.push({ rotulo: `${f.nome} (previsto)`, valor: r2(f.valor), natureza: "estimado" });
+    notaFixos = "Custos fixos cadastrados entram como previsto até as contas do mês serem lançadas em Gastos.";
+  } else if (fixosOk.length) notaFixos = "Custos fixos: valem as contas lançadas no mês (o previsto cadastrado não soma de novo).";
   const semRateio = contas.filter((c) => c.criterio === "rateio_nao_configurado");
   if (semRateio.length) alertas.push(`${semRateio.length} despesa(s) compartilhada(s) sem critério de rateio: configure o % em Configurações (hoje entram como 0%).`);
   const operacionais = add("operacionais", "(−) Custos operacionais", soma(filhosOp, (f) => f.valor), {
-    filhos: filhosOp, nota: notaPessoal, natureza: filhosOp.some((f) => f.natureza === "estimado") ? "estimado" : "real",
+    filhos: filhosOp, nota: [notaPessoal, notaFixos].filter(Boolean).join(" ") || null, natureza: filhosOp.some((f) => f.natureza === "estimado") ? "estimado" : "real",
   });
   const resultadoOp = add("resultado_operacional", "(=) Resultado operacional", menos(mc, operacionais), { tipo: "subtotal" });
   const finContas = contas.filter((c) => c.natureza === "financeiro" && c.valorMarmitaria > 0);

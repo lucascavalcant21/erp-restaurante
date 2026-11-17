@@ -52,7 +52,7 @@ export function useDreMarmitaria(mes) {
       encargos: encargosDaConfig(cfg.encargos, equipe.rhConfig), mes, marmitasVendidas: rv });
     const contas = contasDaMarmitaria(fin.contas || [], mes, { centrosDiretos: cfg.centros_diretos, rateio: cfg.rateio });
     const dre = dreMarmitaria({ vendas, contas, cmvReal, cmvPrev, cmo, tributosPct: cfg.tributos_pct,
-      nomesCategoria: new Map((fin.categorias || []).map((c) => [c.codigo, c.nome])), nomesCanal: new Map(cfg.canais.map((c) => [c.id, c.nome])) });
+      nomesCategoria: new Map((fin.categorias || []).map((c) => [c.codigo, c.nome])), nomesCanal: new Map(cfg.canais.map((c) => [c.id, c.nome])), fixosCadastrados: cfg.rateio?.custos_fixos || [] });
     return { dre, cmvReal, cmvPrev, cmo, vendas, erro: dados.erro };
   }, [dados, base, custos, mes, estoqueIds]);
 }

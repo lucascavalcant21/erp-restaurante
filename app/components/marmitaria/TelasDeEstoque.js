@@ -9,7 +9,7 @@
 //              embalagens numa transação (marmitaria_registrar_producao)
 // Exclusivo da marmitaria: não lê nem baixa os estoques do restaurante.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useMarmitaria } from "./contexto";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, SemDados, brl, inputCls, num, lerNumero } from "./ui";
@@ -171,10 +171,19 @@ export function Estoque() {
   }
 
   // ingredientes, pré-preparos e embalagens das marmitas que ainda não estão nos locais da marmitaria
+  // dono, 17/11/2026: tudo que é cadastrado na marmitaria aparece no estoque, sem botão
+  const estLimp = locais.find((e) => e.slug === ESTOQUE_LIMPEZA) || null;
   const faltaVincular = useMemo(() => {
     if (!est || !estEmb) return [];
-    const ja = new Set(base.itensEstoque.filter((i) => i.estoque_id === est.id || i.estoque_id === estEmb.id).map((i) => i.insumo_id));
+    const ja = new Set(base.itensEstoque.filter((i) => i.estoque_id === est.id || i.estoque_id === estEmb.id || (estLimp && i.estoque_id === estLimp.id)).map((i) => i.insumo_id));
     const ids = new Map();
+    for (const ins of base.insumosLista || []) {
+      if (ja.has(ins.id) || ins.arquivado_em) continue;
+      const dep = String(ins.departamento || "").toLowerCase();
+      if (dep === "embalagens" || String(ins.tipo || "").toLowerCase() === "embalagem") { if (/marmit/i.test(ins.categoria || "") || dep === "embalagens") ids.set(ins.id, estEmb.id); }
+      else if (dep === "limpeza") { if (estLimp) ids.set(ins.id, estLimp.id); }
+      else if (dep === "marmitaria") ids.set(ins.id, est.id);
+    }
     for (const m of base.marmitas) {
       for (const it of m.itens) {
         const id = it.subficha_id ? base.espelho.get(it.subficha_id) : it.insumo_id;
@@ -183,7 +192,12 @@ export function Estoque() {
       for (const e of m.embalagens) if (!ja.has(e.insumo_id)) ids.set(e.insumo_id, estEmb.id);
     }
     return [...ids.entries()];
-  }, [base, est, estEmb]);
+  }, [base, est, estEmb, estLimp]);
+  const jaIncluiu = useRef(false);
+  useEffect(() => {
+    if (!faltaVincular.length || jaIncluiu.current || ocupado) return;
+    jaIncluiu.current = true; vincularTodos();
+  }, [faltaVincular.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function vincularTodos() {
     setOcupado(true); setMsg(null);
@@ -211,7 +225,7 @@ export function Estoque() {
     <div className="space-y-4">
       {faltaVincular.length > 0 && (
         <Aviso tipo="alerta">
-          {faltaVincular.length} produto(s) das marmitas ainda não estão nos locais da marmitaria.
+          {ocupado ? `Colocando ${faltaVincular.length} produto(s) cadastrados no estoque…` : `${faltaVincular.length} produto(s) cadastrados ainda não estão no estoque.`}
           <Botao variante="texto" className="ml-2 min-h-0 px-1" onClick={vincularTodos} disabled={ocupado}>{ocupado ? "Incluindo…" : "Incluir todos"}</Botao>
         </Aviso>
       )}

@@ -217,7 +217,27 @@ export async function criarProduto({ unidadeId, nome, marca = "", unidade_medida
     custo_compra: preco, valor_embalagem: preco,
   }, { origem: "marmitaria" });
   if (r?.error) return { error: mensagemErro(r.error) };
+  // dono, 17/11/2026: "cadastrei e não veio para o estoque". Já entra no local da marmitaria (saldo 0).
+  if (r?.id) await colocarNoEstoqueDaMarmitaria({ unidadeId, insumoId: r.id, departamento });
   return { id: r?.id || null, error: null };
+}
+
+/** Local do estoque da marmitaria para um produto, pelo departamento. */
+export const slugDoLocal = (departamento) => (departamento === "embalagens" ? ESTOQUE_EMBALAGENS : departamento === "limpeza" ? "limpeza-marmitaria" : ESTOQUE_MARMITARIA);
+
+/** Põe o produto no local certo do estoque da marmitaria, se ainda não estiver. Falha não impede o cadastro. */
+export async function colocarNoEstoqueDaMarmitaria({ unidadeId, insumoId, departamento }) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId) || !insumoId) return { error: null };
+  try {
+    const slug = slugDoLocal(departamento);
+    let { data: est } = await supabase.from("estoques").select("id").eq("unidade_id", unidadeId).eq("slug", slug).maybeSingle();
+    if (!est) { await ativarEstoques(unidadeId); ({ data: est } = await supabase.from("estoques").select("id").eq("unidade_id", unidadeId).eq("slug", slug).maybeSingle()); }
+    if (!est) return { error: "Local do estoque da marmitaria não encontrado." };
+    const { data: ja } = await supabase.from("estoque_itens").select("id").eq("estoque_id", est.id).eq("insumo_id", insumoId).maybeSingle();
+    if (ja) return { error: null };
+    const v = await vincularItemEstoque({ unidadeId, estoqueId: est.id, insumoId });
+    return { error: v?.error ? mensagemErro(v.error) : null };
+  } catch (e) { return { error: mensagemErro(e) }; }
 }
 
 /** Mudanças de preço desde uma data: vêm do cadastro e do recebimento de compras. */

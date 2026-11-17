@@ -110,7 +110,7 @@ export async function carregarBase(unidadeId) {
     migracaoPendente: migracao || (configRow && !("canais" in configRow)),
     unidade: unR.data || null,
     fichas, marmitas,
-    prePreparos: fichas.filter((f) => f.eh_base && f.departamento !== "marmitaria"),
+    prePreparos: fichas.filter((f) => f.eh_base && f.departamento !== "marmitaria" && f.ativo !== false),
     insumosLista, insumos, espelho,
     estoques: estR.data || [],
     itensEstoque: itensR.data || [],
@@ -168,6 +168,19 @@ async function rpcFicha(dados) {
 /** Grava a marmita inteira numa transação. `id` vem da tela (novaChave) e é reenviado igual em nova tentativa. */
 export const salvarMarmita = (dados) => rpcFicha({ ...dados, tipo: "marmita" });
 export const salvarPrePreparo = (dados) => rpcFicha({ ...dados, tipo: "pre_preparo" });
+
+/**
+ * Excluir pré-preparo (dono, 17/11/2026: "posso editar um pré-preparo ou excluir?").
+ * Arquiva (ativo = false): some da lista e da busca, mas o histórico de estoque,
+ * de produção e as marmitas antigas continuam com o custo certo. Nada é apagado.
+ */
+export async function arquivarPrePreparo(fichaId) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const { data, error } = await supabase.from("fichas_tecnicas")
+    .update({ ativo: false, atualizado_em: new Date().toISOString() }).eq("id", fichaId).eq("eh_base", true).select("id");
+  if (error) return { error: mensagemErro(error) };
+  return { error: data?.length ? null : "Não consegui excluir (sem permissão para alterar a ficha)." };
+}
 
 /** Modo de preparo do pré-preparo (17/11/2026): passos numerados ("1. …\n2. …") e tempo total em minutos. */
 export async function salvarModoDePreparo(fichaId, { modo_preparo, tempo_preparo, peso_porcao_g = null }) {

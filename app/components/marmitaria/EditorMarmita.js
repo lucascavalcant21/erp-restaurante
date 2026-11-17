@@ -6,12 +6,12 @@
 // em "Salvando…" (finally) e, se der erro, o que foi digitado continua aqui.
 
 import { useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check, ImagePlus, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ImagePlus, Pencil, Trash2 } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import BuscaItens from "./BuscaItens";
 import { NovoProduto, NovoPrePreparo } from "./CadastrosRapidos";
 import { Aviso, Botao, Campo, CampoNumero, Secao, brl, inputCls, pctTxt } from "./ui";
-import { salvarMarmita, novaChave } from "../../lib/marmitaria/dados";
+import { salvarMarmita, novaChave, arquivarPrePreparo } from "../../lib/marmitaria/dados";
 import { atalhosDeQuantidade, catalogoDePrePreparos, custoDoForm, payloadDoForm, TAMANHOS, TIPOS_EMBALAGEM, unidadeDoItem } from "../../lib/marmitaria/formulario.mjs";
 import { unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import { CATEGORIAS_FICHA, ordenarCategorias } from "../../lib/marmitaria/cardapio.mjs";
@@ -23,7 +23,9 @@ import { uploadFotoMontagem } from "../../lib/montagem";
 export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) {
   const { base, unidadeId, recarregar } = useMarmitaria();
   const [form, setForm] = useState(formInicial);
-  const [painel, setPainel] = useState(null); // busca-item | busca-emb | novo-prod | novo-prep | nova-emb
+  const [painel, setPainel] = useState(null); // busca-item | busca-emb | novo-prod | novo-prep | nova-emb | editar-prep
+  const [prepEditando, setPrepEditando] = useState(null);
+  const [avisoPrep, setAvisoPrep] = useState(null);
   const [textoNovo, setTextoNovo] = useState("");
   const [tipoEmb, setTipoEmb] = useState("marmitex");
   const [salvando, setSalvando] = useState(false);
@@ -89,6 +91,19 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
   const [grupoSel, setGrupoSel] = useState("");
   const [buscaPrep, setBuscaPrep] = useState("");
   const escolhidos = new Set(form.itens.map((i) => i.subficha_id).filter(Boolean));
+  async function excluirPrep(it) {
+    const usam = base.marmitas.filter((m) => (m.itens || []).some((x) => x.subficha_id === it.id)).map((m) => m.nome_receita);
+    const aqui = form.itens.some((x) => x.subficha_id === it.id);
+    const aviso = usam.length || aqui
+      ? `"${it.nome}" está em ${[...usam, ...(aqui && !usam.length ? ["esta marmita"] : [])].join(", ")}. Ele sai da lista para novas marmitas, mas continua nas que já usam, com o mesmo custo. Excluir mesmo?`
+      : `Excluir "${it.nome}" da lista de pré-preparos?`;
+    if (!window.confirm(aviso)) return;
+    const r = await arquivarPrePreparo(it.id);
+    if (r.error) { setAvisoPrep({ tipo: "alerta", texto: r.error }); return; }
+    await recarregar();
+    setAvisoPrep({ tipo: "info", texto: `"${it.nome}" foi excluído da lista. O histórico continua guardado.` });
+  }
+
   const alternarPrep = (it) => {
     if (escolhidos.has(it.id)) setForm((x) => ({ ...x, itens: x.itens.filter((i) => i.subficha_id !== it.id) }));
     else adicionarItem({ tipo: "pre_preparo", id: it.id, unidade: it.unidade });
@@ -204,14 +219,19 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
                         const sel = escolhidos.has(it.id);
                         const unTxt = it.unidade === "l" ? "L" : it.unidade;
                         return (
-                          <button key={it.id} type="button" onClick={() => alternarPrep(it)} aria-pressed={sel}
-                            className={`flex min-h-[48px] items-center gap-2 rounded-xl border px-3 text-left ${sel ? "border-hf-accent bg-hf-accent/5" : "border-hf-border bg-hf-surface hover:bg-hf-elevated"}`}>
-                            <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border ${sel ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border-strong text-transparent"}`}><Check size={14} /></span>
-                            <span className="min-w-0">
-                              <span className="block truncate text-sm font-semibold text-hf-text">{it.nome}</span>
-                              <span className={`block text-xs ${it.custoPorUnidade ? "text-hf-muted" : "font-semibold text-hf-warning"}`}>{it.custoPorUnidade ? `${brl(it.custoPorUnidade)}/${unTxt}` : "sem custo: DADOS INSUFICIENTES"}</span>
-                            </span>
-                          </button>
+                          <div key={it.id} className={`flex min-h-[48px] items-stretch rounded-xl border ${sel ? "border-hf-accent bg-hf-accent/5" : "border-hf-border bg-hf-surface"}`}>
+                            <button type="button" onClick={() => alternarPrep(it)} aria-pressed={sel} className="flex min-w-0 flex-1 items-center gap-2 px-3 text-left">
+                              <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border ${sel ? "border-hf-accent bg-hf-accent text-hf-accent-fg" : "border-hf-border-strong text-transparent"}`}><Check size={14} /></span>
+                              <span className="min-w-0">
+                                <span className="block truncate text-sm font-semibold text-hf-text">{it.nome}</span>
+                                <span className={`block text-xs ${it.custoPorUnidade ? "text-hf-muted" : "font-semibold text-hf-warning"}`}>{it.custoPorUnidade ? `${brl(it.custoPorUnidade)}/${unTxt}` : "sem custo: DADOS INSUFICIENTES"}</span>
+                              </span>
+                            </button>
+                            <button type="button" aria-label={`Editar ${it.nome}`} onClick={() => { setPrepEditando(base.fichas.find((x) => x.id === it.id) || null); setPainel("editar-prep"); setAvisoPrep(null); }}
+                              className="grid w-11 shrink-0 place-items-center text-hf-muted hover:text-hf-text"><Pencil size={16} /></button>
+                            <button type="button" aria-label={`Excluir ${it.nome}`} onClick={() => excluirPrep(it)}
+                              className="grid w-11 shrink-0 place-items-center text-hf-muted hover:text-hf-danger"><Trash2 size={16} /></button>
+                          </div>
                         );
                       })}
                     </div>
@@ -228,6 +248,11 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
           {painel === "novo-prod" && (
             <NovoProduto unidadeId={unidadeId} nomeInicial={textoNovo} onFechar={() => setPainel(null)}
               onCriado={async (id, unidade) => { await recarregar(); if (id) adicionarItem({ tipo: "ingrediente", id, unidade }); else setPainel(null); }} />
+          )}
+          {avisoPrep && <Aviso tipo={avisoPrep.tipo}>{avisoPrep.texto}</Aviso>}
+          {painel === "editar-prep" && prepEditando && (
+            <NovoPrePreparo key={prepEditando.id} unidadeId={unidadeId} base={base} ficha={prepEditando} onFechar={() => { setPainel(null); setPrepEditando(null); }}
+              onCriado={async () => { await recarregar(); setPainel(null); setPrepEditando(null); setAvisoPrep({ tipo: "info", texto: "Pré-preparo atualizado. O custo das marmitas que usam ele já mudou." }); }} />
           )}
           {painel === "novo-prep" && (
             <NovoPrePreparo unidadeId={unidadeId} base={base} nomeInicial={textoNovo} onFechar={() => setPainel(null)}

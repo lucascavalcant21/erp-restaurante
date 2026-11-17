@@ -11,6 +11,7 @@ import { Botao, Cartao, Secao, num } from "../../../../components/marmitaria/ui"
 import { NovoPrePreparo } from "../../../../components/marmitaria/CadastrosRapidos";
 import { Planejar, RegistrarMarmitas, useSaldoDaMarmitaria } from "../../../../components/marmitaria/TelasDeEstoque";
 import { producaoPossivelDoPreparo } from "../../../../lib/marmitaria/porcoes.mjs";
+import { arquivarPrePreparo } from "../../../../lib/marmitaria/dados";
 import { fatorSaldo } from "../../../../lib/marmitaria/nucleo.mjs";
 import PedidosIfood from "../../../../components/marmitaria/PedidosIfood";
 import AbasDaProducao, { ABAS_DA_PRODUCAO } from "../../../../components/marmitaria/AbasDaProducao";
@@ -42,7 +43,15 @@ function Subprodutos() {
                       : <span className="block text-xs font-semibold text-hf-text-2">Dá para fazer com o estoque: {num(r.quantidade)} {unTxt(f.rendimento_unidade)}{r.limita ? ` · acaba primeiro: ${r.limita.nome}` : ""}</span>;
                   })()}
                 </span>
-                <button type="button" onClick={() => setEditando(f)} className="min-h-[40px] shrink-0 text-sm font-bold text-hf-accent hover:underline">Editar</button>
+                <span className="flex shrink-0 gap-3">
+                  <button type="button" onClick={() => setEditando(f)} className="min-h-[40px] text-sm font-bold text-hf-accent hover:underline">Editar</button>
+                  <button type="button" onClick={async () => {
+                    const usam = base.marmitas.filter((m) => (m.itens || []).some((x) => x.subficha_id === f.id)).map((m) => m.nome_receita);
+                    if (!window.confirm(usam.length ? `"${f.nome_receita}" está em ${usam.join(", ")}. Sai da lista para novas marmitas e continua nessas, com o mesmo custo. Excluir mesmo?` : `Excluir "${f.nome_receita}" da lista?`)) return;
+                    const r = await arquivarPrePreparo(f.id);
+                    if (r.error) window.alert(r.error); else await recarregar();
+                  }} className="min-h-[40px] text-sm font-bold text-hf-danger hover:underline">Excluir</button>
+                </span>
               </li>
             ))}
           </ul>

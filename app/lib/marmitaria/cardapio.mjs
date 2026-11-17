@@ -21,7 +21,7 @@ const numero = (v) => {
 export function grupoDaCategoria(categoria) {
   const c = semAcento(categoria);
   if (/refrigerante|refri|suco|bebida|agua|cerveja|energetico|drink/.test(c)) return "bebida";
-  if (/sobremesa|doce|pudim|mousse|bolo|torta|sorvete|acai/.test(c)) return "sobremesa";
+  if (/sobremesa|doce|pudi[mn]|mousse|bolo|torta|sorvete|acai/.test(c)) return "sobremesa";
   return "marmita";
 }
 

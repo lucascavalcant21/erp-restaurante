@@ -190,10 +190,6 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
           </ul>
         )}
         <div className="mt-3 space-y-3">
-          <button type="button" onClick={() => setVerLista((v) => !v)} aria-expanded={verLista}
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-bold text-hf-text">
-            {verLista ? "Esconder a lista de pré-preparos" : `Escolher da lista (${catalogo.reduce((t, g) => t + g.itens.length, 0)} pré-preparos)`}
-          </button>
           {verLista && (
             <div className="rounded-xl border border-hf-border">
               {catalogo.length > 1 && (
@@ -208,7 +204,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
                 <input className={inputCls} value={buscaPrep} onChange={(e) => setBuscaPrep(e.target.value)} placeholder="Buscar pré-preparo (ex.: feijão, frango)" aria-label="Buscar pré-preparo" />
               </div>
               <div className="space-y-2 p-2">
-                {!catalogo.length && <p className="p-2 text-sm text-hf-muted">Nenhum pré-preparo cadastrado. Use a busca para ingredientes ou crie um pré-preparo.</p>}
+                {!catalogo.length && <p className="p-2 text-sm text-hf-muted">Nenhum pré-preparo cadastrado ainda.</p>}
                 {catalogo.filter((g) => !grupoSel || g.grupo === grupoSel)
                   .map((g) => ({ ...g, itens: g.itens.filter((it) => !buscaPrep.trim() || normalizarBusca(it.nome).includes(normalizarBusca(buscaPrep))) }))
                   .filter((g) => g.itens.length).map((g) => (
@@ -238,12 +234,16 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
                   </div>
                 ))}
               </div>
+              <div className="flex flex-wrap gap-2 border-t border-hf-border p-2">
+                <Botao variante="secundario" type="button" onClick={() => { setTextoNovo(buscaPrep); setVerLista(false); setPainel("novo-prep"); }}>+ Criar novo pré-preparo</Botao>
+                <Botao variante="texto" type="button" onClick={() => setVerLista(false)}>Fechar a lista</Botao>
+              </div>
             </div>
           )}
           {painel === "busca-item" && (
-            <BuscaItens base={base} excluir={form.itens.map((i) => i.insumo_id || i.subficha_id)} onEscolher={adicionarItem}
-              onCriarIngrediente={(t) => { setTextoNovo(t); setPainel("novo-prod"); }}
-              onCriarPrePreparo={(t) => { setTextoNovo(t); setPainel("novo-prep"); }} />
+            // "+ Ingrediente" (dono, 17/11/2026): só ingredientes; pré-preparo tem o próprio botão
+            <BuscaItens base={base} modo="ingrediente" semPrePreparos excluir={form.itens.map((i) => i.insumo_id || i.subficha_id)} onEscolher={adicionarItem}
+              onCriarIngrediente={(t) => { setTextoNovo(t); setPainel("novo-prod"); }} />
           )}
           {painel === "novo-prod" && (
             <NovoProduto unidadeId={unidadeId} nomeInicial={textoNovo} onFechar={() => setPainel(null)}
@@ -258,8 +258,14 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
             <NovoPrePreparo unidadeId={unidadeId} base={base} nomeInicial={textoNovo} onFechar={() => setPainel(null)}
               onCriado={async (id, unidade) => { await recarregar(); adicionarItem({ tipo: "pre_preparo", id, unidade }); }} />
           )}
-          {painel !== "busca-item" && painel !== "novo-prod" && painel !== "novo-prep" && (
-            <Botao variante="secundario" type="button" onClick={() => setPainel("busca-item")}>+ Adicionar ingrediente ou pré-preparo</Botao>
+          {/* dois botões sempre embaixo da lista (dono, 17/11/2026) */}
+          {painel !== "novo-prod" && painel !== "novo-prep" && painel !== "editar-prep" && (
+            <div className="grid grid-cols-2 gap-2 sm:flex">
+              <Botao variante={painel === "busca-item" ? "primario" : "secundario"} type="button"
+                onClick={() => { setVerLista(false); setPainel(painel === "busca-item" ? null : "busca-item"); }}>+ Ingrediente</Botao>
+              <Botao variante={verLista ? "primario" : "secundario"} type="button"
+                onClick={() => { setPainel(null); setVerLista((v) => !v); }}>+ Pré-preparo{catalogo.length ? ` (${catalogo.reduce((t, g) => t + g.itens.length, 0)})` : ""}</Botao>
+            </div>
           )}
         </div>
       </Secao>

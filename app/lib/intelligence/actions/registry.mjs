@@ -17,6 +17,7 @@ import { criarMarmita } from "./criar-marmita.mjs";
 import { lerCardapioConcorrente } from "./ler-cardapio-concorrente.mjs";
 import { planejarProducao } from "./planejar-producao.mjs";
 import { organizarVitrine } from "./organizar-vitrine.mjs";
+import { cadastrarPlataformas, cadastrarCustosFixos, cadastrarFuncionarios } from "./cadastros-delivery.mjs";
 
 export const RISCO = Object.freeze({ LOW: "LOW", MEDIUM: "MEDIUM", HIGH: "HIGH", CRITICAL: "CRITICAL" });
 
@@ -31,6 +32,9 @@ export const ACOES = Object.freeze({
   "competitor.menu": lerCardapioConcorrente,
   "production.plan": planejarProducao,
   "platform.screen": organizarVitrine,
+  "channel.register": cadastrarPlataformas,
+  "fixedcost.register": cadastrarCustosFixos,
+  "employee.register": cadastrarFuncionarios,
   "stock.transfer": indisponivel("stock.transfer", "Transferir entre estoques", "estoque", RISCO.MEDIUM, "Transferência pela conversa ainda não foi liberada. Use a tela de Estoque."),
   "stock.adjust": indisponivel("stock.adjust", "Ajustar estoque", "estoque", RISCO.HIGH, "Ajuste de estoque exige PIN do administrador na tela de Estoque."),
   "stock.adjustRetroactive": indisponivel("stock.adjustRetroactive", "Alterar estoque retroativamente", "estoque", RISCO.CRITICAL, "Alteração retroativa de estoque não é permitida pela conversa."),

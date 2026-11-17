@@ -295,6 +295,32 @@ export const INTENCOES = Object.freeze([
     frases: [["organizar a tela", "organizar a nossa tela", "organizar nossa tela", "organizar a plataforma", "organizador", "simulador de tela", "nossa vitrine", "a vitrine", "tela do ifood", "tela do app", "tela da plataforma", "montar a tela", "monta a tela", "organizar o ifood", "organizar o cardapio do app"]],
     proibidas: ["concorrente", "concorrentes"], peso: 14,
   },
+  // 17/11/2026: "Jhon, vamos montar uma unidade de delivery" (do zero, tudo pelo Jhon)
+  {
+    id: "delivery.montar", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Montar o delivery do zero conversando com o Jhon: onde vende (apps ou balcão), custos fixos, equipe, marmitas e vitrine, um passo de cada vez (ex.: 'Jhon, vamos montar uma unidade de delivery', 'montar o delivery do zero').",
+    frases: [["montar uma unidade de delivery", "montar a unidade de delivery", "montar um delivery", "montar o delivery", "montar nosso delivery", "montar o nosso delivery", "delivery do zero", "criar um delivery", "criar o delivery", "abrir um delivery", "continuar montando o delivery", "montagem do delivery"]],
+    peso: 16,
+  },
+  // 17/11/2026: cadastros do delivery pelo Jhon (apps, custos fixos, funcionários)
+  {
+    id: "delivery.cadastrar_plataformas", tipo: "acao", acao: "channel.register", agentes: ["operacoes"],
+    descricao: "Cadastrar apps de entrega com o nome e as taxas (ex.: 'Jhon, vamos cadastrar 3 plataformas', 'cadastrar o iFood com 12% de comissão').",
+    frases: [["cadastrar", "cadastra", "cadastre", "registrar", "adicionar", "incluir", "criar", "nova", "novo"], ["plataforma", "plataformas", "aplicativo de entrega", "app de entrega", "apps de entrega", "os apps", "um app", "uns apps", ...NUMEROS_LOTE.flatMap((n) => [`${n} apps`, `${n} aplicativos`])]],
+    proibidas: ["compara", "comparar", "simula", "organizar", "tela", "vitrine", "marmita"], peso: 14,
+  },
+  {
+    id: "delivery.cadastrar_custos_fixos", tipo: "acao", acao: "fixedcost.register", agentes: ["operacoes"],
+    descricao: "Cadastrar os custos fixos do mês do delivery: aluguel, luz, água, gás, internet, contador e outros com nome (ex.: 'Jhon, quero cadastrar os custos fixos', 'faltou o gás nos custos fixos, 150').",
+    frases: [["cadastrar", "cadastra", "cadastre", "registrar", "lancar", "colocar", "coloca", "adicionar", "adiciona", "incluir", "inclui", "faltou", "falta", "quero"], ["custos fixos", "custo fixo", "custos fixo", "contas fixas", "conta fixa", "contas fixa", "despesas fixas", "despesa fixa", "gastos fixos", "gasto fixo"]],
+    peso: 14,
+  },
+  {
+    id: "delivery.cadastrar_funcionarios", tipo: "acao", acao: "employee.register", agentes: ["operacoes"],
+    descricao: "Cadastrar funcionários na equipe do delivery com nome, função e salário (ex.: 'Jhon, vamos cadastrar 2 funcionários', 'cadastrar um funcionário novo').",
+    frases: [["cadastrar", "cadastra", "cadastre", "registrar", "contratei", "contratar", "admitir", "novo funcionario", "nova funcionaria"], ["funcionario", "funcionarios", "funcionaria", "funcionarias", "colaborador", "colaboradores", "colaboradora"]],
+    proibidas: ["ponto", "atrasado", "folga", "escala", "uniforme"], peso: 14,
+  },
   // 14/11/2026: lista de compras pelo Jhon e "comprei tudo, faltou isso"
   {
     id: "compras.lista_comprei", tipo: "pergunta", agentes: ["compras"],

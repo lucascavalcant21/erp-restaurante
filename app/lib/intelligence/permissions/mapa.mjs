@@ -45,6 +45,9 @@ export const PERMISSOES = Object.freeze({
   concorrentes_gravar: ["marmitaria.competitors.create"],
   // Organizador de plataforma (vitrine do app de entrega): ver e montar, como o cardápio da marmitaria
   organizador_ver: ["marmitaria.recipes.view"],
+  // cadastros do delivery pelo Jhon: apps e custos fixos (Custos e apps) e funcionários (Equipe / RH)
+  configurar_delivery: ["marmitaria.settings.edit"],
+  cadastrar_funcionario: ["marmitaria.hr.create", "rh.employees.create"],
   organizador_gravar: ["marmitaria.recipes.edit", "marmitaria.recipes.create"],
   // produção do dia (quanto de cada ingrediente, o que fabricar, o que comprar): quem vê estoque e produção da marmitaria
   producao_marmitaria: ["marmitaria.stock.view", "marmitaria.recipes.view"],
@@ -79,6 +82,8 @@ export const ROTULO_CAPACIDADE = Object.freeze({
   concorrentes_ver: "cardápios dos concorrentes",
   concorrentes_gravar: "guardar cardápio de concorrente",
   organizador_ver: "organizador de plataforma",
+  configurar_delivery: "cadastrar apps e custos fixos do delivery",
+  cadastrar_funcionario: "cadastrar funcionário",
   organizador_gravar: "montar a vitrine da plataforma",
   producao_marmitaria: "produção da marmitaria",
   aprovar_plano: "programar o plano do dia",

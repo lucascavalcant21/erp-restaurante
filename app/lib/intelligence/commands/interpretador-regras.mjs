@@ -144,8 +144,83 @@ function posicaoDoGatilho(ps, intencao) {
  * @param {string} texto
  * @returns {{ ok: true, valor: object } | { ok: false, erros: object[] }}
  */
+// ─── Palavra cortada ou errada (dono, 17/11/2026: "tem palavra que eu escrevo
+// cortada… você entende mais ou menos como é; nunca deixa sem resposta") ───
+// Sem nenhum pedido reconhecido, cada palavra desconhecida é trocada pela mais
+// parecida do vocabulário dos pedidos ("cadatrar" → "cadastrar", "plataformsa" →
+// "plataformas", "funcionaro" → "funcionario", "cadast" → "cadastrar") e o texto
+// é lido de novo, com confiança "media". Número e palavra curta não mudam.
+let VOCAB = null;
+function vocabulario() {
+  if (VOCAB) return VOCAB;
+  const set = new Set();
+  for (const it of INTENCOES) for (const grupo of it.frases || []) for (const f of grupo) for (const w of String(f).split(" ")) if (w.length >= 4 && !/\d/.test(w)) set.add(w);
+  VOCAB = [...set];
+  return VOCAB;
+}
+
+export function distancia(a, b, max = 2) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let ant = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let menor = i;
+    for (let j = 1; j <= b.length; j++) {
+      const v = Math.min(ant[j] + 1, cur[j - 1] + 1, ant[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+        // letras trocadas de lugar contam como um erro só ("plataformsa")
+        i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1] ? (ant[j - 2] ?? 0) + 1 : Infinity);
+      cur.push(v);
+      if (v < menor) menor = v;
+    }
+    if (menor > max) return max + 1;
+    ant = cur;
+  }
+  return ant[b.length];
+}
+
+/** Palavra desconhecida → a do vocabulário mais parecida (ou null, se nenhuma é parecida o bastante). */
+export function palavraMaisParecida(w) {
+  const vocab = vocabulario();
+  if (w.length < 4 || /\d/.test(w) || vocab.includes(w)) return null;
+  const max = 1; // uma letra a mais, a menos, trocada ou fora de lugar (2 já confunde palavra certa: "diferente" × "diferenca")
+  // empate: a que começa igual por mais letras ("motar" → montar, não botar; "nosa" → nossa, não nova)
+  const prefixo = (v) => { let i = 0; while (i < v.length && i < w.length && v[i] === w[i]) i++; return i; };
+  let melhor = null; let nota = null;
+  for (const v of vocab) {
+    const d = distancia(w, v, max);
+    if (d > max) continue;
+    const n = [d, -prefixo(v), Math.abs(v.length - w.length)];
+    if (!nota || n[0] < nota[0] || (n[0] === nota[0] && (n[1] < nota[1] || (n[1] === nota[1] && n[2] < nota[2])))) { melhor = v; nota = n; }
+  }
+  if (melhor) return melhor;
+  // cortada no fim: "cadast" → "cadastrar", "funcion" → "funcionario" (só se uma palavra começa assim)
+  if (w.length >= 5) {
+    const comeco = vocab.filter((v) => v.startsWith(w));
+    if (comeco.length) return comeco.sort((a, b) => a.length - b.length)[0];
+  }
+  return null;
+}
+
+export function corrigirPalavras(ps) {
+  let mudou = false;
+  const out = ps.map((w) => { const c = palavraMaisParecida(w); if (c) { mudou = true; return c; } return w; });
+  return mudou ? out : null;
+}
+
 export function interpretarPorRegras(texto) {
   const ps = palavras(texto);
+  const r = interpretarPalavras(ps);
+  if (r.ok && r.valor.intencao === "desconhecido") {
+    const corrigidas = corrigirPalavras(ps);
+    if (corrigidas) {
+      const r2 = interpretarPalavras(corrigidas);
+      if (r2.ok && r2.valor.intencao !== "desconhecido") return interpretacaoSchema.parse({ ...r2.valor, confianca: "media" });
+    }
+  }
+  return r;
+}
+
+function interpretarPalavras(ps) {
   const destino = extrairDestino(ps);
   const candidatas = INTENCOES.filter((it) =>
     it.frases.every((grupo) => grupo.some((f) => contemFrase(ps, f)))

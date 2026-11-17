@@ -16,6 +16,7 @@ import { HANDLERS_MARMITARIA } from "./marmitaria-agente.mjs";
 import { HANDLERS_CONCORRENTES } from "./concorrentes-agente.mjs";
 import { HANDLERS_PRODUCAO } from "./producao-agente.mjs";
 import { HANDLERS_ORGANIZADOR } from "./organizador-agente.mjs";
+import { HANDLERS_MONTAR_DELIVERY } from "./montar-delivery-agente.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoInsight, blocoTexto, brl, num, ddmm, valorFormatado } from "../commands/resposta.mjs";
 
 const r = (texto, blocos = [], acoes = [], nivel = NIVEL.OBSERVAR) => ({ texto, blocos, acoes, nivel });
@@ -314,6 +315,7 @@ export const AgenteOperacoes = {
   ...HANDLERS_CONCORRENTES,
   ...HANDLERS_PRODUCAO,
   ...HANDLERS_ORGANIZADOR,
+  ...HANDLERS_MONTAR_DELIVERY,
   ...HANDLERS_MENU,
   async "fichas.preparo"({ motor, params }) {
     // "como faz essa?" logo depois de falar de uma ficha: vale a ficha da conversa (reconferida nesta unidade)

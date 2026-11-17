@@ -133,9 +133,24 @@ export function bancoFalso(tabelas = {}, { ignorarFiltros = false, erros = {}, r
         if (!dup) (dados[tabela] ||= []).push(...lista.map((l) => ({ ...l })));
         chamadas.push({ tabela, op: "insert", linhas: lista.length, duplicado: !!dup });
         return {
-          select: () => ({ single: async () => res || { data: { ...lista[0] }, error: null } }),
+          select: () => ({
+            single: async () => res || { data: { ...lista[0] }, error: null },
+            then: (r, j) => Promise.resolve(res || { data: lista.map((l) => ({ ...l })), error: null }).then(r, j),
+          }),
           then: (r) => Promise.resolve(res || { data: null, error: null }).then(r),
         };
+      },
+      // upsert(linha, { onConflict: "a,b" }): troca a linha com as mesmas chaves ou insere
+      upsert(linhas, { onConflict = "id" } = {}) {
+        const chaves = String(onConflict).split(",").map((k) => k.trim());
+        const lista = Array.isArray(linhas) ? linhas : [linhas];
+        const tab = (dados[tabela] ||= []);
+        for (const l of lista) {
+          const i = tab.findIndex((x) => chaves.every((k) => String(x[k]) === String(l[k])));
+          if (i >= 0) tab[i] = { ...tab[i], ...l }; else tab.push({ id: l.id || crypto.randomUUID(), ...l });
+        }
+        chamadas.push({ tabela, op: "upsert", linhas: lista.length });
+        return { then: (r) => Promise.resolve({ data: null, error: null }).then(r) };
       },
       update(campos) { st.op = "update"; st.patch = { ...campos }; return b; },
       then(resolver, rejeitar) { return Promise.resolve().then(executar).then(resolver, rejeitar); },

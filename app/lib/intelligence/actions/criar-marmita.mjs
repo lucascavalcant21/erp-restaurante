@@ -93,6 +93,10 @@ export const paramsSchema = s.object({
   embs: s.opcional(s.array(embSchema, { max: MAX_EMB })),
   embOk: s.opcional(s.boolean()),
   canalId: s.opcional(s.string({ min: 2, max: 30 })),
+  // vários apps (dono, 17/11/2026): "simular em todos" e depois escolher; cada app com o seu preço
+  simular: s.opcional(s.boolean()),
+  canaisEscolha: s.opcional(s.string({ min: 1, max: 200 })),
+  precosExtras: s.opcional(s.array(s.object({ canal: s.string({ min: 2, max: 30 }), preco: s.number({ min: 0.01, max: 100000 }) }), { max: 6 })),
   canalNovo: s.opcional(s.object({ nome: s.opcional(s.string({ min: 1, max: 40 })), comissao: s.opcional(s.number({ min: 0, max: 99 })), pagamento: s.opcional(s.number({ min: 0, max: 99 })) })),
   lucroReais: s.opcional(s.number({ min: 0, max: 100000 })),
   lucroPct: s.opcional(s.number({ min: 0, max: 90 })),
@@ -100,7 +104,7 @@ export const paramsSchema = s.object({
   combo: s.opcional(comboSchema),
   etapas: s.opcional(s.array(s.string({ min: 1, max: 160 }), { max: 15 })),
   montagemOk: s.opcional(s.boolean()),
-  pendente: s.opcional(s.object({ tipo: s.string({ max: 20 }), indice: s.opcional(s.number({ min: 0, max: 20, inteiro: true })), sub: s.opcional(s.number({ min: 0, max: 20, inteiro: true })), sugerido: s.opcional(s.number({ min: 0, max: 100000 })) })),
+  pendente: s.opcional(s.object({ tipo: s.string({ max: 20 }), canal: s.opcional(s.string({ max: 30 })), indice: s.opcional(s.number({ min: 0, max: 20, inteiro: true })), sub: s.opcional(s.number({ min: 0, max: 20, inteiro: true })), sugerido: s.opcional(s.number({ min: 0, max: 100000 })) })),
   aviso: s.opcional(s.string({ max: 200 })),
   resposta: s.opcional(s.string({ min: 1, max: 300 })),
 });
@@ -307,9 +311,24 @@ export function aplicarResposta(params, _campo, valor) {
     }
     case "canal":
       if (v === "novo") p.canalNovo = {};
-      else if (/^[a-z0-9_]{2,30}$/.test(v)) p.canalId = v;
+      else if (v === "simular" || /\bsimula/.test(f)) p.simular = true;
+      else if (/^[a-z0-9_]{2,30}$/.test(v) && v !== "todos") p.canalId = v;
+      else if (limpar(v).length >= 2) p.canaisEscolha = limpar(v).slice(0, 200);
       else p.aviso = "Escolha um app ou \"Criar outro app\".";
       break;
+    case "canais_depois":
+      if (/^[a-z0-9_]{2,30}$/.test(v) && v !== "todos") p.canalId = v;
+      else if (limpar(v).length >= 2) p.canaisEscolha = limpar(v).slice(0, 200);
+      else p.aviso = "Em quais apps vai cadastrar?";
+      break;
+    case "preco_extra": {
+      const canalExtra = pend.canal;
+      let pr = null;
+      if (SIM.test(f) && pend.sugerido > 0) pr = pend.sugerido; else pr = lerPreco(v);
+      if (pr > 0 && canalExtra) p.precosExtras = [...(p.precosExtras || []).filter((x) => x.canal !== canalExtra), { canal: canalExtra, preco: pr }];
+      else p.aviso = "Por quanto vai vender nesse app?";
+      break;
+    }
     case "canal_nome": if (limpar(v).length >= 2) p.canalNovo = { ...(p.canalNovo || {}), nome: cap(v).slice(0, 40) }; else p.aviso = "Qual o nome do app?"; break;
     case "canal_taxas": {
       const t = lerTaxas(v);
@@ -361,12 +380,50 @@ export function aplicarResposta(params, _campo, valor) {
   return p;
 }
 
+// ─── Vários apps ─────────────────────────────────────────────────────────────
+
+const plataformaDoCanal = (c) => plataformaDoTexto(c?.plataforma) || plataformaDoTexto(c?.nome) || plataformaDoTexto(c?.id) || null;
+
+function opcoesDeCanais(ativos, depoisDaSimulacao) {
+  return [
+    ...(depoisDaSimulacao ? [] : [{ id: "simular", rotulo: "Simular em todos" }]),
+    ...ativos.map((x) => ({ id: x.id, rotulo: `Só ${x.nome}` })),
+    ...(ativos.length >= 2 ? [{ id: "todos", rotulo: ativos.length === 2 ? `${ativos[0].nome} e ${ativos[1].nome}` : "Todos os cadastrados" }] : []),
+    ...(depoisDaSimulacao ? [] : [{ id: "novo", rotulo: "Criar outro app" }]),
+    { id: "outros", rotulo: "Outra combinação (digite)", livre: true },
+  ];
+}
+
+/** "todos", "iFood e 99", "ifood, keeta" → os apps cadastrados citados, na ordem do cadastro. */
+export function canaisDaEscolha(ativos, texto) {
+  const f = fold(texto);
+  if (/^(todos|todas|os dois|as duas|ambos|em todos|nos dois)\b/.test(f) || f === "todos") return [...ativos];
+  return ativos.filter((c) => {
+    const nome = fold(c.nome).split(" · ")[0].trim();
+    const pl = plataformaDoCanal(c);
+    return f.includes(fold(c.id)) || (nome.length >= 2 && f.includes(nome)) || (pl && plataformaDoTexto(f.split(/,|\se\s|\//).find((t) => plataformaDoTexto(t) === pl) || "") === pl);
+  });
+}
+
+/** Preço para a meta em cada app e o lucro de cada um vendendo todos pelo mesmo preço (SIMULAÇÃO). */
+export function simularApps({ ativos, custo, custoCheio, d, margem, lucroReais }) {
+  const sug = ativos.map((c) => ({ c, s: precoSugerido({ custoTecnico: custoCheio, canal: c, tributosPct: d.tributosPct, margemAlvoPct: margem, lucroAlvoReais: lucroReais }) })).filter((x) => x.s.preco > 0);
+  if (!sug.length) return { linhas: [], melhor: null, precoComum: null };
+  const precoComum = Math.max(...sug.map((x) => x.s.preco));
+  const comLucro = sug.map((x) => ({ ...x, l: lucroDoPedido({ paga: precoComum, custo, canal: x.c, tributosPct: d.tributosPct, embutidos: d.embutidos, marmitas: 1 }) }));
+  const validos = comLucro.filter((x) => x.l.lucro != null);
+  const melhor = validos.length > 1 ? validos.reduce((a, b) => (b.l.lucro > a.l.lucro ? b : a)).c : null;
+  const taxa = (c) => { const t = Number(c.comissao_pct || 0) + Number(c.taxa_pagamento_pct || 0); return t > 0 ? ` (taxa ${num(t, 1)}%)` : ""; };
+  const linhas = comLucro.map((x) => `${x.c.nome}${taxa(x.c)}: vender a ${brl(x.s.preco)}${x.l.lucro != null && sug.length > 1 ? `; a ${brl(precoComum)} sobram ${brl(x.l.lucro)}` : ""}`);
+  return { linhas, melhor, precoComum };
+}
+
 // ─── Preparar ────────────────────────────────────────────────────────────────
 
-const pergunta = (tipo, texto, { indice = null, sub = null, opcoes = null, aviso = null, sugerido = null } = {}) => ({
+const pergunta = (tipo, texto, { indice = null, sub = null, opcoes = null, aviso = null, sugerido = null, canal = null } = {}) => ({
   faltando: {
     campo: "resposta", texto: aviso ? `${aviso} ${texto}` : texto, opcoes: opcoes ? opcoes.map(({ livre, ...o }) => o) : null, livre: !opcoes || opcoes.some((o) => o.livre),
-    persistir: { pendente: { tipo, ...(indice != null ? { indice } : {}), ...(sub != null ? { sub } : {}), ...(sugerido != null ? { sugerido } : {}) }, aviso: null },
+    persistir: { pendente: { tipo, ...(canal ? { canal } : {}), ...(indice != null ? { indice } : {}), ...(sub != null ? { sub } : {}), ...(sugerido != null ? { sugerido } : {}) }, aviso: null },
   },
 });
 
@@ -512,11 +569,36 @@ async function preparar(ctx, params) {
   let canal = p.canalId ? d.canais.find((x) => x.id === p.canalId) : null;
   if (p.canalId && !canal) return { erro: "O app escolhido não existe mais nas configurações." };
   let canalNovo = null;
+  const ativos = d.canais.filter((x) => x.ativo !== false);
+  // "iFood e 99", "todos": os apps citados; o primeiro é o principal (combo e guia)
+  let extras = [];
+  if (!canal && !p.canalNovo && p.canaisEscolha) {
+    const esc = canaisDaEscolha(ativos, p.canaisEscolha);
+    if (!esc.length) return pergunta(p.simular ? "canais_depois" : "canal", `Não achei esse app nos cadastrados (${ativos.map((x) => x.nome).join(", ")}). Em qual vai vender?`, { opcoes: opcoesDeCanais(ativos, p.simular) });
+    [canal, ...extras] = esc;
+  }
   if (!canal) {
-    if (!p.canalNovo) {
-      const ativos = d.canais.filter((x) => x.ativo !== false);
+    if (!p.canalNovo && !p.simular) {
+      if (ativos.length >= 2) {
+        return pergunta("canal", `Em quais apps a ${p.nome} vai ser vendida? Você tem cadastrados: ${ativos.map((x) => x.nome).join(", ")}. Quer que eu simule em todos para ver qual dá mais lucro?`, { aviso, opcoes: opcoesDeCanais(ativos, false) });
+      }
       return pergunta("canal", "Você vai vender em qual app?", { aviso, opcoes: [...ativos.map((x) => ({ id: x.id, rotulo: x.nome })), { id: "novo", rotulo: "Criar outro app" }] });
     }
+  }
+  if (!canal && p.simular) {
+    // simulação em todos os apps cadastrados (SIMULAÇÃO), depois a pessoa escolhe
+    const custoS = custoDaMarmita({ itens: linhas.map((l) => l.item), embalagens: linhasEmb, fichas, insumos });
+    const embS = d.embutidos?.totalPorMarmita || 0;
+    const margemS = p.lucroPct ?? d.margemAlvoPct;
+    const lucroS = p.lucroReais ?? (p.lucroPct == null ? d.lucroAlvoReais : null);
+    if (margemS == null && !(lucroS > 0)) {
+      return pergunta("lucro", `Para simular: a ${p.nome} custa ${brl(custoS.total)} de ingredientes e embalagem${embS ? ` + ${brl(embS)} de equipe e contas por marmita` : ""}. Quanto você quer de lucro limpo em cada uma? Ex.: "R$ 5" ou "15%".`, { aviso });
+    }
+    const sim = simularApps({ ativos, custo: custoS.total, custoCheio: r2(custoS.total + embS), d, margem: margemS, lucroReais: lucroS });
+    if (!sim.linhas.length) return pergunta("canais_depois", "DADOS INSUFICIENTES para simular: o calculador não achou preço em nenhum app. Em quais apps vai vender?", { aviso, opcoes: opcoesDeCanais(ativos, true) });
+    return pergunta("canais_depois", `Simulação da ${p.nome} (SIMULAÇÃO, custo ${brl(custoS.total)}): ${sim.linhas.join("; ")}.${sim.melhor ? ` Vendendo todos a ${brl(sim.precoComum)}, o ${sim.melhor.nome} é o que dá mais lucro.` : ""} Em quais vai cadastrar?`, { aviso, opcoes: opcoesDeCanais(ativos, true) });
+  }
+  if (!canal) {
     if (!p.canalNovo.nome) return pergunta("canal_nome", "Qual o nome do app novo?", { aviso });
     if (p.canalNovo.comissao == null) return pergunta("canal_taxas", `Quantos por cento o ${p.canalNovo.nome} cobra? Ex.: "12% de comissão e 3,2% de pagamento" (ou "0" se é venda direta).`, { aviso });
     let base = fold(p.canalNovo.nome).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 24) || "app";
@@ -544,6 +626,19 @@ async function preparar(ctx, params) {
       { aviso, sugerido: sug.preco, opcoes: [{ id: "sim", rotulo: `Vender a ${brl(sug.preco)}` }, { id: "outro", rotulo: "Outro preço (digite)", livre: true }] });
   }
   const resultado = lucroDoPedido({ paga: p.preco, custo: custo.total, canal, tributosPct: d.tributosPct, embutidos: d.embutidos, marmitas: 1 });
+  // os outros apps escolhidos: um preço para cada, pela mesma calculadora
+  const porApp = [{ canal, preco: p.preco, resultado }];
+  for (const cx of extras) {
+    const ja = (p.precosExtras || []).find((x) => x.canal === cx.id);
+    if (!ja) {
+      const sx = precoSugerido({ custoTecnico: custoCheio, canal: cx, tributosPct: d.tributosPct, margemAlvoPct: margem, lucroAlvoReais: lucroReais });
+      if (!sx.preco) return pergunta("preco_extra", `${sx.motivo || "Não consegui calcular o preço."} Por quanto vai vender no ${cx.nome}?`, { aviso, canal: cx.id });
+      const meta = lucroReais > 0 ? `${brl(lucroReais)} de lucro` : `${num(margem, 1)}% de lucro`;
+      return pergunta("preco_extra", `No ${cx.nome}, para sobrar ${meta}, tem que vender a ${brl(sx.preco)}. Vender a ${brl(sx.preco)} no ${cx.nome}?`,
+        { aviso, canal: cx.id, sugerido: sx.preco, opcoes: [{ id: "sim", rotulo: `Vender a ${brl(sx.preco)}` }, { id: "outro", rotulo: "Outro preço (digite)", livre: true }] });
+    }
+    porApp.push({ canal: cx, preco: ja.preco, resultado: lucroDoPedido({ paga: ja.preco, custo: custo.total, canal: cx, tributosPct: d.tributosPct, embutidos: d.embutidos, marmitas: 1 }) });
+  }
 
   // 7. Combo com refrigerante (sobremesa fica para depois, na tela de combos)
   if (!p.combo) return pergunta("combo", `Vamos montar um combo da ${p.nome} com refrigerante?`, { aviso, opcoes: [{ id: "sim", rotulo: "Sim, com refrigerante" }, { id: "nao", rotulo: "Agora não" }] });
@@ -596,8 +691,10 @@ async function preparar(ctx, params) {
     { rotulo: "Custo da marmita", valor: brl(custo.total) },
     ...(embutido ? [{ rotulo: "Equipe e contas por marmita", valor: `${brl(embutido)} (ESTIMATIVA)` }] : []),
     ...(canalNovo ? [{ rotulo: "App novo", valor: `${canalNovo.nome}: ${num(canalNovo.comissao_pct, 2)}% + ${num(canalNovo.taxa_pagamento_pct, 2)}%` }] : []),
-    { rotulo: `Preço no ${canal.nome}`, valor: brl(p.preco) },
-    { rotulo: "Lucro por marmita", valor: resultado.lucro == null ? "DADOS INSUFICIENTES" : `${brl(resultado.lucro)} (${num(resultado.lucroPct, 1)}%)` },
+    ...porApp.flatMap((a) => [
+      { rotulo: `Preço no ${a.canal.nome}`, valor: brl(a.preco) },
+      { rotulo: porApp.length > 1 ? `Lucro no ${a.canal.nome}` : "Lucro por marmita", valor: a.resultado.lucro == null ? "DADOS INSUFICIENTES" : `${brl(a.resultado.lucro)} (${num(a.resultado.lucroPct, 1)}%)` },
+    ]),
     ...(combo ? [{ rotulo: "Combo", valor: `${combo.nome} por ${brl(combo.preco)} · lucro ${brl(combo.lucro.lucro)}` }] : []),
     { rotulo: "Montagem", valor: etapas.map((x, i) => `${i + 1}. ${x}`).join(" ") },
   ];
@@ -617,13 +714,16 @@ async function preparar(ctx, params) {
           nome: p.nome, categoria: "", tamanho: "M", peso_final_g: pesoG > 0 ? Math.round(pesoG) : null, ativo: true, preco_venda: p.preco,
           custo_embalagens_total: custo.embalagens || 0,
           itens: linhas.map((l) => l.item), embalagens: linhasEmb.map(({ insumo_id, quantidade, tipo }) => ({ insumo_id, quantidade, tipo })),
-          precos: [{ canal: canal.id, preco_venda: p.preco }],
+          precos: porApp.map((a) => ({ canal: a.canal.id, preco_venda: a.preco })),
         },
         canalNovo,
         combo: combo ? { nome: combo.nome, preco: combo.preco, bebida: { nome: combo.bebida.insumo.nome, insumo_id: combo.bebida.insumo.id, preco: combo.bebida.preco } } : null,
         etapas,
-        vitrine: { plataforma: plataformaDoTexto(canal.nome) || plataformaDoTexto(canal.id) || null, componentes: linhas.map((l) => l.nome).filter(Boolean).slice(0, 12) },
-        resumo: { quantas: p.quantas || 1, ordem: p.ordem || 1, nome: p.nome, custo: custo.total, preco: p.preco, canal: canal.nome, lucro: resultado.lucro, lucroPct: resultado.lucroPct, combo: combo ? { nome: combo.nome, preco: combo.preco } : null },
+        vitrine: {
+          apps: porApp.map((a) => ({ plataforma: plataformaDoCanal(a.canal), preco: a.preco, nome: a.canal.nome })).filter((a) => a.plataforma),
+          componentes: linhas.map((l) => l.nome).filter(Boolean).slice(0, 12),
+        },
+        resumo: { quantas: p.quantas || 1, ordem: p.ordem || 1, apps: porApp.map((a) => ({ nome: a.canal.nome, preco: a.preco, lucro: a.resultado.lucro ?? null })), nome: p.nome, custo: custo.total, preco: p.preco, canal: canal.nome, lucro: resultado.lucro, lucroPct: resultado.lucroPct, combo: combo ? { nome: combo.nome, preco: combo.preco } : null },
       },
     },
   };
@@ -697,7 +797,13 @@ async function executar(ctx, payload) {
   // 6. Guia de montagem e combo (config da unidade): relê e acrescenta, sem apagar o que existe
   const { data: reg } = await db.from("config_sistema").select("id, params").eq("unidade_id", unidade).maybeSingle();
   const params = reg?.params || {};
-  const naVitrine = payload.vitrine ? vitrineComMarmita(normalizarOrganizador(params[CHAVE_PARAMS]), { ...payload.vitrine, nome: m.nome, fichaId: String(mm.id), preco: m.preco_venda }) : null;
+  let naVitrine = null;
+  const nasVitrines = [];
+  for (const a of payload.vitrine?.apps || []) {
+    const atual = naVitrine || normalizarOrganizador(params[CHAVE_PARAMS]);
+    const novo = vitrineComMarmita(atual, { plataforma: a.plataforma, componentes: payload.vitrine.componentes, nome: m.nome, fichaId: String(mm.id), preco: a.preco });
+    if (novo) { naVitrine = novo; nasVitrines.push(a.nome); }
+  }
   const patch = {
     ...(naVitrine ? { [CHAVE_PARAMS]: naVitrine } : {}),
     marmitaria_processos: { ...(params.marmitaria_processos || {}), [mm.id]: { embalagens: m.embalagens.map((x) => id(x.insumo_id)), etapas: payload.etapas.map((t, i) => ({ id: `ia-${i + 1}`, grupo: "montagem", titulo: t, texto: "", minutos: "", graus: "", foto: "" })) } },
@@ -710,25 +816,28 @@ async function executar(ctx, payload) {
       : await db.from("config_sistema").insert([{ unidade_id: unidade, params: patch }]);
     if (e4) return { ok: true, resultado: { ...payload.resumo, marmitaId: mm.id, avisoMontagem: "A marmita foi criada, mas o guia de montagem e o combo não foram salvos. Salve em Guia de montagem e em Preço e combos." }, antes: null, depois: { marmitaId: mm.id } };
   }
-  return { ok: true, resultado: { ...payload.resumo, marmitaId: mm.id, codigo: mm.codigo || null, naVitrine: naVitrine ? payload.vitrine.plataforma : null }, antes: null, depois: { marmitaId: mm.id } };
+  return { ok: true, resultado: { ...payload.resumo, marmitaId: mm.id, codigo: mm.codigo || null, nasVitrines }, antes: null, depois: { marmitaId: mm.id } };
 }
 
 function resumoResultado(rec) {
   const r = rec.resultado || {};
   const proxima = r.quantas > 1 && r.ordem < r.quantas ? r.ordem + 1 : null;
-  const vitrine = r.naVitrine ? ` Ela já entrou no Delivery e na vitrine do ${r.canal} (Organizador de plataforma); falta a foto.` : " Ela já entrou no Delivery.";
+  const vitrines = r.nasVitrines || [];
+  const vitrine = vitrines.length ? ` Ela já entrou no Delivery e na vitrine ${vitrines.length > 1 ? "de cada app" : "do"} ${vitrines.join(" e ")} (Organizador de plataforma), cada uma com o seu preço; falta a foto.` : " Ela já entrou no Delivery.";
+  const apps = r.apps?.length > 1 ? r.apps : null;
   const seguir = proxima ? ` Agora a marmita ${proxima} de ${r.quantas}.` : r.quantas > 1 ? ` Pronto: as ${r.quantas} marmitas estão montadas.` : "";
   return {
-    texto: `Marmita criada: ${r.nome}${r.codigo ? ` (${r.codigo})` : ""}. Custo ${brl(r.custo)}, vende a ${brl(r.preco)} no ${r.canal}${r.lucro != null ? `, sobram ${brl(r.lucro)} de lucro` : ""}.${r.combo ? ` Combo ${r.combo.nome} a ${brl(r.combo.preco)}.` : ""} Sobremesa no combo fica para depois, em Preço e combos.${r.avisoMontagem ? ` ${r.avisoMontagem}` : ""}${vitrine}${seguir}`,
+    texto: `Marmita criada: ${r.nome}${r.codigo ? ` (${r.codigo})` : ""}. Custo ${brl(r.custo)}, ${apps ? apps.map((a) => `no ${a.nome} vende a ${brl(a.preco)}${a.lucro != null ? ` e sobram ${brl(a.lucro)}` : ""}`).join("; ") : `vende a ${brl(r.preco)} no ${r.canal}${r.lucro != null ? `, sobram ${brl(r.lucro)} de lucro` : ""}`}.${r.combo ? ` Combo ${r.combo.nome} a ${brl(r.combo.preco)}.` : ""} Sobremesa no combo fica para depois, em Preço e combos.${r.avisoMontagem ? ` ${r.avisoMontagem}` : ""}${vitrine}${seguir}`,
     linhas: [
       { rotulo: "Marmita", valor: r.nome },
       { rotulo: "Custo", valor: brl(r.custo) },
-      { rotulo: `Preço no ${r.canal}`, valor: brl(r.preco) },
-      ...(r.lucro != null ? [{ rotulo: "Lucro por marmita", valor: brl(r.lucro) }] : []),
+      ...(apps
+        ? apps.flatMap((a) => [{ rotulo: `Preço no ${a.nome}`, valor: brl(a.preco) }, ...(a.lucro != null ? [{ rotulo: `Lucro no ${a.nome}`, valor: brl(a.lucro) }] : [])])
+        : [{ rotulo: `Preço no ${r.canal}`, valor: brl(r.preco) }, ...(r.lucro != null ? [{ rotulo: "Lucro por marmita", valor: brl(r.lucro) }] : [])]),
       ...(r.combo ? [{ rotulo: "Combo", valor: `${r.combo.nome} · ${brl(r.combo.preco)}` }] : []),
     ],
     sugestoes: [...(proxima ? [`Vamos montar a marmita ${proxima} de ${r.quantas} nesta unidade`] : []), `Raio-x da marmita ${r.nome}`, `Como monta a marmita ${r.nome}?`],
-    acoes: [{ rotulo: "Imprimir o guia de montagem", rota: "/dashboard/marmitaria/marmitas/processos" }, { rotulo: "Abrir preço e combos", rota: "/dashboard/marmitaria/marmitas/cardapio" }, ...(r.naVitrine ? [{ rotulo: "Abrir o organizador", rota: "/dashboard/marmitaria/marmitas/organizador" }] : [])],
+    acoes: [{ rotulo: "Imprimir o guia de montagem", rota: "/dashboard/marmitaria/marmitas/processos" }, { rotulo: "Abrir preço e combos", rota: "/dashboard/marmitaria/marmitas/cardapio" }, ...(vitrines.length ? [{ rotulo: "Abrir o organizador", rota: "/dashboard/marmitaria/marmitas/organizador" }] : [])],
     referencia: null,
   };
 }
@@ -742,7 +851,7 @@ export const criarMarmita = Object.freeze({
   risco: "MEDIUM",
   disponivel: true,
   precisaConfirmacao: true,
-  campos: ["quantas", "ordem", "unidadeOk", "unidadeEscolha", "nome", "total", "comps", "embs", "embOk", "canalId", "canalNovo", "lucroReais", "lucroPct", "preco", "combo", "etapas", "montagemOk", "pendente", "aviso", "resposta"],
+  campos: ["quantas", "ordem", "unidadeOk", "unidadeEscolha", "nome", "total", "comps", "embs", "embOk", "canalId", "simular", "canaisEscolha", "precosExtras", "canalNovo", "lucroReais", "lucroPct", "preco", "combo", "etapas", "montagemOk", "pendente", "aviso", "resposta"],
   validacoes: [
     "ingrediente, embalagem e ficha existem na unidade (ou são cadastrados junto, com o preço informado)",
     "quantidade na unidade do cadastro (g↔kg, ml↔L)",

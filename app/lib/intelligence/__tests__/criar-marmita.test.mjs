@@ -15,10 +15,11 @@ const INSUMOS = [
   { id: I_ARROZ, nome: "Arroz agulhinha", unidade_medida: "kg", custo_unitario: 6, custo_compra: 30, tamanho_embalagem: 5, departamento: "cozinha" },
   { id: I_POTE, nome: "Pote 750 ml", unidade_medida: "un", custo_unitario: 0.9, custo_compra: 90, tamanho_embalagem: 100, departamento: "embalagens" },
 ];
+let CANAIS_EXTRA = [];
 function dbeFalso() {
   const t = {
     insumos: INSUMOS, fichas_tecnicas: [], fichas_ingredientes: [],
-    marmitaria_configuracoes: [{ canais: [{ id: "ifood", nome: "iFood", ativo: true, comissao_pct: 12, taxa_pagamento_pct: 3.2 }], tributos_pct: null, margem_lucro_alvo_pct: null,
+    marmitaria_configuracoes: [{ canais: [{ id: "ifood", nome: "iFood", ativo: true, comissao_pct: 12, taxa_pagamento_pct: 3.2 }, ...CANAIS_EXTRA], tributos_pct: null, margem_lucro_alvo_pct: null,
       rateio: { regime: "mei", marmitas_mes: 1000, cmo_mes: 6000, custos_fixos: [{ nome: "Aluguel", valor: 2000 }] } }],
   };
   const q = (n) => { const r = { data: t[n] || [], error: null }; const o = { select: () => o, eq: () => o, gte: () => o, lte: () => o, limit: () => o, in: () => o, order: () => o, then: (f, g) => Promise.resolve(r).then(f, g) }; return o; };
@@ -128,11 +129,11 @@ test("várias marmitas: pergunta quantas e a unidade antes do nome; 'marmita 2 d
   assert.match(perguntas[1], /essas 3 marmitas nesta unidade/);
   assert.match(perguntas[2], /^Marmita 1 de 3: qual vai ser o nome dela\?/);
   assert.deepEqual([prep.pronto.payload.resumo.quantas, prep.pronto.payload.resumo.ordem], [3, 1]);
-  assert.equal(prep.pronto.payload.vitrine.plataforma, "ifood");
+  assert.deepEqual(prep.pronto.payload.vitrine.apps.map((a) => a.plataforma), ["ifood"]);
   assert.deepEqual(prep.pronto.payload.vitrine.componentes, ["Filé de frango"]);
   const r2 = await conversar("Vamos montar a marmita 2 de 3 nesta unidade", { nome: "Parmegiana", total: "1", componente: "filé de frango 150 g", embalagens: "nenhuma", canal: "ifood", lucro: "15%", preco: "sim", combo: "agora não", montagem: "sim" });
   assert.match(r2.perguntas[0], /^Marmita 2 de 3: qual/);
-  const res = criarMarmita.resumoResultado({ resultado: { ...prep.pronto.payload.resumo, naVitrine: "ifood" } });
+  const res = criarMarmita.resumoResultado({ resultado: { ...prep.pronto.payload.resumo, nasVitrines: ["iFood"] } });
   assert.match(res.texto, /entrou no Delivery e na vitrine do iFood/);
   assert.match(res.texto, /Agora a marmita 2 de 3\./);
   assert.equal(res.sugestoes[0], "Vamos montar a marmita 2 de 3 nesta unidade");
@@ -156,7 +157,7 @@ test("executor põe a marmita na vitrine do app (categoria Marmitas) sem duplica
     from: () => { const o = { select: () => o, eq: () => o, maybeSingle: async () => ({ data: { id: "cfg", params: {} } }), insert: () => o, update: () => o }; return o; },
   };
   const r = await criarMarmita.executar({ dbUsuario: db, escopo: { unidadeId: U } }, prep.pronto.payload);
-  assert.equal(r.resultado.naVitrine, "ifood");
+  assert.deepEqual(r.resultado.nasVitrines, ["iFood"]);
   const org = chamadas.find((c) => c.nome === "merge_config_sistema_params").args.p_patch.organizador_plataforma;
   const item = org.plataformas.ifood.categorias[0];
   assert.equal(item.nome, "Marmitas");
@@ -166,4 +167,51 @@ test("executor põe a marmita na vitrine do app (categoria Marmitas) sem duplica
   const { vitrineComMarmita } = await import("../actions/criar-marmita.mjs");
   assert.equal(vitrineComMarmita(org, { plataforma: "ifood", nome: "teste", fichaId: "outro", preco: 10 }), null, "mesmo nome não duplica");
   assert.equal(vitrineComMarmita(org, { plataforma: null, nome: "X" }), null, "app sem vitrine conhecida: não põe");
+});
+
+test("vários apps: simula em todos, escolhe iFood e 99 e cada um sai com o seu preço e lucro e na sua vitrine", async () => {
+  CANAIS_EXTRA = [{ id: "99food", nome: "99Food", ativo: true, comissao_pct: 7, taxa_pagamento_pct: 3 }];
+  try {
+    const { prep, perguntas } = await conversar("vamos montar uma marmita, o nome vai ser Teste", {
+      total: "1", componente: "filé de frango 150 g", embalagens: "nenhuma",
+      canal: "simular", lucro: "R$ 5", canais_depois: "todos", preco: "sim", preco_extra: "sim", combo: "agora não", montagem: "sim",
+    });
+    const q = perguntas.find((t) => /Em quais apps a Teste vai ser vendida/.test(t));
+    assert.ok(q, "pergunta em quais apps");
+    const sim = perguntas.find((t) => /^Simulação da Teste/.test(t));
+    assert.match(sim, /iFood \(taxa 15,2%\): vender a/);
+    assert.match(sim, /99Food \(taxa 10%\): vender a/);
+    assert.match(sim, /o 99Food é o que dá mais lucro/);
+    assert.ok(perguntas.some((t) => /^No 99Food, para sobrar R\$\s?5,00 de lucro, tem que vender a/.test(t)));
+    const pl = prep.pronto.payload;
+    assert.deepEqual(pl.marmita.precos.map((x) => x.canal), ["ifood", "99food"]);
+    assert.ok(pl.marmita.precos[1].preco_venda < pl.marmita.precos[0].preco_venda, "taxa menor, preço menor para o mesmo lucro");
+    assert.deepEqual(pl.vitrine.apps.map((a) => a.plataforma), ["ifood", "99food"]);
+    const linhas = prep.pronto.preview.linhas.map((l) => l.rotulo);
+    assert.ok(linhas.includes("Lucro no iFood") && linhas.includes("Lucro no 99Food"));
+    const res = criarMarmita.resumoResultado({ resultado: { ...pl.resumo, nasVitrines: ["iFood", "99Food"] } });
+    assert.match(res.texto, /no iFood vende a .*; no 99Food vende a/);
+    assert.match(res.texto, /na vitrine de cada app iFood e 99Food/);
+    // executor: as duas vitrines, cada uma com o seu preço
+    const chamadas = [];
+    const db = {
+      rpc: async (nome, args) => { chamadas.push({ nome, args }); return nome === "marmitaria_salvar_ficha" ? { data: { id: "99999999-0000-4000-8000-000000000009" }, error: null } : { data: true, error: null }; },
+      from: () => { const o = { select: () => o, eq: () => o, maybeSingle: async () => ({ data: { id: "cfg", params: {} } }), insert: () => o, update: () => o }; return o; },
+    };
+    const r = await criarMarmita.executar({ dbUsuario: db, escopo: { unidadeId: U } }, pl);
+    const org = chamadas.find((c) => c.nome === "merge_config_sistema_params").args.p_patch.organizador_plataforma;
+    assert.equal(org.plataformas.ifood.categorias[0].itens[0].preco, pl.marmita.precos[0].preco_venda);
+    assert.equal(org.plataformas["99food"].categorias[0].itens[0].preco, pl.marmita.precos[1].preco_venda);
+    assert.deepEqual(r.resultado.nasVitrines, ["iFood", "99Food"]);
+  } finally {
+    CANAIS_EXTRA = [];
+  }
+});
+
+test("escolha por texto: 'iFood e 99' acha os dois cadastrados", async () => {
+  const { canaisDaEscolha } = await import("../actions/criar-marmita.mjs");
+  const ativos = [{ id: "ifood", nome: "iFood" }, { id: "99food", nome: "99Food" }, { id: "keeta", nome: "Keeta" }];
+  assert.deepEqual(canaisDaEscolha(ativos, "iFood e 99").map((c) => c.id), ["ifood", "99food"]);
+  assert.deepEqual(canaisDaEscolha(ativos, "todos").map((c) => c.id), ["ifood", "99food", "keeta"]);
+  assert.deepEqual(canaisDaEscolha(ativos, "só keeta").map((c) => c.id), ["keeta"]);
 });

@@ -28,14 +28,21 @@ export default function EditorMarmita({ form: formInicial, onFechar: fecharSemRa
   const [form, setForm] = useState(formInicial);
   const [painel, setPainel] = useState(() => (recuperado?.painelPrep ? "novo-prep" : null)); // busca-item | busca-emb | novo-prod | novo-prep | nova-emb | editar-prep
   // rascunho no aparelho (dono, 17/11/2026: "o sistema atualiza e some a ficha que eu estava criando")
+  // só é rascunho o que mudou: abrir uma ficha para olhar não pode deixá-la "aberta" na próxima visita (dono, 17/11)
+  const [original] = useState(() => JSON.stringify(formInicial));
+  const mudou = !!recuperado || JSON.stringify(form) !== original;
   const onFechar = () => {
-    if ((form.nome?.trim() || form.itens?.length) && typeof window !== "undefined" && !window.confirm("Sair sem salvar? O que você montou nesta ficha será descartado.")) return;
+    if (mudou && (form.nome?.trim() || form.itens?.length) && typeof window !== "undefined" && !window.confirm("Sair sem salvar? O que você montou nesta ficha será descartado.")) return;
     apagarRascunho(chaveRascunhoFicha(unidadeId)); fecharSemRascunho?.();
   };
   const [prepEditando, setPrepEditando] = useState(null);
   const [avisoPrep, setAvisoPrep] = useState(null);
   const [textoNovo, setTextoNovo] = useState(() => recuperado?.textoNovo || "");
-  useEffect(() => { guardarRascunhoNoBanco(chaveRascunhoFicha(unidadeId), { form, painelPrep: painel === "novo-prep", textoNovo }, unidadeId); }, [form, painel, textoNovo, unidadeId]);
+  useEffect(() => {
+    const chave = chaveRascunhoFicha(unidadeId);
+    if (mudou || painel === "novo-prep") guardarRascunhoNoBanco(chave, { form, painelPrep: painel === "novo-prep", textoNovo }, unidadeId);
+    else apagarRascunho(chave);
+  }, [form, painel, textoNovo, unidadeId, mudou]);
   const [tipoEmb, setTipoEmb] = useState("marmitex");
   const [salvando, setSalvando] = useState(false);
   const [erros, setErros] = useState([]);

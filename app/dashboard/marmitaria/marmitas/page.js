@@ -124,25 +124,23 @@ function ListaDeFichas({ onEditar, onNova }) {
         {grupos.map((g) => (
           <div key={g.categoria}>
             <p className="text-xs font-black uppercase tracking-wide text-hf-muted">{g.categoria}</p>
-            <ul className="divide-y divide-hf-border">
+            {/* cards fechados, fundo escuro (dono, 17/11: "ela tem que ser minimizada… organiza em cards"); toque abre para editar */}
+            <ul className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {g.itens.map((m) => {
                 const c = custos.get(m.id);
                 return (
                   <li key={m.id}>
-                    <button type="button" onClick={() => onEditar(m)} className="flex w-full items-center gap-3 py-3 text-left hover:bg-hf-elevated/40">
-                      <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-hf-elevated text-hf-muted">
-                        {m.imagem ? <img src={m.imagem} alt="" className="h-full w-full object-cover" /> : <UtensilsCrossed size={20} />}
+                    <button type="button" onClick={() => onEditar(m)} aria-label={`Abrir ficha técnica ${m.nome_receita}`}
+                      className="hf-manter-dourado flex h-full w-full flex-col overflow-hidden rounded-2xl bg-hf-menu text-left text-white shadow-sm transition active:scale-[0.98]">
+                      <span className="grid aspect-[4/3] w-full place-items-center overflow-hidden bg-white/10 text-white/60">
+                        {m.imagem ? <img src={m.imagem} alt="" className="h-full w-full object-cover" /> : <UtensilsCrossed size={28} />}
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-bold text-hf-text">{m.nome_receita}</span>
-                        <span className="block text-xs text-hf-muted">
-                          {c ? `Ingredientes ${brl(c.alimentos + c.prePreparos)} · Embalagem ${brl(c.embalagens)}` : ""}{m.ativo === false ? " · Fora do cardápio" : ""}
-                        </span>
-                        {c && !c.completo && <span className="block text-xs font-semibold text-hf-warning">Custo incompleto</span>}
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-[11px] text-hf-muted">Custo</span>
-                        <span className="block text-base font-black tabular-nums text-hf-text">{c ? brl(c.total) : "—"}</span>
+                      <span className="flex flex-1 flex-col gap-1 p-3">
+                        <span className="line-clamp-2 text-sm font-bold leading-snug">{m.nome_receita}</span>
+                        <span className="mt-auto text-[11px] text-white/60">Custo</span>
+                        <span className="text-lg font-black tabular-nums leading-none">{c ? brl(c.total) : "—"}</span>
+                        {c && !c.completo && <span className="text-[11px] font-semibold text-amber-300">Custo incompleto</span>}
+                        {m.ativo === false && <span className="text-[11px] text-white/60">Fora do cardápio</span>}
                       </span>
                     </button>
                   </li>

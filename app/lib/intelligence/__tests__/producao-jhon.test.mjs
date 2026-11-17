@@ -120,3 +120,24 @@ test("estoque pronto: empanado, molho, batata porcionada e não porcionada, e o 
   assert.match(r.texto, /Batata inglesa: 12 kg/);
   assert.equal(r.natureza, "ESTIMATIVA");
 });
+
+test("qual app dá mais lucro: cada marmita em cada app (ESTIMATIVA), sem preço fica fora", async () => {
+  const deps = depsFalsas();
+  const ctx = await contexto(undefined, A, deps);
+  const ic = montarContextoInteligencia({ requestContext: ctx, tela: null, agora: AGORA });
+  const t = tabelas();
+  t.marmitaria_configuracoes = [u({ canais: [{ id: "ifood", nome: "iFood", ativo: true, comissao_pct: 27 }, { id: "99food", nome: "99Food", ativo: true, comissao_pct: 12 }, { id: "balcao", nome: "Balcão", ativo: true, comissao_pct: 0 }], tributos_pct: 0, rateio: {} })];
+  t.marmitaria_precificacao_canais = [u({ ficha_id: "m1", canal: "ifood", preco_venda: 32 }), u({ ficha_id: "m1", canal: "99food", preco_venda: 30 })];
+  const db = bancoFalso(t);
+  const dbe = criarDbEscopado(db, ic.escopo);
+  const motor = criarMotorDeMetricas({ dbe, escopo: ic.escopo, verificador: criarVerificador(ctx, deps), agora: AGORA });
+  const store = criarStoreMemoria();
+  const servicoAcoes = criarServicoDeAcoes({ store, escopo: ic.escopo, dbe, dbUsuario: db, verificador: criarVerificador(ctx, deps), relogio: () => AGORA });
+  const r = await processarComando({ pedido: { chave: "chave-apps-0001", texto: "qual app dá mais lucro?" }, ic, motor, servicoAcoes, store, correlationId: "x" });
+  assert.equal(r.interpretacao.intencao, "marmitaria.comparar_apps");
+  assert.match(r.texto, /^99Food é o app que mais deixa lucro em 1 de 1 marmitas/);
+  assert.match(r.texto, /1 marmita\(s\) estão sem preço em algum app/);
+  const linha = r.blocos[0].itens[0];
+  assert.match(linha.detalhe, /iFood: R\$\s?[\d,]+ · 99Food: R\$\s?[\d,]+ · Balcão: sem preço/);
+  assert.equal(r.natureza, "ESTIMATIVA");
+});

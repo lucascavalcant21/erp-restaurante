@@ -47,7 +47,52 @@ function raioXDe(d, texto) {
   };
 }
 
+/** Lucro de cada marmita em cada app (raio-x com o preço e as taxas daquele app). */
+export function lucroPorApp(d) {
+  const linhas = [];
+  for (const m of d.marmitas) {
+    const custo = custoDaMarmita({ itens: m.itens, embalagens: m.embalagens, fichas: d.fichas, insumos: d.insumos });
+    const porApp = (d.canais || []).filter((c) => c.ativo !== false).map((canal) => {
+      const rx = raioXDaMarmita({ marmita: m, custo, canal, tributosPct: d.tributosPct, embutidos: d.embutidos, pessoasEquipe: d.pessoas });
+      return { app: canal.nome, appId: canal.id, valido: !!rx.valido, lucro: rx.valido ? rx.lucro : null, preco: rx.valido ? rx.preco : null, motivo: rx.valido ? null : rx.motivo };
+    });
+    const validos = porApp.filter((x) => x.valido);
+    const melhor = validos.length ? validos.reduce((b, x) => (x.lucro > b.lucro ? x : b)) : null;
+    const pior = validos.length ? validos.reduce((b, x) => (x.lucro < b.lucro ? x : b)) : null;
+    linhas.push({ nome: m.nome_receita || "Marmita", porApp, melhor, pior });
+  }
+  return linhas;
+}
+
 export const HANDLERS_PRODUCAO = {
+  // "qual app dá mais lucro?", "compare os apps": cada marmita em cada app (ESTIMATIVA: rateio de equipe e fixos)
+  async "marmitaria.comparar_apps"({ motor }) {
+    const amb = motor.ambiente;
+    if (!(await amb.verificador.pode("lucro_marmitaria"))) return r("Você não tem acesso ao lucro da marmitaria nesta unidade.");
+    const d = await carregarDadosDaMarmitaria(amb.dbe, amb.hoje);
+    const apps = (d.canais || []).filter((c) => c.ativo !== false);
+    if (!d.marmitas.length || apps.length < 2) {
+      return r(!d.marmitas.length ? "DADOS INSUFICIENTES: não há marmita com ficha cadastrada." : "DADOS INSUFICIENTES: só há um app ativo em Custos e apps; cadastre os outros (com as taxas) para comparar.", [], [{ rotulo: "Abrir comparativo", rota: "/dashboard/marmitaria/marmitas/lucro?aba=apps" }]);
+    }
+    const linhas = lucroPorApp(d);
+    const vitorias = new Map();
+    for (const l of linhas) if (l.melhor) vitorias.set(l.melhor.app, (vitorias.get(l.melhor.app) || 0) + 1);
+    const ranking = [...vitorias.entries()].sort((a, b) => b[1] - a[1]);
+    const semPreco = linhas.filter((l) => l.porApp.some((x) => !x.valido)).length;
+    const texto = ranking.length
+      ? `${ranking[0][0]} é o app que mais deixa lucro em ${ranking[0][1]} de ${linhas.filter((l) => l.melhor).length} marmitas (por marmita, com taxas, imposto e o rateio de equipe e fixos: ESTIMATIVA).${semPreco ? ` ${semPreco} marmita(s) estão sem preço em algum app e ficam fora dessa comparação nesse app.` : ""} Para simular quantas vendas em cada app, abra o comparativo.`
+      : "DADOS INSUFICIENTES: nenhuma marmita tem preço e ficha completos nos apps.";
+    const blocos = [{
+      tipo: "lista", titulo: "Lucro por marmita em cada app",
+      itens: linhas.slice(0, 15).map((l) => ({
+        rotulo: l.nome,
+        detalhe: l.porApp.map((x) => `${x.app}: ${x.valido ? brl(x.lucro) : "sem preço"}`).join(" · "),
+        valor: l.melhor ? `melhor: ${l.melhor.app}` : "sem dados",
+      })),
+    }];
+    return { ...r(texto, blocos, [{ rotulo: "Abrir comparativo", rota: "/dashboard/marmitaria/marmitas/lucro?aba=apps" }], "ESTIMATIVA"), sugestoes: ["Raio-x da marmita mais vendida"] };
+  },
+
   async "marmitaria.estoque_pronto"({ motor, params }) {
     const amb = motor.ambiente;
     if (!(await amb.verificador.pode("producao_marmitaria"))) return r("Você não tem acesso ao estoque da marmitaria nesta unidade.");

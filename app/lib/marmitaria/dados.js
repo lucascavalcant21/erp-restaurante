@@ -542,6 +542,36 @@ export async function fetchSimulacoes(unidadeId) {
   return { data: data || [] };
 }
 
+// Simulador de vendas e Comparar apps (dono, 17/11/2026: "posso deixar as
+// simulações salvas"): a mesma tabela, com o tipo dentro de `itens`
+// ({ tipo: "vendas" | "apps", quantidades, mix }). Mesmo nome = atualiza.
+export async function fetchSimulacoesDeVendas(unidadeId, tipo) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { data: [] };
+  const { data, error } = await supabase.from("marmitaria_simulacoes").select("id, nome, dias_operacao_mes, itens, resultado_consolidado, criado_em")
+    .eq("unidade_id", unidadeId).eq("itens->>tipo", tipo).order("criado_em", { ascending: false }).limit(30);
+  return { data: data || [], error: mensagemErro(error) };
+}
+
+export async function salvarSimulacaoDeVendas(unidadeId, { id = null, nome, tipo, dias, quantidades, mix = null, resultado = {} }) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const linha = {
+    nome: String(nome || "").trim().slice(0, 80), dias_operacao_mes: Math.min(31, Math.max(1, Math.round(Number(dias) || 25))),
+    itens: { tipo, quantidades: quantidades || {}, ...(mix ? { mix } : {}) }, resultado_consolidado: resultado || {},
+  };
+  if (linha.nome.length < 2) return { error: "Dê um nome à simulação." };
+  const q = id
+    ? supabase.from("marmitaria_simulacoes").update(linha).eq("id", id).eq("unidade_id", unidadeId).select("id").single()
+    : supabase.from("marmitaria_simulacoes").insert({ unidade_id: unidadeId, ...linha }).select("id").single();
+  const { data, error } = await q;
+  return { data, error: mensagemErro(error) };
+}
+
+export async function apagarSimulacao(unidadeId, id) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const { error } = await supabase.from("marmitaria_simulacoes").delete().eq("id", id).eq("unidade_id", unidadeId);
+  return { error: mensagemErro(error) };
+}
+
 export async function salvarSimulacao(unidadeId, { nome, diasMes, entradas, resultado }) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   const { error } = await supabase.from("marmitaria_simulacoes").insert({

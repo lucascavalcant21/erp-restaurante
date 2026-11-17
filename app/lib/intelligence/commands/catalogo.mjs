@@ -262,6 +262,12 @@ export const INTENCOES = Object.freeze([
     proibidas: ["quanto tenho", "quanto eu tenho", "quanto temos", "quanto custa", "como faz", "como fazer", "como se faz", "comprei", "marmita nova", "montar uma marmita"], peso: 13,
   },
   {
+    id: "marmitaria.comparar_apps", tipo: "pergunta", agentes: ["financeiro"],
+    descricao: "Comparar os apps de delivery (iFood, 99Food, Rappi, balcão…): quanto cada marmita deixa de lucro em cada app e qual app é melhor (ex.: 'qual app dá mais lucro?', 'compare os apps', 'vale mais vender no iFood ou no 99?').",
+    frases: [["app", "apps", "aplicativo", "aplicativos", "ifood", "99food", "99", "rappi", "keeta", "aiqfome", "plataforma", "plataformas"], ["compara", "comparar", "compare", "comparativo", "comparacao", "qual app", "qual aplicativo", "qual plataforma", "melhor app", "vale mais", "da mais lucro", "mais lucro", "ou no"]],
+    proibidas: ["concorrente", "concorrentes", "concorrencia", "cardapio da", "cardapio do"], peso: 12,
+  },
+  {
     id: "marmitaria.estoque_pronto", tipo: "pergunta", agentes: ["operacoes"],
     descricao: "Quanto tem pronto no estoque da marmitaria (empanado, molho, batata porcionada e não porcionada) e, para o que é produzido aqui, quantas marmitas dá e quanto rende vendendo (ESTIMATIVA).",
     frases: [["quanto tenho", "quanto eu tenho", "quanto temos", "quanto tem", "quanto que eu tenho", "quanto e que eu tenho", "mostra quanto", "me mostra quanto", "mostra para mim quanto", "mostra pra mim quanto"], ["pronto", "prontos", "pronta", "prontas", "porcionada", "porcionado", "porcionadas", "porcionados", "vender", "ganhar", "lucro", "produzido", "produzidos", "empanado", "empanados", "empanada", "empanadas"]],

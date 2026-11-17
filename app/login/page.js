@@ -131,6 +131,10 @@ export default function LoginPage() {
         <LogoHefisto className="w-14 h-14 mb-4" />
         <p className="text-2xl font-bold tracking-tight" style={{ color: "var(--fg)" }}>Hefisto</p>
         <p className="text-sm font-medium mt-0.5" style={{ color: "var(--dim)" }}>Gestão inteligente para food service</p>
+        {/* sistema de teste: aviso visível para não confundir com o app do restaurante */}
+        {String(process.env.HEFISTO_ENV || "").toLowerCase() === "staging" && (
+          <p className="mt-3 rounded-full bg-hf-warning/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-hf-warning">Sistema de teste · sem dados do restaurante</p>
+        )}
       </div>
 
       <form onSubmit={handleLogin} className="w-full max-w-sm erp-card p-5 sm:p-6 space-y-4">

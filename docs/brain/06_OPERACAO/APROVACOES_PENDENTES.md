@@ -366,7 +366,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Criado em:** 2026-11-14
 - **Chave:** migracao:db/SAAS_PLANOS_1_ASSINATURA.sql
 
-### APR-025 · PENDENTE
+### APR-025 · APLICADA
 
 - **Missão:** Ponto por PIN no tablet (decisão do dono, 14/11/2026)
 - **Ação:** Aplicar db/PONTO_PIN_1_PIN_DO_FUNCIONARIO.sql no banco do SISTEMA DE TESTE (hefisto-staging), depois que a estrutura for copiada (ACESSO-008). O banco do restaurante NÃO recebe.
@@ -375,11 +375,11 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Motivo:** No tablet compartilhado, cada funcionário se identifica pelo PIN de 4 números (hoje qualquer um toca no nome de outro)
 - **Rollback:** no cabeçalho do arquivo
 - **Evidências:** PGlite com pgcrypto 17/17 (`app/lib/ponto-pin-banco.test.mjs`: PIN só como hash bcrypt, fraco e repetido recusados, só quem edita funcionários define, tablet de outra unidade não confere, inativo não bate, 5 erros travam, app não lê as tabelas). Impressão digital: 3431fd46ddd8bdb846041b38d69a7985
-- **Status:** PENDENTE
+- **Status:** APLICADA no hefisto-staging em 17/11/2026 ("aplique as migrações"), impressão digital conferida no banco de teste. TESTADO NO SUPABASE REAL (teste)
 - **Criado em:** 2026-11-14
 - **Chave:** migracao:db/PONTO_PIN_1_PIN_DO_FUNCIONARIO.sql
 
-### APR-026 · PENDENTE
+### APR-026 · APLICADA
 
 - **Missão:** Ficha do funcionário (pedido do dono, 14/11/2026)
 - **Ação:** Aplicar db/RH_FICHA_1_REGISTROS_DO_FUNCIONARIO.sql no banco do SISTEMA DE TESTE (hefisto-staging), depois que a estrutura for copiada (ACESSO-008). O banco do restaurante NÃO recebe.
@@ -388,11 +388,11 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Motivo:** Advertências verbais e por escrito, ocorrências, quebras, uniformes, reuniões e documentos de cada funcionário, com a cópia assinada no bucket privado
 - **Rollback:** no cabeçalho do arquivo
 - **Evidências:** PGlite 18/18 (`app/lib/ficha-funcionario-banco.test.mjs`: unidade vem do cadastro e não do corpo, outra unidade não vê nem grava, tablet sem RH não lê, conteúdo não muda depois de criado, anular exige motivo, recusa exige testemunhas, ninguém apaga, visitante não lê). Impressão digital: 13996d29be16a222dc78a9a7738a39f2
-- **Status:** PENDENTE
+- **Status:** APLICADA no hefisto-staging em 17/11/2026 ("aplique as migrações"), impressão digital conferida no banco de teste. TESTADO NO SUPABASE REAL (teste)
 - **Criado em:** 2026-11-14
 - **Chave:** migracao:db/RH_FICHA_1_REGISTROS_DO_FUNCIONARIO.sql
 
-### APR-027 · PENDENTE
+### APR-027 · APLICADA
 
 - **Missão:** Procedimentos da casa com fotos e vídeos (pedido do dono, 14/11/2026)
 - **Ação:** Aplicar db/OP_CONTEUDO_1_FOTOS_VIDEOS_PROCEDIMENTOS.sql no banco do SISTEMA DE TESTE (hefisto-staging). O banco do restaurante NÃO recebe.
@@ -401,11 +401,11 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Motivo:** Tipo do procedimento (rotina, limpeza, equipamento), voltagem e lugar do equipamento, produto, quantidade, fotos e vídeos de cada passo
 - **Rollback:** no cabeçalho do arquivo
 - **Evidências:** PGlite 7/7 (`app/lib/procedimentos-conteudo-banco.test.mjs`). Impressão digital: 09d81d652d476b94c5b327e76440869b
-- **Status:** PENDENTE
+- **Status:** APLICADA no hefisto-staging em 17/11/2026 ("aplique as migrações"), impressão digital conferida no banco de teste. TESTADO NO SUPABASE REAL (teste)
 - **Criado em:** 2026-11-14
 - **Chave:** migracao:db/OP_CONTEUDO_1_FOTOS_VIDEOS_PROCEDIMENTOS.sql
 
-### APR-028 · PENDENTE
+### APR-028 · APLICADA
 
 - **Missão:** Plano do dia do Jhon e do Nico (pedido do dono, 14/11/2026)
 - **Ação:** Aplicar db/PLANO_DIA_1_TAREFAS_DO_DIA.sql no banco do SISTEMA DE TESTE (hefisto-staging). O banco do restaurante NÃO recebe.
@@ -414,11 +414,11 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Motivo:** O dono aprova o plano combinado pelo Jhon e pelo Nico; a equipe marca cada tarefa no Nico; o Jhon mostra o andamento
 - **Rollback:** no cabeçalho do arquivo
 - **Evidências:** PGlite 18/18 (`app/lib/plano-dia-banco.test.mjs`: só o dono aprova, outra unidade não vê nem marca, ficha e funcionário de outra unidade viram nulo, um plano ativo por dia, plano substituído não é marcado, ninguém grava direto na tabela, visitante não lê). Impressão digital: c8ae79c9c0448a3dc24cc5a3bd32f4dd
-- **Status:** PENDENTE
+- **Status:** APLICADA no hefisto-staging em 17/11/2026 ("aplique as migrações"), impressão digital conferida no banco de teste. TESTADO NO SUPABASE REAL (teste)
 - **Criado em:** 2026-11-14
 - **Chave:** migracao:db/PLANO_DIA_1_TAREFAS_DO_DIA.sql
 
-### APR-029 · PENDENTE
+### APR-029 · APLICADA
 
 - **Missão:** Cardápios dos concorrentes do delivery guardados pelo Jhon (pedido do dono, 17/11/2026)
 - **Ação:** Aplicar db/CONC_1_CARDAPIOS_CONCORRENTES.sql no banco do SISTEMA DE TESTE (hefisto-staging). O banco do restaurante NÃO recebe.
@@ -427,6 +427,18 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Motivo:** O Jhon lê os prints do cardápio de um concorrente e guarda pratos, componentes, peso, preço e adicionais com a data, para comparar com as nossas marmitas
 - **Rollback:** no cabeçalho do arquivo
 - **Evidências:** PGlite 21/21 (`app/lib/concorrentes-banco.test.mjs`: permissão para guardar e apagar, mesma chave não grava duas vezes, item sem preço não entra, histórico por data, outra unidade não vê, ninguém grava direto nas tabelas, visitante não lê, preflight aborta sem mudar nada). Impressão digital: 5914f480e5d072dd0b31a8e0ce4f44d1
-- **Status:** PENDENTE
+- **Status:** APLICADA no hefisto-staging em 17/11/2026 ("aplique as migrações"), impressão digital conferida no banco de teste. TESTADO NO SUPABASE REAL (teste)
 - **Criado em:** 2026-11-17
 - **Chave:** migracao:db/CONC_1_CARDAPIOS_CONCORRENTES.sql
+
+### APR-030 · APLICADA
+
+- **Missão:** Gastos e rendimento da marmitaria (pedido do dono, 17/11/2026)
+- **Ação:** Aplicar db/GASTOS_1_GASTOS_DETALHADOS.sql no banco do SISTEMA DE TESTE (hefisto-staging). O banco do restaurante NÃO recebe.
+- **Ambiente:** supabase (teste)
+- **Risco:** LOW (só aditiva: gastos_detalhe ligada à conta a pagar + duas categorias no plano de contas)
+- **Rollback:** no cabeçalho do arquivo
+- **Evidências:** PGlite 15/15 (`app/lib/gastos-banco.test.mjs`). Impressão digital 89a161c93f2106338f57493827411cdd conferida no hefisto-staging
+- **Status:** APLICADA em 17/11/2026 (dono: "E pode criar as tabelas"). TESTADO NO SUPABASE REAL (teste)
+- **Criado em:** 2026-11-17
+- **Chave:** migracao:db/GASTOS_1_GASTOS_DETALHADOS.sql

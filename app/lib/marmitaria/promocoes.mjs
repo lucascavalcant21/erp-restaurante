@@ -107,7 +107,7 @@ export const MODELOS_COMBO = [
   { id: "so_sobremesas", rotulo: "Só sobremesas", grupos: ["sobremesa", "sobremesa"], exemplo: "Ex.: pudim + mousse" },
   { id: "so_bebidas", rotulo: "Só bebidas", grupos: ["bebida", "bebida"], exemplo: "Ex.: refrigerante + suco" },
 ];
-export const ROTULO_GRUPO = { marmita: "Comida", bebida: "Bebida", sobremesa: "Sobremesa" };
+export const ROTULO_GRUPO = { marmita: "Marmita", bebida: "Bebida", sobremesa: "Sobremesa" };
 
 const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const ehSobremesa = (f) => /sobremesa|doce|bolo|pudim|mousse|torta|sorvete|acai/.test(semAcento(`${f.categoria} ${f.nome_receita} ${f.nome_comercial}`));

@@ -59,7 +59,14 @@ export default function CombosPromocoes({ onEditar, abaInicial, modo = "precific
   }
 
   const qtd = { marmitas: linhas.filter((l) => l.secao === "marmitas").length, combos: combos.length, promocoes: ofertas.length };
-  const novoCombo = (modelo) => { setCombos((l) => [...l, normalizarCombo({ modelo: modelo.id, nome: modelo.rotulo })]); setAba("combos"); };
+  // dono, 17/11/2026: tocou no tipo, o combo abre na hora, em cima (não lá embaixo), e não repete combo vazio
+  const novoCombo = (modelo) => {
+    setAba("combos");
+    const vazio = combos.find((c) => c.modelo === modelo.id && !c.itens.some((i) => i.id) && !String(c.preco).trim());
+    const alvo = vazio || normalizarCombo({ modelo: modelo.id, nome: modelo.rotulo });
+    if (!vazio) setCombos((l) => [alvo, ...l]);
+    setTimeout(() => document.getElementById(`combo-${alvo.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  };
 
   return (
     <div className="space-y-4">
@@ -96,17 +103,15 @@ export default function CombosPromocoes({ onEditar, abaInicial, modo = "precific
 
       {aba === "combos" && (
         <Secao titulo="Montar combos" subtitulo="Escolha o tipo, os itens e o preço. Com preço, o combo entra no cardápio.">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <p className="mb-2 text-xs font-bold uppercase text-hf-muted">Toque no tipo de combo</p>
+          <div className="flex flex-wrap gap-2">
             {MODELOS_COMBO.map((m) => (
               <button key={m.id} type="button" onClick={() => novoCombo(m)}
-                className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-hf-accent/40 bg-hf-accent/5 p-4 text-left transition hover:border-hf-accent hover:bg-hf-accent/10">
-                <span className="flex shrink-0 -space-x-2">
-                  {m.grupos.map((g, i) => { const I = ICONE_GRUPO[g]; return <span key={`${g}-${i}`} className="grid h-10 w-10 place-items-center rounded-full border-2 border-hf-surface bg-hf-accent text-white"><I size={18} /></span>; })}
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-bold text-hf-text transition hover:border-hf-accent">
+                <span className="flex -space-x-1.5">
+                  {m.grupos.map((g, i) => { const I = ICONE_GRUPO[g]; return <span key={`${g}-${i}`} className="grid h-7 w-7 place-items-center rounded-full border-2 border-hf-surface bg-hf-menu text-white"><I size={13} /></span>; })}
                 </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-black text-hf-text"><Plus size={14} className="mr-1 inline" />{m.rotulo}</span>
-                  <span className="block text-xs text-hf-text-2">{m.exemplo}</span>
-                </span>
+                {m.rotulo.replace(/^Comida/, "Marmita")}
               </button>
             ))}
           </div>
@@ -156,6 +161,9 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
   const { recarregar } = useMarmitaria();
   const [aberto, setAberto] = useState(null);
   const [precoAberto, setPrecoAberto] = useState(null);
+  // dono, 17/11/2026: "onde eu coloco o preço?" → sem preço, o campo já vem aberto no card
+  const [fechados, setFechados] = useState(() => new Set());
+  const precoVisivel = (l) => precoAberto === l.id || (l.secao === "marmitas" && l.semPreco && !fechados.has(l.id));
   const [erro, setErro] = useState(null);
   const rotuloLucro = rotuloDoLucro(comum.embutidos);
   async function tirarDoCardapio(ficha) {
@@ -219,16 +227,16 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
                         </div>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                        {l.secao === "marmitas" && <button type="button" onClick={() => setPrecoAberto(precoAberto === l.id ? null : l.id)} aria-expanded={precoAberto === l.id} className="min-h-[32px] text-xs font-bold text-hf-accent hover:underline">Formar preço</button>}
+                        {l.secao === "marmitas" && !precoVisivel(l) && <button type="button" onClick={() => setPrecoAberto(l.id)} aria-expanded={false} className="min-h-[36px] rounded-full bg-hf-menu px-3 text-xs font-bold text-white">{l.semPreco ? "Colocar preço" : "Mudar preço"}</button>}
                         {!l.semPreco && !l.falta && <button type="button" onClick={() => setAberto(abrir ? null : l.id)} aria-expanded={abrir} className="inline-flex min-h-[32px] items-center gap-1 text-xs font-bold text-hf-accent hover:underline">{abrir ? <ChevronUp size={14} /> : <ChevronDown size={14} />} Ver a conta</button>}
                         {onEditar && l.ficha && <button type="button" onClick={() => onEditar(l.ficha)} className="min-h-[32px] text-xs font-bold text-hf-text hover:underline">Editar ficha</button>}
                         {l.secao === "marmitas" && l.ficha && <button type="button" onClick={() => tirarDoCardapio(l.ficha)} className="min-h-[32px] text-xs font-bold text-hf-text-2 hover:text-hf-danger">Tirar do cardápio</button>}
                         {l.secao === "promocoes" && <button type="button" onClick={() => onRemoverOferta(l.id)} className="min-h-[32px] text-xs font-bold text-hf-text-2 hover:text-hf-danger">Tirar do cardápio</button>}
                       </div>
-                      {precoAberto === l.id && <FormarPreco linha={l} comum={comum} metaPct={metaPct} aoSalvar={() => setPrecoAberto(null)} />}
+                      {precoVisivel(l) && <FormarPreco linha={l} comum={comum} metaPct={metaPct} aoSalvar={() => { setPrecoAberto(null); setFechados((f) => new Set(f).add(l.id)); }} />}
                       {abrir && l.sim && (
                         <div className="mt-2">
-                          {c && <p className="text-xs text-hf-text-2">Custo de 1 unidade: alimentos {brl(c.alimentos)} · pré-preparos {brl(c.prePreparos)} · embalagens {brl(c.embalagens)} = <b>{brl(c.total)}</b>{!c.completo ? " (incompleto)" : ""}</p>}
+                          {c && <p className="text-xs text-hf-text-2">Custo de 1 unidade: ingredientes {brl(c.alimentos + c.prePreparos)} · embalagens {brl(c.embalagens)} = <b>{brl(c.total)}</b>{!c.completo ? " (incompleto)" : ""}</p>}
                           {l.secao === "combos" && <p className="text-xs text-hf-text-2">Itens: {l.itens.map((i) => `${i.nome} (custo ${i.custo == null ? "—" : brl(i.custo)})`).join(" · ")}</p>}
                           <ComposicaoDoPreco c={composicaoDoPreco({ linha: l, custoFicha: l.secao === "combos" ? null : c, embutidos: comum.embutidos })} />
                           {l.secao === "marmitas" ? <Comparacao s={{ ...l.sim, sem: l.sim.com }} rotuloSem="Preço cheio" rotuloCom="Preço cheio" unico rotuloLucro={rotuloLucro} /> : <Comparacao s={l.sim} rotuloSem={l.secao === "combos" ? "Separado" : "Sem promoção"} rotuloCom={l.secao === "combos" ? "Combo" : "Com promoção"} rotuloLucro={rotuloLucro} />}
@@ -388,7 +396,7 @@ function LinhaCombo({ combo, catalogo, comum, onChange, onRemover }) {
   const modelo = MODELOS_COMBO.find((m) => m.id === combo.modelo);
   const troca = s && !s.semCusto ? melhorTroca({ itens, preco: combo.preco, catalogo, comum }) : null;
   return (
-    <li className="rounded-2xl border border-hf-border p-3 sm:p-4">
+    <li id={`combo-${combo.id}`} className="scroll-mt-24 rounded-2xl border border-hf-border p-3 sm:p-4">
       <div className="flex flex-wrap items-end gap-2">
         <Campo rotulo={modelo?.rotulo || "Combo"} className="min-w-[200px] flex-1"><input className={inputCls} value={combo.nome} onChange={(e) => onChange({ ...combo, nome: e.target.value })} placeholder="Nome do combo" /></Campo>
         <button type="button" onClick={onRemover} aria-label={`Remover ${combo.nome || "combo"}`} className="grid h-11 w-11 place-items-center rounded-xl border border-hf-border text-hf-text-2 hover:text-hf-danger"><Trash2 size={16} /></button>

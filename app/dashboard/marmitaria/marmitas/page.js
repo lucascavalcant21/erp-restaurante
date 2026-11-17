@@ -8,9 +8,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Printer, Search, UtensilsCrossed } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import EditorMarmita, { chaveRascunhoFicha } from "../../../components/marmitaria/EditorMarmita";
-import { lerRascunhoDoBanco } from "../../../lib/rascunho-aparelho";
+import { apagarRascunhoNoBanco, lerRascunhoDoBanco } from "../../../lib/rascunho-aparelho";
 import { Botao, Cartao, Secao, brl, inputCls } from "../../../components/marmitaria/ui";
-import { formDaMarmita } from "../../../lib/marmitaria/formulario.mjs";
+import { formDaMarmita, payloadDoForm } from "../../../lib/marmitaria/formulario.mjs";
 import { ordenarCategorias } from "../../../lib/marmitaria/cardapio.mjs";
 import { normalizarBusca } from "../../../lib/ingredientes-utils.mjs";
 import { casaBusca } from "../../../lib/busca.mjs";
@@ -25,11 +25,23 @@ function Conteudo() {
   const [aviso, setAviso] = useState(null);
   const [recuperado, setRecuperado] = useState(null);
   const { unidadeId } = useMarmitaria();
-  // a tela recarregou no meio de uma ficha (atualização do app): volta para ela (dono, 17/11/2026)
+  // Rascunho de ficha não salva (a tela recarregou no meio). Dono, 17/11/2026:
+  // "quando aperto em ficha técnica aparece a ficha aberta" → a lista abre
+  // sempre fechada; o rascunho vira um aviso com Continuar / Descartar. Se o
+  // rascunho é igual à ficha salva, é descartado sem perguntar.
+  const [pendente, setPendente] = useState(null);
   useEffect(() => {
     if (!base || editando || params.get("editar")) return;
     let vivo = true;
-    lerRascunhoDoBanco(chaveRascunhoFicha(unidadeId)).then((r) => { if (vivo && r?.form?.id) { setRecuperado(r); setEditando(r.form); } });
+    const chave = chaveRascunhoFicha(unidadeId);
+    lerRascunhoDoBanco(chave).then((r) => {
+      if (!vivo || !r?.form?.id) return;
+      const ctx = { insumos: base.insumos, fichas: base.fichas };
+      const salva = base.marmitas.find((m) => String(m.id) === String(r.form.id));
+      const igual = salva && JSON.stringify(payloadDoForm(r.form, ctx, unidadeId)) === JSON.stringify(payloadDoForm(formDaMarmita(salva, ctx), ctx, unidadeId));
+      if (igual || (!salva && !r.form.nome?.trim() && !r.form.itens?.length)) { apagarRascunhoNoBanco(chave); return; }
+      setPendente(r);
+    });
     return () => { vivo = false; };
   }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
   // Links antigos das abas de preço e de combos, e o "Editar" vindo do Cardápio.
@@ -68,6 +80,16 @@ function Conteudo() {
         <Botao variante="secundario" onClick={() => router.push("/dashboard/marmitaria/estoque/producoes?aba=subprodutos")}><Printer size={16} /> Imprimir pré-preparos</Botao>
         <Botao onClick={nova}><Plus size={16} /> Nova ficha técnica</Botao>
       </div>
+      {pendente && (
+        <Cartao>
+          <p className="font-semibold text-hf-text">Ficha não salva: {pendente.form.nome?.trim() || "ficha nova"}</p>
+          <p className="mt-0.5 text-sm text-hf-text-2">Ficou guardada quando a tela recarregou.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Botao onClick={() => { setRecuperado(pendente); setEditando(pendente.form); setPendente(null); }}>Continuar editando</Botao>
+            <Botao variante="secundario" onClick={() => { apagarRascunhoNoBanco(chaveRascunhoFicha(unidadeId)); setPendente(null); }}>Descartar</Botao>
+          </div>
+        </Cartao>
+      )}
       {aviso && (
         <Cartao>
           <p className="font-semibold text-hf-text">{aviso}</p>

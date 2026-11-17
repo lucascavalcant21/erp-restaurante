@@ -217,3 +217,9 @@ Decisões:
 - As **telas** seguem as permissões de sempre (ex.: a equipe marca tarefa feita, bate ponto, imprime etiqueta).
 - Na tela do Nico somem o + (nota/cardápio) e a câmera.
 - Evidência: TESTADO EM MOCK (`__tests__/http.test.mjs`). Preview: NÃO VALIDADO.
+
+## DP — Marmitaria e Eventos no azul; Grátis com 1 negócio (17/11/2026, pedido do dono)
+
+- "Não mudou o visual para o azul; sem esse visual antigo": a identidade vermelha e preta (DP de 08/11) saiu. `.tema-gestao` agora aplica a paleta azul do novo modelo (marinho #0B2456, azul #3E7DD6, fundo #F7F8FA). Branch `hefisto-teste`.
+- Planos: "no grátis é só um negócio e nos outros são mais de um". `limites.negocios` (Grátis 1, Completo sem limite); na troca do topo, no Grátis, os outros negócios aparecem com cadeado e levam à assinatura.
+- Pendente de decisão: o nome do módulo "Marmitaria" na troca do topo e no menu (o dono disse "a marmitaria virou delivery").

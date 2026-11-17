@@ -13,3 +13,24 @@ export function passosDoPreparo(texto) {
   return String(texto || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
     .map((l, i) => ({ n: i + 1, texto: l.replace(/^\d+\s*[.)º°-]\s*/, "") }));
 }
+
+/**
+ * Soma dos ingredientes do lote, para ter uma base do rendimento (dono,
+ * 17/11/2026: "conforme ponho as gramas e os ml, o sistema já calcula o peso").
+ * g/kg somam como peso; ml/L entram como se fosse 1 g por ml (ESTIMATIVA, a
+ * densidade real muda); unidades não entram e são contadas à parte.
+ */
+export function pesoDosIngredientes(itens = []) {
+  let gramas = 0; let comMl = false; let semPeso = 0;
+  for (const it of itens) {
+    const q = Number(String(it?.qtd ?? "").replace(/\./g, "").replace(",", ".")) || 0;
+    if (!(q > 0)) continue;
+    const u = String(it?.un || "").toLowerCase();
+    if (u === "g") gramas += q;
+    else if (u === "kg") gramas += q * 1000;
+    else if (u === "ml") { gramas += q; comMl = true; }
+    else if (u === "l") { gramas += q * 1000; comMl = true; }
+    else semPeso += 1;
+  }
+  return { gramas: Math.round(gramas * 10) / 10, estimativa: comMl, semPeso };
+}

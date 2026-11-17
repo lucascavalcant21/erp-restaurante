@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { Trash2, X } from "lucide-react";
 import { criarProduto, salvarPrePreparo, salvarModoDePreparo, novaChave } from "../../lib/marmitaria/dados";
 import { fetchComSessao } from "../../lib/api-sessao";
-import { numerarPassos } from "../../lib/marmitaria/modo-preparo.mjs";
+import { numerarPassos, pesoDosIngredientes } from "../../lib/marmitaria/modo-preparo.mjs";
 import { custoDaMarmita, custoPorUnidadeDoPacote, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import BuscaItens from "./BuscaItens";
 import { quantidadeParaTela } from "../../lib/marmitaria/formulario.mjs";
@@ -220,6 +220,19 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
         {rendGravado > 0 && custo.total > 0 && <> · por {unGravada === "un" ? "unidade" : unGravada === "l" ? "L" : "kg"}: <b className="tabular-nums">{brl(custo.total / rendGravado)}</b></>}
       </p>
       {custo.pendencias.length > 0 && <Aviso tipo="alerta" className="mt-2">{custo.pendencias.join(" ")}</Aviso>}
+      {(() => {
+        // peso do lote na hora, para ter uma base do rendimento (dono, 17/11/2026)
+        const p = pesoDosIngredientes(itens);
+        if (!(p.gramas > 0)) return null;
+        const txt = p.gramas >= 1000 ? `${num(Math.round(p.gramas) / 1000)} kg` : `${num(p.gramas)} g`;
+        return (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-hf-text-2">
+            <span>Peso dos ingredientes: <b className="tabular-nums text-hf-text">{txt}</b>{p.estimativa ? " (ml contado como g, estimativa)" : ""}{p.semPeso ? ` · ${p.semPeso} item(ns) em unidades fora da conta` : ""}</span>
+            <button type="button" onClick={() => setF({ ...f, rendimento: String(p.gramas >= 1000 ? Math.round(p.gramas) / 1000 : p.gramas).replace(".", ","), unidade: p.gramas >= 1000 ? "kg" : "g" })}
+              className="min-h-[36px] font-semibold text-hf-accent hover:underline">Usar como rendimento</button>
+          </div>
+        );
+      })()}
 
       <div className="mt-4 border-t border-hf-border pt-3">
         <div className="flex items-end justify-between gap-2">

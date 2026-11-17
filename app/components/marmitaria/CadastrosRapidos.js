@@ -109,6 +109,8 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
   // modo de preparo (dono, 17/11/2026): passo a passo da produção, escrito ou organizado pela IA
   const [preparo, setPreparo] = useState(() => ficha?.modo_preparo || "");
   const [tempo, setTempo] = useState(() => (ficha?.tempo_preparo ? String(ficha.tempo_preparo) : ""));
+  // peso de cada unidade pronta (ex.: frango empanado de 144 g), quando rende em unidades
+  const [pesoUn, setPesoUn] = useState(() => (ficha?.peso_porcao_g ? String(ficha.peso_porcao_g).replace(".", ",") : ""));
   const [organizando, setOrganizando] = useState(false);
 
   const convertidos = itens.map((it) => {
@@ -133,8 +135,9 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
         itens: convertidos.map((c) => ({ insumo_id: c.insumo_id, quantidade: c.quantidade })),
       });
       if (r.error) { setErro(r.error); return; }
-      if (preparo.trim() || tempo || ficha?.modo_preparo) {
-        const mp = await salvarModoDePreparo(id, { modo_preparo: numerarPassos(preparo), tempo_preparo: Math.round(lerNumero(tempo) || 0) || null });
+      if (preparo.trim() || tempo || pesoUn || ficha?.modo_preparo || ficha?.peso_porcao_g) {
+        const mp = await salvarModoDePreparo(id, { modo_preparo: numerarPassos(preparo), tempo_preparo: Math.round(lerNumero(tempo) || 0) || null,
+          peso_porcao_g: f.unidade === "un" ? (lerNumero(pesoUn) || null) : null });
         if (mp.error) { setErro(`Subproduto salvo, mas ${mp.error.charAt(0).toLowerCase()}${mp.error.slice(1)}`); return; }
       }
       await onCriado(id, f.unidade);
@@ -173,7 +176,11 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
         </Campo>
         <Campo rotulo="Setor"><select className={inputCls} value={f.setor} onChange={(e) => setF({ ...f, setor: e.target.value })}><option value="cozinha">Cozinha</option><option value="bar">Bar</option></select></Campo>
         <Campo rotulo="Validade (dias)"><CampoNumero valor={f.validade} onChange={(v) => setF({ ...f, validade: v })} placeholder="opcional" /></Campo>
+        {f.unidade === "un" && <Campo rotulo="Peso de cada unidade (g)"><CampoNumero valor={pesoUn} onChange={setPesoUn} placeholder="Ex.: 144" /></Campo>}
       </div>
+      {f.unidade === "un" && (
+        <p className="mt-2 text-xs text-hf-muted">Dica: para um frango empanado, ponha "O lote rende 1 unidade" e os gramas de cada ingrediente de 1 frango (sassami, trigo, panko, água). O estoque mostra quantos dá para fazer com o trigo e o panko que tem.</p>
+      )}
       <p className="mt-3 text-xs font-semibold text-hf-text-2">Ingredientes do lote</p>
       <ul className="mt-1 space-y-2">
         {convertidos.map((c, i) => (

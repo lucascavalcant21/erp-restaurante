@@ -9,7 +9,9 @@ import { useSearchParams } from "next/navigation";
 import { useMarmitaria } from "../../../../components/marmitaria/contexto";
 import { Botao, Cartao, Secao, num } from "../../../../components/marmitaria/ui";
 import { NovoPrePreparo } from "../../../../components/marmitaria/CadastrosRapidos";
-import { Planejar, RegistrarMarmitas } from "../../../../components/marmitaria/TelasDeEstoque";
+import { Planejar, RegistrarMarmitas, useSaldoDaMarmitaria } from "../../../../components/marmitaria/TelasDeEstoque";
+import { producaoPossivelDoPreparo } from "../../../../lib/marmitaria/porcoes.mjs";
+import { fatorSaldo } from "../../../../lib/marmitaria/nucleo.mjs";
 import PedidosIfood from "../../../../components/marmitaria/PedidosIfood";
 import AbasDaProducao, { ABAS_DA_PRODUCAO } from "../../../../components/marmitaria/AbasDaProducao";
 
@@ -18,6 +20,8 @@ const unTxt = (u) => (String(u).toLowerCase() === "l" ? "L" : u || "un");
 function Subprodutos() {
   const { base, unidadeId, recarregar } = useMarmitaria();
   const [editando, setEditando] = useState(false); // false | true (novo) | ficha
+  // "com o trigo e o panko que tenho, dá para quantos frangos?" (dono, 17/11/2026)
+  const saldo = useSaldoDaMarmitaria(base);
   return (
     <div className="space-y-4">
       {editando && <NovoPrePreparo key={editando?.id || "novo"} unidadeId={unidadeId} base={base} ficha={editando === true ? null : editando} onFechar={() => setEditando(false)} onCriado={async () => { await recarregar(); setEditando(false); }} />}
@@ -27,7 +31,17 @@ function Subprodutos() {
           <ul className="divide-y divide-hf-border">
             {base.prePreparos.map((f) => (
               <li key={f.id} className="flex items-center justify-between gap-3 py-2">
-                <span className="min-w-0"><span className="block text-sm font-bold text-hf-text">{f.nome_receita}</span><span className="block text-xs text-hf-muted">Rende {num(f.rendimento_porcoes)} {unTxt(f.rendimento_unidade)}</span></span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold text-hf-text">{f.nome_receita}</span>
+                  <span className="block text-xs text-hf-muted">Rende {num(f.rendimento_porcoes)} {unTxt(f.rendimento_unidade)}{f.peso_porcao_g ? ` · ${num(f.peso_porcao_g)} g cada` : ""}
+                    {base.espelho.get(f.id) && saldo.has(base.espelho.get(f.id)) ? ` · pronto no estoque: ${num(saldo.get(base.espelho.get(f.id)))} ${unTxt(f.rendimento_unidade)}` : ""}</span>
+                  {(() => {
+                    const r = producaoPossivelDoPreparo({ ficha: f, insumos: base.insumos, saldo, fatorSaldo });
+                    return r.quantidade === null
+                      ? <span className="block text-xs text-hf-muted">Dá para fazer: DADOS INSUFICIENTES ({r.motivo})</span>
+                      : <span className="block text-xs font-semibold text-hf-text-2">Dá para fazer com o estoque: {num(r.quantidade)} {unTxt(f.rendimento_unidade)}{r.limita ? ` · acaba primeiro: ${r.limita.nome}` : ""}</span>;
+                  })()}
+                </span>
                 <button type="button" onClick={() => setEditando(f)} className="min-h-[40px] shrink-0 text-sm font-bold text-hf-accent hover:underline">Editar</button>
               </li>
             ))}

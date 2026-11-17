@@ -3,7 +3,7 @@
 // Identidade "Gestão" (pedido do dono, 08/11/2026): .tema-gestao troca os
 // tokens hf-* por vermelho e areia só dentro do módulo; a barra de áreas é preta
 // com ícone em cima do nome.
-// Marmitaria & Delivery: quinze áreas, uma barra só, na ordem do trabalho:
+// Marmitaria & Delivery: dezesseis áreas, uma barra só, na ordem do trabalho:
 // comprar, guardar, produzir e vender. O menu de cima leva para
 // cá sem submenu (a navegação do módulo mora aqui), e o que é secundário vira
 // aba dentro de cada área.
@@ -18,7 +18,7 @@ import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
 import { BarraDeAreas } from "../../components/gerencial/PainelGerencial";
-import { BadgeDollarSign, BarChart3, Boxes, Calculator, CheckCircle2, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Settings, ShoppingCart, Smartphone, Store, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
+import { BadgeDollarSign, BarChart3, Boxes, Calculator, CheckCircle2, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Receipt, Settings, ShoppingCart, Smartphone, Store, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
 
 const FICHA = "/dashboard/marmitaria/marmitas";
 const ESTOQUE = "/dashboard/marmitaria/estoque";
@@ -37,7 +37,8 @@ const AREAS = [
   { href: `${FICHA}/embalagens`, rotulo: "Embalagens", icone: Boxes },
   { href: "/dashboard/marmitaria/funcionarios", rotulo: "Equipe", icone: Users },
   { href: "/dashboard/marmitaria/configuracoes", rotulo: "Custos e apps", icone: Settings },
-  { href: "/dashboard/marmitaria/financeiro", rotulo: "DRE e financeiro", icone: Wallet },
+  { href: "/dashboard/marmitaria/financeiro/gastos", rotulo: "Gastos e rendimento", icone: Receipt },
+  { href: "/dashboard/marmitaria/financeiro", rotulo: "DRE e financeiro", exceto: ["/dashboard/marmitaria/financeiro/gastos"], icone: Wallet },
   // Dashboard gerencial no modelo de gestão (pedido do dono, 08/11/2026).
   { href: "/dashboard/marmitaria/gerencial", rotulo: "Dashboard gerencial", icone: Gauge },
 ];

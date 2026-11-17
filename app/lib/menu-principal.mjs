@@ -153,7 +153,7 @@ export const MENU_PRINCIPAL = Object.freeze([
     ],
   },
   { id: "eventos", label: "Eventos", href: "/dashboard/reservas-eventos", icone: "PartyPopper", cor: "amarelo", desc: "Funil, agenda e reservas" },
-  { id: "marmitaria", label: "Marmitaria", href: "/dashboard/marmitaria", icone: "Soup", cor: "dourado", desc: "Pedidos, produção e entregas" },
+  { id: "marmitaria", label: "Delivery", href: "/dashboard/marmitaria", icone: "Soup", cor: "dourado", desc: "Pedidos, produção e entregas" },
   {
     id: "rh", label: "Equipe", href: "/dashboard/rh", icone: "Users", cor: "ciano",
     desc: "Ponto, escala e folha",

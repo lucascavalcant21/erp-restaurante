@@ -325,7 +325,7 @@ export const PERMISSION_MODULES = [
     ],
   },
   {
-    id: "marmitaria", label: "Marmitaria & Delivery",
+    id: "marmitaria", label: "Delivery",
     pages: [
       // Seis áreas (14/10/2026). Os ids antigos que continuam servem às mesmas
       // funções; os que sumiram (pedidos, cardápio, precificação…) viraram abas.

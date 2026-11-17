@@ -10,7 +10,7 @@ export const ehNegocioSeparado = (id) => SEPARADAS.includes(id);
 
 const NEGOCIOS = [
   { id: "restaurante", rotulo: "Restaurante", href: "/dashboard" },
-  { id: UNIDADE_MARMITARIA, rotulo: "Marmitaria", href: "/dashboard/marmitaria" },
+  { id: UNIDADE_MARMITARIA, rotulo: "Delivery", href: "/dashboard/marmitaria" }, // nome "Delivery" (dono, 17/11/2026); o id continua marmitaria
   { id: UNIDADE_EVENTOS, rotulo: "Eventos", href: "/dashboard/reservas-eventos" },
 ];
 

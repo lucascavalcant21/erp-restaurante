@@ -14,7 +14,7 @@ export const SEGMENTOS = Object.freeze([
   { id: "outro", rotulo: "Outro", item: "item" },
 ]);
 
-export const NOME_PADRAO = "Marmitaria e delivery";
+export const NOME_PADRAO = "Delivery";
 
 export function normalizarDelivery(d) {
   const nome = String(d?.nome || "").replace(/\s+/g, " ").trim().slice(0, 40);

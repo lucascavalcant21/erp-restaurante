@@ -71,7 +71,7 @@ function areasDaJornada(jornada) {
 
 function Estado() {
   const { unidadeId, carregando, erro, base } = useMarmitaria();
-  if (!unidadeId) return <Aviso tipo="alerta" className="mb-4">Selecione uma unidade no topo da tela para usar a marmitaria.</Aviso>;
+  if (!unidadeId) return <Aviso tipo="alerta" className="mb-4">Selecione uma unidade no topo da tela para usar o delivery.</Aviso>;
   if (base?.migracaoPendente) return <Aviso tipo="alerta" className="mb-4">{MSG_MIGRACAO}</Aviso>;
   if (erro && !carregando) return <Aviso tipo="alerta" className="mb-4">Não foi possível carregar tudo: {erro}</Aviso>;
   return null;
@@ -89,7 +89,7 @@ function Barra() {
   const naJornada = jornada && !jornada.concluida;
   const areas = naJornada ? areasDaJornada(jornada) : AREAS;
   return (
-    <BarraDeAreas rotulo={naJornada ? "Sequência de implantação da marmitaria" : "Áreas da marmitaria"} areas={areas}
+    <BarraDeAreas rotulo={naJornada ? "Sequência de implantação do delivery" : "Áreas do delivery"} areas={areas}
       ativa={(a) => (a.exato ? pathname === a.href : (pathname === a.href || pathname.startsWith(`${a.href}/`)) && !(a.exceto || []).some((x) => pathname.startsWith(x)))
         || (a.tambem || []).some((x) => pathname.startsWith(x))} />
   );

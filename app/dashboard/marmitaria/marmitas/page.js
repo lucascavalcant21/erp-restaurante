@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search, UtensilsCrossed } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import EditorMarmita from "../../../components/marmitaria/EditorMarmita";
-import { Aviso, Botao, Cartao, Secao, brl, inputCls } from "../../../components/marmitaria/ui";
+import { Botao, Cartao, Secao, brl, inputCls } from "../../../components/marmitaria/ui";
 import { formDaMarmita } from "../../../lib/marmitaria/formulario.mjs";
 import { ordenarCategorias } from "../../../lib/marmitaria/cardapio.mjs";
 import { normalizarBusca } from "../../../lib/ingredientes-utils.mjs";
@@ -38,7 +38,12 @@ function Conteudo() {
     return (
       <EditorMarmita key={editando.id} form={editando}
         onFechar={() => setEditando(null)}
-        onSalvo={(r) => { setEditando(null); setAviso(`Ficha técnica salva${r?.codigo ? ` (${r.codigo})` : ""}.`); }} />
+        onSalvo={(r) => {
+          // dono, 17/11/2026: salvou, fica na ficha técnica e pergunta se cadastra a próxima
+          setEditando(null);
+          setAviso(`Ficha técnica salva${r?.codigo ? ` (${r.codigo})` : ""}.`);
+          if (typeof window !== "undefined") document.querySelector(".erp-main-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
+        }} />
     );
   }
 
@@ -48,7 +53,16 @@ function Conteudo() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Botao onClick={nova}><Plus size={16} /> Nova ficha técnica</Botao></div>
-      {aviso && <Aviso>{aviso}</Aviso>}
+      {aviso && (
+        <Cartao>
+          <p className="font-semibold text-hf-text">{aviso}</p>
+          <p className="mt-0.5 text-sm text-hf-text-2">Cadastrar nova ficha técnica?</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Botao onClick={() => { setAviso(null); nova(); }}><Plus size={16} /> Cadastrar nova ficha</Botao>
+            <Botao variante="secundario" onClick={() => setAviso(null)}>Agora não</Botao>
+          </div>
+        </Cartao>
+      )}
       <ListaDeFichas onEditar={editar} onNova={nova} />
     </div>
   );

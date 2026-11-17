@@ -7,7 +7,9 @@
 
 import { useState } from "react";
 import { Trash2, X } from "lucide-react";
-import { criarProduto, salvarPrePreparo, novaChave } from "../../lib/marmitaria/dados";
+import { criarProduto, salvarPrePreparo, salvarModoDePreparo, novaChave } from "../../lib/marmitaria/dados";
+import { fetchComSessao } from "../../lib/api-sessao";
+import { numerarPassos } from "../../lib/marmitaria/modo-preparo.mjs";
 import { custoDaMarmita, custoPorUnidadeDoPacote, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import BuscaItens from "./BuscaItens";
 import { quantidadeParaTela } from "../../lib/marmitaria/formulario.mjs";
@@ -104,6 +106,10 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
   const [buscando, setBuscando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
+  // modo de preparo (dono, 17/11/2026): passo a passo da produção, escrito ou organizado pela IA
+  const [preparo, setPreparo] = useState(() => ficha?.modo_preparo || "");
+  const [tempo, setTempo] = useState(() => (ficha?.tempo_preparo ? String(ficha.tempo_preparo) : ""));
+  const [organizando, setOrganizando] = useState(false);
 
   const convertidos = itens.map((it) => {
     const ins = base.insumos.get(it.insumo_id);
@@ -126,10 +132,32 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
         validade_dias: lerNumero(f.validade) || null,
         itens: convertidos.map((c) => ({ insumo_id: c.insumo_id, quantidade: c.quantidade })),
       });
-      if (r.error) setErro(r.error);
-      else await onCriado(id, f.unidade);
+      if (r.error) { setErro(r.error); return; }
+      if (preparo.trim() || tempo || ficha?.modo_preparo) {
+        const mp = await salvarModoDePreparo(id, { modo_preparo: numerarPassos(preparo), tempo_preparo: Math.round(lerNumero(tempo) || 0) || null });
+        if (mp.error) { setErro(`Subproduto salvo, mas ${mp.error.charAt(0).toLowerCase()}${mp.error.slice(1)}`); return; }
+      }
+      await onCriado(id, f.unidade);
     } finally {
       setSalvando(false);
+    }
+  }
+
+  async function organizarComIA() {
+    if (organizando) return;
+    if (preparo.trim().length < 10) return setErro("Escreva com suas palavras como é feito (pode ser curto) e toque de novo em Organizar com IA.");
+    setErro(null); setOrganizando(true);
+    try {
+      const ingredientes = convertidos.map((c) => `${c.ins?.nome || "ingrediente"}: ${c.qtd} ${c.un}`);
+      const resp = await fetchComSessao("/api/ia-preparo", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ explicacao: preparo, nome_receita: f.nome, ingredientes, tipo: "pre_preparo" }) });
+      const j = await resp.json().catch(() => ({}));
+      if (!resp.ok || !j.modo_preparo) setErro(j.error || "Não consegui organizar agora. O que você escreveu continua aqui.");
+      else setPreparo(j.modo_preparo);
+    } catch {
+      setErro("Não consegui organizar agora. O que você escreveu continua aqui.");
+    } finally {
+      setOrganizando(false);
     }
   }
 
@@ -173,10 +201,24 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
         {rend > 0 && custo.total > 0 && <> · por {f.unidade === "un" ? "unidade" : f.unidade.toUpperCase() === "L" ? "L" : f.unidade}: <b className="tabular-nums">{brl(custo.total / rend)}</b></>}
       </p>
       {custo.pendencias.length > 0 && <Aviso tipo="alerta" className="mt-2">{custo.pendencias.join(" ")}</Aviso>}
+
+      <div className="mt-4 border-t border-hf-border pt-3">
+        <div className="flex items-end justify-between gap-2">
+          <p className="text-xs font-semibold text-hf-text-2">Modo de preparo</p>
+          <Campo rotulo="Tempo total (min)" className="w-32"><CampoNumero valor={tempo} onChange={setTempo} placeholder="opcional" /></Campo>
+        </div>
+        <textarea className={`${inputCls} mt-2 min-h-[150px] py-2 leading-relaxed`} value={preparo} onChange={(e) => setPreparo(e.target.value)} maxLength={4000}
+          placeholder={"Um passo por linha. Ex.:\n1. Refogar o alho — 1 a 2 min: aqueça o óleo em fogo médio-baixo e doure o alho, sem escurecer.\n2. Refogar o arroz — 2 a 3 min: junte o arroz e mexa até envolver os grãos.\n3. Cozinhar — 15 a 20 min: água quente e sal, ferva, abaixe o fogo e tampe."} />
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Botao variante="secundario" type="button" onClick={organizarComIA} disabled={organizando}>{organizando ? "Organizando…" : "Organizar com IA"}</Botao>
+          <span className="text-xs text-hf-muted">Escreva do seu jeito e a IA arruma em passos com tempo e fogo. Confira antes de salvar.</span>
+        </div>
+      </div>
+
       {erro && <Aviso tipo="alerta" className="mt-2">{erro}</Aviso>}
       <div className="mt-3 flex justify-end gap-2">
         <Botao variante="secundario" onClick={onFechar} type="button">Cancelar</Botao>
-        <Botao onClick={salvar} disabled={salvando} type="button">{salvando ? "Salvando…" : "Cadastrar e usar"}</Botao>
+        <Botao onClick={salvar} disabled={salvando} type="button">{salvando ? "Salvando…" : ficha ? "Salvar" : "Cadastrar e usar"}</Botao>
       </div>
     </Painel>
   );

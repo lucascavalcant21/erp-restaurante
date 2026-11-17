@@ -169,6 +169,16 @@ async function rpcFicha(dados) {
 export const salvarMarmita = (dados) => rpcFicha({ ...dados, tipo: "marmita" });
 export const salvarPrePreparo = (dados) => rpcFicha({ ...dados, tipo: "pre_preparo" });
 
+/** Modo de preparo do pré-preparo (17/11/2026): passos numerados ("1. …\n2. …") e tempo total em minutos. */
+export async function salvarModoDePreparo(fichaId, { modo_preparo, tempo_preparo }) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const { data, error } = await supabase.from("fichas_tecnicas")
+    .update({ modo_preparo: modo_preparo || null, tempo_preparo: tempo_preparo || null, atualizado_em: new Date().toISOString() })
+    .eq("id", fichaId).select("id");
+  if (error) return { error: mensagemErro(error) };
+  return { error: data?.length ? null : "O modo de preparo não foi gravado (sem permissão para alterar a ficha)." };
+}
+
 export async function definirDisponibilidade(fichaId, ativo) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   const { error } = await supabase.from("fichas_tecnicas").update({ ativo: !!ativo, atualizado_em: new Date().toISOString() }).eq("id", fichaId).eq("departamento", "marmitaria");

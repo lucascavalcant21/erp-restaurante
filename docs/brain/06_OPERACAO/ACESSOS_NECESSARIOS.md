@@ -114,7 +114,7 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 - **Escopo mínimo:** a produção só é LIDA (estrutura); o teste é apagado e recriado (LIMPAR_TESTE=sim, aprovado pelo dono: "Só a estrutura")
 - **Risco:** MÉDIO (a URL da produção fica guardada como segredo do GitHub; pode ser apagada depois da cópia)
 - **Como validar depois:** no hefisto-staging, 218 tabelas no `public` (244 menos os backups), 0 linhas, impressão digital das colunas igual à da produção
-- **Estado:** PENDENTE
+- **Estado:** RESOLVIDO SEM O SEGREDO (16–17/11/2026): a estrutura foi copiada pelo conector Supabase (dono: "Pode apagar e copiar"), sem dado do restaurante. Conferido por impressão digital igual à produção: funções 190, gatilhos 103, views 5, índices 494, policies 253, grants de tabela 3511 e de função 363, storage, gatilho do auth e realtime. TESTADO NO SUPABASE REAL (teste). Os segredos do GitHub não são mais necessários para isso
 
 ## ACESSO-009
 

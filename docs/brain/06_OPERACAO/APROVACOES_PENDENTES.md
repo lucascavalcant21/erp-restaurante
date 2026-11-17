@@ -417,3 +417,16 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Status:** PENDENTE
 - **Criado em:** 2026-11-14
 - **Chave:** migracao:db/PLANO_DIA_1_TAREFAS_DO_DIA.sql
+
+### APR-029 · PENDENTE
+
+- **Missão:** Cardápios dos concorrentes do delivery guardados pelo Jhon (pedido do dono, 17/11/2026)
+- **Ação:** Aplicar db/CONC_1_CARDAPIOS_CONCORRENTES.sql no banco do SISTEMA DE TESTE (hefisto-staging). O banco do restaurante NÃO recebe.
+- **Ambiente:** supabase (teste)
+- **Risco:** LOW (só aditiva: três tabelas novas com leitura por quem tem marmitaria.competitors.view na unidade e escrita só por duas funções; nada existente muda)
+- **Motivo:** O Jhon lê os prints do cardápio de um concorrente e guarda pratos, componentes, peso, preço e adicionais com a data, para comparar com as nossas marmitas
+- **Rollback:** no cabeçalho do arquivo
+- **Evidências:** PGlite 21/21 (`app/lib/concorrentes-banco.test.mjs`: permissão para guardar e apagar, mesma chave não grava duas vezes, item sem preço não entra, histórico por data, outra unidade não vê, ninguém grava direto nas tabelas, visitante não lê, preflight aborta sem mudar nada). Impressão digital: 5914f480e5d072dd0b31a8e0ce4f44d1
+- **Status:** PENDENTE
+- **Criado em:** 2026-11-17
+- **Chave:** migracao:db/CONC_1_CARDAPIOS_CONCORRENTES.sql

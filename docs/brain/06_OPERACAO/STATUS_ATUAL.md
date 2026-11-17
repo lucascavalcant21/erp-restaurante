@@ -159,3 +159,11 @@ Branch `claude/upgrade-visual-medway` (PR em rascunho):
 - Inteligência: `marmita.create` ("Jhon, vamos montar uma marmita"), `marmitaria.raio_x` (quem leva quanto do preço, componente mais caro) e `marmitaria.montagem` (Nico: como monta).
 - Evidência: TESTADO LOCAL (884 testes de `app/lib` com PGlite, 219 da inteligência, build) e TESTADO EM MOCK (Chrome 390 px). No banco de teste e no preview: NÃO VALIDADO (falta a cópia da estrutura, ACESSO-008).
 - Pendente: vários deliveries por unidade (HDEV-014); sobremesa no combo pela conversa; renomear "marmita" para o item do segmento (lanche, pizza) nas telas.
+
+## 17/11/2026 — Banco de teste com a estrutura da produção; Jhon e os cardápios dos concorrentes (pedido do dono)
+
+- **Banco de teste (`hefisto-staging`)**: estrutura da produção copiada pelo conector (sem dado do restaurante, sem tabelas de backup). Impressões digitais iguais à produção em funções, gatilhos, views, índices, policies e grants. TESTADO NO SUPABASE REAL (teste). Sobra no teste: `hefisto_user_in_company` e `hefisto_user_in_unit_strict` (antigas, sem permissão de execução).
+- **Concorrentes do delivery**: + do assistente → "Cardápio de concorrente" (até 6 prints) → o Jhon lê, confere nome e app, mostra a prévia e guarda com a data (ação `competitor.menu`). "Compare o cardápio da X com as nossas marmitas" compara pratos parecidos, preço no mesmo app, preço por 100 g e adicionais. Tela Marmitaria > Concorrentes. Permissão nova `marmitaria.competitors.*` (dar aos perfis em Usuários).
+- Evidência: TESTADO LOCAL (1190 testes de `app/lib` com PGlite, 231 da inteligência, build) e TESTADO EM MOCK. No banco de teste e no preview: NÃO VALIDADO (CONC-1 espera APR-029).
+- Limite conhecido: o Jhon guarda e compara na unidade ativa do assistente; a tela lê a unidade da marmitaria. Para a marmitaria, usar o assistente com o negócio Marmitaria selecionado.
+- Falta: aprovar APR-025 a APR-029 no banco de teste; login do dono e empresa de teste no `hefisto-staging`; testar o preview.

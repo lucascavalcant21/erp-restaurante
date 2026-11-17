@@ -17,6 +17,8 @@ import { dividirEmItens } from "./lote.mjs";
 import { paramsDoComando } from "../actions/criar-ficha.mjs";
 import { paramsDoComando as paramsDaMarmita } from "../actions/criar-marmita.mjs";
 import { PARAMS_DOS_CADASTROS } from "../actions/cadastros-delivery.mjs";
+import { menuDoAssunto } from "./assuntos.mjs";
+import { interpretarPorRegras } from "./interpretador-regras.mjs";
 import { responderLivre, FOCO_SALAO, FOCO_ROTINA, ehPedidoDeRotina } from "../agents/geral.mjs";
 import { sugestoesDaResposta } from "./sugestoes.mjs";
 import { notaSchema } from "../actions/lancar-nota.mjs";
@@ -191,6 +193,13 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
     }
   } else if (!pedido.texto) {
     resposta = { tipo: "nao_entendi", texto: "Diga ou digite o que você precisa.", sugestoes: EXEMPLOS.slice(0, 5) };
+  } else if (interpretarPorRegras(pedido.texto).valor?.intencao === "desconhecido" && menuDoAssunto(pedido.texto)) {
+    // só o assunto ("Marmita"): responde na hora com o que dá para fazer, sem ir à IA
+    const m = menuDoAssunto(pedido.texto);
+    interp = { intencao: "desconhecido", confianca: "media", periodo: null, produto: null };
+    origem = "regras";
+    resposta = { tipo: "resposta", texto: m.texto, sugestoes: m.sugestoes, agentes: ["geral"], natureza: "REAL" };
+    trilha.passar("explicacao", NIVEL.OBSERVAR);
   } else if ((lote = dividirEmItens(pedido.texto))) {
     // "Adicione 3 kg de picanha, 4 kg de xarope": uma ação por item, cada uma com prévia própria
     intencao = intencaoPorId(lote.intencao);

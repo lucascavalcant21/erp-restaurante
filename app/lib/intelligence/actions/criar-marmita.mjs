@@ -208,7 +208,7 @@ export function aplicarResposta(params, _campo, valor) {
       if (f === "aqui" || /^(nesta|nessa|aqui|esta|essa|sim)\b/.test(f)) p.unidadeOk = true;
       else if (f === "outra" || /\boutra\b|ja temos|que ja tem/.test(f)) p.unidadeEscolha = "outra";
       else if (f === "nova" || /\bnova\b|criar/.test(f)) p.unidadeEscolha = "nova";
-      else p.aviso = "Não entendi a unidade.";
+      else p.aviso = "Me diga a unidade de novo, do seu jeito.";
       break;
     case "nome": if (limpar(v).length >= 2) p.nome = cap(v).slice(0, 80); else p.aviso = "Preciso de um nome."; break;
     case "total": {
@@ -218,7 +218,7 @@ export function aplicarResposta(params, _campo, valor) {
     }
     case "componente": {
       const novos = lerIngredientes(v).map((x) => ({ termo: x.termo.slice(0, 80), ...(x.quantidade ? { quantidade: x.quantidade, unidade: x.unidade === "porcao" ? undefined : x.unidade || undefined } : {}) }));
-      if (!novos.length) p.aviso = "Não entendi o componente.";
+      if (!novos.length) p.aviso = "Me diga o componente de novo, do seu jeito.";
       else { p.comps = [...p.comps, ...novos].slice(0, MAX_COMP).map((x) => JSON.parse(JSON.stringify(x))); p.total = Math.max(p.total || 1, p.comps.length); }
       break;
     }
@@ -234,13 +234,13 @@ export function aplicarResposta(params, _campo, valor) {
     case "preco_compra": {
       if (!c) break;
       const k = lerCadastro(v);
-      if (k) c.novo = k; else p.aviso = "Não entendi. Ex.: \"1 kg por 24,90\".";
+      if (k) c.novo = k; else p.aviso = "Pode mandar assim: \"1 kg por 24,90\".";
       break;
     }
     case "sub_itens": {
       if (!c) break;
       const itens = lerIngredientes(v).map((x) => ({ termo: x.termo.slice(0, 80), ...(x.quantidade && x.unidade !== "porcao" ? { quantidade: x.quantidade, ...(x.unidade ? { unidade: x.unidade } : {}) } : {}) })).slice(0, MAX_SUB);
-      if (itens.length) c.sub = { ...(c.sub || {}), itens }; else p.aviso = "Não entendi o que vai. Ex.: \"arroz 1 kg, óleo 30 ml, sal 20 g\".";
+      if (itens.length) c.sub = { ...(c.sub || {}), itens }; else p.aviso = "Me diga o que vai de novo, do seu jeito. Ex.: \"arroz 1 kg, óleo 30 ml, sal 20 g\".";
       break;
     }
     case "sub_escolha":
@@ -254,7 +254,7 @@ export function aplicarResposta(params, _campo, valor) {
       if (!sub) break;
       if (tirar) { c.sub.itens.splice(pend.sub, 1); break; }
       const k = lerCadastro(v);
-      if (k) sub.novo = k; else p.aviso = "Não entendi. Ex.: \"5 kg por 29,90\".";
+      if (k) sub.novo = k; else p.aviso = "Pode mandar assim: \"5 kg por 29,90\".";
       break;
     }
     case "sub_qtd": {
@@ -293,7 +293,7 @@ export function aplicarResposta(params, _campo, valor) {
     case "embalagens": {
       if (NAO.test(f) || /^nenhuma\b/.test(f)) { p.embOk = true; p.embs = []; break; }
       const itens = lerIngredientes(v).map((x) => ({ termo: x.termo.slice(0, 80), quantidade: x.quantidade && (!x.unidade || x.unidade === "un") ? x.quantidade : 1 })).slice(0, MAX_EMB);
-      if (itens.length) { p.embs = itens; p.embOk = true; } else p.aviso = "Não entendi as embalagens.";
+      if (itens.length) { p.embs = itens; p.embOk = true; } else p.aviso = "Me diga as embalagens de novo, do seu jeito.";
       break;
     }
     case "emb_escolha":
@@ -306,7 +306,7 @@ export function aplicarResposta(params, _campo, valor) {
       if (!e) break;
       if (tirar) { p.embs.splice(pend.indice, 1); break; }
       const k = lerCadastro(v.replace(/\b(\d+)\s*(?=por|a\b)/i, "$1 un "));
-      if (k) e.novo = { ...k, unidade: k.unidade === "un" ? "un" : k.unidade }; else p.aviso = "Não entendi. Ex.: \"100 unidades por 25,00\".";
+      if (k) e.novo = { ...k, unidade: k.unidade === "un" ? "un" : k.unidade }; else p.aviso = "Pode mandar assim: \"100 unidades por 25,00\".";
       break;
     }
     case "canal":
@@ -359,7 +359,7 @@ export function aplicarResposta(params, _campo, valor) {
     }
     case "bebida_preco_compra": {
       const k = lerCadastro(v.replace(/\b(\d+)\s*(?=por|a\b)/i, "$1 un "));
-      if (k) p.combo = { ...(p.combo || {}), novo: k }; else p.aviso = "Não entendi. Ex.: \"12 por 30,00\" ou \"1 un por 3,50\".";
+      if (k) p.combo = { ...(p.combo || {}), novo: k }; else p.aviso = "Pode mandar assim: \"12 por 30,00\" ou \"1 un por 3,50\".";
       break;
     }
     case "bebida_preco": { const pr = lerPreco(v); if (pr > 0) p.combo = { ...(p.combo || {}), precoBebida: pr }; else p.aviso = "Por quanto vende o refrigerante sozinho?"; break; }

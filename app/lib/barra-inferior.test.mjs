@@ -23,15 +23,17 @@ test("app dedicado da loja e quem não entrou não têm barra", () => {
 test("aba acesa", () => {
   assert.equal(abaAtiva("/dashboard"), "inicio");
   assert.equal(abaAtiva("/dashboard/conta"), "menu");
-  assert.equal(abaAtiva("/dashboard/tarefas"), "tarefas");
+  assert.equal(abaAtiva("/dashboard/tarefas"), null);
+  assert.equal(abaAtiva("/dashboard/marmitaria"), "delivery");
+  assert.equal(abaAtiva("/dashboard/marmitaria/marmitas/organizador"), "delivery");
   assert.equal(abaAtiva("/dashboard/cozinha", "/dashboard/cozinha"), "inicio");
   assert.equal(abaAtiva("/dashboard/bar"), null);
 });
 
-test("cinco abas para o dono; sem Assistente e sem Tarefas quando não pode", () => {
-  assert.deepEqual(abasVisiveis({ podeInteligencia: true }).map((a) => a.id), ["inicio", "assistente", "pesquisar", "tarefas", "menu"]);
+test("cinco abas para o dono; sem Assistente e sem Delivery quando não pode", () => {
+  assert.deepEqual(abasVisiveis({ podeInteligencia: true }).map((a) => a.id), ["inicio", "assistente", "pesquisar", "delivery", "menu"]);
   assert.deepEqual(
-    abasVisiveis({ podeInteligencia: false, podeRota: (r) => r !== "/dashboard/tarefas" }).map((a) => a.id),
+    abasVisiveis({ podeInteligencia: false, podeRota: (r) => r !== "/dashboard/marmitaria" }).map((a) => a.id),
     ["inicio", "pesquisar", "menu"],
   );
   assert.ok(ABAS.every((a) => a.href || a.acao));

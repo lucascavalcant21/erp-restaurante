@@ -3,7 +3,8 @@
 // Pedido do dono (14/11/2026): upgrade visual inspirado no app da Medway, que
 // tem cinco abas fixas embaixo (Início, assistente, pesquisa, a atividade
 // principal e Menu), com um traço em cima da aba ativa. No Héfisto:
-//   Início · Assistente · Pesquisar · Tarefas · Menu
+//   Início · Assistente · Pesquisar · Delivery · Menu
+// (17/11/2026: "no lugar de Tarefas quero o ícone de delivery"; Tarefas segue no Menu.)
 //
 // A barra só aparece nas telas de PRIMEIRO NÍVEL (as que a própria barra abre
 // e as telas de cards das áreas). Nas telas de trabalho (comandas, caixa, KDS,
@@ -15,7 +16,7 @@ export const ABAS = Object.freeze([
   { id: "inicio", label: "Início", href: "/dashboard", icone: "Home" },
   { id: "assistente", label: "Assistente", acao: "assistente", icone: "Sparkles", exigeInteligencia: true },
   { id: "pesquisar", label: "Pesquisar", acao: "pesquisar", icone: "Search" },
-  { id: "tarefas", label: "Tarefas", href: "/dashboard/tarefas", icone: "ListChecks", exigeRota: "/dashboard/tarefas" },
+  { id: "delivery", label: "Delivery", href: "/dashboard/marmitaria", icone: "Bike", exigeRota: "/dashboard/marmitaria" },
   { id: "menu", label: "Menu", href: "/dashboard/menu", icone: "Menu" },
 ]);
 
@@ -41,7 +42,7 @@ export function mostraBarraInferior(pathname, sessao) {
 /** Id da aba acesa nesta rota (ou null). */
 export function abaAtiva(pathname, inicio = "/dashboard") {
   const p = semBarraFinal(String(pathname || ""));
-  if (p === "/dashboard/tarefas") return "tarefas";
+  if (p === "/dashboard/marmitaria" || p.startsWith("/dashboard/marmitaria/")) return "delivery";
   if (p === "/dashboard/menu" || p === "/dashboard/conta") return "menu";
   if (p === semBarraFinal(inicio) || p === "/dashboard") return "inicio";
   return null;

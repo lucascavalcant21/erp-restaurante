@@ -65,7 +65,7 @@ export function aplicarResposta(params, campo, valor) {
   switch (params.pendente?.tipo) {
     case "concorrente":
       if (v.length >= 2 && v.length <= 120) p.concorrente = cap(v);
-      else p.aviso = "Não entendi o nome.";
+      else p.aviso = "Me diga o nome de novo, do seu jeito.";
       break;
     case "plataforma": {
       const id = IDS_PLATAFORMA.includes(v) ? v : plataformaDoTexto(v);

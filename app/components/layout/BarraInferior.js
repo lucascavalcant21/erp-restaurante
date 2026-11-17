@@ -6,14 +6,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BrainCircuit, Home, Menu, Search, SquareCheck } from "lucide-react";
+import { Bike, BrainCircuit, Home, Menu, Search } from "lucide-react";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
 import { homeDoUsuario } from "../../lib/auth";
 import { abaAtiva, abasVisiveis } from "../../lib/barra-inferior.mjs";
 import { assistenteDaSessao } from "../../lib/assistentes.mjs";
 
 // Ícones como os da Medway: casa, cérebro (assistente), lupa, quadrado com check e menu.
-const ICONES = { Home, ListChecks: SquareCheck, Menu, Search, Sparkles: BrainCircuit };
+const ICONES = { Bike, Home, Menu, Search, Sparkles: BrainCircuit };
 
 export default function BarraInferior({ sessao, onOpenSearch }) {
   const pathname = usePathname() || "";

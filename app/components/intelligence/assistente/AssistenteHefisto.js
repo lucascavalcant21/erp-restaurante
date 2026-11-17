@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { assistenteDaSessao } from "../../../lib/assistentes.mjs";
 import { canAccessRoute } from "../../../lib/permissions-catalog.mjs";
-import { ChevronLeft, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Lock, Camera, Plus, Receipt, Smartphone, Store } from "lucide-react";
+import { ChevronLeft, ChevronRight, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Camera, Plus, Receipt, Smartphone, Store, ChefHat, Martini, UtensilsCrossed, Package, SprayCan, Wallet, Users, TrendingUp, Rocket, Clock, ShieldCheck, Sparkles } from "lucide-react";
 import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } from "../../../lib/intelligence/client/api";
 import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
 import { fetchComSessao } from "../../../lib/api-sessao";
@@ -121,13 +121,40 @@ function Balao({ lado, children, hora: h, lido, cauda = true, largo = false }) {
 
 // Lista longa (receitas, drinks): campo de busca e rolagem, para escolher com um toque.
 const semAcento = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-const AREAS_INICIO = [
-  { rotulo: "Cozinha", icone: "🍳", comando: "Atalhos da cozinha" },
-  { rotulo: "Bar", icone: "🍹", comando: "Atalhos do bar" },
-  { rotulo: "Salão", icone: "🍽️", comando: "Atalhos do salão" },
-  { rotulo: "Estoque", icone: "📦", comando: "Atalhos do estoque" },
-  { rotulo: "Limpeza e equipamentos", icone: "🧽", comando: "Atalhos de limpeza e equipamentos" },
+// Tela inicial (dono, 17/11/2026: "muito feia, nada profissional; letras brancas;
+// o card ocupa a tela toda"): ícones de linha em quadrado colorido, texto branco,
+// cartões na largura toda. O Jhon (dono) vê a gestão; o Nico, as áreas da operação.
+const AREAS_OPERACAO = [
+  { rotulo: "Cozinha", detalhe: "Preparo, fichas e etiquetas", Icone: ChefHat, cor: "#E8590C", comando: "Atalhos da cozinha" },
+  { rotulo: "Bar", detalhe: "Drinks e reposição", Icone: Martini, cor: "#C2255C", comando: "Atalhos do bar" },
+  { rotulo: "Salão", detalhe: "Atendimento e mesas", Icone: UtensilsCrossed, cor: "#1971C2", comando: "Atalhos do salão" },
+  { rotulo: "Estoque", detalhe: "Saldo, perdas e validade", Icone: Package, cor: "#2F9E44", comando: "Atalhos do estoque" },
+  { rotulo: "Limpeza e equipamentos", detalhe: "Rotinas e manutenção", Icone: SprayCan, cor: "#0C8599", comando: "Atalhos de limpeza e equipamentos" },
 ];
+const AREAS_GESTAO = [
+  { rotulo: "Montar o delivery", detalhe: "Apps, custos, equipe e marmitas, passo a passo", Icone: Rocket, cor: "#3E7DD6", comando: "Vamos montar o delivery", largo: true },
+  { rotulo: "Marmitas", detalhe: "Montar, preço e lucro", Icone: Store, cor: "#0E9680", comando: "Marmita" },
+  { rotulo: "Plataformas", detalhe: "Apps, taxas e vitrine", Icone: Smartphone, cor: "#7048E8", comando: "plataformas" },
+  { rotulo: "Custos", detalhe: "Fixos e compras", Icone: Wallet, cor: "#E8590C", comando: "custos" },
+  { rotulo: "Equipe", detalhe: "Cadastro e horários", Icone: Users, cor: "#C2255C", comando: "equipe" },
+  { rotulo: "Estoque", detalhe: "Saldo, perdas e validade", Icone: Package, cor: "#2F9E44", comando: "Atalhos do estoque" },
+  { rotulo: "Vendas e resultado", detalhe: "Faturamento e lucro", Icone: TrendingUp, cor: "#1971C2", comando: "vendas" },
+];
+
+function CartaoArea({ a, onClick, desabilitado }) {
+  const { Icone } = a;
+  return (
+    <button type="button" disabled={desabilitado} onClick={onClick}
+      className={`${a.largo ? "col-span-2 " : ""}flex min-h-[64px] w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left text-white transition active:scale-[0.99] disabled:opacity-50`}
+      style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" }}>
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl" style={{ background: a.cor }}><Icone size={22} strokeWidth={1.9} color="#fff" /></span>
+      <span className="min-w-0">
+        <span className="block text-[15.5px] font-semibold leading-tight text-white">{a.rotulo}</span>
+        <span className="mt-0.5 block text-[12.5px] leading-snug text-white/65">{a.detalhe}</span>
+      </span>
+    </button>
+  );
+}
 
 // O Nico (equipe) começa por perguntas da operação; as de gestão são do Jhon (14/11/2026).
 const SUGESTOES_NICO = Object.freeze([
@@ -143,7 +170,7 @@ const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabili
   const visiveis = longa && filtro.trim() ? opcoes.filter((o) => semAcento(o.rotulo).includes(semAcento(filtro.trim()))) : opcoes;
   return (
     <div className="flex justify-start px-3 pb-1.5 sm:px-[6%]">
-      <div className="grid w-full max-w-[82%] gap-1 sm:max-w-[520px]">
+      <div className="grid w-full gap-1.5 sm:max-w-[640px]">
         {longa && (
           <input type="search" value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder={`Procurar entre ${opcoes.length}…`} aria-label="Procurar na lista"
             className="min-h-[46px] rounded-[14px] border-0 px-3 text-[16px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] outline-none" style={{ background: "var(--wa-ele)" }} />
@@ -156,11 +183,11 @@ const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabili
             type="button"
             disabled={desabilitado}
             onClick={() => onEscolher(o)}
-            className="flex min-h-[46px] items-center justify-center gap-1.5 rounded-[14px] px-3 py-2 text-center text-[16.5px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.99] disabled:opacity-50"
-            style={{ background: "var(--wa-ele)", color: "var(--wa-verde-escuro)" }}
+            className="flex min-h-[48px] w-full items-center justify-between gap-2 rounded-2xl border px-4 py-2.5 text-left text-[15.5px] font-medium text-white transition active:scale-[0.99] disabled:opacity-50"
+            style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" }}
           >
-            {o.rota && <ExternalLink size={14} />}
-            {o.rotulo}
+            <span className="min-w-0">{o.rotulo}</span>
+            {o.rota ? <ExternalLink size={15} className="shrink-0 text-white/60" /> : <ChevronRight size={17} className="shrink-0 text-white/40" />}
           </button>
         ))}
         </div>
@@ -664,42 +691,40 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
               <span className="max-w-full truncate rounded-[7.5px] px-3 py-1 text-[13.5px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)", color: "var(--wa-meta)" }}>Vindo de: {rotuloOrigem}</span>
             </div>
           )}
-          <div className="flex justify-center px-4">
-            <p className="max-w-md rounded-[7.5px] px-3 py-1.5 text-center text-[14px] leading-snug" style={{ background: "var(--wa-aviso)", color: "#FFD279" }}>
-              <Lock size={11} className="mr-1 inline -translate-y-px" />
-              Respostas só com os dados da sua unidade. Nada é gravado sem você confirmar, e tudo fica na auditoria.
-            </p>
-          </div>
 
           {vazio && (
-            <div className="space-y-1">
-              <Balao lado="ele" hora={Date.now()}>
-                <p>Olá! Sou o {nomeAssistente}. Toque na sua área para começar. Se preferir, escreva ou mande um áudio.</p>
-              </Balao>
+            <div className="space-y-2 px-3 pt-1 sm:px-[6%]">
+              <section className="w-full rounded-3xl border p-4 text-white sm:max-w-[640px]" style={{ background: "linear-gradient(160deg, rgba(62,125,214,0.22), rgba(11,36,86,0.35))", borderColor: "rgba(255,255,255,0.10)" }}>
+                <div className="flex items-center gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: "#3E7DD6" }}><Sparkles size={22} color="#fff" /></span>
+                  <div className="min-w-0">
+                    <p className="text-[18px] font-semibold leading-tight text-white">{ehNico ? `Olá! Sou o ${nomeAssistente}.` : `Olá! Sou o ${nomeAssistente}, seu assistente de gestão.`}</p>
+                    <p className="mt-0.5 text-[13.5px] leading-snug text-white/70">{ehNico ? "Toque na sua área, escreva ou mande um áudio." : "Toque num assunto, escreva ou mande um áudio. Eu monto, cadastro e calculo com você."}</p>
+                  </div>
+                </div>
+                <p className="mt-3 flex items-center gap-1.5 text-[12px] text-white/55"><ShieldCheck size={13} /> Só os dados da sua unidade. Nada é gravado sem você confirmar.</p>
+              </section>
               {/* Plano do dia aprovado pelo dono (Jhon + Nico, 14/11/2026): "cheguei, o que eu faço agora?" */}
               <PlanoDeHoje unidadeId={unidadeId} onComando={(c) => enviarComando(c)} desabilitado={ocupado} />
-              {/* Assistente clicável (pedido do dono, 08/11/2026): o funcionário toca mais do que digita */}
-              <div className="flex justify-start px-3 pb-1.5 sm:px-[6%]">
-                <div className="grid w-full max-w-[82%] grid-cols-2 gap-1.5 sm:max-w-[520px]">
-                  {AREAS_INICIO.map((a, idx) => (
-                    <button key={a.comando} type="button" disabled={ocupado} onClick={() => enviarComando(a.comando)}
-                      className={`${idx === AREAS_INICIO.length - 1 && AREAS_INICIO.length % 2 ? "col-span-2 " : ""}flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-[16px] px-2 py-3 text-center shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.98] disabled:opacity-50`}
-                      style={{ background: "var(--wa-ele)", color: "var(--wa-verde-escuro)" }}>
-                      <span className="text-[30px] leading-none" aria-hidden="true">{a.icone}</span>
-                      <span className="text-[17px] font-semibold">{a.rotulo}</span>
-                    </button>
-                  ))}
-                  {bateponto && ehNico && (
-                    <button type="button" onClick={() => router.push("/dashboard/rh/ponto")}
-                      className="col-span-2 flex min-h-[86px] items-center justify-center gap-3 rounded-[16px] px-2 py-3 text-center shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.98]"
-                      style={{ background: "var(--wa-ele)", color: "var(--wa-verde-escuro)" }}>
-                      <span className="text-[30px] leading-none" aria-hidden="true">⏰</span>
-                      <span className="text-[17px] font-semibold">Bater o ponto</span>
-                    </button>
-                  )}
-                </div>
+              <div className="grid w-full grid-cols-2 gap-2 sm:max-w-[640px]">
+                {(ehNico ? AREAS_OPERACAO : AREAS_GESTAO).map((a, idx, lista) => (
+                  <CartaoArea key={a.comando} a={{ ...a, largo: a.largo || (idx === lista.length - 1 && lista.filter((x) => !x.largo).length % 2 === 1) }} desabilitado={ocupado} onClick={() => enviarComando(a.comando)} />
+                ))}
+                {bateponto && ehNico && (
+                  <CartaoArea a={{ rotulo: "Bater o ponto", detalhe: "Entrada, intervalo e saída", Icone: Clock, cor: "#3E7DD6", largo: true }} onClick={() => router.push("/dashboard/rh/ponto")} />
+                )}
               </div>
-              <BotoesRapidos opcoes={(ehNico ? SUGESTOES_NICO : SUGESTOES_ASSISTENTE.slice(0, 3)).map((s) => ({ id: s, rotulo: s, comando: s }))} desabilitado={ocupado} onEscolher={(o) => enviarComando(o.comando)} />
+              {!ehNico && (
+                <>
+                  <p className="pt-1 text-[12.5px] font-medium uppercase tracking-wide text-white/50">Na operação</p>
+                  <div className="grid w-full grid-cols-2 gap-2 sm:max-w-[640px]">
+                    {AREAS_OPERACAO.filter((a) => a.rotulo !== "Estoque").map((a) => (
+                      <CartaoArea key={a.comando} a={a} desabilitado={ocupado} onClick={() => enviarComando(a.comando)} />
+                    ))}
+                  </div>
+                </>
+              )}
+              {ehNico && <div className="-mx-3 sm:-mx-[6%]"><BotoesRapidos opcoes={SUGESTOES_NICO.map((s) => ({ id: s, rotulo: s, comando: s }))} desabilitado={ocupado} onEscolher={(o) => enviarComando(o.comando)} /></div>}
             </div>
           )}
 

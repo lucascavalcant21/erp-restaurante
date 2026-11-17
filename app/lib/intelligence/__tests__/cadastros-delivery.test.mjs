@@ -154,3 +154,13 @@ test("palavra errada ou cortada (texto ou áudio) ainda acha o pedido", async ()
   for (const [frase, esperado] of Object.entries(casos)) assert.equal(interpretarPorRegras(frase).valor.intencao, esperado, frase);
   assert.equal(interpretarPorRegras("qual o faturamento de hoje").valor.confianca, "alta");
 });
+
+test("só o assunto ('Marmita'): resposta na hora com botões, sem ir à IA", async () => {
+  const m = await montar();
+  const r = await m.pedir("Marmita");
+  assert.equal(r.tipo, "resposta");
+  assert.match(r.texto, /Sobre as marmitas e o delivery/);
+  assert.equal(r.sugestoes[0], "Vamos montar umas marmitas");
+  const r2 = await m.pedir("plataformas");
+  assert.equal(r2.sugestoes[0], "Vamos cadastrar as plataformas");
+});

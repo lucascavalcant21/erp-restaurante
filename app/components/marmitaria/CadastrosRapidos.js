@@ -119,6 +119,9 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
   });
   const custo = custoDaMarmita({ itens: convertidos.filter((c) => c.quantidade > 0).map((c) => ({ insumo_id: c.insumo_id, quantidade: c.quantidade })), fichas: base.fichas, insumos: base.insumos });
   const rend = lerNumero(f.rendimento);
+  // g e ml são só para digitar: o estoque e o custo trabalham em kg e L (300 g → 0,3 kg)
+  const unGravada = f.unidade === "g" ? "kg" : f.unidade === "ml" ? "l" : f.unidade;
+  const rendGravado = (f.unidade === "g" || f.unidade === "ml") && rend > 0 ? Math.round((rend / 1000) * 1e6) / 1e6 : rend;
 
   async function salvar() {
     if (salvando) return;
@@ -130,7 +133,7 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
     setSalvando(true);
     try {
       const r = await salvarPrePreparo({
-        id, unidade_id: unidadeId, nome: f.nome, departamento: f.setor, rendimento: rend, rendimento_unidade: f.unidade,
+        id, unidade_id: unidadeId, nome: f.nome, departamento: f.setor, rendimento: rendGravado, rendimento_unidade: unGravada,
         validade_dias: lerNumero(f.validade) || null,
         itens: convertidos.map((c) => ({ insumo_id: c.insumo_id, quantidade: c.quantidade })),
       });
@@ -140,7 +143,7 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
           peso_porcao_g: f.unidade === "un" ? (lerNumero(pesoUn) || null) : null });
         if (mp.error) { setErro(`Subproduto salvo, mas ${mp.error.charAt(0).toLowerCase()}${mp.error.slice(1)}`); return; }
       }
-      await onCriado(id, f.unidade);
+      await onCriado(id, unGravada);
     } finally {
       setSalvando(false);
     }
@@ -168,10 +171,10 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
     <Painel titulo={ficha ? `Editar ${ficha.nome_receita}` : "Novo subproduto"} onFechar={onFechar}>
       <div className="grid gap-3 sm:grid-cols-4">
         <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Ex.: Arroz branco cozido" /></Campo>
-        <Campo rotulo="O lote rende"><CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" /></Campo>
+        <Campo rotulo="Rendimento"><CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" /></Campo>
         <Campo rotulo="Unidade">
           <select className={inputCls} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })}>
-            <option value="kg">kg</option><option value="l">L</option><option value="un">unidades</option>
+            <option value="kg">kg</option><option value="g">g</option><option value="l">L</option><option value="ml">ml</option><option value="un">unidades</option>
           </select>
         </Campo>
         <Campo rotulo="Setor"><select className={inputCls} value={f.setor} onChange={(e) => setF({ ...f, setor: e.target.value })}><option value="cozinha">Cozinha</option><option value="bar">Bar</option></select></Campo>
@@ -205,7 +208,7 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
       )}
       <p className="mt-2 text-sm text-hf-text-2">
         Custo do lote: <b className="tabular-nums">{brl(custo.total)}</b>
-        {rend > 0 && custo.total > 0 && <> · por {f.unidade === "un" ? "unidade" : f.unidade.toUpperCase() === "L" ? "L" : f.unidade}: <b className="tabular-nums">{brl(custo.total / rend)}</b></>}
+        {rendGravado > 0 && custo.total > 0 && <> · por {unGravada === "un" ? "unidade" : unGravada === "l" ? "L" : "kg"}: <b className="tabular-nums">{brl(custo.total / rendGravado)}</b></>}
       </p>
       {custo.pendencias.length > 0 && <Aviso tipo="alerta" className="mt-2">{custo.pendencias.join(" ")}</Aviso>}
 

@@ -142,10 +142,26 @@ export function lerNumero(texto) {
 
 // Guarda o TEXTO digitado ("0,05" passa por "0,0" sem virar zero); quem
 // calcula lê com parseNumero/lerNumero.
-export function CampoNumero({ valor, onChange, className = "", ...rest }) {
+// Vírgula automática (dono, 17/11/2026): ponto digitado vira vírgula na hora,
+// só fica uma vírgula, e ao sair do campo ",5" vira "0,5" e "2," vira "2".
+export function textoNumerico(t) {
+  let s = String(t ?? "").replace(/\./g, ",").replace(/[^0-9,]/g, "");
+  const i = s.indexOf(",");
+  if (i >= 0) s = s.slice(0, i + 1) + s.slice(i + 1).replace(/,/g, "");
+  return s;
+}
+export function textoNumericoFinal(t) {
+  let s = textoNumerico(t);
+  if (s.startsWith(",")) s = `0${s}`;
+  if (s.endsWith(",")) s = s.slice(0, -1);
+  return s;
+}
+
+export function CampoNumero({ valor, onChange, className = "", onBlur, ...rest }) {
   const mostrar = valor === null || valor === undefined ? "" : typeof valor === "number" ? String(valor).replace(".", ",") : valor;
   return (
     <input inputMode="decimal" className={`${inputCls} tabular-nums ${className}`} value={mostrar}
-      onChange={(e) => onChange(e.target.value.replace(/[^0-9,.]/g, ""))} {...rest} />
+      onChange={(e) => onChange(textoNumerico(e.target.value))}
+      onBlur={(e) => { const f = textoNumericoFinal(e.target.value); if (f !== e.target.value) onChange(f); onBlur?.(e); }} {...rest} />
   );
 }

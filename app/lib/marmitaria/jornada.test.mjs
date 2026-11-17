@@ -14,10 +14,10 @@ const base = {
   alocacoes: 3, temVendas: true, ehEmbalagem, precoDoInsumo,
 };
 
-test("a sequência é a do dono, em nove passos", () => {
+test("a sequência é a do dono: nove passos e combos opcional", () => {
   assert.deepEqual(PASSOS.map((p) => `${p.numero}. ${p.titulo}`), [
     "1. Delivery e equipe", "2. Custos fixos e variáveis", "3. Apps e taxas", "4. Ingredientes", "5. Embalagens",
-    "6. Ficha técnica", "7. Preço e combos", "8. Guia de montagem", "9. DRE",
+    "6. Ficha técnica", "7. Precificação", "8. Combos e descontos", "9. Guia de montagem", "10. DRE",
   ]);
 });
 

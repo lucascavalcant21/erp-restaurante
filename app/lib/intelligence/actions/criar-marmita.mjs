@@ -814,7 +814,7 @@ async function executar(ctx, payload) {
     const { error: e4 } = reg
       ? await db.from("config_sistema").update({ params: { ...params, ...patch } }).eq("id", reg.id)
       : await db.from("config_sistema").insert([{ unidade_id: unidade, params: patch }]);
-    if (e4) return { ok: true, resultado: { ...payload.resumo, marmitaId: mm.id, avisoMontagem: "A marmita foi criada, mas o guia de montagem e o combo não foram salvos. Salve em Guia de montagem e em Preço e combos." }, antes: null, depois: { marmitaId: mm.id } };
+    if (e4) return { ok: true, resultado: { ...payload.resumo, marmitaId: mm.id, avisoMontagem: "A marmita foi criada, mas o guia de montagem e o combo não foram salvos. Salve em Guia de montagem e em Combos e descontos." }, antes: null, depois: { marmitaId: mm.id } };
   }
   return { ok: true, resultado: { ...payload.resumo, marmitaId: mm.id, codigo: mm.codigo || null, nasVitrines }, antes: null, depois: { marmitaId: mm.id } };
 }
@@ -827,7 +827,7 @@ function resumoResultado(rec) {
   const apps = r.apps?.length > 1 ? r.apps : null;
   const seguir = proxima ? ` Agora a marmita ${proxima} de ${r.quantas}.` : r.quantas > 1 ? ` Pronto: as ${r.quantas} marmitas estão montadas.` : "";
   return {
-    texto: `Marmita criada: ${r.nome}${r.codigo ? ` (${r.codigo})` : ""}. Custo ${brl(r.custo)}, ${apps ? apps.map((a) => `no ${a.nome} vende a ${brl(a.preco)}${a.lucro != null ? ` e sobram ${brl(a.lucro)}` : ""}`).join("; ") : `vende a ${brl(r.preco)} no ${r.canal}${r.lucro != null ? `, sobram ${brl(r.lucro)} de lucro` : ""}`}.${r.combo ? ` Combo ${r.combo.nome} a ${brl(r.combo.preco)}.` : ""} Sobremesa no combo fica para depois, em Preço e combos.${r.avisoMontagem ? ` ${r.avisoMontagem}` : ""}${vitrine}${seguir}`,
+    texto: `Marmita criada: ${r.nome}${r.codigo ? ` (${r.codigo})` : ""}. Custo ${brl(r.custo)}, ${apps ? apps.map((a) => `no ${a.nome} vende a ${brl(a.preco)}${a.lucro != null ? ` e sobram ${brl(a.lucro)}` : ""}`).join("; ") : `vende a ${brl(r.preco)} no ${r.canal}${r.lucro != null ? `, sobram ${brl(r.lucro)} de lucro` : ""}`}.${r.combo ? ` Combo ${r.combo.nome} a ${brl(r.combo.preco)}.` : ""} Sobremesa no combo fica para depois, em Combos e descontos.${r.avisoMontagem ? ` ${r.avisoMontagem}` : ""}${vitrine}${seguir}`,
     linhas: [
       { rotulo: "Marmita", valor: r.nome },
       { rotulo: "Custo", valor: brl(r.custo) },

@@ -29,8 +29,17 @@ import { salvarCombosMarmitaria, salvarOfertasMarmitaria } from "../../lib/param
 
 const chip = (ativo) => `h-10 rounded-xl border px-3 text-sm font-bold transition ${ativo ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border bg-hf-surface text-hf-text-2 hover:bg-hf-elevated"}`;
 
-export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
-  const [aba, setAba] = useState(["cardapio", "combos", "promocoes", "modelo"].includes(abaInicial) ? abaInicial : "cardapio");
+// Dono, 17/11/2026: "Precificação" (o preço de cada produto, com equipe e custos)
+// e, no passo seguinte, "Combos e descontos" (marmita + bebida/sobremesa, descontos).
+const ABAS_DO_MODO = {
+  precificacao: [{ id: "cardapio", rotulo: "Produtos" }, { id: "modelo", rotulo: "Modelo da loja" }],
+  combos: [{ id: "combos", rotulo: "Combos" }, { id: "promocoes", rotulo: "Descontos" }, { id: "cardapio", rotulo: "Como fica no cardápio" }],
+};
+const SECOES_DO_MODO = { precificacao: [["marmitas", "Produtos"]], combos: [["promocoes", "Descontos"], ["combos", "Combos"]] };
+
+export default function CombosPromocoes({ onEditar, abaInicial, modo = "precificacao" }) {
+  const abas = ABAS_DO_MODO[modo] || ABAS_DO_MODO.precificacao;
+  const [aba, setAba] = useState(abas.some((a) => a.id === abaInicial) ? abaInicial : abas[0].id);
   const { base, custos, unidadeId } = useMarmitaria();
   const { canais, canal, setCanalId, embutidos, combos, setCombos, ofertas, setOfertas, metaPct, setMetaPct, catalogo, comum, linhas, mudancas } = useCardapio();
   const [salvando, setSalvando] = useState(false);
@@ -56,16 +65,16 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
     <div className="space-y-4">
       <section className="overflow-hidden rounded-3xl border border-hf-border bg-hf-surface">
         <div className="bg-gradient-to-br from-hf-accent/15 via-hf-accent/5 to-transparent p-4 sm:p-5">
-          <p className="text-xs font-black uppercase tracking-wider text-hf-accent">Cardápio</p>
-          <h2 className="mt-0.5 text-lg font-black text-hf-text sm:text-xl">Forme o preço e veja o que sobra em cada venda</h2>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {[["Itens", qtd.marmitas, "cardapio"], ["Combos", qtd.combos, "combos"], ["Promoções", qtd.promocoes, "promocoes"]].map(([rot, n, id]) => (
+          <p className="text-xs font-black uppercase tracking-wider text-hf-accent">{modo === "combos" ? "Combos e descontos" : "Precificação"}</p>
+          <h2 className="mt-0.5 text-lg font-black text-hf-text sm:text-xl">{modo === "combos" ? "Junte marmita, bebida e sobremesa e dê descontos vendo o lucro" : "O preço de cada produto e o que sobra em cada venda"}</h2>
+          {modo === "combos" && <div className="mt-3 grid grid-cols-2 gap-2">
+            {[["Combos", qtd.combos, "combos"], ["Descontos", qtd.promocoes, "promocoes"]].map(([rot, n, id]) => (
               <button key={id} type="button" onClick={() => setAba(id)} className="rounded-2xl bg-hf-surface/90 p-3 text-left shadow-sm ring-1 ring-hf-border transition hover:ring-hf-accent">
                 <p className="text-2xl font-black tabular-nums text-hf-text">{n}</p>
                 <p className="text-xs font-bold text-hf-text-2">{rot}</p>
               </button>
             ))}
-          </div>
+          </div>}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="text-xs font-bold uppercase text-hf-muted">Vendendo em</span>
             {canais.map((c) => <button key={c.id} type="button" className={chip(c.id === canal.id)} onClick={() => setCanalId(c.id)}>{c.nome}</button>)}
@@ -73,14 +82,14 @@ export default function CombosPromocoes({ onEditar, abaInicial = "cardapio" }) {
         </div>
       </section>
 
-      <Abas abas={[{ id: "cardapio", rotulo: "Itens" }, { id: "combos", rotulo: "Combos" }, { id: "promocoes", rotulo: "Promoções" }, { id: "modelo", rotulo: "Modelo da loja" }]} valor={aba} onChange={setAba} />
+      <Abas abas={abas} valor={aba} onChange={setAba} />
 
       {aba !== "modelo" && mudancas.length > 0 && <Aviso tipo="alerta">{mudancas.length} {mudancas.length > 1 ? "custos mudaram" : "custo mudou"} nos últimos 30 dias e {mudancas.length > 1 ? "mexeram" : "mexeu"} no lucro. <a href="/dashboard/marmitaria/marmitas/lucro" className="font-bold underline">Ver no painel</a></Aviso>}
       {aba !== "modelo" && linhas[0]?.falta && <Aviso tipo="alerta">{linhas[0].falta}: preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a> para ver o lucro.</Aviso>}
       {aba !== "modelo" && !embutidos.completo && <Aviso>Equipe e custos fixos ainda não entram por completo (falta {embutidos.faltando.join(", ")}). Preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a>.</Aviso>}
 
       {aba === "cardapio" && <CardapioVendas linhas={linhas} custos={custos} onEditar={onEditar} comum={comum} metaPct={metaPct}
-        onRemoverOferta={(id) => gravarOfertas(ofertas.filter((o) => o.id !== id))} msg={msg} irPara={setAba} />}
+        onRemoverOferta={(id) => gravarOfertas(ofertas.filter((o) => o.id !== id))} msg={msg} irPara={modo === "combos" ? setAba : null} secoes={SECOES_DO_MODO[modo]} />}
 
       {aba === "promocoes" && <SimuladorPromocao catalogo={catalogo} comum={comum} bloqueio={linhas[0]?.falta || null}
         onAdicionar={(fichaId, o) => { gravarOfertas([...ofertas, normalizarOferta({ ...o, ficha_id: fichaId })]); setAba("cardapio"); }} />}
@@ -143,7 +152,7 @@ const VEREDITO_COR = { ok: "bg-hf-success/10 text-hf-success", baixo: "bg-hf-war
 const SECOES_CARDAPIO = [["promocoes", "Promoções"], ["combos", "Combos"], ["marmitas", "Sozinhos"]];
 
 // Cardápio como o cliente vê (estilo iFood) e, ao lado, o lucro de cada item.
-function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara, comum, metaPct }) {
+function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara, comum, metaPct, secoes = SECOES_CARDAPIO }) {
   const { recarregar } = useMarmitaria();
   const [aberto, setAberto] = useState(null);
   const [precoAberto, setPrecoAberto] = useState(null);
@@ -159,15 +168,15 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
       {erro && <p className="mb-2 text-sm font-bold text-hf-danger">{erro}</p>}
       {msg && <p className={`mb-2 text-sm font-bold ${msg.tipo === "alerta" ? "text-hf-danger" : "text-hf-accent"}`}>{msg.t}</p>}
       <div className="space-y-5">
-        {SECOES_CARDAPIO.map(([sec, rot]) => {
+        {secoes.map(([sec, rot]) => {
           const lista = linhas.filter((l) => l.secao === sec);
           if (!lista.length) {
             if (sec === "marmitas" || !irPara) return null;
             return (
               <button key={sec} type="button" onClick={() => irPara(sec)} className="flex w-full items-center gap-3 rounded-2xl border-2 border-dashed border-hf-border p-4 text-left hover:border-hf-accent">
                 <span className="grid h-10 w-10 place-items-center rounded-full bg-hf-accent/10 text-hf-accent"><Plus size={18} /></span>
-                <span><span className="block text-sm font-black text-hf-text">{sec === "combos" ? "Montar o primeiro combo" : "Criar a primeira promoção"}</span>
-                  <span className="block text-xs text-hf-text-2">{sec === "combos" ? "Comida + bebida, ou comida + bebida + sobremesa." : "Desconto, 2 por 1 ou 3 por 2, vendo o lucro antes."}</span></span>
+                <span><span className="block text-sm font-black text-hf-text">{sec === "combos" ? "Montar o primeiro combo" : "Criar o primeiro desconto"}</span>
+                  <span className="block text-xs text-hf-text-2">{sec === "combos" ? "Marmita + bebida, marmita + sobremesa, ou marmita + bebida + sobremesa." : "Desconto, 2 por 1 ou 3 por 2, vendo o lucro antes."}</span></span>
               </button>
             );
           }

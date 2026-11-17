@@ -23,6 +23,7 @@ export const ROTAS = Object.freeze({
   embalagens: `${FICHA}/embalagens`,
   fichas: FICHA,
   preco: `${FICHA}/cardapio`,
+  combos: `${FICHA}/combos`,
   montagem: `${FICHA}/processos`,
   dre: "/dashboard/marmitaria/financeiro",
 });
@@ -34,7 +35,9 @@ export const PASSOS = Object.freeze([
   { id: "ingredientes", titulo: "Ingredientes", texto: "O que você compra, com o preço." },
   { id: "embalagens", titulo: "Embalagens", texto: "Potes, tampas, sacolas, com o preço." },
   { id: "fichas", titulo: "Ficha técnica", texto: "O que vai em cada marmita e quanto." },
-  { id: "preco", titulo: "Preço e combos", texto: "O preço de cada marmita em cada app e os combos." },
+  { id: "preco", titulo: "Precificação", texto: "O preço de cada produto em cada app, com equipe e custos." },
+  // opcional: não segura a implantação (dono, 17/11/2026)
+  { id: "combos", titulo: "Combos e descontos", texto: "Marmita com bebida e sobremesa, e descontos.", opcional: true },
   { id: "montagem", titulo: "Guia de montagem", texto: "O passo a passo de cada marmita, para imprimir." },
   { id: "dre", titulo: "DRE", texto: "Lance as vendas e veja o resultado do mês." },
 ]).map((p, i) => ({ ...p, numero: i + 1, rota: ROTAS[p.id] }));
@@ -95,7 +98,10 @@ export function statusDaJornada(d = {}) {
   const semPreco = ativas.filter((m) => !Object.values(m.precos || {}).some(pos) && !pos(m.preco_venda)).length;
   st.preco = { status: ativas.length && !semPreco ? "feito" : "pendente", detalhe: !ativas.length ? "Primeiro a ficha técnica." : semPreco ? `${semPreco} sem preço` : "Todas com preço" };
 
-  // 8. Guia de montagem: cada ativa com pelo menos um passo escrito
+  // 8. Combos e descontos: opcional, só informa
+  st.combos = { status: "opcional", detalhe: "Opcional: monte quando quiser." };
+
+  // 9. Guia de montagem: cada ativa com pelo menos um passo escrito
   if (d.processos == null) st.montagem = { status: "sem_dado", detalhe: "Não consegui conferir os guias agora." };
   else {
     const semGuia = ativas.filter((m) => !resumoDoProcesso(d.processos[m.id]).escritas).length;
@@ -107,11 +113,12 @@ export function statusDaJornada(d = {}) {
     : { status: d.temVendas ? "feito" : "pendente", detalhe: d.temVendas ? "Com vendas lançadas" : "Lance a primeira venda." };
 
   const passos = PASSOS.map((p) => ({ ...p, ...st[p.id] }));
-  const feitos = passos.filter((p) => p.status === "feito").length;
-  const todos = feitos === passos.length;
+  const obrigatorios = passos.filter((p) => !p.opcional);
+  const feitos = obrigatorios.filter((p) => p.status === "feito").length;
+  const todos = feitos === obrigatorios.length;
   return {
-    passos, feitos, total: passos.length, pct: Math.round((feitos / passos.length) * 100),
-    proximo: passos.find((p) => p.status !== "feito") || null,
+    passos, feitos, total: obrigatorios.length, pct: Math.round((feitos / obrigatorios.length) * 100),
+    proximo: obrigatorios.find((p) => p.status !== "feito") || null,
     // Concluída quando os nove ficam prontos (e fica concluída: o dono não volta à sequência).
     concluida: Boolean(d.concluidaSalva) || todos,
     acabouDeConcluir: todos && !d.concluidaSalva,

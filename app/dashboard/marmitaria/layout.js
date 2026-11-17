@@ -18,7 +18,7 @@ import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
 import { BarraDeAreas } from "../../components/gerencial/PainelGerencial";
-import { BadgeDollarSign, BarChart3, Boxes, Calculator, CheckCircle2, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Receipt, Settings, ShoppingCart, Smartphone, Store, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
+import { BadgeDollarSign, BarChart3, Boxes, Calculator, CheckCircle2, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Percent, Receipt, Settings, ShoppingCart, Smartphone, Store, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
 
 const FICHA = "/dashboard/marmitaria/marmitas";
 const ESTOQUE = "/dashboard/marmitaria/estoque";
@@ -30,8 +30,9 @@ const AREAS = [
   { href: `${ESTOQUE}/cozinha`, rotulo: "Produção do dia", tambem: [`${ESTOQUE}/producoes`], icone: ChefHat },
   { href: `${ESTOQUE}/compras`, rotulo: "Compras", icone: ShoppingCart },
   { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`], icone: Warehouse },
-  { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/simulador`, `${FICHA}/processos`, `${FICHA}/produtos`, `${FICHA}/organizador`], icone: ClipboardList },
-  { href: `${FICHA}/cardapio`, rotulo: "Preço e combos", icone: BadgeDollarSign },
+  { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/combos`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/simulador`, `${FICHA}/processos`, `${FICHA}/produtos`, `${FICHA}/organizador`], icone: ClipboardList },
+  { href: `${FICHA}/cardapio`, rotulo: "Precificação", icone: BadgeDollarSign },
+  { href: `${FICHA}/combos`, rotulo: "Combos e descontos", icone: Percent },
   { href: `${FICHA}/organizador`, rotulo: "Organizador de plataforma", icone: Smartphone },
   { href: "/dashboard/marmitaria/concorrentes", rotulo: "Concorrentes", icone: Store },
   { href: `${FICHA}/processos`, rotulo: "Guia de montagem", icone: Layers },
@@ -47,7 +48,7 @@ const AREAS = [
 
 // Sequência de implantação (pedido do dono, 16/11/2026): nove passos
 // numerados, na ordem. Concluída, a barra vira a do dia a dia.
-const ICONES_PASSO = { empresa: Users, custos: Calculator, apps: Smartphone, ingredientes: Package, embalagens: Boxes, fichas: ClipboardList, preco: BadgeDollarSign, montagem: Layers, dre: BarChart3 };
+const ICONES_PASSO = { empresa: Users, custos: Calculator, apps: Smartphone, ingredientes: Package, embalagens: Boxes, fichas: ClipboardList, preco: BadgeDollarSign, combos: Percent, montagem: Layers, dre: BarChart3 };
 function areasDaJornada(jornada) {
   const status = Object.fromEntries((jornada?.passos || []).map((p) => [p.id, p.status]));
   const exatos = new Set([ROTAS.fichas, "/dashboard/marmitaria/configuracoes"]);
@@ -58,7 +59,7 @@ function areasDaJornada(jornada) {
       rotulo: `${p.numero}. ${p.titulo}`,
       icone: status[p.id] === "feito" ? CheckCircle2 : ICONES_PASSO[p.id],
       exato: exatos.has(p.rota),
-      tambem: p.id === "preco" ? [`${FICHA}/combos`] : p.id === "fichas" ? [`${FICHA}/nova`, `${FICHA}/editar`] : [],
+      tambem: p.id === "fichas" ? [`${FICHA}/nova`, `${FICHA}/editar`] : [],
     })),
     { href: `${ESTOQUE}/compras`, rotulo: "Compras", icone: ShoppingCart },
     { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`], icone: Warehouse },

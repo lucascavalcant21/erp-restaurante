@@ -12,6 +12,7 @@ import { useJornada } from "./useJornada";
 
 function Icone({ status }) {
   if (status === "feito") return <CheckCircle2 size={20} className="shrink-0 text-hf-success" aria-label="Pronto" />;
+  if (status === "opcional") return <Circle size={20} className="shrink-0 text-hf-muted" strokeDasharray="3 3" aria-label="Opcional" />;
   if (status === "sem_dado") return <HelpCircle size={20} className="shrink-0 text-hf-muted" aria-label="Não conferido" />;
   return <Circle size={20} className="shrink-0 text-hf-border-strong" aria-label="Pendente" />;
 }

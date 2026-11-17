@@ -19,13 +19,14 @@ export const PLANOS = Object.freeze({
     nome: "Grátis",
     precoCentavos: 0,
     resumo: "Para organizar a operação do dia a dia, sem pagar nada.",
-    limites: Object.freeze({ unidades: 1, usuarios: 1, fichas: 5 }),
+    // negócios: restaurante, marmitaria e eventos (dono, 17/11/2026: "no grátis é só um negócio")
+    limites: Object.freeze({ negocios: 1, unidades: 1, usuarios: 1, fichas: 5 }),
     destaques: Object.freeze([
       "Cadastro de ingredientes e produtos",
       "Até 5 fichas técnicas",
       "Estoque com entrada, retirada e contagem",
       "Checklists de abertura e fechamento",
-      "1 unidade e 1 usuário (o dono)",
+      "1 negócio (restaurante, marmitaria ou eventos) e 1 usuário (o dono)",
     ]),
   }),
   completo: Object.freeze({
@@ -33,7 +34,7 @@ export const PLANOS = Object.freeze({
     nome: "Completo",
     precoCentavos: 8990,
     resumo: "Tudo o que o Héfisto faz, para administrar o restaurante inteiro.",
-    limites: Object.freeze({ unidades: null, usuarios: null, fichas: null }),
+    limites: Object.freeze({ negocios: null, unidades: null, usuarios: null, fichas: null }),
     destaques: Object.freeze([
       "Tudo do Grátis, sem limite de fichas técnicas",
       "Comandas, caixa, KDS, etiquetas e cardápio digital",
@@ -44,6 +45,7 @@ export const PLANOS = Object.freeze({
       "Marmitaria com precificação e painel gerencial",
       "Compras, notas fiscais, fornecedores e custo médio",
       "Integrações (iFood, pagamentos) e TVs do restaurante",
+      "Mais de um negócio na mesma conta: restaurante, marmitaria e eventos",
       "Usuários e unidades sem limite",
     ]),
   }),
@@ -162,6 +164,22 @@ export function areaLiberada(planoId, area) {
   const href = typeof area === "string" ? null : area?.href;
   if (!href) return rotaLiberada(planoId, area ? `/dashboard/${area}` : "/dashboard");
   return rotaLiberada(planoId, href);
+}
+
+/**
+ * Quantos negócios (restaurante, marmitaria, eventos) o plano abre. O Grátis
+ * abre só o primeiro da troca do topo; os outros aparecem com cadeado e levam
+ * ao checkout. Sem plano registrado, nada tranca (como nas telas).
+ */
+export function negociosLiberados(planoId) {
+  const plano = planoPorId(planoId);
+  return plano?.limites?.negocios ?? null;
+}
+
+/** O negócio na posição `indice` (0 = o primeiro da troca) abre neste plano? */
+export function negocioLiberado(planoId, indice) {
+  const limite = negociosLiberados(planoId);
+  return limite == null || indice < limite;
 }
 
 /** Endereço do checkout, lembrando de onde a pessoa veio. */

@@ -639,6 +639,14 @@ textarea *,
   transform-origin: 41px 34px;
   animation: hf-perna-feliz 1.1s ease-in-out infinite;
 }
+/* Puxar para atualizar: o H saltita rápido enquanto a tela carrega (17/11/2026). */
+@keyframes hf-saltitando {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  15% { transform: translateY(0) scale(1.08, .9); }
+  45% { transform: translateY(-38%) scale(.96, 1.05); }
+  75% { transform: translateY(0) scale(1.06, .92); }
+}
+.hf-saltitando { animation: hf-saltitando .45s ease-in-out infinite; transform-origin: center bottom; }
 /* Cambalhota do menu lateral: agacha, sobe girando e cai amortecendo. */
 @keyframes hf-logo-cambalhota {
   0%, 46%, 100% { transform: translateY(0) rotate(0deg) scale(1, 1); }
@@ -652,7 +660,7 @@ textarea *,
   animation: hf-logo-cambalhota 3.6s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .hf-logo-feliz, .hf-perna-feliz, .hf-logo-cambalhota { animation: none; }
+  .hf-logo-feliz, .hf-perna-feliz, .hf-logo-cambalhota, .hf-saltitando { animation: none; }
 }
 
 /* ═══ VISUAL DO NINA DENTRO DAS TELAS (pedido do dono, 07/11/2026) ═══════
@@ -690,54 +698,52 @@ body[data-cabecalho-tela] .erp-barra-universo { display: none; }
   background-color: rgb(var(--hf-menu-hover)) !important;
 }
 
-/* ═══ IDENTIDADE "GESTÃO" — Marmitaria e Eventos (pedido do dono, 08/11/2026) ═══
-   "Quero essa identidade deles": o visual do dashboard de gestão de referência
-   (vermelho, barra de áreas preta com ícone em cima do nome, cards brancos sobre
-   fundo areia, barras em degradê laranja → vermelho). Vale SÓ dentro de
-   `.tema-gestao` (layouts da Marmitaria e de Eventos); o resto do Héfisto segue
-   branco e dourado. Os tokens hf-* são redefinidos aqui, então as telas antigas
-   desses módulos mudam sem editar arquivo por arquivo.
-   Contraste: branco sobre #DC2626 4,8:1; #B91C1C sobre branco 6,5:1. */
+/* ═══ IDENTIDADE AZUL (Medway) — Marmitaria e Eventos (dono, 17/11/2026) ═══
+   "Não mudou o visual para o azul; sem esse visual antigo": o vermelho e preto
+   da identidade "Gestão" (08/11/2026) saiu. Dentro de `.tema-gestao` (nome
+   mantido para não mexer nos layouts), os tokens hf-* passam para a paleta
+   azul do novo modelo (tokens --mw-* do Início e do Menu): marinho #0B2456 na
+   marca, nos botões e na barra de áreas; azul #3E7DD6 na área aberta e nas
+   barras; fundo cinza-azulado #F7F8FA. Contraste: branco sobre #0B2456 15:1;
+   #0B2456 sobre branco 15:1; branco sobre #3E7DD6 4,1:1 (texto ≥ 11 px seminegrito). */
 .tema-gestao {
-  --hf-bg:            245 243 240;/* #F5F3F0 areia */
+  --hf-bg:            247 248 250;/* #F7F8FA */
   --hf-surface:       255 255 255;
-  --hf-elevated:      248 246 243;/* #F8F6F3 */
-  --hf-border:        232 228 223;/* #E8E4DF */
-  --hf-border-strong: 214 208 200;
-  --hf-accent:        220 38 38;  /* #DC2626 vermelho da marca */
+  --hf-elevated:      241 244 248;/* #F1F4F8 */
+  --hf-border:        226 230 237;/* #E2E6ED */
+  --hf-border-strong: 203 210 222;
+  --hf-accent:        11 36 86;   /* #0B2456 marinho da marca */
   --hf-accent-fg:     255 255 255;
-  --hf-accent-text:   185 28 28;  /* #B91C1C texto vermelho sobre branco */
-  --hf-danger:        153 27 27;  /* #991B1B: negativo fica mais escuro que a marca */
-  --hf-menu:          23 23 23;   /* #171717 barra preta */
-  --hf-menu-hover:    38 38 38;
-  --hf-menu-border:   55 55 55;
-  --hf-menu-accent:   220 38 38;
-  --gestao-grad-de:   #F97316;    /* laranja do topo das barras */
-  --gestao-grad-ate:  #DC2626;
-  --accent:        #DC2626;
-  --accent-strong: #B91C1C;
+  --hf-accent-text:   11 36 86;
+  --hf-menu:          11 36 86;   /* barra de áreas marinho */
+  --hf-menu-hover:    22 52 112;
+  --hf-menu-border:   35 66 128;
+  --hf-menu-accent:   62 125 214;
+  --gestao-grad-de:   #3E7DD6;    /* azul do topo das barras */
+  --gestao-grad-ate:  #0B2456;
+  --accent:        #0B2456;
+  --accent-strong: #08193D;
   --accent-fg:     #FFFFFF;
-  --accent-soft:   rgba(220,38,38,0.12);
+  --accent-soft:   rgba(11,36,86,0.10);
   background-color: rgb(var(--hf-bg));
 }
-/* Botão de ação, aba e filtro selecionado: vermelho com letra branca (no resto
-   do app eles são pretos). */
+/* Botão de ação, aba e filtro selecionado: marinho com letra branca. */
 .tema-gestao :is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado) {
   background-color: rgb(var(--hf-accent)) !important;
-  background-image: linear-gradient(180deg, #EF4444, #DC2626) !important;
+  background-image: linear-gradient(180deg, #16357A, #0B2456) !important;
   color: #fff !important;
-  box-shadow: 0 1px 2px rgba(127, 29, 29, 0.25), 0 4px 12px -4px rgba(220, 38, 38, 0.45);
+  box-shadow: 0 1px 2px rgba(8, 25, 61, 0.25), 0 4px 12px -4px rgba(11, 36, 86, 0.45);
 }
 .tema-gestao :is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado):not(:disabled):hover {
-  background-color: #B91C1C !important;
-  background-image: linear-gradient(180deg, #DC2626, #B91C1C) !important;
+  background-color: #08193D !important;
+  background-image: linear-gradient(180deg, #0B2456, #08193D) !important;
 }
-/* Texto e borda dourados das telas antigas (escala emerald) viram vermelho. */
+/* Texto e borda dourados das telas antigas (escala emerald) viram marinho. */
 .tema-gestao [class~="text-emerald-600"], .tema-gestao [class~="text-emerald-700"], .tema-gestao [class~="text-emerald-800"] { color: rgb(var(--hf-accent-text)); }
 .tema-gestao [class~="border-emerald-500"], .tema-gestao [class~="border-emerald-600"] { border-color: rgb(var(--hf-accent)); }
 /* Barra em degradê das peças do painel gerencial. */
-.gestao-barra { background-image: linear-gradient(180deg, var(--gestao-grad-de, #F97316), var(--gestao-grad-ate, #DC2626)); }
-.gestao-barra-h { background-image: linear-gradient(90deg, var(--gestao-grad-de, #F97316), var(--gestao-grad-ate, #DC2626)); }
+.gestao-barra { background-image: linear-gradient(180deg, var(--gestao-grad-de, #3E7DD6), var(--gestao-grad-ate, #0B2456)); }
+.gestao-barra-h { background-image: linear-gradient(90deg, var(--gestao-grad-de, #3E7DD6), var(--gestao-grad-ate, #0B2456)); }
 
 /* ═══ Assistente (Nico e Jhon) em tela escura (dono, 14/11/2026) ═══════════
    Os tokens hf-* dos blocos (fichas, procedimentos, listas, plano do dia)

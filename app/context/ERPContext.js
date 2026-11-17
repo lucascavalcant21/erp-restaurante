@@ -116,6 +116,20 @@ export function ERPProvider({ children }) {
     }
   }, []);
 
+  // Sessão e unidades. Roda ao abrir o app E de novo quando a sessão aparece
+  // depois (login feito nesta mesma aba): o provider vive no layout raiz e já
+  // estava montado na tela de login, sem sessão. Antes só rodava uma vez, e
+  // quem entrava via "Escolha uma unidade" até recarregar a página (dono, 17/11/2026).
+  const [versaoSessao, setVersaoSessao] = useState(0);
+  // a última leitura terminada: versão e página em que foi feita
+  const [sessaoLida, setSessaoLida] = useState({ versao: -1, pagina: null });
+  useEffect(() => {
+    // só depois que a leitura anterior terminou sem sessão, uma vez por página nova (sem laço)
+    if (sessao || sessaoLida.versao !== versaoSessao || sessaoLida.pagina === pathname) return;
+    if (!pathname || /^\/(login|recuperar|redefinir|esqueci)/.test(pathname)) return;
+    setVersaoSessao((v) => v + 1);
+  }, [pathname, sessao, sessaoLida, versaoSessao]);
+
   useEffect(() => {
     let vivo = true;
     // Sem sessão (páginas públicas — cardápio, vagas, rastreio…) não há o que
@@ -126,6 +140,7 @@ export function ERPProvider({ children }) {
         const sessaoObj = await lerSessao();
         const resUnidades = sessaoObj ? await fetchUnidades() : { data: [], error: null };
         if (!vivo) return;
+        setSessaoLida({ versao: versaoSessao, pagina: window.location.pathname });
         const unids = resUnidades.data || [];
         setUnidades(unids);
         setErroUnidades(resUnidades.error || null);
@@ -156,7 +171,7 @@ export function ERPProvider({ children }) {
       }
     })();
     return () => { vivo = false; };
-  }, []);
+  }, [versaoSessao]);
 
   const setUnidadeAtiva = useCallback((id) => {
     setUnidadeAtivaState(id);

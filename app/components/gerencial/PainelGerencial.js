@@ -56,7 +56,7 @@ export function BarraDeAreas({ areas, ativa, rotulo }) {
           const on = ativa(a);
           return (
             <Link key={a.href} href={a.href} aria-current={on ? "page" : undefined}
-              className={`flex min-h-[64px] min-w-[92px] shrink-0 flex-col items-center justify-center gap-1 px-3 py-2 text-center text-[11px] font-semibold leading-tight transition sm:min-w-[104px] ${on ? "bg-gradient-to-b from-[rgb(239_68_68)] to-hf-accent text-white" : "text-hf-menu-muted hover:bg-hf-menu-hover hover:text-white"}`}>
+              className={`flex min-h-[64px] min-w-[92px] shrink-0 flex-col items-center justify-center gap-1 px-3 py-2 text-center text-[11px] font-semibold leading-tight transition sm:min-w-[104px] ${on ? "bg-gradient-to-b from-[rgb(var(--hf-menu-accent))] to-[rgb(46_102_190)] text-white" : "text-hf-menu-muted hover:bg-hf-menu-hover hover:text-white"}`}>
               {Icone && <Icone size={20} strokeWidth={1.8} className="shrink-0" />}
               <span className="max-w-[96px]">{a.rotulo}</span>
             </Link>

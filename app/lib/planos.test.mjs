@@ -79,3 +79,14 @@ test("comprovante do Pix vai ao WhatsApp com plano, período e valor", async () 
   assert.equal(linkComprovante("", { plano: PLANO_PAGO }), null);
   assert.equal(linkComprovante("45998674041", { plano: PLANOS.gratis }), null);
 });
+
+test("Grátis abre um negócio só; Completo e sem plano registrado, todos (dono, 17/11/2026)", async () => {
+  const { negocioLiberado, negociosLiberados, PLANOS } = await import("./planos.mjs");
+  assert.equal(negociosLiberados("gratis"), 1);
+  assert.equal(negocioLiberado("gratis", 0), true);
+  assert.equal(negocioLiberado("gratis", 1), false);
+  assert.equal(negocioLiberado("completo", 2), true);
+  assert.equal(negocioLiberado(null, 2), true);
+  assert.ok(PLANOS.gratis.destaques.some((d) => /1 negócio/.test(d)));
+  assert.ok(PLANOS.completo.destaques.some((d) => /Mais de um negócio/.test(d)));
+});

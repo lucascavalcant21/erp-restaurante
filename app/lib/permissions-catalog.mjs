@@ -337,6 +337,8 @@ export const PERMISSION_MODULES = [
       { id: "hr", label: "Funcionários e CMO", route: "/dashboard/marmitaria/funcionarios", actions: [...CRUD, "view_values"] },
       { id: "financial", label: "Financeiro, DRE e Simulador", route: "/dashboard/marmitaria/financeiro", actions: [...CRUD, "view_values", "view_margin", "export"] },
       { id: "settings", label: "Configurações da Marmitaria", route: "/dashboard/marmitaria/configuracoes", actions: ["view", "edit", "settings"] },
+      // Cardápios dos concorrentes do delivery (17/11/2026): o Jhon lê o print, guarda e compara com as nossas marmitas.
+      { id: "competitors", label: "Concorrentes do delivery", route: "/dashboard/marmitaria/concorrentes", actions: [...CRUD] },
     ],
   },
 ];

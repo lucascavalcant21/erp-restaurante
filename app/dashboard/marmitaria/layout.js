@@ -3,7 +3,7 @@
 // Identidade "Gestão" (pedido do dono, 08/11/2026): .tema-gestao troca os
 // tokens hf-* por vermelho e areia só dentro do módulo; a barra de áreas é preta
 // com ícone em cima do nome.
-// Marmitaria & Delivery: catorze áreas, uma barra só, na ordem do trabalho:
+// Marmitaria & Delivery: quinze áreas, uma barra só, na ordem do trabalho:
 // comprar, guardar, produzir e vender. O menu de cima leva para
 // cá sem submenu (a navegação do módulo mora aqui), e o que é secundário vira
 // aba dentro de cada área.
@@ -18,7 +18,7 @@ import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
 import { BarraDeAreas } from "../../components/gerencial/PainelGerencial";
-import { BadgeDollarSign, BarChart3, Boxes, Calculator, CheckCircle2, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Settings, ShoppingCart, Smartphone, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
+import { BadgeDollarSign, BarChart3, Boxes, Calculator, CheckCircle2, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Settings, ShoppingCart, Smartphone, Store, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
 
 const FICHA = "/dashboard/marmitaria/marmitas";
 const ESTOQUE = "/dashboard/marmitaria/estoque";
@@ -31,6 +31,7 @@ const AREAS = [
   { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`], icone: Warehouse },
   { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/processos`, `${FICHA}/produtos`], icone: ClipboardList },
   { href: `${FICHA}/cardapio`, rotulo: "Preço e combos", icone: BadgeDollarSign },
+  { href: "/dashboard/marmitaria/concorrentes", rotulo: "Concorrentes", icone: Store },
   { href: `${FICHA}/processos`, rotulo: "Guia de montagem", icone: Layers },
   { href: `${FICHA}/produtos`, rotulo: "Ingredientes", icone: Package },
   { href: `${FICHA}/embalagens`, rotulo: "Embalagens", icone: Boxes },

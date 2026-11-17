@@ -176,13 +176,17 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
     <Painel titulo={ficha ? `Editar ${ficha.nome_receita}` : "Novo subproduto"} onFechar={onFechar}>
       <div className="grid gap-3 sm:grid-cols-4">
         <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Ex.: Arroz branco cozido" /></Campo>
-        <Campo rotulo="Rendimento"><CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" /></Campo>
-        <Campo rotulo="Unidade">
-          <select className={inputCls} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })}>
-            <option value="kg">kg</option><option value="g">g</option><option value="l">L</option><option value="ml">ml</option><option value="un">unidades</option>
-          </select>
+        {/* rendimento e unidade juntos (dono, 17/11/2026: "no rendimento não está a unidade de medida") */}
+        <Campo rotulo="Rendimento" className="sm:col-span-2">
+          <div className="flex gap-2">
+            <CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" className="min-w-0 flex-1" aria-label="Rendimento" />
+            <select className={`${inputCls} w-[120px] shrink-0`} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })} aria-label="Unidade do rendimento">
+              <option value="kg">kg</option><option value="g">g</option><option value="l">L</option><option value="ml">ml</option><option value="un">unidades</option>
+            </select>
+          </div>
         </Campo>
-        <Campo rotulo="Setor"><select className={inputCls} value={f.setor} onChange={(e) => setF({ ...f, setor: e.target.value })}><option value="cozinha">Cozinha</option><option value="bar">Bar</option></select></Campo>
+        {/* no delivery o setor é o próprio delivery (estoque "Pré-preparos da Cozinha" da unidade do delivery); bebidas vão para o do bar */}
+        <Campo rotulo="Setor"><select className={inputCls} value={f.setor} onChange={(e) => setF({ ...f, setor: e.target.value })}><option value="cozinha">Delivery</option><option value="bar">Delivery · bebidas</option></select></Campo>
         <Campo rotulo="Validade (dias)"><CampoNumero valor={f.validade} onChange={(v) => setF({ ...f, validade: v })} placeholder="opcional" /></Campo>
         {f.unidade === "un" && <Campo rotulo="Peso de cada unidade (g)"><CampoNumero valor={pesoUn} onChange={setPesoUn} placeholder="Ex.: 144" /></Campo>}
       </div>

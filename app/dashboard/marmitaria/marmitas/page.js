@@ -5,9 +5,10 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Search, UtensilsCrossed } from "lucide-react";
+import { Plus, Printer, Search, UtensilsCrossed } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
-import EditorMarmita from "../../../components/marmitaria/EditorMarmita";
+import EditorMarmita, { chaveRascunhoFicha } from "../../../components/marmitaria/EditorMarmita";
+import { lerRascunho } from "../../../lib/rascunho-aparelho";
 import { Botao, Cartao, Secao, brl, inputCls } from "../../../components/marmitaria/ui";
 import { formDaMarmita } from "../../../lib/marmitaria/formulario.mjs";
 import { ordenarCategorias } from "../../../lib/marmitaria/cardapio.mjs";
@@ -22,6 +23,14 @@ function Conteudo() {
   const router = useRouter();
   const [editando, setEditando] = useState(null);
   const [aviso, setAviso] = useState(null);
+  const [recuperado, setRecuperado] = useState(null);
+  const { unidadeId } = useMarmitaria();
+  // a tela recarregou no meio de uma ficha (atualização do app): volta para ela (dono, 17/11/2026)
+  useEffect(() => {
+    if (!base || editando || params.get("editar")) return;
+    const r = lerRascunho(chaveRascunhoFicha(unidadeId));
+    if (r?.form?.id) { setRecuperado(r); setEditando(r.form); }
+  }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
   // Links antigos das abas de preço e de combos, e o "Editar" vindo do Cardápio.
   const editarId = params.get("editar");
   useEffect(() => { if (["combos", "precos"].includes(params.get("aba"))) router.replace("/dashboard/marmitaria/marmitas/cardapio"); }, [params, router]);
@@ -36,11 +45,11 @@ function Conteudo() {
 
   if (editando) {
     return (
-      <EditorMarmita key={editando.id} form={editando}
-        onFechar={() => setEditando(null)}
+      <EditorMarmita key={editando.id} form={editando} recuperado={recuperado && recuperado.form?.id === editando.id ? recuperado : null}
+        onFechar={() => { setEditando(null); setRecuperado(null); }}
         onSalvo={(r) => {
           // dono, 17/11/2026: salvou, fica na ficha técnica e pergunta se cadastra a próxima
-          setEditando(null);
+          setEditando(null); setRecuperado(null);
           setAviso(`Ficha técnica salva${r?.codigo ? ` (${r.codigo})` : ""}.`);
           if (typeof window !== "undefined") document.querySelector(".erp-main-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
         }} />
@@ -52,7 +61,12 @@ function Conteudo() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><Botao onClick={nova}><Plus size={16} /> Nova ficha técnica</Botao></div>
+      <div className="flex flex-wrap justify-end gap-2">
+        {/* impressão (dono, 17/11/2026): montagem das marmitas e fichas dos pré-preparos */}
+        <Botao variante="secundario" onClick={() => router.push("/dashboard/marmitaria/marmitas/processos")}><Printer size={16} /> Imprimir montagem</Botao>
+        <Botao variante="secundario" onClick={() => router.push("/dashboard/marmitaria/estoque/producoes?aba=subprodutos")}><Printer size={16} /> Imprimir pré-preparos</Botao>
+        <Botao onClick={nova}><Plus size={16} /> Nova ficha técnica</Botao>
+      </div>
       {aviso && (
         <Cartao>
           <p className="font-semibold text-hf-text">{aviso}</p>

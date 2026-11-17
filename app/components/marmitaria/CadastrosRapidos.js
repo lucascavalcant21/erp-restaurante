@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { Trash2, X } from "lucide-react";
 import { criarProduto, salvarPrePreparo, salvarModoDePreparo, novaChave } from "../../lib/marmitaria/dados";
 import { fetchComSessao } from "../../lib/api-sessao";
+import { apagarRascunho, guardarRascunho, lerRascunho } from "../../lib/rascunho-aparelho";
 import { numerarPassos, pesoDosIngredientes } from "../../lib/marmitaria/modo-preparo.mjs";
 import { custoDaMarmita, custoPorUnidadeDoPacote, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import BuscaItens from "./BuscaItens";
@@ -98,11 +99,15 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
   );
 }
 
-export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null, onCriado, onFechar }) {
-  const [id] = useState(() => ficha?.id || novaChave());
-  const [f, setF] = useState(() => ({ nome: ficha?.nome_receita || nomeInicial, rendimento: ficha?.rendimento_porcoes ? String(ficha.rendimento_porcoes).replace(".", ",") : "",
+export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null, onCriado, onFechar: fecharSemRascunho }) {
+  // rascunho no aparelho: se a tela recarregar no meio, volta como estava (dono, 17/11/2026)
+  const chaveRascunho = ficha ? `prep:${ficha.id}` : `prep-novo:${unidadeId}`;
+  const [rascunho] = useState(() => lerRascunho(chaveRascunho));
+  const onFechar = () => { apagarRascunho(chaveRascunho); fecharSemRascunho?.(); };
+  const [id] = useState(() => ficha?.id || rascunho?.id || novaChave());
+  const [f, setF] = useState(() => rascunho?.f || ({ nome: ficha?.nome_receita || nomeInicial, rendimento: ficha?.rendimento_porcoes ? String(ficha.rendimento_porcoes).replace(".", ",") : "",
     unidade: String(ficha?.rendimento_unidade || "kg").toLowerCase(), setor: ficha?.departamento || "cozinha", validade: ficha?.validade_dias ? String(ficha.validade_dias) : "" }));
-  const [itens, setItens] = useState(() => (ficha?.fichas_ingredientes || []).filter((i) => i.insumo_id).map((i) => {
+  const [itens, setItens] = useState(() => rascunho?.itens || (ficha?.fichas_ingredientes || []).filter((i) => i.insumo_id).map((i) => {
     const t = quantidadeParaTela(i.quantidade, String(base.insumos.get(i.insumo_id)?.unidade_medida || "un").toLowerCase());
     return { key: novaChave(), insumo_id: i.insumo_id, qtd: t.qtd, un: t.un };
   }));
@@ -110,11 +115,12 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
   // modo de preparo (dono, 17/11/2026): passo a passo da produção, escrito ou organizado pela IA
-  const [preparo, setPreparo] = useState(() => ficha?.modo_preparo || "");
-  const [tempo, setTempo] = useState(() => (ficha?.tempo_preparo ? String(ficha.tempo_preparo) : ""));
+  const [preparo, setPreparo] = useState(() => rascunho?.preparo ?? (ficha?.modo_preparo || ""));
+  const [tempo, setTempo] = useState(() => rascunho?.tempo ?? (ficha?.tempo_preparo ? String(ficha.tempo_preparo) : ""));
   // peso de cada unidade pronta (ex.: frango empanado de 144 g), quando rende em unidades
-  const [pesoUn, setPesoUn] = useState(() => (ficha?.peso_porcao_g ? String(ficha.peso_porcao_g).replace(".", ",") : ""));
+  const [pesoUn, setPesoUn] = useState(() => rascunho?.pesoUn ?? (ficha?.peso_porcao_g ? String(ficha.peso_porcao_g).replace(".", ",") : ""));
   const [organizando, setOrganizando] = useState(false);
+  useEffect(() => { guardarRascunho(chaveRascunho, { id, f, itens, preparo, tempo, pesoUn }); }, [chaveRascunho, id, f, itens, preparo, tempo, pesoUn]);
 
   const convertidos = itens.map((it) => {
     const ins = base.insumos.get(it.insumo_id);
@@ -148,6 +154,7 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
           peso_porcao_g: f.unidade === "un" ? (lerNumero(pesoUn) || null) : null });
         if (mp.error) { setErro(`Subproduto salvo, mas ${mp.error.charAt(0).toLowerCase()}${mp.error.slice(1)}`); return; }
       }
+      apagarRascunho(chaveRascunho);
       await onCriado(id, unGravada);
     } finally {
       setSalvando(false);
@@ -174,6 +181,7 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
 
   return (
     <Painel titulo={ficha ? `Editar ${ficha.nome_receita}` : "Novo subproduto"} onFechar={onFechar}>
+      {rascunho && <Aviso className="mb-3">Recuperei o que você estava preenchendo antes da tela recarregar. Confira e salve.</Aviso>}
       <div className="grid gap-3 sm:grid-cols-4">
         <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Ex.: Arroz branco cozido" /></Campo>
         {/* rendimento e unidade juntos (dono, 17/11/2026: "no rendimento não está a unidade de medida") */}

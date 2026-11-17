@@ -5,13 +5,14 @@
 // Cardápio, por plataforma. Salvar nunca fica preso
 // em "Salvando…" (finally) e, se der erro, o que foi digitado continua aqui.
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, ImagePlus, Pencil, Trash2 } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import BuscaItens from "./BuscaItens";
 import { NovoProduto, NovoPrePreparo } from "./CadastrosRapidos";
 import { Aviso, Botao, Campo, CampoNumero, Secao, brl, inputCls, pctTxt } from "./ui";
 import { salvarMarmita, novaChave, arquivarPrePreparo } from "../../lib/marmitaria/dados";
+import { apagarRascunho, guardarRascunho } from "../../lib/rascunho-aparelho";
 import { atalhosDeQuantidade, catalogoDePrePreparos, custoDoForm, payloadDoForm, TAMANHOS, TIPOS_EMBALAGEM, unidadeDoItem } from "../../lib/marmitaria/formulario.mjs";
 import { unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import { CATEGORIAS_FICHA, ordenarCategorias } from "../../lib/marmitaria/cardapio.mjs";
@@ -20,13 +21,21 @@ import { normalizarBusca } from "../../lib/ingredientes-utils.mjs";
 import { custoDeProduzirFicha, custoUnitarioEfetivoInsumo, parseNumero } from "../../lib/ficha-calculos.mjs";
 import { uploadFotoMontagem } from "../../lib/montagem";
 
-export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) {
+export const chaveRascunhoFicha = (unidadeId) => `ficha-marmita:${unidadeId}`;
+
+export default function EditorMarmita({ form: formInicial, onFechar: fecharSemRascunho, onSalvo, recuperado = null }) {
   const { base, unidadeId, recarregar } = useMarmitaria();
   const [form, setForm] = useState(formInicial);
-  const [painel, setPainel] = useState(null); // busca-item | busca-emb | novo-prod | novo-prep | nova-emb | editar-prep
+  const [painel, setPainel] = useState(() => (recuperado?.painelPrep ? "novo-prep" : null)); // busca-item | busca-emb | novo-prod | novo-prep | nova-emb | editar-prep
+  // rascunho no aparelho (dono, 17/11/2026: "o sistema atualiza e some a ficha que eu estava criando")
+  const onFechar = () => {
+    if ((form.nome?.trim() || form.itens?.length) && typeof window !== "undefined" && !window.confirm("Sair sem salvar? O que você montou nesta ficha será descartado.")) return;
+    apagarRascunho(chaveRascunhoFicha(unidadeId)); fecharSemRascunho?.();
+  };
   const [prepEditando, setPrepEditando] = useState(null);
   const [avisoPrep, setAvisoPrep] = useState(null);
-  const [textoNovo, setTextoNovo] = useState("");
+  const [textoNovo, setTextoNovo] = useState(() => recuperado?.textoNovo || "");
+  useEffect(() => { guardarRascunho(chaveRascunhoFicha(unidadeId), { form, painelPrep: painel === "novo-prep", textoNovo }); }, [form, painel, textoNovo, unidadeId]);
   const [tipoEmb, setTipoEmb] = useState("marmitex");
   const [salvando, setSalvando] = useState(false);
   const [erros, setErros] = useState([]);
@@ -75,6 +84,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
     try {
       const r = await salvarMarmita(payload);
       if (r.error) { setErros([r.error]); return; }
+      apagarRascunho(chaveRascunhoFicha(unidadeId));
       setForm((f) => ({ ...f, novo: false, codigo: r.data?.codigo || f.codigo }));
       await recarregar();
       onSalvo?.(r.data);
@@ -112,6 +122,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
 
   return (
     <div className="space-y-4">
+      {recuperado && <Aviso>Recuperei a ficha que você estava montando antes da tela recarregar. Confira e toque em Salvar ficha técnica.</Aviso>}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <button type="button" onClick={onFechar} className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-2 text-sm font-semibold text-hf-text-2 hover:bg-hf-elevated">
           <ArrowLeft size={16} /> Voltar para a ficha técnica

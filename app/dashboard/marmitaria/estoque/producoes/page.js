@@ -12,6 +12,8 @@ import { NovoPrePreparo } from "../../../../components/marmitaria/CadastrosRapid
 import { Planejar, RegistrarMarmitas, useSaldoDaMarmitaria } from "../../../../components/marmitaria/TelasDeEstoque";
 import { producaoPossivelDoPreparo } from "../../../../lib/marmitaria/porcoes.mjs";
 import { arquivarPrePreparo } from "../../../../lib/marmitaria/dados";
+import { guiaDoPrePreparo } from "../../../../lib/marmitaria/guia-prepreparo.mjs";
+import { imprimirGuias } from "../../../../components/marmitaria/imprimirGuia";
 import { fatorSaldo } from "../../../../lib/marmitaria/nucleo.mjs";
 import PedidosIfood from "../../../../components/marmitaria/PedidosIfood";
 import AbasDaProducao, { ABAS_DA_PRODUCAO } from "../../../../components/marmitaria/AbasDaProducao";
@@ -27,7 +29,12 @@ function Subprodutos() {
     <div className="space-y-4">
       {editando && <NovoPrePreparo key={editando?.id || "novo"} unidadeId={unidadeId} base={base} ficha={editando === true ? null : editando} onFechar={() => setEditando(false)} onCriado={async () => { await recarregar(); setEditando(false); }} />}
       <Secao titulo="Subprodutos" subtitulo="O que é transformado aqui: molho, frango empanado, arroz."
-        direita={!editando && <Botao onClick={() => setEditando(true)}>Novo subproduto</Botao>}>
+        direita={!editando && (
+          <span className="flex flex-wrap gap-2">
+            {base.prePreparos.length > 0 && <Botao variante="secundario" onClick={() => imprimirGuias(base.prePreparos.map((f) => guiaDoPrePreparo(f, base.insumos, base.fichas)))}>Imprimir todos</Botao>}
+            <Botao onClick={() => setEditando(true)}>Novo subproduto</Botao>
+          </span>
+        )}>
         {!base.prePreparos.length ? <p className="text-sm text-hf-text-2">Nenhum subproduto cadastrado.</p> : (
           <ul className="divide-y divide-hf-border">
             {base.prePreparos.map((f) => (
@@ -44,6 +51,7 @@ function Subprodutos() {
                   })()}
                 </span>
                 <span className="flex shrink-0 gap-3">
+                  <button type="button" onClick={() => imprimirGuias([guiaDoPrePreparo(f, base.insumos, base.fichas)])} className="min-h-[40px] text-sm font-bold text-hf-accent hover:underline">Imprimir</button>
                   <button type="button" onClick={() => setEditando(f)} className="min-h-[40px] text-sm font-bold text-hf-accent hover:underline">Editar</button>
                   <button type="button" onClick={async () => {
                     const usam = base.marmitas.filter((m) => (m.itens || []).some((x) => x.subficha_id === f.id)).map((m) => m.nome_receita);

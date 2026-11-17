@@ -15,22 +15,22 @@ export function htmlDosGuias(guias = []) {
   <div class="topo">
     ${foto ? `<img src="${foto}" alt="">` : ""}
     <div>
-      <h2>O que vai${g.peso ? ` <small>(peso final ${esc(g.peso)})</small>` : ""}</h2>
+      <h2>${esc(g.tituloItens || "O que vai")}${g.peso ? ` <small>(peso final ${esc(g.peso)})</small>` : ""}</h2>
       ${g.componentes.length ? `<table>${g.componentes.map((c) => `<tr><td>${esc(c.nome)}</td><td class="q">${esc(c.quantidade)}</td></tr>`).join("")}</table>` : "<p class=\"falta\">Ficha técnica não preenchida.</p>"}
-      <h2>Embalagens</h2>
-      ${g.embalagens.length ? `<table>${g.embalagens.map((e) => `<tr><td>${esc(e.nome)}</td><td class="q">${esc(e.quantidade)} un</td></tr>`).join("")}</table>` : "<p class=\"falta\">Embalagens não informadas.</p>"}
+      ${g.semEmbalagens ? "" : `<h2>Embalagens</h2>
+      ${g.embalagens.length ? `<table>${g.embalagens.map((e) => `<tr><td>${esc(e.nome)}</td><td class="q">${esc(e.quantidade)} un</td></tr>`).join("")}</table>` : "<p class=\"falta\">Embalagens não informadas.</p>"}`}
     </div>
   </div>
   ${g.etapas.length ? g.etapas.map((grupo) => `<h2>${esc(grupo.rotulo)}</h2><ol>${grupo.itens.map((e) => `<li><b>${esc(e.titulo)}</b>${e.texto ? `<br>${esc(e.texto).replace(/\n/g, "<br>")}` : ""}${e.minutos || e.graus ? `<br><i>${[e.minutos && `${esc(e.minutos)} min`, e.graus && `${esc(e.graus)} °C`].filter(Boolean).join(" · ")}</i>` : ""}${urlSegura(e.foto) ? `<br><img class="passo" src="${urlSegura(e.foto)}" alt="">` : ""}</li>`).join("")}</ol>`).join("") : "<p class=\"falta\">Passo a passo não escrito.</p>"}
   ${g.faltando.length ? `<p class="falta">Falta cadastrar: ${esc(g.faltando.join(", "))}.</p>` : ""}
 </section>`;
   }).join("");
-  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Guia de montagem</title><style>
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${guias.some((g) => g?.semEmbalagens) ? "Ficha de pré-preparo" : "Guia de montagem"}</title><style>
 @page{size:A4;margin:12mm}
 body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0}
 .folha{page-break-after:always;padding:4px}
 .folha:last-child{page-break-after:auto}
-header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid #DC2626;margin-bottom:8px}
+header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid #0B2456;margin-bottom:8px}
 h1{font-size:24px;margin:0 0 4px}.cod{font-size:13px;color:#555}
 h2{font-size:15px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04em}
 h2 small{text-transform:none;font-weight:normal;color:#555}

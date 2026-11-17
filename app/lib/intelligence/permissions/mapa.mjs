@@ -40,6 +40,9 @@ export const PERMISSOES = Object.freeze({
   fichas_marmitaria: ["marmitaria.recipes.view", "marmitaria.stock.view", "fichas.recipes.view", "cozinha.recipes.view"],
   // montar marmita pela conversa (e cadastrar o que falta nela): quem cria ficha na marmitaria
   criar_marmita: ["marmitaria.recipes.create"],
+  // cardápios dos concorrentes do delivery: ver a comparação e guardar um cardápio lido
+  concorrentes_ver: ["marmitaria.competitors.view"],
+  concorrentes_gravar: ["marmitaria.competitors.create"],
   registrar_perda: ["estoque.losses.record_loss", "estoque.movements.create", "estoque.outputs.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
 });
 
@@ -66,6 +69,8 @@ export const ROTULO_CAPACIDADE = Object.freeze({
   lucro_marmitaria: "margem da marmitaria",
   fichas_marmitaria: "fichas da marmitaria",
   criar_marmita: "criar marmita",
+  concorrentes_ver: "cardápios dos concorrentes",
+  concorrentes_gravar: "guardar cardápio de concorrente",
 });
 
 /**

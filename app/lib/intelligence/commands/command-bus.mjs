@@ -19,6 +19,7 @@ import { paramsDoComando as paramsDaMarmita } from "../actions/criar-marmita.mjs
 import { responderLivre, FOCO_SALAO, FOCO_ROTINA, ehPedidoDeRotina } from "../agents/geral.mjs";
 import { sugestoesDaResposta } from "./sugestoes.mjs";
 import { notaSchema } from "../actions/lancar-nota.mjs";
+import { cardapioSchema } from "../actions/ler-cardapio-concorrente.mjs";
 import { responderPergunta } from "../agents/orquestrador.mjs";
 import { criarTrilha, NIVEL } from "../core/niveis.mjs";
 import { auditar, ETAPA_AUDITORIA } from "../audit/auditoria.mjs";
@@ -38,6 +39,8 @@ export const pedidoSchema = s.object({
   canal: s.opcional(s.enum(["texto", "voz"])),
   // leitura da foto da DANFE (/api/ocr): começa o lançamento da compra (purchase.fromInvoice)
   nota: s.opcional(notaSchema),
+  // leitura dos prints do cardápio de um concorrente (/api/ocr/cardapio): começa a ação competitor.menu
+  cardapio: s.opcional(cardapioSchema),
   // O que a resposta ANTERIOR desta conversa citou (devolvido pelo servidor em
   // `referencia`). Não confiável: produto é reconferido no banco da unidade e
   // insight é procurado entre os recalculados agora — nunca usado como dado.
@@ -157,6 +160,20 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       const n = pedido.nota;
       const total = n.valor_total ? `, total ${Number(n.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "";
       resposta = { ...resposta, texto: `Li a nota${n.numero ? ` ${n.numero}` : ""}${n.fornecedor ? ` de ${n.fornecedor}` : ""}: ${n.itens.length} ${n.itens.length === 1 ? "item" : "itens"}${total}. ${resposta.texto}` };
+    }
+  } else if (pedido.cardapio) {
+    // prints do cardápio de um concorrente: confere nome e app, mostra a prévia e guarda com a data
+    intencao = intencaoPorId("marmitaria.concorrente_ler");
+    interp = { intencao: intencao.id, confianca: 1, periodo: null, produto: null };
+    origem = "regras";
+    trilha.passar("acao", NIVEL.AGIR);
+    const c = pedido.cardapio;
+    resposta = await servicoAcoes.iniciar({ acaoId: "competitor.menu", params: { cardapio: c }, comando: `Cardápio de concorrente${c.concorrente ? ` — ${c.concorrente}` : ""}`.slice(0, 500), chave: pedido.chave, correlationId });
+    if (resposta?.texto && ["pergunta", "confirmacao"].includes(resposta.tipo)) {
+      const pratos = c.itens.filter((i) => i.tipo === "prato" || i.tipo === "combo").length;
+      const adic = c.itens.filter((i) => i.tipo === "adicional").length;
+      const lido = [`${pratos} ${pratos === 1 ? "prato" : "pratos"}`, adic ? `${adic} ${adic === 1 ? "adicional" : "adicionais"}` : null, c.itens.length - pratos - adic > 0 ? `${c.itens.length - pratos - adic} outros itens` : null].filter(Boolean).join(", ");
+      resposta = { ...resposta, texto: `Li o cardápio${c.concorrente ? ` da ${c.concorrente}` : ""}: ${lido}. ${resposta.texto}` };
     }
   } else if (!pedido.texto) {
     resposta = { tipo: "nao_entendi", texto: "Diga ou digite o que você precisa.", sugestoes: EXEMPLOS.slice(0, 5) };

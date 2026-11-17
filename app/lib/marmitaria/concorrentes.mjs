@@ -107,7 +107,8 @@ export function cardapioDoOcr(ocr) {
       ...(descricao ? { descricao } : {}),
       componentes: lidos.length ? lidos : componentesDaDescricao(descricao),
     };
-    const peso = typeof i?.peso_g === "number" ? i.peso_g : (pesoDoTexto(i?.peso_g, nome, descricao) ?? numeroBR(i?.peso_g));
+    const pesoLido = i?.peso_g ?? i?.peso;
+    const peso = typeof pesoLido === "number" ? pesoLido : (pesoDoTexto(pesoLido, nome, descricao) ?? numeroBR(pesoLido));
     if (peso >= 1 && peso <= 20000) item.peso_g = Math.round(peso * 10) / 10;
     if (serve >= 1 && serve <= 50) item.serve_pessoas = serve;
     if (original != null && original > preco) item.preco_original = r2(original);

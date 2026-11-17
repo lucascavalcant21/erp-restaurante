@@ -39,12 +39,14 @@ function storeDoServidor() {
   try { return { store: criarStoreSupabase(), persistente: true }; } catch { return { store: storeIndisponivel, persistente: false }; }
 }
 
-async function lerCorpo(request) {
+export const LIMITE_CORPO_PADRAO = 16 * 1024;
+
+async function lerCorpo(request, limite = LIMITE_CORPO_PADRAO) {
   if (request.method === "GET") return {};
   const tamanho = Number(request.headers.get("content-length") || 0);
-  if (tamanho > 16 * 1024) return null;
+  if (tamanho > limite) return null;
   const txt = await request.text().catch(() => "");
-  if (txt.length > 16 * 1024) return null;
+  if (txt.length > limite) return null;
   if (!txt) return {};
   try { const o = JSON.parse(txt); return o && typeof o === "object" && !Array.isArray(o) ? o : null; } catch { return null; }
 }
@@ -54,8 +56,9 @@ async function lerCorpo(request) {
  * @param {(amb: object) => Promise<object>} handler devolve { corpo, status? }
  * @param {object} [opcoes]
  * @param {"web"|"whatsapp"} [opcoes.canal] canal de origem gravado na auditoria e nas ações
+ * @param {number} [opcoes.limiteCorpo] bytes do corpo (padrão 16 KB; o "Pergunte" aceita o cardápio lido de um concorrente)
  */
-export async function atenderInteligencia(request, handler, { limitePorMinuto = 30, injecao = null, canal = "web" } = {}) {
+export async function atenderInteligencia(request, handler, { limitePorMinuto = 30, injecao = null, canal = "web", limiteCorpo = LIMITE_CORPO_PADRAO } = {}) {
   const requestId = randomUUID();
   const token = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim() || null;
   const unidade = request.headers.get("x-hefisto-unidade");
@@ -73,7 +76,7 @@ export async function atenderInteligencia(request, handler, { limitePorMinuto = 
   if (!dentroDoLimite(`inteligencia:${ctx.userId}`, { maximo: limitePorMinuto, janelaMs: 60_000 })) {
     return recusar(429, "LIMITE", "Muitos pedidos em sequência. Aguarde um minuto.");
   }
-  const corpo = await lerCorpo(request);
+  const corpo = await lerCorpo(request, limiteCorpo);
   if (corpo === null) return recusar(400, "CORPO_INVALIDO", "Pedido inválido.");
 
   const agora = injecao?.agora || new Date();

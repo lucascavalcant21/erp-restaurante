@@ -254,6 +254,19 @@ export const INTENCOES = Object.freeze([
     frases: [["marmita", "marmitas", "quentinha"], ["como monta", "como montar", "como se monta", "como monto", "montagem", "guia", "o que vai na", "o que vai no", "quanto vai", "quantas gramas", "passo a passo"]],
     proibidas: ["vamos montar", "montar uma", "montar a ficha", "criar", "cadastrar", "lucro", "mais caro", "ganhando"], peso: 10,
   },
+  // 17/11/2026: cardápios dos concorrentes do delivery (o Jhon lê o print, guarda e compara)
+  {
+    id: "marmitaria.concorrente_ler", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Mandar os prints do cardápio de um concorrente do delivery para o Jhon ler e guardar (ex.: 'Jhon, vou te mandar o cardápio de um concorrente', 'lê esse cardápio do concorrente').",
+    frases: [["concorrente", "concorrentes", "concorrencia"], ["mandar", "mando", "vou mandar", "te mandar", "enviar", "envio", "vou enviar", "ler", "le", "leia", "le esse", "analisar", "analisa", "analise", "guardar", "guarda", "salvar", "salva", "cadastrar", "cadastra", "print", "prints", "foto", "fotos"]],
+    proibidas: ["compara", "comparar", "compare", "comparando", "comparacao", "versus", "contra"], peso: 14,
+  },
+  {
+    id: "marmitaria.concorrentes", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Comparar o cardápio guardado dos concorrentes do delivery com as nossas marmitas e adicionais: o que vem em cada prato, preço, preço por 100 g e adicionais que eles têm e nós não (ex.: 'compare o cardápio da Marmitaria X com as nossas', 'estamos mais caros que os concorrentes?', 'quais adicionais os concorrentes oferecem?').",
+    frases: [["concorrente", "concorrentes", "concorrencia", "compare o cardapio", "comparar o cardapio", "compara o cardapio", "compare os cardapios", "comparar os cardapios"], ["compara", "comparar", "compare", "comparando", "comparacao", "versus", "contra", "mais caro", "mais cara", "mais caros", "mais caras", "mais barato", "mais barata", "mais baratos", "mais baratas", "preco", "precos", "adicional", "adicionais", "cardapio", "cardapios", "o que vem", "como estamos", "como esta", "quanto cobra", "quanto cobram"]],
+    proibidas: ["vou mandar", "te mandar", "vou enviar", "mandar o cardapio", "print", "prints", "foto", "fotos"], peso: 13,
+  },
   // 14/11/2026: lista de compras pelo Jhon e "comprei tudo, faltou isso"
   {
     id: "compras.lista_comprei", tipo: "pergunta", agentes: ["compras"],

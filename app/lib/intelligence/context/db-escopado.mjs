@@ -82,6 +82,10 @@ export const TABELAS = Object.freeze({
   marmitaria_precificacao_canais: { tenant: true, rotulo: "Preço das marmitas por app" },
   marmitaria_rh_alocacoes: { tenant: true, rotulo: "Equipe da marmitaria" },
   marmitaria_vendas: { tenant: true, rotulo: "Vendas da marmitaria" },
+  // Cardápios dos concorrentes do delivery (CONC-1, 17/11/2026)
+  delivery_concorrentes: { tenant: true, rotulo: "Concorrentes do delivery" },
+  delivery_concorrentes_leituras: { tenant: true, rotulo: "Cardápios lidos dos concorrentes" },
+  delivery_concorrentes_itens: { tenant: true, rotulo: "Itens dos cardápios dos concorrentes" },
 });
 
 // Métodos de filtro/ordem permitidos. `or` fica de fora de propósito.

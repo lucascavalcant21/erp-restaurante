@@ -16,6 +16,7 @@ export const maxDuration = 60;
 
 const MAX_PRINTS = 6;
 const MAX_CHARS_PRINT = 3_000_000; // ~2,2 MB de imagem em base64 (o celular manda ~300 KB)
+const MAX_CHARS_TOTAL = 4_200_000; // abaixo do limite de corpo da Vercel (4,5 MB)
 const IMAGEM = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 
 const SISTEMA = [
@@ -78,6 +79,9 @@ export async function POST(request) {
   }
   if (imagens.some((i) => typeof i !== "string" || i.length > MAX_CHARS_PRINT || !IMAGEM.test(i))) {
     return NextResponse.json({ error: "Algum print não é uma imagem válida ou é grande demais." }, { status: 400 });
+  }
+  if (imagens.reduce((t, i) => t + i.length, 0) > MAX_CHARS_TOTAL) {
+    return NextResponse.json({ error: "Os prints juntos ficaram grandes demais. Mande menos de cada vez." }, { status: 400 });
   }
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: "Leitura de imagem não configurada neste ambiente." }, { status: 500 });

@@ -43,6 +43,10 @@ export const PERMISSOES = Object.freeze({
   // cardápios dos concorrentes do delivery: ver a comparação e guardar um cardápio lido
   concorrentes_ver: ["marmitaria.competitors.view"],
   concorrentes_gravar: ["marmitaria.competitors.create"],
+  // produção do dia (quanto de cada ingrediente, o que fabricar, o que comprar): quem vê estoque e produção da marmitaria
+  producao_marmitaria: ["marmitaria.stock.view", "marmitaria.recipes.view"],
+  // programar o plano do dia (tarefas da equipe): só quem configura a Central (o dono; o banco confere de novo)
+  aprovar_plano: ["dashboard.intelligence.settings"],
   registrar_perda: ["estoque.losses.record_loss", "estoque.movements.create", "estoque.outputs.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
 });
 
@@ -71,6 +75,8 @@ export const ROTULO_CAPACIDADE = Object.freeze({
   criar_marmita: "criar marmita",
   concorrentes_ver: "cardápios dos concorrentes",
   concorrentes_gravar: "guardar cardápio de concorrente",
+  producao_marmitaria: "produção da marmitaria",
+  aprovar_plano: "programar o plano do dia",
 });
 
 /**

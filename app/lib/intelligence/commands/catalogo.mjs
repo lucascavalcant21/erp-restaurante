@@ -254,6 +254,19 @@ export const INTENCOES = Object.freeze([
     frases: [["marmita", "marmitas", "quentinha"], ["como monta", "como montar", "como se monta", "como monto", "montagem", "guia", "o que vai na", "o que vai no", "quanto vai", "quantas gramas", "passo a passo"]],
     proibidas: ["vamos montar", "montar uma", "montar a ficha", "criar", "cadastrar", "lucro", "mais caro", "ganhando"], peso: 10,
   },
+  // 17/11/2026 (HDEV-015): produção do dia pelo Jhon — conta pelas fichas e programa o plano
+  {
+    id: "marmitaria.producao_planejar", tipo: "acao", acao: "production.plan", agentes: ["operacoes"],
+    descricao: "Planejar a produção de um dia pelas fichas: quanto de cada ingrediente, o que fabricar antes (molho), a limpeza com os materiais e o que falta comprar; confirma e vira o plano do dia (ex.: 'Jhon, amanhã precisamos produzir 300 filés de frango empanado, 150 vão ser parmegianas', 'amanhã é dia de limpar as fritadeiras').",
+    frases: [["produzir", "vamos produzir", "precisamos produzir", "precisa produzir", "temos que produzir", "tem que produzir", "fabricar", "vamos fabricar", "limpar as", "limpar a", "limpar o", "limpar os", "dia de limpar", "dia de limpeza"]],
+    proibidas: ["quanto tenho", "quanto eu tenho", "quanto temos", "quanto custa", "como faz", "como fazer", "como se faz", "comprei", "marmita nova", "montar uma marmita"], peso: 13,
+  },
+  {
+    id: "marmitaria.estoque_pronto", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Quanto tem pronto no estoque da marmitaria (empanado, molho, batata porcionada e não porcionada) e, para o que é produzido aqui, quantas marmitas dá e quanto rende vendendo (ESTIMATIVA).",
+    frases: [["quanto tenho", "quanto eu tenho", "quanto temos", "quanto tem", "quanto que eu tenho", "quanto e que eu tenho", "mostra quanto", "me mostra quanto", "mostra para mim quanto", "mostra pra mim quanto"], ["pronto", "prontos", "pronta", "prontas", "porcionada", "porcionado", "porcionadas", "porcionados", "vender", "ganhar", "lucro", "produzido", "produzidos", "empanado", "empanados", "empanada", "empanadas"]],
+    proibidas: ["produzir", "fabricar"], peso: 9,
+  },
   // 17/11/2026: cardápios dos concorrentes do delivery (o Jhon lê o print, guarda e compara)
   {
     id: "marmitaria.concorrente_ler", tipo: "pergunta", agentes: ["operacoes"],

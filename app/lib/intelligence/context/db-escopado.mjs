@@ -82,6 +82,9 @@ export const TABELAS = Object.freeze({
   marmitaria_precificacao_canais: { tenant: true, rotulo: "Preço das marmitas por app" },
   marmitaria_rh_alocacoes: { tenant: true, rotulo: "Equipe da marmitaria" },
   marmitaria_vendas: { tenant: true, rotulo: "Vendas da marmitaria" },
+  // Plano do dia (PLANO-DIA-1): o Nico lê o plano aprovado; o Jhon confere se já há plano na data (17/11/2026)
+  plano_dia: { tenant: true, rotulo: "Plano do dia" },
+  plano_dia_tarefa: { tenant: true, rotulo: "Tarefas do plano do dia" },
   // Cardápios dos concorrentes do delivery (CONC-1, 17/11/2026)
   delivery_concorrentes: { tenant: true, rotulo: "Concorrentes do delivery" },
   delivery_concorrentes_leituras: { tenant: true, rotulo: "Cardápios lidos dos concorrentes" },

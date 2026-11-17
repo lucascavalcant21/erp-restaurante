@@ -245,7 +245,7 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       trilha.passar("recomendacao", NIVEL.RECOMENDAR);
       if (usaProduto && semProdutoDito && produtoCtx && !produtoCtx.ambiguo) params.insumoId = produtoCtx.id;
       if (intencao.acao === "stock.registerEntry") params.motivoEntrada = motivoDaEntrada(pedido.texto);
-      const paramsAcao = intencao.acao === "recipe.create" ? paramsDoComando(pedido.texto, conversa) : intencao.acao === "marmita.create" ? paramsDaMarmita(pedido.texto) : params;
+      const paramsAcao = intencao.acao === "recipe.create" ? paramsDoComando(pedido.texto, conversa) : intencao.acao === "marmita.create" ? paramsDaMarmita(pedido.texto) : intencao.acao === "production.plan" ? { pedido: String(pedido.texto).slice(0, 500) } : params;
       resposta = await servicoAcoes.iniciar({ acaoId: intencao.acao, params: paramsAcao, comando: pedido.texto, chave: pedido.chave, correlationId });
       trilha.passar("acao", NIVEL.AGIR);
     } else {

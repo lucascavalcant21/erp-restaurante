@@ -66,3 +66,9 @@ Formato: **B-NNN**, situação, onde foi visto, evidência da correção.
 - **Sintoma:** "Cheguei, o que eu faço?" caía na orientação padrão mesmo com plano aprovado.
 - **Causa:** `plano_dia` e `plano_dia_tarefa` fora de `TABELAS` em `app/lib/intelligence/context/db-escopado.mjs`; o erro era engolido em `planoDeHojeDoBanco`.
 - **Correção:** tabelas na lista (tenant). Branch `hefisto-teste`. TESTADO EM MOCK (producao-jhon.test.mjs). Preview: NÃO VALIDADO.
+
+## 17/11/2026 · Sistema de teste: login não via as unidades ("Unidade Matriz")
+- **Causa:** a cópia da estrutura (16/11) copiou permissões de tabela, mas não as por coluna. `unidades` só tem SELECT por coluna (sem `token_nfe`, SEC-RLS-2), então o login recebia "permission denied" e a tela caía em "Unidade Matriz / escolha uma unidade".
+- **Correção:** permissões por coluna copiadas da produção para o `hefisto-staging` (7 GRANTs; impressão digital `180b7fa4…` igual à produção). TESTADO NO SUPABASE REAL (teste): o login lê as 3 unidades.
+- **Aprendizado:** ao copiar estrutura, conferir também `pg_attribute.attacl` (permissão por coluna), não só `role_table_grants`.
+- Junto: o ERPContext relê sessão e unidades depois do login na mesma aba; o assistente sem unidade tem Voltar e a lista de unidades.

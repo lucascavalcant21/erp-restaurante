@@ -243,3 +243,15 @@ export function criarServicoDeAcoes({ store, escopo, dbe, dbUsuario, verificador
     },
   };
 }
+
+/**
+ * "O Jhon recebe informações e alterações; o Nico só transmite e não altera
+ * nada" (dono, 17/11/2026). Para quem não é o dono, o assistente responde,
+ * ensina e mostra, mas nenhuma ação que grava começa, continua ou é confirmada
+ * pela conversa. As telas continuam com as permissões de sempre.
+ */
+export const TEXTO_NICO_SO_TRANSMITE = "O Nico só passa informação e não altera nada. Para lançar ou mudar, peça ao responsável (o dono faz pelo Jhon) ou use a tela.";
+export function acoesSomenteLeitura(servico) {
+  const negar = async () => ({ tipo: "bloqueado", texto: TEXTO_NICO_SO_TRANSMITE });
+  return { ...servico, iniciar: negar, continuar: negar, confirmar: negar };
+}

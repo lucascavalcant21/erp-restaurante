@@ -96,3 +96,17 @@ test("lucro do pronto: quantas marmitas dá e quanto ganha (ESTIMATIVA)", () => 
   const sem = lucroDoPronto({ fichaId: "emp", quantidade: 120, marmitas, raioX: () => ({ valido: false, motivo: "sem preço" }) });
   assert.equal(sem[0].lucroTotal, null);
 });
+
+test("pedido em kg: converte pela ficha; sem peso por unidade, avisa", async () => {
+  const { paraUnidadeDaFicha } = await import("./planejamento.mjs");
+  assert.deepEqual(paraUnidadeDaFicha(500, "g", { rendimento_unidade: "kg" }), { quantidade: 0.5 });
+  assert.equal(paraUnidadeDaFicha(2.8, "kg", { rendimento_unidade: "un", peso_porcao_g: 140, nome_receita: "Frango empanado" }).quantidade, 20);
+  assert.match(paraUnidadeDaFicha(3, "kg", { rendimento_unidade: "un", nome_receita: "Frango empanado" }).erro, /não tem o peso/);
+  const com = fichas.map((f) => (f.id === "emp" ? { ...f, peso_porcao_g: 140 } : f));
+  const p = lerPedidoDeProducao("amanhã produzir 14 kg de frango empanado", { fichas: com, hoje: "2026-11-17" });
+  assert.equal(p.alvos[0].quantidade, 100);
+  assert.match(p.alvos[0].pedidoComo, /14 kg = 100 un \(140 g cada\)/);
+  const sem = lerPedidoDeProducao("amanhã produzir 14 kg de frango empanado", { fichas, hoje: "2026-11-17" });
+  assert.equal(sem.alvos.length, 0);
+  assert.match(sem.semFicha[0].motivo, /não tem o peso/);
+});

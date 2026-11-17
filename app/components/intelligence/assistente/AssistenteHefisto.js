@@ -742,6 +742,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                 onChange={(e) => { const fs = [...(e.target.files || [])]; e.target.value = ""; if (fs.length) enviarCardapio(fs); }} />
               <input ref={cameraCardapioRef} type="file" accept="image/*" capture="environment" className="hidden" aria-hidden="true" tabIndex={-1}
                 onChange={(e) => { const fs = [...(e.target.files || [])]; e.target.value = ""; if (fs.length) enviarCardapio(fs); }} />
+              {!ehNico && (
               <div className="relative shrink-0" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setMenuAnexo(false); }}
                 onKeyDown={(e) => { if (e.key === "Escape") setMenuAnexo(false); }}>
                 <button type="button" onClick={() => setMenuAnexo((v) => !v)} disabled={ocupado} aria-label="Anexar nota fiscal ou cardápio de concorrente" aria-expanded={menuAnexo}
@@ -761,6 +762,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                   </div>
                 )}
               </div>
+              )}
               <textarea
                 ref={campoRef}
                 rows={1}
@@ -779,10 +781,13 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                 </button>
               ) : (
                 <>
-                  <button type="button" onClick={() => (esperandoCardapio() ? cameraCardapioRef : cameraRef).current?.click()} disabled={ocupado} aria-label="Tirar foto da nota fiscal ou do cardápio"
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50" style={{ color: "var(--wa-texto)" }}>
-                    <Camera size={25} strokeWidth={1.8} />
-                  </button>
+                  {/* o Nico só transmite: foto de nota ou cardápio (que gravam) é do Jhon */}
+                  {!ehNico && (
+                    <button type="button" onClick={() => (esperandoCardapio() ? cameraCardapioRef : cameraRef).current?.click()} disabled={ocupado} aria-label="Tirar foto da nota fiscal ou do cardápio"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50" style={{ color: "var(--wa-texto)" }}>
+                      <Camera size={25} strokeWidth={1.8} />
+                    </button>
+                  )}
                   <button type="button" onClick={alternarMicrofone} disabled={ocupado || transcrevendo} aria-label="Gravar áudio" className="mb-[1px] grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition active:scale-95 disabled:opacity-60" style={{ background: "var(--wa-verde)" }}>
                     <Mic size={21} />
                   </button>

@@ -21,7 +21,8 @@ import { ErroDeEscopo } from "../context/escopo.mjs";
 import { criarDbEscopado, ErroDeIsolamento } from "../context/db-escopado.mjs";
 import { criarVerificador } from "../permissions/mapa.mjs";
 import { criarMotorDeMetricas } from "../metrics/engine.mjs";
-import { criarServicoDeAcoes } from "../actions/servico.mjs";
+import { criarServicoDeAcoes, acoesSomenteLeitura } from "../actions/servico.mjs";
+import { assistenteDoContexto, JHON } from "../../assistentes.mjs";
 import { criarStoreSupabase, storeIndisponivel } from "../audit/store-supabase.mjs";
 import { auditar, ETAPA_AUDITORIA } from "../audit/auditoria.mjs";
 import { registrarFabricaDeProvedor, provedorConfigurado } from "../providers/ai-provider.mjs";
@@ -97,7 +98,9 @@ export async function atenderInteligencia(request, handler, { limitePorMinuto = 
   const verificador = criarVerificador(ctx, deps);
   const motor = criarMotorDeMetricas({ dbe, escopo: ic.escopo, verificador, agora, fuso: ic.fuso });
   const nomeUsuario = persistente && store.nomeDoUsuario ? await store.nomeDoUsuario(ic.escopo.userId).catch(() => "") : "";
-  const servicoAcoes = criarServicoDeAcoes({ store, escopo: ic.escopo, dbe, dbUsuario, verificador, nomeUsuario, canal, relogio: injecao?.agora ? () => injecao.agora : undefined });
+  const servicoBase = criarServicoDeAcoes({ store, escopo: ic.escopo, dbe, dbUsuario, verificador, nomeUsuario, canal, relogio: injecao?.agora ? () => injecao.agora : undefined });
+  // o Jhon (dono) recebe e altera; o Nico (equipe) só transmite (dono, 17/11/2026)
+  const servicoAcoes = assistenteDoContexto(ic) === JHON ? servicoBase : acoesSomenteLeitura(servicoBase);
   const correlationId = `ic-${requestId}`;
 
   try {

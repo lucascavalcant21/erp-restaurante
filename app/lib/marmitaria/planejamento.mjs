@@ -96,10 +96,34 @@ export function lerPedidoDeProducao(texto, { fichas = [], hoje }) {
     const ficha = fichaDaFrase(producao, resto);
     if (!ficha) { semFicha.push({ frase: p.trim(), quantidade }); continue; }
     const un = m[2] ? (/^k|quilo/.test(m[2]) ? "kg" : /^g|grama/.test(m[2]) ? "g" : /^l|litro/.test(m[2]) ? "L" : /^ml/.test(m[2]) ? "ml" : "un") : null;
+    const conv = paraUnidadeDaFicha(quantidade, un, ficha);
+    if (conv.erro) { semFicha.push({ frase: p.trim(), quantidade, motivo: conv.erro }); continue; }
     const ja = alvos.find((a) => a.ficha.id === ficha.id);
-    if (ja) ja.quantidade = Math.max(ja.quantidade, quantidade); else alvos.push({ ficha, quantidade, unidade: un, frase: p.trim() });
+    if (ja) ja.quantidade = Math.max(ja.quantidade, conv.quantidade);
+    else alvos.push({ ficha, quantidade: conv.quantidade, unidade: ficha.rendimento_unidade || null, pedidoComo: conv.nota, frase: p.trim() });
   }
   return { data, rotuloData: rotulo, alvos, limpezas, semFicha };
+}
+
+const MASSA = { kg: 1000, g: 1 };
+const VOLUME = { l: 1000, ml: 1 };
+/**
+ * A quantidade pedida na unidade em que a ficha rende: "3 kg" de uma ficha que
+ * rende em kg → 3; "500 g" → 0,5; "3 kg" de empanado que rende em unidades de
+ * 140 g → 21,4 un. Sem como converter (sem peso por unidade): erro, nunca chute.
+ */
+export function paraUnidadeDaFicha(quantidade, un, ficha) {
+  const rend = fold(ficha?.rendimento_unidade || "un").replace(/s$/, "");
+  const u = fold(un || "");
+  if (!u || u === rend || (u === "un" && !MASSA[rend] && !VOLUME[rend])) return { quantidade };
+  if (MASSA[u] && MASSA[rend]) return { quantidade: r3((quantidade * MASSA[u]) / MASSA[rend]) };
+  if (VOLUME[u] && VOLUME[rend]) return { quantidade: r3((quantidade * VOLUME[u]) / VOLUME[rend]) };
+  const peso = Number(ficha?.peso_porcao_g);
+  if (MASSA[u] && peso > 0) {
+    const q = r3((quantidade * MASSA[u]) / peso);
+    return { quantidade: q, nota: `${quantidade.toLocaleString("pt-BR")} ${un} = ${q.toLocaleString("pt-BR")} ${ficha.rendimento_unidade || "un"} (${peso.toLocaleString("pt-BR")} g cada)` };
+  }
+  return { erro: `pediu em ${un}, mas a ficha "${ficha?.nome_receita}" rende em ${ficha?.rendimento_unidade || "unidades"} e não tem o peso de cada um` };
 }
 
 /** Rendimento da ficha na unidade em que o dono pede ("300 filés" numa ficha que rende 10 un). */

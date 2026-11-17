@@ -18,6 +18,8 @@ const USUARIOS = {
   [`tok-${UID_A}`]: { id: UID_A, unidades: ["loja-a"], empresa: EMPRESA_A, permissoes: ["*"] },
   [`tok-${UID_B}`]: { id: UID_B, unidades: ["loja-b"], empresa: EMPRESA_B, permissoes: ["*"] },
   "tok-restrito": { id: "33333333-3333-4333-8333-333333333333", unidades: ["loja-a"], empresa: EMPRESA_A, permissoes: ["estoque.overview.view"] },
+  // equipe (não é o dono): usa o assistente, lança perda na tela — pela conversa é o Nico, que só transmite
+  "tok-equipe": { id: "44444444-4444-4444-8444-444444444444", unidades: ["loja-a"], empresa: EMPRESA_A, permissoes: ["dashboard.intelligence.view", "estoque.overview.view", "estoque.losses.record_loss", "estoque.movements.create"] },
 };
 
 export function depsFalsas({ negar = [] } = {}) {

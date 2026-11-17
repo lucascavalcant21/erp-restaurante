@@ -36,7 +36,7 @@ async function preparar(ctx, params) {
   const pedido = lerPedidoDeProducao(params.pedido, { fichas: d.fichas, hoje });
   if (!pedido.alvos.length && !pedido.limpezas.length) {
     const exemplos = d.fichas.filter((f) => f.eh_base && f.ativo !== false).slice(0, 4).map((f) => f.nome_receita).join(", ");
-    const nao = pedido.semFicha.length ? ` Não achei ficha para: ${pedido.semFicha.map((x) => x.frase).join("; ")}.` : "";
+    const nao = pedido.semFicha.length ? ` Não calculei: ${pedido.semFicha.map((x) => (x.motivo ? `${x.frase} (${x.motivo})` : `${x.frase} (sem ficha)`)).join("; ")}.` : "";
     return { erro: `DADOS INSUFICIENTES: não achei na frase o que produzir com uma ficha cadastrada.${nao} Diga a quantidade e o nome da ficha${exemplos ? ` (ex.: ${exemplos})` : ""}, ou cadastre a ficha em Marmitaria > Fichas.` };
   }
   const alvos = [
@@ -63,7 +63,8 @@ async function preparar(ctx, params) {
   const usados = new Set(c.porAlvo.flatMap((a) => (d.fichas.find((f) => f.id === a.fichaId)?.fichas_ingredientes || []).map((fi) => fi.subficha_id).filter(Boolean)));
   const ordem = [...c.porAlvo.filter((a) => !a.limpeza)].sort((a, b) => usados.has(b.fichaId) - usados.has(a.fichaId));
   for (const a of ordem) {
-    linhas.push({ rotulo: `${num(a.quantidade)} ${a.nome}`, valor: listaTexto(a.itens) || "ficha sem ingredientes" });
+    const pedidoComo = pedido.alvos.find((x) => x.ficha.id === a.fichaId)?.pedidoComo;
+    linhas.push({ rotulo: `${num(a.quantidade)} ${a.nome}`, valor: `${pedidoComo ? `(${pedidoComo}) ` : ""}${listaTexto(a.itens) || "ficha sem ingredientes"}` });
     tarefas.push({ titulo: `Produzir ${a.nome}`, tipo: "producao", fichaId: a.fichaId, quantidade: a.quantidade, unidade: a.unidade });
   }
   // 3º: limpezas (com os materiais, se tem ficha)
@@ -79,7 +80,7 @@ async function preparar(ctx, params) {
   } else if (c.itens.length) {
     linhas.push({ rotulo: "Estoque", valor: d.temEstoque ? "tem tudo o que precisa" : "DADOS INSUFICIENTES: sem estoque da marmitaria nesta unidade" });
   }
-  for (const x of pedido.semFicha) linhas.push({ rotulo: "Sem ficha", valor: `${x.frase}: cadastre a ficha para eu calcular` });
+  for (const x of pedido.semFicha) linhas.push({ rotulo: x.motivo ? "Não calculei" : "Sem ficha", valor: x.motivo ? `${x.frase}: ${x.motivo}` : `${x.frase}: cadastre a ficha para eu calcular` });
   for (const a of c.avisos) linhas.push({ rotulo: "Atenção", valor: a });
 
   // plano já aprovado para a data: este substitui (o banco marca o antigo como substituído)

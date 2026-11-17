@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { assistenteDaSessao } from "../../../lib/assistentes.mjs";
 import { canAccessRoute } from "../../../lib/permissions-catalog.mjs";
-import { ChevronLeft, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Lock, Camera, Plus, Receipt, Store } from "lucide-react";
+import { ChevronLeft, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Lock, Camera, Plus, Receipt, Smartphone, Store } from "lucide-react";
 import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } from "../../../lib/intelligence/client/api";
 import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
 import { fetchComSessao } from "../../../lib/api-sessao";
@@ -550,12 +550,14 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
 
   // ─── cardápio de concorrente (prints do app de delivery, até 6) ───
   const cardapioRef = useRef(null);
+  const telaRef = useRef(null);
   const cameraCardapioRef = useRef(null);
   const [lendoCardapio, setLendoCardapio] = useState(false);
   const [menuAnexo, setMenuAnexo] = useState(false);
   // depois de "vou mandar o cardápio do concorrente", a câmera fotografa o cardápio (não a nota)
   const esperandoCardapio = () => referenciaRef.current?.intencao === "marmitaria.concorrente_ler";
-  const enviarCardapio = useCallback(async (lista) => {
+  const enviarCardapio = useCallback(async (lista, destino = "concorrente") => {
+    const vitrine = destino === "vitrine";
     const arquivos = [...(lista || [])].filter((f) => /^image\//.test(f.type || "") || /\.(jpe?g|png|webp)$/i.test(f.name || ""));
     if (!arquivos.length || ocupadoRef.current) return;
     if (arquivos.length > MAX_PRINTS) {
@@ -571,7 +573,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
       adicionar({ de: "assistente", resposta: { tipo: "erro_acao", texto: "Não consegui abrir algum dos prints. Tente de novo." } });
       return;
     }
-    adicionar({ de: "eu", texto: `Cardápio de concorrente (${fotos.length} ${fotos.length === 1 ? "print" : "prints"})`, imagem: fotos[0].miniatura });
+    adicionar({ de: "eu", texto: `${vitrine ? "Tela da plataforma" : "Cardápio de concorrente"} (${fotos.length} ${fotos.length === 1 ? "print" : "prints"})`, imagem: fotos[0].miniatura });
     setRespondendo(null);
     setLendoCardapio(true);
     await executar(async () => {
@@ -581,8 +583,8 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
       const cardapio = cardapioDoOcr(lido);
       if (!cardapio) return { ok: false, dados: { erro: "Não encontrei pratos com preço nesses prints. Mande prints em que apareçam o nome e o preço de cada prato." } };
       setLendoCardapio(false);
-      return perguntarAoHefisto(unidadeId, { cardapio, chave: novaChaveDeEnvio(), tela: TELA, conversa: referenciaRef.current });
-    }, "Não consegui guardar o cardápio.");
+      return perguntarAoHefisto(unidadeId, { cardapio, ...(vitrine ? { destino: "vitrine" } : {}), chave: novaChaveDeEnvio(), tela: TELA, conversa: referenciaRef.current });
+    }, vitrine ? "Não consegui montar a vitrine." : "Não consegui guardar o cardápio.");
     setLendoCardapio(false);
   }, [adicionar, executar, unidadeId, TELA]);
 
@@ -740,6 +742,8 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) enviarFoto(f); }} />
               <input ref={cardapioRef} type="file" accept="image/*" multiple className="hidden" aria-hidden="true" tabIndex={-1}
                 onChange={(e) => { const fs = [...(e.target.files || [])]; e.target.value = ""; if (fs.length) enviarCardapio(fs); }} />
+              <input ref={telaRef} type="file" accept="image/*" multiple className="hidden" aria-hidden="true" tabIndex={-1}
+                onChange={(e) => { const fs = [...(e.target.files || [])]; e.target.value = ""; if (fs.length) enviarCardapio(fs, "vitrine"); }} />
               <input ref={cameraCardapioRef} type="file" accept="image/*" capture="environment" className="hidden" aria-hidden="true" tabIndex={-1}
                 onChange={(e) => { const fs = [...(e.target.files || [])]; e.target.value = ""; if (fs.length) enviarCardapio(fs); }} />
               {!ehNico && (
@@ -758,6 +762,10 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                     <button type="button" role="menuitem" onClick={() => { setMenuAnexo(false); cardapioRef.current?.click(); }}
                       className="flex min-h-[48px] w-full items-center gap-3 border-t px-4 text-left text-[15px]" style={{ color: "var(--wa-texto)", borderColor: "var(--wa-linha)" }}>
                       <Store size={20} /> <span>Cardápio de concorrente <span className="block text-[12px]" style={{ color: "var(--wa-meta)" }}>até {MAX_PRINTS} prints do app</span></span>
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { setMenuAnexo(false); telaRef.current?.click(); }}
+                      className="flex min-h-[48px] w-full items-center gap-3 border-t px-4 text-left text-[15px]" style={{ color: "var(--wa-texto)", borderColor: "var(--wa-linha)" }}>
+                      <Smartphone size={20} /> <span>Tela da plataforma <span className="block text-[12px]" style={{ color: "var(--wa-meta)" }}>a nossa vitrine no app</span></span>
                     </button>
                   </div>
                 )}

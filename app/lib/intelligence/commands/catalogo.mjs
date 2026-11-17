@@ -286,6 +286,12 @@ export const INTENCOES = Object.freeze([
     frases: [["concorrente", "concorrentes", "concorrencia", "compare o cardapio", "comparar o cardapio", "compara o cardapio", "compare os cardapios", "comparar os cardapios"], ["compara", "comparar", "compare", "comparando", "comparacao", "versus", "contra", "mais caro", "mais cara", "mais caros", "mais caras", "mais barato", "mais barata", "mais baratos", "mais baratas", "preco", "precos", "adicional", "adicionais", "cardapio", "cardapios", "o que vem", "como estamos", "como esta", "quanto cobra", "quanto cobram"]],
     proibidas: ["vou mandar", "te mandar", "vou enviar", "mandar o cardapio", "print", "prints", "foto", "fotos"], peso: 13,
   },
+  {
+    id: "marmitaria.organizador", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Organizar a vitrine do app de entrega no Organizador de plataforma (categoria, foto, nome, descrição, preço e preço com cupom) e ver o que falta (ex.: 'Jhon, vamos organizar a nossa tela', 'monta a tela do iFood', 'o que falta na nossa vitrine?').",
+    frases: [["organizar a tela", "organizar a nossa tela", "organizar nossa tela", "organizar a plataforma", "organizador", "simulador de tela", "nossa vitrine", "a vitrine", "tela do ifood", "tela do app", "tela da plataforma", "montar a tela", "monta a tela", "organizar o ifood", "organizar o cardapio do app"]],
+    proibidas: ["concorrente", "concorrentes"], peso: 14,
+  },
   // 14/11/2026: lista de compras pelo Jhon e "comprei tudo, faltou isso"
   {
     id: "compras.lista_comprei", tipo: "pergunta", agentes: ["compras"],

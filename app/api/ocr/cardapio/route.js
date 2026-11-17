@@ -24,6 +24,7 @@ const SISTEMA = [
   "REGRAS:",
   "1. Nunca invente nada. Campo que não aparece na imagem fica vazio (\"\"). Preço só se estiver escrito ao lado do item.",
   "2. 'preco' é o preço que o cliente paga hoje (o destacado). 'preco_original' é o riscado, se houver.",
+  "   Item com 'a partir de R$ 40,00' e 'R$ 28,00 com cupom': preco = 28,00 (com cupom) e preco_original = 40,00.",
   "3. Adicionais/complementos ('Turbine', 'Adicionais', 'Escolha', '+ R$ 3,00') viram itens com tipo 'adicional' e 'grupo' = título do grupo.",
   "4. 'componentes': o que vem no prato, copiado da descrição (ex.: arroz, feijão, frango grelhado). Não acrescente nada que não esteja escrito.",
   "5. 'peso': só se estiver escrito (ex.: '500g', '1 kg'). 'serve_pessoas' só se estiver escrito.",

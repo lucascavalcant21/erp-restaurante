@@ -41,6 +41,8 @@ export const pedidoSchema = s.object({
   nota: s.opcional(notaSchema),
   // leitura dos prints do cardápio de um concorrente (/api/ocr/cardapio): começa a ação competitor.menu
   cardapio: s.opcional(cardapioSchema),
+  // o que fazer com o cardápio lido: guardar como concorrente (padrão) ou montar a nossa vitrine (Organizador de plataforma)
+  destino: s.opcional(s.enum(["concorrente", "vitrine"])),
   // O que a resposta ANTERIOR desta conversa citou (devolvido pelo servidor em
   // `referencia`). Não confiável: produto é reconferido no banco da unidade e
   // insight é procurado entre os recalculados agora — nunca usado como dado.
@@ -160,6 +162,17 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       const n = pedido.nota;
       const total = n.valor_total ? `, total ${Number(n.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "";
       resposta = { ...resposta, texto: `Li a nota${n.numero ? ` ${n.numero}` : ""}${n.fornecedor ? ` de ${n.fornecedor}` : ""}: ${n.itens.length} ${n.itens.length === 1 ? "item" : "itens"}${total}. ${resposta.texto}` };
+    }
+  } else if (pedido.cardapio && pedido.destino === "vitrine") {
+    // prints da tela do NOSSO app: categorias, nomes, descrições e preços vão para o Organizador de plataforma
+    intencao = intencaoPorId("marmitaria.organizador");
+    interp = { intencao: intencao.id, confianca: 1, periodo: null, produto: null };
+    origem = "regras";
+    trilha.passar("acao", NIVEL.AGIR);
+    const c = pedido.cardapio;
+    resposta = await servicoAcoes.iniciar({ acaoId: "platform.screen", params: { cardapio: c }, comando: "Tela da plataforma", chave: pedido.chave, correlationId });
+    if (resposta?.texto && ["pergunta", "confirmacao"].includes(resposta.tipo)) {
+      resposta = { ...resposta, texto: `Li ${c.itens.length} ${c.itens.length === 1 ? "item" : "itens"} da tela. ${resposta.texto}` };
     }
   } else if (pedido.cardapio) {
     // prints do cardápio de um concorrente: confere nome e app, mostra a prévia e guarda com a data

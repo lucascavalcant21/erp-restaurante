@@ -30,8 +30,9 @@ const AREAS = [
   { href: `${ESTOQUE}/cozinha`, rotulo: "Produção do dia", tambem: [`${ESTOQUE}/producoes`], icone: ChefHat },
   { href: `${ESTOQUE}/compras`, rotulo: "Compras", icone: ShoppingCart },
   { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`], icone: Warehouse },
-  { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/simulador`, `${FICHA}/processos`, `${FICHA}/produtos`], icone: ClipboardList },
+  { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/simulador`, `${FICHA}/processos`, `${FICHA}/produtos`, `${FICHA}/organizador`], icone: ClipboardList },
   { href: `${FICHA}/cardapio`, rotulo: "Preço e combos", icone: BadgeDollarSign },
+  { href: `${FICHA}/organizador`, rotulo: "Organizador de plataforma", icone: Smartphone },
   { href: "/dashboard/marmitaria/concorrentes", rotulo: "Concorrentes", icone: Store },
   { href: `${FICHA}/processos`, rotulo: "Guia de montagem", icone: Layers },
   { href: `${FICHA}/produtos`, rotulo: "Ingredientes", icone: Package },
@@ -65,6 +66,7 @@ function areasDaJornada(jornada) {
     { href: `${FICHA}/simulador`, rotulo: "Simulador e apps", icone: Calculator },
     { href: "/dashboard/marmitaria/financeiro/gastos", rotulo: "Gastos e rendimento", icone: Receipt },
     { href: "/dashboard/marmitaria/concorrentes", rotulo: "Concorrentes", icone: Store },
+    { href: `${FICHA}/organizador`, rotulo: "Organizador de plataforma", icone: Smartphone },
   ];
 }
 

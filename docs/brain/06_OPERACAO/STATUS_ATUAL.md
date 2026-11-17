@@ -136,6 +136,12 @@ Segurança crítica anterior ao Intelligence Core: S-01 e S-02 em [[SEGURANCA]].
 
 [[HDEV-001]] (BLOCKED, 08/10 noite): smoke de API pronto (`npm run qa:smoke`, TESTADO EM MOCK) e checklist de deploy com rollback. Falta o harness Playwright e trazer a `main`: o runner local nega comandos com rede (BLQ-007). O smoke real roda assim que BLQ-001/003 saírem.
 
+## 17/11/2026 (tarde) — Organizador de plataforma e várias marmitas pelo Jhon (só sistema de teste)
+
+- **Organizador de plataforma** (Delivery): a vitrine do app de entrega montada igual ao app, com botão de copiar cada campo; Jhon lê prints da tela do app (+ › Tela da plataforma) e diz o que falta. Dados em `config_sistema.params.organizador_plataforma`. TESTADO EM MOCK + build; preview NÃO VALIDADO.
+- **"Jhon, vamos montar umas marmitas"**: quantas, nesta unidade ou outra, nome de cada uma, uma após a outra; a marmita confirmada entra no Delivery e na vitrine do app. TESTADO EM MOCK; preview NÃO VALIDADO.
+- Achado: o banco de teste não tem a função `merge_config_sistema_params` nem o bucket `notas-fiscais` (o código tem caminho alternativo para a função; o bucket afeta só a foto da nota). Registrado em BUGS.
+
 ## 14/11/2026 — Upgrade visual Medway e preparação para venda (pedido do dono)
 
 Branch `claude/upgrade-visual-medway` (PR em rascunho):

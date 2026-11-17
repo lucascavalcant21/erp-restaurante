@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { assistenteDaSessao } from "../../../lib/assistentes.mjs";
 import { canAccessRoute } from "../../../lib/permissions-catalog.mjs";
-import { ChevronLeft, ChevronRight, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Camera, Plus, Receipt, Smartphone, Store, ChefHat, Martini, UtensilsCrossed, Package, SprayCan, Wallet, Users, TrendingUp, Rocket, Clock, ShieldCheck, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Camera, Plus, Receipt, Smartphone, Store, ChefHat, Martini, UtensilsCrossed, Package, SprayCan, Wallet, Users, TrendingUp, Rocket, Clock, History, ShieldCheck, Sparkles } from "lucide-react";
 import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } from "../../../lib/intelligence/client/api";
 import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
 import { fetchComSessao } from "../../../lib/api-sessao";
@@ -673,6 +673,11 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
           <p className="truncate text-[18px] font-semibold">{nomeAssistente}</p>
           <p className="truncate text-[14.5px]" style={{ color: "var(--wa-meta)" }} aria-live="polite">{status}{unidadeNome ? ` · ${unidadeNome}` : ""}</p>
         </div>
+        {/* histórico das conversas (dono, 17/11/2026: "nenhuma é apagada, vejo tudo como histórico") */}
+        <button type="button" onClick={() => router.push("/dashboard/inteligencia/historico")} aria-label="Histórico das conversas"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white/85 active:bg-white/10">
+          <History size={21} />
+        </button>
         {vozOk && voz.sinteseDisponivel?.() && (
           <button type="button" onClick={() => { setLerEmVoz((v) => !v); voz.calar(); }} aria-label={lerEmVoz ? "Parar de ler as respostas em voz alta" : "Ler as respostas de voz em voz alta"} className="grid h-10 w-12 shrink-0 place-items-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] active:bg-black/5">
             {lerEmVoz ? <Volume2 size={21} /> : <VolumeX size={21} />}

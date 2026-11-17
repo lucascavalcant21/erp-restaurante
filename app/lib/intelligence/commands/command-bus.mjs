@@ -314,14 +314,25 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
     comando: pedido.texto ?? (pedido.continuar ? `[resposta ${pedido.continuar.campo}]` : null),
     entidadeTipo: ic.entidade?.tipo || null, entidadeId: ic.entidade?.id || null,
     intencao: final.interpretacao, agentes: final.agentes, consultas,
-    recomendacao: resposta.tipo === "resposta" ? resposta.texto : null,
+    // o que o assistente respondeu, em qualquer tipo de resposta (histórico das conversas)
+    recomendacao: textoDoHistorico(resposta),
     acaoId: resposta.confirmacao?.acaoId || resposta.pergunta?.acaoId || resposta.resultado?.acaoId || null,
-    resultado: { tipo: resposta.tipo, nivel: final.etapas.nivel },
+    resultado: { tipo: resposta.tipo, nivel: final.etapas.nivel, assistente: assistenteDoContexto(ic) },
     latenciaMs, provedor: ia?.provedor || null, modelo: ia?.modelo || null,
     tokensEntrada: ia?.uso?.entrada ?? null, tokensSaida: ia?.uso?.saida ?? null,
     fallback: ia?.erro ? `regras (IA: ${ia.erro})` : ia?.fallback || null,
   });
   return final;
+}
+
+/** A resposta como a pessoa leu: texto, pergunta com as opções, prévia com as linhas. */
+export function textoDoHistorico(r) {
+  if (!r) return null;
+  const partes = [r.texto || null];
+  if (r.pergunta?.opcoes?.length) partes.push(`Opções: ${r.pergunta.opcoes.map((o) => o.rotulo).join(" · ")}`);
+  if (r.confirmacao) partes.push([r.confirmacao.titulo, ...(r.confirmacao.linhas || []).map((l) => `${l.rotulo}: ${l.valor}`)].filter(Boolean).join("\n"));
+  const t = partes.filter(Boolean).join("\n");
+  return t || null;
 }
 
 export { INTENCOES };

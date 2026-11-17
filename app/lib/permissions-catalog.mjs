@@ -50,6 +50,9 @@ export const PERMISSION_MODULES = [
       // servidor (app/lib/intelligence/permissions/mapa.mjs).
       // settings = metas de faturamento, alertas e sensibilidade da unidade (Inteligência > Configurações)
       { id: "intelligence", label: "Central de Inteligência (Héfisto)", route: "/dashboard/inteligencia", actions: ["view", "settings"] },
+      // Histórico das conversas com o Jhon e o Nico (17/11/2026). Mesma porta da Central; o banco (RLS) mostra
+      // a cada um só as próprias conversas, e as de todos só a quem tem a auditoria (relatorios.audit.view).
+      { id: "intelligence_history", label: "Histórico das conversas (Jhon e Nico)", route: "/dashboard/inteligencia/historico", actions: ["view"] },
     ],
   },
   {

@@ -223,3 +223,10 @@ Decisões:
 - "Não mudou o visual para o azul; sem esse visual antigo": a identidade vermelha e preta (DP de 08/11) saiu. `.tema-gestao` agora aplica a paleta azul do novo modelo (marinho #0B2456, azul #3E7DD6, fundo #F7F8FA). Branch `hefisto-teste`.
 - Planos: "no grátis é só um negócio e nos outros são mais de um". `limites.negocios` (Grátis 1, Completo sem limite); na troca do topo, no Grátis, os outros negócios aparecem com cadeado e levam à assinatura.
 - Pendente de decisão: o nome do módulo "Marmitaria" na troca do topo e no menu (o dono disse "a marmitaria virou delivery").
+
+## 17/11/2026 — O "sistema de teste" vira o sistema novo do restaurante
+
+- Dono: "não vai para o restaurante (app antigo); fica no sistema de teste. Chama o sistema de teste de sistema novo do restaurante, não é mais teste. O sistema de teste eu chamo outro."
+- Branch `hefisto-teste` + Supabase `hefisto-staging` = **sistema novo do restaurante** (app "Héfisto Novo", selo "Sistema novo do restaurante" no login; empresa "Hefisto", unidade "Seldeestrela", Delivery, Eventos). O ambiente técnico segue `staging` (a trava contra o banco antigo continua).
+- `main` + app.hefisto.com.br + Supabase `sezccspqxgklicfndwxx` = sistema antigo: não recebe nada sem ordem expressa. Em 17/11 a publicação no antigo foi CANCELADA pelo dono (nenhum merge feito). O antigo não tem 6 migrações que o código novo usa (CONC-1, GASTOS-1, PLANO-DIA-1, PONTO-PIN-1, RH-FICHA-1, OP-CONTEUDO-1).
+- Um novo "sistema de teste" separado ainda não existe: criar quando o dono pedir.

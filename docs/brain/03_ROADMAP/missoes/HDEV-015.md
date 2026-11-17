@@ -40,4 +40,7 @@ atualizado_em: 2026-11-17
 
 ## Histórico
 
-
+## Andamento (17/11/2026)
+- Feito no `hefisto-teste`: conta pelas fichas (`app/lib/marmitaria/planejamento.mjs`), ação `production.plan` (prévia → plano do dia), intenção `marmitaria.estoque_pronto` (estoque + lucro ESTIMATIVA). TESTADO EM MOCK e LOCAL; preview NÃO VALIDADO.
+- Depende de cadastro: fichas com rendimento (empanado 140 g com 64 g de frango, molho, parmegiana) e ficha de limpeza (departamento Limpeza) com óleo, sal e água.
+- Falta: validar no preview com fichas reais; quantidade em kg quando a ficha rende em unidades (sem conversão hoje).

@@ -223,7 +223,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
                                 <span className={`block text-xs ${it.custoPorUnidade ? "text-hf-muted" : "font-semibold text-hf-warning"}`}>{it.custoPorUnidade ? `${brl(it.custoPorUnidade)}/${unTxt}` : "sem custo: DADOS INSUFICIENTES"}</span>
                               </span>
                             </button>
-                            <button type="button" aria-label={`Editar ${it.nome}`} onClick={() => { setPrepEditando(base.fichas.find((x) => x.id === it.id) || null); setPainel("editar-prep"); setAvisoPrep(null); }}
+                            <button type="button" aria-label={`Editar ${it.nome}`} onClick={() => { setPrepEditando(base.fichas.find((x) => x.id === it.id) || null); setVerLista(false); setPainel("editar-prep"); setAvisoPrep(null); }}
                               className="grid w-11 shrink-0 place-items-center text-hf-muted hover:text-hf-text"><Pencil size={16} /></button>
                             <button type="button" aria-label={`Excluir ${it.nome}`} onClick={() => excluirPrep(it)}
                               className="grid w-11 shrink-0 place-items-center text-hf-muted hover:text-hf-danger"><Trash2 size={16} /></button>

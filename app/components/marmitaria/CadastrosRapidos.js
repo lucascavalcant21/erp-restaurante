@@ -5,7 +5,7 @@
 // preço, vínculo no estoque). Pré-preparo vai para a base compartilhada da
 // cozinha pela marmitaria_salvar_ficha — o restaurante passa a enxergá-lo.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trash2, X } from "lucide-react";
 import { criarProduto, salvarPrePreparo, salvarModoDePreparo, novaChave } from "../../lib/marmitaria/dados";
 import { fetchComSessao } from "../../lib/api-sessao";
@@ -16,8 +16,11 @@ import { quantidadeParaTela } from "../../lib/marmitaria/formulario.mjs";
 import { Botao, Campo, CampoNumero, inputCls, brl, num, Aviso, lerNumero } from "./ui";
 
 function Painel({ titulo, onFechar, children }) {
+  // abre à vista: o painel aparece embaixo da lista e, no celular, ficava fora da tela (17/11/2026)
+  const ref = useRef(null);
+  useEffect(() => { ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }, []);
   return (
-    <div className="rounded-2xl border border-hf-accent/30 bg-hf-surface p-4 shadow-sm">
+    <div ref={ref} className="scroll-mt-24 rounded-2xl border border-hf-accent/30 bg-hf-surface p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="text-sm font-bold text-hf-text">{titulo}</p>
         <button type="button" onClick={onFechar} aria-label="Fechar" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-hf-elevated"><X size={16} /></button>

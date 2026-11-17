@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { Trash2, X } from "lucide-react";
 import { criarProduto, salvarPrePreparo, salvarModoDePreparo, novaChave } from "../../lib/marmitaria/dados";
 import { fetchComSessao } from "../../lib/api-sessao";
-import { apagarRascunho, guardarRascunho, lerRascunho } from "../../lib/rascunho-aparelho";
+import { apagarRascunhoNoBanco as apagarRascunho, guardarRascunhoNoBanco, lerRascunho } from "../../lib/rascunho-aparelho";
 import { numerarPassos, pesoDosIngredientes } from "../../lib/marmitaria/modo-preparo.mjs";
 import { custoDaMarmita, custoPorUnidadeDoPacote, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import BuscaItens from "./BuscaItens";
@@ -120,7 +120,7 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
   // peso de cada unidade pronta (ex.: frango empanado de 144 g), quando rende em unidades
   const [pesoUn, setPesoUn] = useState(() => rascunho?.pesoUn ?? (ficha?.peso_porcao_g ? String(ficha.peso_porcao_g).replace(".", ",") : ""));
   const [organizando, setOrganizando] = useState(false);
-  useEffect(() => { guardarRascunho(chaveRascunho, { id, f, itens, preparo, tempo, pesoUn }); }, [chaveRascunho, id, f, itens, preparo, tempo, pesoUn]);
+  useEffect(() => { guardarRascunhoNoBanco(chaveRascunho, { id, f, itens, preparo, tempo, pesoUn }, unidadeId); }, [chaveRascunho, id, f, itens, preparo, tempo, pesoUn, unidadeId]);
 
   const convertidos = itens.map((it) => {
     const ins = base.insumos.get(it.insumo_id);

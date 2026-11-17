@@ -12,7 +12,7 @@ import BuscaItens from "./BuscaItens";
 import { NovoProduto, NovoPrePreparo } from "./CadastrosRapidos";
 import { Aviso, Botao, Campo, CampoNumero, Secao, brl, inputCls, pctTxt } from "./ui";
 import { salvarMarmita, novaChave, arquivarPrePreparo } from "../../lib/marmitaria/dados";
-import { apagarRascunho, guardarRascunho } from "../../lib/rascunho-aparelho";
+import { apagarRascunhoNoBanco as apagarRascunho, guardarRascunhoNoBanco } from "../../lib/rascunho-aparelho";
 import { atalhosDeQuantidade, catalogoDePrePreparos, custoDoForm, payloadDoForm, TAMANHOS, TIPOS_EMBALAGEM, unidadeDoItem } from "../../lib/marmitaria/formulario.mjs";
 import { unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import { CATEGORIAS_FICHA, ordenarCategorias } from "../../lib/marmitaria/cardapio.mjs";
@@ -35,7 +35,7 @@ export default function EditorMarmita({ form: formInicial, onFechar: fecharSemRa
   const [prepEditando, setPrepEditando] = useState(null);
   const [avisoPrep, setAvisoPrep] = useState(null);
   const [textoNovo, setTextoNovo] = useState(() => recuperado?.textoNovo || "");
-  useEffect(() => { guardarRascunho(chaveRascunhoFicha(unidadeId), { form, painelPrep: painel === "novo-prep", textoNovo }); }, [form, painel, textoNovo, unidadeId]);
+  useEffect(() => { guardarRascunhoNoBanco(chaveRascunhoFicha(unidadeId), { form, painelPrep: painel === "novo-prep", textoNovo }, unidadeId); }, [form, painel, textoNovo, unidadeId]);
   const [tipoEmb, setTipoEmb] = useState("marmitex");
   const [salvando, setSalvando] = useState(false);
   const [erros, setErros] = useState([]);

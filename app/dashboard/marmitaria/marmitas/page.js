@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Printer, Search, UtensilsCrossed } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import EditorMarmita, { chaveRascunhoFicha } from "../../../components/marmitaria/EditorMarmita";
-import { lerRascunho } from "../../../lib/rascunho-aparelho";
+import { lerRascunhoDoBanco } from "../../../lib/rascunho-aparelho";
 import { Botao, Cartao, Secao, brl, inputCls } from "../../../components/marmitaria/ui";
 import { formDaMarmita } from "../../../lib/marmitaria/formulario.mjs";
 import { ordenarCategorias } from "../../../lib/marmitaria/cardapio.mjs";
@@ -28,8 +28,9 @@ function Conteudo() {
   // a tela recarregou no meio de uma ficha (atualização do app): volta para ela (dono, 17/11/2026)
   useEffect(() => {
     if (!base || editando || params.get("editar")) return;
-    const r = lerRascunho(chaveRascunhoFicha(unidadeId));
-    if (r?.form?.id) { setRecuperado(r); setEditando(r.form); }
+    let vivo = true;
+    lerRascunhoDoBanco(chaveRascunhoFicha(unidadeId)).then((r) => { if (vivo && r?.form?.id) { setRecuperado(r); setEditando(r.form); } });
+    return () => { vivo = false; };
   }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
   // Links antigos das abas de preço e de combos, e o "Editar" vindo do Cardápio.
   const editarId = params.get("editar");

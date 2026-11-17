@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, ImagePlus, Pencil, Trash2 } from "lucide-react";
 import { useMarmitaria } from "./contexto";
-import BuscaItens from "./BuscaItens";
+import BuscaItens, { ehEmbalagem } from "./BuscaItens";
 import { NovoProduto, NovoPrePreparo } from "./CadastrosRapidos";
 import { Aviso, Botao, Campo, CampoNumero, Secao, brl, inputCls, pctTxt } from "./ui";
 import { salvarMarmita, novaChave, arquivarPrePreparo } from "../../lib/marmitaria/dados";
@@ -59,6 +59,8 @@ export default function EditorMarmita({ form: formInicial, onFechar: fecharSemRa
     }
     setPainel(null);
   }
+  const embalagensCadastradas = (base.insumosLista || []).filter((i) => ehEmbalagem(i) && i.ativo !== false && !form.embalagens.some((e) => e.insumo_id === i.id))
+    .sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR"));
   function adicionarEmbalagem(id) {
     setForm((x) => ({ ...x, embalagens: [...x.embalagens, { key: novaChave(), insumo_id: id, qtd: "1", tipo: tipoEmb }] }));
     setPainel(null);
@@ -167,8 +169,9 @@ export default function EditorMarmita({ form: formInicial, onFechar: fecharSemRa
       </Secao>
 
       {/* B — ingredientes e pré-preparos */}
-      <Secao titulo="Ingredientes e pré-preparos" subtitulo="Vêm do cadastro da marmitaria."
-        direita={<p className="text-sm text-hf-text-2">Alimentos <b className="tabular-nums">{brl(custo.alimentos)}</b> · Pré-preparos <b className="tabular-nums">{brl(custo.prePreparos)}</b></p>}>
+      {/* dono 17/11: pré-preparo ou produto, é tudo ingrediente; um total só */}
+      <Secao titulo="Ingredientes" subtitulo="Produtos e pré-preparos da marmitaria."
+        direita={<p className="text-sm text-hf-text-2">Total <b className="tabular-nums">{brl(custo.alimentos + custo.prePreparos)}</b></p>}>
         {form.itens.length > 0 && (
           <ul className="divide-y divide-hf-border">
             {form.itens.map((it) => {
@@ -292,7 +295,7 @@ export default function EditorMarmita({ form: formInicial, onFechar: fecharSemRa
                 <li key={e.key} className="grid grid-cols-[1fr_80px_100px_44px] items-center gap-2 py-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-hf-text">{ins?.nome || "Embalagem removida"}</p>
-                    <p className="text-xs text-hf-muted">{TIPOS_EMBALAGEM.find((t) => t.id === e.tipo)?.rotulo || "Embalagem"} · {unit ? `${brl(unit)}/un` : "sem custo"}</p>
+                    <p className="text-xs text-hf-muted">{unit ? `${brl(unit)} por unidade` : "sem custo"}</p>
                   </div>
                   <CampoNumero valor={e.qtd} onChange={(v) => mudarEmb(e.key, { qtd: v })} aria-label="Quantidade" />
                   <p className="text-right text-sm font-bold tabular-nums">{unit ? brl(unit * parseNumero(e.qtd)) : "—"}</p>
@@ -302,14 +305,20 @@ export default function EditorMarmita({ form: formInicial, onFechar: fecharSemRa
             })}
           </ul>
         )}
+        {/* dono 17/11: aparecem as embalagens que ele cadastrou, não tipos genéricos */}
         <div className="flex flex-wrap gap-2">
-          {TIPOS_EMBALAGEM.map((t) => (
-            <button key={t.id} type="button" onClick={() => { setTipoEmb(t.id); setPainel("busca-emb"); }}
-              className={`min-h-[40px] rounded-full border px-3 text-sm font-semibold ${painel === "busca-emb" && tipoEmb === t.id ? "border-hf-accent bg-hf-accent/10 text-hf-accent" : "border-hf-border text-hf-text-2 hover:border-hf-accent"}`}>
-              + {t.rotulo}
+          {embalagensCadastradas.map((i) => (
+            <button key={i.id} type="button" onClick={() => adicionarEmbalagem(i.id)}
+              className="min-h-[40px] max-w-full truncate rounded-full border border-hf-border px-3 text-sm font-semibold text-hf-text-2 hover:border-hf-accent">
+              + {i.nome}
             </button>
           ))}
+          <button type="button" onClick={() => { setTextoNovo(""); setPainel("nova-emb"); }}
+            className="min-h-[40px] rounded-full border border-dashed border-hf-accent/60 px-3 text-sm font-semibold text-hf-text hover:border-hf-accent">
+            + Nova embalagem
+          </button>
         </div>
+        {!embalagensCadastradas.length && !form.embalagens.length && <p className="mt-2 text-xs text-hf-muted">Nenhuma embalagem cadastrada ainda. Toque em "+ Nova embalagem".</p>}
         {painel === "busca-emb" && (
           <div className="mt-3">
             <BuscaItens key={tipoEmb} base={base} modo="embalagem" filtroInicial={tipoEmb === "outra" ? "" : tipoEmb === "marmitex" ? "" : tipoEmb}
@@ -325,9 +334,8 @@ export default function EditorMarmita({ form: formInicial, onFechar: fecharSemRa
       </Secao>
 
       <Secao titulo="Custo" subtitulo="Comida e embalagem. O preço, as taxas e o lucro ficam no Cardápio.">
-        <div className="grid gap-3 sm:grid-cols-4">
-          <Resumo rotulo="Alimentos" valor={custo.alimentos} />
-          <Resumo rotulo="Pré-preparos" valor={custo.prePreparos} />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Resumo rotulo="Ingredientes" valor={custo.alimentos + custo.prePreparos} />
           <Resumo rotulo="Embalagens" valor={custo.embalagens} />
           <Resumo rotulo="Custo total" valor={custo.total} forte />
         </div>

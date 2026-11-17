@@ -136,7 +136,7 @@ function ListaDeFichas({ onEditar, onNova }) {
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-bold text-hf-text">{m.nome_receita}</span>
                         <span className="block text-xs text-hf-muted">
-                          {c ? `Comida ${brl(c.alimentos + c.prePreparos)} · Embalagem ${brl(c.embalagens)}` : ""}{m.ativo === false ? " · Fora do cardápio" : ""}
+                          {c ? `Ingredientes ${brl(c.alimentos + c.prePreparos)} · Embalagem ${brl(c.embalagens)}` : ""}{m.ativo === false ? " · Fora do cardápio" : ""}
                         </span>
                         {c && !c.completo && <span className="block text-xs font-semibold text-hf-warning">Custo incompleto</span>}
                       </span>

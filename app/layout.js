@@ -18,24 +18,26 @@ const fonteApp = Inter({
 // manual — o <head> manual não entra no HTML inicial quando a rota redireciona
 // (ex.: "/" -> /login), e sem o manifest no HTML o Android instala só um
 // atalho de navegador em vez do app de verdade.
-// Sistema de teste (branch hefisto-teste, HEFISTO_ENV=staging): o app instalado
-// na tela de início se chama "Héfisto Teste" e é outro app, separado do app do
-// restaurante (dono, 17/11/2026: "mesmo pelo app eu consiga entrar"). Na
-// produção nada muda.
-const EH_TESTE = (process.env.HEFISTO_ENV || "").trim().toLowerCase() === "staging";
+// Sistema novo do restaurante (branch hefisto-teste, HEFISTO_ENV=staging): o
+// app instalado na tela de início se chama "Héfisto Novo" e é outro app,
+// separado do app antigo (app.hefisto.com.br). Dono, 17/11/2026: "não é mais
+// teste, é o próprio sistema do restaurante; o sistema de teste eu chamo outro".
+// O ambiente técnico continua "staging" (a trava que impede usar o banco antigo
+// segue valendo). No app antigo nada muda.
+const EH_NOVO = (process.env.HEFISTO_ENV || "").trim().toLowerCase() === "staging";
 
 export const metadata = {
-  title: EH_TESTE ? "Héfisto Teste" : "Hefisto",
+  title: EH_NOVO ? "Héfisto Novo" : "Hefisto",
   description: "Sistema de Gestão para Food Service",
-  applicationName: EH_TESTE ? "Héfisto Teste" : "Hefisto",
-  manifest: EH_TESTE ? "/manifest-teste.json" : "/manifest.json",
+  applicationName: EH_NOVO ? "Héfisto Novo" : "Hefisto",
+  manifest: EH_NOVO ? "/manifest-teste.json" : "/manifest.json",
   icons: {
     icon: "/icon-192x192.png",
     apple: "/icon-192x192.png",
   },
   appleWebApp: {
     capable: true,
-    title: EH_TESTE ? "Héfisto Teste" : "Hefisto",
+    title: EH_NOVO ? "Héfisto Novo" : "Hefisto",
     statusBarStyle: "black-translucent",
   },
 };

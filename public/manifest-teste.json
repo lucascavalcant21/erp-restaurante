@@ -1,8 +1,8 @@
 {
   "id": "/?ambiente=teste",
-  "name": "Héfisto Teste — Sistema de teste",
-  "short_name": "Héfisto Teste",
-  "description": "Sistema de TESTE do Héfisto (sem dados do restaurante).",
+  "name": "Héfisto — Sistema novo do restaurante",
+  "short_name": "Héfisto Novo",
+  "description": "Sistema novo do restaurante (Héfisto).",
   "start_url": "/",
   "scope": "/",
   "lang": "pt-BR",

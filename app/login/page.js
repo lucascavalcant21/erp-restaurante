@@ -131,9 +131,9 @@ export default function LoginPage() {
         <LogoHefisto className="w-14 h-14 mb-4" />
         <p className="text-2xl font-bold tracking-tight" style={{ color: "var(--fg)" }}>Hefisto</p>
         <p className="text-sm font-medium mt-0.5" style={{ color: "var(--dim)" }}>Gestão inteligente para food service</p>
-        {/* sistema de teste: aviso visível para não confundir com o app do restaurante */}
+        {/* sistema novo do restaurante: selo para não confundir com o app antigo */}
         {String(process.env.HEFISTO_ENV || "").toLowerCase() === "staging" && (
-          <p className="mt-3 rounded-full bg-hf-warning/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-hf-warning">Sistema de teste · sem dados do restaurante</p>
+          <p className="mt-3 rounded-full bg-mw-agua-claro px-3 py-1 text-xs font-bold uppercase tracking-wide text-mw-agua">Sistema novo do restaurante</p>
         )}
       </div>
 

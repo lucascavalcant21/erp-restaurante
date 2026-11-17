@@ -38,6 +38,8 @@ export function formDaMarmita(m, ctx) {
   return {
     id: m.id, novo: false, codigo: m.codigo || "", nome: m.nome_receita || "", descricao: m.descricao_comercial || m.descricao || "",
     foto: m.imagem || "", categoria: m.categoria || "", tamanho: m.tamanho_marmita || "M", peso: texto(m.peso_final_g), ativo: m.ativo !== false,
+    // campos que a tela não mostra, mas o salvar regrava: voltam iguais (dono, 17/11/2026: "mudar uma coisa não apaga o que já está lá")
+    validade_dias: m.validade_dias ?? null,
     preco: texto(m.preco_venda),
     itens: (m.itens || []).map((it) => {
       const t = quantidadeParaTela(it.quantidade, unidadeDoItem(it, ctx));
@@ -94,6 +96,7 @@ export function payloadDoForm(form, ctx, unidadeId) {
     payload: {
       id: form.id, unidade_id: unidadeId, nome, descricao: form.descricao || "", foto: form.foto || "",
       categoria: form.categoria || "", tamanho: form.tamanho || "M", peso_final_g: peso, ativo: form.ativo !== false,
+      validade_dias: form.validade_dias ?? null,
       preco_venda: preco ?? 0, custo_embalagens_total: custo.embalagens || 0,
       itens: itens.map((i) => ({ insumo_id: i.insumo_id, subficha_id: i.subficha_id, quantidade: i.quantidade, fator_correcao: i.fator_correcao })),
       embalagens, precos,

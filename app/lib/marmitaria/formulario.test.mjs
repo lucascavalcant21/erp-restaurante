@@ -83,3 +83,12 @@ test("catálogo de pré-preparos: cozinha antes do bar, por categoria; custo por
   assert.deepEqual(atalhosDeQuantidade("g"), [50, 100, 150, 200]);
   assert.deepEqual(atalhosDeQuantidade("un"), [1, 2]);
 });
+
+test("editar a marmita devolve os campos que a tela não mostra (validade)", async () => {
+  const { formDaMarmita, payloadDoForm } = await import("./formulario.mjs");
+  const m = { id: "m1", nome_receita: "Parmegiana", validade_dias: 3, itens: [], embalagens: [], precos: {} };
+  const form = formDaMarmita(m, { insumos: new Map(), fichas: [] });
+  assert.equal(form.validade_dias, 3);
+  const { payload } = payloadDoForm({ ...form, itens: [] }, { insumos: new Map(), fichas: [] }, "marmitaria");
+  assert.equal(payload.validade_dias, 3);
+});

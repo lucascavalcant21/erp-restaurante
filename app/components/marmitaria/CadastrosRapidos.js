@@ -135,6 +135,8 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
       const r = await salvarPrePreparo({
         id, unidade_id: unidadeId, nome: f.nome, departamento: f.setor, rendimento: rendGravado, rendimento_unidade: unGravada,
         validade_dias: lerNumero(f.validade) || null,
+        // editar não apaga o que a tela não mostra: o salvar do banco regrava categoria, descrição, foto e peso
+        ...(ficha ? { categoria: ficha.categoria || "", descricao: ficha.descricao || "", foto: ficha.imagem || "", peso_final_g: ficha.peso_final_g ?? null } : {}),
         itens: convertidos.map((c) => ({ insumo_id: c.insumo_id, quantidade: c.quantidade })),
       });
       if (r.error) { setErro(r.error); return; }

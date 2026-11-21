@@ -50,3 +50,27 @@ test("prejuízo e margem que não cobre", () => {
   assert.equal(c.meta.marmitasFaltam, null);
   assert.match(c.itens[1].texto, /suba o preço/);
 });
+
+test("projeção do mês: ritmo até hoje × dias do mês, fixos pelo mês inteiro", async () => {
+  const { projecaoDoMes } = await import("./gestao-lucro.mjs");
+  // dia 10 de novembro (30 dias): 300 marmitas, R$ 9.000, margem R$ 6.000; fixos lançados 4.000
+  const d = { indicadores: { marmitas: 300, receita: 9000, margemContribuicao: 6000, lucroLiquido: 2000 } };
+  const p = projecaoDoMes({ dre: d, mes: "2026-11", hojeIso: "2026-11-10", fixosPrevistosMes: 14000, metaPorMarmita: 10 });
+  assert.equal(p.natureza, "PROJEÇÃO");
+  assert.equal(p.marmitasProj, 900);
+  assert.equal(p.receitaProj, 27000);
+  assert.equal(p.mcProj, 18000);
+  assert.equal(p.fixosMes, 14000);
+  assert.equal(p.lucroProj, 4000);
+  assert.equal(p.ritmoDia, 30);
+  assert.equal(p.margemPorMarmita, 20);
+  assert.equal(p.pontoEquilibrioMarmitas, 700);   // 14.000 ÷ 20
+  assert.equal(p.porDiaParaEquilibrio, 20);       // (700 − 300) ÷ 20 dias
+  assert.equal(p.marmitasMeta, 1400);             // 14.000 ÷ (20 − 10)
+  assert.equal(p.porDiaParaMeta, 55);             // (1400 − 300) ÷ 20
+  assert.equal(p.situacao, "atencao");
+  assert.equal(projecaoDoMes({ dre: d, mes: "2026-10", hojeIso: "2026-11-10" }).situacao, "fechado");
+  assert.equal(projecaoDoMes({ dre: { indicadores: {} }, mes: "2026-11", hojeIso: "2026-11-10" }).situacao, "sem_dado");
+  // meta maior que a margem: impossível só com volume
+  assert.equal(projecaoDoMes({ dre: d, mes: "2026-11", hojeIso: "2026-11-10", metaPorMarmita: 25 }).metaImpossivel, true);
+});

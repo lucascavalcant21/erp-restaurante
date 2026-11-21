@@ -86,3 +86,51 @@ function brl(v) {
 function fmtPct(v) {
   return `${(Number(v) || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 }
+
+/**
+ * PROJEÇÃO DO MÊS (dono, 21/11/2026: "cria as projeções também no delivery").
+ * No ritmo das vendas até hoje, como o mês fecha. A parte que cresce com a
+ * venda (receita, CMV, impostos, taxas e variáveis = margem de contribuição)
+ * segue o ritmo; a parte fixa (equipe e custos fixos) entra pelo mês inteiro.
+ *   margem projetada = margem até hoje ÷ dias passados × dias do mês
+ *   lucro projetado  = margem projetada − fixos do mês
+ * Natureza: PROJEÇÃO. Mês fechado: não projeta (o DRE já é o resultado).
+ */
+export function projecaoDoMes({ dre, mes, hojeIso, fixosPrevistosMes = null, metaPorMarmita = null } = {}) {
+  const ind = dre?.indicadores || {};
+  if (!/^\d{4}-\d{2}$/.test(String(mes || "")) || !/^\d{4}-\d{2}-\d{2}/.test(String(hojeIso || ""))) return { situacao: "sem_dado", motivo: "Mês ou data inválidos." };
+  const [a, m] = mes.split("-").map(Number);
+  const diasMes = new Date(Date.UTC(a, m, 0)).getUTCDate();
+  const mesHoje = hojeIso.slice(0, 7);
+  if (mesHoje > mes) return { situacao: "fechado", motivo: "Mês encerrado: o resultado é o do DRE." };
+  if (mesHoje < mes) return { situacao: "sem_dado", motivo: "Mês ainda não começou." };
+  const dia = Number(hojeIso.slice(8, 10));
+  const marmitas = ind.marmitas > 0 ? ind.marmitas : null;
+  if (!marmitas || ind.receita == null || ind.margemContribuicao == null || ind.lucroLiquido == null) {
+    return { situacao: "sem_dado", motivo: "Precisa das vendas do mês lançadas e do custo das fichas para projetar." };
+  }
+  const fator = diasMes / dia;
+  const fixosLancados = r2(ind.margemContribuicao - ind.lucroLiquido);
+  const fixosMes = r2(Math.max(fixosLancados, Number(fixosPrevistosMes) || 0));
+  const marmitasProj = Math.round(marmitas * fator);
+  const receitaProj = r2(ind.receita * fator);
+  const mcProj = r2(ind.margemContribuicao * fator);
+  const lucroProj = r2(mcProj - fixosMes);
+  const mcUn = r2(ind.margemContribuicao / marmitas);
+  const diasRestantes = diasMes - dia;
+  const pe = mcUn > 0 ? Math.ceil(fixosMes / mcUn) : null;
+  const metaUn = num(metaPorMarmita);
+  // meta: lucro = meta × marmitas  →  marmitas × (mcUn − meta) = fixos
+  const marmitasMeta = metaUn > 0 && mcUn > metaUn ? Math.ceil(fixosMes / (mcUn - metaUn)) : null;
+  const porDia = (alvo) => (alvo === null ? null : diasRestantes > 0 ? Math.max(0, Math.ceil((alvo - marmitas) / diasRestantes)) : null);
+  return {
+    situacao: lucroProj < 0 ? "alerta" : marmitasMeta !== null && marmitasProj < marmitasMeta ? "atencao" : "ok",
+    natureza: "PROJEÇÃO", dia, diasMes, diasRestantes,
+    ritmoDia: r1(marmitas / dia), marmitas, marmitasProj, receitaProj, mcProj, fixosMes, lucroProj,
+    pontoEquilibrioMarmitas: pe, faltamParaEquilibrio: pe === null ? null : Math.max(0, pe - marmitas), porDiaParaEquilibrio: porDia(pe),
+    marmitasMeta, faltamParaMeta: marmitasMeta === null ? null : Math.max(0, marmitasMeta - marmitas), porDiaParaMeta: porDia(marmitasMeta),
+    metaImpossivel: metaUn > 0 && !(mcUn > metaUn),
+    margemPorMarmita: mcUn,
+  };
+}
+const r1 = (n) => Math.round((Number(n) || 0) * 10) / 10;

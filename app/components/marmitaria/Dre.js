@@ -14,7 +14,7 @@ import { carregarBaseDre, cmvDoMes, cmoDoMesRH } from "../../lib/dre-dados";
 import { janelaDoMes, faturamentoDoMes, montarDre } from "../../lib/dre-gerencial.mjs";
 import { duplicidadesDeFonte } from "../../lib/ifood/nucleo.mjs";
 import ConciliacaoIfood from "./ConciliacaoIfood";
-import { conferenciaDoLucro } from "../../lib/marmitaria/gestao-lucro.mjs";
+import { conferenciaDoLucro, projecaoDoMes } from "../../lib/marmitaria/gestao-lucro.mjs";
 
 const hojeIso = () => new Date().toLocaleDateString("sv-SE");
 const proximoMes = (mes) => { const [a, m] = mes.split("-").map(Number); return m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, "0")}-01`; };
@@ -55,7 +55,10 @@ export function useDreMarmitaria(mes) {
     const dre = dreMarmitaria({ vendas, contas, cmvReal, cmvPrev, cmo, tributosPct: cfg.tributos_pct,
       nomesCategoria: new Map((fin.categorias || []).map((c) => [c.codigo, c.nome])), nomesCanal: new Map(cfg.canais.map((c) => [c.id, c.nome])), fixosCadastrados: cfg.rateio?.custos_fixos || [] });
     const conferencia = conferenciaDoLucro({ dre, cmvReal, cmvPrev, metaPorMarmita: cfg?.rateio?.meta_lucro_reais });
-    return { dre, cmvReal, cmvPrev, cmo, vendas, conferencia, erro: dados.erro };
+    const fixosCfg = (cfg?.rateio?.custos_fixos || []).reduce((t, c) => t + (Number(c.valor) || 0), 0);
+    const cmoMes = cmo?.linhas?.length ? cmo.total : Number(cfg?.rateio?.cmo_mes) || 0;
+    const fixosPrevistosMes = fixosCfg + cmoMes;
+    return { dre, cmvReal, cmvPrev, cmo, vendas, conferencia, fixosPrevistosMes, metaPorMarmita: cfg?.rateio?.meta_lucro_reais, erro: dados.erro };
   }, [dados, base, custos, mes, estoqueIds]);
 }
 
@@ -116,6 +119,7 @@ export default function Dre() {
             <Indicador rotulo="Lucro líquido gerencial" valor={ind.lucroLiquido} natureza={r.dre.natureza} nota={ind.margemLiquidaPct !== null ? `margem ${pctTxt(ind.margemLiquidaPct)}` : null} destaque />
             <Indicador rotulo="Ponto de equilíbrio" valor={ind.pontoEquilibrio} natureza={r.dre.natureza} nota={ind.pontoEquilibrioMarmitas ? `${ind.pontoEquilibrioMarmitas} marmitas no mês` : ind.motivoPontoEquilibrio} />
           </div>
+          <ProjecaoDoMes p={projecaoDoMes({ dre: r.dre, mes, hojeIso: hojeIso(), fixosPrevistosMes: r.fixosPrevistosMes, metaPorMarmita: r.metaPorMarmita })} />
           <ConferenciaDoLucro c={r.conferencia} />
           {/* Avisos num quadro só, com o atalho de cada um (pedido do dono, 28/10/2026: "melhore a marmitaria"). */}
           {r.dre.alertas.length > 0 && (
@@ -193,6 +197,37 @@ function ConferenciaDoLucro({ c }) {
           </li>
         ))}
       </ul>
+    </Secao>
+  );
+}
+
+// Projeção do mês (dono, 21/11/2026): no ritmo das vendas até hoje, como o mês fecha.
+function ProjecaoDoMes({ p }) {
+  if (!p || p.situacao === "fechado") return null;
+  if (p.situacao === "sem_dado") return <Secao titulo="Projeção do mês"><p className="text-sm text-hf-text-2">DADOS INSUFICIENTES: {p.motivo}</p></Secao>;
+  const n = (v) => Number(v).toLocaleString("pt-BR");
+  return (
+    <Secao titulo="Projeção do mês" subtitulo={`Dia ${p.dia} de ${p.diasMes}. No ritmo de ${n(p.ritmoDia)} marmitas por dia, o mês fecha assim (PROJEÇÃO).`}>
+      <div className={`rounded-xl border px-3 py-3 ${COR_SITUACAO[p.situacao]}`}>
+        <p className="text-base font-bold text-hf-text">{p.lucroProj >= 0 ? `Lucro projetado de ${brl(p.lucroProj)}` : `Prejuízo projetado de ${brl(-p.lucroProj)}`}</p>
+        <p className="mt-1 text-sm text-hf-text-2">{n(p.marmitasProj)} marmitas · {brl(p.receitaProj)} de vendas · {brl(p.mcProj)} de margem − {brl(p.fixosMes)} de equipe e custos fixos do mês</p>
+      </div>
+      <ul className="mt-3 space-y-2 text-sm text-hf-text-2">
+        {p.pontoEquilibrioMarmitas !== null && (
+          <li className="rounded-xl border border-hf-border px-3 py-2.5">
+            <b className="text-hf-text">Ponto de equilíbrio: {n(p.pontoEquilibrioMarmitas)} marmitas no mês.</b>{" "}
+            {p.faltamParaEquilibrio > 0 ? `Faltam ${n(p.faltamParaEquilibrio)}${p.porDiaParaEquilibrio !== null ? `: ${n(p.porDiaParaEquilibrio)} por dia nos ${p.diasRestantes} dias que restam` : ""}.` : "Já passou: daqui para frente, cada marmita deixa lucro."}
+          </li>
+        )}
+        {p.marmitasMeta !== null && (
+          <li className="rounded-xl border border-hf-border px-3 py-2.5">
+            <b className="text-hf-text">Meta de lucro: {n(p.marmitasMeta)} marmitas no mês.</b>{" "}
+            {p.faltamParaMeta > 0 ? `Faltam ${n(p.faltamParaMeta)}${p.porDiaParaMeta !== null ? `: ${n(p.porDiaParaMeta)} por dia` : ""}.` : "Meta garantida no volume de hoje."}
+          </li>
+        )}
+        {p.metaImpossivel && <li className="rounded-xl border border-hf-danger/30 bg-hf-danger/5 px-3 py-2.5">Cada marmita deixa {brl(p.margemPorMarmita)} de margem, menos que a meta de lucro por marmita: vender mais não chega lá. Suba o preço ou corte custo.</li>}
+      </ul>
+      <p className="mt-2 text-xs text-hf-muted">Equipe e custos fixos entram pelo mês inteiro; o resto segue o ritmo das vendas lançadas até hoje.</p>
     </Secao>
   );
 }

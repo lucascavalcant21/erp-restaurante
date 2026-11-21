@@ -77,7 +77,9 @@ function BuscaFicha({ fichas, setor, onEscolher, onFechar }) {
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState("prontos");
   const [categoria, setCategoria] = useState("");
-  const doSetor = useMemo(() => (fichas || []).filter((f) => f.ativo !== false && (!setor || setorId(f.departamento) === setor)), [fichas, setor]);
+  // cadastro único com o delivery (21/11/2026): bebida do delivery (categoria Bebidas) vale no bar
+  const setorDe = (f) => (/bebida|refrigerante|refri|suco|agua|cerveja|drink/i.test(String(f.categoria || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ? "bar" : setorId(f.departamento));
+  const doSetor = useMemo(() => (fichas || []).filter((f) => f.ativo !== false && (!setor || setorDe(f) === setor)), [fichas, setor]);
   const porTipo = useMemo(() => ({
     prontos: doSetor.filter((f) => tipoFichaDe(f) !== "pre_preparo"),
     preparos: doSetor.filter((f) => tipoFichaDe(f) === "pre_preparo"),
@@ -282,7 +284,16 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
           </div>
           {item.emTotal ? (
             <div className="space-y-1.5">
-              <Numero valor={item.quantidade_total} onChange={(v) => alterarItem({ quantidade_total: v })} sufixo={item.pesoPorcao > 0 ? `× ${item.pesoPorcao} ${ehBar ? "ml" : "g"}` : "porções"} aria-label="Quantidade para o evento" />
+              {/* dono, 21/11/2026: quantas gramas (ou ml, ou unidades) vão no evento inteiro */}
+              <span className="inline-flex flex-wrap rounded-lg bg-white p-0.5 ring-1 ring-slate-200" role="radiogroup" aria-label="Unidade da quantidade">
+                {[[ehBar ? "ml" : "g", ehBar ? "ml" : "gramas"], ["un", "unidades"], ["porcao", "porções"]].map(([u, rot]) => {
+                  const atual = item.unidadeTotal || "porcao";
+                  return <button key={u} type="button" role="radio" aria-checked={atual === u} onClick={() => alterarItem({ unidade_total: u })}
+                    className={`min-h-[32px] rounded-md px-2 py-0.5 text-[11px] font-bold ${atual === u ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}>{rot}</button>;
+                })}
+              </span>
+              <Numero valor={item.quantidade_total} onChange={(v) => alterarItem({ quantidade_total: v })}
+                sufixo={item.unidadeTotal === "g" ? "g" : item.unidadeTotal === "ml" ? "ml" : item.unidadeTotal === "un" ? "un" : item.pesoPorcao > 0 ? `× ${item.pesoPorcao} ${ehBar ? "ml" : "g"}` : "porções"} aria-label="Quantidade para o evento" />
               <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
                 Dividir em {ehBar ? "copos" : "fatias"} de
                 <span className="w-24"><Numero valor={item.fatia_g} onChange={(v) => alterarItem({ fatia_g: v })} sufixo={ehBar ? "ml" : "g"} aria-label={ehBar ? "Tamanho do copo" : "Peso da fatia"} /></span>
@@ -342,7 +353,12 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
 export function EtapaCardapio({ orc, setOrc, resumo, fichas, insumos = [], bases = [], onSalvarBase, onUsarBase, onApagarBase }) {
   const tipo = tipoDoEvento(orc.tipo);
   // Seção em quantidade fechada: o tipo inteiro (Ticket) ou a Mesa montada do Combinado.
-  const fechadaNa = (secao) => !!tipo.quantidadeFechada || !!SECOES[secao]?.fechada;
+  const modoFechado = orc.financeiro?.modo_preco === "fechado";
+  const fechadaNa = (secao) => !!tipo.quantidadeFechada || modoFechado || !!SECOES[secao]?.fechada;
+  const novoFechado = (secao) => (fechadaNa(secao) ? { medida: "total", quantidade_total: "", unidade_total: secao === "bar" ? "ml" : "g" } : {});
+  const mudarModo = (m) => setOrc((o) => ({ ...o, financeiro: { ...o.financeiro, modo_preco: m },
+    cardapio: m === "fechado" ? o.cardapio.map((i) => (i.medida === "total" ? i : { ...i, medida: "total", unidade_total: i.secao === "bar" ? "ml" : "g", quantidade_total: "" })) : o.cardapio }));
+  const kgL = (g, bar) => (g >= 1000 ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${bar ? "L" : "kg"}` : `${Number(g).toLocaleString("pt-BR")} ${bar ? "ml" : "g"}`);
   const [buscando, setBuscando] = useState(null); // seção com a busca aberta
   const [vinculando, setVinculando] = useState(null); // prato (id) escolhendo a ficha técnica
   const [novoNome, setNovoNome] = useState({}); // seção → nome digitado
@@ -350,7 +366,7 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas, insumos = [], bases
   const adicionarPeloNome = (secao) => {
     const nome = String(novoNome[secao] || "").trim();
     if (!nome) return;
-    const fechado = fechadaNa(secao) ? { medida: "total", quantidade_total: "1" } : {};
+    const fechado = novoFechado(secao);
     setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id: novoId(), secao, origem: "exclusiva", nome, descricao: "", por_pessoa: "1", ingredientes: [], receita_pendente: true, ...fechado }] }));
     setNovoNome((x) => ({ ...x, [secao]: "" }));
   };
@@ -363,7 +379,7 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas, insumos = [], bases
   const remover = (id) => setOrc((o) => ({ ...o, cardapio: o.cardapio.filter((i) => i.id !== id) }));
   const adicionarFicha = (secao, f) => {
     // Ticket por pessoa: o item já entra em quantidade fechada para o evento.
-    const fechado = fechadaNa(secao) ? { medida: "total", quantidade_total: "1" } : {};
+    const fechado = novoFechado(secao);
     setOrc((o) => ({ ...o, cardapio: [...o.cardapio, { id: novoId(), secao, origem: "ficha", ficha_id: f.id, nome: f.nome_receita, descricao: "", por_pessoa: "1", custo_porcao_gravado: custoPorcaoDaFicha(f, fichas) || 0, ...fechado }] }));
     setBuscando(null);
   };
@@ -382,10 +398,22 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas, insumos = [], bases
             ? "Cada pessoa recebe 1 porção de cada item. Se houver opções à escolha (ex.: 2 pratos principais), use 0,5 em cada."
             : "Um item só: informe quanto vai por pessoa."}
       </p>
+      {!tipo.quantidadeFechada && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold uppercase text-slate-500">Montar o cardápio por</span>
+          {[["pessoa", "Porção por pessoa"], ["fechado", "Quantidade fechada do evento"]].map(([id, rot]) => {
+            const sel = (orc.financeiro?.modo_preco || "pessoa") === id;
+            return <button key={id} type="button" aria-pressed={sel} onClick={() => mudarModo(id)} className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold ${sel ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600"}`}>{rot}</button>;
+          })}
+        </div>
+      )}
       {onSalvarBase && <BasesDoCardapio orc={orc} bases={bases} onSalvar={onSalvarBase} onUsar={onUsarBase} onApagar={onApagarBase} />}
       {/* Ticket por pessoa: monta a mesa e diz quantas pessoas comem dela. */}
-      {tipo.quantidadeFechada && (
-        <Cartao titulo="Mesa do evento" descricao="Monte a mesa com os pratos e diga quantas pessoas vão comer dela. Não importa quanto cada um come: o custo da mesa é dividido por todos.">
+      {(tipo.quantidadeFechada || modoFechado) && (
+        <Cartao titulo={modoFechado ? "Cardápio do evento" : "Mesa do evento"} descricao={modoFechado ? "Diga quantos gramas de cada comida e quantos ml de cada bebida vão no evento inteiro e quantas pessoas vão participar. O custo é dividido por todos: esse é o custo individual." : "Monte a mesa com os pratos e diga quantas pessoas vão comer dela. Não importa quanto cada um come: o custo da mesa é dividido por todos."}>
+          {modoFechado && (resumo.totalComidaG > 0 || resumo.totalBebidaMl > 0) && (
+            <p className="mb-3 text-sm text-slate-700">{resumo.totalComidaG > 0 && <>Comida <b>{kgL(resumo.totalComidaG, false)}</b></>}{resumo.totalComidaG > 0 && resumo.totalBebidaMl > 0 ? " + " : ""}{resumo.totalBebidaMl > 0 && <>bebida <b>{kgL(resumo.totalBebidaMl, true)}</b></>} = <b>{fmtReais(resumo.cmv)}</b></p>
+          )}
           <div className="flex flex-wrap items-end gap-4">
             <label className="w-48 text-[11px] font-bold uppercase tracking-wide text-slate-600">Quantas pessoas vão comer?
               <Numero valor={orc.cliente?.convidados ?? ""} onChange={(v) => setOrc((o) => ({ ...o, cliente: { ...o.cliente, convidados: v } }))} sufixo="pessoas" aria-label="Quantas pessoas vão comer" />
@@ -479,7 +507,7 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas, insumos = [], bases
               ) : <p className="text-xs font-semibold text-slate-500">Informe as pessoas e os itens para ver o custo por pessoa.</p>}
             </div>
           </div>
-{!tipo.quantidadeFechada && (          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto (não vale para itens em quantidade fechada). Entra no custo e na lista de compras." className="mt-4 max-w-xs">
+{!tipo.quantidadeFechada && !modoFechado && (          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto (não vale para itens em quantidade fechada). Entra no custo e na lista de compras." className="mt-4 max-w-xs">
             <Numero valor={orc.sobra_pct} onChange={(v) => setOrc((o) => ({ ...o, sobra_pct: v }))} sufixo="%" />
           </Campo>)}
         </Cartao>

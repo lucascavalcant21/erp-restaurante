@@ -9,7 +9,7 @@
 // evento é só dele: não lê nem escreve nada do DRE da casa.
 
 import { custoPorcaoDaFicha, listaDeComprasDeFichas } from "./evento-financeiro.mjs";
-import { parseNumero } from "./ficha-calculos.mjs";
+import { parseNumero, porcoesParaCusto } from "./ficha-calculos.mjs";
 import { arred2, percentualDe } from "./valor-percentual.mjs";
 
 const pos = (v) => Math.max(0, parseNumero(v));
@@ -94,6 +94,10 @@ export function orcamentoVazio(params = {}) {
       prolabore: { modo: "pct", valor: 0 },
       comissoes: [],
       preco_por_pessoa: 0,
+      // Como monta (dono, 21/11/2026): "pessoa" = porção por convidado;
+      // "fechado" = quantidade total do evento (g, ml, unidades) dividida pelas
+      // pessoas. O preço é sempre por pessoa e o total é preço × pessoas.
+      modo_preco: "pessoa",
       // Criança: paga % do adulto (ou um valor fixo) e come uma fração de um adulto.
       preco_crianca: { modo: "pct", valor: 50 },
       consumo_crianca_pct: 50,
@@ -223,13 +227,28 @@ export function secaoDoItem(item, tipo) {
  * pessoa = gramas ÷ peso da porção (da ficha técnica, ou o informado na ficha
  * exclusiva).
  */
+/** Gramas (ou ml) de UMA porção da ficha: peso da porção; senão o rendimento em kg/L ÷ porções; senão o peso final. */
+export function gramasDaPorcao(ficha, pesoPorcao = 0) {
+  if (pos(pesoPorcao) > 0) return pos(pesoPorcao);
+  if (!ficha) return 0;
+  const rend = pos(ficha.rendimento_porcoes);
+  const un = String(ficha.rendimento_unidade || "").toLowerCase();
+  const porcoes = porcoesParaCusto(ficha).porcoes || 1;
+  if ((un === "kg" || un === "l") && rend > 0) return (rend * 1000) / porcoes;
+  if ((un === "g" || un === "ml") && rend > 0) return rend / porcoes;
+  return pos(ficha.peso_final_g);
+}
+
 export function itensDoOrcamento(orc = {}, fichas = []) {
   const porId = new Map((fichas || []).map((f) => [f.id, f]));
   // Ticket por pessoa: a mesa é montada em quantidade fechada; não importa
   // quanto cada um come (pedido do dono, 28/10/2026: "gastei 100 reais, são
   // 50 pessoas, custo por pessoa 2 reais").
   // Na seção "Mesa montada" (tipo Combinado) também: quantidade fechada.
-  const mesaFechada = !!tipoDoEvento(orc.tipo).quantidadeFechada;
+  // Quantidade fechada no evento inteiro (dono, 21/11/2026): "escolho quantas
+  // gramas de cada coisa, deu 4 kg de comida e 3 L de bebida, R$ 160; divide
+  // pelas pessoas e esse é o custo individual".
+  const mesaFechada = !!tipoDoEvento(orc.tipo).quantidadeFechada || orc.financeiro?.modo_preco === "fechado";
   return (orc.cardapio || []).map((item0) => {
     const fechada = mesaFechada || !!SECOES[secaoDoItem(item0, orc.tipo)]?.fechada;
     const item = fechada && item0.medida !== "total" ? { ...item0, medida: "total", quantidade_total: item0.quantidade_total ?? "1" } : item0;
@@ -251,11 +270,18 @@ export function itensDoOrcamento(orc = {}, fichas = []) {
     // quantidade_total = porções da ficha para o evento inteiro (não × pessoas,
     // sem sobra); fatia_g opcional mostra quantas fatias/copos dá.
     if (item.medida === "total") {
-      const qtd = pos(item.quantidade_total);
+      // Quantidade em gramas/ml (ou unidades) vira porções da ficha.
+      const unTotal = ["g", "ml", "un"].includes(item.unidade_total) ? item.unidade_total : "porcao";
+      const gPorcao = unTotal === "g" || unTotal === "ml" ? gramasDaPorcao(ficha, pesoPorcao) : 0;
+      const bruto = pos(item.quantidade_total);
+      const qtd = unTotal === "g" || unTotal === "ml" ? (gPorcao > 0 ? bruto / gPorcao : 0) : bruto;
+      if ((unTotal === "g" || unTotal === "ml") && !(gPorcao > 0) && bruto > 0) problemas = [...problemas, "a ficha não tem peso nem rendimento em kg/L: use unidades ou porções"];
+      const medidaTotal = unTotal === "g" || unTotal === "ml" ? { unidadeTotal: unTotal, quantidadeInformada: bruto, gramasTotal: bruto }
+        : { unidadeTotal: unTotal, quantidadeInformada: bruto, gramasTotal: gPorcao > 0 || pesoPorcao > 0 ? bruto * (gPorcao || pesoPorcao) : null };
       const fatia = pos(item.fatia_g);
       const fatias = pesoPorcao > 0 && fatia > 0 ? Math.floor((qtd * pesoPorcao) / fatia + 1e-9) : null;
       const probs = fatia > 0 && !(pesoPorcao > 0) ? [...problemas, item.origem === "exclusiva" ? "informe o peso da porção para dividir em fatias" : "a ficha não tem peso da porção; não dá para contar as fatias"] : problemas;
-      return { ...item, secao, ficha, emGramas: false, emTotal: true, quantidadeTotal: qtd, fatias, pesoPorcao, porPessoa: 0, custoPorcao, custoPorPessoa: 0, custoTotalFixo: custoPorcao * qtd, aoVivo, problemas: probs, semCusto: !(custoPorcao > 0) };
+      return { ...item, ...medidaTotal, secao, ficha, emGramas: false, emTotal: true, quantidadeTotal: qtd, fatias, pesoPorcao, porPessoa: 0, custoPorcao, custoPorPessoa: 0, custoTotalFixo: custoPorcao * qtd, aoVivo, problemas: probs, semCusto: !(custoPorcao > 0) };
     }
     const emGramas = item.medida === "g" && secao !== "bar";
     // DIVISÃO DO PRATO (pedido do dono, 28/10/2026: "pego o prato, o sistema já
@@ -324,8 +350,11 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
   const extrasPorCategoria = CATEGORIAS_EXTRAS.map((c) => ({ ...c, valor: r2((orc.extras || []).filter((x) => (x.categoria || "outros") === c.id).reduce((t, x) => t + pos(x.valor), 0)) }));
   const extras = r2(extrasPorCategoria.reduce((t, c) => t + c.valor, 0));
 
+  // Quantidade fechada: o custo do cardápio é dividido por todas as pessoas e
+  // cada uma paga o mesmo preço; no fim, preço × pessoas.
+  const fechado = fin.modo_preco === "fechado";
   const precoPorPessoa = pos(fin.preco_por_pessoa);
-  const pc = fin.preco_crianca || { modo: "pct", valor: 50 };
+  const pc = fechado ? { modo: "pct", valor: 100 } : (fin.preco_crianca || { modo: "pct", valor: 50 });
   const precoCrianca = r2(pc.modo === "valor" ? pos(pc.valor) : precoPorPessoa * pos(pc.valor) / 100);
   // Mesa montada vendida como pacote fechado: entra inteira na receita, fora do "por pessoa".
   const temMesa = itens.some((i) => i.secao === "mesa");
@@ -432,6 +461,11 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
       margem: diferencaMeta !== null && diferencaMeta > 0 ? diferencaMeta : 0,
       falta: diferencaMeta !== null && diferencaMeta < 0 ? r2(-diferencaMeta) : 0,
     },
+    modoPreco: fechado ? "fechado" : "pessoa",
+    // Quantidade fechada: quanto de comida (g) e de bebida (ml) foi para o evento e o custo individual.
+    totalComidaG: r2(itens.filter((i) => i.emTotal && i.secao !== "bar").reduce((t, i) => t + (i.gramasTotal || 0), 0)),
+    totalBebidaMl: r2(itens.filter((i) => i.emTotal && i.secao === "bar").reduce((t, i) => t + (i.gramasTotal || 0), 0)),
+    custoCardapioPorPessoa: convidados > 0 ? r2(cmv / convidados) : null,
     precoSugeridoPorPessoa: sugerido,
     // Sugerido arredondado para o próximo real inteiro (preço "redondo").
     precoSugeridoRedondo: sugerido ? Math.ceil(sugerido - 0.000001) : null,
@@ -645,7 +679,7 @@ export function linhasDeValor(r) {
   const l = [];
   if (r.precoPorPessoa > 0) l.push(`Valor por pessoa: ${fmtR(r.precoPorPessoa)}`);
   if (r.precoMesa > 0) l.push(`Mesa montada (pacote fechado): ${fmtR(r.precoMesa)}`);
-  if (r.criancas > 0) l.push(`Crianças (${r.criancas}): ${fmtR(r.precoCrianca)} cada`);
+  if (r.criancas > 0 && r.modoPreco !== "fechado") l.push(`Crianças (${r.criancas}): ${fmtR(r.precoCrianca)} cada`);
   if (r.desconto > 0) l.push(`Desconto: −${fmtR(r.desconto)}`);
   if (r.convidados) l.push(`Total para ${r.convidados} pessoas: ${fmtR(r.receita)}`);
   return l;

@@ -423,3 +423,28 @@ test("meta em %: valor da meta sai em reais sobre a receita", () => {
   assert.equal(r.meta.falta + r.meta.margem, Math.abs(r2v(r.lucro - 1600)));
 });
 const r2v = (v) => Math.round(v * 100) / 100;
+
+test("quantidade fechada (dono, 21/11/2026): gramas e ml do evento, custo ÷ pessoas, preço × pessoas", () => {
+  const fichas = [
+    { id: "arroz", nome_receita: "Arroz", departamento: "cozinha", rendimento_porcoes: 5, rendimento_unidade: "kg", eh_base: true,
+      fichas_ingredientes: [{ quantidade: 1, insumos: { id: "i1", nome: "arroz cru", unidade_medida: "kg", custo_compra: 25, tamanho_embalagem: 1 } }] },
+    { id: "suco", nome_receita: "Suco", departamento: "bar", rendimento_porcoes: 1, rendimento_unidade: "l", eh_base: true,
+      fichas_ingredientes: [{ quantidade: 1, insumos: { id: "i2", nome: "polpa", unidade_medida: "kg", custo_compra: 20, tamanho_embalagem: 1 } }] },
+  ];
+  const orc = orcamentoVazio();
+  orc.cliente.convidados = 40;
+  orc.cliente.criancas = 10;
+  orc.financeiro.modo_preco = "fechado";
+  orc.cardapio = [
+    { id: "a", origem: "ficha", ficha_id: "arroz", secao: "buffet", quantidade_total: "4000", unidade_total: "g" },
+    { id: "b", origem: "ficha", ficha_id: "suco", secao: "bar", quantidade_total: "3000", unidade_total: "ml" },
+  ];
+  orc.financeiro.preco_por_pessoa = "10";
+  const r = resumoDoOrcamento(orc, fichas);
+  assert.equal(r.totalComidaG, 4000);
+  assert.equal(r.totalBebidaMl, 3000);
+  assert.equal(r.cmv, 80); // 4 kg × R$ 5/kg + 3 L × R$ 20/L
+  assert.equal(r.custoCardapioPorPessoa, 2);
+  assert.equal(r.receita, 400); // R$ 10 × 40 pessoas (criança paga igual)
+  assert.ok(r.precoSugeridoPorPessoa > 0);
+});

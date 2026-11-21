@@ -18,10 +18,22 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
   const f = orc.financeiro;
   const mudar = (m) => setOrc((o) => ({ ...o, financeiro: { ...o.financeiro, ...m } }));
   const mudarComissao = (id, m) => mudar({ comissoes: f.comissoes.map((c) => (c.id === id ? { ...c, ...m } : c)) });
+  const fechado = r.modoPreco === "fechado";
   const usarSugerido = () => r.precoSugeridoPorPessoa && mudar({ preco_por_pessoa: fmtNumBR(r.precoSugeridoPorPessoa) });
+  const sugerido = r.precoSugeridoPorPessoa;
+  const minimo = r.precoMinimoPorPessoa;
+  const kgL = (g, un) => (g >= 1000 ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${un === "ml" ? "L" : "kg"}` : `${g.toLocaleString("pt-BR")} ${un}`);
   return (
     <div className="space-y-5">
-      <Cartao titulo="Valor para o cliente" descricao="O sistema sugere o valor por pessoa que cobre todos os custos e ainda deixa sua meta de lucro líquido. Você decide o valor final.">
+      <Cartao titulo="Valor para o cliente" descricao="O sistema sugere o valor por pessoa que cobre todos os custos e ainda deixa sua meta de lucro líquido. Você decide o valor final; o total é o valor × pessoas.">
+        {fechado && (
+          <div className="mb-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            {r.totalComidaG > 0 && <>Comida <b>{kgL(r.totalComidaG, "g")}</b>{r.totalBebidaMl > 0 ? " + " : ""}</>}
+            {r.totalBebidaMl > 0 && <>bebida <b>{kgL(r.totalBebidaMl, "ml")}</b></>}
+            {(r.totalComidaG > 0 || r.totalBebidaMl > 0) ? " = " : "Cardápio: "}<b>{fmtReais(r.cmv)}</b>
+            {r.convidados > 0 ? <> ÷ {r.convidados} pessoas = <b>{fmtReais(r.custoCardapioPorPessoa)} por pessoa</b> (custo do cardápio)</> : " · informe quantas pessoas na etapa Cliente"}
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-3">
             {/* Meta em reais por convidado (regra do dono, 06/11/2026): é o dinheiro no bolso e não muda com o preço. */}
@@ -30,8 +42,8 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
           </div>
           <div className="rounded-2xl bg-slate-50 px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Sugerido por pessoa</p>
-            <p className="text-xl font-black tabular-nums text-slate-900">{r.precoSugeridoPorPessoa ? fmtReais(r.precoSugeridoPorPessoa) : "—"}</p>
-            {r.precoSugeridoPorPessoa && (
+            <p className="text-xl font-black tabular-nums text-slate-900">{sugerido ? fmtReais(sugerido) : "—"}</p>
+            {sugerido && (
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                 <button type="button" onClick={usarSugerido} className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"><Wand2 size={12} /> Usar este valor</button>
                 {r.precoSugeridoRedondo && r.precoSugeridoRedondo !== r.precoSugeridoPorPessoa && (
@@ -42,14 +54,14 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
           </div>
           <div className="rounded-2xl bg-slate-50 px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Mínimo (lucro zero)</p>
-            <p className="text-xl font-black tabular-nums text-slate-900">{r.precoMinimoPorPessoa ? fmtReais(r.precoMinimoPorPessoa) : "—"}</p>
+            <p className="text-xl font-black tabular-nums text-slate-900">{minimo ? fmtReais(minimo) : "—"}</p>
             <p className="text-xs font-medium text-slate-500">Abaixo disso, prejuízo.</p>
           </div>
         </div>
         {!(r.convidados > 0) && <p className="mt-3 flex items-center gap-2 text-sm font-bold text-amber-700"><Info size={16} /> Informe quantas pessoas (etapa Cliente) para calcular o valor sugerido.</p>}
         <div className="mt-5 grid gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4 sm:grid-cols-2">
           <div className="space-y-3">
-            <Campo rotulo={r.temMesa ? "Valor por pessoa (buffet e bar)" : "Valor por pessoa que vou passar ao cliente"}>
+            <Campo rotulo={r.temMesa ? "Valor por pessoa (buffet e bar)" : "Valor por pessoa que vou passar ao cliente"} ajuda={fechado && r.convidados > 0 && r.precoPorPessoa > 0 ? `${fmtReais(r.precoPorPessoa)} × ${r.convidados} pessoas = ${fmtReais(r.receitaBruta)}` : undefined}>
               <Numero valor={f.preco_por_pessoa} onChange={(v) => mudar({ preco_por_pessoa: v })} prefixo="R$" placeholder="0,00" className="[&_input]:h-14 [&_input]:text-xl [&_input]:font-black" />
             </Campo>
             {/* Mesa montada vendida como pacote fechado (pedido do dono, 03/11/2026). */}
@@ -60,7 +72,7 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
             )}
           </div>
           <div className="space-y-1 self-center">
-            {r.criancas > 0 && <LinhaValor rotulo={`${r.adultos} adultos + ${r.criancas} crianças (${fmtReais(r.precoCrianca)} cada)`} valor={fmtReais(r.receitaBruta)} />}
+            {r.criancas > 0 && !fechado && <LinhaValor rotulo={`${r.adultos} adultos + ${r.criancas} crianças (${fmtReais(r.precoCrianca)} cada)`} valor={fmtReais(r.receitaBruta)} />}
             {r.precoMesa > 0 && <LinhaValor rotulo="Mesa montada (pacote)" valor={fmtReais(r.precoMesa)} />}
             {r.desconto > 0 && <LinhaValor rotulo="Desconto" valor={`−${fmtReais(r.desconto)}`} />}
             <LinhaValor rotulo={`Total${r.convidados ? ` (${r.convidados} pessoas)` : ""}`} valor={fmtReais(r.receita)} />

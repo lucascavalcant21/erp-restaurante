@@ -7,6 +7,7 @@
 // depois da última alteração) em eventos.operacao_detalhes.orcamento, e as
 // colunas que o funil, a agenda e a tela inicial leem são atualizadas junto.
 
+import { fetchFichasDoEvento, fetchInsumosDoEvento } from "../../../../lib/eventos-cadastro";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -89,7 +90,7 @@ export default function EventoPage() {
       const outros = (colunas) => supabase.from("eventos").select(colunas).eq("unidade_id", unidadeAtiva).neq("id", id);
       const [{ data, error }, resFichas, resParams, resOutrosCompleto, resModelos] = await Promise.all([
         supabase.from("eventos").select("*").eq("id", id).single(),
-        fetchFichas(unidadeAtiva),
+        fetchFichasDoEvento(unidadeAtiva),
         fetchParamsDaCasa(unidadeAtiva),
         // Outros eventos da loja: histórico do cliente, conflito de equipe e nomes já usados.
         outros("id, nome, cliente_nome, cliente_telefone, data_evento, valor_contratado, capacidade, funil_status, operacao_detalhes"),
@@ -110,7 +111,7 @@ export default function EventoPage() {
       }
       if (!ativo) return;
       setFichas(resFichas.data || []);
-      fetchInsumos(unidadeAtiva).then((r) => { if (ativo) setInsumos(r.data || []); });
+      fetchInsumosDoEvento(unidadeAtiva).then((r) => { if (ativo) setInsumos(r.data || []); });
       setOutrosEventos(resOutros.error ? [] : resOutros.data || []);
       setModelos(resModelos.data || []);
       fetchBasesEvento(unidadeAtiva).then((r) => { if (ativo) setBases(r.data || []); });

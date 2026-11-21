@@ -102,3 +102,20 @@ Fica em Financeiro › Conciliação. Código: `app/lib/marmitaria/conciliacao.m
 - **Usar como taxa real:** grava os totais na fatura do app (só a coluna `canais`).
 
 Formato real da planilha da 99/iFood: NÃO VALIDADO. A detecção de colunas foi testada com CSV e XLSX montados nos testes.
+
+## Eventos no mesmo modelo (21/11/2026)
+
+Decisão do dono: os eventos usam o **mesmo cadastro do delivery** e precificam **dos dois jeitos**.
+
+- **Cadastro único:**
+  - As telas de evento (`eventos/[id]` e o Simulador) carregam as fichas e os ingredientes da unidade dos eventos e também os do delivery (`app/lib/eventos-cadastro.js`).
+  - Bebida do delivery (categoria Bebidas) entra na seção Bar.
+  - A barra de Eventos ganhou "Fichas e cadastros", que leva às telas do delivery.
+- **Porção por pessoa:** como era.
+- **Quantidade fechada do evento** (`financeiro.modo_preco = "fechado"`):
+  - Cada item vai em gramas, ml, unidades ou porções do evento inteiro (`unidade_total`); `gramasDaPorcao` converte g/ml em porções da ficha.
+  - A tela mostra "comida X kg + bebida Y L = R$ Z ÷ N pessoas = custo individual".
+  - O preço é por pessoa, igual para todos (criança paga igual), e o total é preço × pessoas.
+  - Sugerido e mínimo por pessoa saem do mesmo motor.
+- **Testes:** em `evento-orcamento.test.mjs` (4 kg de arroz + 3 L de suco = R$ 80; ÷ 40 = R$ 2; R$ 10 × 40 = R$ 400).
+- **Validação:** telas NÃO VALIDADAS no app.

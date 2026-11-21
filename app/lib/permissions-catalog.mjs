@@ -328,6 +328,19 @@ export const PERMISSION_MODULES = [
     ],
   },
   {
+    // Consultório médico (21/11/2026). Dado de saúde: além da permissão da
+    // rota, o banco só mostra pacientes a quem tem a unidade do consultório
+    // (CONS-1) e a ficha só ao médico que escreveu.
+    id: "consultorio", label: "Consultório",
+    pages: [
+      { id: "schedule", label: "Agenda do consultório", route: "/dashboard/consultorio", actions: [...CRUD] },
+      { id: "care", label: "Atendimento (fila e ficha de retorno)", route: "/dashboard/consultorio/atendimento", actions: [...CRUD] },
+      { id: "patients", label: "Pacientes", route: "/dashboard/consultorio/pacientes", actions: [...CRUD] },
+      { id: "financial", label: "Preço e lucro da consulta", route: "/dashboard/consultorio/financeiro", actions: ["view", "edit", "view_values"] },
+      { id: "settings", label: "Tipos de consulta e convênios", route: "/dashboard/consultorio/cadastros", actions: ["view", "edit", "settings"] },
+    ],
+  },
+  {
     id: "marmitaria", label: "Delivery",
     pages: [
       // Seis áreas (14/10/2026). Os ids antigos que continuam servem às mesmas

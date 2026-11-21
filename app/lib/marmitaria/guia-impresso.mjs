@@ -21,7 +21,8 @@ export function htmlDosGuias(guias = []) {
       ${g.embalagens.length ? `<table>${g.embalagens.map((e) => `<tr><td>${esc(e.nome)}</td><td class="q">${esc(e.quantidade)} un</td></tr>`).join("")}</table>` : "<p class=\"falta\">Embalagens não informadas.</p>"}`}
     </div>
   </div>
-  ${g.etapas.length ? g.etapas.map((grupo) => `<h2>${esc(grupo.rotulo)}</h2><ol>${grupo.itens.map((e) => `<li><b>${esc(e.titulo)}</b>${e.texto ? `<br>${esc(e.texto).replace(/\n/g, "<br>")}` : ""}${e.minutos || e.graus ? `<br><i>${[e.minutos && `${esc(e.minutos)} min`, e.graus && `${esc(e.graus)} °C`].filter(Boolean).join(" · ")}</i>` : ""}${urlSegura(e.foto) ? `<br><img class="passo" src="${urlSegura(e.foto)}" alt="">` : ""}</li>`).join("")}</ol>`).join("") : "<p class=\"falta\">Passo a passo não escrito.</p>"}
+  ${g.recipiente ? `<p><b>Marmita:</b> ${esc(g.recipiente)}</p>` : ""}
+  ${g.etapas.length ? g.etapas.map((grupo) => `<h2>${esc(grupo.rotulo)}</h2><ol>${grupo.itens.map((e) => `<li><b>${esc(e.titulo)}</b>${e.quantidade || e.onde ? ` — ${[e.quantidade && esc(e.quantidade), e.onde && esc(e.onde)].filter(Boolean).join(" · ")}` : ""}${e.texto ? `<br>${esc(e.texto).replace(/\n/g, "<br>")}` : ""}${e.minutos || e.graus ? `<br><i>${[e.minutos && `${esc(e.minutos)} min`, e.graus && `${esc(e.graus)} °C`].filter(Boolean).join(" · ")}</i>` : ""}${urlSegura(e.foto) ? `<br><img class="passo" src="${urlSegura(e.foto)}" alt="">` : ""}</li>`).join("")}</ol>`).join("") : "<p class=\"falta\">Passo a passo não escrito.</p>"}
   ${g.faltando.length ? `<p class="falta">Falta cadastrar: ${esc(g.faltando.join(", "))}.</p>` : ""}
 </section>`;
   }).join("");

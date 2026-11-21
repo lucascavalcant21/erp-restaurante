@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { marmitasDaEmbalagem, moverEtapa, normalizarProcesso, resumoDoProcesso } from "./processos.mjs";
+import { compartimentosDe, marmitasDaEmbalagem, montarPelaFicha, moverEtapa, normalizarProcesso, resumoDoProcesso } from "./processos.mjs";
 
 test("embalagem aponta para as marmitas que ela serve", () => {
   const processos = { a: { embalagens: ["p1", "p2"] }, b: { embalagens: ["p2"] } };
@@ -16,7 +16,7 @@ test("mostra o que falta escrever", () => {
 });
 
 test("ignora dado estranho e move só dentro do grupo", () => {
-  assert.deepEqual(normalizarProcesso({ embalagens: ["a", "a", null], etapas: [{ id: 1, grupo: "x" }] }), { embalagens: ["a"], etapas: [] });
+  assert.deepEqual(normalizarProcesso({ embalagens: ["a", "a", null], etapas: [{ id: 1, grupo: "x" }], compartimentos: 7 }), { embalagens: ["a"], recipiente: "", compartimentos: null, etapas: [] });
   const e = [{ id: "1", grupo: "montagem" }, { id: "2", grupo: "coccao" }, { id: "3", grupo: "montagem" }];
   assert.deepEqual(moverEtapa(e, "3", -1).map((x) => x.id), ["3", "2", "1"]);
   assert.deepEqual(moverEtapa(e, "1", -1).map((x) => x.id), ["1", "2", "3"]);
@@ -35,4 +35,14 @@ test("guia de montagem: gramas da ficha, embalagens e passos; o que falta é dit
   assert.equal(g.peso, "450 g");
   assert.deepEqual(g.faltando, []);
   assert.deepEqual(guiaDeMontagem({ marmita: { nome_receita: "Nova" } }).faltando, ["a ficha técnica (o que vai e quanto)", "o passo a passo da montagem", "as embalagens"]);
+});
+
+test("montar pela ficha: um passo por item com a quantidade, sem repetir; compartimentos por quantidade", () => {
+  let n = 0;
+  const comps = [{ nome: "Arroz branco", quantidade: "120 g" }, { nome: "Batata palha", quantidade: "50 g" }];
+  const p = montarPelaFicha({ etapas: [{ id: "a", grupo: "montagem", titulo: "arroz branco" }] }, comps, () => `n${++n}`);
+  assert.deepEqual(p.etapas.map((e) => [e.titulo, e.quantidade]), [["arroz branco", ""], ["Batata palha", "50 g"]]);
+  assert.deepEqual(compartimentosDe(3).map((c) => c.rotulo), ["Maior", "Médio", "Menor"]);
+  assert.deepEqual(compartimentosDe(0), []);
+  assert.equal(normalizarProcesso({ etapas: [{ id: 1, grupo: "montagem", compartimento: "teto" }] }).etapas[0].compartimento, "");
 });

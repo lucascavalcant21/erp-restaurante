@@ -85,3 +85,20 @@ Fichas criadas sem ingredientes, para o dono completar. Cada uma recebeu as emba
 | Filé à Milanesa | Marmitas | 34,90 | 29,90 |
 
 Sem ingredientes, o custo fica incompleto e o lucro aparece como "pendente", nunca como número.
+
+## Conciliação da fatura (21/11/2026, item F da especificação)
+
+Fica em Financeiro › Conciliação. Código: `app/lib/marmitaria/conciliacao.mjs`, `app/lib/planilha-xlsx.mjs` (lê .xlsx sem dependência, com DecompressionStream) e `components/marmitaria/Conciliacao.js`.
+
+- Lê .xlsx ou .csv (com ; ou ,). Acha sozinho a linha de cabeçalho e as colunas: pedido, data, valor, ofertas da loja, taxas, líquido e itens. O dono pode trocar as colunas.
+- Confere pedido por pedido:
+  - a taxa real × a do contrato (tolerância de 1 ponto);
+  - se valor − ofertas − taxas bate com o líquido;
+  - pedido sem data.
+- **Gravar como vendas:** vai para `marmitaria_vendas` com fonte "importacao" e referência `fatura:<app>:<pedido>`.
+  - O índice único (unidade, fonte, referência) não deixa repetir; testado no banco real em transação desfeita.
+  - Não se edita nem se apaga pela tela, porque o valor é histórico.
+  - Quantidade de itens: a da planilha ou 1 por pedido, com aviso.
+- **Usar como taxa real:** grava os totais na fatura do app (só a coluna `canais`).
+
+Formato real da planilha da 99/iFood: NÃO VALIDADO. A detecção de colunas foi testada com CSV e XLSX montados nos testes.

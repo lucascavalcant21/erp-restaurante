@@ -497,6 +497,40 @@ export async function fetchPedidosDoDia(unidadeId, dia) {
   };
 }
 
+// ─── Conciliação da fatura do app (especificação 21/11/2026, item F) ─────────
+
+/** Referências "fatura:<app>:<pedido>" já importadas desse app (para não repetir). */
+export async function referenciasDaFatura(unidadeId, canal) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return new Set();
+  const { data } = await supabase.from("marmitaria_vendas").select("referencia_externa")
+    .eq("unidade_id", unidadeId).eq("fonte", "importacao").like("referencia_externa", `fatura:${canal}:%`);
+  return new Set((data || []).map((v) => String(v.referencia_externa)));
+}
+
+/** Grava os pedidos da fatura como vendas (em lotes). Importado não se edita nem se apaga pela tela. */
+export async function importarFatura(unidadeId, vendas) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO, gravadas: 0 };
+  if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade.", gravadas: 0 };
+  let gravadas = 0;
+  for (let i = 0; i < vendas.length; i += 300) {
+    const r = await importarVendas(unidadeId, vendas.slice(i, i + 300));
+    if (r.error) return { error: r.error, gravadas };
+    gravadas += Math.min(300, vendas.length - i);
+  }
+  return { error: null, gravadas };
+}
+
+/** Guarda os totais da fatura no app (só a coluna de canais; o resto da configuração não muda). */
+export async function salvarFaturaNoCanal(unidadeId, canalId, { ganhos, ofertas, taxas, periodo }) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const { data, error } = await supabase.from("marmitaria_configuracoes").select("canais").eq("unidade_id", unidadeId).maybeSingle();
+  if (error) return { error: mensagemErro(error) };
+  const canais = (data?.canais || []).map((c) => (c.id === canalId ? { ...c, fatura_ganhos: ganhos, fatura_ofertas: ofertas, fatura_taxas: taxas, fatura_periodo: periodo } : c));
+  if (!canais.some((c) => c.id === canalId)) return { error: "App não encontrado nas configurações." };
+  const r = await supabase.from("marmitaria_configuracoes").update({ canais: canais.map(normalizarCanal), updated_at: new Date().toISOString() }).eq("unidade_id", unidadeId);
+  return { error: mensagemErro(r.error) };
+}
+
 export async function importarVendas(unidadeId, vendas) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };

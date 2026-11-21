@@ -7,8 +7,9 @@ import { Abas } from "../../../components/marmitaria/ui";
 import Dre from "../../../components/marmitaria/Dre";
 import Vendas from "../../../components/marmitaria/Vendas";
 import Simulador from "../../../components/marmitaria/Simulador";
+import Conciliacao from "../../../components/marmitaria/Conciliacao";
 
-const ABAS = [{ id: "resultado", rotulo: "Resultado (DRE)" }, { id: "vendas", rotulo: "Vendas" }, { id: "simulador", rotulo: "Simulador" }];
+const ABAS = [{ id: "resultado", rotulo: "Resultado (DRE)" }, { id: "vendas", rotulo: "Vendas" }, { id: "conciliacao", rotulo: "Conciliação" }, { id: "simulador", rotulo: "Simulador" }];
 
 function Conteudo() {
   const { base } = useMarmitaria();
@@ -21,6 +22,7 @@ function Conteudo() {
       <Abas abas={ABAS} valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} />
       {aba === "resultado" && <Dre />}
       {aba === "vendas" && <Vendas />}
+      {aba === "conciliacao" && <Conciliacao />}
       {aba === "simulador" && <Simulador />}
     </div>
   );

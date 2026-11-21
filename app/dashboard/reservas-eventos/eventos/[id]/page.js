@@ -33,7 +33,7 @@ const ETAPAS = [
   { id: "tipo", rotulo: "Tipo" },
   { id: "cardapio", rotulo: "Cardápio" },
   { id: "equipe", rotulo: "Equipe" },
-  { id: "extras", rotulo: "Aluguel e extras" },
+  { id: "extras", rotulo: "Espaço e decoração" },
   { id: "cliente", rotulo: "Cliente" },
   { id: "financeiro", rotulo: "Custos e preço" },
   { id: "dre", rotulo: "DRE do evento" },

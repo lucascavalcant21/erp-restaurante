@@ -74,8 +74,10 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
           <div className="space-y-1 self-center">
             {r.criancas > 0 && !fechado && <LinhaValor rotulo={`${r.adultos} adultos + ${r.criancas} crianças (${fmtReais(r.precoCrianca)} cada)`} valor={fmtReais(r.receitaBruta)} />}
             {r.precoMesa > 0 && <LinhaValor rotulo="Mesa montada (pacote)" valor={fmtReais(r.precoMesa)} />}
+            {r.aluguelCobrado > 0 && <LinhaValor rotulo="Aluguel do meu espaço" valor={fmtReais(r.aluguelCobrado)} />}
             {r.desconto > 0 && <LinhaValor rotulo="Desconto" valor={`−${fmtReais(r.desconto)}`} />}
             <LinhaValor rotulo={`Total${r.convidados ? ` (${r.convidados} pessoas)` : ""}`} valor={fmtReais(r.receita)} />
+            {r.prolabore > 0 && <LinhaValor rotulo="Meu pró-labore (já descontado)" valor={fmtReais(r.prolabore)} />}
             <LinhaValor forte rotulo="Meu lucro líquido" valor={r.receita > 0 ? vp(r.lucro, r.lucroPct) : "—"}
               tom={r.prejuizo ? "text-red-600" : r.meta.atingida ? "text-emerald-700" : "text-amber-700"} />
             {!(r.receita > 0) && <p className="text-xs font-semibold text-slate-600">Digite o valor ou toque em “Usar este valor” para ver o lucro líquido.</p>}
@@ -88,7 +90,7 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
         {/* Para onde vai cada R$ que o cliente paga (pedido do dono, 28/10/2026: "melhore"). */}
         {r.receita > 0 && (() => {
           const fatias = [
-            ["Cardápio", r.cmv, "#0f766e"], ["Equipe", r.equipe, "#2563eb"], ["Aluguel e extras", r.extras, "#7c3aed"],
+            ["Cardápio", r.cmv, "#0f766e"], ["Equipe", r.equipe, "#2563eb"], ["Espaço e decoração", r.extras, "#7c3aed"],
             ["Impostos e cartão", r.imposto + r.maquininha, "#b45309"], ["Comissões e pró-labore", r.comissoesTotal + r.prolabore, "#64748b"],
             [r.lucro >= 0 ? "Lucro líquido" : "Prejuízo", Math.abs(r.lucro), r.lucro >= 0 ? "#15803d" : "#dc2626"],
           ].filter(([, v]) => v > 0);
@@ -173,7 +175,7 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
 
 export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
   const real = realizadoDoEvento(orc, r, { recebido });
-  const estilo = { receita: "font-black text-slate-900", subtotal: "font-black text-slate-900 bg-slate-50", resultado: "font-black text-base", custo: "font-semibold text-slate-700" };
+  const estilo = { receita: "font-black text-slate-900", subtotal: "font-black text-slate-900 bg-slate-50", resultado: "font-black text-base", custo: "font-semibold text-slate-700", info: "text-slate-500" };
   const taxasPP = r.convidados > 0 ? (r.imposto + r.maquininha + r.comissoesTotal + r.prolabore) / r.convidados : 0;
   return (
     <div className="space-y-5">
@@ -252,7 +254,7 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
           {r.convidados > 0 && (
             <>
               <LinhaValor rotulo="Equipe por pessoa" valor={fmtReais(r.equipe / r.convidados)} />
-              <LinhaValor rotulo="Aluguel e extras por pessoa" valor={fmtReais(r.extras / r.convidados)} />
+              <LinhaValor rotulo="Espaço, decoração e extras por pessoa" valor={fmtReais(r.extras / r.convidados)} />
               {r.receita > 0 && <LinhaValor rotulo="Taxas, comissões e pró-labore por pessoa" valor={fmtReais(taxasPP)} />}
               <LinhaValor forte rotulo="Custo por pessoa" valor={fmtReais(r.custoTotalPorPessoa ?? r.custoOperacaoPorPessoa)} />
             </>

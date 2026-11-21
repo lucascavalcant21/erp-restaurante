@@ -73,6 +73,9 @@ export function custosEmbutidos({ cmoMes = 0, cmoLinhas = [], fixosContasMes = 0
   const porMarmita = (v) => (v === null || marmitasMes === null ? null : r2(v / marmitasMes));
   const cmoPorMarmita = porMarmita(equipe);
   const fixosPorMarmita = porMarmita(fixos);
+  // Pró-labore (dono, 21/11/2026): é um custo fixo, mas aparece separado na conta do preço.
+  const proLaboreMes = r2(mapa.filter((c) => /pr[oó][\s-]*labore/i.test(c.nome)).reduce((t, c) => t + c.valor, 0));
+  const proLaborePorMarmita = proLaboreMes > 0 ? porMarmita(proLaboreMes) : 0;
   // Custos variáveis por marmita (dono, 16/11/2026): gás, talher, sachê,
   // etiqueta… valor que o dono informa por unidade, REAL. A embalagem não
   // entra aqui: já está na ficha técnica de cada marmita.
@@ -86,7 +89,7 @@ export function custosEmbutidos({ cmoMes = 0, cmoLinhas = [], fixosContasMes = 0
   if (fixos === null) faltando.push("custos fixos");
   return {
     marmitasMes, cmoMes: equipe, fixosMes: fixos, fixosLinhas: mapa, cmoLinhas: preenchido(r.cmo_mes) ? [] : cmoLinhas, cmoPorMarmita, fixosPorMarmita,
-    variaveisLinhas, variaveisPorMarmita,
+    variaveisLinhas, variaveisPorMarmita, proLaboreMes, proLaborePorMarmita,
     totalPorMarmita: cmoPorMarmita === null && fixosPorMarmita === null && !variaveisPorMarmita ? null : r2((cmoPorMarmita || 0) + (fixosPorMarmita || 0) + variaveisPorMarmita),
     faltando, completo: faltando.length === 0,
   };

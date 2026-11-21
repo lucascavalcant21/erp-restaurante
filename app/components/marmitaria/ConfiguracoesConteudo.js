@@ -224,7 +224,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
           <Campo rotulo="Equipe por mês" dica={doSistema.cmoMes > 0 ? `Em branco: ${brl(doSistema.cmoMes)} do RH (Funcionários).` : "Em branco: vem do RH, de quem está em Funcionários."}><CampoNumero prefixo="R$" valor={cfg.rateio.cmo_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, cmo_mes: v } })} placeholder={doSistema.cmoMes > 0 ? vazio(doSistema.cmoMes) : "não configurado"} /></Campo>
         </div>
         <p className="mb-1 mt-4 text-sm font-bold text-hf-text">Custos fixos do mês</p>
-        <p className="mb-2 text-xs text-hf-muted">{doSistema.fixosContasMes > 0 ? `Sem nada aqui, valem ${brl(doSistema.fixosContasMes)} das contas do mês passado.` : "Coloque o valor de cada conta. Entra sozinho no preço de cada marmita."}</p>
+        <p className="mb-2 text-xs text-hf-muted">{doSistema.fixosContasMes > 0 ? `Sem nada aqui, valem ${brl(doSistema.fixosContasMes)} das contas do mês passado.` : "Coloque o valor de cada conta. Entra sozinho no preço de cada marmita."} O seu pró-labore entra aqui, na conta "Pró-labore", e aparece separado na precificação.</p>
         <ul className="space-y-2">
           {cfg.rateio.custos_fixos.map((c, i) => (
             <li key={i} className="grid grid-cols-[1fr_120px_44px] items-center gap-2">
@@ -254,7 +254,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
           <button type="button" onClick={() => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_variaveis: [...cfg.rateio.custos_variaveis, { nome: "", valor: "" }] } })} className="min-h-[40px] rounded-full border border-dashed border-hf-border-strong px-3 text-sm font-semibold text-hf-accent">Outro custo</button>
         </div>
         <p className="mt-3 text-sm text-hf-text-2">
-          {previa?.completo ? <>Cada marmita carrega <b className="tabular-nums">{brl(previa.cmoPorMarmita)}</b> de equipe, <b className="tabular-nums">{brl(previa.fixosPorMarmita)}</b> de custos fixos{previa.variaveisPorMarmita > 0 && <> e <b className="tabular-nums">{brl(previa.variaveisPorMarmita)}</b> de custos variáveis</>}: <b className="tabular-nums">{brl(previa.totalPorMarmita)}</b> além da ficha técnica. <span className="text-xs text-hf-muted">(equipe e fixos: ESTIMATIVA pelo volume do mês)</span></>
+          {previa?.completo ? <>Cada marmita carrega <b className="tabular-nums">{brl(previa.cmoPorMarmita)}</b> de equipe, <b className="tabular-nums">{brl(previa.fixosPorMarmita)}</b> de custos fixos{previa.proLaborePorMarmita > 0 && <> (dos quais <b className="tabular-nums">{brl(previa.proLaborePorMarmita)}</b> são o seu pró-labore)</>}{previa.variaveisPorMarmita > 0 && <> e <b className="tabular-nums">{brl(previa.variaveisPorMarmita)}</b> de custos variáveis</>}: <b className="tabular-nums">{brl(previa.totalPorMarmita)}</b> além da ficha técnica. <span className="text-xs text-hf-muted">(equipe e fixos: ESTIMATIVA pelo volume do mês)</span></>
             : <>DADOS INSUFICIENTES: falta {previa?.faltando.join(", ")}.</>}
         </p>
       </Secao>

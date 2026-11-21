@@ -64,7 +64,8 @@ export function cascataDoPreco({ r, custo = {}, descontoApp = 0 }) {
   const pct = (v) => (P > 0 && v != null ? r2((v / P) * 100) : null);
   const ingredientes = custo.ingredientes == null ? null : r2(custo.ingredientes);
   const embalagens = r2(pos(custo.embalagens));
-  const equipeFixos = r2((r.cmo || 0) + (r.fixos || 0) + (r.extras || 0));
+  const proLabore = r2(Math.min(r.proLabore || 0, r.fixos || 0));
+  const fixosSemPL = r2((r.fixos || 0) - proLabore);
   const dApp = r2(pos(descontoApp));
   const linhas = [
     { id: "lista", rotulo: "Preço de lista", valor: P, tipo: "total" },
@@ -77,7 +78,10 @@ export function cascataDoPreco({ r, custo = {}, descontoApp = 0 }) {
     { id: "ingredientes", rotulo: "Ingredientes", valor: ingredientes == null ? null : -ingredientes },
     embalagens > 0 && { id: "embalagens", rotulo: "Embalagem e sacola", valor: -embalagens },
     { id: "contribuicao", rotulo: "Margem de contribuição", valor: r.margemContribuicao, tipo: "total" },
-    equipeFixos > 0 && { id: "fixos", rotulo: "Equipe e custos fixos (rateio por marmita)", valor: -equipeFixos },
+    r.cmo > 0 && { id: "equipe", rotulo: "Equipe (rateio por marmita)", valor: -r2(r.cmo) },
+    proLabore > 0 && { id: "prolabore", rotulo: "Pró-labore (rateio por marmita)", valor: -proLabore },
+    fixosSemPL > 0 && { id: "fixos", rotulo: "Custos fixos (rateio por marmita)", valor: -fixosSemPL },
+    r.extras > 0 && { id: "variaveis", rotulo: "Custos variáveis", valor: -r2(r.extras) },
     { id: "lucro", rotulo: "Lucro estimado", valor: r.lucro, tipo: "final" },
   ].filter(Boolean);
   return linhas.map((l) => ({ ...l, pct: l.valor == null ? null : pct(Math.abs(l.valor)) }));

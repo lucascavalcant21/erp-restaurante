@@ -448,3 +448,31 @@ test("quantidade fechada (dono, 21/11/2026): gramas e ml do evento, custo ÷ pes
   assert.equal(r.receita, 400); // R$ 10 × 40 pessoas (criança paga igual)
   assert.ok(r.precoSugeridoPorPessoa > 0);
 });
+
+test("espaço: meu espaço cobra aluguel (receita); alugado é custo; decoração é gasto", async () => {
+  const { resumoDoOrcamento, incluidoNaProposta, linhasDeValor } = await import("./evento-orcamento.mjs");
+  const base = {
+    cliente: { convidados: 50 }, itens: [], equipe: [],
+    extras: [{ id: "a", categoria: "aluguel", descricao: "Limpeza", valor: "200" }, { id: "d", categoria: "decoracao", descricao: "Arranjos", valor: "500" }],
+    financeiro: { preco_por_pessoa: "100", imposto_pct: "0", maquininha_pct: "0", prolabore: { modo: "valor", valor: "300" }, comissoes: [] },
+  };
+  const proprio = resumoDoOrcamento({ ...base, espaco: { tipo: "proprio", valor_cobrado: "1000" } }, []);
+  assert.equal(proprio.aluguelCobrado, 1000);
+  assert.equal(proprio.receita, 6000);
+  assert.equal(proprio.extras, 700);
+  assert.equal(proprio.prolabore, 300);
+  assert.equal(proprio.lucro, 5000);
+  assert.ok(proprio.dre.some((l) => l.id === "extra_aluguel" && l.rotulo === "(−) Custos do meu espaço"));
+  assert.ok(proprio.dre.some((l) => l.id === "extra_decoracao"));
+  assert.ok(linhasDeValor(proprio).some((l) => l.startsWith("Aluguel do espaço")));
+  // custos internos do espaço não vão para o cliente; decoração vai
+  assert.deepEqual(incluidoNaProposta({ ...base, espaco: { tipo: "proprio" } }).servicos, ["Arranjos"]);
+  const alugado = resumoDoOrcamento(base, []);
+  assert.equal(alugado.aluguelCobrado, 0);
+  assert.equal(alugado.receita, 5000);
+  assert.equal(alugado.lucro, 4000);
+  // preço sugerido desconta o aluguel cobrado
+  assert.equal(alugado.precoMinimoPorPessoa, 20); // (700 + 300) ÷ 50
+  const s1 = resumoDoOrcamento({ ...base, espaco: { tipo: "proprio", valor_cobrado: "500" } }, []);
+  assert.equal(s1.precoMinimoPorPessoa, 10); // o aluguel cobrado já cobre 500
+});

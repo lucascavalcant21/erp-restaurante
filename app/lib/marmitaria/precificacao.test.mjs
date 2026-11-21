@@ -63,7 +63,7 @@ test("(8) cascata não duplica embalagem: ingredientes + embalagem = custo da fi
   const v = Object.fromEntries(c.map((l) => [l.id, l.valor]));
   assert.equal(v.ingredientes + v.embalagens, -13.3);
   assert.equal(v.contribuicao, 21.7);
-  assert.equal(v.fixos, -8.51);
+  assert.equal(r2(v.equipe + v.fixos), -8.51);
   assert.equal(v.lucro, 13.19);
   assert.equal(c.at(-1).tipo, "final");
 });
@@ -84,4 +84,15 @@ test("preço mínimo (lucro zero) e preços para as metas de R$ 10 e R$ 12", () 
   const r = resultadoPorCanal({ preco: f.metas[0].preco, custoTecnico: 20, canal });
   assert.ok(r.margemContribuicao >= 10 && r.margemContribuicao < 10.02);
   assert.equal(faixaDePrecos({ custoComEmbutidos: null, canal }).minimo, null);
+});
+
+test("pró-labore aparece separado na cascata, sem contar duas vezes", () => {
+  const canal = { id: "balcao", nome: "Balcão", comissao_pct: 0, taxa_pagamento_pct: 0 };
+  const { r } = contaDoPreco({ precoLista: 35, custo: 13.3, canal, tributosPct: 0, embutidos: { cmoPorMarmita: 2.88, fixosPorMarmita: 5.63, proLaborePorMarmita: 1.92 } });
+  const c = cascataDoPreco({ r, custo: { ingredientes: 11.5, embalagens: 1.8 } });
+  const v = Object.fromEntries(c.map((l) => [l.id, l.valor]));
+  assert.equal(v.prolabore, -1.92);
+  assert.equal(v.fixos, -3.71);
+  assert.equal(v.equipe, -2.88);
+  assert.equal(v.lucro, 13.19);
 });

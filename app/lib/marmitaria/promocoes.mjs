@@ -79,7 +79,9 @@ export function lucroDoPedido({ paga, custo, canal = CANAL_DIRETO, tributosPct =
   // Custos variáveis por marmita (gás, talher, sachê…: Configurações, 16/11/2026).
   const extras = embutidos?.variaveisPorMarmita > 0 ? porMarmita(embutidos.variaveisPorMarmita) : 0;
   const lucro = r.margemContribuicao == null ? null : r2(r.margemContribuicao - (cmo || 0) - (fixos || 0) - extras);
-  return { ...r, cmo, fixos, extras, lucro, lucroPct: lucro == null || !(r.receita > 0) ? null : r2((lucro / r.receita) * 100) };
+  // parte dos fixos que é o pró-labore (só para mostrar separado)
+  const proLabore = embutidos?.proLaborePorMarmita > 0 ? porMarmita(embutidos.proLaborePorMarmita) : 0;
+  return { ...r, cmo, fixos, extras, proLabore, lucro, lucroPct: lucro == null || !(r.receita > 0) ? null : r2((lucro / r.receita) * 100) };
 }
 
 /**

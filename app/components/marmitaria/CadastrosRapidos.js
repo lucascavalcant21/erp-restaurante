@@ -42,6 +42,7 @@ export function CustoDaUnidade({ preco, unidades }) {
 }
 
 export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nomeInicial = "", rotuloSalvar = "Cadastrar e usar", onCriado, onFechar }) {
+  const [avisoOffline, setAvisoOffline] = useState(false);
   const [f, setF] = useState({ nome: nomeInicial, marca: "", unidade: embalagem ? "un" : limpeza ? "ml" : "kg", preco: "", tamanho: embalagem ? "" : "1" });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
@@ -63,6 +64,8 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
         categoria: embalagem ? "Embalagens da marmitaria" : limpeza ? "Limpeza da marmitaria" : "",
       });
       if (r.error) setErro(r.error);
+      // sem internet: ficou na fila do aparelho e entra quando a rede voltar (sem id ainda)
+      else if (r.offline) { setErro(null); setAvisoOffline(true); }
       else await onCriado(r.id, f.unidade);
     } finally {
       setSalvando(false);
@@ -71,6 +74,7 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
 
   return (
     <Painel titulo={embalagem ? "Nova embalagem" : limpeza ? "Novo produto de limpeza" : "Novo ingrediente"} onFechar={onFechar}>
+      {avisoOffline && <Aviso className="mb-3">Sem internet: o cadastro ficou salvo no aparelho e entra no sistema quando a internet voltar.</Aviso>}
       <div className="grid gap-3 sm:grid-cols-2">
         <Campo rotulo="Nome"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} /></Campo>
         <Campo rotulo="Marca"><input className={inputCls} value={f.marca} onChange={(e) => setF({ ...f, marca: e.target.value })} placeholder="Opcional" /></Campo>

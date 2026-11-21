@@ -11,6 +11,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MarmitariaProvider, useMarmitaria } from "../../components/marmitaria/contexto";
+import FilaOffline from "../../components/marmitaria/FilaOffline";
 import { JornadaProvider, useJornada } from "../../components/marmitaria/useJornada";
 import { PASSOS, ROTAS } from "../../lib/marmitaria/jornada.mjs";
 import { tituloDoDelivery } from "../../lib/marmitaria/delivery.mjs";
@@ -108,6 +109,7 @@ export default function MarmitariaLayout({ children }) {
             <Titulo />
             <Barra />
             <Estado />
+            <div className="mb-3"><FilaOffline /></div>
             {children}
           </div>
         </div>

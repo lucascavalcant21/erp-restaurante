@@ -112,9 +112,15 @@ function mapUser(u) {
 async function enrichUser(u) {
   const base = mapUser(u);
   if (!base || !isSupabaseReady()) return base;
+  // Sem internet (dono, 21/11/2026): usa as permissões da última vez que entrou neste aparelho.
+  const chaveCtx = `hefisto:sessao-ctx:${u.id}`;
+  const daCopia = () => {
+    try { const c = JSON.parse(window.localStorage.getItem(chaveCtx) || "null"); return c ? { ...base, ...c, id: u.id, gerenciado: true } : base; } catch { return base; }
+  };
   try {
     const { data, error } = await supabase.rpc("hefisto_session_context");
-    if (error || !data) return base;
+    if (error || !data) return /Failed to fetch|NetworkError|Load failed|network/i.test(String(error?.message || "")) || (typeof navigator !== "undefined" && navigator.onLine === false) ? daCopia() : base;
+    try { window.localStorage.setItem(chaveCtx, JSON.stringify(data)); } catch { /* sem espaço */ }
     return {
       ...base,
       ...data,
@@ -125,9 +131,9 @@ async function enrichUser(u) {
       gerenciado: true,
     };
   } catch {
-    // A migração pode ainda não ter sido aplicada. Mantém os papéis antigos
-    // funcionando até o administrador concluir a instalação no banco.
-    return base;
+    // Sem rede: as permissões guardadas. Senão (migração ainda não aplicada),
+    // mantém os papéis antigos funcionando.
+    return typeof navigator !== "undefined" && navigator.onLine === false ? daCopia() : base;
   }
 }
 

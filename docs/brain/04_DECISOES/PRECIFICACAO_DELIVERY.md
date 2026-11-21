@@ -119,3 +119,19 @@ Decisão do dono: os eventos usam o **mesmo cadastro do delivery** e precificam 
   - Sugerido e mínimo por pessoa saem do mesmo motor.
 - **Testes:** em `evento-orcamento.test.mjs` (4 kg de arroz + 3 L de suco = R$ 80; ÷ 40 = R$ 2; R$ 10 × 40 = R$ 400).
 - **Validação:** telas NÃO VALIDADAS no app.
+
+## Sem internet (21/11/2026): cadastros, fichas, estoque e produção
+
+Pedido do dono: "usar offline, fazer cadastros e login; quando conectar, os dados se atualizam". Escopo escolhido: cadastros/fichas + estoque/produção.
+
+- **Fila** (`app/lib/offline/fila.mjs`):
+  - Sem rede, ou com erro de rede, a gravação vai para o localStorage e é reenviada na ordem quando a internet volta (evento `online` e abertura do delivery).
+  - Para no primeiro erro de rede.
+  - Erro de regra tira o item da fila e aparece como "não entrou"; "já existe" conta como enviado.
+  - Gravações cobertas (`dados.js`): fichas, pré-preparos, modo de preparo, produto, bebida, descrição, preço de embalagem, preço no app, retirada, produção, conversão, transferência e plano da cozinha. Todas são idempotentes (id/chave/lote da tela, ou nome repetido recusado).
+- **Leitura sem internet:** a última base lida fica no aparelho (`contexto.js`), e o aviso mostra de quando é a cópia.
+- **Login:** a primeira entrada precisa de internet. Depois, a sessão do aparelho segue sem rede (já existia), e as permissões da última entrada ficam guardadas (`auth.js`).
+- **Limites:**
+  - item cadastrado sem internet só aparece nas listas depois de enviado;
+  - produto novo sem internet não entra na ficha na hora (não tem id).
+- **Validação:** testado em `fila.test.mjs`; NÃO VALIDADO no aparelho.

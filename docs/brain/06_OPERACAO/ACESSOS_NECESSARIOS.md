@@ -123,7 +123,8 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 - **O que precisa ser liberado:** `SUPABASE_SERVICE_ROLE_KEY` = chave secreta (service_role) do hefisto-staging, tipo Sensitive, só Preview, Git branch `hefisto-teste`
 - **Escopo mínimo:** só o preview da `hefisto-teste`
 - **Risco:** BAIXO (banco de teste, sem dados do restaurante)
-- **Como validar depois:** login no preview da `hefisto-teste` e "Plano e assinatura" mostra a chave Pix
+- **Como validar depois:** login no preview da `hefisto-teste` e "Plano e assinatura" mostra a chave Pix; em Consultório › Pacientes, "Criar acesso ao portal" devolve login e senha
+- **Também usado por (21/11/2026):** criar o login do paciente no portal do consultório (`/api/consultorio/paciente-acesso`, BLQ-022)
 - **Estado:** PENDENTE
 
 ## ACESSO-010
@@ -131,3 +132,13 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 - **Serviço:** Vercel (OPENAI_API_KEY)
 - **Motivo:** áudio do Jhon ("Transcrição de voz não configurada no servidor") e leitura de fotos no sistema novo
 - **Estado:** RESOLVIDO em 17/11/2026, com OK do dono ("Liberar a mesma chave"): a variável existente passou de "só produção" para "produção + preview". Ninguém viu o valor. Efeito colateral aceito: todas as versões de preview passam a ter a chave
+
+## ACESSO-011
+
+- **Serviço:** Whereby Embedded (conta do dono) + Vercel
+- **Motivo:** criar a sala de vídeo da teleconsulta sozinho, a partir da agenda do consultório (BLQ-021)
+- **O que precisa ser liberado:** o dono cria a conta no Whereby (o plano é decisão dele), gera a chave da API e coloca `WHEREBY_API_KEY` na Vercel, tipo Sensitive, só Preview, Git branch `hefisto-teste`; no Whereby, libera o domínio do preview para embutir a sala
+- **Escopo mínimo:** só o preview da `hefisto-teste`
+- **Risco:** BAIXO (a chave só cria salas; fica só no servidor)
+- **Como validar depois:** na agenda, numa teleconsulta, "Criar sala" devolve o link e o médico vê o vídeo no Atendimento
+- **Estado:** PENDENTE

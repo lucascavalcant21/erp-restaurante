@@ -25,3 +25,18 @@ Agenda (marcar, horários livres, confirmação por link do WhatsApp, chegou/fal
 - Conta da secretária: criar com unidade principal = consultório (Contas rápidas).
 - Confirmação automática pela API oficial do WhatsApp (hoje é link para o aparelho).
 - Fase 2/3: contas a receber de convênio e plantões, finanças pessoais (bônus), clínica com vários médicos.
+
+## Teleconsulta — CONS-2 (21/11/2026)
+- Decisão do dono: vídeo pelo **Whereby**; guardar **consentimento + registro, sem gravar o vídeo** (CFM 2.314/2022 pede registro em prontuário e aceite do termo pelo paciente).
+- Paciente entra por `/teleconsulta/<código de 40 caracteres>`, sem login: lê o termo, aceita (texto, versão e md5 guardados em `cons_consentimentos`, sem alteração) e só então recebe o link da sala.
+- Sala: `/api/consultorio/sala` com `WHEREBY_API_KEY` só no servidor; checa o acesso pelo login de quem pede (RLS), sem service role. Sem a chave: colar link (BLQ-021).
+- Termo: modelo em `app/lib/consultorio/teleconsulta.mjs`, editável em Consultas e convênios (cada mudança vira versão nova). Não é parecer jurídico.
+- TESTADO LOCAL (PGlite) e NO SUPABASE REAL (transação desfeita). Vídeo NÃO VALIDADO.
+
+## Portal do paciente — CONS-3 (21/11/2026)
+- Pedido do dono: login e senha gerados pelo médico; o paciente marca e cancela, entra na teleconsulta e vê as informações.
+- Login criado pelo servidor (`/api/consultorio/paciente-acesso`, chave de serviço; BLQ-022/ACESSO-009). E-mail técnico `<login>@pacientes.hefisto.app`; senha mostrada uma vez; o paciente troca no portal.
+- O paciente **não lê tabelas**: só as funções `cons_paciente_*` (security definer, presas ao `auth.uid()`). Marcar só em horário livre (expediente cadastrado, fuso de Brasília, a partir de 1 h, até 90 dias, máx. 3 futuras); cancelar com 2 h de antecedência.
+- Resumos para o paciente: motivo, diagnóstico, CID, conduta, exames, medicação, **orientações** (campo novo) e retorno; as anotações internas (história/exame físico) não saem. Leitura registrada.
+- Login de paciente não tem `usuarios_erp`: o banco não mostra nada do ERP (só catálogos de categoria financeira, abertos a qualquer login). Risco conhecido: o metadado do Auth é editável pelo próprio usuário; o app de ERP pode mostrar telas vazias, mas o banco bloqueia (RLS).
+- Relacionamento (sem integração externa): lembretes de amanhã, pedido de avaliação (0 a 10) e aniversariantes, por link do WhatsApp. O resto fica em BLQ-023.

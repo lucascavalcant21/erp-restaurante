@@ -90,3 +90,14 @@ test("cardápio online: entra pela ficha do produto, só pedido aceito, desconto
   assert.equal(precoPorMarkup(12.5, 3), 37.5);
   assert.equal(precoPorMarkup(0, 3), null);
 });
+
+test("cardápio do WhatsApp: comidas e bebidas separadas; bebida não depende da produção", async () => {
+  const { textoDoCardapio } = await import("./dia.mjs");
+  const marmitas = [
+    { id: "m", nome_receita: "Estrogonofe", categoria: "Marmitas de frango", preco_venda: 30 },
+    { id: "b", nome_receita: "Coca-Cola 350 ml", categoria: "Bebidas", preco_venda: 8 },
+  ];
+  const t = textoDoCardapio({ marmitas, panorama: { linhas: [{ id: "m", temProducao: true, restam: 5 }] }, canal: { id: "balcao" }, dataTexto: "21/11" });
+  assert.match(t, /Marmitas de hoje \(21\/11\)\n• Estrogonofe: /);
+  assert.match(t, /\n\nBebidas\n• Coca-Cola 350 ml: /);
+});

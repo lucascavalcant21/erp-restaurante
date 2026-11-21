@@ -10,16 +10,15 @@ test("sem perfil: o desenho de sempre (margens de 1,5 mm)", () => {
   assert.deepEqual(areaNativa60x40(null), { x: 12, y: 12, cW: 456, cH: 296 });
   const cmd = texto(gerarComandosTsplMdk022({ dados, tamanho: "60x40" }));
   assert.match(cmd, /BITMAP 12,12,57,296,0,/);
-  assert.match(cmd, /QRCODE 368,12,/);
+  assert.doesNotMatch(cmd, /QRCODE/);
 });
 
-test("deslocamento X da calibração move o desenho inteiro (texto e QR)", () => {
+test("deslocamento X da calibração move o desenho inteiro", () => {
   const perfil = { widthMm: 60, heightMm: 40, marginLeftMm: 1.5, marginRightMm: 1.5, marginTopMm: 1.5, marginBottomMm: 1.5, offsetXmm: 10, offsetYmm: 0, dpi: 203 };
   const a = areaNativa60x40(perfil);
   assert.equal(a.x, 12 + 80);
   const cmd = texto(gerarComandosTsplMdk022({ dados, tamanho: "60x40", perfilFisico: perfil }));
   assert.match(cmd, new RegExp(`BITMAP ${a.x},12,`));
-  assert.match(cmd, new RegExp(`QRCODE ${a.x + a.cW - 100},12,`));
 });
 
 test("margens e deslocamento negativo nunca saem do papel", () => {

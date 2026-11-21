@@ -11,6 +11,7 @@ import { EscolherPaciente, SeloStatus, dataBR, hojeLocal, hora, inicioDoDiaIso, 
 import { Aviso, Botao, Campo, CampoNumero, Secao, brl, inputCls, lerNumero } from "../../components/marmitaria/ui";
 import { ACOES, conflitos, fimDaConsulta, horariosLivres, resumoDoDia, textoDeConfirmacao, valorDaConsulta } from "../../lib/consultorio/agenda.mjs";
 import { fetchConsultas, fetchPacientesPorId, salvarConsulta } from "../../lib/consultorio/dados";
+import { SalaDaConsulta } from "../../components/consultorio/Teleconsulta";
 
 const FORMAS = ["PIX", "Dinheiro", "Cartão de débito", "Cartão de crédito", "Convênio"];
 const ROTULO_ACAO = { confirmada: "Confirmar", chegou: "Chegou", em_atendimento: "Iniciar atendimento", atendida: "Atendida", faltou: "Faltou", cancelada: "Cancelar", agendada: "Reagendar" };
@@ -20,6 +21,7 @@ function NovaConsulta({ dia, consultas, onFechar, onSalvo }) {
   const [paciente, setPaciente] = useState(null);
   const [tipoId, setTipoId] = useState(tiposAtivos[0]?.id || "");
   const [convenioId, setConvenioId] = useState("");
+  const [modalidade, setModalidade] = useState("presencial");
   const [data, setData] = useState(dia);
   const [horaTxt, setHoraTxt] = useState("");
   const [motivo, setMotivo] = useState("");
@@ -43,7 +45,7 @@ function NovaConsulta({ dia, consultas, onFechar, onSalvo }) {
     if (!paciente) return setErro("Escolha ou cadastre o paciente.");
     if (!inicioIso) return setErro("Escolha o horário.");
     setSalvando(true);
-    const r = await salvarConsulta({ paciente_id: paciente.id, tipo_id: tipo?.id || null, convenio_id: convenio?.id || null, inicio: inicioIso, fim: fimIso, motivo: motivo.trim() || null, valor: lerNumero(valor) === "" ? null : lerNumero(valor), status: "agendada" });
+    const r = await salvarConsulta({ paciente_id: paciente.id, tipo_id: tipo?.id || null, convenio_id: convenio?.id || null, inicio: inicioIso, fim: fimIso, modalidade, motivo: motivo.trim() || null, valor: lerNumero(valor) === "" ? null : lerNumero(valor), status: "agendada" });
     setSalvando(false);
     if (r.error) return setErro(r.error);
     onSalvo();
@@ -59,6 +61,12 @@ function NovaConsulta({ dia, consultas, onFechar, onSalvo }) {
           </div>
         ) : <EscolherPaciente onEscolher={setPaciente} convenios={conveniosAtivos} />}
         {!tiposAtivos.length && <Aviso tipo="alerta">Cadastre os tipos de consulta (duração e valor) em <Link href="/dashboard/consultorio/cadastros" className="font-bold underline">Consultas e convênios</Link>.</Aviso>}
+        <div className="flex rounded-xl bg-hf-elevated p-1 sm:inline-flex" role="radiogroup" aria-label="Modalidade">
+          {[["presencial", "Presencial"], ["teleconsulta", "Teleconsulta (vídeo)"]].map(([id, r]) => (
+            <button key={id} type="button" role="radio" aria-checked={modalidade === id} onClick={() => setModalidade(id)}
+              className={`min-h-[40px] flex-1 rounded-lg px-4 text-sm font-semibold sm:flex-none ${modalidade === id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2"}`}>{r}</button>
+          ))}
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Campo rotulo="Tipo de consulta">
             <select className={inputCls} value={tipoId} onChange={(e) => { setTipoId(e.target.value); setValorEditado(false); }}>
@@ -111,6 +119,7 @@ export default function AgendaConsultorio() {
   const [carregando, setCarregando] = useState(true);
   const [nova, setNova] = useState(false);
   const [recebendo, setRecebendo] = useState(null);
+  const [sala, setSala] = useState(null);
   const [msg, setMsg] = useState(null);
 
   const carregar = useCallback(async () => {
@@ -164,7 +173,7 @@ export default function AgendaConsultorio() {
                   <div className="flex flex-wrap items-start gap-3">
                     <span className="w-14 shrink-0 text-base font-bold tabular-nums text-hf-text">{hora(c.inicio)}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-hf-text">{p?.nome || "Paciente"} <SeloStatus status={c.status} /></p>
+                      <p className="text-sm font-bold text-hf-text">{p?.nome || "Paciente"} <SeloStatus status={c.status} />{c.modalidade === "teleconsulta" && <span className="ml-1 inline-flex rounded-full bg-hf-menu px-2 py-0.5 text-[11px] font-bold text-white">Vídeo</span>}</p>
                       <p className="text-xs text-hf-text-2">{t?.nome || "Consulta"} · {cv ? cv.nome : "Particular"}{c.valor != null ? ` · ${brl(c.valor)}` : ""}{c.pago_em ? ` · pago (${c.forma_pagamento || "—"})` : ""}</p>
                       {c.motivo && <p className="text-xs text-hf-muted">Motivo: {c.motivo}</p>}
                     </div>
@@ -176,10 +185,14 @@ export default function AgendaConsultorio() {
                     {fone && ["agendada", "confirmada"].includes(c.status) && (
                       <a href={`https://wa.me/55${fone}?text=${encodeURIComponent(textoDeConfirmacao({ paciente: p, inicio: c.inicio }))}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[40px] items-center gap-1 rounded-xl border border-hf-border px-3 text-sm font-semibold text-hf-text"><MessageCircle size={15} /> Confirmar no WhatsApp</a>
                     )}
+                    {c.modalidade === "teleconsulta" && !["cancelada", "faltou", "atendida"].includes(c.status) && (
+                      <button type="button" onClick={() => setSala(sala === c.id ? null : c.id)} className="min-h-[40px] rounded-xl border border-hf-border px-3 text-sm font-semibold text-hf-text">Sala e convite</button>
+                    )}
                     {!c.pago_em && ["chegou", "em_atendimento", "atendida"].includes(c.status) && (
                       <button type="button" onClick={() => setRecebendo(recebendo === c.id ? null : c.id)} className="min-h-[40px] rounded-xl border border-hf-border px-3 text-sm font-semibold text-hf-text">Receber</button>
                     )}
                   </div>
+                  {sala === c.id && <div className="mt-2 sm:pl-16"><SalaDaConsulta consulta={c} paciente={p} /></div>}
                   {recebendo === c.id && <div className="sm:pl-16"><Receber c={c} onFeito={(e) => { setRecebendo(null); if (e) setMsg({ tipo: "alerta", texto: e }); else carregar(); }} /></div>}
                 </li>
               );

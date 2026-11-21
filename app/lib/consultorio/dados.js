@@ -112,3 +112,39 @@ export async function salvarFicha(ficha) {
   const { data, error } = await q;
   return { data: data?.[0] || null, error: erro(error) };
 }
+
+// ─── Teleconsulta (CONS-2) ───────────────────────────────────────────────────
+
+export async function fetchTeleconsultas(consultaIds = []) {
+  if (!pronto() || !consultaIds.length) return { data: [], error: null };
+  const [t, c] = await Promise.all([
+    supabase.from("cons_teleconsultas").select("*").in("consulta_id", consultaIds),
+    supabase.from("cons_consentimentos").select("consulta_id, aceito_em, termo_versao").in("consulta_id", consultaIds),
+  ]);
+  const aceites = new Map((c.data || []).map((x) => [x.consulta_id, x]));
+  return { data: (t.data || []).map((x) => ({ ...x, aceite: aceites.get(x.consulta_id) || null })), error: erro(t.error || c.error) };
+}
+
+/** Cria a sala pelo servidor (Whereby). semChave: a chave não está configurada. */
+export async function criarSala(consultaId, termo) {
+  const { fetchComSessao } = await import("../api-sessao");
+  try {
+    const r = await fetchComSessao("/api/consultorio/sala", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ consulta_id: consultaId, termo_versao: termo.versao, termo_texto: termo.texto }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return { data: null, error: j.error || "Não consegui criar a sala.", semChave: !!j.semChave };
+    return { data: j.teleconsulta, error: null };
+  } catch { return { data: null, error: SEM_BANCO }; }
+}
+
+/** Sala colada à mão (sem a chave do Whereby): guarda o link e gera o convite. */
+export async function salvarSalaManual({ consultaId, salaUrl, codigo, termo, existente = false }) {
+  if (!pronto()) return { data: null, error: SEM_BANCO };
+  const linha = { sala_url: salaUrl, sala_medico_url: salaUrl, provedor: /whereby\.com/i.test(salaUrl) ? "whereby" : "link", termo_versao: termo.versao, termo_texto: termo.texto };
+  const q = existente
+    ? supabase.from("cons_teleconsultas").update(linha).eq("consulta_id", consultaId).select("*")
+    : supabase.from("cons_teleconsultas").insert({ ...linha, consulta_id: consultaId, unidade_id: U, codigo }).select("*");
+  const { data, error } = await q;
+  if (!error) await supabase.from("cons_consultas").update({ modalidade: "teleconsulta" }).eq("id", consultaId);
+  return { data: data?.[0] || null, error: erro(error) };
+}

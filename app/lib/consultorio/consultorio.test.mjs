@@ -88,3 +88,17 @@ test("cadastro: CPF, idade e mensagem de confirmação", () => {
   assert.equal(idade("1990-11-22", "2026-11-21"), 35);
   assert.match(textoDeConfirmacao({ paciente: { nome: "Maria Souza" }, inicio: "2026-11-24T13:00:00Z" }), /^Olá, Maria! Confirmando sua consulta/);
 });
+
+test("teleconsulta: termo, código, convite, sala embutida e duração", async () => {
+  const { termoEmUso, gerarCodigo, linkDoPaciente, conviteWhatsApp, salaEmbutida, duracaoMin, TERMO_PADRAO } = await import("./teleconsulta.mjs");
+  assert.equal(termoEmUso({}).texto, TERMO_PADRAO);
+  assert.deepEqual(termoEmUso({ termo_telemedicina: { texto: "Meu termo", versao: "2026-11-21" } }), { texto: "Meu termo", versao: "2026-11-21" });
+  const c = gerarCodigo();
+  assert.match(c, /^[A-Za-z0-9]{40}$/);
+  assert.notEqual(c, gerarCodigo());
+  assert.equal(linkDoPaciente("https://app.x/", "abc"), "https://app.x/teleconsulta/abc");
+  assert.match(conviteWhatsApp({ paciente: { nome: "Maria Souza" }, inicio: "2026-11-24T13:00:00Z", link: "https://l" }), /^Olá, Maria! Sua teleconsulta[\s\S]*https:\/\/l$/);
+  assert.match(salaEmbutida("https://hefisto.whereby.com/abc", { nome: "Dr Lucas" }), /displayName=Dr\+Lucas/);
+  assert.equal(salaEmbutida("javascript:alert(1)"), null);
+  assert.equal(duracaoMin("2026-11-24T13:00:00Z", "2026-11-24T13:22:00Z"), 22);
+});

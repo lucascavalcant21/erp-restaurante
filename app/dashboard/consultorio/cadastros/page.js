@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useConsultorio } from "../../../components/consultorio/contexto";
 import { Aviso, Botao, Campo, CampoNumero, Secao, inputCls, lerNumero } from "../../../components/marmitaria/ui";
 import { salvarConfig, salvarConvenio, salvarTipo } from "../../../lib/consultorio/dados";
+import { TERMO_PADRAO, termoEmUso } from "../../../lib/consultorio/teleconsulta.mjs";
 
 const n = (v) => { const x = lerNumero(v); return x === "" || x === null || x === undefined ? null : x; };
 
@@ -62,6 +63,35 @@ function Convenio({ c, tipos, onSalvo }) {
   );
 }
 
+function MedicoETermo() {
+  const { config, recarregar } = useConsultorio();
+  const [m, setM] = useState({ nome: "", crm: "", uf: "", ...(config?.medico || {}) });
+  const [termo, setTermo] = useState(termoEmUso(config).texto);
+  const [msg, setMsg] = useState(null);
+  async function salvar() {
+    const mudouTermo = termo.trim() !== termoEmUso(config).texto;
+    const r = await salvarConfig({ ...(config || {}), medico: { nome: m.nome.trim(), crm: m.crm.trim(), uf: m.uf.trim().toUpperCase().slice(0, 2) },
+      termo_telemedicina: mudouTermo ? { texto: termo.trim(), versao: new Date().toISOString().slice(0, 16) } : config?.termo_telemedicina });
+    setMsg(r.error ? r.error : "Salvo.");
+    if (!r.error) recarregar();
+  }
+  return (
+    <Secao titulo="Seus dados e termo da teleconsulta" subtitulo="Seu nome aparece na sala de vídeo. O termo é o que o paciente lê e aceita antes de entrar; cada mudança vira uma nova versão.">
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px_80px]">
+        <Campo rotulo="Nome do médico"><input className={inputCls} value={m.nome} onChange={(e) => setM({ ...m, nome: e.target.value })} placeholder="Dr. Lucas …" /></Campo>
+        <Campo rotulo="CRM"><input className={inputCls} value={m.crm} onChange={(e) => setM({ ...m, crm: e.target.value })} /></Campo>
+        <Campo rotulo="UF"><input className={inputCls} value={m.uf} maxLength={2} onChange={(e) => setM({ ...m, uf: e.target.value })} /></Campo>
+      </div>
+      <Campo rotulo="Termo de telemedicina" dica="Modelo inicial para você revisar (não é parecer jurídico)." className="mt-3">
+        <textarea className={`${inputCls} min-h-[220px] py-2 leading-relaxed`} value={termo} onChange={(e) => setTermo(e.target.value)} />
+      </Campo>
+      <div className="mt-3 flex flex-wrap items-center gap-2"><Botao onClick={salvar}>Salvar</Botao>
+        <button type="button" onClick={() => setTermo(TERMO_PADRAO)} className="min-h-[44px] text-sm font-semibold text-hf-accent">Voltar ao modelo</button>
+        {msg && <span className="text-sm text-hf-text-2">{msg}</span>}</div>
+    </Secao>
+  );
+}
+
 export default function CadastrosConsultorio() {
   const { tipos, convenios, tiposAtivos, config, recarregar } = useConsultorio();
   const [novoTipo, setNovoTipo] = useState(false);
@@ -86,6 +116,7 @@ export default function CadastrosConsultorio() {
           {!convenios.length && !novoConv && <p className="text-sm text-hf-text-2">Nenhum convênio. Só particular por enquanto.</p>}
         </div>
       </Secao>
+      <MedicoETermo />
       <Secao titulo="Horário de atendimento" subtitulo="A agenda sugere os horários livres dentro dele.">
         <div className="flex flex-wrap items-end gap-3">
           <Campo rotulo="Começa"><input type="time" className={inputCls} value={exp.inicio} onChange={(e) => setExp({ ...exp, inicio: e.target.value })} /></Campo>

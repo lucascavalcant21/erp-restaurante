@@ -10,6 +10,7 @@ import { useConsultorio } from "../../../components/consultorio/contexto";
 import { SeloStatus, dataBR, hojeLocal, hora, inicioDoDiaIso, mascaraFone, somarDiasLocal } from "../../../components/consultorio/partes";
 import { Aviso, Botao, Campo, Secao, inputCls } from "../../../components/marmitaria/ui";
 import { filaDoMedico, idade, retornosEsquecidos } from "../../../lib/consultorio/agenda.mjs";
+import { VideoDoMedico } from "../../../components/consultorio/Teleconsulta";
 import { fetchConsultas, fetchConsultasDesde, fetchPacientesPorId, fetchRetornos, fichasDoPaciente, salvarConsulta, salvarFicha } from "../../../lib/consultorio/dados";
 
 const area = `${inputCls} min-h-[84px] py-2 leading-relaxed`;
@@ -28,6 +29,7 @@ function UltimaConsulta({ f }) {
 }
 
 function Atender({ c, paciente, onFim }) {
+  const { config } = useConsultorio();
   const [fichas, setFichas] = useState(null);
   const [f, setF] = useState({ ...VAZIA, queixa: c.motivo || "" });
   const [verTodas, setVerTodas] = useState(false);
@@ -52,6 +54,7 @@ function Atender({ c, paciente, onFim }) {
     <Secao titulo={paciente?.nome || "Paciente"} subtitulo={[paciente?.nascimento ? `${idade(paciente.nascimento, hojeLocal())} anos` : null, paciente?.telefone ? mascaraFone(paciente.telefone) : null, c.motivo ? `Motivo: ${c.motivo}` : null].filter(Boolean).join(" · ")}
       direita={<Botao variante="secundario" onClick={() => onFim(true)}>Voltar à fila</Botao>}>
       <div className="space-y-4">
+        {c.modalidade === "teleconsulta" && <VideoDoMedico consulta={c} nomeMedico={config?.medico?.nome || ""} />}
         <div className="rounded-xl bg-hf-elevated p-3">{fichas === null ? <p className="text-sm text-hf-muted">Abrindo as fichas…</p> : <UltimaConsulta f={fichas[0]} />}
           {fichas?.length > 1 && <button type="button" onClick={() => setVerTodas(!verTodas)} className="mt-2 min-h-[40px] text-sm font-semibold text-hf-accent">{verTodas ? "Esconder" : `Ver as ${fichas.length - 1} anteriores`}</button>}
           {verTodas && <div className="mt-2 space-y-3 border-t border-hf-border pt-3">{fichas.slice(1).map((x) => <UltimaConsulta key={x.id} f={x} />)}</div>}
@@ -71,7 +74,7 @@ function Atender({ c, paciente, onFim }) {
             </div>
           </Campo>
         </div>
-        <p className="text-xs text-hf-muted">Ficha de apoio ao retorno: só você vê, e quem abre fica registrado. O prontuário oficial continua onde está.</p>
+        <p className="text-xs text-hf-muted">{c.modalidade === "teleconsulta" ? "Teleconsulta: ficam registrados o aceite do termo, o horário de início e fim e esta ficha. O vídeo não é gravado. " : ""}Ficha de apoio ao retorno: só você vê, e quem abre fica registrado. O prontuário oficial continua onde está.</p>
         {erro && <Aviso tipo="alerta">{erro}</Aviso>}
         <Botao onClick={finalizar} disabled={salvando} className="min-h-[48px] w-full sm:w-auto">{salvando ? "Salvando…" : "Finalizar atendimento"}</Botao>
       </div>

@@ -106,5 +106,35 @@ conferir("secretária marca a chegada", [r.error, r.data?.[0]?.status], [null, "
 r = await sec.from("cons_consultas").update({ status: "inventado" }).eq("id", CON);
 conferir("status fora da lista é recusado", !!r.error, true);
 
+// ─── CONS-2: teleconsulta ────────────────────────────────────────────────
+const sql2 = fs.readFileSync(path.join(raiz, "db", "consultorio", "CONS_2_TELECONSULTA.sql"), "utf8");
+await pg.exec(sql2); await pg.exec(sql2);
+conferir("CONS-2 roda duas vezes", (await pg.query(`select count(*)::int n from pg_policies where tablename in ('cons_teleconsultas','cons_consentimentos')`)).rows[0].n, 4);
+r = await sec.from("cons_consultas").insert({ unidade_id: "consultorio", paciente_id: PAC, inicio: "2026-11-25T13:00:00Z", fim: "2026-11-25T13:30:00Z", modalidade: "teleconsulta" }).select("id, modalidade");
+const TELE = r.data?.[0]?.id;
+conferir("agenda teleconsulta", [r.error, r.data?.[0]?.modalidade], [null, "teleconsulta"]);
+const COD = "a".repeat(40);
+r = await sec.from("cons_teleconsultas").insert({ consulta_id: TELE, unidade_id: "consultorio", codigo: COD, sala_url: "https://x.whereby.com/sala", sala_medico_url: "https://x.whereby.com/sala?roomKey=1", termo_versao: "1", termo_texto: "Termo de teste" });
+conferir("secretária cria a sala", r.error, null);
+conferir("gerente do restaurante não vê a sala", (await ger.from("cons_teleconsultas").select("codigo")).data?.length, 0);
+const comoAnon = async (sqlTxt, params) => {
+  await pg.exec("reset role"); await pg.query(`select set_config('request.jwt.claim.sub', '', false)`); await pg.exec("set role anon");
+  try { return (await pg.query(sqlTxt, params)).rows[0]; } catch (e) { return { erro: e.message }; } finally { await pg.exec("reset role"); }
+};
+let conv = (await comoAnon(`select public.cons_convite_teleconsulta($1) j`, [COD])).j;
+conferir("paciente sem login vê o convite, sem a sala antes do aceite", [conv.ok, conv.primeiro_nome, conv.sala_url ?? null, conv.aceito_em ?? null], [true, "Maria", null, null]);
+conferir("código errado não abre nada", (await comoAnon(`select public.cons_convite_teleconsulta($1) j`, ["b".repeat(40)])).j.ok, false);
+conferir("sem login não lê a tabela de salas", !!(await comoAnon(`select count(*) from public.cons_teleconsultas`)).erro, true);
+let ac = (await comoAnon(`select public.cons_aceitar_termo($1, $2) j`, [COD, "Teste/1.0"])).j;
+conferir("aceite devolve a sala", [ac.ok, ac.sala_url], [true, "https://x.whereby.com/sala"]);
+await comoAnon(`select public.cons_aceitar_termo($1, $2) j`, [COD, "Teste/1.0"]);
+const cons = (await pg.query(`select count(*)::int n, max(termo_md5) h from public.cons_consentimentos where consulta_id = $1`, [TELE])).rows[0];
+conferir("um aceite só, com o hash do termo", [cons.n, cons.h], [1, (await pg.query(`select md5('Termo de teste') h`)).rows[0].h]);
+conferir("médico vê o aceite", (await dono.from("cons_consentimentos").select("aceito_em")).data?.length, 1);
+r = await dono.from("cons_consentimentos").update({ termo_texto: "outro" }).eq("consulta_id", TELE);
+conferir("ninguém altera o aceite", !!r.error || (await pg.query(`select termo_texto from public.cons_consentimentos`)).rows[0].termo_texto === "Termo de teste", true);
+await sec.from("cons_consultas").update({ status: "cancelada" }).eq("id", TELE);
+conferir("consulta cancelada fecha o convite", (await comoAnon(`select public.cons_convite_teleconsulta($1) j`, [COD])).j.ok, false);
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

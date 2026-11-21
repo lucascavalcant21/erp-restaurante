@@ -14,7 +14,7 @@ import { VideoDoMedico } from "../../../components/consultorio/Teleconsulta";
 import { fetchConsultas, fetchConsultasDesde, fetchPacientesPorId, fetchRetornos, fichasDoPaciente, salvarConsulta, salvarFicha } from "../../../lib/consultorio/dados";
 
 const area = `${inputCls} min-h-[84px] py-2 leading-relaxed`;
-const VAZIA = { queixa: "", anotacoes: "", diagnostico: "", cid: "", conduta: "", exames: "", medicacao: "", retorno_dias: "" };
+const VAZIA = { queixa: "", anotacoes: "", diagnostico: "", cid: "", conduta: "", exames: "", medicacao: "", orientacoes: "", retorno_dias: "" };
 
 function UltimaConsulta({ f }) {
   if (!f) return <p className="text-sm text-hf-text-2">Primeira consulta registrada aqui: nenhuma ficha anterior sua para este paciente.</p>;
@@ -23,7 +23,7 @@ function UltimaConsulta({ f }) {
     <div className="space-y-1">
       <p className="text-xs font-semibold text-hf-muted">Última consulta: {dataBR(f.criado_em)}{f.retorno_dias ? ` · retorno pedido em ${f.retorno_dias} dias` : ""}</p>
       {linha("Motivo", f.queixa)}{linha("Diagnóstico", [f.diagnostico, f.cid && `(CID ${f.cid})`].filter(Boolean).join(" "))}
-      {linha("Conduta", f.conduta)}{linha("Exames", f.exames)}{linha("Medicação", f.medicacao)}{linha("Anotações", f.anotacoes)}
+      {linha("Conduta", f.conduta)}{linha("Exames", f.exames)}{linha("Medicação", f.medicacao)}{linha("Orientações ao paciente", f.orientacoes)}{linha("Anotações", f.anotacoes)}
     </div>
   );
 }
@@ -42,7 +42,7 @@ function Atender({ c, paciente, onFim }) {
     setErro(null); setSalvando(true);
     const dias = Number(String(f.retorno_dias).replace(",", "."));
     const r = await salvarFicha({ paciente_id: c.paciente_id, consulta_id: c.id, queixa: f.queixa || null, anotacoes: f.anotacoes || null, diagnostico: f.diagnostico || null,
-      cid: f.cid ? f.cid.toUpperCase().trim() : null, conduta: f.conduta || null, exames: f.exames || null, medicacao: f.medicacao || null, retorno_dias: dias > 0 ? Math.round(dias) : null });
+      cid: f.cid ? f.cid.toUpperCase().trim() : null, conduta: f.conduta || null, exames: f.exames || null, medicacao: f.medicacao || null, orientacoes: f.orientacoes || null, retorno_dias: dias > 0 ? Math.round(dias) : null });
     if (r.error) { setSalvando(false); return setErro(/duplicate|unique/i.test(r.error) ? "Esta consulta já tem ficha." : r.error); }
     const k = await salvarConsulta({ id: c.id, status: "atendida", atendimento_fim: new Date().toISOString() });
     setSalvando(false);
@@ -67,6 +67,7 @@ function Atender({ c, paciente, onFim }) {
           <Campo rotulo="Conduta" className="sm:col-span-2"><textarea className={area} rows={2} value={f.conduta} onChange={(e) => mudar({ conduta: e.target.value })} /></Campo>
           <Campo rotulo="Exames pedidos"><textarea className={area} rows={2} value={f.exames} onChange={(e) => mudar({ exames: e.target.value })} /></Campo>
           <Campo rotulo="Medicação"><textarea className={area} rows={2} value={f.medicacao} onChange={(e) => mudar({ medicacao: e.target.value })} /></Campo>
+          <Campo rotulo="Orientações ao paciente" dica="Aparecem no portal do paciente. A história e o exame físico não aparecem." className="sm:col-span-2"><textarea className={area} rows={2} value={f.orientacoes} onChange={(e) => mudar({ orientacoes: e.target.value })} /></Campo>
           <Campo rotulo="Retorno em (dias)" dica="Vazio: sem retorno.">
             <div className="flex flex-wrap gap-2">
               {[7, 15, 30, 60, 90].map((d) => <button key={d} type="button" onClick={() => mudar({ retorno_dias: String(d) })} className={`min-h-[40px] rounded-full border px-3 text-sm font-semibold ${String(f.retorno_dias) === String(d) ? "border-hf-menu bg-hf-menu text-white" : "border-hf-border text-hf-text-2"}`}>{d}</button>)}

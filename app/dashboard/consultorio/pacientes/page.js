@@ -8,6 +8,43 @@ import { EscolherPaciente, SeloStatus, dataBR, hojeLocal, hora, mascaraCpf, masc
 import { Aviso, Botao, Campo, Secao, brl, inputCls } from "../../../components/marmitaria/ui";
 import { cpfValido, idade, soDigitos } from "../../../lib/consultorio/agenda.mjs";
 import { buscarPacientes, fetchConsultasDoPaciente, salvarPaciente } from "../../../lib/consultorio/dados";
+import { fetchComSessao } from "../../../lib/api-sessao";
+
+// Login do portal do paciente: gerado aqui, a senha aparece uma vez só.
+function AcessoDoPaciente({ p }) {
+  const [res, setRes] = useState(null);
+  const [erro, setErro] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+  const link = typeof window !== "undefined" ? `${window.location.origin}/paciente` : "/paciente";
+  async function gerar() {
+    if (p.auth_user_id && !window.confirm("Gerar uma senha nova? A senha antiga deixa de valer.")) return;
+    setOcupado(true); setErro(null);
+    try {
+      const r = await fetchComSessao("/api/consultorio/paciente-acesso", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paciente_id: p.id }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) setErro(j.error || "Não consegui gerar o acesso."); else setRes(j);
+    } catch { setErro("Sem conexão. Tente de novo."); }
+    setOcupado(false);
+  }
+  const texto = res ? `Olá, ${String(p.nome).split(" ")[0]}! Seu acesso ao portal do consultório: ${link}\nLogin: ${res.login}\nSenha: ${res.senha}\nTroque a senha no primeiro acesso.` : "";
+  const fone = String(p.telefone || "").replace(/\D/g, "");
+  return (
+    <Secao titulo="Portal do paciente" subtitulo="Com login e senha, o paciente marca e cancela consultas, entra na teleconsulta e vê os resumos das consultas (sem as suas anotações internas).">
+      {p.auth_user_id && !res && <p className="mb-2 text-sm text-hf-text-2">Acesso já criado{p.login ? ` (login ${p.login})` : ""}.</p>}
+      {res ? (
+        <div className="space-y-2 rounded-xl bg-hf-elevated p-3">
+          <p className="text-sm text-hf-text">Login: <b className="font-mono">{res.login}</b> · Senha: <b className="font-mono">{res.senha}</b></p>
+          <p className="text-xs text-hf-muted">A senha não aparece de novo. Entregue ao paciente agora.</p>
+          <div className="flex flex-wrap gap-2">
+            <Botao variante="secundario" onClick={() => navigator.clipboard?.writeText(texto)}>Copiar</Botao>
+            {fone && <a href={`https://wa.me/55${fone}?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text">Enviar pelo WhatsApp</a>}
+          </div>
+        </div>
+      ) : <Botao onClick={gerar} disabled={ocupado}>{ocupado ? "Gerando…" : p.auth_user_id ? "Gerar senha nova" : "Criar acesso ao portal"}</Botao>}
+      {erro && <Aviso tipo="alerta" className="mt-2">{erro}</Aviso>}
+    </Secao>
+  );
+}
 
 function Ficha({ p, onVoltar }) {
   const { conveniosAtivos, tipos, convenios } = useConsultorio();
@@ -44,6 +81,7 @@ function Ficha({ p, onVoltar }) {
         <div className="mt-3 flex gap-2"><Botao onClick={salvar}>Salvar cadastro</Botao>
           <Botao variante="secundario" onClick={async () => { if (!window.confirm("Inativar este paciente? Ele some da busca, mas o histórico fica guardado.")) return; const r = await salvarPaciente({ id: p.id, ativo: false }); if (!r.error) onVoltar(); else setMsg({ tipo: "alerta", texto: r.error }); }}>Inativar</Botao></div>
       </Secao>
+      <AcessoDoPaciente p={p} />
       <Secao titulo="Consultas" subtitulo={historico ? `${historico.length} consulta(s) · ${brl(pagos)} pagos` : undefined}>
         {historico === null ? <p className="text-sm text-hf-muted">Carregando…</p> : !historico.length ? <p className="text-sm text-hf-text-2">Nenhuma consulta ainda.</p> : (
           <ul className="divide-y divide-hf-border">{historico.map((c) => (

@@ -42,6 +42,7 @@ const PERGUNTAS = [
   { p: "Funciona no celular?", r: "Sim. O Héfisto abre no navegador e pode ser instalado como aplicativo no celular, no tablet e no computador." },
   { p: "Os meus dados ficam separados dos de outras empresas?", r: "Sim. Cada empresa só enxerga os próprios dados, e isso é conferido no banco de dados, não só na tela." },
   { p: "A teleconsulta do consultório é gravada?", r: "Não. O Héfisto guarda o aceite do termo pelo paciente e o registro do atendimento na ficha; o vídeo não é gravado." },
+  { p: "O consultório e a gestão pessoal têm preço à parte?", r: "Não. Todas as áreas estão no mesmo plano: no Completo, você usa restaurante, delivery, eventos, consultório e, quando abrir, a gestão pessoal, sem custo a mais." },
   { p: "E a gestão pessoal?", r: "Está em preparação. Faça o pedido de cadastro na área Gestão pessoal para entrar na lista e ser avisado quando abrir." },
 ];
 

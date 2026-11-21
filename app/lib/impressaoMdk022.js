@@ -170,6 +170,29 @@ export const METRICAS_TAMANHO = {
 };
 
 /**
+ * Área útil do layout nativo 60x40 em dots: canto (x, y) já com margens e o
+ * deslocamento da calibração, e largura/altura do conteúdo. Sem perfil, o
+ * padrão de sempre (60x40 mm, margens de 1,5 mm = 12 dots).
+ */
+export function areaNativa60x40(perfilFisico = null) {
+  if (!perfilFisico) return { x: 12, y: 12, cW: 456, cH: 296 };
+  const dpi = Number(perfilFisico.dpi) || 203;
+  const dots = (mm) => Math.round((Number(mm) || 0) * (dpi / 25.4));
+  const num = (v, padrao) => (v === null || v === undefined || v === "" || !Number.isFinite(Number(v)) ? padrao : Number(v));
+  const dW = dots(num(perfilFisico.widthMm, 60));
+  const dH = dots(num(perfilFisico.heightMm, 40));
+  const mL = dots(Math.max(0, num(perfilFisico.marginLeftMm, 1.5)));
+  const mR = dots(Math.max(0, num(perfilFisico.marginRightMm, 1.5)));
+  const mT = dots(Math.max(0, num(perfilFisico.marginTopMm, 1.5)));
+  const mB = dots(Math.max(0, num(perfilFisico.marginBottomMm, 1.5)));
+  const x = Math.max(0, mL + dots(num(perfilFisico.offsetXmm, 0)));
+  const y = Math.max(0, mT + dots(num(perfilFisico.offsetYmm, 0)));
+  const cW = Math.max(160, dW - mL - mR);
+  const cH = Math.max(120, dH - mT - mB);
+  return { x, y, cW, cH };
+}
+
+/**
  * Verifica se um texto contém acentos ou caracteres Unicode não-ASCII que exijam renderização via BITMAP.
  */
 export function precisaRenderizacaoBitmap(texto) {
@@ -661,14 +684,12 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1, 
 
   // ==== NOVO LAYOUT NATIVO EXCLUSIVO PARA 60x40 ====
   if (tamanho === "60x40" && modeloEtiqueta !== "nome") {
-    const dW = 480;
-    const dH = 320;
-    // Margens recomendadas (1.5mm = 12 dots)
-    const mTop = 12;
-    const mLeft = 12;
-    const cW = dW - (mLeft * 2); // 456
-    const cH = dH - (mTop * 2);  // 296
-    
+    // Área útil pela calibração da impressora (Configurações › Etiquetas).
+    // Antes as margens eram fixas em 1,5 mm e o deslocamento X/Y era
+    // ignorado: com a etiqueta saindo para o lado, não havia como acertar
+    // (foto do dono, 21/11/2026: texto cortado à esquerda, sobra à direita).
+    const { x: mLeft, y: mTop, cW, cH } = areaNativa60x40(perfilFisico);
+
     // Área do QR Code (canto superior direito)
     const qrSize = 100; // cell size 4 -> ~100px
     const textW = cW - qrSize - 12; // 344 dots para o texto

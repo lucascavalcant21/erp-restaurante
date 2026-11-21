@@ -434,8 +434,8 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
   const pct = (v) => percentualDe(v, receita);
   const L = (id, rotulo, valor, tipo = "custo", extra = {}) => ({ id, rotulo, valor, pct: pct(valor), porPessoa: convidados > 0 ? r2(valor / convidados) : null, tipo, ...extra });
   const dre = [
-    ...(desconto > 0 ? [L("receita_bruta", "Receita bruta", receitaBruta, "receita"), L("desconto", "(−) Desconto", desconto)] : []),
     ...(aluguelCobrado > 0 ? [L("receita_cardapio", "Cardápio e serviço", r2(receitaPorPessoa + precoMesa), "info"), L("receita_espaco", "Aluguel do meu espaço", aluguelCobrado, "info")] : []),
+    ...(desconto > 0 ? [L("receita_bruta", "Receita bruta", receitaBruta, "receita"), L("desconto", "(−) Desconto", desconto)] : []),
     L("receita", "Receita do evento", receita, "receita"),
     L("imposto", `(−) Impostos (${impostoPct.toLocaleString("pt-BR")}%)`, imposto),
     L("maquininha", `(−) Taxa da maquininha (${maquininhaPct.toLocaleString("pt-BR")}%)`, maquininha),

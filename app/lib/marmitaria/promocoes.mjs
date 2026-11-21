@@ -67,10 +67,11 @@ export function pedidoDaOferta(itens = [], oferta = {}) {
  * Pedido inteiro num canal: taxas sobre o que o cliente paga, custo do que sai
  * e o peso da equipe e dos custos fixos em cada marmita (custosEmbutidos).
  */
-export function lucroDoPedido({ paga, custo, canal = CANAL_DIRETO, tributosPct = null, embutidos = null, marmitas = 1 } = {}) {
+export function lucroDoPedido({ paga, custo, canal = CANAL_DIRETO, tributosPct = null, embutidos = null, marmitas = 1, descontoLoja = 0 } = {}) {
   if (!(pos(paga) > 0)) return { valido: false, motivo: "O cliente não paga nada nessa oferta." };
   // O pedido inteiro conta como 1 "item" para a taxa fixa e a entrega.
-  const r = resultadoPorCanal({ preco: paga, custoTecnico: custo, canal: { ...canal, itens_por_pedido: 1 }, tributosPct });
+  // descontoLoja: parte de uma promoção paga pela loja (R$), sobre o preço `paga` de lista.
+  const r = resultadoPorCanal({ preco: paga, custoTecnico: custo, canal: { ...canal, itens_por_pedido: 1 }, tributosPct, descontoLoja });
   if (!r.valido) return r;
   const porMarmita = (v) => (v == null ? null : r2(v * pos(marmitas)));
   const cmo = porMarmita(embutidos?.cmoPorMarmita);

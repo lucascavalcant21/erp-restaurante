@@ -20,7 +20,8 @@ import { composicaoDoPreco, ehMei, ordenarCategorias, rotuloDoLucro } from "../.
 import NoBolso from "../metas/NoBolso";
 import { metaEmReais } from "../../lib/precificacao.mjs";
 import { melhorTroca } from "../../lib/marmitaria/painel-lucro.mjs";
-import { precoSugerido } from "../../lib/marmitaria/nucleo.mjs";
+import { normalizarCanal, precoSugerido } from "../../lib/marmitaria/nucleo.mjs";
+import { alertasDoPreco, cascataDoPreco, contaDoPreco, faixaDePrecos } from "../../lib/marmitaria/precificacao.mjs";
 import { precoPorMarkup } from "../../lib/marmitaria/dia.mjs";
 import { definirDisponibilidade, salvarPrecoNoCanal } from "../../lib/marmitaria/dados";
 import { useCardapio } from "./useCardapio";
@@ -252,7 +253,7 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
                         {l.secao === "marmitas" && l.ficha && <button type="button" onClick={() => tirarDoCardapio(l.ficha)} className="min-h-[32px] text-xs font-bold text-hf-text-2 hover:text-hf-danger">Tirar do cardápio</button>}
                         {l.secao === "promocoes" && <button type="button" onClick={() => onRemoverOferta(l.id)} className="min-h-[32px] text-xs font-bold text-hf-text-2 hover:text-hf-danger">Tirar do cardápio</button>}
                       </div>
-                      {precoVisivel(l, cid) && <FormarPreco key={`${l.id}|${cid}`} linha={l} comum={comum} metaPct={metaPct} aoSalvar={() => { setPrecoAberto(null); setFechados((f) => new Set(f).add(`${l.id}|${cid}`)); }} />}
+                      {precoVisivel(l, cid) && <FormarPreco key={`${l.id}|${cid}`} linha={l} comum={comum} metaPct={metaPct} custoFicha={c} aoSalvar={() => { setPrecoAberto(null); setFechados((f) => new Set(f).add(`${l.id}|${cid}`)); }} />}
                       {abrir && l.sim && (
                         <div className="mt-2">
                           {c && <p className="text-xs text-hf-text-2">Custo de 1 unidade: ingredientes {brl(c.alimentos + c.prePreparos)} · embalagens {brl(c.embalagens)} = <b>{brl(c.total)}</b>{!c.completo ? " (incompleto)" : ""}</p>}
@@ -311,26 +312,57 @@ function Numero({ r, v, riscado }) {
 }
 
 // Forma o preço do item nesta plataforma. A conta muda a cada tecla; só grava no botão.
-function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
+// Estilo de precificação (especificação do dono, 21/11/2026): preço de lista,
+// o que o cliente paga e o que chega para você são coisas diferentes. A conta
+// vem em cascata, com preço mínimo, preço da meta e alertas. Tudo ESTIMATIVA.
+const QUEM_PAGA = [{ id: "loja", rotulo: "Você (loja)" }, { id: "app", rotulo: "O app" }, { id: "dividido", rotulo: "Metade cada" }];
+
+function CascataDoPreco({ linhas }) {
+  if (!linhas?.length) return null;
+  return (
+    <ul className="mt-3 divide-y divide-hf-border rounded-xl border border-hf-border text-sm">
+      {linhas.map((l) => (
+        <li key={l.id} className={`flex items-baseline justify-between gap-3 px-3 py-2 ${l.tipo === "final" ? "bg-hf-elevated font-black" : l.tipo === "total" ? "font-bold" : ""} ${l.informativo ? "text-hf-muted" : ""}`}>
+          <span className="min-w-0">{l.rotulo}</span>
+          <span className={`shrink-0 tabular-nums ${l.tipo === "final" && l.valor < 0 ? "text-hf-danger" : ""}`}>
+            {l.valor == null ? "pendente" : brl(l.valor)}{l.pct != null && l.id !== "lista" ? <span className="ml-1 text-[11px] font-normal text-hf-muted">{pctTxt(l.pct)}</span> : null}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function FormarPreco({ linha, comum, metaPct, aoSalvar, custoFicha = null }) {
   const { base, unidadeId, recarregar } = useMarmitaria();
-  const metaReais = base.config.rateio?.meta_lucro_reais ?? null;
+  const metaReais = Number(base.config.rateio?.meta_lucro_reais) > 0 ? Number(base.config.rateio.meta_lucro_reais) : null;
+  const metaAte = Number(base.config.rateio?.meta_lucro_ate) > 0 ? Number(base.config.rateio.meta_lucro_ate) : null;
   const item = linha.itens[0];
+  const ehMarmita = item.grupo === "marmita";
   const [preco, setPreco] = useState(item.preco > 0 ? String(item.preco).replace(".", ",") : "");
   const [markup, setMarkup] = useState("");
+  const [promo, setPromo] = useState("");
+  const [quemPaga, setQuemPaga] = useState("loja");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
   const valor = lerNumero(preco);
-  const s = valor > 0 ? simularOferta({ itens: [{ ...item, preco: valor, qtd: 1 }], oferta: { tipo: "nenhuma" }, ...comum }) : null;
-  const custoComEmbutidos = item.custo == null ? null : item.custo + (item.grupo === "marmita" ? comum.embutidos.totalPorMarmita || 0 : 0);
-  const sug = precoSugerido({ custoTecnico: custoComEmbutidos, canal: { ...comum.canal, itens_por_pedido: 1 }, tributosPct: comum.tributosPct, margemAlvoPct: metaPct === "" ? null : metaPct, lucroAlvoReais: item.grupo === "marmita" ? metaReais : null });
+  const conta = valor > 0 ? contaDoPreco({ precoLista: valor, clientePaga: lerNumero(promo), quemPaga, custo: item.custo, canal: comum.canal, tributosPct: comum.tributosPct, embutidos: ehMarmita ? comum.embutidos : null, ehMarmita }) : null;
+  const r = conta?.r;
+  const custoComEmbutidos = item.custo == null ? null : item.custo + (ehMarmita ? comum.embutidos.totalPorMarmita || 0 : 0);
+  const faixa = faixaDePrecos({ custoComEmbutidos, canal: comum.canal, tributosPct: comum.tributosPct, metas: ehMarmita ? [metaReais, metaAte] : [] });
+  const ingredientes = custoFicha ? (Number(custoFicha.alimentos) || 0) + (Number(custoFicha.prePreparos) || 0) : item.custo;
+  const linhas = r?.valido ? cascataDoPreco({ r, custo: { ingredientes: item.custo == null ? null : ingredientes, embalagens: custoFicha?.embalagens || 0 }, descontoApp: conta.descontoApp }) : null;
+  const alertas = r ? alertasDoPreco({ r, metaReais: ehMarmita ? metaReais : null, completo: !linha.falta && (custoFicha ? custoFicha.completo !== false : item.custo != null) }) : [];
   const usar = (v) => { setPreco(String(v).replace(".", ",")); setErro(null); };
+  const canalN = normalizarCanal(comum.canal);
+  const modo = canalN.usar_fatura ? `taxa real da fatura, ${pctTxt(canalN.fatura.totalPct)} (estimativa)` : "taxas do contrato";
 
   async function salvar() {
     if (salvando) return;
     setSalvando(true); setErro(null);
     try {
-      const r = await salvarPrecoNoCanal({ unidadeId, fichaId: item.id, canal: comum.canal.id, preco: valor });
-      if (r.error) { setErro(r.error); return; }
+      const res = await salvarPrecoNoCanal({ unidadeId, fichaId: item.id, canal: comum.canal.id, preco: valor });
+      if (res.error) { setErro(res.error); return; }
       await recarregar();
       aoSalvar();
     } finally { setSalvando(false); }
@@ -339,14 +371,36 @@ function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
   return (
     <div className="mt-2 rounded-xl border border-hf-border p-3">
       {/* dono, 17/11/2026: sem campo de markup; o markup aparece sozinho conforme o preço */}
-      <Campo rotulo={`Preço no ${comum.canal.nome}`}><CampoNumero prefixo="R$" valor={preco} onChange={(v) => { setPreco(v); setMarkup(""); }} placeholder="0,00" /></Campo>
-      {sug.preco !== null && !linha.falta && <button type="button" onClick={() => { usar(sug.preco); setMarkup(""); }} className="mt-2 min-h-[32px] text-xs font-bold text-hf-accent hover:underline">Usar {brl(sug.preco)}, que deixa a meta de {brl(metaEmReais({ preco: sug.preco, metaPct: metaPct === "" ? null : metaPct, metaReais: item.grupo === "marmita" ? metaReais : null }))} de lucro</button>}
-      {s?.com.valido && !linha.falta && (
-        <p className="mt-2 text-sm text-hf-text-2">Markup <b className="tabular-nums">{markupPctTxt(s.com.markup)}</b> · CMV <b className="tabular-nums">{pctTxt(s.com.cmvTecnicoPct)}</b> · Sobra <b className={`tabular-nums ${s.com.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{brl(s.com.lucro)}</b></p>
+      <Campo rotulo={`Preço de lista no ${comum.canal.nome}`} dica={`Calculado com as ${modo}.`}><CampoNumero prefixo="R$" valor={preco} onChange={(v) => { setPreco(v); setMarkup(""); }} placeholder="0,00" /></Campo>
+      {!linha.falta && (faixa.minimo != null || faixa.metas.length > 0) && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {faixa.minimo != null && <button type="button" onClick={() => usar(faixa.minimo)} className="min-h-[36px] rounded-full border border-hf-border px-3 text-xs font-bold text-hf-text-2">Mínimo (lucro zero) {brl(faixa.minimo)}</button>}
+          {faixa.metas.filter((m) => m.preco != null).map((m) => <button key={m.lucro} type="button" onClick={() => usar(m.preco)} className="min-h-[36px] rounded-full bg-hf-menu px-3 text-xs font-bold text-white">Lucro {brl(m.lucro)}: {brl(m.preco)}</button>)}
+        </div>
       )}
-      {s?.com.valido && !linha.falta && <NoBolso lucro={s.com.lucro} preco={valor} metaPct={metaPct} metaReais={item.grupo === "marmita" ? metaReais : null} rotulo={rotuloDoLucro(comum.embutidos)} />}
+      {r?.valido && !linha.falta && (
+        <p className="mt-2 text-sm text-hf-text-2">Markup <b className="tabular-nums">{markupPctTxt(r.markup)}</b> · CMV <b className="tabular-nums">{pctTxt(r.cmvTecnicoPct)}</b></p>
+      )}
+      {valor > 0 && (
+        <details className="mt-2">
+          <summary className="min-h-[36px] cursor-pointer py-1 text-xs font-bold text-hf-text-2">Simular promoção {conta?.desconto ? `· ${pctTxt(conta.desconto.pct)} de desconto` : ""}</summary>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <Campo rotulo="Com a promoção, o cliente paga" dica={conta?.desconto ? `Desconto de ${brl(conta.desconto.desconto)} (${pctTxt(conta.desconto.pct)})` : "Ex.: lista R$ 42, cliente paga R$ 30"}><CampoNumero prefixo="R$" valor={promo} onChange={setPromo} placeholder="0,00" /></Campo>
+            <div>
+              <p className="mb-1 text-[13px] font-medium text-hf-muted">Quem paga o desconto</p>
+              <div className="flex flex-wrap gap-1.5">
+                {QUEM_PAGA.map((q) => <button key={q.id} type="button" aria-pressed={quemPaga === q.id} onClick={() => setQuemPaga(q.id)} className={`min-h-[40px] rounded-full border px-3 text-sm font-semibold ${quemPaga === q.id ? "border-hf-menu bg-hf-menu text-white" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>{q.rotulo}</button>)}
+              </div>
+            </div>
+          </div>
+        </details>
+      )}
+      {!linha.falta && <CascataDoPreco linhas={linhas} />}
+      {alertas.map((a) => <Aviso key={a.texto} tipo={a.tipo === "perigo" || a.tipo === "alerta" ? "alerta" : "info"} className="mt-2">{a.texto}</Aviso>)}
+      {r?.valido && !linha.falta && <NoBolso lucro={r.lucro} preco={valor} metaPct={metaPct} metaReais={ehMarmita ? metaReais : null} rotulo={`${rotuloDoLucro(comum.embutidos)} (estimativa)`} />}
       {erro && <Aviso tipo="alerta" className="mt-2">{erro}</Aviso>}
       <Botao className="mt-2" type="button" onClick={salvar} disabled={salvando || !(valor > 0)}>{salvando ? "Salvando…" : `Salvar preço no ${comum.canal.nome}`}</Botao>
+      <p className="mt-1 text-[11px] text-hf-muted">Salva só o preço deste app; os outros apps e o balcão não mudam. Promoção aqui é simulação.</p>
     </div>
   );
 }

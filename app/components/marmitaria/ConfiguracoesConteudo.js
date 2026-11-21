@@ -18,7 +18,7 @@ import { useBaseDosCustos } from "./useCustosEmbutidos";
 import { salvarConfig, carregarEquipe } from "../../lib/marmitaria/dados";
 import IfoodConexao from "../integracoes/IfoodConexao";
 import IfoodSincronizacao from "../integracoes/IfoodSincronizacao";
-import { MODELOS_CANAL, PLATAFORMAS_PADRAO, normalizarCanal, novoPlanoDoCanal, resultadoPorCanal, validarCanal, encargosDaConfig, ENCARGOS_LEGAIS } from "../../lib/marmitaria/nucleo.mjs";
+import { MODELOS_CANAL, PLATAFORMAS_PADRAO, taxaDaFatura, normalizarCanal, novoPlanoDoCanal, resultadoPorCanal, validarCanal, encargosDaConfig, ENCARGOS_LEGAIS } from "../../lib/marmitaria/nucleo.mjs";
 import { useJornada } from "./useJornada";
 import { custosEmbutidos } from "../../lib/marmitaria/cardapio.mjs";
 
@@ -56,6 +56,44 @@ function Calculadora({ canal, tributosPct }) {
   );
 }
 
+// Fatura do app (especificação do dono, 21/11/2026): a taxa do contrato e a
+// taxa REAL da fatura podem ser diferentes. Ex. 99Food: contrato 8,9% + 3,2%;
+// fatura 02/11–06/12: ganhos R$ 799,80, ofertas R$ 85,92, taxas R$ 107,02 →
+// 24,12% no total. A taxa da fatura é média do período (HIPÓTESE), não contrato.
+const pctBR = (v) => `${String(Math.round(v * 100) / 100).replace(".", ",")}%`;
+function FaturaDoApp({ canal, mudar }) {
+  const f = taxaDaFatura({ ganhos: canal.fatura_ganhos, ofertas: canal.fatura_ofertas, taxas: canal.fatura_taxas });
+  const contrato = (Number(String(canal.comissao_pct ?? "").replace(",", ".")) || 0) + (canal.pagamento_na_comissao ? 0 : Number(String(canal.taxa_pagamento_pct ?? "").replace(",", ".")) || 0);
+  const preenchida = [canal.fatura_ganhos, canal.fatura_ofertas, canal.fatura_taxas].some((v) => String(v ?? "").trim() !== "");
+  return (
+    <details className="mt-2 rounded-xl border border-hf-border bg-hf-elevated/40 p-3" open={!!canal.usar_fatura}>
+      <summary className="min-h-[36px] cursor-pointer py-1 text-sm font-bold text-hf-text">Conferir com a fatura do app {f ? `· ${pctBR(f.totalPct)} real` : ""}</summary>
+      <p className="mt-1 text-xs text-hf-text-2">Copie os totais de uma fatura. O sistema mostra quanto o app levou de verdade, para comparar com o contrato.</p>
+      <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Campo rotulo="Ganhos totais"><CampoNumero prefixo="R$" valor={canal.fatura_ganhos ?? ""} onChange={(v) => mudar("fatura_ganhos", v)} placeholder="0,00" /></Campo>
+        <Campo rotulo="Ofertas pagas pela loja"><CampoNumero prefixo="R$" valor={canal.fatura_ofertas ?? ""} onChange={(v) => mudar("fatura_ofertas", v)} placeholder="0,00" /></Campo>
+        <Campo rotulo="Taxas do app"><CampoNumero prefixo="R$" valor={canal.fatura_taxas ?? ""} onChange={(v) => mudar("fatura_taxas", v)} placeholder="0,00" /></Campo>
+        <Campo rotulo="Período da fatura"><input className={inputCls} value={canal.fatura_periodo || ""} onChange={(e) => mudar("fatura_periodo", e.target.value)} placeholder="Ex.: 02/11 a 06/12" /></Campo>
+      </div>
+      {preenchida && !f && <Aviso tipo="alerta" className="mt-2">Confira os valores: ofertas mais taxas não podem passar dos ganhos.</Aviso>}
+      {f && (
+        <>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+            <div className="rounded-lg bg-hf-surface p-2"><p className="text-[11px] text-hf-muted">Chegou para você</p><p className="font-black tabular-nums">{brl(f.liquido)}</p><p className="text-[11px] text-hf-muted">{pctBR(f.repassePct)}</p></div>
+            <div className="rounded-lg bg-hf-surface p-2"><p className="text-[11px] text-hf-muted">Ofertas da loja</p><p className="font-black tabular-nums">{pctBR(f.ofertasPct)}</p></div>
+            <div className="rounded-lg bg-hf-surface p-2"><p className="text-[11px] text-hf-muted">Taxas reais</p><p className="font-black tabular-nums">{pctBR(f.taxasPct)}</p><p className="text-[11px] text-hf-muted">contrato: {contrato > 0 ? pctBR(contrato) : "não informado"}</p></div>
+            <div className="rounded-lg bg-hf-surface p-2"><p className="text-[11px] text-hf-muted">Total que o app levou</p><p className="font-black tabular-nums">{pctBR(f.totalPct)}</p></div>
+          </div>
+          <label className="mt-3 flex min-h-[44px] items-start gap-2 text-sm text-hf-text">
+            <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-[rgb(var(--hf-accent))]" checked={!!canal.usar_fatura} onChange={(e) => mudar("usar_fatura", e.target.checked)} />
+            <span>Calcular os preços deste app com a taxa real da fatura ({pctBR(f.totalPct)}). <span className="text-hf-muted">É uma média do período (estimativa), não o contrato.</span></span>
+          </label>
+        </>
+      )}
+    </details>
+  );
+}
+
 export default function ConfiguracoesConteudo({ parte = "tudo" }) {
   const mostraApps = parte !== "custos";
   const mostraCustos = parte !== "apps";
@@ -81,7 +119,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
       // O dono avisou que será MEI: vale de saída, até ele salvar outra escolha.
       regime: c.rateio?.regime ?? (base.configSalva ? "" : "mei"),
       margem_alvo_pct: c.doResultado?.margem_alvo_pct ? "" : vazio(c.margem_alvo_pct),
-      encargos: { ...c.encargos }, rateio: { meta_lucro_reais: vazio(c.rateio?.meta_lucro_reais), meta_faturamento_mes: vazio(c.rateio?.meta_faturamento_mes), dias_operacao_mes: vazio(c.rateio?.dias_operacao_mes), horas_operacao_dia: vazio(c.rateio?.horas_operacao_dia), padrao_pct: vazio(c.rateio?.padrao_pct), por_categoria: { ...(c.rateio?.por_categoria || {}), }, marmitas_mes: vazio(c.rateio?.marmitas_mes), cmo_mes: vazio(c.rateio?.cmo_mes), custos_fixos: (c.rateio?.custos_fixos || []).map((x) => ({ nome: x.nome, valor: vazio(x.valor) })), custos_variaveis: (c.rateio?.custos_variaveis || []).map((x) => ({ nome: x.nome, valor: vazio(x.valor) })) },
+      encargos: { ...c.encargos }, rateio: { meta_lucro_reais: vazio(c.rateio?.meta_lucro_reais), meta_lucro_ate: vazio(c.rateio?.meta_lucro_ate), meta_faturamento_mes: vazio(c.rateio?.meta_faturamento_mes), dias_operacao_mes: vazio(c.rateio?.dias_operacao_mes), horas_operacao_dia: vazio(c.rateio?.horas_operacao_dia), padrao_pct: vazio(c.rateio?.padrao_pct), por_categoria: { ...(c.rateio?.por_categoria || {}), }, marmitas_mes: vazio(c.rateio?.marmitas_mes), cmo_mes: vazio(c.rateio?.cmo_mes), custos_fixos: (c.rateio?.custos_fixos || []).map((x) => ({ nome: x.nome, valor: vazio(x.valor) })), custos_variaveis: (c.rateio?.custos_variaveis || []).map((x) => ({ nome: x.nome, valor: vazio(x.valor) })) },
       centros_diretos: c.centros_diretos,
     });
   }, [base]);
@@ -95,7 +133,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
   async function salvar() {
     if (salvando) return;
     setMsg(null);
-    const canais = cfg.canais.map((c) => normalizarCanal({ ...c, ...Object.fromEntries(["comissao_pct", "taxa_pagamento_pct", "promocao_pct", "taxa_fixa_pedido", "entrega_subsidiada_pedido", "itens_por_pedido"].map((k) => [k, lerNumero(c[k])])) }));
+    const canais = cfg.canais.map((c) => normalizarCanal({ ...c, ...Object.fromEntries(["comissao_pct", "taxa_pagamento_pct", "promocao_pct", "taxa_fixa_pedido", "entrega_subsidiada_pedido", "itens_por_pedido", "fatura_ganhos", "fatura_ofertas", "fatura_taxas"].map((k) => [k, lerNumero(c[k])])) }));
     const erros = canais.flatMap((c) => validarCanal(c).map((e) => `${c.nome || "Canal"}: ${e}`));
     if (new Set(canais.map((c) => c.id)).size !== canais.length) erros.push("Há dois canais com o mesmo identificador.");
     const mei = cfg.regime === "mei";
@@ -110,7 +148,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
       const r = await salvarConfig(unidadeId, {
         canais, tributos_pct: t, margem_alvo_pct: m, encargos,
         // Chaves do rateio que esta tela não edita ficam como estavam.
-        rateio: { ...(base.config.rateio || {}), padrao_pct: lerNumero(cfg.rateio.padrao_pct), por_categoria: porCat, regime: mei ? "mei" : "", meta_lucro_reais: lerNumero(cfg.rateio.meta_lucro_reais), meta_faturamento_mes: lerNumero(cfg.rateio.meta_faturamento_mes), dias_operacao_mes: lerNumero(cfg.rateio.dias_operacao_mes), horas_operacao_dia: lerNumero(cfg.rateio.horas_operacao_dia),
+        rateio: { ...(base.config.rateio || {}), padrao_pct: lerNumero(cfg.rateio.padrao_pct), por_categoria: porCat, regime: mei ? "mei" : "", meta_lucro_reais: lerNumero(cfg.rateio.meta_lucro_reais), meta_lucro_ate: lerNumero(cfg.rateio.meta_lucro_ate), meta_faturamento_mes: lerNumero(cfg.rateio.meta_faturamento_mes), dias_operacao_mes: lerNumero(cfg.rateio.dias_operacao_mes), horas_operacao_dia: lerNumero(cfg.rateio.horas_operacao_dia),
           marmitas_mes: lerNumero(cfg.rateio.marmitas_mes), cmo_mes: lerNumero(cfg.rateio.cmo_mes),
           custos_fixos: cfg.rateio.custos_fixos.map((x) => ({ nome: String(x.nome || "").trim(), valor: lerNumero(x.valor) })).filter((x) => x.nome),
           custos_variaveis: cfg.rateio.custos_variaveis.map((x) => ({ nome: String(x.nome || "").trim(), valor: lerNumero(x.valor) })).filter((x) => x.nome) },
@@ -153,6 +191,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
                   <Campo rotulo="Marmitas por pedido (média)" dica="Divide as taxas por pedido."><CampoNumero sufixo="por pedido" valor={c.itens_por_pedido} onChange={(v) => mudarCanal(i, "itens_por_pedido", v)} placeholder="1" /></Campo>
                 </div>
               </details>
+              <FaturaDoApp canal={c} mudar={(k, v) => mudarCanal(i, k, v)} />
               <Calculadora canal={c} tributosPct={cfg.regime === "mei" ? 0 : lerNumero(cfg.tributos_pct) === "" ? base.config.tributos_pct : lerNumero(cfg.tributos_pct)} />
               <button type="button" className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-hf-text-2 hover:text-hf-text"
                 onClick={() => {
@@ -231,6 +270,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
           )}
           <Campo rotulo="Meta de lucro" dica={base?.config?.doResultado?.margem_alvo_pct ? `Em branco: ${base.config.margem_alvo_pct}% (meta do Resultado do mês). Usada para sugerir preços.` : "Usada para sugerir preços no Cardápio."}><CampoNumero sufixo="%" valor={cfg.margem_alvo_pct} onChange={(v) => setCfg({ ...cfg, margem_alvo_pct: v })} placeholder={base?.config?.doResultado?.margem_alvo_pct ? `${base.config.margem_alvo_pct} (Resultado do mês)` : "não configurado"} /></Campo>
           <Campo rotulo="Meta de lucro (R$ por marmita)" dica="Se preencher, vale no lugar da porcentagem: o preço sugerido garante esse valor no bolso."><CampoNumero prefixo="R$" valor={cfg.rateio.meta_lucro_reais} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, meta_lucro_reais: v } })} placeholder="ex.: 10" /></Campo>
+          <Campo rotulo="Meta de lucro até (R$ por marmita)" dica="Opcional: o topo da faixa da meta (ex.: de R$ 10 a R$ 12). A Precificação mostra o preço das duas."><CampoNumero prefixo="R$" valor={cfg.rateio.meta_lucro_ate} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, meta_lucro_ate: v } })} placeholder="ex.: 12" /></Campo>
           <Campo rotulo="Meta de faturamento do mês" dica="Usada em Faturamento, na aba Metas."><CampoNumero prefixo="R$" valor={cfg.rateio.meta_faturamento_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, meta_faturamento_mes: v } })} placeholder="ex.: 150000" /></Campo>
           <Campo rotulo="Dias de operação no mês" dica="Divide os custos por dia e define o ponto de equilíbrio."><CampoNumero sufixo="dias" valor={cfg.rateio.dias_operacao_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, dias_operacao_mes: v } })} placeholder="ex.: 26" /></Campo>
           <Campo rotulo="Horas de operação por dia" dica="Mostra o custo operacional por hora e por minuto no Dashboard gerencial."><CampoNumero sufixo="horas" valor={cfg.rateio.horas_operacao_dia} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, horas_operacao_dia: v } })} placeholder="ex.: 9" /></Campo>

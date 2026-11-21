@@ -139,6 +139,18 @@ export const PLATAFORMAS_PADRAO = ["ifood", "99food", "keeta", "balcao"];
 
 const CAMPOS_PCT = ["comissao_pct", "taxa_pagamento_pct", "promocao_pct"];
 const CAMPOS_RS = ["taxa_fixa_pedido", "entrega_subsidiada_pedido"];
+// Fatura do app (especificação do dono, 21/11/2026): ganhos totais, ofertas
+// pagas pela loja e taxas do app de um período. Dão a taxa REAL (observada),
+// que pode ser diferente da do contrato. É indicador histórico, não contrato.
+const CAMPOS_FATURA = ["fatura_ganhos", "fatura_ofertas", "fatura_taxas"];
+
+/** Da fatura: % de ofertas, % de taxas e o que sobra (repasse), sobre os ganhos totais. */
+export function taxaDaFatura({ ganhos, ofertas, taxas } = {}) {
+  const g = Math.max(0, parseNumero(ganhos)), o = Math.max(0, parseNumero(ofertas)), t = Math.max(0, parseNumero(taxas));
+  if (!(g > 0) || o + t > g) return null;
+  const pctDe = (v) => Math.round((v / g) * 1e6) / 1e4;
+  return { ganhos: r2(g), ofertas: r2(o), taxas: r2(t), liquido: r2(g - o - t), ofertasPct: pctDe(o), taxasPct: pctDe(t), totalPct: pctDe(o + t), repassePct: pctDe(g - o - t) };
+}
 
 export function normalizarCanal(c = {}) {
   const id = String(c.id || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 30);
@@ -153,10 +165,14 @@ export function normalizarCanal(c = {}) {
     pagamento_na_comissao: !!c.pagamento_na_comissao,
     itens_por_pedido: Math.max(1, parseNumero(c.itens_por_pedido) || 1),
   };
-  for (const k of [...CAMPOS_PCT, ...CAMPOS_RS]) {
+  for (const k of [...CAMPOS_PCT, ...CAMPOS_RS, ...CAMPOS_FATURA]) {
     const v = c[k];
     out[k] = v === "" || v === null || v === undefined ? null : Math.max(0, parseNumero(v));
   }
+  out.fatura_periodo = String(c.fatura_periodo || "").trim().slice(0, 60);
+  out.fatura = taxaDaFatura({ ganhos: out.fatura_ganhos, ofertas: out.fatura_ofertas, taxas: out.fatura_taxas });
+  // Só usa a taxa da fatura se o dono mandar e a fatura fechar a conta.
+  out.usar_fatura = !!c.usar_fatura && !!out.fatura;
   return out;
 }
 
@@ -177,6 +193,7 @@ export function novoPlanoDoCanal(canal, usados = []) {
 // a modalidade cobra (zero digitado é configuração; campo vazio não é).
 export function canalConfigurado(c) {
   const n = normalizarCanal(c);
+  if (n.usar_fatura) return true;
   return n.comissao_pct !== null && (n.pagamento_na_comissao || n.taxa_pagamento_pct !== null);
 }
 
@@ -207,7 +224,7 @@ function rotuloCampo(k) {
  * Percentuais sobre a RECEITA DE VENDAS. Margem de contribuição não é lucro:
  * ainda faltam CMO, despesas fixas e financeiras.
  */
-export function resultadoPorCanal({ preco, custoTecnico, canal = {}, tributosPct = null } = {}) {
+export function resultadoPorCanal({ preco, custoTecnico, canal = {}, tributosPct = null, descontoLoja = 0 } = {}) {
   const c = normalizarCanal(canal);
   const P = pos(preco);
   const custo = custoTecnico == null ? null : Math.max(0, parseNumero(custoTecnico));
@@ -217,12 +234,16 @@ export function resultadoPorCanal({ preco, custoTecnico, canal = {}, tributosPct
   if (tributosPct === null || tributosPct === undefined || tributosPct === "") avisos.push("Alíquota de tributos não configurada: a margem considera tributo zero.");
   if (custo === null) avisos.push("Custo técnico indisponível.");
 
-  const d = pct(c.promocao_pct);
-  const promocao = P * d;
+  // Taxa real da fatura (HIPÓTESE agregada): ofertas e taxas sobre o preço cheio.
+  const fat = c.usar_fatura ? c.fatura : null;
+  const d = fat ? fat.ofertasPct / 100 : pct(c.promocao_pct);
+  // desconto da loja numa promoção simulada (R$); desconto pago pelo app não entra aqui
+  const dl = Math.min(P, Math.max(0, parseNumero(descontoLoja)));
+  const promocao = P * d + dl;
   const receita = P - promocao;
   const tributos = receita * pct(tributosPct);
-  const comissao = (c.comissao_base === "bruto" ? P : receita) * pct(c.comissao_pct);
-  const taxaPagamento = c.pagamento_na_comissao ? 0 : receita * pct(c.taxa_pagamento_pct);
+  const comissao = fat ? P * (fat.taxasPct / 100) : (c.comissao_base === "bruto" ? P : receita) * pct(c.comissao_pct);
+  const taxaPagamento = fat || c.pagamento_na_comissao ? 0 : receita * pct(c.taxa_pagamento_pct);
   const taxaFixa = pos(c.taxa_fixa_pedido) / c.itens_por_pedido;
   const entrega = pos(c.entrega_subsidiada_pedido) / c.itens_por_pedido;
   const taxasCanal = comissao + taxaPagamento + taxaFixa;
@@ -230,7 +251,7 @@ export function resultadoPorCanal({ preco, custoTecnico, canal = {}, tributosPct
   const receitaLiquida = receita - tributos;
   const mc = custo === null ? null : receitaLiquida - variaveis - custo;
   return {
-    valido: true, avisos,
+    valido: true, avisos, modoTaxa: fat ? "fatura" : "contrato", descontoLoja: r2(dl),
     preco: r2(P), promocao: r2(promocao), receita: r2(receita), tributos: r2(tributos), receitaLiquida: r2(receitaLiquida),
     comissao: r2(comissao), taxaPagamento: r2(taxaPagamento), taxaFixa: r2(taxaFixa), entrega: r2(entrega),
     taxasCanal: r2(taxasCanal), variaveis: r2(variaveis), custo: r2(custo),
@@ -255,10 +276,12 @@ export function precoSugerido({ custoTecnico, canal = {}, tributosPct = null, ma
   if (!(lucroReais > 0) && (margemAlvoPct === null || margemAlvoPct === undefined || margemAlvoPct === "")) return { preco: null, motivo: "Configure a margem-alvo em Configurações." };
   // Meta em reais: soma ao que não depende do preço, e a porcentagem deixa de valer.
   const m = lucroReais > 0 ? 0 : parseNumero(margemAlvoPct) / 100;
-  const d = pct(c.promocao_pct);
+  const fat = c.usar_fatura ? c.fatura : null;
+  const d = fat ? fat.ofertasPct / 100 : pct(c.promocao_pct);
   const t = pct(tributosPct);
   const baseComissao = c.comissao_base === "bruto" ? 1 : (1 - d);
-  const k = (1 - d) * t + baseComissao * pct(c.comissao_pct) + (c.pagamento_na_comissao ? 0 : (1 - d) * pct(c.taxa_pagamento_pct));
+  const k = fat ? (1 - d) * t + fat.taxasPct / 100
+    : (1 - d) * t + baseComissao * pct(c.comissao_pct) + (c.pagamento_na_comissao ? 0 : (1 - d) * pct(c.taxa_pagamento_pct));
   const fixo = custo + lucroReais + pos(c.taxa_fixa_pedido) / c.itens_por_pedido + pos(c.entrega_subsidiada_pedido) / c.itens_por_pedido;
   const den = (1 - d) * (1 - m) - k;
   if (!(den > 0)) return { preco: null, motivo: "Com essas taxas e essa margem-alvo não existe preço possível: reduza a margem ou revise as taxas." };

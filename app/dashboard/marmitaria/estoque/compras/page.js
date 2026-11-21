@@ -35,7 +35,7 @@ function NovoPedido({ estoques, aoCriar }) {
   const [erro, setErro] = useState(null);
   const achados = useMemo(() => (busca.trim() ? base.insumosLista.filter((i) => !i.ficha_tecnica_id && casaBusca(i.nome, busca) && !itens.some((x) => x.insumo.id === i.id)).slice(0, 8) : []), [busca, base, itens]);
   const mudar = (id, campos) => setItens((l) => l.map((i) => (i.insumo.id === id ? { ...i, ...campos } : i)));
-  const slugDe = (ins) => (ehEmbalagem(ins) ? ESTOQUE_EMBALAGENS : ehLimpeza(ins) ? ESTOQUE_LIMPEZA : ESTOQUE_MARMITARIA);
+  const slugDe = (ins) => (ehEmbalagem(ins) ? ESTOQUE_EMBALAGENS : ehLimpeza(ins) ? ESTOQUE_LIMPEZA : String(ins?.departamento || "").toLowerCase() === "bebidas" ? "bebidas-marmitaria" : ESTOQUE_MARMITARIA);
   const estoqueDe = (ins) => estoques.find((e) => e.slug === slugDe(ins))?.id;
 
   async function gerar() {

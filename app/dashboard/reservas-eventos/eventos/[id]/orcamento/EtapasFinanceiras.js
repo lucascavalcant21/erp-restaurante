@@ -5,9 +5,11 @@
 // (evento-orcamento.mjs). O DRE aqui é só do evento: não lê nem escreve o DRE
 // do restaurante.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Wand2, Info } from "lucide-react";
 import BuffetDoEvento, { EquilibrioDoBuffet } from "./Buffet";
+import { situacaoDoPagamento } from "../../../../../lib/evento-calendario.mjs";
+import { fetchModeloProposta } from "../../../../../lib/parametros";
 import { FORMAS_PAGAMENTO, SECOES, novoId, realizadoDoEvento, conferenciaDoEvento } from "../../../../../lib/evento-orcamento.mjs";
 import { parseNumero } from "../../../../../lib/ficha-calculos.mjs";
 import { fmtReais, fmtPct } from "../../../../../lib/valor-percentual.mjs";
@@ -284,8 +286,14 @@ export function EtapaDRE({ orc, setOrc, resumo: r, fichas = [], recebido = 0 }) 
 }
 
 
-export function EtapaPagamentos({ pagamentos, salvarPagamentos, resumo: r, salvando }) {
+export function EtapaPagamentos({ pagamentos, salvarPagamentos, resumo: r, salvando, orc, setOrc, unidadeAtiva }) {
   const hoje = new Date().toISOString().slice(0, 10);
+  // Vencimento do restante (dono, 21/11/2026): padrão pela condição da proposta
+  // (X dias antes do evento); pode trocar por evento.
+  const [restanteDias, setRestanteDias] = useState(null);
+  useEffect(() => { if (unidadeAtiva) fetchModeloProposta(unidadeAtiva).then((x) => setRestanteDias(x?.data?.pagamento?.restante_dias ?? null)); }, [unidadeAtiva]);
+  const sit = situacaoDoPagamento({ total: r.receita, pagamentos, vencimentoRestante: orc?.financeiro?.vencimento_restante, dataEvento: orc?.cliente?.data_evento, restanteDias, hojeIso: hoje });
+  const mudarVencimento = (v) => setOrc?.((o) => ({ ...o, financeiro: { ...o.financeiro, vencimento_restante: v } }));
   const [novo, setNovo] = useState({ valor: "", data: hoje, metodo: "PIX", obs: "Sinal" });
   const recebido = pagamentos.reduce((t, p) => t + (Number(p.valor) || 0), 0);
   const registrar = async () => {
@@ -304,6 +312,23 @@ export function EtapaPagamentos({ pagamentos, salvarPagamentos, resumo: r, salva
           </div>
         ))}
       </div>
+      {(sit.estado === "parcial" || sit.estado === "nada") && (
+        <div className={`rounded-2xl border p-4 ${sit.atrasado ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{sit.estado === "parcial" ? "Pagamento parcial" : "Nada pago ainda"}</p>
+              <p className={`mt-1 text-base font-black ${sit.atrasado ? "text-red-700" : "text-slate-900"}`}>
+                {sit.atrasado ? `Restante de ${fmtReais(sit.falta)} ATRASADO há ${sit.diasAtraso} dia(s)` : sit.vencimento ? `Restante de ${fmtReais(sit.falta)} vence em ${new Date(`${sit.vencimento}T12:00:00`).toLocaleDateString("pt-BR")}${sit.venceEm === 0 ? " (hoje)" : sit.venceEm ? ` (em ${sit.venceEm} dia(s))` : ""}` : `Falta ${fmtReais(sit.falta)}: defina quando vence`}
+              </p>
+            </div>
+            <Campo rotulo="Vencimento do restante" ajuda={!orc?.financeiro?.vencimento_restante && sit.vencimento ? "Pela condição da proposta. Troque se combinou outra data." : undefined}>
+              <input type="date" value={orc?.financeiro?.vencimento_restante || sit.vencimento || ""} onChange={(e) => mudarVencimento(e.target.value)}
+                className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500" />
+            </Campo>
+          </div>
+        </div>
+      )}
+      {sit.estado === "pago" && <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-base font-black text-emerald-800">Pago integralmente{sit.ultimaData ? ` (último pagamento em ${new Date(`${sit.ultimaData}T12:00:00`).toLocaleDateString("pt-BR")})` : ""}.</p>}
       {/* Pagamentos mais rápidos (pedido do dono, 28/10/2026: "muda"): barra do
           que já entrou, atalhos de valor e forma/observação em botões. */}
       {r.receita > 0 && (

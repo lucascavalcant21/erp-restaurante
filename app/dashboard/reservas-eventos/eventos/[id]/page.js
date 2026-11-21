@@ -120,7 +120,9 @@ export default function EventoPage() {
         const o = orcamentoDoEvento(data, params, equipeLegada);
         setEvento(data);
         setOrc(o);
-        setEtapa(o.cardapio.length ? "dre" : "tipo");
+        // ?etapa=pagamentos (vindo do calendário) abre direto na etapa.
+        const naUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("etapa") : null;
+        setEtapa(ETAPAS.some((x) => x.id === naUrl) ? naUrl : o.cardapio.length ? "dre" : "tipo");
       }
       setCarregando(false);
     })();
@@ -356,7 +358,7 @@ export default function EventoPage() {
           {etapa === "financeiro" && <EtapaFinanceiro {...props} />}
           {etapa === "dre" && <EtapaDRE {...props} recebido={recebido} />}
           {etapa === "proposta" && <EtapaProposta {...props} unidadeAtiva={unidadeAtiva} casa={unidadeInfo?.nome || ""} eventoId={id} telefoneCasa={unidadeInfo?.telefone || ""} criadoEm={evento?.created_at || null} />}
-          {etapa === "pagamentos" && <EtapaPagamentos pagamentos={pagamentos} salvarPagamentos={salvarPagamentos} resumo={resumo} salvando={salvandoPag} />}
+          {etapa === "pagamentos" && <EtapaPagamentos pagamentos={pagamentos} salvarPagamentos={salvarPagamentos} resumo={resumo} salvando={salvandoPag} orc={orc} setOrc={setOrc} unidadeAtiva={unidadeAtiva} />}
           {etapa === "compras" && compras && <ComprasTab lista={compras} valor={resumo.receita} nItens={resumo.itens.length} cmvCardapio={resumo.cmv} />}
 
           <div className="mt-6 flex items-center justify-between gap-3 print:hidden">

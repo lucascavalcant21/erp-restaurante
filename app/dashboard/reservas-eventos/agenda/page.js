@@ -11,6 +11,7 @@ import { supabase } from "../../../lib/supabase";
 import { normalizarEtapa, rotuloEtapa } from "../../../lib/evento-financeiro.mjs";
 import { erroDeColunaDeEventos } from "../../../lib/evento-orcamento.mjs";
 import { rotuloStatusReserva } from "../../../lib/reservas-lista.mjs";
+import CalendarioEventos from "./CalendarioEventos";
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const somarDias = (dIso, n) => { const d = new Date(`${dIso}T12:00:00`); d.setDate(d.getDate() + n); return iso(d); };
@@ -24,7 +25,7 @@ const rotuloDia = (dIso, hojeIso) => {
 
 const JANELAS = [[7, "7 dias"], [30, "30 dias"], [90, "90 dias"]];
 
-export default function AgendaPage() {
+function ListaDaAgenda() {
   const { unidadeAtiva } = useERP();
   const [dias, setDias] = useState(30);
   const [itens, setItens] = useState([]);
@@ -124,6 +125,22 @@ export default function AgendaPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Calendário dos eventos com pagamentos (dono, 21/11/2026) ou a lista dos próximos dias.
+export default function AgendaPage() {
+  const [vista, setVista] = useState("calendario");
+  return (
+    <div className="space-y-4">
+      <div className="flex rounded-xl bg-hf-elevated p-1 sm:inline-flex" role="radiogroup" aria-label="Como ver a agenda">
+        {[["calendario", "Calendário e pagamentos"], ["lista", "Próximos dias"]].map(([id, rotulo]) => (
+          <button key={id} type="button" role="radio" aria-checked={vista === id} onClick={() => setVista(id)}
+            className={`min-h-[40px] flex-1 rounded-lg px-4 text-sm font-semibold sm:flex-none ${vista === id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2 hover:text-hf-text"}`}>{rotulo}</button>
+        ))}
+      </div>
+      {vista === "calendario" ? <CalendarioEventos /> : <ListaDaAgenda />}
     </div>
   );
 }

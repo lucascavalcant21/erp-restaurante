@@ -7,6 +7,7 @@ import Link from "next/link";
 import { AlertTriangle, Search, History } from "lucide-react";
 import { AREAS_EQUIPE, CATEGORIAS_EXTRAS, FORMAS_PAGAMENTO, TIPOS_ESPACO, tipoDoEspaco, rotuloDaCategoria, novoId, custoDaPessoa } from "../../../../../lib/evento-orcamento.mjs";
 import { rotuloEtapa, normalizarEtapa } from "../../../../../lib/evento-financeiro.mjs";
+import { CATEGORIAS_EVENTO } from "../../../../../lib/evento-calendario.mjs";
 import { fmtReais } from "../../../../../lib/valor-percentual.mjs";
 import { parseNumero } from "../../../../../lib/ficha-calculos.mjs";
 import { mascaraTelefone } from "../../../../../lib/mascaras.mjs";
@@ -237,6 +238,16 @@ export function EtapaCliente({ orc, setOrc, unidadeAtiva, historico = [] }) {
           <Campo rotulo="Nome do cliente"><Texto valor={c.cliente_nome} onChange={(v) => mudar({ cliente_nome: v, cliente_id: null })} placeholder="Maria Souza" autoComplete="off" /></Campo>
           <Campo rotulo="WhatsApp do cliente" ajuda="Com DDD. É para onde o orçamento vai."><Texto valor={c.cliente_telefone} onChange={(v) => mudar({ cliente_telefone: mascaraTelefone(v) })} placeholder="(81) 99999-9999" inputMode="tel" autoComplete="off" /></Campo>
           <Campo rotulo="Nome do evento" className="sm:col-span-2"><Texto valor={c.nome_evento} onChange={(v) => mudar({ nome_evento: v })} placeholder="Aniversário de 30 anos" /></Campo>
+          {/* Categoria (dono, 21/11/2026): separa os eventos no calendário. Uso interno. */}
+          <div className="sm:col-span-2">
+            <p className="mb-1.5 text-xs font-bold text-slate-600">Categoria do evento</p>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Categoria do evento">
+              {CATEGORIAS_EVENTO.map((cat) => (
+                <button key={cat} type="button" role="radio" aria-checked={c.categoria === cat} onClick={() => mudar({ categoria: c.categoria === cat ? "" : cat })}
+                  className={`h-10 rounded-xl border px-3 text-sm font-bold ${c.categoria === cat ? "border-slate-800 bg-slate-800 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"}`}>{cat}</button>
+              ))}
+            </div>
+          </div>
           <Campo rotulo="Data do evento"><input type="date" value={c.data_evento || ""} onChange={(e) => mudar({ data_evento: e.target.value })} className={inputData} /></Campo>
           <div className="grid grid-cols-2 gap-3">
             <Campo rotulo="Total de pessoas"><Numero valor={c.convidados || ""} onChange={(v) => mudar({ convidados: v })} placeholder="100" /></Campo>

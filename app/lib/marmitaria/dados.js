@@ -223,7 +223,24 @@ export async function criarProduto({ unidadeId, nome, marca = "", unidade_medida
 }
 
 /** Local do estoque da marmitaria para um produto, pelo departamento. */
-export const slugDoLocal = (departamento) => (departamento === "embalagens" ? ESTOQUE_EMBALAGENS : departamento === "limpeza" ? "limpeza-marmitaria" : ESTOQUE_MARMITARIA);
+export const slugDoLocal = (departamento) => (departamento === "embalagens" ? ESTOQUE_EMBALAGENS : departamento === "limpeza" ? "limpeza-marmitaria" : departamento === "bebidas" ? "bebidas-marmitaria" : ESTOQUE_MARMITARIA);
+
+/**
+ * Bebida pronta (dono, 17/11/2026): o produto comprado (vai para o estoque de
+ * Bebidas) e o item de venda (ficha "Bebidas" com 1 unidade do produto), que
+ * aparece na Precificação e nos Combos.
+ */
+export async function criarBebida({ unidadeId, nome, marca = "", preco_embalagem, tamanho_embalagem = 1 }) {
+  const p = await criarProduto({ unidadeId, nome, marca, unidade_medida: "un", preco_embalagem, tamanho_embalagem, departamento: "bebidas", categoria: "Bebidas da marmitaria" });
+  if (p.error || !p.id) return { error: p.error || "Não foi possível cadastrar a bebida." };
+  const r = await salvarMarmita({
+    id: novaChave(), unidade_id: unidadeId, nome: String(nome).trim(), descricao: "", foto: "", categoria: "Bebidas", tamanho: "M",
+    peso_final_g: null, ativo: true, validade_dias: null, preco_venda: 0, custo_embalagens_total: 0,
+    itens: [{ insumo_id: p.id, subficha_id: null, quantidade: 1, fator_correcao: 0 }], embalagens: [], precos: [],
+  });
+  if (r?.error) return { id: p.id, error: `A bebida foi cadastrada e está no estoque, mas o item de venda não foi criado: ${r.error}` };
+  return { id: p.id, error: null };
+}
 
 /** Põe o produto no local certo do estoque da marmitaria, se ainda não estiver. Falha não impede o cadastro. */
 export async function colocarNoEstoqueDaMarmitaria({ unidadeId, insumoId, departamento }) {
@@ -371,6 +388,7 @@ export async function ativarEstoques(unidadeId) {
     { ...base, nome: "Marmitaria", slug: ESTOQUE_MARMITARIA, tipo: "alimentos", descricao: "Insumos e pré-preparos da marmitaria", cor: "#047857", controla_validade: true, locais_internos: [], ordem: 20 },
     { ...base, nome: "Limpeza da Marmitaria", slug: "limpeza-marmitaria", tipo: "limpeza", descricao: "Produtos de limpeza da marmitaria", cor: "#047857", controla_validade: false, locais_internos: [], ordem: 13 },
     { ...base, nome: "Produção da Marmitaria", slug: "producao-marmitaria", tipo: "alimentos", descricao: "Subprodutos prontos da marmitaria", cor: "#047857", controla_validade: true, controla_minimo: false, locais_internos: [], ordem: 12 },
+    { ...base, nome: "Bebidas da Marmitaria", slug: "bebidas-marmitaria", tipo: "bebidas", descricao: "Refrigerantes, sucos e águas do delivery", cor: "#047857", controla_validade: true, locais_internos: [], ordem: 22 },
     { ...base, nome: "Embalagens da Marmitaria", slug: ESTOQUE_EMBALAGENS, tipo: "embalagens", descricao: "Marmitex, tampas, sacolas, talheres e etiquetas", cor: "#047857", controla_validade: false, locais_internos: [], ordem: 21 },
   ], { onConflict: "unidade_id,slug", ignoreDuplicates: true });
   return { error: mensagemErro(error) };

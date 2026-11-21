@@ -44,8 +44,19 @@ export function useCardapio() {
   const comum = useMemo(() => ({ canal, tributosPct, embutidos }), [canal, tributosPct, embutidos]);
   const linhas = useMemo(() => cardapioDeVendas({ catalogo, marmitas: base.marmitas, ofertas, combos, ...comum, metaPct: metaPct === "" ? null : metaPct }),
     [catalogo, base.marmitas, ofertas, combos, comum, metaPct]);
+  // Dono, 17/11/2026: o app escolhido fica dentro de cada card da Precificação,
+  // então cada card precisa dos números de todos os apps.
+  const porCanal = useMemo(() => new Map(canais.map((c) => {
+    const cat = catalogoParaCombo({
+      marmitas: base.marmitas, custos, fichas: base.fichas,
+      custoFicha: (f) => { const v = custoPorcaoDaFicha(f, base.fichas); return v > 0 ? v : null; },
+      canalId: c.id,
+    });
+    const cm = { canal: c, tributosPct, embutidos };
+    return [c.id, { comum: cm, linhas: cardapioDeVendas({ catalogo: cat, marmitas: base.marmitas, ofertas, combos, ...cm, metaPct: metaPct === "" ? null : metaPct }) }];
+  })), [canais, base, custos, tributosPct, embutidos, ofertas, combos, metaPct]);
   const mudancas = useMemo(() => mudancasDeCusto({ historico, marmitas: base.marmitas, fichas: base.fichas, insumos: base.insumos, linhas }),
     [historico, base, linhas]);
 
-  return { canais, canal, setCanalId, embutidos, combos, setCombos, ofertas, setOfertas, metaPct, setMetaPct, catalogo, comum, linhas, mudancas };
+  return { canais, canal, setCanalId, embutidos, combos, setCombos, ofertas, setOfertas, metaPct, setMetaPct, catalogo, comum, linhas, mudancas, porCanal };
 }

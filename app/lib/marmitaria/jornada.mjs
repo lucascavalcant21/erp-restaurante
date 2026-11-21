@@ -20,6 +20,7 @@ export const ROTAS = Object.freeze({
   custos: "/dashboard/marmitaria/configuracoes/custos",
   apps: "/dashboard/marmitaria/configuracoes/apps",
   ingredientes: `${FICHA}/produtos`,
+  bebidas: `${FICHA}/bebidas`,
   embalagens: `${FICHA}/embalagens`,
   fichas: FICHA,
   preco: `${FICHA}/cardapio`,
@@ -33,6 +34,7 @@ export const PASSOS = Object.freeze([
   { id: "custos", titulo: "Custos fixos e variáveis", texto: "Contas do mês, pró-labore, imposto e o que gasta por marmita." },
   { id: "apps", titulo: "Apps e taxas", texto: "iFood, 99, Keeta, balcão… com as taxas de cada plano." },
   { id: "ingredientes", titulo: "Ingredientes", texto: "O que você compra, com o preço." },
+  { id: "bebidas", titulo: "Bebidas", texto: "Refrigerantes, sucos e águas, com o preço de compra.", opcional: true },
   { id: "embalagens", titulo: "Embalagens", texto: "Potes, tampas, sacolas, com o preço." },
   { id: "fichas", titulo: "Ficha técnica", texto: "O que vai em cada marmita e quanto." },
   { id: "preco", titulo: "Precificação", texto: "O preço de cada produto em cada app, com equipe e custos." },
@@ -98,7 +100,11 @@ export function statusDaJornada(d = {}) {
   const semPreco = ativas.filter((m) => !Object.values(m.precos || {}).some(pos) && !pos(m.preco_venda)).length;
   st.preco = { status: ativas.length && !semPreco ? "feito" : "pendente", detalhe: !ativas.length ? "Primeiro a ficha técnica." : semPreco ? `${semPreco} sem preço` : "Todas com preço" };
 
-  // 8. Combos e descontos: opcional, só informa
+  // Bebidas: opcional
+  const bebidas = insumos.filter((i) => String(i.departamento || "").toLowerCase() === "bebidas").length;
+  st.bebidas = bebidas ? { status: "feito", detalhe: `${bebidas} bebida${bebidas > 1 ? "s" : ""}` } : { status: "opcional", detalhe: "Opcional." };
+
+  // Combos e descontos: opcional, só informa
   st.combos = { status: "opcional", detalhe: "Opcional: monte quando quiser." };
 
   // 9. Guia de montagem: cada ativa com pelo menos um passo escrito

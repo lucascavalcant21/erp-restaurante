@@ -41,7 +41,7 @@ export default function CombosPromocoes({ onEditar, abaInicial, modo = "precific
   const abas = ABAS_DO_MODO[modo] || ABAS_DO_MODO.precificacao;
   const [aba, setAba] = useState(abas.some((a) => a.id === abaInicial) ? abaInicial : abas[0].id);
   const { base, custos, unidadeId } = useMarmitaria();
-  const { canais, canal, setCanalId, embutidos, combos, setCombos, ofertas, setOfertas, metaPct, setMetaPct, catalogo, comum, linhas, mudancas } = useCardapio();
+  const { canais, canal, setCanalId, embutidos, combos, setCombos, ofertas, setOfertas, metaPct, setMetaPct, catalogo, comum, linhas, mudancas, porCanal } = useCardapio();
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState(null);
 
@@ -82,10 +82,10 @@ export default function CombosPromocoes({ onEditar, abaInicial, modo = "precific
               </button>
             ))}
           </div>}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          {modo === "combos" && <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="text-xs font-bold uppercase text-hf-muted">Vendendo em</span>
             {canais.map((c) => <button key={c.id} type="button" className={chip(c.id === canal.id)} onClick={() => setCanalId(c.id)}>{c.nome}</button>)}
-          </div>
+          </div>}
         </div>
       </section>
 
@@ -96,7 +96,7 @@ export default function CombosPromocoes({ onEditar, abaInicial, modo = "precific
       {aba !== "modelo" && !embutidos.completo && <Aviso>Equipe e custos fixos ainda não entram por completo (falta {embutidos.faltando.join(", ")}). Preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a>.</Aviso>}
 
       {aba === "cardapio" && <CardapioVendas linhas={linhas} custos={custos} onEditar={onEditar} comum={comum} metaPct={metaPct}
-        onRemoverOferta={(id) => gravarOfertas(ofertas.filter((o) => o.id !== id))} msg={msg} irPara={modo === "combos" ? setAba : null} secoes={SECOES_DO_MODO[modo]} />}
+        onRemoverOferta={(id) => gravarOfertas(ofertas.filter((o) => o.id !== id))} msg={msg} irPara={modo === "combos" ? setAba : null} secoes={SECOES_DO_MODO[modo]} porCanal={modo === "precificacao" ? porCanal : null} canais={canais} />}
 
       {aba === "promocoes" && <SimuladorPromocao catalogo={catalogo} comum={comum} bloqueio={linhas[0]?.falta || null}
         onAdicionar={(fichaId, o) => { gravarOfertas([...ofertas, normalizarOferta({ ...o, ficha_id: fichaId })]); setAba("cardapio"); }} />}
@@ -157,22 +157,23 @@ const VEREDITO_COR = { ok: "bg-hf-success/10 text-hf-success", baixo: "bg-hf-war
 const SECOES_CARDAPIO = [["promocoes", "Promoções"], ["combos", "Combos"], ["marmitas", "Sozinhos"]];
 
 // Cardápio como o cliente vê (estilo iFood) e, ao lado, o lucro de cada item.
-function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara, comum, metaPct, secoes = SECOES_CARDAPIO }) {
+function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara, comum: comumGeral, metaPct, secoes = SECOES_CARDAPIO, porCanal = null, canais = [] }) {
+  const [canalDoCard, setCanalDoCard] = useState({});
   const { recarregar } = useMarmitaria();
   const [aberto, setAberto] = useState(null);
   const [precoAberto, setPrecoAberto] = useState(null);
   // dono, 17/11/2026: "onde eu coloco o preço?" → sem preço, o campo já vem aberto no card
   const [fechados, setFechados] = useState(() => new Set());
-  const precoVisivel = (l) => precoAberto === l.id || (l.secao === "marmitas" && l.semPreco && !fechados.has(l.id));
+  const precoVisivel = (l, cid = "") => precoAberto === `${l.id}|${cid}` || (l.secao === "marmitas" && l.semPreco && !fechados.has(`${l.id}|${cid}`));
   const [erro, setErro] = useState(null);
-  const rotuloLucro = rotuloDoLucro(comum.embutidos);
+  const rotuloLucro = rotuloDoLucro(comumGeral.embutidos);
   async function tirarDoCardapio(ficha) {
     setErro(null);
     const r = await definirDisponibilidade(ficha.id, false);
     if (r.error) setErro(r.error); else await recarregar();
   }
   return (
-    <Secao titulo={`Precificação no ${comum.canal.nome}`} subtitulo="O preço de cada item nessa plataforma e quanto sobra para você em cada pedido.">
+    <Secao titulo={porCanal ? "Precificação" : `Cardápio no ${comumGeral.canal.nome}`} subtitulo={porCanal ? "Em cada produto, toque no app para ver e colocar o preço dele." : "O preço de cada item nessa plataforma e quanto sobra para você em cada pedido."}>
       {erro && <p className="mb-2 text-sm font-bold text-hf-danger">{erro}</p>}
       {msg && <p className={`mb-2 text-sm font-bold ${msg.tipo === "alerta" ? "text-hf-danger" : "text-hf-accent"}`}>{msg.t}</p>}
       <div className="space-y-5">
@@ -196,7 +197,12 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
             <div key={`${sec}-${titulo}`}>
               <p className="mb-2 flex items-center gap-2 text-sm font-black text-hf-text">{titulo} <span className="rounded-full bg-hf-elevated px-2 text-xs text-hf-text-2">{itens.length}</span></p>
               <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {itens.map((l) => {
+                {itens.map((l0) => {
+                  // o app de cada card (dono, 17/11/2026: "dentro do card eu aperto e visualizo")
+                  const cid = canalDoCard[l0.id] || comumGeral.canal.id;
+                  const doCanal = porCanal?.get(cid);
+                  const l = doCanal?.linhas.find((x) => x.id === l0.id) || l0;
+                  const comum = doCanal?.comum || comumGeral;
                   const img = l.ficha?.imagem;
                   const abrir = aberto === l.id;
                   const c = l.ficha ? custos.get(l.ficha.id) : null;
@@ -208,6 +214,19 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
                         {l.ficha?.codigo && <span className="absolute left-2 top-2 rounded-md bg-hf-accent px-1.5 py-0.5 text-[11px] font-bold text-white">{l.ficha.codigo}</span>}
                       </div>
                       <div className="p-3">
+                        {porCanal && canais.length > 1 && (
+                          <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label="App">
+                            {canais.map((c) => {
+                              const temPreco = !(porCanal.get(c.id)?.linhas.find((x) => x.id === l0.id)?.semPreco ?? true);
+                              return (
+                                <button key={c.id} type="button" aria-pressed={c.id === cid} onClick={() => setCanalDoCard((m) => ({ ...m, [l0.id]: c.id }))}
+                                  className={`min-h-[36px] rounded-full border px-3 text-xs font-bold ${c.id === cid ? "border-hf-menu bg-hf-menu text-white" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>
+                                  {c.nome}{temPreco ? "" : " · sem preço"}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                         <div className="min-w-0">
                           {l.rotulo && l.secao !== "marmitas" ? <span className="mb-0.5 inline-block rounded-md bg-hf-danger/10 px-1.5 py-0.5 text-[11px] font-black text-hf-danger">{l.rotulo}</span> : null}
                           <p className="break-words text-sm font-bold text-hf-text">{l.nome}</p>
@@ -227,13 +246,13 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
                         </div>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                        {l.secao === "marmitas" && !precoVisivel(l) && <button type="button" onClick={() => setPrecoAberto(l.id)} aria-expanded={false} className="min-h-[36px] rounded-full bg-hf-menu px-3 text-xs font-bold text-white">{l.semPreco ? "Colocar preço" : "Mudar preço"}</button>}
+                        {l.secao === "marmitas" && !precoVisivel(l, cid) && <button type="button" onClick={() => setPrecoAberto(`${l.id}|${cid}`)} aria-expanded={false} className="min-h-[36px] rounded-full bg-hf-menu px-3 text-xs font-bold text-white">{l.semPreco ? "Colocar preço" : "Mudar preço"}</button>}
                         {!l.semPreco && !l.falta && <button type="button" onClick={() => setAberto(abrir ? null : l.id)} aria-expanded={abrir} className="inline-flex min-h-[32px] items-center gap-1 text-xs font-bold text-hf-accent hover:underline">{abrir ? <ChevronUp size={14} /> : <ChevronDown size={14} />} Ver a conta</button>}
                         {onEditar && l.ficha && <button type="button" onClick={() => onEditar(l.ficha)} className="min-h-[32px] text-xs font-bold text-hf-text hover:underline">Editar ficha</button>}
                         {l.secao === "marmitas" && l.ficha && <button type="button" onClick={() => tirarDoCardapio(l.ficha)} className="min-h-[32px] text-xs font-bold text-hf-text-2 hover:text-hf-danger">Tirar do cardápio</button>}
                         {l.secao === "promocoes" && <button type="button" onClick={() => onRemoverOferta(l.id)} className="min-h-[32px] text-xs font-bold text-hf-text-2 hover:text-hf-danger">Tirar do cardápio</button>}
                       </div>
-                      {precoVisivel(l) && <FormarPreco linha={l} comum={comum} metaPct={metaPct} aoSalvar={() => { setPrecoAberto(null); setFechados((f) => new Set(f).add(l.id)); }} />}
+                      {precoVisivel(l, cid) && <FormarPreco key={`${l.id}|${cid}`} linha={l} comum={comum} metaPct={metaPct} aoSalvar={() => { setPrecoAberto(null); setFechados((f) => new Set(f).add(`${l.id}|${cid}`)); }} />}
                       {abrir && l.sim && (
                         <div className="mt-2">
                           {c && <p className="text-xs text-hf-text-2">Custo de 1 unidade: ingredientes {brl(c.alimentos + c.prePreparos)} · embalagens {brl(c.embalagens)} = <b>{brl(c.total)}</b>{!c.completo ? " (incompleto)" : ""}</p>}
@@ -319,12 +338,8 @@ function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
 
   return (
     <div className="mt-2 rounded-xl border border-hf-border p-3">
-      <div className="grid grid-cols-2 gap-3">
-        <Campo rotulo="Markup desejado (%)" dica={item.custo == null ? "Precisa do custo completo." : "300% = preço de 4 vezes o custo."}>
-          <CampoNumero valor={markup} disabled={item.custo == null} placeholder="ex.: 300" onChange={(v) => { setMarkup(v); const pct = lerNumero(v); const novo = pct === "" ? null : precoPorMarkup(item.custo, 1 + pct / 100); if (novo !== null) usar(novo); }} />
-        </Campo>
-        <Campo rotulo={`Preço no ${comum.canal.nome} (R$)`}><CampoNumero valor={preco} onChange={(v) => { setPreco(v); setMarkup(""); }} placeholder="0,00" /></Campo>
-      </div>
+      {/* dono, 17/11/2026: sem campo de markup; o markup aparece sozinho conforme o preço */}
+      <Campo rotulo={`Preço no ${comum.canal.nome} (R$)`}><CampoNumero valor={preco} onChange={(v) => { setPreco(v); setMarkup(""); }} placeholder="0,00" /></Campo>
       {sug.preco !== null && !linha.falta && <button type="button" onClick={() => { usar(sug.preco); setMarkup(""); }} className="mt-2 min-h-[32px] text-xs font-bold text-hf-accent hover:underline">Usar {brl(sug.preco)}, que deixa a meta de {brl(metaEmReais({ preco: sug.preco, metaPct: metaPct === "" ? null : metaPct, metaReais: item.grupo === "marmita" ? metaReais : null }))} de lucro</button>}
       {s?.com.valido && !linha.falta && (
         <p className="mt-2 text-sm text-hf-text-2">Markup <b className="tabular-nums">{markupPctTxt(s.com.markup)}</b> · CMV <b className="tabular-nums">{pctTxt(s.com.cmvTecnicoPct)}</b> · Sobra <b className={`tabular-nums ${s.com.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{brl(s.com.lucro)}</b></p>

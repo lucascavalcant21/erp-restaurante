@@ -173,15 +173,17 @@ export function Estoque() {
   // ingredientes, pré-preparos e embalagens das marmitas que ainda não estão nos locais da marmitaria
   // dono, 17/11/2026: tudo que é cadastrado na marmitaria aparece no estoque, sem botão
   const estLimp = locais.find((e) => e.slug === ESTOQUE_LIMPEZA) || null;
+  const estBeb = locais.find((e) => e.slug === "bebidas-marmitaria") || null;
   const faltaVincular = useMemo(() => {
     if (!est || !estEmb) return [];
-    const ja = new Set(base.itensEstoque.filter((i) => i.estoque_id === est.id || i.estoque_id === estEmb.id || (estLimp && i.estoque_id === estLimp.id)).map((i) => i.insumo_id));
+    const ja = new Set(base.itensEstoque.filter((i) => i.estoque_id === est.id || i.estoque_id === estEmb.id || (estLimp && i.estoque_id === estLimp.id) || (estBeb && i.estoque_id === estBeb.id)).map((i) => i.insumo_id));
     const ids = new Map();
     for (const ins of base.insumosLista || []) {
       if (ja.has(ins.id) || ins.arquivado_em) continue;
       const dep = String(ins.departamento || "").toLowerCase();
       if (dep === "embalagens" || String(ins.tipo || "").toLowerCase() === "embalagem") { if (/marmit/i.test(ins.categoria || "") || dep === "embalagens") ids.set(ins.id, estEmb.id); }
       else if (dep === "limpeza") { if (estLimp) ids.set(ins.id, estLimp.id); }
+      else if (dep === "bebidas") { if (estBeb) ids.set(ins.id, estBeb.id); }
       else if (dep === "marmitaria") ids.set(ins.id, est.id);
     }
     for (const m of base.marmitas) {
@@ -192,7 +194,10 @@ export function Estoque() {
       for (const e of m.embalagens) if (!ja.has(e.insumo_id)) ids.set(e.insumo_id, estEmb.id);
     }
     return [...ids.entries()];
-  }, [base, est, estEmb, estLimp]);
+  }, [base, est, estEmb, estLimp, estBeb]);
+  // local novo (ex.: Bebidas) é criado sozinho, sem botão
+  const jaAtivou = useRef(false);
+  useEffect(() => { if (faltamLocais && !jaAtivou.current && !ocupado) { jaAtivou.current = true; ativar(); } }, [faltamLocais]); // eslint-disable-line react-hooks/exhaustive-deps
   const jaIncluiu = useRef(false);
   useEffect(() => {
     if (!faltaVincular.length || jaIncluiu.current || ocupado) return;

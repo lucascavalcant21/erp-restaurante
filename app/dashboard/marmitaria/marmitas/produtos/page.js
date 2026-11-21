@@ -63,7 +63,7 @@ export default function ProdutosPage() {
   const { base, carregando, unidadeId, recarregar } = useMarmitaria();
   const [novo, setNovo] = useState(false);
   const [busca, setBusca] = useState("");
-  const lista = useMemo(() => (base?.insumosLista || []).filter((i) => !i.ficha_tecnica_id && !ehEmbalagem(i) && !ehLimpeza(i) && (!busca.trim() || casaBusca(`${i.nome} ${i.marca || ""}`, busca)))
+  const lista = useMemo(() => (base?.insumosLista || []).filter((i) => !i.ficha_tecnica_id && !ehEmbalagem(i) && !ehLimpeza(i) && String(i.departamento || "").toLowerCase() !== "bebidas" && (!busca.trim() || casaBusca(`${i.nome} ${i.marca || ""}`, busca)))
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR")), [base, busca]);
 
   if (!base) return carregando ? <Cartao><p className="text-sm text-hf-muted">Carregando ingredientes…</p></Cartao> : null;

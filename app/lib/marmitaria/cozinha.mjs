@@ -9,8 +9,10 @@ import { fatorSaldo, r2 } from "./nucleo.mjs";
 
 export const ESTOQUE_PRODUCAO = "producao-marmitaria";
 export const ESTOQUE_LIMPEZA = "limpeza-marmitaria";
-export const SLUGS_MARMITARIA = ["marmitaria", "embalagens-marmitaria", ESTOQUE_PRODUCAO, ESTOQUE_LIMPEZA];
-export const ROTULO_LOCAL = { marmitaria: "Produtos", "embalagens-marmitaria": "Embalagens", [ESTOQUE_LIMPEZA]: "Limpeza", [ESTOQUE_PRODUCAO]: "Produção" };
+// Bebidas (dono, 17/11/2026: "crie bebidas ao lado de ingredientes e um estoque para elas").
+export const ESTOQUE_BEBIDAS = "bebidas-marmitaria";
+export const SLUGS_MARMITARIA = ["marmitaria", ESTOQUE_BEBIDAS, "embalagens-marmitaria", ESTOQUE_PRODUCAO, ESTOQUE_LIMPEZA];
+export const ROTULO_LOCAL = { marmitaria: "Produtos", [ESTOQUE_BEBIDAS]: "Bebidas", "embalagens-marmitaria": "Embalagens", [ESTOQUE_LIMPEZA]: "Limpeza", [ESTOQUE_PRODUCAO]: "Produção" };
 export const ehEstoqueDaMarmitaria = (e) => SLUGS_MARMITARIA.includes(e?.slug);
 export const ehLimpeza = (i) => String(i?.departamento || "").toLowerCase() === "limpeza" || /limpeza/i.test(String(i?.categoria || ""));
 

@@ -71,3 +71,17 @@ Pendências da especificação que continuam abertas:
 - não há fichas de Feijoada, Parmegianas, La Minuta e Milanesa no sistema, então os preços delas não foram gravados;
 - a embalagem confirmada na especificação é R$ 1,80, mas a cadastrada soma R$ 3,08: foi mantida a cadastrada;
 - o regime está como MEI (validar com o contador).
+
+### Fichas dos pratos (21/11/2026, pedido do dono: "pode criar as fichas dos pratos… depois termino de completar")
+
+Fichas criadas sem ingredientes, para o dono completar. Cada uma recebeu as embalagens do estrogonofe (marmita 3 lugares + saco kraft) e os preços da especificação:
+
+| Ficha | Categoria | 99 (R$) | Balcão (R$) |
+|---|---|---|---|
+| Feijoada do Chef | Marmitas de carne | 41,90 | 34,90 |
+| Parmegiana Tradicional | Marmitas de frango | 40,90 | 34,90 |
+| Parmegiana ao Molho de Estrogonofe | Marmitas de frango | 42,90 | 36,90 |
+| La Minuta | Marmitas | 34,90 | 29,90 |
+| Filé à Milanesa | Marmitas | 34,90 | 29,90 |
+
+Sem ingredientes, o custo fica incompleto e o lucro aparece como "pendente", nunca como número.

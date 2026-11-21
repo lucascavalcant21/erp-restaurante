@@ -124,3 +124,23 @@ export function planilhaDaCozinha({ planoHoje = [], planoAmanha = [], produzido 
   const amanha = planoAmanha.map(linha);
   return { hoje, amanha };
 }
+
+/**
+ * Conversão (dono, 21/11/2026: "tenho 20 L de molho, converti 5 L em molho de
+ * tomate temperado"): para um item do estoque e quanto vai usar dele, os
+ * pré-preparos que levam esse item e quanto cada um rende. A baixa dos outros
+ * ingredientes (temperos) sai proporcional, pela própria ficha (baixasDoPreparo).
+ */
+export function conversoesDoItem({ insumoId, usar, prePreparos = [], fichas = [] }) {
+  const q = Number(usar);
+  const out = [];
+  for (const f of prePreparos) {
+    const rend = Number(f.rendimento_porcoes);
+    if (!(rend > 0)) continue;
+    const calc = calcularConsumoProducao(f, rend, fichas);
+    const usado = calc.itens.filter((i) => !i.subficha_id && i.insumo?.id === insumoId).reduce((t, i) => t + Number(i.quantidade || 0), 0);
+    if (!(usado > 0)) continue;
+    out.push({ ficha: f, porLote: r3(usado), rendePorLote: rend, unidade: f.rendimento_unidade || "un", rende: q > 0 ? r3((q / usado) * rend) : null });
+  }
+  return out.sort((a, b) => String(a.ficha.nome_receita).localeCompare(String(b.ficha.nome_receita), "pt-BR"));
+}

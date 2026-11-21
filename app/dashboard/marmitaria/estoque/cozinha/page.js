@@ -13,7 +13,7 @@ import AbasDaProducao from "../../../../components/marmitaria/AbasDaProducao";
 import RetirarProduto from "../../../../components/marmitaria/RetirarProduto";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, brl, inputCls, lerNumero, num } from "../../../../components/marmitaria/ui";
 import { fetchPedidos, fetchPlanosDaCozinha, fetchPreparosDoDia, novaChave, produzirPreparo, salvarPlanoDaCozinha } from "../../../../lib/marmitaria/dados";
-import { ESTOQUE_LIMPEZA, ESTOQUE_PRODUCAO, baixasDoPreparo, ehEstoqueDaMarmitaria, pedidosDaMarmitaria, planilhaDaCozinha, saldoProduzido, saldosDaMarmitaria, somarDias } from "../../../../lib/marmitaria/cozinha.mjs";
+import { ESTOQUE_LIMPEZA, ESTOQUE_PRODUCAO, baixasDoPreparo, conversoesDoItem, ehEstoqueDaMarmitaria, pedidosDaMarmitaria, planilhaDaCozinha, saldoProduzido, saldosDaMarmitaria, somarDias } from "../../../../lib/marmitaria/cozinha.mjs";
 import { fatorSaldo } from "../../../../lib/marmitaria/nucleo.mjs";
 
 const hojeIso = () => new Date().toLocaleDateString("sv-SE");
@@ -80,6 +80,39 @@ function Produzir({ inicial, onFechar, aoProduzir }) {
   );
 }
 
+// Conversão (dono, 21/11/2026): "tenho 20 L de molho e converti 5 L em molho de
+// tomate temperado". Escolhe quanto usar do item e em que pré-preparo ele vira;
+// a produção baixa o item (e os temperos da ficha) e dá entrada no pronto.
+function Converter({ item, onFechar, onEscolher }) {
+  const { base } = useMarmitaria();
+  const [usar, setUsar] = useState("");
+  const q = lerNumero(usar) || 0;
+  const un = unTxt(item.ins.unidade_medida);
+  const opcoes = useMemo(() => conversoesDoItem({ insumoId: item.ins.id, usar: q, prePreparos: base.prePreparos, fichas: base.fichas }), [base, item, q]);
+  return (
+    <Secao titulo={`Converter ${item.ins.nome}`} subtitulo={`Tem ${num(item.saldo)} ${un} no estoque. Diga quanto vai usar e no que vai virar.`}>
+      <Campo rotulo={`Quanto vai usar (${un})`}><CampoNumero valor={usar} onChange={setUsar} sufixo={un} placeholder="Ex.: 5" /></Campo>
+      {q > item.saldo && <Aviso tipo="alerta" className="mt-2">Tem só {num(item.saldo)} {un} no estoque.</Aviso>}
+      {!opcoes.length ? (
+        <Aviso tipo="alerta" className="mt-3">Nenhum pré-preparo leva {item.ins.nome}. Crie um em <Link href="/dashboard/marmitaria/estoque/producoes" className="font-semibold text-hf-accent">Produções</Link> (ex.: Molho de tomate temperado) com {item.ins.nome} na ficha.</Aviso>
+      ) : (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs font-semibold text-hf-text-2">Vira o quê?</p>
+          {opcoes.map((o) => (
+            <button key={o.ficha.id} type="button" disabled={!(q > 0) || q > item.saldo} onClick={() => onEscolher({ ficha_id: o.ficha.id, quantidade: o.rende })}
+              className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl border border-hf-border px-3 text-left hover:border-hf-accent disabled:opacity-50">
+              <span className="min-w-0 text-sm font-bold text-hf-text">{o.ficha.nome_receita}</span>
+              <span className="shrink-0 text-sm text-hf-text-2">{o.rende != null ? <>rende <b className="tabular-nums text-hf-text">{num(o.rende)} {unTxt(o.unidade)}</b></> : `${num(o.porLote)} ${un} por lote`}</span>
+            </button>
+          ))}
+          <p className="text-xs text-hf-muted">Na próxima tela você confere o que sai do estoque (com os temperos da ficha) e confirma.</p>
+        </div>
+      )}
+      <div className="mt-3 flex justify-end"><Botao variante="secundario" type="button" onClick={onFechar}>Cancelar</Botao></div>
+    </Secao>
+  );
+}
+
 function Plano({ titulo, dia, linhas, ehAmanha, onAdicionar, onMudar, onRemover, onProduzir }) {
   const { base } = useMarmitaria();
   const [ficha, setFicha] = useState("");
@@ -138,6 +171,7 @@ export default function CozinhaPage() {
   const [feitos, setFeitos] = useState([]);
   const [produzindo, setProduzindo] = useState(null);
   const [retirando, setRetirando] = useState(null);
+  const [convertendo, setConvertendo] = useState(null);
   const [erro, setErro] = useState(null);
   const estoques = useMemo(() => (base?.estoques || []).filter(ehEstoqueDaMarmitaria), [base]);
   const ids = estoques.map((e) => e.id).join();
@@ -172,6 +206,13 @@ export default function CozinhaPage() {
     const ins = base.insumos.get(i.insumo_id);
     return { id: i.id, estoque_id: i.estoque_id, ins, saldo: (Number(i.quantidade_atual) || 0) / fatorSaldo(ins) };
   }).filter((i) => i.ins).sort((a, b) => String(a.ins.nome).localeCompare(String(b.ins.nome), "pt-BR"));
+  const estProd = estoques.find((e) => e.slug === ESTOQUE_PRODUCAO);
+  const itemProduzido = (fichaId) => {
+    const insId = base.espelho.get(fichaId);
+    const it = estProd && base.itensEstoque.find((x) => x.estoque_id === estProd.id && x.insumo_id === insId);
+    const ins = base.insumos.get(insId);
+    return it && ins ? { id: it.id, estoque_id: it.estoque_id, ins, saldo: (Number(it.quantidade_atual) || 0) / fatorSaldo(ins) } : null;
+  };
   const feitosHoje = (fichaId) => feitos.filter((l) => l.ficha_id === fichaId).reduce((t, l) => t + (Number(l.quantidade_produzida) || 0), 0);
 
   return (
@@ -187,6 +228,7 @@ export default function CozinhaPage() {
       )}
       {produzindo && <Produzir key={`${produzindo.ficha_id}-${produzindo.para}`} inicial={produzindo} onFechar={() => setProduzindo(null)} aoProduzir={async () => { setProduzindo(null); await Promise.all([recarregar(), carregarDia()]); }} />}
       {retirando && <RetirarProduto key={retirando.id} item={retirando} onFechar={() => setRetirando(null)} />}
+      {convertendo && !produzindo && <Converter key={convertendo.id} item={convertendo} onFechar={() => setConvertendo(null)} onEscolher={(p) => { setConvertendo(null); setProduzindo({ ...p, para: hoje }); }} />}
       {!produzindo && !semProducao && <div className="flex justify-end"><Botao type="button" disabled={!base.prePreparos.length} onClick={() => setProduzindo({ para: hoje })}>Nova produção</Botao></div>}
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -201,7 +243,10 @@ export default function CozinhaPage() {
               {[...produzido.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((p) => (
                 <li key={p.fichaId} className="flex items-center justify-between gap-3 py-2">
                   <span className="min-w-0"><span className="block text-sm font-bold text-hf-text">{p.nome}</span>{feitosHoje(p.fichaId) > 0 && <span className="block text-xs text-hf-muted">Feito hoje: {num(feitosHoje(p.fichaId))} {unTxt(p.unidade)}</span>}</span>
-                  <span className="shrink-0 text-sm font-black tabular-nums text-hf-text">{num(p.quantidade)} {unTxt(p.unidade)}</span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    <span className="text-sm font-black tabular-nums text-hf-text">{num(p.quantidade)} {unTxt(p.unidade)}</span>
+                    {p.quantidade > 0 && itemProduzido(p.fichaId) && <button type="button" onClick={() => setRetirando(itemProduzido(p.fichaId))} className="min-h-[40px] text-sm font-bold text-hf-accent hover:underline">Usei</button>}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -215,7 +260,8 @@ export default function CozinhaPage() {
                   <span className="min-w-0 text-sm font-bold text-hf-text">{i.ins.nome}</span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className={`text-sm font-black tabular-nums ${i.saldo > 0 ? "text-hf-text" : "text-hf-danger"}`}>{num(i.saldo)} {unTxt(i.ins.unidade_medida)}</span>
-                    {i.saldo > 0 && <button type="button" onClick={() => setRetirando(i)} className="min-h-[40px] text-sm font-bold text-hf-accent hover:underline">Retirar</button>}
+                    {i.saldo > 0 && <button type="button" onClick={() => { setProduzindo(null); setConvertendo(i); }} className="min-h-[40px] text-sm font-bold text-hf-accent hover:underline">Converter</button>}
+                    {i.saldo > 0 && <button type="button" onClick={() => setRetirando(i)} className="min-h-[40px] text-sm font-bold text-hf-text-2 hover:underline">Retirar</button>}
                   </span>
                 </li>
               ))}

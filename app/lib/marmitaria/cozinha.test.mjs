@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { baixasDoPreparo, conferencia, ehLimpeza, pedidosDaMarmitaria, planilhaDaCozinha, saldoProduzido, saldosDaMarmitaria, situacaoDaChegada, somarDias } from "./cozinha.mjs";
+import { baixasDoPreparo, conversoesDoItem, conferencia, ehLimpeza, pedidosDaMarmitaria, planilhaDaCozinha, saldoProduzido, saldosDaMarmitaria, situacaoDaChegada, somarDias } from "./cozinha.mjs";
 
 const hoje = "2026-11-05";
 
@@ -62,4 +62,21 @@ test("reconhece produto de limpeza", () => {
   assert.equal(ehLimpeza({ departamento: "limpeza" }), true);
   assert.equal(ehLimpeza({ categoria: "Limpeza da marmitaria" }), true);
   assert.equal(ehLimpeza({ departamento: "cozinha", categoria: "Grãos" }), false);
+});
+
+test("conversão: 5 L do molho base viram quanto de molho temperado; outros pré-preparos não aparecem", () => {
+  const base = { id: "mb", nome: "Molho de tomate", unidade_medida: "l" };
+  const sal = { id: "sal", nome: "Sal", unidade_medida: "kg" };
+  const temperado = { id: "mt", nome_receita: "Molho de tomate temperado", rendimento_porcoes: 10, rendimento_unidade: "l", eh_base: true,
+    fichas_ingredientes: [{ insumo_id: "mb", insumos: base, quantidade: 10, unidade: "l" }, { insumo_id: "sal", insumos: sal, quantidade: 0.1, unidade: "kg" }] };
+  const conv = conversoesDoItem({ insumoId: "mb", usar: 5, prePreparos: [temperado, molho], fichas: [temperado, molho] });
+  assert.equal(conv.length, 1);
+  assert.equal(conv[0].ficha.id, "mt");
+  assert.equal(conv[0].rende, 5);
+  assert.equal(conv[0].unidade, "l");
+  // a baixa do sal sai proporcional pela ficha
+  const saldos = saldosDaMarmitaria({ estoques, itensEstoque: [{ estoque_id: "m", insumo_id: "mb", quantidade_atual: 20000 }, { estoque_id: "m", insumo_id: "sal", quantidade_atual: 1000 }] });
+  const r = baixasDoPreparo({ ficha: temperado, quantidade: 5, fichas: [temperado], insumos: new Map([["mb", base], ["sal", sal]]), saldos });
+  assert.deepEqual(r.baixas.map((b) => [b.insumo_id, b.quantidadeNaUnidade]), [["mb", 5], ["sal", 0.05]]);
+  assert.deepEqual(conversoesDoItem({ insumoId: "nada", usar: 5, prePreparos: [temperado], fichas: [temperado] }), []);
 });

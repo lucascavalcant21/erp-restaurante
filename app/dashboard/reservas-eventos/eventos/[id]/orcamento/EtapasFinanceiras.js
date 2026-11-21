@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { Wand2, Info } from "lucide-react";
+import BuffetDoEvento, { EquilibrioDoBuffet } from "./Buffet";
 import { FORMAS_PAGAMENTO, SECOES, novoId, realizadoDoEvento, conferenciaDoEvento } from "../../../../../lib/evento-orcamento.mjs";
 import { parseNumero } from "../../../../../lib/ficha-calculos.mjs";
 import { fmtReais, fmtPct } from "../../../../../lib/valor-percentual.mjs";
@@ -14,7 +15,7 @@ import { Cartao, Campo, Texto, Numero, ModoValor, BotaoRemover, BotaoAdicionar, 
 
 const fmtNumBR = (v) => (Number(v) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
+export function EtapaFinanceiro({ orc, setOrc, resumo: r, fichas = [] }) {
   const f = orc.financeiro;
   const mudar = (m) => setOrc((o) => ({ ...o, financeiro: { ...o.financeiro, ...m } }));
   const mudarComissao = (id, m) => mudar({ comissoes: f.comissoes.map((c) => (c.id === id ? { ...c, ...m } : c)) });
@@ -112,6 +113,7 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
         })()}
       </Cartao>
 
+      <EquilibrioDoBuffet orc={orc} fichas={fichas} resumo={r} />
       <Cartao titulo="Taxas" descricao="Saem do valor que o cliente paga. Vêm do Resultado do mês (Financeiro); mude se este evento for diferente (ex.: pago no PIX, sem maquininha).">
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo rotulo="Impostos"><Numero valor={f.imposto_pct} onChange={(v) => mudar({ imposto_pct: v })} sufixo="%" /></Campo>
@@ -173,7 +175,7 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
   );
 }
 
-export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
+export function EtapaDRE({ orc, setOrc, resumo: r, fichas = [], recebido = 0 }) {
   const real = realizadoDoEvento(orc, r, { recebido });
   const estilo = { receita: "font-black text-slate-900", subtotal: "font-black text-slate-900 bg-slate-50", resultado: "font-black text-base", custo: "font-semibold text-slate-700", info: "text-slate-500" };
   const taxasPP = r.convidados > 0 ? (r.imposto + r.maquininha + r.comissoesTotal + r.prolabore) / r.convidados : 0;
@@ -191,6 +193,7 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
           </ul>
         )}
       </div>
+      <BuffetDoEvento orc={orc} setOrc={setOrc} resumo={r} fichas={fichas} />
       <Cartao titulo="DRE do evento" descricao="Só deste evento. Não entra no DRE do restaurante.">
         {!(r.receita > 0) && <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">Defina o valor por pessoa (etapa Financeiro) para ver as porcentagens.</p>}
         <div className="-mx-2 overflow-x-auto">

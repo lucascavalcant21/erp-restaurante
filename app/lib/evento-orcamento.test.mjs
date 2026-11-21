@@ -514,3 +514,19 @@ test("DRE do evento: tudo o que se preenche aparece e a conta fecha no centavo",
     assert.equal(Math.round((f.receita - f.cmv - f.equipe - f.extras - f.taxas - f.prolabore) * 100) / 100, r.lucro);
   }
 });
+
+test("conferência do evento: projeção antes, real depois, e estouro do orçado", async () => {
+  const { conferenciaDoEvento, realizadoDoEvento } = await import("./evento-orcamento.mjs");
+  const o = orcBase();
+  const r = resumoDoOrcamento(o, FICHAS);
+  const antes = conferenciaDoEvento(r, realizadoDoEvento(o, r));
+  assert.equal(antes.natureza, "PROJEÇÃO");
+  assert.equal(antes.lucro, r.lucro);
+  // equipe custou 700 em vez de 500 (+40%): estoura; o resto lançado igual
+  o.realizado = { cmv_comida: r.cmvComida, cmv_bebida: r.cmvBebida, equipe: 700, extras: r.extras, imposto: r.imposto, maquininha: r.maquininha, comissoes: r.comissoesTotal, prolabore: r.prolabore };
+  const depois = conferenciaDoEvento(r, realizadoDoEvento(o, r));
+  assert.equal(depois.natureza, "REAL");
+  assert.equal(depois.lucro, Math.round((r.lucro - 200) * 100) / 100);
+  assert.deepEqual(depois.estouros.map((e) => [e.id, e.diferenca, e.pct]), [["equipe", 200, 40]]);
+  assert.equal(conferenciaDoEvento({ receita: 0 }, null).situacao, "sem_dado");
+});

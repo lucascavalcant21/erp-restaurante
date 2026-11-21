@@ -887,3 +887,25 @@ export function aplicarBase(orc = {}, base = {}, { substituir = false } = {}) {
   const atuais = (orc.cardapio || []).filter((i) => !substituir || grupoDoItem(i) !== grupo);
   return { ...orc, cardapio: [...atuais, ...novos] };
 }
+
+/* Conferência do lucro do evento (dono, 21/11/2026: "certeza de lucro").
+ * Antes do evento: o lucro é PROJEÇÃO do orçamento. Depois, com os gastos
+ * lançados: REAL, e as linhas que passaram do orçado aparecem com o quanto. */
+export const TOLERANCIA_ESTOURO_PCT = 10;
+export function conferenciaDoEvento(r, real) {
+  if (!(r?.receita > 0)) return { situacao: "sem_dado", natureza: null, texto: "Sem valor do evento ainda: defina o preço para saber o lucro.", estouros: [] };
+  const custos = (real?.linhas || []).filter((l) => !l.receita);
+  const lancadasCusto = custos.filter((l) => l.origem === "lancado").length;
+  const tudo = lancadasCusto === custos.length && custos.length > 0;
+  const natureza = lancadasCusto === 0 ? "PROJEÇÃO" : tudo ? "REAL" : "ESTIMATIVA";
+  const lucro = lancadasCusto === 0 ? r.lucro : real.lucroReal;
+  const estouros = custos
+    .filter((l) => l.origem === "lancado" && l.diferenca > 0.005 && (l.orcado > 0 ? (l.diferenca / l.orcado) * 100 > TOLERANCIA_ESTOURO_PCT : true))
+    .map((l) => ({ id: l.id, rotulo: l.rotulo, orcado: l.orcado, real: l.real, diferenca: l.diferenca, pct: l.orcado > 0 ? r2((l.diferenca / l.orcado) * 100) : null }));
+  const fmt = (v) => fmtR(v);
+  const texto = lucro < 0 ? `O evento ${natureza === "PROJEÇÃO" ? "vai dar" : "deu"} prejuízo de ${fmt(-lucro)} (${natureza}).`
+    : `O evento ${natureza === "PROJEÇÃO" ? "vai dar" : "deu"} ${fmt(lucro)} de lucro líquido, já descontado o seu pró-labore (${natureza}).`;
+  const aviso = natureza === "PROJEÇÃO" ? "Depois do evento, lance o que foi gasto de verdade (compras, equipe, espaço e decoração) para ter o lucro real."
+    : natureza === "ESTIMATIVA" ? `Faltam ${custos.length - lancadasCusto} linha(s) de gasto real: elas ainda valem o orçado.` : null;
+  return { situacao: lucro < 0 ? "alerta" : estouros.length || (r.meta?.definida && !r.meta?.atingida && natureza === "PROJEÇÃO") ? "atencao" : "ok", natureza, lucro: r2(lucro), texto, aviso, estouros };
+}

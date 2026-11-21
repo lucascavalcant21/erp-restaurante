@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { Wand2, Info } from "lucide-react";
-import { FORMAS_PAGAMENTO, SECOES, novoId, realizadoDoEvento } from "../../../../../lib/evento-orcamento.mjs";
+import { FORMAS_PAGAMENTO, SECOES, novoId, realizadoDoEvento, conferenciaDoEvento } from "../../../../../lib/evento-orcamento.mjs";
 import { parseNumero } from "../../../../../lib/ficha-calculos.mjs";
 import { fmtReais, fmtPct } from "../../../../../lib/valor-percentual.mjs";
 import { Cartao, Campo, Texto, Numero, ModoValor, BotaoRemover, BotaoAdicionar, LinhaValor, vp } from "./ui";
@@ -177,8 +177,20 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
   const real = realizadoDoEvento(orc, r, { recebido });
   const estilo = { receita: "font-black text-slate-900", subtotal: "font-black text-slate-900 bg-slate-50", resultado: "font-black text-base", custo: "font-semibold text-slate-700", info: "text-slate-500" };
   const taxasPP = r.convidados > 0 ? (r.imposto + r.maquininha + r.comissoesTotal + r.prolabore) / r.convidados : 0;
+  const conf = conferenciaDoEvento(r, real);
+  const corConf = { ok: "border-emerald-200 bg-emerald-50", atencao: "border-amber-200 bg-amber-50", alerta: "border-red-200 bg-red-50", sem_dado: "border-slate-200 bg-slate-50" }[conf.situacao];
   return (
     <div className="space-y-5">
+      <div className={`rounded-2xl border p-4 ${corConf}`}>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Conferência do lucro</p>
+        <p className="mt-1 text-base font-black text-slate-900">{conf.texto}</p>
+        {conf.aviso && <p className="mt-1 text-sm font-medium text-slate-700">{conf.aviso}</p>}
+        {conf.estouros.length > 0 && (
+          <ul className="mt-2 space-y-1">
+            {conf.estouros.map((e) => <li key={e.id} className="text-sm font-bold text-red-700">{e.rotulo}: gastou {fmtReais(e.real)}, orçado {fmtReais(e.orcado)} (+{fmtReais(e.diferenca)}{e.pct !== null ? `, ${e.pct.toLocaleString("pt-BR")}%` : ""})</li>)}
+          </ul>
+        )}
+      </div>
       <Cartao titulo="DRE do evento" descricao="Só deste evento. Não entra no DRE do restaurante.">
         {!(r.receita > 0) && <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">Defina o valor por pessoa (etapa Financeiro) para ver as porcentagens.</p>}
         <div className="-mx-2 overflow-x-auto">

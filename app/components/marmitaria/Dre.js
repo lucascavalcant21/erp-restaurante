@@ -14,6 +14,7 @@ import { carregarBaseDre, cmvDoMes, cmoDoMesRH } from "../../lib/dre-dados";
 import { janelaDoMes, faturamentoDoMes, montarDre } from "../../lib/dre-gerencial.mjs";
 import { duplicidadesDeFonte } from "../../lib/ifood/nucleo.mjs";
 import ConciliacaoIfood from "./ConciliacaoIfood";
+import { conferenciaDoLucro } from "../../lib/marmitaria/gestao-lucro.mjs";
 
 const hojeIso = () => new Date().toLocaleDateString("sv-SE");
 const proximoMes = (mes) => { const [a, m] = mes.split("-").map(Number); return m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, "0")}-01`; };
@@ -53,7 +54,8 @@ export function useDreMarmitaria(mes) {
     const contas = contasDaMarmitaria(fin.contas || [], mes, { centrosDiretos: cfg.centros_diretos, rateio: cfg.rateio });
     const dre = dreMarmitaria({ vendas, contas, cmvReal, cmvPrev, cmo, tributosPct: cfg.tributos_pct,
       nomesCategoria: new Map((fin.categorias || []).map((c) => [c.codigo, c.nome])), nomesCanal: new Map(cfg.canais.map((c) => [c.id, c.nome])), fixosCadastrados: cfg.rateio?.custos_fixos || [] });
-    return { dre, cmvReal, cmvPrev, cmo, vendas, erro: dados.erro };
+    const conferencia = conferenciaDoLucro({ dre, cmvReal, cmvPrev, metaPorMarmita: cfg?.rateio?.meta_lucro_reais });
+    return { dre, cmvReal, cmvPrev, cmo, vendas, conferencia, erro: dados.erro };
   }, [dados, base, custos, mes, estoqueIds]);
 }
 
@@ -114,6 +116,7 @@ export default function Dre() {
             <Indicador rotulo="Lucro líquido gerencial" valor={ind.lucroLiquido} natureza={r.dre.natureza} nota={ind.margemLiquidaPct !== null ? `margem ${pctTxt(ind.margemLiquidaPct)}` : null} destaque />
             <Indicador rotulo="Ponto de equilíbrio" valor={ind.pontoEquilibrio} natureza={r.dre.natureza} nota={ind.pontoEquilibrioMarmitas ? `${ind.pontoEquilibrioMarmitas} marmitas no mês` : ind.motivoPontoEquilibrio} />
           </div>
+          <ConferenciaDoLucro c={r.conferencia} />
           {/* Avisos num quadro só, com o atalho de cada um (pedido do dono, 28/10/2026: "melhore a marmitaria"). */}
           {r.dre.alertas.length > 0 && (
             <div className="rounded-2xl border border-hf-warning/30 bg-hf-warning/5 p-4">
@@ -168,5 +171,28 @@ export default function Dre() {
         </Secao>
       )}
     </div>
+  );
+}
+
+// "Tenho lucro de verdade?" (pedido do dono, 21/11/2026): veredito do mês,
+// perda na cozinha (CMV real × ficha) e meta de lucro por marmita.
+const COR_SITUACAO = { ok: "border-hf-success/30 bg-hf-success/5", atencao: "border-hf-warning/30 bg-hf-warning/5", alerta: "border-hf-danger/30 bg-hf-danger/5", conferir: "border-hf-warning/30 bg-hf-warning/5", sem_dado: "border-hf-border bg-hf-elevated/60" };
+function ConferenciaDoLucro({ c }) {
+  if (!c) return null;
+  return (
+    <Secao titulo="Conferência do lucro" subtitulo="O mês deu lucro de verdade? A cozinha gastou o que as fichas mandam? A meta foi batida?">
+      <div className={`rounded-xl border px-3 py-3 ${COR_SITUACAO[c.veredito.situacao]}`}>
+        <p className="text-base font-bold text-hf-text">{c.veredito.texto}</p>
+        {c.veredito.aviso && <p className="mt-1 text-sm text-hf-text-2">{c.veredito.aviso}</p>}
+      </div>
+      <ul className="mt-3 space-y-2">
+        {c.itens.map((i) => (
+          <li key={i.id} className={`rounded-xl border px-3 py-2.5 ${COR_SITUACAO[i.situacao]}`}>
+            <p className="text-sm font-bold text-hf-text">{i.titulo}</p>
+            <p className="mt-0.5 text-sm text-hf-text-2">{i.texto}</p>
+          </li>
+        ))}
+      </ul>
+    </Secao>
   );
 }

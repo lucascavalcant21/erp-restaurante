@@ -15,6 +15,7 @@ import { arquivarPrePreparo } from "../../../../lib/marmitaria/dados";
 import { guiaDoPrePreparo } from "../../../../lib/marmitaria/guia-prepreparo.mjs";
 import { imprimirGuias } from "../../../../components/marmitaria/imprimirGuia";
 import { fatorSaldo } from "../../../../lib/marmitaria/nucleo.mjs";
+import Porcionamento from "../../../../components/marmitaria/Porcionamento";
 import PedidosIfood from "../../../../components/marmitaria/PedidosIfood";
 import AbasDaProducao, { ABAS_DA_PRODUCAO } from "../../../../components/marmitaria/AbasDaProducao";
 
@@ -78,6 +79,7 @@ function Conteudo() {
     <div className="space-y-4">
       <AbasDaProducao ativa={aba} />
       {aba === "subprodutos" && <Subprodutos />}
+      {aba === "porcionamento" && <Porcionamento />}
       {aba === "marmitas" && <RegistrarMarmitas />}
       {aba === "planejar" && <Planejar />}
       {aba === "pedidos" && <PedidosIfood />}

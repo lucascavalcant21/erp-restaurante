@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
+import PreviaEtiqueta60x40 from "../../../components/etiquetas/PreviaEtiqueta60x40";
 import { Tag, Printer, Save, Snowflake, Thermometer, Box, QrCode, MapPin, AlertTriangle, Settings, RefreshCw, CheckCircle2, WifiOff, Smartphone, Tablet, Trash2, X, Check, Mic } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, Field, TextInput, NumberInput, Select, Btn, Toast, EmptyState
@@ -1139,6 +1140,17 @@ function EtiquetasRunner() {
                         {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}
                       </div>
                     )}
+                  </div>
+                  ) : tamanho === "60x40" ? (
+                  /* 60x40: o mesmo desenho que a MDK-022 imprime (sem QR Code; aberto com faixas pretas) */
+                  <div key={idx} className="etiqueta-print shadow-sm" style={{ width: dim.w, height: dim.h, marginLeft: "auto", marginRight: "auto", background: "#fff", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                    <PreviaEtiqueta60x40
+                      largura={dim.w}
+                      altura={dim.h}
+                      dados={{ codigo, produto: nomeProduto || "PRODUTO", conservacao: form.conservacao, tipoEtiqueta, momento: agora, validade: validadeEm, responsavel: form.responsavel.trim(), lote: form.lote }}
+                    />
+                    {/* QR escondido: a impressão por Bluetooth (impressaoTermica) ainda o busca aqui */}
+                    <div style={{ display: "none" }} aria-hidden="true"><QRCodeSVG data-qr-etiqueta="true" value={rastreioUrl} size={dim.qr} level="M" /></div>
                   </div>
                   ) : (
                   <div key={idx} className="etiqueta-print shadow-sm" style={{ width: dim.w, height: dim.h, marginLeft: "auto", marginRight: "auto", background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0 }}>

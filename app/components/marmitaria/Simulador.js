@@ -70,8 +70,8 @@ export default function Simulador() {
               </Campo>
               <Campo rotulo="% do mix"><CampoNumero valor={m.participacao} onChange={(v) => mudar(m.key, { participacao: v })} /></Campo>
               <Campo rotulo="Canal"><select className={inputCls} value={m.canal} onChange={(e) => mudar(m.key, { canal: e.target.value })}>{canais.length ? canais.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>) : <option value="">Sem canais</option>}</select></Campo>
-              <Campo rotulo="Preço (R$)"><CampoNumero valor={m.preco} onChange={(v) => mudar(m.key, { preco: v })} /></Campo>
-              <Campo rotulo="Custo (R$)"><CampoNumero valor={m.custo} onChange={(v) => mudar(m.key, { custo: v })} /></Campo>
+              <Campo rotulo="Preço"><CampoNumero prefixo="R$" valor={m.preco} onChange={(v) => mudar(m.key, { preco: v })} /></Campo>
+              <Campo rotulo="Custo"><CampoNumero prefixo="R$" valor={m.custo} onChange={(v) => mudar(m.key, { custo: v })} /></Campo>
               <button type="button" aria-label="Remover" onClick={() => setMix(mix.filter((x) => x.key !== m.key))} className="flex h-11 w-11 items-center justify-center rounded-lg text-hf-muted hover:bg-hf-elevated"><Trash2 size={16} /></button>
             </li>
           ))}
@@ -83,8 +83,8 @@ export default function Simulador() {
         <div className="grid gap-3 sm:grid-cols-4">
           <Campo rotulo="Dias trabalhados no mês"><CampoNumero valor={dias} onChange={setDias} /></Campo>
           <Campo rotulo="Funcionários (CMO/mês, R$)" dica={cmoAtual !== null ? <button type="button" className="font-semibold text-hf-accent" onClick={() => setCmo(txt(cmoAtual))}>Usar o atual: {brl(cmoAtual)}</button> : "Sem alocação em Funcionários."}><CampoNumero valor={cmo} onChange={setCmo} /></Campo>
-          <Campo rotulo="Despesas operacionais/mês (R$)" dica="Aluguel alocado, energia, gás, sistemas, marketing…"><CampoNumero valor={despesas} onChange={setDespesas} /></Campo>
-          <Campo rotulo="Margem de lucro desejada (%)"><CampoNumero valor={meta} onChange={setMeta} /></Campo>
+          <Campo rotulo="Despesas operacionais/mês" dica="Aluguel alocado, energia, gás, sistemas, marketing…"><CampoNumero prefixo="R$" valor={despesas} onChange={setDespesas} /></Campo>
+          <Campo rotulo="Margem de lucro desejada"><CampoNumero sufixo="%" valor={meta} onChange={setMeta} /></Campo>
         </div>
         <p className="mb-1 mt-4 text-xs font-semibold text-hf-text-2">Cenários (marmitas por dia)</p>
         <div className="flex flex-wrap gap-2">{cenarios.map((c, i) => <CampoNumero key={i} valor={c} onChange={(v) => setCenarios(cenarios.map((x, j) => (j === i ? v : x)))} className="w-[90px]" aria-label={`Cenário ${i + 1}`} />)}</div>

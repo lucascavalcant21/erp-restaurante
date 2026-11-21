@@ -42,7 +42,7 @@ function Calculadora({ canal, tributosPct }) {
     <div className="mt-3 rounded-lg bg-hf-elevated p-3">
       <p className="mb-2 text-xs font-bold text-hf-text-2">Calculadora deste app</p>
       <div className="grid items-end gap-3 sm:grid-cols-[160px_1fr]">
-        <Campo rotulo="Vendendo a (R$)"><CampoNumero valor={preco} onChange={setPreco} placeholder="ex.: 25,90" /></Campo>
+        <Campo rotulo="Vendendo a"><CampoNumero prefixo="R$" valor={preco} onChange={setPreco} placeholder="ex.: 25,90" /></Campo>
         {r?.valido ? (
           <p className="text-sm text-hf-text-2">
             O app e o pagamento ficam com <b className="tabular-nums">{brl(r.taxasCanal + r.entrega + r.promocao)}</b>
@@ -134,10 +134,10 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
                 <button type="button" aria-label="Remover canal" onClick={() => setCfg({ ...cfg, canais: cfg.canais.filter((_, j) => j !== i) })} className="ml-auto flex h-11 w-11 items-center justify-center rounded-lg text-hf-muted hover:bg-hf-elevated"><Trash2 size={16} /></button>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Campo rotulo="Comissão da plataforma (%)"><CampoNumero valor={c.comissao_pct} onChange={(v) => mudarCanal(i, "comissao_pct", v)} placeholder="não configurado" /></Campo>
-                <Campo rotulo="Taxa da maquininha / pagamento (%)"><CampoNumero valor={c.taxa_pagamento_pct} onChange={(v) => mudarCanal(i, "taxa_pagamento_pct", v)} placeholder="não configurado" disabled={c.pagamento_na_comissao} /></Campo>
-                <Campo rotulo="Valor da entrega por pedido (R$)" dica="O que sai do seu bolso em cada entrega."><CampoNumero valor={c.entrega_subsidiada_pedido} onChange={(v) => mudarCanal(i, "entrega_subsidiada_pedido", v)} placeholder="0,00" /></Campo>
-                <Campo rotulo="Taxa fixa por pedido (R$)"><CampoNumero valor={c.taxa_fixa_pedido} onChange={(v) => mudarCanal(i, "taxa_fixa_pedido", v)} placeholder="0,00" /></Campo>
+                <Campo rotulo="Comissão da plataforma"><CampoNumero sufixo="%" valor={c.comissao_pct} onChange={(v) => mudarCanal(i, "comissao_pct", v)} placeholder="não configurado" /></Campo>
+                <Campo rotulo="Taxa da maquininha / pagamento"><CampoNumero sufixo="%" valor={c.taxa_pagamento_pct} onChange={(v) => mudarCanal(i, "taxa_pagamento_pct", v)} placeholder="não configurado" disabled={c.pagamento_na_comissao} /></Campo>
+                <Campo rotulo="Valor da entrega por pedido" dica="O que sai do seu bolso em cada entrega."><CampoNumero prefixo="R$" valor={c.entrega_subsidiada_pedido} onChange={(v) => mudarCanal(i, "entrega_subsidiada_pedido", v)} placeholder="0,00" /></Campo>
+                <Campo rotulo="Taxa fixa por pedido"><CampoNumero prefixo="R$" valor={c.taxa_fixa_pedido} onChange={(v) => mudarCanal(i, "taxa_fixa_pedido", v)} placeholder="0,00" /></Campo>
               </div>
               <details className="mt-2">
                 <summary className="min-h-[36px] cursor-pointer py-2 text-xs font-bold text-hf-text-2">Mais opções</summary>
@@ -149,8 +149,8 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
                     </select>
                   </Campo>
                   <label className="flex min-h-[44px] items-end gap-2 pb-2 text-sm text-hf-text-2"><input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={!!c.pagamento_na_comissao} onChange={(e) => mudarCanal(i, "pagamento_na_comissao", e.target.checked)} />Pagamento já incluso na comissão</label>
-                  <Campo rotulo="Promoção custeada (% do preço)"><CampoNumero valor={c.promocao_pct} onChange={(v) => mudarCanal(i, "promocao_pct", v)} placeholder="0" /></Campo>
-                  <Campo rotulo="Marmitas por pedido (média)" dica="Divide as taxas por pedido."><CampoNumero valor={c.itens_por_pedido} onChange={(v) => mudarCanal(i, "itens_por_pedido", v)} placeholder="1" /></Campo>
+                  <Campo rotulo="Promoção custeada (% do preço)"><CampoNumero sufixo="%" valor={c.promocao_pct} onChange={(v) => mudarCanal(i, "promocao_pct", v)} placeholder="0" /></Campo>
+                  <Campo rotulo="Marmitas por pedido (média)" dica="Divide as taxas por pedido."><CampoNumero sufixo="por pedido" valor={c.itens_por_pedido} onChange={(v) => mudarCanal(i, "itens_por_pedido", v)} placeholder="1" /></Campo>
                 </div>
               </details>
               <Calculadora canal={c} tributosPct={cfg.regime === "mei" ? 0 : lerNumero(cfg.tributos_pct) === "" ? base.config.tributos_pct : lerNumero(cfg.tributos_pct)} />
@@ -182,7 +182,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
       <Secao titulo="Custos fixos, variáveis e equipe" subtitulo="Custos do mês divididos pelas marmitas do mês, mais o que sai em cada marmita. Entra sozinho no preço de cada uma.">
         <div className="grid gap-3 sm:grid-cols-2">
           <Campo rotulo="Marmitas por mês" dica={doSistema.vendidasMes > 0 ? `Em branco: ${doSistema.vendidasMes} vendidas no mês passado.` : "Quantas você espera vender."}><CampoNumero valor={cfg.rateio.marmitas_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, marmitas_mes: v } })} placeholder="não configurado" /></Campo>
-          <Campo rotulo="Equipe por mês (R$)" dica={doSistema.cmoMes > 0 ? `Em branco: ${brl(doSistema.cmoMes)} do RH (Funcionários).` : "Em branco: vem do RH, de quem está em Funcionários."}><CampoNumero valor={cfg.rateio.cmo_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, cmo_mes: v } })} placeholder={doSistema.cmoMes > 0 ? vazio(doSistema.cmoMes) : "não configurado"} /></Campo>
+          <Campo rotulo="Equipe por mês" dica={doSistema.cmoMes > 0 ? `Em branco: ${brl(doSistema.cmoMes)} do RH (Funcionários).` : "Em branco: vem do RH, de quem está em Funcionários."}><CampoNumero prefixo="R$" valor={cfg.rateio.cmo_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, cmo_mes: v } })} placeholder={doSistema.cmoMes > 0 ? vazio(doSistema.cmoMes) : "não configurado"} /></Campo>
         </div>
         <p className="mb-1 mt-4 text-sm font-bold text-hf-text">Custos fixos do mês</p>
         <p className="mb-2 text-xs text-hf-muted">{doSistema.fixosContasMes > 0 ? `Sem nada aqui, valem ${brl(doSistema.fixosContasMes)} das contas do mês passado.` : "Coloque o valor de cada conta. Entra sozinho no preço de cada marmita."}</p>
@@ -190,7 +190,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
           {cfg.rateio.custos_fixos.map((c, i) => (
             <li key={i} className="grid grid-cols-[1fr_120px_44px] items-center gap-2">
               <input className={inputCls} value={c.nome} aria-label="Nome da conta" onChange={(e) => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_fixos: cfg.rateio.custos_fixos.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x)) } })} />
-              <CampoNumero valor={c.valor} placeholder="0,00" aria-label={`Valor de ${c.nome || "conta"}`} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_fixos: cfg.rateio.custos_fixos.map((x, j) => (j === i ? { ...x, valor: v } : x)) } })} />
+              <CampoNumero prefixo="R$" valor={c.valor} placeholder="0,00" aria-label={`Valor de ${c.nome || "conta"}`} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_fixos: cfg.rateio.custos_fixos.map((x, j) => (j === i ? { ...x, valor: v } : x)) } })} />
               <button type="button" aria-label={`Tirar ${c.nome || "conta"}`} onClick={() => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_fixos: cfg.rateio.custos_fixos.filter((_, j) => j !== i) } })} className="grid h-11 w-11 place-items-center rounded-lg text-hf-muted hover:bg-hf-elevated"><Trash2 size={16} /></button>
             </li>
           ))}
@@ -205,7 +205,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
           {cfg.rateio.custos_variaveis.map((c, i) => (
             <li key={i} className="grid grid-cols-[1fr_120px_44px] items-center gap-2">
               <input className={inputCls} value={c.nome} aria-label="Nome do custo variável" onChange={(e) => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_variaveis: cfg.rateio.custos_variaveis.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x)) } })} />
-              <CampoNumero valor={c.valor} placeholder="0,00" aria-label={`Valor por marmita de ${c.nome || "custo"}`} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_variaveis: cfg.rateio.custos_variaveis.map((x, j) => (j === i ? { ...x, valor: v } : x)) } })} />
+              <CampoNumero prefixo="R$" valor={c.valor} placeholder="0,00" aria-label={`Valor por marmita de ${c.nome || "custo"}`} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_variaveis: cfg.rateio.custos_variaveis.map((x, j) => (j === i ? { ...x, valor: v } : x)) } })} />
               <button type="button" aria-label={`Tirar ${c.nome || "custo"}`} onClick={() => setCfg({ ...cfg, rateio: { ...cfg.rateio, custos_variaveis: cfg.rateio.custos_variaveis.filter((_, j) => j !== i) } })} className="grid h-11 w-11 place-items-center rounded-lg text-hf-muted hover:bg-hf-elevated"><Trash2 size={16} /></button>
             </li>
           ))}
@@ -227,27 +227,27 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
           {cfg.regime !== "mei" && (
-            <Campo rotulo="Imposto sobre as vendas (%)" dica={base?.config?.doResultado?.tributos_pct ? `Em branco: ${base.config.tributos_pct}% (impostos do Resultado do mês).` : "Ex.: a alíquota efetiva do Simples. Confirme com o contador."}><CampoNumero valor={cfg.tributos_pct} onChange={(v) => setCfg({ ...cfg, tributos_pct: v })} placeholder={base?.config?.doResultado?.tributos_pct ? `${base.config.tributos_pct} (Resultado do mês)` : "não configurado"} /></Campo>
+            <Campo rotulo="Imposto sobre as vendas" dica={base?.config?.doResultado?.tributos_pct ? `Em branco: ${base.config.tributos_pct}% (impostos do Resultado do mês).` : "Ex.: a alíquota efetiva do Simples. Confirme com o contador."}><CampoNumero sufixo="%" valor={cfg.tributos_pct} onChange={(v) => setCfg({ ...cfg, tributos_pct: v })} placeholder={base?.config?.doResultado?.tributos_pct ? `${base.config.tributos_pct} (Resultado do mês)` : "não configurado"} /></Campo>
           )}
-          <Campo rotulo="Meta de lucro (%)" dica={base?.config?.doResultado?.margem_alvo_pct ? `Em branco: ${base.config.margem_alvo_pct}% (meta do Resultado do mês). Usada para sugerir preços.` : "Usada para sugerir preços no Cardápio."}><CampoNumero valor={cfg.margem_alvo_pct} onChange={(v) => setCfg({ ...cfg, margem_alvo_pct: v })} placeholder={base?.config?.doResultado?.margem_alvo_pct ? `${base.config.margem_alvo_pct} (Resultado do mês)` : "não configurado"} /></Campo>
-          <Campo rotulo="Meta de lucro (R$ por marmita)" dica="Se preencher, vale no lugar da porcentagem: o preço sugerido garante esse valor no bolso."><CampoNumero valor={cfg.rateio.meta_lucro_reais} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, meta_lucro_reais: v } })} placeholder="ex.: 10" /></Campo>
-          <Campo rotulo="Meta de faturamento do mês (R$)" dica="Usada em Faturamento, na aba Metas."><CampoNumero valor={cfg.rateio.meta_faturamento_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, meta_faturamento_mes: v } })} placeholder="ex.: 150000" /></Campo>
-          <Campo rotulo="Dias de operação no mês" dica="Divide os custos por dia e define o ponto de equilíbrio."><CampoNumero valor={cfg.rateio.dias_operacao_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, dias_operacao_mes: v } })} placeholder="ex.: 26" /></Campo>
-          <Campo rotulo="Horas de operação por dia" dica="Mostra o custo operacional por hora e por minuto no Dashboard gerencial."><CampoNumero valor={cfg.rateio.horas_operacao_dia} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, horas_operacao_dia: v } })} placeholder="ex.: 9" /></Campo>
+          <Campo rotulo="Meta de lucro" dica={base?.config?.doResultado?.margem_alvo_pct ? `Em branco: ${base.config.margem_alvo_pct}% (meta do Resultado do mês). Usada para sugerir preços.` : "Usada para sugerir preços no Cardápio."}><CampoNumero sufixo="%" valor={cfg.margem_alvo_pct} onChange={(v) => setCfg({ ...cfg, margem_alvo_pct: v })} placeholder={base?.config?.doResultado?.margem_alvo_pct ? `${base.config.margem_alvo_pct} (Resultado do mês)` : "não configurado"} /></Campo>
+          <Campo rotulo="Meta de lucro (R$ por marmita)" dica="Se preencher, vale no lugar da porcentagem: o preço sugerido garante esse valor no bolso."><CampoNumero prefixo="R$" valor={cfg.rateio.meta_lucro_reais} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, meta_lucro_reais: v } })} placeholder="ex.: 10" /></Campo>
+          <Campo rotulo="Meta de faturamento do mês" dica="Usada em Faturamento, na aba Metas."><CampoNumero prefixo="R$" valor={cfg.rateio.meta_faturamento_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, meta_faturamento_mes: v } })} placeholder="ex.: 150000" /></Campo>
+          <Campo rotulo="Dias de operação no mês" dica="Divide os custos por dia e define o ponto de equilíbrio."><CampoNumero sufixo="dias" valor={cfg.rateio.dias_operacao_mes} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, dias_operacao_mes: v } })} placeholder="ex.: 26" /></Campo>
+          <Campo rotulo="Horas de operação por dia" dica="Mostra o custo operacional por hora e por minuto no Dashboard gerencial."><CampoNumero sufixo="horas" valor={cfg.rateio.horas_operacao_dia} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, horas_operacao_dia: v } })} placeholder="ex.: 9" /></Campo>
         </div>
       </Secao>
 
       <Secao titulo="Encargos e provisões (CMO)" subtitulo="Somados ao salário do cadastro do RH para estimar o custo de quem trabalha na marmitaria.">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Campo rotulo="FGTS (%)" dica={`Legal: ${ENCARGOS_LEGAIS.fgts_pct}%`}><CampoNumero valor={cfg.encargos.fgts_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, fgts_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.fgts_pct)} /></Campo>
-          <Campo rotulo="INSS patronal + RAT + terceiros (%)" dica={`Atual: ${enc.inss_patronal_pct}% — ${enc.origemInss}`}><CampoNumero valor={cfg.encargos.inss_patronal_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, inss_patronal_pct: v } })} placeholder={String(enc.inss_patronal_pct)} /></Campo>
+          <Campo rotulo="FGTS" dica={`Legal: ${ENCARGOS_LEGAIS.fgts_pct}%`}><CampoNumero sufixo="%" valor={cfg.encargos.fgts_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, fgts_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.fgts_pct)} /></Campo>
+          <Campo rotulo="INSS patronal + RAT + terceiros" dica={`Atual: ${enc.inss_patronal_pct}% — ${enc.origemInss}`}><CampoNumero sufixo="%" valor={cfg.encargos.inss_patronal_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, inss_patronal_pct: v } })} placeholder={String(enc.inss_patronal_pct)} /></Campo>
           <Campo rotulo="Critério de divisão do compartilhado">
             <select className={inputCls} value={cfg.encargos.criterio || "percentual"} onChange={(e) => setCfg({ ...cfg, encargos: { ...cfg.encargos, criterio: e.target.value } })}>
               <option value="percentual">% do tempo informado</option><option value="horas">Horas por semana ÷ 44 h</option>
             </select>
           </Campo>
-          <Campo rotulo="Provisão de 13º (%)" dica="1/12 do salário"><CampoNumero valor={cfg.encargos.provisao_13_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, provisao_13_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.provisao_13_pct).replace(".", ",")} /></Campo>
-          <Campo rotulo="Provisão de férias + 1/3 (%)" dica="1/12 × 4/3 do salário"><CampoNumero valor={cfg.encargos.provisao_ferias_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, provisao_ferias_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.provisao_ferias_pct).replace(".", ",")} /></Campo>
+          <Campo rotulo="Provisão de 13º" dica="1/12 do salário"><CampoNumero sufixo="%" valor={cfg.encargos.provisao_13_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, provisao_13_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.provisao_13_pct).replace(".", ",")} /></Campo>
+          <Campo rotulo="Provisão de férias + 1/3" dica="1/12 × 4/3 do salário"><CampoNumero sufixo="%" valor={cfg.encargos.provisao_ferias_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, provisao_ferias_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.provisao_ferias_pct).replace(".", ",")} /></Campo>
         </div>
       </Secao>
 

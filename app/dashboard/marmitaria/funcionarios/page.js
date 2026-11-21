@@ -109,10 +109,10 @@ export default function FuncionariosPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <Campo rotulo="Nome"><input className={inputCls} value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })} /></Campo>
           <Campo rotulo="Função"><input className={inputCls} value={novo.cargo} onChange={(e) => setNovo({ ...novo, cargo: e.target.value })} placeholder="Ex.: Cozinheira" /></Campo>
-          <Campo rotulo="Salário do mês (R$)"><CampoNumero valor={novo.salario} onChange={(v) => setNovo({ ...novo, salario: v })} placeholder="0,00" /></Campo>
+          <Campo rotulo="Salário do mês"><CampoNumero prefixo="R$" valor={novo.salario} onChange={(v) => setNovo({ ...novo, salario: v })} placeholder="0,00" /></Campo>
           <Campo rotulo="Data de admissão"><input type="date" className={`${inputCls} min-w-0 max-w-full appearance-none`} value={novo.data_admissao} onChange={(e) => setNovo({ ...novo, data_admissao: e.target.value })} /></Campo>
-          <Campo rotulo="Vale-alimentação do mês (R$)"><CampoNumero valor={novo.vale_alimentacao} onChange={(v) => setNovo({ ...novo, vale_alimentacao: v })} placeholder="0,00" /></Campo>
-          <Campo rotulo="Vale-transporte do mês (R$)"><CampoNumero valor={novo.vale_transporte} onChange={(v) => setNovo({ ...novo, vale_transporte: v })} placeholder="0,00" /></Campo>
+          <Campo rotulo="Vale-alimentação do mês"><CampoNumero prefixo="R$" valor={novo.vale_alimentacao} onChange={(v) => setNovo({ ...novo, vale_alimentacao: v })} placeholder="0,00" /></Campo>
+          <Campo rotulo="Vale-transporte do mês"><CampoNumero prefixo="R$" valor={novo.vale_transporte} onChange={(v) => setNovo({ ...novo, vale_transporte: v })} placeholder="0,00" /></Campo>
           <Campo rotulo="Turno / escala" className="sm:col-span-2"><input className={inputCls} value={novo.turno} onChange={(e) => setNovo({ ...novo, turno: e.target.value })} placeholder="Ex.: seg a sex, 7h–15h" /></Campo>
         </div>
         <Botao className="mt-3" type="button" onClick={cadastrar} disabled={salvando}>{salvando ? "Salvando…" : "Cadastrar funcionário"}</Botao>

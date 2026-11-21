@@ -143,7 +143,7 @@ export default function CombosPromocoes({ onEditar, abaInicial, modo = "precific
             <p className="mt-1 text-hf-text">Equipe {embutidos.cmoPorMarmita == null ? "—" : brl(embutidos.cmoPorMarmita)}</p>
             <p className="text-hf-text">Custos fixos {embutidos.fixosPorMarmita == null ? "—" : brl(embutidos.fixosPorMarmita)}</p>
           </div>
-          <Campo rotulo="Meta de lucro (%)" dica="Acima dela: faz sentido. Para fixar, use Configurações."><CampoNumero valor={metaPct} onChange={setMetaPct} placeholder="ex.: 15" /></Campo>
+          <Campo rotulo="Meta de lucro" dica="Acima dela: faz sentido. Para fixar, use Configurações."><CampoNumero sufixo="%" valor={metaPct} onChange={setMetaPct} placeholder="ex.: 15" /></Campo>
         </div>
       </details>}
     </div>
@@ -339,7 +339,7 @@ function FormarPreco({ linha, comum, metaPct, aoSalvar }) {
   return (
     <div className="mt-2 rounded-xl border border-hf-border p-3">
       {/* dono, 17/11/2026: sem campo de markup; o markup aparece sozinho conforme o preço */}
-      <Campo rotulo={`Preço no ${comum.canal.nome} (R$)`}><CampoNumero valor={preco} onChange={(v) => { setPreco(v); setMarkup(""); }} placeholder="0,00" /></Campo>
+      <Campo rotulo={`Preço no ${comum.canal.nome}`}><CampoNumero prefixo="R$" valor={preco} onChange={(v) => { setPreco(v); setMarkup(""); }} placeholder="0,00" /></Campo>
       {sug.preco !== null && !linha.falta && <button type="button" onClick={() => { usar(sug.preco); setMarkup(""); }} className="mt-2 min-h-[32px] text-xs font-bold text-hf-accent hover:underline">Usar {brl(sug.preco)}, que deixa a meta de {brl(metaEmReais({ preco: sug.preco, metaPct: metaPct === "" ? null : metaPct, metaReais: item.grupo === "marmita" ? metaReais : null }))} de lucro</button>}
       {s?.com.valido && !linha.falta && (
         <p className="mt-2 text-sm text-hf-text-2">Markup <b className="tabular-nums">{markupPctTxt(s.com.markup)}</b> · CMV <b className="tabular-nums">{pctTxt(s.com.cmvTecnicoPct)}</b> · Sobra <b className={`tabular-nums ${s.com.lucro < 0 ? "text-hf-danger" : "text-hf-text"}`}>{brl(s.com.lucro)}</b></p>
@@ -372,7 +372,7 @@ function SimuladorPromocao({ catalogo, comum, bloqueio, onAdicionar }) {
             {["marmita", "bebida", "sobremesa"].map((g) => opcoes.some((o) => o.grupo === g) ? <optgroup key={g} label={ROTULO_GRUPO[g]}>{opcoes.filter((o) => o.grupo === g).map((o) => <option key={o.id} value={o.id}>{o.nome}{o.preco ? ` · ${brl(o.preco)}` : ""}</option>)}</optgroup> : null)}
           </select>
         </Campo>
-        <Campo rotulo="Preço (R$)" dica={base0?.preco ? `Hoje: ${brl(base0.preco)}` : "Sem preço cadastrado"}><CampoNumero valor={precoSim} onChange={setPrecoSim} placeholder={base0?.preco ? String(base0.preco).replace(".", ",") : "0,00"} /></Campo>
+        <Campo rotulo="Preço" dica={base0?.preco ? `Hoje: ${brl(base0.preco)}` : "Sem preço cadastrado"}><CampoNumero prefixo="R$" valor={precoSim} onChange={setPrecoSim} placeholder={base0?.preco ? String(base0.preco).replace(".", ",") : "0,00"} /></Campo>
         <Campo rotulo="Quantidade"><CampoNumero valor={qtd} onChange={setQtd} /></Campo>
       </div>
       {base0 && !(Number(String(item.preco).replace(",", ".")) > 0) && <Aviso tipo="alerta" className="mt-3">{base0.nome} está sem preço: digite um preço acima para simular, ou salve em Formar preço.</Aviso>}
@@ -428,7 +428,7 @@ function LinhaCombo({ combo, catalogo, comum, onChange, onRemover }) {
         ))}
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-[200px_1fr] sm:items-end">
-        <Campo rotulo="Preço do combo (R$)" dica={soma != null ? `Separado: ${brl(soma)}` : "Escolha os itens."}><CampoNumero valor={combo.preco} onChange={(v) => onChange({ ...combo, preco: v })} /></Campo>
+        <Campo rotulo="Preço do combo" dica={soma != null ? `Separado: ${brl(soma)}` : "Escolha os itens."}><CampoNumero prefixo="R$" valor={combo.preco} onChange={(v) => onChange({ ...combo, preco: v })} /></Campo>
         {soma != null && soma > 0 && (
           <div className="flex flex-wrap gap-2">
             {[10, 15, 20].map((d) => <button key={d} type="button" className={chip(false)} onClick={() => onChange({ ...combo, preco: String(Math.floor(soma * (1 - d / 100) * 100) / 100).replace(".", ",") })}>{d}% abaixo · {brl(soma * (1 - d / 100))}</button>)}

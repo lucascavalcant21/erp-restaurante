@@ -44,7 +44,7 @@ function NovaBebida({ onFechar }) {
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <Campo rotulo="Nome"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Ex.: Coca-Cola lata 350 ml" autoFocus /></Campo>
         <Campo rotulo="Marca"><input className={inputCls} value={f.marca} onChange={(e) => setF({ ...f, marca: e.target.value })} placeholder="opcional" /></Campo>
-        <Campo rotulo="Quanto você paga (R$)" dica="Pelo fardo, caixa ou pela unidade."><CampoNumero valor={f.preco} onChange={(v) => setF({ ...f, preco: v })} placeholder="Ex.: 36,00" /></Campo>
+        <Campo rotulo="Quanto você paga" dica="Pelo fardo, caixa ou pela unidade."><CampoNumero prefixo="R$" valor={f.preco} onChange={(v) => setF({ ...f, preco: v })} placeholder="Ex.: 36,00" /></Campo>
         <Campo rotulo="Unidades nesse preço" dica="Fardo de 12 latas: 12. Uma garrafa: 1."><CampoNumero valor={f.qtd} onChange={(v) => setF({ ...f, qtd: v })} placeholder="1" /></Campo>
       </div>
       {porUnidade !== null && <p className="mt-2 text-sm text-hf-text-2">Custo de cada unidade: <b className="tabular-nums">{brl(porUnidade)}</b></p>}

@@ -4,6 +4,7 @@
 // fundo creme, cartões brancos, verde como cor de ação. Número financeiro
 // sempre com tabular-nums; valor sem dado diz que não há dado.
 
+import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Info } from "lucide-react";
 
@@ -157,11 +158,33 @@ export function textoNumericoFinal(t) {
   return s;
 }
 
-export function CampoNumero({ valor, onChange, className = "", onBlur, ...rest }) {
-  const mostrar = valor === null || valor === undefined ? "" : typeof valor === "number" ? String(valor).replace(".", ",") : valor;
-  return (
-    <input inputMode="decimal" className={`${inputCls} tabular-nums ${className}`} value={mostrar}
+/** "3000" → "3.000"; "5989,31" → "5.989,31" (só para mostrar; o valor guardado não muda). */
+export function comMilhar(t) {
+  const s = String(t ?? "");
+  if (!s) return s;
+  const [int, dec] = s.split(",");
+  const comPontos = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return dec === undefined ? comPontos : `${comPontos},${dec}`;
+}
+
+// Dono, 21/11/2026: "por cifras e unidades" → R$ na frente, unidade atrás,
+// e milhar com ponto quando o campo não está sendo digitado.
+export function CampoNumero({ valor, onChange, className = "", onBlur, onFocus, prefixo = "", sufixo = "", ...rest }) {
+  const [focado, setFocado] = useState(false);
+  const cru = valor === null || valor === undefined ? "" : typeof valor === "number" ? String(valor).replace(".", ",") : valor;
+  const mostrar = focado ? cru : comMilhar(cru);
+  const entrada = (
+    <input inputMode="decimal" className={`${inputCls} tabular-nums ${prefixo ? "pl-11" : ""} ${sufixo ? (String(sufixo).length <= 2 ? "pr-9" : "pr-20") : ""} ${className}`} value={mostrar}
+      onFocus={(e) => { setFocado(true); onFocus?.(e); }}
       onChange={(e) => onChange(textoNumerico(e.target.value))}
-      onBlur={(e) => { const f = textoNumericoFinal(e.target.value); if (f !== e.target.value) onChange(f); onBlur?.(e); }} {...rest} />
+      onBlur={(e) => { setFocado(false); const f = textoNumericoFinal(e.target.value); if (f !== cru) onChange(f); onBlur?.(e); }} {...rest} />
+  );
+  if (!prefixo && !sufixo) return entrada;
+  return (
+    <div className="relative min-w-0">
+      {prefixo && <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-hf-muted">{prefixo}</span>}
+      {entrada}
+      {sufixo && <span className="pointer-events-none absolute right-3.5 top-1/2 max-w-[70px] -translate-y-1/2 truncate text-right text-sm font-semibold text-hf-muted">{sufixo}</span>}
+    </div>
   );
 }

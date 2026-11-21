@@ -19,7 +19,7 @@ import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
 import { BarraDeAreas } from "../../components/gerencial/PainelGerencial";
-import { BadgeDollarSign, BarChart3, Boxes, Calculator, CheckCircle2, CupSoda, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Percent, Receipt, Settings, ShoppingCart, Smartphone, Store, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
+import { BadgeDollarSign, BarChart3, Boxes, Calculator, CheckCircle2, CupSoda, ChefHat, ClipboardList, Gauge, GraduationCap, Home, Layers, Package, Percent, Receipt, Settings, ShoppingCart, Smartphone, Store, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
 
 const FICHA = "/dashboard/marmitaria/marmitas";
 const ESTOQUE = "/dashboard/marmitaria/estoque";
@@ -41,6 +41,7 @@ const AREAS = [
   { href: `${FICHA}/bebidas`, rotulo: "Bebidas", icone: CupSoda },
   { href: `${FICHA}/embalagens`, rotulo: "Embalagens", icone: Boxes },
   { href: "/dashboard/marmitaria/funcionarios", rotulo: "Equipe", icone: Users },
+  { href: "/dashboard/marmitaria/treinamento", rotulo: "Treinamento", icone: GraduationCap },
   { href: "/dashboard/marmitaria/configuracoes", rotulo: "Custos e apps", icone: Settings },
   { href: "/dashboard/marmitaria/financeiro/gastos", rotulo: "Gastos e rendimento", icone: Receipt },
   { href: "/dashboard/marmitaria/financeiro", rotulo: "DRE e financeiro", exceto: ["/dashboard/marmitaria/financeiro/gastos"], icone: Wallet },

@@ -348,6 +348,17 @@ export async function fetchProcessosMarmitaria(unidadeId) {
 }
 export const salvarProcessosMarmitaria = (unidadeId, processos) => salvarParams(unidadeId, { marmitaria_processos: processos || {} });
 
+/* Treinamento do delivery (manual de operação por posição, 21/11/2026):
+ * config_sistema.params.marmitaria_treinamento. */
+export async function fetchTreinamentoMarmitaria(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: null, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: null, error: error.message };
+  const v = data?.[0]?.params?.marmitaria_treinamento;
+  return { data: v && typeof v === "object" && !Array.isArray(v) ? v : null, error: null };
+}
+export const salvarTreinamentoMarmitaria = (unidadeId, manual) => salvarParams(unidadeId, { marmitaria_treinamento: manual || null });
+
 /* Promoções da marmitaria no cardápio de vendas (desconto, 2 por 1…):
  * config_sistema.params.marmitaria_ofertas. */
 export async function fetchOfertasMarmitaria(unidadeId) {

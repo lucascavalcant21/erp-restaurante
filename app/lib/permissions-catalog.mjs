@@ -342,6 +342,8 @@ export const PERMISSION_MODULES = [
       { id: "settings", label: "Configurações da Marmitaria", route: "/dashboard/marmitaria/configuracoes", actions: ["view", "edit", "settings"] },
       // Cardápios dos concorrentes do delivery (17/11/2026): o Jhon lê o print, guarda e compara com as nossas marmitas.
       { id: "competitors", label: "Concorrentes do delivery", route: "/dashboard/marmitaria/concorrentes", actions: [...CRUD] },
+      // Treinamento do delivery (21/11/2026): manual de operação por posição, impresso para o funcionário.
+      { id: "training", label: "Treinamento do delivery", route: "/dashboard/marmitaria/treinamento", actions: [...CRUD, "export"] },
     ],
   },
 ];

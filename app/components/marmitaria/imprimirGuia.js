@@ -6,12 +6,17 @@
 import { htmlDosGuias } from "../../lib/marmitaria/guia-impresso.mjs";
 
 export function imprimirGuias(guias) {
+  imprimirHtml(htmlDosGuias(guias));
+}
+
+/** Imprime (ou salva em PDF pela janela de impressão) um HTML pronto. */
+export function imprimirHtml(html) {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
   iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(iframe);
   const doc = iframe.contentDocument;
-  doc.open(); doc.write(htmlDosGuias(guias)); doc.close();
+  doc.open(); doc.write(html); doc.close();
   const imprimir = () => {
     try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } finally { setTimeout(() => iframe.remove(), 60000); }
   };

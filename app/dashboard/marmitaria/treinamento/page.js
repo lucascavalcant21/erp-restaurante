@@ -131,6 +131,7 @@ export default function TreinamentoDeliveryPage() {
           <div className="grid gap-3">
             <Campo rotulo="Nome da posição"><input className={inputCls} value={est.nome} onChange={(e) => mudarEstacao(est.id, { nome: e.target.value })} /></Campo>
             <Campo rotulo="Objetivo"><input className={inputCls} value={est.objetivo} onChange={(e) => mudarEstacao(est.id, { objetivo: e.target.value })} /></Campo>
+            <Campo rotulo="Por que isso importa" dica="Explique o motivo: quem entende o porquê segue o padrão."><textarea className={areaCls} rows={2} value={est.porQue || ""} onChange={(e) => mudarEstacao(est.id, { porQue: e.target.value })} /></Campo>
             <Lista rotulo="Mise en place (antes de começar)" dica="Um item por linha: vira caixinha no impresso." valor={est.misePlace} onChange={(v) => mudarEstacao(est.id, { misePlace: v })} />
             {est.id === "fechamento" && embalagens.length > 0 && <p className="text-xs text-hf-muted">As embalagens cadastradas entram sozinhas no impresso desta posição: {embalagens.join(", ")}.</p>}
           </div>
@@ -172,7 +173,7 @@ export default function TreinamentoDeliveryPage() {
         <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-hf-border pt-3">
           <p className="text-sm text-hf-text">Pedido inteiro: <b className="tabular-nums">{tempos.total ? fmtMin(tempos.total) : "sem tempos definidos"}</b>{tempos.semTempo ? <span className="text-hf-muted"> · {tempos.semTempo} processo(s) sem tempo</span> : null}</p>
           <span className="ml-auto flex flex-wrap gap-2">
-            <Botao variante="secundario" onClick={() => { const id = novaChave(); setManual((x) => ({ ...x, modelo: false, estacoes: [...x.estacoes, { id, nome: "Nova posição", objetivo: "", misePlace: [], processos: [] }] })); setAberta(id); }}><Plus size={16} /> Posição</Botao>
+            <Botao variante="secundario" onClick={() => { const id = novaChave(); setManual((x) => ({ ...x, modelo: false, estacoes: [...x.estacoes, { id, nome: "Nova posição", objetivo: "", porQue: "", misePlace: [], processos: [] }] })); setAberta(id); }}><Plus size={16} /> Posição</Botao>
             {!manual.modelo && <Botao variante="secundario" onClick={() => { if (window.confirm("Voltar ao modelo? O que você escreveu some quando salvar.")) setManual(normalizarManual({ titulo: manual.titulo, estacoes: MODELO_TREINAMENTO })); }}>Voltar ao modelo</Botao>}
           </span>
         </div>

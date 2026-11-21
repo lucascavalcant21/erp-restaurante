@@ -102,3 +102,11 @@ test("teleconsulta: termo, código, convite, sala embutida e duração", async (
   assert.equal(salaEmbutida("javascript:alert(1)"), null);
   assert.equal(duracaoMin("2026-11-24T13:00:00Z", "2026-11-24T13:22:00Z"), 22);
 });
+
+test("relacionamento: aniversariantes do mês e mensagens", async () => {
+  const { aniversariantes, textoDeAniversario, textoDeSatisfacao } = await import("./agenda.mjs");
+  const lista = [{ nome: "Ana Lima", nascimento: "1990-11-30" }, { nome: "Bia", nascimento: "1985-11-02" }, { nome: "Caio", nascimento: "1999-12-01" }, { nome: "Sem data" }];
+  assert.deepEqual(aniversariantes(lista, 11).map((p) => p.nome), ["Bia", "Ana Lima"]);
+  assert.match(textoDeAniversario({ nome: "Ana Lima" }), /^Feliz aniversário, Ana!/);
+  assert.match(textoDeSatisfacao({ nome: "Ana" }), /De 0 a 10/);
+});

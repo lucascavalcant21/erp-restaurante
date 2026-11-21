@@ -150,3 +150,21 @@ export function idade(nascimentoIso, hojeIso) {
   const [ha, hm, hd] = String(hojeIso).slice(0, 10).split("-").map(Number);
   return ha - a - (hm < m || (hm === m && hd < d) ? 1 : 0);
 }
+
+/** Aniversariantes de um mês (MM), ordenados pelo dia. */
+export function aniversariantes(pacientes = [], mes) {
+  const mm = String(mes).padStart(2, "0");
+  return pacientes.filter((p) => /^\d{4}-\d{2}-\d{2}/.test(String(p.nascimento || "")) && String(p.nascimento).slice(5, 7) === mm)
+    .sort((a, b) => String(a.nascimento).slice(8, 10).localeCompare(String(b.nascimento).slice(8, 10)));
+}
+
+export function textoDeAniversario(paciente, consultorio = "consultório") {
+  const nome = String(paciente?.nome || "").trim().split(/\s+/)[0] || "";
+  return `Feliz aniversário${nome ? `, ${nome}` : ""}! Toda a equipe do ${consultorio} deseja muita saúde. Conte com a gente.`;
+}
+
+/** Pesquisa de satisfação depois da consulta (resposta de 0 a 10 pelo WhatsApp). */
+export function textoDeSatisfacao(paciente, consultorio = "consultório") {
+  const nome = String(paciente?.nome || "").trim().split(/\s+/)[0] || "";
+  return `Olá${nome ? `, ${nome}` : ""}! Obrigado pela consulta no ${consultorio}. De 0 a 10, quanto você recomendaria o nosso atendimento a um amigo? Se quiser, conte o que podemos melhorar.`;
+}

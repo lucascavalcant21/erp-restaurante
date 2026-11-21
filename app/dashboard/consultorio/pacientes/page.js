@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 import { useConsultorio } from "../../../components/consultorio/contexto";
 import { EscolherPaciente, SeloStatus, dataBR, hojeLocal, hora, mascaraCpf, mascaraFone } from "../../../components/consultorio/partes";
 import { Aviso, Botao, Campo, Secao, brl, inputCls } from "../../../components/marmitaria/ui";
-import { cpfValido, idade, soDigitos } from "../../../lib/consultorio/agenda.mjs";
-import { buscarPacientes, fetchConsultasDoPaciente, salvarPaciente } from "../../../lib/consultorio/dados";
+import { aniversariantes, cpfValido, idade, soDigitos, textoDeAniversario } from "../../../lib/consultorio/agenda.mjs";
+import { buscarPacientes, fetchComNascimento, fetchConsultasDoPaciente, salvarPaciente } from "../../../lib/consultorio/dados";
 import { fetchComSessao } from "../../../lib/api-sessao";
 
 // Login do portal do paciente: gerado aqui, a senha aparece uma vez só.
@@ -97,6 +97,26 @@ function Ficha({ p, onVoltar }) {
   );
 }
 
+function Aniversariantes() {
+  const [lista, setLista] = useState([]);
+  const hoje = hojeLocal();
+  useEffect(() => { fetchComNascimento().then((r) => setLista(aniversariantes(r.data, hoje.slice(5, 7)))); }, [hoje]);
+  if (!lista.length) return null;
+  return (
+    <Secao titulo={`Aniversariantes do mês (${lista.length})`}>
+      <ul className="divide-y divide-hf-border">{lista.map((p) => {
+        const fone = String(p.telefone || "").replace(/\D/g, ""); const dia = String(p.nascimento).slice(8, 10);
+        return (
+          <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+            <span><b className="tabular-nums">{dia}/{hoje.slice(5, 7)}</b> {p.nome}{dia === hoje.slice(8, 10) ? <span className="ml-1 rounded-full bg-hf-accent/15 px-2 py-0.5 text-[11px] font-bold">hoje</span> : null}</span>
+            {fone && p.aceita_whatsapp ? <a href={`https://wa.me/55${fone}?text=${encodeURIComponent(textoDeAniversario(p))}`} target="_blank" rel="noreferrer" className="min-h-[40px] rounded-xl border border-hf-border px-3 py-2 font-semibold">Parabenizar</a> : <span className="text-xs text-hf-muted">{fone ? "não autorizou mensagens" : "sem telefone"}</span>}
+          </li>
+        );
+      })}</ul>
+    </Secao>
+  );
+}
+
 export default function PacientesPage() {
   const { conveniosAtivos } = useConsultorio();
   const [termo, setTermo] = useState("");
@@ -108,6 +128,7 @@ export default function PacientesPage() {
   return (
     <div className="space-y-4">
       {novo ? <Secao titulo="Novo paciente"><EscolherPaciente convenios={conveniosAtivos} onEscolher={(p) => { setNovo(false); setAberto(p); }} /></Secao> : null}
+      <Aniversariantes />
       <Secao titulo="Pacientes" direita={!novo && <Botao onClick={() => setNovo(true)}>Novo paciente</Botao>}>
         <input className={inputCls} value={termo} onChange={(e) => setTermo(e.target.value)} placeholder="Buscar por nome, CPF ou telefone" aria-label="Buscar paciente" />
         <ul className="mt-3 divide-y divide-hf-border">

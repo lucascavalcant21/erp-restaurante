@@ -148,3 +148,10 @@ export async function salvarSalaManual({ consultaId, salaUrl, codigo, termo, exi
   if (!error) await supabase.from("cons_consultas").update({ modalidade: "teleconsulta" }).eq("id", consultaId);
   return { data: data?.[0] || null, error: erro(error) };
 }
+
+/** Pacientes com data de nascimento (para os aniversariantes). */
+export async function fetchComNascimento() {
+  if (!pronto()) return { data: [], error: SEM_BANCO };
+  const { data, error } = await supabase.from("cons_pacientes").select("id, nome, telefone, nascimento, aceita_whatsapp").eq("unidade_id", U).eq("ativo", true).not("nascimento", "is", null).limit(5000);
+  return { data: data || [], error: erro(error) };
+}

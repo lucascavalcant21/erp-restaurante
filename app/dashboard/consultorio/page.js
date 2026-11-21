@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, MessageCircle, Plus } from "lucide-react";
 import { useConsultorio } from "../../components/consultorio/contexto";
 import { EscolherPaciente, SeloStatus, dataBR, hojeLocal, hora, inicioDoDiaIso, mascaraFone, somarDiasLocal } from "../../components/consultorio/partes";
 import { Aviso, Botao, Campo, CampoNumero, Secao, brl, inputCls, lerNumero } from "../../components/marmitaria/ui";
-import { ACOES, conflitos, fimDaConsulta, horariosLivres, resumoDoDia, textoDeConfirmacao, valorDaConsulta } from "../../lib/consultorio/agenda.mjs";
+import { ACOES, conflitos, fimDaConsulta, horariosLivres, resumoDoDia, textoDeConfirmacao, textoDeSatisfacao, valorDaConsulta } from "../../lib/consultorio/agenda.mjs";
 import { fetchConsultas, fetchPacientesPorId, salvarConsulta } from "../../lib/consultorio/dados";
 import { SalaDaConsulta } from "../../components/consultorio/Teleconsulta";
 
@@ -111,6 +111,37 @@ function Receber({ c, onFeito }) {
   );
 }
 
+// Lembretes da véspera (dono, 21/11/2026): as consultas de amanhã ainda sem
+// confirmação, com a mensagem pronta para o WhatsApp de cada paciente.
+function LembretesDeAmanha({ hoje }) {
+  const [lista, setLista] = useState(null);
+  const [pacs, setPacs] = useState(new Map());
+  useEffect(() => {
+    const amanha = somarDiasLocal(hoje, 1);
+    fetchConsultas(inicioDoDiaIso(amanha), inicioDoDiaIso(somarDiasLocal(amanha, 1))).then(async (r) => {
+      const pend = r.data.filter((c) => c.status === "agendada");
+      const p = await fetchPacientesPorId(pend.map((c) => c.paciente_id));
+      setPacs(new Map(p.data.map((x) => [x.id, x]))); setLista(pend);
+    });
+  }, [hoje]);
+  if (!lista || !lista.length) return null;
+  return (
+    <Secao titulo={`Lembretes de amanhã (${lista.length})`} subtitulo="Consultas ainda sem confirmação. Toque para mandar o lembrete pelo WhatsApp.">
+      <ul className="divide-y divide-hf-border">
+        {lista.map((c) => {
+          const p = pacs.get(c.paciente_id); const fone = String(p?.telefone || "").replace(/\D/g, "");
+          return (
+            <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+              <span><b className="tabular-nums">{hora(c.inicio)}</b> {p?.nome || "Paciente"}{p && !p.aceita_whatsapp ? <span className="text-xs text-hf-muted"> · não autorizou lembrete</span> : null}</span>
+              {fone ? <a href={`https://wa.me/55${fone}?text=${encodeURIComponent(textoDeConfirmacao({ paciente: p, inicio: c.inicio }))}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[40px] items-center gap-1 rounded-xl border border-hf-border px-3 font-semibold"><MessageCircle size={15} /> Lembrar</a> : <span className="text-xs text-hf-muted">sem telefone</span>}
+            </li>
+          );
+        })}
+      </ul>
+    </Secao>
+  );
+}
+
 export default function AgendaConsultorio() {
   const { tipos, convenios } = useConsultorio();
   const [dia, setDia] = useState(hojeLocal());
@@ -185,6 +216,9 @@ export default function AgendaConsultorio() {
                     {fone && ["agendada", "confirmada"].includes(c.status) && (
                       <a href={`https://wa.me/55${fone}?text=${encodeURIComponent(textoDeConfirmacao({ paciente: p, inicio: c.inicio }))}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[40px] items-center gap-1 rounded-xl border border-hf-border px-3 text-sm font-semibold text-hf-text"><MessageCircle size={15} /> Confirmar no WhatsApp</a>
                     )}
+                    {c.status === "atendida" && fone && (
+                      <a href={`https://wa.me/55${fone}?text=${encodeURIComponent(textoDeSatisfacao(p))}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[40px] items-center gap-1 rounded-xl border border-hf-border px-3 text-sm font-semibold text-hf-text"><MessageCircle size={15} /> Pedir avaliação</a>
+                    )}
                     {c.modalidade === "teleconsulta" && !["cancelada", "faltou", "atendida"].includes(c.status) && (
                       <button type="button" onClick={() => setSala(sala === c.id ? null : c.id)} className="min-h-[40px] rounded-xl border border-hf-border px-3 text-sm font-semibold text-hf-text">Sala e convite</button>
                     )}
@@ -200,6 +234,7 @@ export default function AgendaConsultorio() {
           </ul>
         )}
       </Secao>
+      {dia === hojeLocal() && <LembretesDeAmanha hoje={dia} />}
       <p className="text-xs text-hf-muted">O médico chama o paciente pela tela Atendimento.</p>
     </div>
   );

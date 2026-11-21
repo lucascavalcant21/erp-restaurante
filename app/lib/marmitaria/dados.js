@@ -15,7 +15,8 @@ import { vincularItemEstoque } from "../estoques-multiplos";
 import { transferirLancamento } from "../estoque-movimento-dados";
 import { novaChave } from "../estoque-movimento.mjs";
 import { fetchContasPagar } from "../financeiro";
-import { fetchColaboradores, fetchRecibosPrestacaoUnidade, inserirColaborador } from "../rh";
+import { fetchColaboradores, fetchRecibosPrestacaoUnidade, inserirColaborador, salvarReciboPrestacao } from "../rh";
+import { cadastroDoColaborador, reciboDeDiarias } from "./diarias.mjs";
 import { normalizarCanal } from "./nucleo.mjs";
 import { fetchResultadoMensal } from "../parametros";
 import { parametrosDoResultado, configComResultado } from "../resultado-mes.mjs";
@@ -531,22 +532,42 @@ export async function carregarEquipe(unidadeId) {
 export async function criarFuncionario(unidadeId, f) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
-  const nome = String(f.nome || "").trim();
-  const cargo = String(f.cargo || "").trim();
-  if (nome.length < 2) return { error: "Informe o nome." };
-  if (!cargo) return { error: "Informe a função." };
-  const salario = Number(f.salario);
-  if (!(salario >= 0)) return { error: "Informe o salário." };
+  // cadastro completo (dono, 21/11/2026): documentos, endereço, dias da semana, horários
+  const { erros, payload } = cadastroDoColaborador(f, { unidadeId, tipo: "fixo" });
+  if (erros.length) return { error: erros.join(" ") };
   const vt = Number(f.vale_transporte) || 0;
   const r = await inserirColaborador({
-    unidade_id: unidadeId, nome, cargo, salario, status: "ativo",
+    ...payload,
     vale_alimentacao: Number(f.vale_alimentacao) || 0,
     usa_vale_transporte: vt > 0, vale_transporte_val: vt > 0 ? vt : null,
-    data_admissao: f.data_admissao || null,
   });
   if (r.error) return { error: /row-level security|permission denied/i.test(r.error) ? "Só quem tem acesso ao RH pode cadastrar funcionário." : mensagemErro(r.error) };
   const aloc = await salvarAlocacao(unidadeId, { colaborador_id: r.data.id, tipo_alocacao: "exclusivo", turno: f.turno });
   return { id: r.data.id, error: aloc.error || null };
+}
+
+/** Extra pago por diária: cadastro no mesmo formato do RH (tipo Freelancer, salário = diária). */
+export async function criarExtra(unidadeId, f) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
+  const { erros, payload } = cadastroDoColaborador(f, { unidadeId, tipo: "extra" });
+  if (erros.length) return { error: erros.join(" ") };
+  const r = await inserirColaborador(payload);
+  if (r.error) return { error: /row-level security|permission denied/i.test(r.error) ? "Só quem tem acesso ao RH pode cadastrar." : mensagemErro(r.error) };
+  // alocado no delivery para as diárias pagas entrarem no CMO (o extra não tem salário fixo no cálculo)
+  const aloc = await salvarAlocacao(unidadeId, { colaborador_id: r.data.id, tipo_alocacao: "exclusivo", turno: "Diária" });
+  return { id: r.data.id, error: aloc.error || null };
+}
+
+/** Paga diárias: grava o recibo (rh_recibos_prestacao), que entra no CMO do mês. */
+export async function pagarDiarias(unidadeId, dados) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
+  const { erro, recibo } = reciboDeDiarias({ ...dados, unidadeId });
+  if (erro) return { error: erro };
+  const r = await salvarReciboPrestacao(recibo);
+  if (r.error) return { error: mensagemErro(r.error) };
+  return { recibo: r.data || recibo, error: null };
 }
 
 export async function salvarAlocacao(unidadeId, a) {

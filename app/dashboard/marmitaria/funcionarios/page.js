@@ -9,12 +9,17 @@ import { Aviso, Botao, Campo, CampoNumero, Cartao, Indicador, Secao, SemDados, b
 import { carregarEquipe, criarFuncionario, salvarAlocacao, fetchVendas } from "../../../lib/marmitaria/dados";
 import { cmoMarmitaria, encargosDaConfig, resumoVendas, periodo } from "../../../lib/marmitaria/nucleo.mjs";
 import SeuDelivery from "../../../components/marmitaria/SeuDelivery";
+import { DadosPessoais, ExtrasDoDelivery, FIXO_VAZIO, Jornada } from "../../../components/marmitaria/EquipeCadastro";
+import { ehExtra, textoDosDias } from "../../../lib/marmitaria/diarias.mjs";
+import { useERP } from "../../../context/ERPContext";
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
-const VAZIO = () => ({ nome: "", cargo: "", salario: "", vale_alimentacao: "", vale_transporte: "", data_admissao: hoje(), turno: "" });
+const VAZIO = FIXO_VAZIO;
 
 export default function FuncionariosPage() {
   const { base, unidadeId } = useMarmitaria();
+  const { unidades = [] } = useERP() || {};
+  const unidadeInfo = unidades.find((u) => u.id === unidadeId) || { id: unidadeId, nome: "Delivery" };
   const [equipe, setEquipe] = useState(null);
   const [vendasMes, setVendasMes] = useState([]);
   const [novo, setNovo] = useState(VAZIO);
@@ -37,14 +42,15 @@ export default function FuncionariosPage() {
 
   if (!base || !equipe) return <Cartao><p className="text-sm text-hf-muted">Carregando equipe…</p></Cartao>;
   const alocados = new Set(equipe.alocacoes.filter((a) => a.ativo !== false).map((a) => a.colaborador_id));
-  const disponiveis = equipe.colaboradores.filter((c) => (c.status || "ativo") !== "inativo" && !c.data_desligamento && !alocados.has(c.id));
+  const disponiveis = equipe.colaboradores.filter((c) => (c.status || "ativo") !== "inativo" && !c.data_desligamento && !alocados.has(c.id) && !ehExtra(c));
 
   async function cadastrar() {
     if (salvando) return;
     setMsg(null);
     setSalvando(true);
     try {
-      const r = await criarFuncionario(unidadeId, { ...novo, salario: lerNumero(novo.salario), vale_alimentacao: lerNumero(novo.vale_alimentacao), vale_transporte: lerNumero(novo.vale_transporte) });
+      const turno = novo.turno || [textoDosDias(novo.dias) && novo.dias.length ? `${novo.dias.length} dias/semana` : "", novo.horario_entrada && novo.horario_saida ? `${novo.horario_entrada}–${novo.horario_saida}` : ""].filter(Boolean).join(", ");
+      const r = await criarFuncionario(unidadeId, { ...novo, turno, salario: lerNumero(novo.salario), vale_alimentacao: lerNumero(novo.vale_alimentacao), vale_transporte: lerNumero(novo.vale_transporte) });
       if (r.error) setMsg({ tipo: "alerta", texto: r.error });
       if (r.id) { setNovo(VAZIO()); await carregar(); }
     } finally { setSalvando(false); }
@@ -105,16 +111,17 @@ export default function FuncionariosPage() {
         {cmo?.avisos.map((a) => <Aviso key={a} tipo="alerta" className="mt-2">{a}</Aviso>)}
       </Secao>
 
-      <Secao titulo="Novo funcionário" subtitulo="Fica na equipe da marmitaria, com 100% do custo aqui.">
+      <Secao titulo="Novo funcionário fixo" subtitulo="Fica na equipe do delivery, com 100% do custo aqui.">
+        <DadosPessoais f={novo} mudar={(x) => setNovo((v) => ({ ...v, ...x }))} />
+        <p className="mb-2 mt-4 text-xs font-black uppercase tracking-wide text-hf-muted">Contrato</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Campo rotulo="Nome"><input className={inputCls} value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })} /></Campo>
           <Campo rotulo="Função"><input className={inputCls} value={novo.cargo} onChange={(e) => setNovo({ ...novo, cargo: e.target.value })} placeholder="Ex.: Cozinheira" /></Campo>
           <Campo rotulo="Salário do mês"><CampoNumero prefixo="R$" valor={novo.salario} onChange={(v) => setNovo({ ...novo, salario: v })} placeholder="0,00" /></Campo>
           <Campo rotulo="Data de admissão"><input type="date" className={`${inputCls} min-w-0 max-w-full appearance-none`} value={novo.data_admissao} onChange={(e) => setNovo({ ...novo, data_admissao: e.target.value })} /></Campo>
           <Campo rotulo="Vale-alimentação do mês"><CampoNumero prefixo="R$" valor={novo.vale_alimentacao} onChange={(v) => setNovo({ ...novo, vale_alimentacao: v })} placeholder="0,00" /></Campo>
           <Campo rotulo="Vale-transporte do mês"><CampoNumero prefixo="R$" valor={novo.vale_transporte} onChange={(v) => setNovo({ ...novo, vale_transporte: v })} placeholder="0,00" /></Campo>
-          <Campo rotulo="Turno / escala" className="sm:col-span-2"><input className={inputCls} value={novo.turno} onChange={(e) => setNovo({ ...novo, turno: e.target.value })} placeholder="Ex.: seg a sex, 7h–15h" /></Campo>
         </div>
+        <Jornada f={novo} mudar={(x) => setNovo((v) => ({ ...v, ...x }))} />
         <Botao className="mt-3" type="button" onClick={cadastrar} disabled={salvando}>{salvando ? "Salvando…" : "Cadastrar funcionário"}</Botao>
         {disponiveis.length > 0 && (
           <div className="mt-4 border-t border-hf-border pt-3">
@@ -131,6 +138,8 @@ export default function FuncionariosPage() {
         )}
         {msg && <Aviso tipo={msg.tipo} className="mt-3">{msg.texto}</Aviso>}
       </Secao>
+
+      <ExtrasDoDelivery unidadeId={unidadeId} unidadeInfo={unidadeInfo} colaboradores={equipe.colaboradores} recibos={equipe.recibos} aoMudar={carregar} />
     </div>
   );
 }

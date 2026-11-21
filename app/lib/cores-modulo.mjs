@@ -37,6 +37,8 @@ const POR_ICONE = Object.freeze({
   // Menu do celular e Minha conta (14/11/2026)
   ListChecks: "verde", Bell: "amarelo", Settings: "ardosia", ShieldCheck: "grafite",
   Tablet: "azul", Plug: "violeta", CreditCard: "verde", UserRound: "ardosia", Info: "ardosia",
+  // Página inicial: consultório e gestão pessoal (21/11/2026)
+  Stethoscope: "ciano", PiggyBank: "verde",
 });
 
 /** Tom do ícone de um card ou área do menu: `cor` explícita vence o ícone. */

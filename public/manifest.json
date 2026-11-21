@@ -3,7 +3,7 @@
   "name": "Hefisto — Gestão para Restaurantes",
   "short_name": "Hefisto",
   "description": "Sistema de gestão para food service: operação, RH, financeiro, checklists e mais.",
-  "start_url": "/",
+  "start_url": "/login",
   "scope": "/",
   "lang": "pt-BR",
   "dir": "ltr",

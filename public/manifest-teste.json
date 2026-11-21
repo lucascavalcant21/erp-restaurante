@@ -3,7 +3,7 @@
   "name": "Héfisto — Sistema novo do restaurante",
   "short_name": "Héfisto Novo",
   "description": "Sistema novo do restaurante (Héfisto).",
-  "start_url": "/",
+  "start_url": "/login",
   "scope": "/",
   "lang": "pt-BR",
   "dir": "ltr",

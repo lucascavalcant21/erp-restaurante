@@ -6,7 +6,7 @@
 import {
   Bell, Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
   CookingPot, CreditCard, FileText, GlassWater, GraduationCap, Hourglass, Info, ListChecks, Martini, MessageSquareText, MonitorPlay, NotebookPen,
-  Package, PartyPopper, Plug, Salad, Search, Settings, ShieldCheck, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan, Star,
+  Package, PartyPopper, PiggyBank, Plug, Salad, Search, Settings, ShieldCheck, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan, Star, Stethoscope,
   StickyNote, Store, Tablet, Tag, Thermometer, UserRound, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
 } from "lucide-react";
 import { corDoModulo, iconeClaroSobre } from "../../lib/cores-modulo.mjs";
@@ -24,8 +24,8 @@ export const ICONES_MODULO = {
   Bell, CreditCard, Info, ListChecks, Plug, Settings, ShieldCheck, Tablet, UserRound,
   Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
   CookingPot, Coqueteleira, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, MonitorPlay,
-  NotebookPen, Package, PartyPopper, Salad, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan,
-  Star, StickyNote, Store, Tag, Thermometer, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
+  NotebookPen, Package, PartyPopper, PiggyBank, Salad, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan,
+  Star, Stethoscope, StickyNote, Store, Tag, Thermometer, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
 };
 
 // Classes escritas por extenso: o Tailwind só gera o que encontra no código.

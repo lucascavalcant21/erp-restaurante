@@ -321,6 +321,8 @@ export const PERMISSION_MODULES = [
       // Modelos das vias (cozinha, bar, conferência, recibo), impressora de cada setor no aparelho e observações prontas (07/11/2026).
       { id: "printing", label: "Impressão e observações prontas", route: "/dashboard/configuracoes/impressao", actions: ["view", "edit"] },
       { id: "users", label: "Usuários e acessos", route: "/dashboard/configuracoes/usuarios", actions: [...CRUD, "settings", "view_history"] },
+      // Pedidos de cadastro da página inicial (21/11/2026). O banco só mostra ao administrador da plataforma.
+      { id: "signup_requests", label: "Pedidos de cadastro", route: "/dashboard/configuracoes/pedidos-cadastro", actions: ["view", "edit"] },
       { id: "profiles", label: "Perfis de acesso", route: "/dashboard/configuracoes/perfis", actions: [...CRUD, "settings"] },
       { id: "units", label: "Empresas e unidades", route: "/dashboard/configuracoes", actions: [...CRUD, "settings"] },
       { id: "stores", label: "Lojas", route: "/dashboard/lojas", actions: [...CRUD, "settings"] },

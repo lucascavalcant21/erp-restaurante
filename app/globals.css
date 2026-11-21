@@ -773,3 +773,27 @@ body[data-cabecalho-tela] .erp-barra-universo { display: none; }
 .wa-escuro [class~="bg-black/10"] { background-color: rgba(255, 255, 255, 0.12) !important; }
 .wa-escuro :is(input, textarea, select) { color: var(--wa-texto); }
 .wa-escuro :is(input, textarea)::placeholder { color: var(--wa-meta); }
+
+/* Fundo da tela de login com movimento (dono, 21/11/2026): manchas douradas e
+   grafite bem suaves que flutuam devagar. Sem movimento para quem pediu menos
+   movimento no aparelho. */
+.hf-login-fundo { position: relative; isolation: isolate; overflow: hidden; background: #FBFAF7; }
+.hf-login-fundo::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(rgb(var(--hf-menu) / 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+}
+.hf-login-mancha { position: absolute; z-index: -1; border-radius: 9999px; filter: blur(60px); pointer-events: none; will-change: transform; }
+.hf-login-mancha-1 { width: 26rem; height: 26rem; top: -8rem; left: -8rem; background: rgb(var(--hf-accent) / 0.38); animation: hf-flutuar-1 22s ease-in-out infinite alternate; }
+.hf-login-mancha-2 { width: 22rem; height: 22rem; bottom: -7rem; right: -7rem; background: rgb(var(--hf-accent) / 0.30); animation: hf-flutuar-2 26s ease-in-out infinite alternate; }
+.hf-login-mancha-3 { width: 16rem; height: 16rem; top: 40%; left: 55%; background: rgb(var(--hf-menu) / 0.10); animation: hf-flutuar-3 30s ease-in-out infinite alternate; }
+@keyframes hf-flutuar-1 { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(18vw, 12vh) scale(1.15); } 100% { transform: translate(6vw, 28vh) scale(0.95); } }
+@keyframes hf-flutuar-2 { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-16vw, -14vh) scale(1.1); } 100% { transform: translate(-4vw, -30vh) scale(1.2); } }
+@keyframes hf-flutuar-3 { 0% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-90%, -20%) scale(1.25); } 100% { transform: translate(-20%, -80%) scale(0.9); } }
+.hf-login-cartao { background: rgb(255 255 255 / 0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); animation: hf-surgir 0.6s ease-out both; }
+@keyframes hf-surgir { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .hf-login-mancha, .hf-login-cartao { animation: none; }
+}

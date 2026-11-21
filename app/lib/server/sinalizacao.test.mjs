@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  parearTela, trocarConteudo, desconectarTela, prepararEnvio, registrarMidia, excluirMidia,
+  parearTela, trocarConteudo, desconectarTela, prepararEnvio, registrarMidia, excluirMidia, moverParaLixeira, restaurarMidias, apagarMidias,
   salvarPlaylist, excluirPlaylist, salvarProgramacao, registrarAparelho, conteudoDaTela, lerPainel,
   hashDe, assinaturaDoRoteiro, _limparCacheCardapio,
 } from "./sinalizacao.mjs";
@@ -206,13 +206,36 @@ test("programação vence o conteúdo fixo dentro do horário", async () => {
   assert.equal((await salvarProgramacao(db, U, { nome: "x", playlist_id: almoco.id, tela_ids: ["77777777-7777-4777-8777-777777777777"] })).status, 400);
 });
 
-test("excluir mídia apaga o arquivo e solta a tela que a tinha fixa; excluir playlist solta a tela", async () => {
+test("excluir mídia vai para a lixeira (sai das TVs, arquivo guardado); restaurar volta; apagar de vez solta a tela", async () => {
   const db = bancoFalso(comConteudo(), [`${U}/${"b".repeat(24)}.png`]);
   await trocarConteudo(db, U, { tela_ids: [T_ID], conteudo: { tipo: "midia", id: M1 } });
   assert.equal((await excluirMidia(db, OUTRA, M1)).status, 404, "outra loja não apaga");
+  assert.equal((await moverParaLixeira(db, OUTRA, { ids: "todas" })).total, 1, "'todas' da outra loja pega só a dela");
+  assert.equal(db.dados.sinal_midias.find((m) => m.id === M1).ativo, true, "a mídia desta loja não foi junto");
   assert.equal((await excluirMidia(db, U, M1)).ok, true);
+  assert.equal(db.dados.sinal_midias.find((m) => m.id === M1).ativo, false);
+  assert.deepEqual(db.removidos, [], "na lixeira o arquivo continua guardado");
+  const tv = await conteudoDaTela(db, { segredo: "S".repeat(43), agora: AGORA });
+  assert.deepEqual(tv.roteiro, [], "a TV não toca mídia da lixeira");
+  let painel = await lerPainel(db, U, { agora: AGORA });
+  assert.deepEqual([painel.midias.some((m) => m.id === M1), painel.lixeira.map((m) => m.id)], [false, [M1]]);
+
+  assert.equal((await restaurarMidias(db, U, { ids: [M1] })).total, 1);
+  painel = await lerPainel(db, U, { agora: AGORA });
+  assert.deepEqual([painel.midias.some((m) => m.id === M1), painel.lixeira.length], [true, 0]);
+  assert.equal((await conteudoDaTela(db, { segredo: "S".repeat(43), agora: AGORA })).roteiro[0]?.midia_id, M1, "restaurada volta à TV");
+
+  assert.equal((await apagarMidias(db, U, { ids: [M1] })).total, 0, "só apaga de vez o que está na lixeira");
+  assert.equal((await moverParaLixeira(db, U, { ids: "todas" })).ok, true);
+  assert.equal((await apagarMidias(db, OUTRA, { ids: "todas" })).total, 1, "a outra loja esvazia só a lixeira dela");
+  assert.equal(db.dados.sinal_midias.find((m) => m.id === M1)?.ativo, false, "a mídia desta loja continua na lixeira");
+  assert.deepEqual(db.removidos, [`${OUTRA}/${"c".repeat(24)}.png`]);
+  db.removidos.length = 0;
+  assert.equal((await apagarMidias(db, U, { ids: "todas" })).total, 1);
+  assert.equal(db.dados.sinal_midias.some((m) => m.id === M1), false);
   assert.deepEqual(db.removidos, [`${U}/${"b".repeat(24)}.png`]);
   assert.equal(db.dados.sinal_telas.find((t) => t.id === T_ID).conteudo, null);
+  assert.equal((await moverParaLixeira(db, U, { ids: ["nao-e-uuid"] })).status, 400);
   const pl = await salvarPlaylist(db, U, { nome: "Base", itens: [{ tipo: "cardapio" }] });
   await trocarConteudo(db, U, { tela_ids: [T2_ID], conteudo: { tipo: "playlist", id: pl.id } });
   await excluirPlaylist(db, U, pl.id);
@@ -267,4 +290,24 @@ test("horário de funcionamento: fora do horário a TV recebe tela apagada; o pa
   assert.equal(db.dados.sinal_telas.find((t) => t.id === T_ID).horario, null, "sem horário = sempre ligada");
   await salvarTela(db, U, { id: T_ID, nome: "Parede 01" });
   assert.equal(db.dados.sinal_telas.find((t) => t.id === T_ID).horario, null, "salvar sem mandar horário não mexe nele");
+});
+
+test("publicar com 'parar às': a TV toca até a hora e depois fica preta; o painel mostra que encerrou", async () => {
+  const db = bancoFalso(comConteudo(), [`${U}/${"b".repeat(24)}.png`]);
+  const pl = await salvarPlaylist(db, U, { nome: "Noite", itens: [{ tipo: "midia", midia_id: M1 }] });
+  assert.equal((await trocarConteudo(db, U, { tela_ids: [T_ID], conteudo: { tipo: "playlist", id: pl.id }, parar_as: "25:00" }, { agora: AGORA })).status, 400);
+  // AGORA = 09/11 12:00 em São Paulo (15:00Z); parar às 22:00 = 01:00Z do dia 10.
+  await trocarConteudo(db, U, { tela_ids: [T_ID], conteudo: { tipo: "playlist", id: pl.id, ate: "2000-01-01T00:00:00Z" }, parar_as: "22:00" }, { agora: AGORA });
+  const fixo = db.dados.sinal_telas.find((t) => t.id === T_ID).conteudo;
+  assert.equal(fixo.ate, "2026-11-10T01:00:00.000Z", "o servidor calcula; o 'ate' do navegador é ignorado");
+  const antes = await conteudoDaTela(db, { segredo: "S".repeat(43), agora: new Date("2026-11-10T00:59:00Z") });
+  assert.equal(antes.roteiro[0]?.midia_id, M1);
+  const depois = await conteudoDaTela(db, { segredo: "S".repeat(43), agora: new Date("2026-11-10T01:00:00Z") });
+  assert.deepEqual([depois.roteiro.length, depois.apagada, depois.encerrada], [0, true, true]);
+  const painel = await lerPainel(db, U, { agora: new Date("2026-11-10T02:00:00Z") });
+  const t = painel.telas.find((x) => x.id === T_ID);
+  assert.deepEqual([t.agora.origem, t.agora.encerrado], ["nenhum", "2026-11-10T01:00:00.000Z"]);
+  // Publicar de novo sem horário: volta a tocar sem parar.
+  await trocarConteudo(db, U, { tela_ids: [T_ID], conteudo: { tipo: "playlist", id: pl.id } }, { agora: new Date("2026-11-10T02:00:00Z") });
+  assert.equal(db.dados.sinal_telas.find((x) => x.id === T_ID).conteudo.ate, undefined);
 });

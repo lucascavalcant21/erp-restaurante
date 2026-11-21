@@ -274,11 +274,44 @@ export function validarPlaylist({ nome, orientacao, itens } = {}) {
 /** O que a tela roda quando nenhuma programação vale: uma playlist ou uma arte só. */
 export function normalizarConteudo(c) {
   if (!c || typeof c !== "object") return null;
-  if (c.tipo === "playlist" && uuidValido(c.id)) return { tipo: "playlist", id: c.id };
+  // "ate": instante em que o conteúdo fixo para sozinho (pedido do dono, 21/11/2026).
+  const t = c.ate ? new Date(c.ate) : null;
+  const ate = t && Number.isFinite(t.getTime()) ? { ate: t.toISOString() } : {};
+  if (c.tipo === "playlist" && uuidValido(c.id)) return { tipo: "playlist", id: c.id, ...ate };
   if (c.tipo === "midia" && uuidValido(c.id)) {
-    return { tipo: "midia", id: c.id, ...(AJUSTES.includes(c.ajuste) && c.ajuste !== "auto" ? { ajuste: c.ajuste } : {}) };
+    return { tipo: "midia", id: c.id, ...(AJUSTES.includes(c.ajuste) && c.ajuste !== "auto" ? { ajuste: c.ajuste } : {}), ...ate };
   }
   return null;
+}
+
+/**
+ * "Parar às HH:MM": a próxima vez que o relógio da loja marcar essa hora
+ * (hoje, ou amanhã se já passou). Conta em minutos a partir de agora, então
+ * não depende do fuso do servidor. null se a hora for inválida.
+ */
+export function pararAs(hhmm, agora = new Date(), fuso = FUSO_PADRAO) {
+  const h = String(hhmm || "").slice(0, 5);
+  if (!HORA_RE.test(h)) return null;
+  const d = agora instanceof Date ? agora : new Date(agora);
+  const { minutos } = partesNoFuso(d, fuso);
+  const falta = (minutosDe(h) - minutos + 1440) % 1440 || 1440;
+  const inicioDoMinuto = Math.floor(d.getTime() / 60000) * 60000;
+  return new Date(inicioDoMinuto + falta * 60000).toISOString();
+}
+
+/** O conteúdo fixo já passou do horário de parar? */
+export function conteudoEncerrado(conteudo, agora = new Date()) {
+  if (!conteudo?.ate) return false;
+  const t = new Date(conteudo.ate).getTime();
+  return Number.isFinite(t) && t <= (agora instanceof Date ? agora : new Date(agora)).getTime();
+}
+
+/** Lista de ids de um pedido em lote: "todas", ou até 500 uuids válidos sem repetir. */
+export function idsDoLote(v, maximo = 500) {
+  if (v === "todas") return "todas";
+  if (!Array.isArray(v)) return null;
+  const ids = [...new Set(v.filter(uuidValido))];
+  return ids.length && ids.length <= maximo ? ids : null;
 }
 
 // ─── PROGRAMAÇÃO ─────────────────────────────────────────────────────────────
@@ -390,6 +423,7 @@ export function resolverConteudo({ tela, programacoes = [], agora = new Date(), 
     return { origem: "programacao", conteudo: { tipo: "playlist", id: r.playlist_id }, regra: { id: r.id, nome: r.nome } };
   }
   const fixo = normalizarConteudo(tela.conteudo);
+  if (fixo && conteudoEncerrado(fixo, agora)) return { origem: "nenhum", conteudo: null, regra: null, encerrado: fixo.ate };
   if (fixo) return { origem: "fixo", conteudo: fixo, regra: null };
   return { origem: "nenhum", conteudo: null, regra: null };
 }

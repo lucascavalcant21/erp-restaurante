@@ -3,7 +3,7 @@ import { autorizarLeituraDaUnidade } from "../../lib/server/autorizacao-unidade.
 import { carregarPermissoes, permite } from "../../lib/server/permissoes-efetivas.mjs";
 import {
   lerPainel, parearTela, salvarTela, trocarConteudo, desconectarTela, excluirTela,
-  prepararEnvio, registrarMidia, renomearMidia, excluirMidia,
+  prepararEnvio, registrarMidia, renomearMidia, excluirMidia, moverParaLixeira, restaurarMidias, apagarMidias,
   salvarPlaylist, excluirPlaylist, salvarProgramacao, excluirProgramacao, previaRoteiro,
 } from "../../lib/server/sinalizacao.mjs";
 
@@ -31,6 +31,9 @@ const ACOES = {
   registrar_midia: { chaves: CRIAR, f: (a, c, o) => registrarMidia(a.db, c.unidadeId, c, o) },
   renomear_midia: { chaves: EDITAR, f: (a, c) => renomearMidia(a.db, c.unidadeId, c) },
   excluir_midia: { chaves: EXCLUIR, f: (a, c) => excluirMidia(a.db, c.unidadeId, c.id) },
+  lixeira_midias: { chaves: EXCLUIR, f: (a, c) => moverParaLixeira(a.db, c.unidadeId, c) },
+  restaurar_midias: { chaves: EXCLUIR, f: (a, c) => restaurarMidias(a.db, c.unidadeId, c) },
+  apagar_midias: { chaves: EXCLUIR, f: (a, c) => apagarMidias(a.db, c.unidadeId, c) },
   salvar_playlist: { chaves: [...CRIAR, ...EDITAR], f: (a, c, o) => salvarPlaylist(a.db, c.unidadeId, c, o) },
   excluir_playlist: { chaves: EXCLUIR, f: (a, c) => excluirPlaylist(a.db, c.unidadeId, c.id) },
   salvar_programacao: { chaves: [...CRIAR, ...EDITAR], f: (a, c, o) => salvarProgramacao(a.db, c.unidadeId, c, o) },

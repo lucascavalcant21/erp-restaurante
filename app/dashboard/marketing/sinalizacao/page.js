@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown, ArrowUp, CalendarClock, Copy, Film, Image as ImageIcon, LayoutGrid, Link2, ListVideo,
-  MonitorPlay, MoreVertical, Pencil, Plus, Power, RefreshCw, Trash2, Upload, Utensils,
+  Check, CheckSquare, Clock, MonitorPlay, MoreVertical, Pencil, Plus, Power, RefreshCw, RotateCcw, Trash2, Upload, Utensils, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { usePermission } from "../../../components/access-control/PermissionGate";
@@ -108,7 +108,7 @@ export default function SinalizacaoPage() {
             {aba === "visao" && <VisaoGeral painel={painel} midiasPorId={midiasPorId} playlistsPorId={playlistsPorId} irPara={setAba} abrir={abrir} podeCriar={podeCriar} />}
             {aba === "telas" && <Telas painel={painel} midiasPorId={midiasPorId} playlistsPorId={playlistsPorId} abrir={abrir} podeCriar={podeCriar} podeEditar={podeEditar} />}
             {aba === "midias" && <Midias painel={painel} unidade={unidadeAtiva} carregar={carregar} avisar={avisar} executar={executar} abrir={abrir} podeCriar={podeCriar} podeEditar={podeEditar} podeExcluir={podeExcluir} />}
-            {aba === "playlists" && <Playlists painel={painel} midiasPorId={midiasPorId} abrir={abrir} podeCriar={podeCriar} podeEditar={podeEditar} />}
+            {aba === "playlists" && <Playlists painel={painel} midiasPorId={midiasPorId} abrir={abrir} podeCriar={podeCriar} podeEditar={podeEditar} podeExcluir={podeExcluir} executar={executar} avisar={avisar} />}
             {aba === "programacao" && <Programacao painel={painel} playlistsPorId={playlistsPorId} abrir={abrir} podeCriar={podeCriar} />}
           </>
         )}
@@ -144,7 +144,11 @@ function conteudoDaTela(tela, midiasPorId, playlistsPorId) {
       else if (primeira?.tipo === "cardapio") cardapio = true;
     }
   }
-  const origem = tela.agora?.origem === "programacao" ? `Programação · ${tela.agora.regra?.nome || ""}` : tela.agora?.origem === "fixo" ? "Conteúdo fixo" : "";
+  const ate = tela.agora?.conteudo?.ate;
+  const origem = tela.agora?.origem === "programacao" ? `Programação · ${tela.agora.regra?.nome || ""}`
+    : tela.agora?.origem === "fixo" ? `Conteúdo fixo${ate ? ` · para às ${horaDaLoja(ate)}` : ""}`
+    : tela.agora?.encerrado ? `Parou às ${horaDaLoja(tela.agora.encerrado)} · tela preta` : "";
+  if (tela.agora?.encerrado && rotulo === "Sem conteúdo") rotulo = "Encerrado";
   return { rotulo, midia, cardapio, origem };
 }
 
@@ -295,15 +299,52 @@ function Midias({ painel, unidade, carregar, avisar, executar, abrir, podeCriar,
     setTimeout(() => setEnviando((e) => e.filter((x) => x.erro)), 2500);
   };
 
-  const midias = painel.midias.filter((m) => filtro === "todas" || m.tipo === filtro);
+  // Seleção de várias (pedido do dono, 08/11/2026): lixeira, restaurar, apagar de vez.
+  const [selecionando, setSelecionando] = useState(false);
+  const [marcadas, setMarcadas] = useState(() => new Set());
+  const [ocupado, setOcupado] = useState(false);
+  const lixeira = painel.lixeira || [];
+  const naLixeira = filtro === "lixeira";
+  const midias = naLixeira ? lixeira : painel.midias.filter((m) => filtro === "todas" || m.tipo === filtro);
+  const trocarFiltro = (v) => { setFiltro(v); setMarcadas(new Set()); setSelecionando(false); };
+  const alternar = (id) => setMarcadas((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const todasMarcadas = midias.length > 0 && midias.every((m) => marcadas.has(m.id));
+  const marcarTodas = () => setMarcadas(todasMarcadas ? new Set() : new Set(midias.map((m) => m.id)));
+  const sairDaSelecao = () => { setSelecionando(false); setMarcadas(new Set()); };
+
+  // Em lotes de até 500 (limite do servidor).
+  const emLote = async (acao, ids, sucesso) => {
+    setOcupado(true);
+    try {
+      for (let i = 0; i < ids.length; i += 500) await chamar(unidade, acao, { ids: ids.slice(i, i + 500) });
+      await carregar();
+      avisar(sucesso);
+      sairDaSelecao();
+    } catch (e) { avisar(e.message); } finally { setOcupado(false); }
+  };
+  const plural = (n, um, varios) => (n === 1 ? `1 ${um}` : `${n} ${varios}`);
+  const paraLixeira = (ids) => {
+    if (!ids.length) return;
+    const n = plural(ids.length, "mídia", "mídias");
+    if (!window.confirm(`Mover ${n} para a lixeira? Sai das telas e das playlists até você restaurar.`)) return;
+    emLote("lixeira_midias", ids, `${n} na lixeira`);
+  };
+  const restaurar = (ids) => ids.length && emLote("restaurar_midias", ids, `${plural(ids.length, "mídia restaurada", "mídias restauradas")}`);
+  const apagarDeVez = (ids) => {
+    if (!ids.length) return;
+    const n = plural(ids.length, "mídia", "mídias");
+    if (!window.confirm(`Apagar ${n} para sempre? Não dá para desfazer.`)) return;
+    emLote("apagar_midias", ids, `${plural(ids.length, "mídia apagada", "mídias apagadas")} de vez`);
+  };
+  const desde = (v) => (v ? new Date(v).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" }) : "");
   const renomear = async (m) => {
     const nome = window.prompt("Novo nome da mídia", m.nome);
     if (!nome || nome === m.nome) return;
     try { await executar("renomear_midia", { id: m.id, nome }, "Nome atualizado"); } catch (e) { avisar(e.message); }
   };
   const excluir = async (m) => {
-    if (!window.confirm(`Excluir "${m.nome}"? Ela sai de todas as playlists e das telas.`)) return;
-    try { await executar("excluir_midia", { id: m.id }, "Mídia excluída"); } catch (e) { avisar(e.message); }
+    if (!window.confirm(`Mover "${m.nome}" para a lixeira? Sai das telas e das playlists até você restaurar.`)) return;
+    try { await executar("excluir_midia", { id: m.id }, "Mídia na lixeira"); } catch (e) { avisar(e.message); }
   };
 
   return (
@@ -333,19 +374,45 @@ function Midias({ painel, unidade, carregar, avisar, executar, abrir, podeCriar,
         </Card>
       )}
 
-      <div className="flex gap-1.5">
-        {[["todas", "Todas"], ["imagem", "Imagens"], ["video", "Vídeos"]].map(([v, l]) => (
-          <button key={v} onClick={() => setFiltro(v)} className={`min-h-10 rounded-full px-3.5 text-sm font-medium ${filtro === v ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2"}`}>{l}</button>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {[["todas", "Todas"], ["imagem", "Imagens"], ["video", "Vídeos"], ...(podeExcluir ? [["lixeira", `Lixeira${lixeira.length ? ` (${lixeira.length})` : ""}`]] : [])].map(([v, l]) => (
+          <button key={v} onClick={() => trocarFiltro(v)} className={`min-h-10 rounded-full px-3.5 text-sm font-medium ${filtro === v ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2"}`}>
+            {v === "lixeira" && <Trash2 size={13} className="mr-1 inline" />}{l}
+          </button>
         ))}
+        {podeExcluir && midias.length > 0 && !selecionando && (
+          <button onClick={() => setSelecionando(true)} className="ml-auto flex min-h-10 items-center gap-1.5 rounded-full border border-hf-border bg-hf-surface px-3.5 text-sm font-medium text-hf-text">
+            <CheckSquare size={15} /> Selecionar
+          </button>
+        )}
       </div>
 
+      {naLixeira && lixeira.length > 0 && !selecionando && (
+        <Card className="flex flex-col gap-2 !p-3 sm:flex-row sm:items-center">
+          <p className="flex-1 text-xs text-hf-muted">Na lixeira a mídia não aparece nas telas nem nas playlists, mas o arquivo fica guardado até você apagar de vez.</p>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <button disabled={ocupado} onClick={() => restaurar(lixeira.map((m) => m.id))} className="erp-btn erp-btn-ghost !min-h-11 min-w-0 !px-2 text-sm"><RotateCcw size={15} /> Restaurar tudo</button>
+            <button disabled={ocupado} onClick={() => apagarDeVez(lixeira.map((m) => m.id))} className="erp-btn !min-h-11 min-w-0 border border-hf-danger/40 !px-2 text-sm text-hf-danger"><Trash2 size={15} /> Esvaziar</button>
+          </div>
+        </Card>
+      )}
+
       {!midias.length ? (
-        <EmptyState icon={ImageIcon} title="Nenhuma mídia no acervo" hint="Envie as artes e os vídeos uma vez e use em qualquer TV." />
+        naLixeira
+          ? <EmptyState icon={Trash2} title="Lixeira vazia" hint="O que você excluir das mídias fica aqui, para restaurar ou apagar de vez." />
+          : <EmptyState icon={ImageIcon} title="Nenhuma mídia no acervo" hint="Envie as artes e os vídeos uma vez e use em qualquer TV." />
       ) : (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+        <div className={`grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 ${selecionando ? "pb-28" : ""}`}>
           {midias.map((m) => (
-            <Card key={m.id} className="flex flex-col gap-2 !p-2.5">
-              <Miniatura midia={m} proporcao="aspect-[4/5]" className="w-full" />
+            <Card key={m.id} className={`relative flex flex-col gap-2 !p-2.5 ${selecionando && marcadas.has(m.id) ? "ring-2 ring-hf-accent" : ""}`}>
+              {selecionando && (
+                <button onClick={() => alternar(m.id)} aria-pressed={marcadas.has(m.id)} aria-label={`Selecionar ${m.nome}`} className="absolute inset-0 z-10 rounded-[inherit]">
+                  <span className={`absolute left-3.5 top-3.5 flex h-7 w-7 items-center justify-center rounded-full border-2 shadow ${marcadas.has(m.id) ? "border-hf-accent bg-hf-accent text-white" : "border-white bg-black/30"}`}>
+                    {marcadas.has(m.id) && <Check size={16} strokeWidth={3} />}
+                  </span>
+                </button>
+              )}
+              <Miniatura midia={m} proporcao="aspect-[4/5]" className={`w-full ${naLixeira ? "opacity-60 grayscale" : ""}`} />
               <div className="min-w-0 px-0.5">
                 <p className="truncate text-sm font-semibold text-hf-text">{m.nome}</p>
                 <p className="truncate text-[11px] text-hf-muted">
@@ -353,13 +420,45 @@ function Midias({ painel, unidade, carregar, avisar, executar, abrir, podeCriar,
                   {[m.orientacao === "vertical" ? "Vertical" : "Horizontal", m.tipo === "video" ? segundos(m.duracao_seg) : null, tamanhoLegivel(m.tamanho_bytes)].filter(Boolean).join(" · ")}
                 </p>
               </div>
-              <div className="mt-auto flex gap-1">
-                {podeEditar && <button onClick={() => abrir("trocar", { conteudo: { tipo: "midia", id: m.id } })} className="erp-btn erp-btn-primary !min-h-10 flex-1 !px-2 text-xs"><MonitorPlay size={14} /> Enviar para TV</button>}
-                {podeEditar && <button onClick={() => renomear(m)} aria-label="Renomear" className="flex h-10 w-10 items-center justify-center rounded-xl border border-hf-border text-hf-muted"><Pencil size={15} /></button>}
-                {podeExcluir && <button onClick={() => excluir(m)} aria-label="Excluir" className="flex h-10 w-10 items-center justify-center rounded-xl border border-hf-border text-hf-danger"><Trash2 size={15} /></button>}
-              </div>
+              {naLixeira ? (
+                <div className="mt-auto space-y-1">
+                  <p className="px-0.5 text-[11px] text-hf-muted">Na lixeira desde {desde(m.updated_at)}</p>
+                  <div className="flex gap-1">
+                    <button disabled={ocupado} onClick={() => restaurar([m.id])} className="erp-btn erp-btn-ghost !min-h-10 flex-1 !px-2 text-xs"><RotateCcw size={14} /> Restaurar</button>
+                    <button disabled={ocupado} onClick={() => apagarDeVez([m.id])} aria-label="Apagar de vez" className="flex h-10 w-10 items-center justify-center rounded-xl border border-hf-danger/40 text-hf-danger"><Trash2 size={15} /></button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-auto flex gap-1">
+                  {podeEditar && <button onClick={() => abrir("trocar", { conteudo: { tipo: "midia", id: m.id } })} className="erp-btn erp-btn-primary !min-h-10 flex-1 !px-2 text-xs"><MonitorPlay size={14} /> Enviar para TV</button>}
+                  {podeEditar && <button onClick={() => renomear(m)} aria-label="Renomear" className="flex h-10 w-10 items-center justify-center rounded-xl border border-hf-border text-hf-muted"><Pencil size={15} /></button>}
+                  {podeExcluir && <button onClick={() => excluir(m)} aria-label="Mover para a lixeira" className="flex h-10 w-10 items-center justify-center rounded-xl border border-hf-border text-hf-danger"><Trash2 size={15} /></button>}
+                </div>
+              )}
             </Card>
           ))}
+        </div>
+      )}
+
+      {selecionando && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-hf-border bg-hf-surface/95 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur">
+          <div className="mx-auto flex max-w-3xl flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <p className="flex-1 text-sm font-semibold text-hf-text">{marcadas.size ? plural(marcadas.size, "selecionada", "selecionadas") : "Toque nas mídias"}</p>
+              <button onClick={marcarTodas} className="min-h-10 rounded-full border border-hf-border px-3 text-sm font-medium text-hf-text">{todasMarcadas ? "Desmarcar todas" : `Selecionar todas (${midias.length})`}</button>
+              <button onClick={sairDaSelecao} aria-label="Cancelar seleção" className="flex h-10 w-10 items-center justify-center rounded-full border border-hf-border text-hf-muted"><X size={16} /></button>
+            </div>
+            {naLixeira ? (
+              <div className="flex gap-2">
+                <button disabled={!marcadas.size || ocupado} onClick={() => restaurar([...marcadas])} className="erp-btn erp-btn-primary !min-h-12 flex-1 text-sm"><RotateCcw size={16} /> Restaurar</button>
+                <button disabled={!marcadas.size || ocupado} onClick={() => apagarDeVez([...marcadas])} className="erp-btn !min-h-12 flex-1 bg-hf-danger text-sm text-white"><Trash2 size={16} /> Apagar de vez</button>
+              </div>
+            ) : (
+              <button disabled={!marcadas.size || ocupado} onClick={() => paraLixeira([...marcadas])} className="erp-btn !min-h-12 w-full bg-hf-danger text-sm text-white">
+                <Trash2 size={16} /> {ocupado ? "Movendo…" : `Mover para a lixeira${marcadas.size ? ` (${marcadas.size})` : ""}`}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -378,7 +477,12 @@ function resumoItens(itens, midiasPorId) {
   return `${(itens || []).length} conteúdo(s) · ${segundos(total)} por volta`;
 }
 
-function Playlists({ painel, midiasPorId, abrir, podeCriar, podeEditar }) {
+function Playlists({ painel, midiasPorId, abrir, podeCriar, podeEditar, podeExcluir, executar, avisar }) {
+  const excluir = async (p, publicada) => {
+    const aviso = publicada ? " Ela sai das telas onde está passando, e as regras de programação dela também saem." : " As regras de programação dela também saem.";
+    if (!window.confirm(`Excluir a playlist "${p.nome}"?${aviso} As mídias continuam no acervo.`)) return;
+    try { await executar("excluir_playlist", { id: p.id }, "Playlist excluída"); } catch (e) { avisar(e.message); }
+  };
   return (
     <div className="space-y-3">
       {podeCriar && <button onClick={() => abrir("playlist", { playlist: null })} className="erp-btn erp-btn-primary !min-h-11 w-full text-sm sm:w-auto"><Plus size={16} /> Nova playlist</button>}
@@ -389,7 +493,7 @@ function Playlists({ painel, midiasPorId, abrir, podeCriar, podeEditar }) {
           {painel.playlists.map((p) => {
             const usadas = painel.telas.filter((t) => t.agora?.conteudo?.tipo === "playlist" && t.agora.conteudo.id === p.id).length;
             // Publicada = é o conteúdo fixo de alguma tela ou está numa regra ligada.
-            const publicada = painel.telas.some((t) => t.conteudo?.tipo === "playlist" && t.conteudo.id === p.id)
+            const publicada = painel.telas.some((t) => t.conteudo?.tipo === "playlist" && t.conteudo.id === p.id && !t.agora?.encerrado)
               || painel.programacoes.some((r) => r.ativa && r.playlist_id === p.id);
             const capas = (p.itens || []).slice(0, 4);
             return (
@@ -410,9 +514,12 @@ function Playlists({ painel, midiasPorId, abrir, podeCriar, podeEditar }) {
                   <p className="text-xs text-hf-muted">{usadas ? `Passando agora em ${usadas} tela(s)` : "Não está passando agora"}</p>
                 </div>
                 {podeEditar && (
-                  <div className="flex gap-2">
-                    <button onClick={() => abrir("trocar", { conteudo: { tipo: "playlist", id: p.id } })} className="erp-btn erp-btn-primary !min-h-11 flex-1 text-sm"><MonitorPlay size={16} /> Publicar nas telas</button>
-                    <button onClick={() => abrir("playlist", { playlist: p })} className="erp-btn erp-btn-ghost !min-h-11 text-sm"><Pencil size={16} /> Editar</button>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => abrir("trocar", { conteudo: { tipo: "playlist", id: p.id } })} className="erp-btn erp-btn-primary !min-h-11 basis-full text-sm sm:flex-1 sm:basis-0"><MonitorPlay size={16} /> Publicar nas telas</button>
+                    <button onClick={() => abrir("playlist", { playlist: p })} className="erp-btn erp-btn-ghost !min-h-11 flex-1 text-sm sm:flex-none"><Pencil size={16} /> Editar</button>
+                    {podeExcluir && (
+                      <button onClick={() => excluir(p, publicada)} aria-label={`Excluir a playlist ${p.nome}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-hf-border text-hf-danger"><Trash2 size={16} /></button>
+                    )}
                   </div>
                 )}
               </Card>
@@ -523,10 +630,39 @@ function ModalParear({ painel, dados, fechar, executar }) {
   );
 }
 
+/** Hora no relógio da loja (painel e TV usam o mesmo fuso). */
+const horaDaLoja = (iso) => (iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }) : "");
+
+/**
+ * "Até quando" ao publicar (pedido do dono, 21/11/2026): repetir sem parar
+ * ou parar sozinha num horário. valor = "" (sem parar) ou "HH:MM".
+ */
+function AteQuando({ valor, mudar }) {
+  const parar = valor !== "";
+  return (
+    <Field label="Até quando">
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={() => mudar("")} className={`min-h-11 rounded-xl border px-2 text-sm font-medium ${!parar ? "border-hf-accent bg-hf-accent/15 text-hf-text" : "border-hf-border text-hf-text-2"}`}>Repetir sem parar</button>
+        <button onClick={() => mudar(parar ? valor : "22:00")} className={`min-h-11 rounded-xl border px-2 text-sm font-medium ${parar ? "border-hf-accent bg-hf-accent/15 text-hf-text" : "border-hf-border text-hf-text-2"}`}><Clock size={14} className="mr-1 inline" />Parar num horário</button>
+      </div>
+      {parar && (
+        <label className="mt-2 flex min-h-11 items-center gap-3">
+          <span className="text-sm text-hf-text-2">Parar às</span>
+          <TextInput type="time" value={valor} onChange={(e) => mudar(e.target.value || "22:00")} className="!w-36" aria-label="Horário de parar" />
+        </label>
+      )}
+      <p className="mt-1 text-xs text-hf-muted">{parar
+        ? `Toca em repetição até ${valor} (hoje, ou amanhã se essa hora já passou) e depois a TV fica preta. Para voltar, é só publicar de novo.`
+        : "Fica repetindo até você trocar o conteúdo."}</p>
+    </Field>
+  );
+}
+
 function ModalTrocar({ painel, dados, fechar, executar, unidadeId }) {
   const [tipo, setTipo] = useState(dados.conteudo?.tipo || (painel.playlists.length ? "playlist" : "midia"));
   const [id, setId] = useState(dados.conteudo?.id || "");
   const [ajuste, setAjuste] = useState(dados.conteudo?.ajuste || "auto");
+  const [pararEm, setPararEm] = useState("");
   const [telas, setTelas] = useState(dados.telas === "todas" ? painel.telas.map((t) => t.id) : dados.telas || []);
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -536,8 +672,8 @@ function ModalTrocar({ painel, dados, fechar, executar, unidadeId }) {
   const salvar = async (limpar = false) => {
     setErro(""); setSalvando(true);
     try {
-      const r = await executar("trocar_conteudo", { tela_ids: todas ? "todas" : telas, conteudo: limpar ? null : { tipo, id, ...(tipo === "midia" ? { ajuste } : {}) } },
-        limpar ? "Conteúdo fixo retirado" : "Enviado. A TV troca em até 15 segundos.");
+      const r = await executar("trocar_conteudo", { tela_ids: todas ? "todas" : telas, conteudo: limpar ? null : { tipo, id, ...(tipo === "midia" ? { ajuste } : {}) }, ...(!limpar && pararEm ? { parar_as: pararEm } : {}) },
+        limpar ? "Conteúdo fixo retirado" : `Enviado. A TV troca em até 15 segundos${pararEm ? ` e para às ${pararEm}` : ""}.`);
       fechar();
       return r;
     } catch (e) { setErro(e.message); } finally { setSalvando(false); }
@@ -577,6 +713,7 @@ function ModalTrocar({ painel, dados, fechar, executar, unidadeId }) {
         <PreviaTv unidadeId={unidadeId} conteudo={{ tipo, id, ...(tipo === "midia" ? { ajuste } : {}) }}
           orientacao={painel.telas.find((t) => telas.includes(t.id))?.orientacao || "horizontal"} />
       )}
+      {id && <AteQuando valor={pararEm} mudar={setPararEm} />}
       <Field label="Em quais telas">
         <label className="mb-1 flex min-h-11 items-center gap-3 rounded-xl border border-hf-border px-3">
           <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={todas} onChange={() => setTelas(todas ? [] : painel.telas.map((t) => t.id))} />
@@ -735,6 +872,7 @@ function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir, unidad
   // Destino (como no Nina): telas marcadas; nenhuma marcada = todas as telas.
   const [destino, setDestino] = useState(() => (playlist ? painel.telas.filter((t) => t.conteudo?.tipo === "playlist" && t.conteudo.id === playlist.id).map((t) => t.id) : []));
   const midiasPorId = new Map(painel.midias.map((m) => [m.id, m]));
+  const [pararEm, setPararEm] = useState("");
   const alternarDestino = (id) => setDestino((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
 
   // Subir/descer troca de lugar com o item vizinho do MESMO lado.
@@ -772,8 +910,8 @@ function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir, unidad
       const ordenados = [...itens].sort((x, y) => x.zona - y.zona);
       const r = await executar("salvar_playlist", { id: playlist?.id, nome, orientacao, itens: ordenados }, publicar ? null : "Playlist salva");
       if (publicar) {
-        await executar("trocar_conteudo", { tela_ids: destino.length ? destino : "todas", conteudo: { tipo: "playlist", id: r.id } },
-          `Publicada em ${destino.length || painel.telas.length} tela(s). A TV troca em até 15 segundos.`);
+        await executar("trocar_conteudo", { tela_ids: destino.length ? destino : "todas", conteudo: { tipo: "playlist", id: r.id }, ...(pararEm ? { parar_as: pararEm } : {}) },
+          `Publicada em ${destino.length || painel.telas.length} tela(s). A TV troca em até 15 segundos${pararEm ? ` e para às ${pararEm}` : ""}.`);
       }
       fechar();
     } catch (e) { setErro(e.message); } finally { setSalvando(""); }
@@ -875,6 +1013,7 @@ function ModalPlaylist({ painel, playlist, fechar, executar, podeExcluir, unidad
           </div>
         </Field>
       )}
+      {painel.telas.length > 0 && <AteQuando valor={pararEm} mudar={setPararEm} />}
       <Erro texto={erro} />
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <Btn variant="ghost" onClick={() => salvar(false)} disabled={!!salvando} className="!min-h-12">{salvando === "Salvando…" ? salvando : "Salvar"}</Btn>

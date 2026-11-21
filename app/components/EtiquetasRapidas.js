@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
+import PreviaEtiqueta60x40 from "./etiquetas/PreviaEtiqueta60x40";
 import { ArrowLeft, Bluetooth, CheckCircle2, ChefHat, FolderOpen, Maximize2, Mic, Minus, Plus, Printer, RefreshCw, Save, Search, Tag, Trash2, UserRound, X, XCircle, List, ChevronRight, ChevronDown } from "lucide-react";
 import { useERP } from "../context/ERPContext";
 import { fetchEstoque } from "../lib/estoque";
@@ -145,6 +146,19 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x
   }
 
   const validade = validadeDe(momento, item.dias);
+  // 60x40: o desenho é o mesmo que a MDK-022 imprime (sem QR Code).
+  if (tamanho === "60x40") {
+    const origem60 = typeof window !== "undefined" ? window.location.origin : "";
+    return <div className="etiqueta-rapida-papel" style={{ width: `${dim.w}mm`, height: `${dim.h}mm`, background: "#fff", overflow: "hidden" }}>
+      <PreviaEtiqueta60x40
+        largura={`${dim.w}mm`}
+        altura={`${dim.h}mm`}
+        dados={{ codigo: item.codigo, produto: item.nome, conservacao: item.conservacao, tipoEtiqueta, momento, validade, responsavel: responsavel?.nome || responsavel || "", lote: item.lote || "COZINHA" }}
+      />
+      {/* QR escondido: a impressão por Bluetooth (impressaoTermica) ainda o busca aqui */}
+      <div style={{ display: "none" }} aria-hidden="true"><QRCodeSVG data-qr-codigo={item.codigo} value={`${origem60}/rastreio/${item.codigo}`} size={dim.qr * 0.65} level="M" /></div>
+    </div>;
+  }
   const origem = typeof window !== "undefined" ? window.location.origin : "";
   const labelTipo = tipoEtiqueta === "aberto" ? "MANIPULADO" : "FECHADO";
   const labelManip = tipoEtiqueta === "aberto" ? "MANIPULAÇÃO:" : "ETIQUETADO:";

@@ -690,90 +690,149 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1, 
     // (foto do dono, 21/11/2026: texto cortado à esquerda, sobra à direita).
     const { x: mLeft, y: mTop, cW, cH } = areaNativa60x40(perfilFisico);
 
-    // Área do QR Code (canto superior direito)
-    const qrSize = 100; // cell size 4 -> ~100px
-    const textW = cW - qrSize - 12; // 344 dots para o texto
-    
+    // Sem QR Code (pedido do dono, 21/11/2026): o texto usa a largura toda.
+    // Produto ABERTO (manipulado) tem de chamar atenção para ser usado
+    // primeiro: faixa preta com letra branca no nome e na validade, e o aviso
+    // "ABERTO · USAR PRIMEIRO". Produto FECHADO segue o desenho simples.
+    const aberto = tipoEtiqueta === "aberto";
+
+    // Quebra o nome em até 2 linhas que caibam em `largura`.
+    const quebrarNome = (ctx, largura) => {
+      const palavras = produto.split(/\s+/).filter(Boolean);
+      let linha1 = "", resto = [];
+      for (let i = 0; i < palavras.length; i++) {
+        const teste = linha1 ? `${linha1} ${palavras[i]}` : palavras[i];
+        if (!linha1 || ctx.measureText(teste).width <= largura) linha1 = teste;
+        else { resto = palavras.slice(i); break; }
+      }
+      let linha2 = resto.join(" ");
+      if (linha2 && ctx.measureText(linha2).width > largura) {
+        while (linha2.length > 1 && ctx.measureText(`${linha2}…`).width > largura) linha2 = linha2.slice(0, -1);
+        linha2 = `${linha2.trimEnd()}…`;
+      }
+      return linha2 ? [linha1, linha2] : [linha1];
+    };
+    const cortar = (ctx, texto, largura) => {
+      let t = texto;
+      if (ctx.measureText(t).width <= largura) return t;
+      while (t.length > 1 && ctx.measureText(`${t}…`).width > largura) t = t.slice(0, -1);
+      return `${t.trimEnd()}…`;
+    };
+    // Faixa preta com texto branco.
+    const faixa = (ctx, y, altura, largura, desenhar) => {
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, y, largura, altura);
+      ctx.fillStyle = "#FFFFFF";
+      desenhar();
+      ctx.fillStyle = "#000000";
+    };
+
     const bmpFundo = renderizarCanvasParaBitmap((ctx, w, h) => {
       let y = 0;
-      
-      // 1. NOME DO PRODUTO (Bold, max 2 linhas)
-      ctx.font = "bold 28px sans-serif";
-      let palavras = produto.split(" ");
-      let linha1 = "", linha2 = "";
-      for (let p of palavras) {
-        if (ctx.measureText(linha1 + " " + p).width <= textW) linha1 += (linha1 ? " " : "") + p;
-        else linha2 += (linha2 ? " " : "") + p;
-      }
-      ctx.fillText(linha1, 0, y);
-      y += 30;
-      if (linha2) {
-        // Truncate se linha2 for muito grande
-        while (linha2.length > 0 && ctx.measureText(linha2 + "...").width > textW) {
-          linha2 = linha2.slice(0, -1);
-        }
-        if (linha2 !== produto.split(" ").slice(linha1.split(" ").length).join(" ")) linha2 += "...";
-        ctx.fillText(linha2, 0, y);
-        y += 30;
+      const pad = 8;
+
+      if (aberto) {
+        // 1. AVISO
+        ctx.font = "bold 22px sans-serif";
+        const aviso = "ABERTO · USAR PRIMEIRO";
+        ctx.fillText(aviso, 0, y);
+        ctx.fillRect(0, y + 26, w, 4);
+        y += 36;
+
+        // 2. NOME NA FAIXA PRETA
+        ctx.font = "bold 30px sans-serif";
+        const linhas = quebrarNome(ctx, w - pad * 2);
+        const altNome = linhas.length * 33 + 10;
+        faixa(ctx, y, altNome, w, () => linhas.forEach((l, i) => ctx.fillText(l, pad, y + 6 + i * 33)));
+        y += altNome + 7;
+
+        // 3. CONSERVAÇÃO
+        ctx.font = "bold 21px sans-serif";
+        ctx.fillText(`${conservacao} / ABERTO`, 0, y);
+        y += 28;
+
+        // 4. VALIDADE NA FAIXA PRETA
+        ctx.font = "bold 29px sans-serif";
+        faixa(ctx, y, 42, w, () => ctx.fillText(cortar(ctx, `USAR ATÉ ${dataValidade}`, w - pad * 2), pad, y + 6));
+        y += 49;
+
+        // 5. ABERTURA, SETOR E RESPONSÁVEL
+        ctx.font = "20px sans-serif";
+        ctx.fillText(`ABERTO EM: ${dataManipulacao}`, 0, y);
+        y += 25;
+        ctx.fillText(`SETOR: ${dados.lote || "COZINHA"}`, 0, y);
+        y += 25;
+        ctx.fillText(cortar(ctx, `RESP.: ${responsavel}`, w), 0, y);
+        y += 28;
       } else {
-        y += 10;
+        // Produto fechado (dono, 21/11/2026): letras maiores, ocupando a
+        // largura toda. O nome usa o maior tamanho que cabe em 1 linha
+        // (até 44 px); se não couber nem em 30 px, vai em 2 linhas.
+        let tamNome = 44;
+        ctx.font = `bold ${tamNome}px sans-serif`;
+        while (tamNome > 30 && ctx.measureText(produto).width > w) {
+          tamNome -= 2;
+          ctx.font = `bold ${tamNome}px sans-serif`;
+        }
+        const umaLinha = ctx.measureText(produto).width <= w;
+        if (!umaLinha) { tamNome = 33; ctx.font = `bold ${tamNome}px sans-serif`; }
+        const linhas = umaLinha ? [produto] : quebrarNome(ctx, w);
+        const altLinha = tamNome + 4;
+        y += 4; // espaço para o acento das maiúsculas (É, Ã) não cortar
+        linhas.forEach((l, i) => ctx.fillText(l, 0, y + i * altLinha));
+        y += linhas.length * altLinha + 2;
+        const compacto = linhas.length > 1;
+
+        // 2. CONSERVAÇÃO
+        ctx.font = `${compacto ? 22 : 25}px sans-serif`;
+        ctx.fillText(`${conservacao} / FECHADO`, 0, y);
+        y += compacto ? 27 : 31;
+        ctx.fillRect(0, y, w, 3);
+        y += compacto ? 8 : 10;
+
+        // 3. DATAS
+        const tam = compacto ? 23 : 27;
+        const passo = compacto ? 27 : 32;
+        ctx.font = `${tam}px sans-serif`;
+        ctx.fillText(`ETIQ.: ${dataManipulacao}`, 0, y);
+        y += passo;
+        // Validade: o maior tamanho que cabe na linha.
+        let tamVal = compacto ? 34 : 42;
+        const textoVal = `VALIDADE: ${dataValidade}`;
+        ctx.font = `bold ${tamVal}px sans-serif`;
+        while (tamVal > 22 && ctx.measureText(textoVal).width > w) {
+          tamVal -= 2;
+          ctx.font = `bold ${tamVal}px sans-serif`;
+        }
+        ctx.fillText(textoVal, 0, y);
+        y += tamVal + 6;
+
+        // 4. SETOR E RESPONSÁVEL
+        ctx.font = `${tam}px sans-serif`;
+        ctx.fillText(`SETOR: ${dados.lote || "COZINHA"}`, 0, y);
+        y += passo;
+        ctx.fillText(cortar(ctx, `RESP.: ${responsavel}`, w), 0, y);
+        y += passo + 2;
       }
-      
-      // 2. RESFRIADO / MANIPULADO
-      ctx.font = "20px sans-serif";
-      const tipoLbl = tipoEtiqueta === "aberto" ? "MANIPULADO" : "FECHADO";
-      ctx.fillText(`${conservacao} / ${tipoLbl}`, 0, y);
-      y += 24;
-      
-      // Linha divisória
-      ctx.fillRect(0, y, textW, 2);
-      y += 10;
-      
-      // 3. DATAS
-      ctx.font = "18px sans-serif";
-      ctx.fillText(`${tipoEtiqueta === "aberto" ? "MANIP." : "ETIQ."}: ${dataManipulacao}`, 0, y);
-      y += 22;
-      ctx.font = "bold 18px sans-serif";
-      ctx.fillText(`VALIDADE: ${dataValidade}`, 0, y);
-      y += 22;
-      
-      // 4. SETOR E RESPONSÁVEL
-      ctx.font = "18px sans-serif";
-      ctx.fillText(`SETOR: ${dados.lote || "COZINHA"}`, 0, y);
-      y += 22;
-      
-      let respTxt = `RESP.: ${responsavel}`;
-      while (respTxt.length > 7 && ctx.measureText(respTxt + "...").width > textW) {
-        respTxt = respTxt.slice(0, -1);
-      }
-      if (respTxt !== `RESP.: ${responsavel}`) respTxt += "...";
-      ctx.fillText(respTxt, 0, y);
-      y += 24;
-      
-      // Linha divisória total (agora pode ocupar a largura toda porque passou do QR Code)
+
+      // RODAPÉ (EMPRESA E LOTE), colado embaixo
+      // (encosta no fim da etiqueta quando sobra espaço)
+      y = Math.max(y, h - 50);
       ctx.fillRect(0, y, w, 2);
-      y += 10;
-      
-      // 5. RODAPÉ (EMPRESA E LOTE)
-      ctx.font = "bold 16px sans-serif";
+      y += 8;
+      ctx.font = "bold 18px sans-serif";
       ctx.fillText("SELDEESTRELA", 0, y);
-      y += 18;
-      ctx.font = "14px sans-serif";
-      ctx.fillText("COMIDAS NORTISTAS LTDA", 0, y);
-      
+      ctx.font = "16px sans-serif";
+      ctx.fillText("COMIDAS NORTISTAS LTDA", 0, y + 21);
       if (codigo) {
-        ctx.fillText(`LOTE: #${codigo}`, 0, y + 16);
+        const lote = `LOTE: #${codigo}`;
+        ctx.fillText(lote, w - ctx.measureText(lote).width, y + 21);
       }
     }, cW, cH);
 
     chunks.push(`BITMAP ${mLeft},${mTop},${bmpFundo.widthBytes},${bmpFundo.heightDots},0,`);
     chunks.push(bmpFundo.data);
     chunks.push("\r\n");
-
-    if (codigo) {
-      // Desenha o QR Code nativo na lacuna superior direita deixada pelo Canvas
-      chunks.push(`QRCODE ${mLeft + cW - qrSize},${mTop},L,4,A,0,"${urlRastreio}"\r\n`);
-    }
 
     chunks.push(`PRINT ${Math.max(1, copias)},1\r\n`);
     return concatenarChunksTspl(chunks);

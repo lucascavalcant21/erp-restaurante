@@ -53,9 +53,9 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
             )}
           </div>
           <div className="rounded-2xl bg-slate-50 px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Mínimo (lucro zero)</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Ponto de equilíbrio</p>
             <p className="text-xl font-black tabular-nums text-slate-900">{minimo ? fmtReais(minimo) : "—"}</p>
-            <p className="text-xs font-medium text-slate-500">Abaixo disso, prejuízo.</p>
+            <p className="text-xs font-medium text-slate-500">Lucro zero. Abaixo disso, prejuízo.</p>
           </div>
         </div>
         {!(r.convidados > 0) && <p className="mt-3 flex items-center gap-2 text-sm font-bold text-amber-700"><Info size={16} /> Informe quantas pessoas (etapa Cliente) para calcular o valor sugerido.</p>}

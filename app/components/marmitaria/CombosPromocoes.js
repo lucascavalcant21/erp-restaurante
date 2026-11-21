@@ -374,7 +374,7 @@ function FormarPreco({ linha, comum, metaPct, aoSalvar, custoFicha = null }) {
       <Campo rotulo={`Preço de lista no ${comum.canal.nome}`} dica={`Calculado com as ${modo}.`}><CampoNumero prefixo="R$" valor={preco} onChange={(v) => { setPreco(v); setMarkup(""); }} placeholder="0,00" /></Campo>
       {!linha.falta && (faixa.minimo != null || faixa.metas.length > 0) && (
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {faixa.minimo != null && <button type="button" onClick={() => usar(faixa.minimo)} className="min-h-[36px] rounded-full border border-hf-border px-3 text-xs font-bold text-hf-text-2">Mínimo (lucro zero) {brl(faixa.minimo)}</button>}
+          {faixa.minimo != null && <button type="button" onClick={() => usar(faixa.minimo)} className="min-h-[36px] rounded-full border border-hf-border px-3 text-xs font-bold text-hf-text-2">Ponto de equilíbrio {brl(faixa.minimo)}</button>}
           {faixa.metas.filter((m) => m.preco != null).map((m) => <button key={m.lucro} type="button" onClick={() => usar(m.preco)} className="min-h-[36px] rounded-full bg-hf-menu px-3 text-xs font-bold text-white">Lucro {brl(m.lucro)}: {brl(m.preco)}</button>)}
         </div>
       )}

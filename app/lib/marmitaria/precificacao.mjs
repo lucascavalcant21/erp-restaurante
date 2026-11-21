@@ -45,7 +45,7 @@ export function descontoDaLoja({ desconto, quemPaga = "loja", parteLojaPct = 50 
  * + equipe/fixos/variáveis por marmita.
  */
 export function faixaDePrecos({ custoComEmbutidos, canal, tributosPct, metas = [] }) {
-  if (custoComEmbutidos == null || !(custoComEmbutidos > 0)) return { minimo: null, metas: [], motivo: "Sem custo completo não há preço mínimo." };
+  if (custoComEmbutidos == null || !(custoComEmbutidos > 0)) return { minimo: null, metas: [], motivo: "Sem custo completo não há ponto de equilíbrio." };
   const c = { ...canal, itens_por_pedido: 1 };
   const minimo = precoSugerido({ custoTecnico: custoComEmbutidos, canal: c, tributosPct, margemAlvoPct: 0 }).preco;
   const lista = [...new Set(metas.map(pos).filter((m) => m > 0))].sort((a, b) => a - b)

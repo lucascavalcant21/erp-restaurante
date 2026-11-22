@@ -60,6 +60,7 @@ test("sem preço num app: diz que falta, não inventa", () => {
   assert.match(html, /Precificação do delivery/);
   assert.match(html, /Peito de frango/);
   assert.match(html, /180 g/);
+  assert.match(html, /<span class="pct">\(100,00%\)<\/span>/);
   assert.match(html, /Do preço ao lucro/);
   assert.match(html, /<th colspan="3" class="app">iFood<\/th>/);
   assert.match(html, /<th>Preço<\/th><th>Lucro<\/th><th>%<\/th>/);

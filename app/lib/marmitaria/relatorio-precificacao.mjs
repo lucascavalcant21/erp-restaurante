@@ -15,7 +15,7 @@ const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
 const temNumero = (v) => v !== null && v !== undefined && Number.isFinite(Number(v));
 
 export const brl = (v) => (temNumero(v) ? Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—");
-export const pct = (v, dec = 1) => (temNumero(v) ? `${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec })}%` : "—");
+export const pct = (v, dec = 2) => (temNumero(v) ? `${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec })}%` : "—");
 const markupTxt = (m) => (temNumero(m) ? `${((Number(m) - 1) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%` : "—");
 /**
  * Quantidade da ficha em gramas (dono, 22/11/2026: "deixe tudo em gramas"):
@@ -173,7 +173,7 @@ function tabelaDaConta(item) {
     if (a.semPreco) return `<td>—</td>`;
     const l = a.cascata.find((x) => x.id === id);
     if (!l || l.valor == null) return `<td>${l && l.valor == null ? "falta custo" : "—"}</td>`;
-    return `<td class="${l.valor < 0 && l.tipo === "final" ? "neg" : ""}">${brl(l.valor)}<span class="pct">${pct(l.pct)}</span></td>`;
+    return `<td class="${l.valor < 0 && l.tipo === "final" ? "neg" : ""}">${brl(l.valor)}<span class="pct">(${pct(l.pct)})</span></td>`;
   };
   const linhas = ordem.map((o) => {
     const cls = o.tipo === "final" ? "final" : o.tipo === "total" ? "total" : "";
@@ -183,7 +183,7 @@ function tabelaDaConta(item) {
       html += subTaxas.map((n) => `<tr class="sub"><td>${esc(n)}</td>${apps.map((a) => {
         if (a.semPreco) return "<td></td>";
         const t = a.taxas.find((x) => x.rotulo === n);
-        return `<td>${t ? brl(-t.valor) : "—"}</td>`;
+        return `<td>${t ? `${brl(-t.valor)}<span class="pct">(${pct(a.preco > 0 ? (t.valor / a.preco) * 100 : null)})</span>` : "—"}</td>`;
       }).join("")}</tr>`).join("");
     }
     return html;

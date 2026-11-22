@@ -84,3 +84,23 @@ test("gramas e ml; passos numerados", () => {
   assert.equal(quantidadeTexto(3, "un"), "3 un");
   assert.deepEqual(passosDaFicha(ARROZ), ["numa panela grande frite o alho até dourar.", "acrescente a água e o sal."]);
 });
+
+test("janta: entende o pedido e o dia", async () => {
+  const { interpretarJanta } = await import("../local/receitas-locais.mjs");
+  const dom = new Date("2026-11-22T12:00:00"); // domingo
+  assert.deepEqual(interpretarJanta("janta", dom), { dia: "dom" });
+  assert.deepEqual(interpretarJanta("Janta de hoje?", dom), { dia: "dom" });
+  assert.deepEqual(interpretarJanta("janta de amanhã", dom), { dia: "seg" });
+  assert.deepEqual(interpretarJanta("qual a janta de quinta-feira", dom), { dia: "qui" });
+  assert.equal(interpretarJanta("quanto custou a janta do mês", dom), null);
+  assert.equal(interpretarJanta("arroz", dom), null);
+});
+
+test("janta: resposta no aparelho com a janta e só as fichas usadas", () => {
+  const janta = { fixos: [{ nome: "Arroz branco", modo: "g", porcao: "200", ficha_id: "f-arroz" }], dias: {} };
+  const r = respostaLocal("janta", { fichas: FICHAS, janta });
+  assert.equal(r.blocos[0].tipo, "janta");
+  assert.deepEqual(r.blocos[0].fichas.map((f) => f.id), ["f-arroz"]);
+  assert.equal(r.blocos[0].fichas[0].fichas_ingredientes.length, 4);
+  assert.match(respostaLocal("janta", { fichas: FICHAS }).texto, /ainda não foi montada/);
+});

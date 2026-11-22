@@ -2,17 +2,20 @@
 
 // JANTA DOS FUNCIONÁRIOS (pedido do dono, 30/10/2026): cardápio por dia da
 // semana, o que é servido, o preparo, e a quantidade de cada coisa conforme o
-// número de pessoas — o dono só põe quantas gramas por pessoa. Contas em
+// número de pessoas — o dono só põe quantas gramas por pessoa.
+// 14/11/2026: arroz, feijão e salada fixos ("Todo dia"); porção do produto
+// pronto em g, unidades ou ml; item ligado à ficha técnica mostra a receita
+// refeita para dar as porções do dia, sem sobra. Contas em
 // app/lib/janta-funcionarios.mjs; guardado em config_sistema (todos os
 // aparelhos da unidade veem o mesmo).
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Loader2, Minus, Plus, Printer, Save, Trash2, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, ChevronDown, Loader2, Minus, Plus, Printer, Save, Trash2, UtensilsCrossed, Pin, BookOpen } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchInsumos } from "../../../lib/operacao";
+import { fetchInsumos, fetchFichas } from "../../../lib/operacao";
 import { fetchJantaFuncionarios, salvarJantaFuncionarios } from "../../../lib/parametros";
-import { DIAS_SEMANA, normalizarJanta, cardapioDoDia, novoIdJanta, pessoasDoDia } from "../../../lib/janta-funcionarios.mjs";
+import { DIAS_SEMANA, MODOS_PORCAO, normalizarJanta, cardapioDoDia, novoIdJanta, pessoasDoDia, normalizarItem, pratoDaPessoa } from "../../../lib/janta-funcionarios.mjs";
 import { casaBusca } from "../../../lib/busca.mjs";
 
 const brl = (v) => (v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
@@ -31,10 +34,91 @@ function semanaAntiga(unidade) {
   } catch { return null; }
 }
 
+const vazioItem = () => ({ id: novoIdJanta("i"), nome: "", insumo_id: null, ficha_id: null, modo: "g", porcao: "", g_pessoa: "" });
+const porcaoTexto = (i) => (i.porcaoN ? `${i.porcaoN.toLocaleString("pt-BR")} ${MODOS_PORCAO.find((m) => m.id === i.modo)?.curto || "g"}/pessoa` : "");
+
+// Ficha do dia (funcionário): o total grande e, se ligado à ficha técnica,
+// a receita refeita para esse total.
+function ItemDaFicha({ i, pessoas }) {
+  const [aberta, setAberta] = useState(false);
+  const r = i.receita;
+  return (
+    <li className="py-3">
+      <div className="flex items-baseline gap-3">
+        <span className="min-w-0 flex-1 text-[16px] font-semibold text-hf-text">{i.nome || "Item"}</span>
+        {i.modo !== "geral" && <span className="w-28 text-right text-xl font-black tabular-nums text-hf-text">{i.rotulo}</span>}
+      </div>
+      {i.modo === "geral"
+        ? <p className="mt-0.5 text-[15px] font-bold text-hf-text">{i.rotulo} <span className="text-[12px] font-semibold text-hf-muted">· geral, não muda com as pessoas</span></p>
+        : <p className="mt-0.5 text-[13px] text-hf-muted">{pessoas && i.porcaoN ? `${pessoas} × ${porcaoTexto(i)} (pronto)` : "Falta a porção por pessoa"}</p>}
+      {i.cru && <p className="mt-1 text-[13px] font-semibold text-hf-text">Cozinhe cerca de {i.cru.rotulo} cru <span className="text-hf-muted">(ESTIMATIVA)</span></p>}
+      {r?.status === "ok" && (
+        <div className="mt-2">
+          <button type="button" onClick={() => setAberta(!aberta)} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-hf-elevated px-4 text-[14px] font-bold text-hf-text">
+            <BookOpen size={16} /> Receita: faça {r.rotuloFator} ({r.fichaNome}) <ChevronDown size={14} className={aberta ? "rotate-180" : ""} />
+          </button>
+          {aberta && (
+            <div className="mt-2 rounded-2xl bg-hf-elevated p-4">
+              <ul className="space-y-1">
+                {r.ingredientes.map((g, k) => (
+                  <li key={k} className="flex justify-between gap-3 text-[15px]"><span>{g.nome}</span><b className="tabular-nums">{g.quantidade}</b></li>
+                ))}
+              </ul>
+              {r.aproximado && <p className="mt-2 text-[12px] text-hf-muted">ESTIMATIVA: a ficha rende em litro e a porção é em grama (1 ml ≈ 1 g).</p>}
+              {r.preparo && <p className="mt-3 whitespace-pre-line text-[14px] leading-relaxed text-hf-text">{r.preparo}</p>}
+            </div>
+          )}
+        </div>
+      )}
+      {r?.status === "insuficiente" && <p className="mt-1 text-[12px] font-semibold text-hf-warning">DADOS INSUFICIENTES para a receita: {r.motivo}</p>}
+    </li>
+  );
+}
+
+// Uma linha do editor (dono): produto, porção pronta por pessoa, medida e ficha.
+function LinhaItem({ i, calc, insumos, fichas, onMudar, onTirar }) {
+  const set = (fn) => onMudar((it) => { fn(it); if (it.modo === "g") it.g_pessoa = it.porcao; else it.g_pessoa = ""; });
+  return (
+    <div className="rounded-2xl border border-hf-border p-3">
+      <div className="flex items-center gap-2">
+        <input list="produtos-janta" value={i.nome} placeholder="Ex.: Arroz, Feijão, Almôndega"
+          onChange={(e) => { const v = e.target.value; const achado = insumos.find((x) => x.nome === v) || null; set((it) => { it.nome = v; it.insumo_id = achado?.id || null; }); }}
+          className={inputCls} />
+        <button onClick={onTirar} aria-label="Remover item" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-hf-border text-hf-muted hover:text-hf-danger"><Trash2 size={15} /></button>
+      </div>
+      <div className="mt-2 grid grid-cols-[1fr_1.4fr] gap-2">
+        {i.modo === "geral"
+          ? <input aria-label="Quantidade geral" value={i.geral || ""} onChange={(e) => set((it) => { it.geral = e.target.value; })} placeholder="½ pé de alface, 1 tomate" className={inputCls} />
+          : <input inputMode="decimal" aria-label="Porção por pessoa" value={i.porcao} onChange={(e) => set((it) => { it.porcao = e.target.value; })} placeholder={i.modo === "un" ? "1" : i.modo === "ml" ? "80" : "200"} className={inputCls} />}
+        <select aria-label="Medida da porção" value={i.modo} onChange={(e) => set((it) => { it.modo = e.target.value; })} className={inputCls}>
+          {MODOS_PORCAO.map((m) => <option key={m.id} value={m.id}>{m.rotulo}</option>)}
+        </select>
+      </div>
+      <select aria-label="Ficha técnica (receita)" value={i.ficha_id || ""} onChange={(e) => set((it) => { it.ficha_id = e.target.value || null; })} className={`${inputCls} mt-2`}>
+        <option value="">Sem ficha técnica (só a quantidade)</option>
+        {fichas.map((f) => <option key={f.id} value={f.id}>Receita: {f.nome_receita}</option>)}
+      </select>
+      {i.modo === "g" && !i.ficha_id && (
+        <label className="mt-2 flex items-center gap-2 text-[12px] font-semibold text-hf-text-2">
+          1 g cru vira
+          <input inputMode="decimal" aria-label="Quanto 1 g cru vira pronto" value={i.rend_cozimento ?? ""} onChange={(e) => set((it) => { it.rend_cozimento = e.target.value; })} placeholder="3" className="h-9 w-20 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold" />
+          g pronto (opcional: diz quanto cozinhar cru)
+        </label>
+      )}
+      <p className="mt-1.5 text-[12px] text-hf-muted">
+        Total do dia: <b className="text-hf-text">{calc?.rotulo || "—"}</b>{calc?.cru ? ` · cozinhar ~${calc.cru.rotulo} cru` : ""}
+        {calc?.receita?.status === "ok" ? ` · ${calc.receita.rotuloFator}` : calc?.receita?.status === "insuficiente" ? ` · ${calc.receita.motivo}` : ""}
+        {calc?.custo != null ? ` · ${brl(calc.custo)}` : ""}
+      </p>
+    </div>
+  );
+}
+
 export default function JantaFuncionarios() {
   const { unidadeAtiva } = useERP();
   const [janta, setJanta] = useState(normalizarJanta(null));
   const [insumos, setInsumos] = useState([]);
+  const [fichas, setFichas] = useState([]);
   const [dia, setDia] = useState(diaDeHoje());
   // "ficha": o funcionário vê o dia, põe quantas pessoas e lê a ficha pronta; "montar": o dono monta a semana
   const [modo, setModo] = useState("ficha");
@@ -48,8 +132,9 @@ export default function JantaFuncionarios() {
     let vivo = true;
     (async () => {
       setCarregando(true);
-      const [rJ, rI] = await Promise.all([fetchJantaFuncionarios(unidadeAtiva), fetchInsumos(unidadeAtiva, "cozinha")]);
+      const [rJ, rI, rF] = await Promise.all([fetchJantaFuncionarios(unidadeAtiva), fetchInsumos(unidadeAtiva, "cozinha"), fetchFichas(unidadeAtiva, "cozinha").catch(() => ({ data: [] }))]);
       if (!vivo) return;
+      setFichas((rF?.data || []).sort((a, b) => String(a.nome_receita).localeCompare(String(b.nome_receita), "pt-BR")));
       setJanta(normalizarJanta(rJ.data || semanaAntiga(unidadeAtiva)));
       setInsumos((rI.data || []).filter((i) => !i.arquivado_em));
       setCarregando(false);
@@ -58,8 +143,9 @@ export default function JantaFuncionarios() {
   }, [unidadeAtiva]);
 
   const mapaInsumos = useMemo(() => new Map(insumos.map((i) => [i.id, i])), [insumos]);
+  const mapaFichas = useMemo(() => new Map(fichas.map((f) => [f.id, f])), [fichas]);
   // Pessoas de cada dia: o número que o dono informa (sem número no dia, o padrão)
-  const semana = useMemo(() => DIAS_SEMANA.map((d) => ({ ...d, pessoas: pessoasDoDia(janta, d.id), r: cardapioDoDia(janta, d.id, { insumos: mapaInsumos }) })), [janta, mapaInsumos]);
+  const semana = useMemo(() => DIAS_SEMANA.map((d) => ({ ...d, pessoas: pessoasDoDia(janta, d.id), r: cardapioDoDia(janta, d.id, { insumos: mapaInsumos, fichas: mapaFichas }) })), [janta, mapaInsumos, mapaFichas]);
   const doSel = semana.find((x) => x.id === dia);
   const doDia = doSel.r;
 
@@ -84,7 +170,8 @@ export default function JantaFuncionarios() {
       ${lista.map(({ rotulo, r }) => `<h2>${rotulo} · ${r.pessoas || "?"} pessoa(s)</h2>${r.pratos.length ? r.pratos.map((p) => `
         <h3>${p.nome || "Prato"}</h3>
         <table><tr><th>Item</th><th class="n">Por pessoa</th><th class="n">Total</th></tr>
-        ${p.itens.map((i) => `<tr><td>${i.nome}</td><td class="n">${i.gPessoa ? `${i.gPessoa} g` : "—"}</td><td class="n"><b>${i.rotulo}</b></td></tr>`).join("")}</table>
+        ${p.itens.map((i) => `<tr><td>${String(i.nome).replace(/</g, "&lt;")}</td><td class="n">${porcaoTexto(i) || "—"}</td><td class="n"><b>${i.rotulo}</b></td></tr>`).join("")}</table>
+        ${p.itens.filter((i) => i.receita?.status === "ok").map((i) => `<p><b>${String(i.nome).replace(/</g, "&lt;")}: ${i.receita.rotuloFator}</b> · ${i.receita.ingredientes.map((g) => `${String(g.nome).replace(/</g, "&lt;")} ${g.quantidade}`).join(", ")}</p>`).join("")}
         ${p.preparo ? `<p><b>Preparo:</b> ${p.preparo.replace(/</g, "&lt;")}</p>` : ""}`).join("") : `<p class="s">Sem prato cadastrado.</p>`}`).join("")}
       </body></html>`;
     const w = window.open("", "_blank");
@@ -163,27 +250,31 @@ export default function JantaFuncionarios() {
               <div><p className="text-xs text-hf-text-2">Custo da janta</p><p className="text-xl font-black tabular-nums text-hf-text">{doDia.custo > 0 ? brl(doDia.custo) : "—"}</p></div>
               <div><p className="text-xs text-hf-text-2">Por pessoa</p><p className="text-xl font-black tabular-nums text-hf-text">{brl(doDia.custoPorPessoa)}</p></div>
             </div>
-            <p className="mt-2 text-xs text-hf-muted">{doDia.semCusto ? `ESTIMATIVA: ${doDia.semCusto} item(ns) sem produto com preço no cadastro.` : doDia.custo > 0 ? "Custo pelos preços do cadastro. As quantidades mudam sozinhas com o número de pessoas." : "Você põe os gramas por pessoa de cada item; o total muda sozinho com o número de pessoas do dia."}</p>
+            <p className="mt-2 text-xs text-hf-muted">{doDia.semCusto ? `ESTIMATIVA: ${doDia.semCusto} item(ns) sem produto com preço no cadastro.` : doDia.custo > 0 ? "Custo pelos preços do cadastro. As quantidades mudam sozinhas com o número de pessoas." : "Você põe a porção pronta por pessoa (g, unidades ou ml); o total e a receita mudam sozinhos com o número de pessoas do dia."}</p>
             </>)}
             <button onClick={() => imprimir([{ rotulo: rotDia, r: doDia }])} className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-hf-elevated text-sm font-black text-hf-text hover:bg-hf-border"><Printer size={16} /> Imprimir a ficha da janta de {rotDia}</button>
           </div>
 
       {modo === "ficha" ? (
         <div className="space-y-3">
-          {doDia.pratos.length === 0 && (
+          {doDia.pessoas > 0 && pratoDaPessoa(doDia).length > 0 && (
+            <article className="rounded-3xl border border-hf-border bg-hf-surface p-5">
+              <h2 className="text-lg font-black text-hf-text">Prato de cada pessoa</h2>
+              <ul className="mt-2 divide-y divide-hf-border">
+                {pratoDaPessoa(doDia).map((x, k) => (
+                  <li key={k} className="flex justify-between gap-3 py-2 text-[15px]"><span className="font-semibold text-hf-text">{x.nome}</span><b className="tabular-nums text-hf-text">{x.texto}</b></li>
+                ))}
+              </ul>
+            </article>
+          )}
+          {doDia.pratos.filter((p) => !p.fixo).length === 0 && (
             <p className="rounded-3xl border border-dashed border-hf-border p-6 text-center text-sm font-semibold text-hf-text-2">Nenhum prato na {rotDia}. Monte o cardápio em <button onClick={() => setModo("montar")} className="font-black text-hf-accent underline">Montar a semana</button>.</p>
           )}
           {doDia.pratos.map((p) => (
             <article key={p.id} className="rounded-3xl border border-hf-border bg-hf-surface p-5">
-              <h2 className="flex items-center gap-2 text-lg font-black text-hf-text"><UtensilsCrossed size={18} className="text-hf-accent" />{p.nome || "Prato"}</h2>
-              <ul className="mt-3 divide-y divide-hf-border">
-                {p.itens.map((i) => (
-                  <li key={i.id} className="flex items-baseline gap-3 py-2.5">
-                    <span className="min-w-0 flex-1 text-[15px] font-semibold text-hf-text">{i.nome || "Item"}</span>
-                    <span className="text-xs text-hf-muted">{i.gPessoa ? `${i.gPessoa} g/pessoa` : ""}</span>
-                    <span className="w-24 text-right text-lg font-black tabular-nums text-hf-text">{i.rotulo}</span>
-                  </li>
-                ))}
+              <h2 className="flex items-center gap-2 text-lg font-black text-hf-text">{p.fixo ? <Pin size={18} className="text-hf-accent" /> : <UtensilsCrossed size={18} className="text-hf-accent" />}{p.fixo ? "Todo dia (fixos)" : p.nome || "Prato"}</h2>
+              <ul className="mt-2 divide-y divide-hf-border">
+                {p.itens.map((i) => <ItemDaFicha key={i.id} i={i} pessoas={doDia.pessoas} />)}
               </ul>
               {p.preparo && (
                 <div className="mt-3 rounded-2xl bg-hf-elevated p-4">
@@ -197,44 +288,39 @@ export default function JantaFuncionarios() {
       ) : (<>
       <datalist id="produtos-janta">{insumos.map((i) => <option key={i.id} value={i.nome} />)}</datalist>
       <div className="space-y-3">
-        {doDia.pratos.map((p) => (
+        <article className="rounded-3xl border-2 border-hf-accent/40 bg-hf-surface p-5">
+          <h2 className="flex items-center gap-2 text-lg font-black text-hf-text"><Pin size={18} className="text-hf-accent" /> Todo dia (fixos)</h2>
+          <p className="mt-1 text-[13px] text-hf-text-2">Vale para todos os dias da semana (ex.: arroz, feijão, salada). A porção é do produto <b>pronto</b>: feijão já com caldo.</p>
+          <div className="mt-3 space-y-2">
+            {(janta.fixos || []).map((i) => (
+              <LinhaItem key={i.id} i={i} calc={doDia.pratos.find((x) => x.fixo)?.itens.find((x) => x.id === i.id)} insumos={insumos} fichas={fichas}
+                onMudar={(fn) => alterar((j) => { const it = j.fixos.find((y) => y.id === i.id); if (it) fn(it); return j; })}
+                onTirar={() => alterar((j) => { j.fixos = j.fixos.filter((y) => y.id !== i.id); return j; })} />
+            ))}
+          </div>
+          <button onClick={() => alterar((j) => { j.fixos = [...(j.fixos || []), vazioItem()]; return j; })} className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-hf-accent"><Plus size={15} /> Item fixo</button>
+        </article>
+        {doDia.pratos.filter((p) => !p.fixo).map((p) => (
           <article key={p.id} className="rounded-3xl border border-hf-border bg-hf-surface p-5">
             <div className="flex items-center gap-2">
               <UtensilsCrossed size={18} className="shrink-0 text-hf-accent" />
-              <input value={p.nome} onChange={(e) => alterarPrato(p.id, (x) => { x.nome = e.target.value; })} placeholder="Nome do prato (ex.: Macarronada)" className={`${inputCls} text-base font-black`} />
+              <input value={p.nome} onChange={(e) => alterarPrato(p.id, (x) => { x.nome = e.target.value; })} placeholder="Prato do dia (ex.: Almôndegas ao molho)" className={`${inputCls} text-base font-black`} />
               <button onClick={() => alterarDia((x) => { x.pratos = x.pratos.filter((y) => y.id !== p.id); })} aria-label={`Remover ${p.nome || "prato"}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-hf-border text-hf-text-2 hover:text-hf-danger"><Trash2 size={16} /></button>
             </div>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[520px] text-sm">
-                <thead><tr className="text-left text-[11px] font-black uppercase tracking-wide text-hf-muted"><th className="pb-1">Item</th><th className="w-28 pb-1">g por pessoa</th><th className="w-28 pb-1 text-right">Total ({doDia.pessoas || "?"})</th><th className="w-24 pb-1 text-right">Custo</th><th className="w-10" /></tr></thead>
-                <tbody>
-                  {janta.dias[dia].pratos.find((x) => x.id === p.id).itens.map((i) => {
-                    const calc = p.itens.find((x) => x.id === i.id);
-                    return (
-                      <tr key={i.id} className="border-t border-hf-border">
-                        <td className="py-1.5 pr-2">
-                          <input list="produtos-janta" value={i.nome} placeholder="Produto (ex.: Macarrão)"
-                            onChange={(e) => { const v = e.target.value; const achado = insumos.find((x) => x.nome === v) || null; alterarPrato(p.id, (x) => { const it = x.itens.find((y) => y.id === i.id); it.nome = v; it.insumo_id = achado?.id || null; }); }}
-                            className={inputCls} />
-                          {i.nome && !i.insumo_id && <span className="text-[11px] text-hf-muted">{insumos.some((x) => casaBusca(x.nome, i.nome)) ? "Escolha da lista para ligar ao cadastro e ver o custo." : "Fora do cadastro: entra na quantidade, sem custo."}</span>}
-                        </td>
-                        <td className="py-1.5 pr-2"><input inputMode="decimal" value={i.g_pessoa} onChange={(e) => alterarPrato(p.id, (x) => { x.itens.find((y) => y.id === i.id).g_pessoa = e.target.value; })} placeholder="120" className={inputCls} /></td>
-                        <td className="py-1.5 text-right font-black tabular-nums text-hf-text">{calc?.rotulo || "—"}</td>
-                        <td className="py-1.5 text-right tabular-nums text-hf-text-2">{calc?.custo != null ? brl(calc.custo) : "—"}</td>
-                        <td className="py-1.5 text-right"><button onClick={() => alterarPrato(p.id, (x) => { x.itens = x.itens.filter((y) => y.id !== i.id); })} aria-label="Remover item" className="text-hf-muted hover:text-hf-danger"><Trash2 size={15} /></button></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="mt-3 space-y-2">
+              {janta.dias[dia].pratos.find((x) => x.id === p.id).itens.map((i) => (
+                <LinhaItem key={i.id} i={normalizarItem(i)} calc={p.itens.find((x) => x.id === i.id)} insumos={insumos} fichas={fichas}
+                  onMudar={(fn) => alterarPrato(p.id, (x) => { const it = x.itens.find((y) => y.id === i.id); if (it) fn(it); })}
+                  onTirar={() => alterarPrato(p.id, (x) => { x.itens = x.itens.filter((y) => y.id !== i.id); })} />
+              ))}
             </div>
-            <button onClick={() => alterarPrato(p.id, (x) => { x.itens.push({ id: novoIdJanta("i"), nome: "", insumo_id: null, g_pessoa: "" }); })} className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-hf-accent"><Plus size={15} /> Item</button>
+            <button onClick={() => alterarPrato(p.id, (x) => { x.itens.push(vazioItem()); })} className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-hf-accent"><Plus size={15} /> Item</button>
             <label className="mt-3 block text-xs font-bold text-hf-text-2">Como fazer (preparo)
-              <textarea value={p.preparo} onChange={(e) => alterarPrato(p.id, (x) => { x.preparo = e.target.value; })} rows={4} placeholder="1. Cozinhe o macarrão em água com sal…&#10;2. Refogue a carne com alho e cebola…" className="mt-1 w-full rounded-2xl border border-hf-border bg-hf-surface p-3 text-sm text-hf-text outline-none focus:border-hf-accent" />
+              <textarea value={p.preparo} onChange={(e) => alterarPrato(p.id, (x) => { x.preparo = e.target.value; })} rows={4} placeholder="1. Modele as almôndegas…&#10;2. Doure e junte o molho…" className="mt-1 w-full rounded-2xl border border-hf-border bg-hf-surface p-3 text-sm text-hf-text outline-none focus:border-hf-accent" />
             </label>
           </article>
         ))}
-        <button onClick={() => alterarDia((x) => { x.pratos.push({ id: novoIdJanta("p"), nome: "", preparo: "", itens: [{ id: novoIdJanta("i"), nome: "", insumo_id: null, g_pessoa: "" }] }); })}
+        <button onClick={() => alterarDia((x) => { x.pratos.push({ id: novoIdJanta("p"), nome: "", preparo: "", itens: [vazioItem()] }); })}
           className="flex h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-dashed border-hf-border text-sm font-black text-hf-text-2 hover:border-hf-accent hover:text-hf-accent">
           <Plus size={16} /> Adicionar prato na {rotDia}
         </button>

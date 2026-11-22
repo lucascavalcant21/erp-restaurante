@@ -20,6 +20,7 @@ import { fetchComSessao } from "../../../lib/api-sessao";
 import { MAX_XML_BYTES, notaDoOcr, notaDoXml, reduzirImagem } from "./nota.mjs";
 import FolhaFicha from "../FolhaFicha";
 import ReceitaRapida from "../ReceitaRapida";
+import JantaRapida from "../JantaRapida";
 import { PREFIXO as PREFIXO_RECEITA, respostaLocal } from "../../../lib/intelligence/local/receitas-locais.mjs";
 import { atualizarReceitas, lerReceitasGuardadas, precisaAtualizar } from "../../../lib/intelligence/local/receitas-cache";
 import ListaEtiquetas from "./ListaEtiquetas";
@@ -175,6 +176,7 @@ function Blocos({ blocos, onRota, onComando }) {
           );
         }
         if (b.tipo === "receita_rapida" && b.ficha) return <ReceitaRapida key={i} ficha={b.ficha} pedido={b.pedido} />;
+        if (b.tipo === "janta" && b.janta) return <JantaRapida key={i} janta={b.janta} dia={b.dia} fichas={b.fichas} />;
         if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} onComando={onComando} />;
         if (b.tipo === "passos") return <PassosProcedimento key={i} bloco={b} />;
         if (b.tipo === "etiquetas") return <ListaEtiquetas key={i} bloco={b} onRota={onRota} />;
@@ -242,7 +244,7 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
     ];
     // com a folha do prato/drink, o cartaz já diz tudo: o texto longo fica só para a leitura em voz alta
     // idem para o procedimento da casa (os passos numerados já estão no bloco)
-    const temFolha = (x.blocos || []).some((b) => (b.tipo === "receita_rapida" && b.ficha) || (b.tipo === "folha" && b.folha?.nome) || (b.tipo === "passos" && b.passos?.length));
+    const temFolha = (x.blocos || []).some((b) => (b.tipo === "receita_rapida" && b.ficha) || (b.tipo === "janta" && b.janta) || (b.tipo === "folha" && b.folha?.nome) || (b.tipo === "passos" && b.passos?.length));
     return (
       <div key={chave} className="space-y-1">
         <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao || temFolha || temEtiquetas}>

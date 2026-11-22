@@ -19,7 +19,7 @@
 // grade para não aparecer duas vezes.
 
 export const MENU_PRINCIPAL = Object.freeze([
-  { id: "inteligencia", label: "Inteligência", href: "/dashboard/inteligencia", exigeInteligencia: true, icone: "BrainCircuit", cor: "violeta", desc: "Análises e recomendações" },
+  { id: "inteligencia", label: "Inteligência", href: "/dashboard/inteligencia/assistente", exigeInteligencia: true, icone: "BrainCircuit", cor: "violeta", desc: "Análises e recomendações" },
   {
     id: "cozinha", label: "Cozinha", href: "/dashboard/cozinha", icone: "ChefHat", cor: "laranja",
     desc: "Preparo, produção e KDS",

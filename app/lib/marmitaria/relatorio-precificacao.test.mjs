@@ -9,10 +9,10 @@ const K99 = { id: "99food", nome: "99", comissao_pct: 8.9, taxa_pagamento_pct: 3
 const CANAIS = [IFOOD, K99, BALCAO];
 
 // O mesmo que useCardapio monta: as linhas do cardápio em cada app.
-function porCanalDe(precos) {
+function porCanalDe(precos, embutidos = null) {
   return new Map(CANAIS.map((c) => {
     const catalogo = { marmita: [{ id: "m1", nome: "Frango grelhado", preco: precos[c.id], custo: 15, categoria: "Marmitas" }], bebida: [], sobremesa: [] };
-    const linhas = cardapioDeVendas({ catalogo, canal: c, tributosPct: 6, metaPct: 15, marmitas: [{ id: "m1", nome_receita: "Frango grelhado", categoria: "Marmitas" }] })
+    const linhas = cardapioDeVendas({ catalogo, canal: c, tributosPct: 6, metaPct: 15, embutidos, marmitas: [{ id: "m1", nome_receita: "Frango grelhado", categoria: "Marmitas" }] })
       .map((l) => ({ ...l, ficha: { id: "f1", codigo: "M01", imagem: "" } }));
     return [c.id, { linhas }];
   }));
@@ -61,9 +61,9 @@ test("sem preço num app: diz que falta, não inventa", () => {
   assert.match(html, /Peito de frango/);
   assert.match(html, /180 g/);
   assert.match(html, /<span class="pct">\(100,00%\)<\/span>/);
-  assert.match(html, /Do preço ao lucro/);
   assert.match(html, /<th colspan="3" class="app">iFood<\/th>/);
-  assert.match(html, /<th>Preço<\/th><th>Lucro<\/th><th>%<\/th>/);
+  assert.match(html, /<th>Preço de venda<\/th><th>Lucro<\/th><th>%<\/th>/);
+  assert.match(html, /Do custo ao lucro \(1 unidade\)/);
   assert.doesNotMatch(html, /NaN|undefined/);
 });
 
@@ -81,4 +81,18 @@ test("quantidades em gramas (e ml)", () => {
   assert.equal(qtdTxt(0.02, "l"), "20 ml");
   assert.equal(qtdTxt(2, "un"), "2 un");
   assert.equal(qtdTxt(null, "kg"), "—");
+});
+
+test("equipe, custos fixos e variáveis abertos item a item", () => {
+  const embutidos = { completo: true, faltando: [], cmoPorMarmita: 4, fixosPorMarmita: 3, proLaborePorMarmita: 1, marmitasMes: 1000,
+    cmoPartes: [{ nome: "Equipe fixa", valor: 3000 }, { nome: "Extras e diárias", valor: 1000 }],
+    fixosLinhas: [{ nome: "Aluguel", valor: 1500 }, { nome: "Energia", valor: 500 }, { nome: "Pró-labore", valor: 1000 }],
+    variaveisLinhas: [] };
+  const porCanal = porCanalDe({ ifood: 40, "99food": 38, balcao: 32 }, embutidos);
+  const rel = montarRelatorio({ canais: CANAIS, porCanal, custos: CUSTOS, embutidos });
+  assert.deepEqual(rel.rateio.partes.fixos.map((x) => x.nome), ["Aluguel", "Energia"]);
+  const html = htmlDoRelatorio(rel);
+  assert.match(html, /<tr class="sub"><td>Equipe fixa<\/td>/);
+  assert.match(html, /<tr class="sub"><td>Extras e diárias<\/td>/);
+  assert.match(html, /<tr class="sub"><td>Aluguel<\/td>/);
 });

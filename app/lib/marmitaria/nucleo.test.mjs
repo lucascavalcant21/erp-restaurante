@@ -407,3 +407,16 @@ test("DRE: custos fixos cadastrados entram como previsto sem contas, e não soma
   const com = dreMarmitaria({ fixosCadastrados, contas });
   assert.equal(com.linhas.find((l) => l.id === "operacionais").valor, 4800);
 });
+
+test("balcão: sem app; a taxa de entrega é do motoboy, salvo o desconto que a loja dá", async () => {
+  const { resultadoPorCanal, entregaDaLoja } = await import("./nucleo.mjs");
+  const balcao = { id: "balcao", nome: "Balcão", comissao_pct: 0, taxa_pagamento_pct: 0, taxa_entrega_cliente: 8 };
+  const sem = resultadoPorCanal({ preco: 30, custoTecnico: 10, canal: balcao });
+  assert.equal(sem.comissao, 0);
+  assert.equal(sem.entrega, 0);              // cliente paga os R$ 8 ao motoboy
+  assert.equal(sem.margemContribuicao, 20);
+  const com = resultadoPorCanal({ preco: 30, custoTecnico: 10, canal: { ...balcao, desconto_entrega_pct: 50 } });
+  assert.equal(com.entrega, 4);              // 50% de desconto na taxa sai da loja
+  assert.equal(com.margemContribuicao, 16);
+  assert.equal(entregaDaLoja({ entrega_subsidiada_pedido: 2, taxa_entrega_cliente: 10, desconto_entrega_pct: 150 }), 12);
+});

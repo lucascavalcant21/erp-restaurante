@@ -33,8 +33,8 @@ test("sem cadastro, as quatro plataformas aparecem sem taxa; balcão não tem co
 
 test("separa equipe de custo fixo no DRE do mês", () => {
   const dre = { linhas: [{ id: "operacionais", filhos: [{ rotulo: "CMO (mão de obra alocada)", valor: 2000 }, { rotulo: "Ocupação (inclui rateio)", valor: 700 }, { rotulo: "Outras despesas", valor: 300 }] }] };
-  assert.deepEqual(baseDosCustos({ dre, vendas: [{ quantidade: 300 }, { quantidade: 100 }] }), { cmoMes: 2000, cmoLinhas: [], fixosContasMes: 1000, vendidasMes: 400 });
-  assert.deepEqual(baseDosCustos(null), { cmoMes: 0, cmoLinhas: [], fixosContasMes: 0, vendidasMes: 0 });
+  assert.deepEqual(baseDosCustos({ dre, vendas: [{ quantidade: 300 }, { quantidade: 100 }] }), { cmoMes: 2000, cmoLinhas: [], cmoPartes: [], fixosContasMes: 1000, vendidasMes: 400 });
+  assert.deepEqual(baseDosCustos(null), { cmoMes: 0, cmoLinhas: [], cmoPartes: [], fixosContasMes: 0, vendidasMes: 0 });
 });
 
 test("equipe e fixos por marmita: conta do mês ÷ marmitas do mês", () => {
@@ -120,4 +120,14 @@ test("custos variáveis por marmita somam no custo embutido (16/11/2026)", () =>
   const so = custosEmbutidos({ config: { rateio: { custos_variaveis: [{ nome: "Gás", valor: 1 }] } } });
   assert.equal(so.totalPorMarmita, 1, "sem equipe e fixos, o variável ainda conta");
   assert.equal(so.completo, false);
+});
+
+test("equipe: parte fixa e extras/diárias, só a fração da marmitaria", async () => {
+  const { partesDaEquipe } = await import("./cardapio.mjs");
+  assert.deepEqual(partesDaEquipe([
+    { custoTotal: 3000, extras: 0, marmitaria: 1500 },     // fixo, metade do tempo
+    { custoTotal: 800, extras: 800, marmitaria: 800 },     // diarista exclusiva
+    { custoTotal: 2200, extras: 200, marmitaria: 1100 },   // fixo com 200 de extra, metade
+    { custoTotal: 500, extras: 0, marmitaria: 0 },         // só restaurante
+  ]), [{ nome: "Equipe fixa", valor: 2500 }, { nome: "Extras e diárias", valor: 900 }]);
 });

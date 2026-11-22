@@ -137,8 +137,21 @@ export const MODELOS_CANAL = [
 // As quatro formas de vender que o dono usa; o WhatsApp entra se ele quiser.
 export const PLATAFORMAS_PADRAO = ["ifood", "99food", "keeta", "balcao"];
 
-const CAMPOS_PCT = ["comissao_pct", "taxa_pagamento_pct", "promocao_pct"];
-const CAMPOS_RS = ["taxa_fixa_pedido", "entrega_subsidiada_pedido"];
+const CAMPOS_PCT = ["comissao_pct", "taxa_pagamento_pct", "promocao_pct", "desconto_entrega_pct"];
+const CAMPOS_RS = ["taxa_fixa_pedido", "entrega_subsidiada_pedido", "taxa_entrega_cliente"];
+
+/**
+ * O que a loja paga de entrega em cada pedido (R$).
+ * - entrega_subsidiada_pedido: valor fixo que sai do seu bolso por entrega;
+ * - taxa_entrega_cliente × desconto_entrega_pct: no balcão/entrega própria o
+ *   cliente paga a taxa ao motoboy (não é receita nem custo da loja), a não ser
+ *   que você dê X% de desconto nela; esse desconto sai de você
+ *   (dono, 22/11/2026).
+ */
+export function entregaDaLoja(canal) {
+  const c = canal || {};
+  return pos(c.entrega_subsidiada_pedido) + pos(c.taxa_entrega_cliente) * Math.min(1, pos(c.desconto_entrega_pct) / 100);
+}
 // Fatura do app (especificação do dono, 21/11/2026): ganhos totais, ofertas
 // pagas pela loja e taxas do app de um período. Dão a taxa REAL (observada),
 // que pode ser diferente da do contrato. É indicador histórico, não contrato.
@@ -185,7 +198,7 @@ export function novoPlanoDoCanal(canal, usados = []) {
   while (ids.has(`${plataforma}_p${n}`)) n++;
   return {
     ...normalizarCanal({ id: `${plataforma}_p${n}`, nome: `${MODELOS_CANAL.find((m) => m.id === plataforma)?.nome || base.nome.split(" · ")[0]} · Plano ${n}`, plataforma, comissao_base: base.comissao_base }),
-    comissao_pct: "", taxa_pagamento_pct: "", taxa_fixa_pedido: "", entrega_subsidiada_pedido: "", promocao_pct: "", itens_por_pedido: base.itens_por_pedido,
+    comissao_pct: "", taxa_pagamento_pct: "", taxa_fixa_pedido: "", entrega_subsidiada_pedido: "", taxa_entrega_cliente: "", desconto_entrega_pct: "", promocao_pct: "", itens_por_pedido: base.itens_por_pedido,
   };
 }
 
@@ -245,7 +258,7 @@ export function resultadoPorCanal({ preco, custoTecnico, canal = {}, tributosPct
   const comissao = fat ? P * (fat.taxasPct / 100) : (c.comissao_base === "bruto" ? P : receita) * pct(c.comissao_pct);
   const taxaPagamento = fat || c.pagamento_na_comissao ? 0 : receita * pct(c.taxa_pagamento_pct);
   const taxaFixa = pos(c.taxa_fixa_pedido) / c.itens_por_pedido;
-  const entrega = pos(c.entrega_subsidiada_pedido) / c.itens_por_pedido;
+  const entrega = entregaDaLoja(c) / c.itens_por_pedido;
   const taxasCanal = comissao + taxaPagamento + taxaFixa;
   const variaveis = taxasCanal + entrega;
   const receitaLiquida = receita - tributos;
@@ -282,7 +295,7 @@ export function precoSugerido({ custoTecnico, canal = {}, tributosPct = null, ma
   const baseComissao = c.comissao_base === "bruto" ? 1 : (1 - d);
   const k = fat ? (1 - d) * t + fat.taxasPct / 100
     : (1 - d) * t + baseComissao * pct(c.comissao_pct) + (c.pagamento_na_comissao ? 0 : (1 - d) * pct(c.taxa_pagamento_pct));
-  const fixo = custo + lucroReais + pos(c.taxa_fixa_pedido) / c.itens_por_pedido + pos(c.entrega_subsidiada_pedido) / c.itens_por_pedido;
+  const fixo = custo + lucroReais + pos(c.taxa_fixa_pedido) / c.itens_por_pedido + entregaDaLoja(c) / c.itens_por_pedido;
   const den = (1 - d) * (1 - m) - k;
   if (!(den > 0)) return { preco: null, motivo: "Com essas taxas e essa margem-alvo não existe preço possível: reduza a margem ou revise as taxas." };
   return { preco: Math.ceil((fixo / den) * 100) / 100, motivo: null };

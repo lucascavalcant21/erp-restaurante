@@ -29,14 +29,14 @@ const vazio = (v) => v === null || v === undefined ? "" : String(v).replace(".",
 // Taxa em branco é "não configurado"; só a comissão do balcão nasce zerada.
 const canalEmBranco = (m) => {
   const c = normalizarCanal(m);
-  return { ...c, comissao_pct: vazio(m.comissao_pct), taxa_pagamento_pct: "", taxa_fixa_pedido: "", entrega_subsidiada_pedido: "", promocao_pct: "", itens_por_pedido: 1 };
+  return { ...c, comissao_pct: vazio(m.comissao_pct), taxa_pagamento_pct: "", taxa_fixa_pedido: "", entrega_subsidiada_pedido: "", taxa_entrega_cliente: "", desconto_entrega_pct: "", promocao_pct: "", itens_por_pedido: 1 };
 };
 
 // Calculadora de cada app: "vendendo a R$ X, quanto sobra para mim?"
 function Calculadora({ canal, tributosPct }) {
   const [preco, setPreco] = useState("");
   const P = lerNumero(preco);
-  const c = normalizarCanal({ ...canal, ...Object.fromEntries(["comissao_pct", "taxa_pagamento_pct", "promocao_pct", "taxa_fixa_pedido", "entrega_subsidiada_pedido", "itens_por_pedido"].map((k) => [k, lerNumero(canal[k])])) });
+  const c = normalizarCanal({ ...canal, ...Object.fromEntries(["comissao_pct", "taxa_pagamento_pct", "promocao_pct", "taxa_fixa_pedido", "entrega_subsidiada_pedido", "taxa_entrega_cliente", "desconto_entrega_pct", "itens_por_pedido"].map((k) => [k, lerNumero(canal[k])])) });
   const r = P > 0 ? resultadoPorCanal({ preco: P, custoTecnico: 0, canal: c, tributosPct }) : null;
   return (
     <div className="mt-3 rounded-lg bg-hf-elevated p-3">
@@ -133,7 +133,7 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
   async function salvar() {
     if (salvando) return;
     setMsg(null);
-    const canais = cfg.canais.map((c) => normalizarCanal({ ...c, ...Object.fromEntries(["comissao_pct", "taxa_pagamento_pct", "promocao_pct", "taxa_fixa_pedido", "entrega_subsidiada_pedido", "itens_por_pedido", "fatura_ganhos", "fatura_ofertas", "fatura_taxas"].map((k) => [k, lerNumero(c[k])])) }));
+    const canais = cfg.canais.map((c) => normalizarCanal({ ...c, ...Object.fromEntries(["comissao_pct", "taxa_pagamento_pct", "promocao_pct", "taxa_fixa_pedido", "entrega_subsidiada_pedido", "taxa_entrega_cliente", "desconto_entrega_pct", "itens_por_pedido", "fatura_ganhos", "fatura_ofertas", "fatura_taxas"].map((k) => [k, lerNumero(c[k])])) }));
     const erros = canais.flatMap((c) => validarCanal(c).map((e) => `${c.nome || "Canal"}: ${e}`));
     if (new Set(canais.map((c) => c.id)).size !== canais.length) erros.push("Há dois canais com o mesmo identificador.");
     const mei = cfg.regime === "mei";
@@ -176,6 +176,8 @@ export default function ConfiguracoesConteudo({ parte = "tudo" }) {
                 <Campo rotulo="Taxa da maquininha / pagamento"><CampoNumero sufixo="%" valor={c.taxa_pagamento_pct} onChange={(v) => mudarCanal(i, "taxa_pagamento_pct", v)} placeholder="não configurado" disabled={c.pagamento_na_comissao} /></Campo>
                 <Campo rotulo="Valor da entrega por pedido" dica="O que sai do seu bolso em cada entrega."><CampoNumero prefixo="R$" valor={c.entrega_subsidiada_pedido} onChange={(v) => mudarCanal(i, "entrega_subsidiada_pedido", v)} placeholder="0,00" /></Campo>
                 <Campo rotulo="Taxa fixa por pedido"><CampoNumero prefixo="R$" valor={c.taxa_fixa_pedido} onChange={(v) => mudarCanal(i, "taxa_fixa_pedido", v)} placeholder="0,00" /></Campo>
+                <Campo rotulo="Taxa de entrega do cliente" dica="O cliente paga ao motoboy: não entra no seu lucro."><CampoNumero prefixo="R$" valor={c.taxa_entrega_cliente} onChange={(v) => mudarCanal(i, "taxa_entrega_cliente", v)} placeholder="0,00" /></Campo>
+                <Campo rotulo="Desconto que você dá na entrega" dica="Essa parte da taxa sai de você em cada pedido."><CampoNumero sufixo="%" valor={c.desconto_entrega_pct} onChange={(v) => mudarCanal(i, "desconto_entrega_pct", v)} placeholder="0" /></Campo>
               </div>
               <details className="mt-2">
                 <summary className="min-h-[36px] cursor-pointer py-2 text-xs font-bold text-hf-text-2">Mais opções</summary>

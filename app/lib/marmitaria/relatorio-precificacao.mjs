@@ -56,7 +56,7 @@ export function contaDaLinha(linha, custoFicha = null) {
   const emb = custoFicha ? r2((Number(custoFicha.embalagens) || 0) * unidades) : 0;
   const ingredientes = r.custo == null ? null : r2(r.custo - emb);
   const cascata = cascataDoPreco({ r, custo: { ingredientes, embalagens: emb }, descontoApp: 0 }) || [];
-  const taxas = [["Comissão do app", r.comissao], ["Maquininha e pagamento", r.taxaPagamento], ["Taxa fixa por pedido", r.taxaFixa], ["Entrega", r.entrega]]
+  const taxas = [["Comissão do app", r.comissao], ["Maquininha e pagamento", r.taxaPagamento], ["Taxa fixa por pedido", r.taxaFixa], ["Entrega paga por você", r.entrega]]
     .filter(([, v]) => Number(v) > 0).map(([rotulo, valor]) => ({ rotulo, valor: r2(valor) }));
   return { cascata, taxas };
 }
@@ -77,7 +77,7 @@ export function montarRelatorio({ canais = [], escolhidos = "todos", secoes = ["
       return {
         canalId: app.id, canal: app.nome,
         semPreco: !l || !!l.semPreco, falta: l?.falta || null,
-        preco: l?.precoPago ?? null, precoCheio: l?.precoCheio ?? null,
+        preco: l?.precoPago ?? null, precoCheio: l?.precoCheio ?? null, custo: l?.custo ?? null,
         lucro: l?.lucro ?? null, lucroPct: l?.lucroPct ?? null,
         cmvPct: l?.cmvPct ?? null, markup: l?.markup ?? null,
         veredito: l?.veredito?.rotulo || "", vereditoId: l?.veredito?.id || "sem_dados",
@@ -103,6 +103,13 @@ export function montarRelatorio({ canais = [], escolhidos = "todos", secoes = ["
       completo: !!embutidos.completo, faltando: embutidos.faltando || [],
       cmoPorMarmita: embutidos.cmoPorMarmita ?? null, fixosPorMarmita: embutidos.fixosPorMarmita ?? null,
       proLaborePorMarmita: embutidos.proLaborePorMarmita ?? null, marmitasMes: embutidos.marmitasMes ?? null,
+      // Para abrir cada linha da conta (dono, 22/11/2026: "nos custos fixos eu
+      // vejo o valor de cada coisa e na equipe aparecem fixos e extras").
+      partes: {
+        equipe: (embutidos.cmoPartes || []).filter((x) => x.valor > 0),
+        fixos: (embutidos.fixosLinhas || []).filter((x) => x.valor > 0 && !/pr[oó][\s-]*labore/i.test(x.nome)),
+        variaveis: (embutidos.variaveisLinhas || []).filter((x) => x.valor > 0),
+      },
     } : null,
   };
 }
@@ -124,9 +131,12 @@ th, td { padding: 2px 5px; border-bottom: 1px solid #e6e6e6; text-align: right; 
 th:first-child, td:first-child { text-align: left; }
 thead th { background: #111; color: #fff; font-size: 7.8pt; text-transform: uppercase; letter-spacing: .3px; }
 .resumo td { font-size: 8.8pt; white-space: nowrap; }
-.resumo th.app { text-align: center; border-left: 2px solid #fff; }
+.resumo th, .resumo td { text-align: center; }
+.resumo th:first-child, .resumo td:first-child { text-align: left; }
+.resumo th.app { border-left: 2px solid #fff; }
 .resumo tr.sub-cab th { background: #444; font-size: 7.2pt; }
 .resumo tr.sub-cab th:nth-child(3n+1), .resumo td.ini { border-left: 2px solid #ddd; }
+.resumo tr.sub-cab th { text-transform: none; }
 .resumo td.forte { font-weight: bold; }
 .resumo td:first-child { white-space: normal; }
 .neg { color: #B91C1C; font-weight: bold; }
@@ -157,7 +167,7 @@ thead th { background: #111; color: #fff; font-size: 7.8pt; text-transform: uppe
 .rodape { margin-top: 8px; font-size: 7.5pt; color: #666; border-top: 1px solid #ddd; padding-top: 4px; }
 `;
 
-function tabelaDaConta(item) {
+function tabelaDaConta(item, partes = null) {
   const apps = item.porApp;
   // Linhas na ordem da cascata, juntando os apps (uma linha pode faltar num app).
   const ordem = [];
@@ -179,6 +189,17 @@ function tabelaDaConta(item) {
     const cls = o.tipo === "final" ? "final" : o.tipo === "total" ? "total" : "";
     const rot = o.id === "ingredientes" ? rotuloIngred : o.rotulo;
     let html = `<tr class="${cls}"><td>${esc(rot)}</td>${apps.map((a) => celula(a, o.id)).join("")}</tr>`;
+    // Equipe, custos fixos e variáveis abertos item a item, na proporção de cada um.
+    const lista = partes?.[{ equipe: "equipe", fixos: "fixos", variaveis: "variaveis" }[o.id]] || [];
+    if (lista.length > 1 || (lista.length === 1 && o.id !== "equipe")) {
+      const total = lista.reduce((t, x) => t + x.valor, 0);
+      html += lista.map((x) => `<tr class="sub"><td>${esc(x.nome)}</td>${apps.map((a) => {
+        const l = a.cascata.find((y) => y.id === o.id);
+        if (a.semPreco || !l || l.valor == null || !(total > 0)) return "<td></td>";
+        const v = r2((x.valor / total) * l.valor);
+        return `<td>${brl(v)}<span class="pct">(${pct(a.preco > 0 ? (Math.abs(v) / a.preco) * 100 : null)})</span></td>`;
+      }).join("")}</tr>`).join("");
+    }
     if (o.id === "taxas" && subTaxas.length) {
       html += subTaxas.map((n) => `<tr class="sub"><td>${esc(n)}</td>${apps.map((a) => {
         if (a.semPreco) return "<td></td>";
@@ -190,11 +211,11 @@ function tabelaDaConta(item) {
   }).join("");
   const cab = apps.map((a) => `<th>${esc(a.canal)}</th>`).join("");
   const faltas = apps.filter((a) => a.semPreco || a.falta).map((a) => `${esc(a.canal)}: ${a.falta ? esc(a.falta) : "sem preço"}`);
-  return `<table class="conta"><thead><tr><th>Do preço ao lucro (1 venda)</th>${cab}</tr></thead><tbody>${linhas}</tbody></table>
+  return `<table class="conta"><thead><tr><th>Do custo ao lucro (1 unidade)</th>${cab}</tr></thead><tbody>${linhas}</tbody></table>
     ${faltas.length ? `<p class="falta">${faltas.join(" · ")}</p>` : ""}`;
 }
 
-function blocoDoPrato(item) {
+function blocoDoPrato(item, partes = null) {
   const a0 = item.porApp.find((a) => !a.semPreco) || item.porApp[0];
   const f = item.ficha;
   const fichaHtml = f ? `<div class="dois">
@@ -220,7 +241,7 @@ function blocoDoPrato(item) {
       </div>
     </div>
     ${fichaHtml}
-    ${tabelaDaConta(item)}
+    ${tabelaDaConta(item, partes)}
   </section>`;
 }
 
@@ -229,11 +250,13 @@ export function htmlDoRelatorio(rel, { empresa = "", data = "", rotuloLucro = "L
   const apps = rel.apps;
   // Resumo em colunas (dono, 22/11/2026: "não quero dividido por ponto, e sim
   // como uma coluna"): para cada app, Preço | Lucro | % de lucro.
+  // Resumo (dono, 22/11/2026): custo, preço de venda, lucro e %, em colunas e centralizado.
+  const custoDo = (it) => it.ficha?.total ?? it.porApp.find((a) => a.custo != null)?.custo ?? null;
   const resumo = rel.itens.length ? `<table class="resumo"><thead>
-    <tr><th rowspan="2">Produto</th>${apps.map((a) => `<th colspan="3" class="app">${esc(a.nome)}</th>`).join("")}</tr>
-    <tr class="sub-cab">${apps.map(() => "<th>Preço</th><th>Lucro</th><th>%</th>").join("")}</tr>
+    <tr><th rowspan="2">Produto</th><th rowspan="2" class="app">Custo</th>${apps.map((a) => `<th colspan="3" class="app">${esc(a.nome)}</th>`).join("")}</tr>
+    <tr class="sub-cab">${apps.map(() => "<th>Preço de venda</th><th>Lucro</th><th>%</th>").join("")}</tr>
   </thead><tbody>
-    ${rel.itens.map((it) => `<tr><td>${it.codigo ? `<span class="cod">${esc(it.codigo)}</span>` : ""}${esc(it.nome)}</td>${it.porApp.map((a) => a.semPreco
+    ${rel.itens.map((it) => `<tr><td>${it.codigo ? `<span class="cod">${esc(it.codigo)}</span>` : ""}${esc(it.nome)}</td><td class="ini">${custoDo(it) == null ? "falta" : brl(custoDo(it))}</td>${it.porApp.map((a) => a.semPreco
       ? `<td class="ini" colspan="3">sem preço</td>`
       : `<td class="ini">${brl(a.preco)}</td><td class="${a.lucro != null && a.lucro < 0 ? "neg" : "forte"}">${brl(a.lucro)}</td><td>${pct(a.lucroPct)}</td>`).join("")}</tr>`).join("")}
   </tbody></table>` : `<p>Nenhum produto nas seções escolhidas.</p>`;
@@ -242,7 +265,7 @@ export function htmlDoRelatorio(rel, { empresa = "", data = "", rotuloLucro = "L
   // Fichas em sequência, duas por página (dono, 22/11/2026: "encaixa duas
   // fichas em uma página, não deixa página com sobra"): cada ficha é compacta
   // e não quebra no meio; o tipo (prato, combo, promoção) vai na própria ficha.
-  const porSecao = `<h2>Fichas</h2>${rel.itens.map(blocoDoPrato).join("")}`;
+  const porSecao = `<h2>Fichas</h2>${rel.itens.map((it) => blocoDoPrato(it, rel.rateio?.partes)).join("")}`;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Precificação do delivery${empresa ? ` · ${esc(empresa)}` : ""}</title><style>${CSS}</style></head><body>
   <header class="topo">
     <div><h1>Precificação do delivery</h1><p class="sub">Do preço de cada produto até o que sobra de lucro, em cada app.</p></div>

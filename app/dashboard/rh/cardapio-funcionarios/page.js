@@ -15,7 +15,7 @@ import { ArrowLeft, ChevronDown, Loader2, Minus, Plus, Printer, Save, Trash2, Ut
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, fetchFichas } from "../../../lib/operacao";
 import { fetchJantaFuncionarios, salvarJantaFuncionarios } from "../../../lib/parametros";
-import { DIAS_SEMANA, MODOS_PORCAO, normalizarJanta, cardapioDoDia, novoIdJanta, pessoasDoDia, normalizarItem } from "../../../lib/janta-funcionarios.mjs";
+import { DIAS_SEMANA, MODOS_PORCAO, normalizarJanta, cardapioDoDia, novoIdJanta, pessoasDoDia, normalizarItem, pratoDaPessoa } from "../../../lib/janta-funcionarios.mjs";
 import { casaBusca } from "../../../lib/busca.mjs";
 
 const brl = (v) => (v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
@@ -46,9 +46,12 @@ function ItemDaFicha({ i, pessoas }) {
     <li className="py-3">
       <div className="flex items-baseline gap-3">
         <span className="min-w-0 flex-1 text-[16px] font-semibold text-hf-text">{i.nome || "Item"}</span>
-        <span className="w-28 text-right text-xl font-black tabular-nums text-hf-text">{i.rotulo}</span>
+        {i.modo !== "geral" && <span className="w-28 text-right text-xl font-black tabular-nums text-hf-text">{i.rotulo}</span>}
       </div>
-      <p className="mt-0.5 text-[13px] text-hf-muted">{pessoas && i.porcaoN ? `${pessoas} × ${porcaoTexto(i)} (pronto)` : "Falta a porção por pessoa"}</p>
+      {i.modo === "geral"
+        ? <p className="mt-0.5 text-[15px] font-bold text-hf-text">{i.rotulo} <span className="text-[12px] font-semibold text-hf-muted">· geral, não muda com as pessoas</span></p>
+        : <p className="mt-0.5 text-[13px] text-hf-muted">{pessoas && i.porcaoN ? `${pessoas} × ${porcaoTexto(i)} (pronto)` : "Falta a porção por pessoa"}</p>}
+      {i.cru && <p className="mt-1 text-[13px] font-semibold text-hf-text">Cozinhe cerca de {i.cru.rotulo} cru <span className="text-hf-muted">(ESTIMATIVA)</span></p>}
       {r?.status === "ok" && (
         <div className="mt-2">
           <button type="button" onClick={() => setAberta(!aberta)} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-hf-elevated px-4 text-[14px] font-bold text-hf-text">
@@ -84,7 +87,9 @@ function LinhaItem({ i, calc, insumos, fichas, onMudar, onTirar }) {
         <button onClick={onTirar} aria-label="Remover item" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-hf-border text-hf-muted hover:text-hf-danger"><Trash2 size={15} /></button>
       </div>
       <div className="mt-2 grid grid-cols-[1fr_1.4fr] gap-2">
-        <input inputMode="decimal" aria-label="Porção por pessoa" value={i.porcao} onChange={(e) => set((it) => { it.porcao = e.target.value; })} placeholder={i.modo === "un" ? "1" : i.modo === "ml" ? "80" : "200"} className={inputCls} />
+        {i.modo === "geral"
+          ? <input aria-label="Quantidade geral" value={i.geral || ""} onChange={(e) => set((it) => { it.geral = e.target.value; })} placeholder="½ pé de alface, 1 tomate" className={inputCls} />
+          : <input inputMode="decimal" aria-label="Porção por pessoa" value={i.porcao} onChange={(e) => set((it) => { it.porcao = e.target.value; })} placeholder={i.modo === "un" ? "1" : i.modo === "ml" ? "80" : "200"} className={inputCls} />}
         <select aria-label="Medida da porção" value={i.modo} onChange={(e) => set((it) => { it.modo = e.target.value; })} className={inputCls}>
           {MODOS_PORCAO.map((m) => <option key={m.id} value={m.id}>{m.rotulo}</option>)}
         </select>
@@ -93,8 +98,15 @@ function LinhaItem({ i, calc, insumos, fichas, onMudar, onTirar }) {
         <option value="">Sem ficha técnica (só a quantidade)</option>
         {fichas.map((f) => <option key={f.id} value={f.id}>Receita: {f.nome_receita}</option>)}
       </select>
+      {i.modo === "g" && !i.ficha_id && (
+        <label className="mt-2 flex items-center gap-2 text-[12px] font-semibold text-hf-text-2">
+          1 g cru vira
+          <input inputMode="decimal" aria-label="Quanto 1 g cru vira pronto" value={i.rend_cozimento ?? ""} onChange={(e) => set((it) => { it.rend_cozimento = e.target.value; })} placeholder="3" className="h-9 w-20 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold" />
+          g pronto (opcional: diz quanto cozinhar cru)
+        </label>
+      )}
       <p className="mt-1.5 text-[12px] text-hf-muted">
-        Total do dia: <b className="text-hf-text">{calc?.rotulo || "—"}</b>
+        Total do dia: <b className="text-hf-text">{calc?.rotulo || "—"}</b>{calc?.cru ? ` · cozinhar ~${calc.cru.rotulo} cru` : ""}
         {calc?.receita?.status === "ok" ? ` · ${calc.receita.rotuloFator}` : calc?.receita?.status === "insuficiente" ? ` · ${calc.receita.motivo}` : ""}
         {calc?.custo != null ? ` · ${brl(calc.custo)}` : ""}
       </p>
@@ -245,6 +257,16 @@ export default function JantaFuncionarios() {
 
       {modo === "ficha" ? (
         <div className="space-y-3">
+          {doDia.pessoas > 0 && pratoDaPessoa(doDia).length > 0 && (
+            <article className="rounded-3xl border border-hf-border bg-hf-surface p-5">
+              <h2 className="text-lg font-black text-hf-text">Prato de cada pessoa</h2>
+              <ul className="mt-2 divide-y divide-hf-border">
+                {pratoDaPessoa(doDia).map((x, k) => (
+                  <li key={k} className="flex justify-between gap-3 py-2 text-[15px]"><span className="font-semibold text-hf-text">{x.nome}</span><b className="tabular-nums text-hf-text">{x.texto}</b></li>
+                ))}
+              </ul>
+            </article>
+          )}
           {doDia.pratos.filter((p) => !p.fixo).length === 0 && (
             <p className="rounded-3xl border border-dashed border-hf-border p-6 text-center text-sm font-semibold text-hf-text-2">Nenhum prato na {rotDia}. Monte o cardápio em <button onClick={() => setModo("montar")} className="font-black text-hf-accent underline">Montar a semana</button>.</p>
           )}

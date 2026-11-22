@@ -151,6 +151,8 @@ export function lerComando(texto) {
  * @param {{ fichas: object[] }|null} cache
  */
 export function respostaLocal(texto, cache) {
+  const janta = respostaDaJanta(texto, cache);
+  if (janta) return janta;
   const fichas = cache?.fichas || [];
   if (!fichas.length) return null;
   const c = lerComando(texto);
@@ -277,4 +279,47 @@ export function passosDaFicha(ficha) {
   const linhas = String(ficha?.modoPreparo || "").split(/\r?\n/).map((l) => limpo(l.replace(/^\s*\d{1,2}\s*[.):º°-]+\s*/, "").replace(/^\s*[•·*-]\s*/, ""))).filter(Boolean);
   if (linhas.length === 1) return linhas[0].split(/(?<=[.!])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇa-z])/).map(limpo).filter((x) => x.length > 1);
   return linhas;
+}
+
+// ─── Janta da equipe (dono, 22/11/2026) ─────────────────────────────────────
+// "janta" → hoje é dia tal, a janta é essa → quantas pessoas (1 a 12 ou
+// digitar) → as quantidades, as receitas multiplicadas e o prato de cada um.
+
+const DIAS = { domingo: "dom", segunda: "seg", terca: "ter", quarta: "qua", quinta: "qui", sexta: "sex", sabado: "sab" };
+const ORDEM = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+
+/** "janta", "janta de hoje", "janta de amanhã", "janta de quinta" → { dia } ou null. */
+export function interpretarJanta(texto, hoje = new Date()) {
+  const t = semAcento(limpo(texto)).replace(/[?!.]+$/g, "");
+  if (!/\bjanta(r)?\b/.test(t) || t.length > 60) return null;
+  const resto = t.replace(/\bjanta(r)?\b/g, " ").replace(/\b(a|o|da|de|do|dos|das|para|pra|hoje|equipe|funcionarios?|pessoal|qual|e|feira|como|vai|ser|fica|ficou|mostra|me)\b/g, " ").replace(/-/g, " ").trim();
+  let dia = ORDEM[hoje.getDay()];
+  if (/\bamanha\b/.test(t)) dia = ORDEM[(hoje.getDay() + 1) % 7];
+  for (const [nome, id] of Object.entries(DIAS)) if (new RegExp(`\\b${nome}\\b`).test(t)) dia = id;
+  const sobra = resto.replace(/\bamanha\b/g, " ").replace(new RegExp(`\\b(${Object.keys(DIAS).join("|")})\\b`, "g"), " ").trim();
+  if (sobra) return null; // "custo da janta do mês" etc. segue para o servidor
+  return { dia };
+}
+
+/** Ficha guardada no aparelho → formato que a conta da janta usa. */
+export function fichaParaJanta(f) {
+  return {
+    id: f.id, nome_receita: f.nome, rendimento_porcoes: f.rendQtd, rendimento_unidade: f.rendUn, peso_porcao_g: f.porcaoG, modo_preparo: f.modoPreparo,
+    fichas_ingredientes: (f.ingredientes || []).map((i) => ({ quantidade: i.qtd, nome: i.nome, unidade: i.unidade })),
+  };
+}
+
+function respostaDaJanta(texto, cache) {
+  const c = lerComando(texto);
+  const pedido = c?.janta ? { dia: c.dia } : interpretarJanta(texto);
+  if (!pedido) return null;
+  if (!cache) return null; // aparelho ainda sem nada guardado: o servidor responde
+  const janta = cache.janta;
+  if (!janta) {
+    return { tipo: "local", local: true, texto: "A janta da equipe ainda não foi montada. O dono monta em RH › Janta dos funcionários." };
+  }
+  // só as fichas usadas na janta vão junto (o resto fica no aparelho)
+  const ids = new Set([...(janta.fixos || []), ...Object.values(janta.dias || {}).flatMap((d) => (d.pratos || []).flatMap((p) => p.itens || []))].map((i) => i.ficha_id).filter(Boolean));
+  const fichas = (cache.fichas || []).filter((f) => ids.has(f.id)).map(fichaParaJanta);
+  return { tipo: "local", local: true, texto: "Janta", blocos: [{ tipo: "janta", janta, dia: pedido.dia, fichas }] };
 }

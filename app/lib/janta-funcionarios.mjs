@@ -33,10 +33,14 @@ const n = (v) => { const x = Number(String(v ?? "").replace(",", ".")); return N
 const r2 = (v) => Math.round(v * 100) / 100;
 export const novoIdJanta = (p = "j") => `${p}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
+// 22/11/2026 (dono): a salada "não é por pessoa, é o geral" (½ pé de alface,
+// 1 tomate em rodelas, 1 cebola em tiras): modo "geral", com o texto da
+// quantidade, que não muda com o número de pessoas.
 export const MODOS_PORCAO = Object.freeze([
   { id: "g", rotulo: "g por pessoa", curto: "g" },
   { id: "un", rotulo: "unidades por pessoa", curto: "un" },
   { id: "ml", rotulo: "ml por pessoa", curto: "ml" },
+  { id: "geral", rotulo: "quantidade geral (não muda)", curto: "geral" },
 ]);
 const modoValido = (m) => (MODOS_PORCAO.some((x) => x.id === m) ? m : "g");
 
@@ -49,6 +53,11 @@ export function normalizarItem(i = {}) {
     modo, porcao,
     // telas antigas leem g_pessoa: continua igual quando a porção é em gramas
     g_pessoa: modo === "g" ? porcao : "",
+    // modo "geral": a quantidade em texto ("½ pé de alface, 1 tomate em rodelas")
+    geral: String(i.geral || ""),
+    // pronto ÷ cru (macarrão: 100 g cru → 300 g pronto = 3). Sem ficha, diz
+    // quanto cozinhar de cru para dar o pronto do dia (ESTIMATIVA).
+    rend_cozimento: i.rend_cozimento ?? "",
   };
 }
 
@@ -183,6 +192,11 @@ export function cardapioDoDia(janta, diaId, { pessoas = null, insumos = new Map(
   const p = n(pessoas) || pessoasDoDia(janta, diaId);
   let custo = 0; let semCusto = 0;
   const calcular = (itens) => (itens || []).map(normalizarItem).filter((i) => i.nome || i.insumo_id || i.ficha_id).map((i) => {
+    if (i.modo === "geral") {
+      const ficha = i.ficha_id ? fichas.get(i.ficha_id) : null;
+      return { ...i, nome: i.nome || ficha?.nome_receita || "", porcaoN: 0, gPessoa: 0, totalG: 0, total: 0, geralTexto: i.geral,
+        rotulo: i.geral || "—", custo: null, cru: null, receita: ficha ? receitaDaFichaInteira(ficha) : { status: "sem_ficha" } };
+    }
     const porcao = n(i.porcao);
     const total = porcao * p;
     const ins = i.insumo_id ? insumos.get(i.insumo_id) : null;
@@ -193,6 +207,8 @@ export function cardapioDoDia(janta, diaId, { pessoas = null, insumos = new Map(
       ...i, nome: i.nome || ins?.nome || ficha?.nome_receita || "",
       porcaoN: porcao, gPessoa: i.modo === "g" ? porcao : 0, totalG: i.modo === "g" ? total : 0, total,
       rotulo: rotuloTotal(total, i.modo), custo: c,
+      // cru para cozinhar (sem ficha ligada): pronto ÷ rendimento do cozimento
+      cru: !i.ficha_id && i.modo === "g" && n(i.rend_cozimento) > 0 && total > 0 ? { g: r2(total / n(i.rend_cozimento)), rotulo: rotuloPeso(total / n(i.rend_cozimento)), natureza: "ESTIMATIVA" } : null,
       receita: receitaDoItem(i, ficha, total),
     };
   });
@@ -207,3 +223,34 @@ export function cardapioDoDia(janta, diaId, { pessoas = null, insumos = new Map(
     natureza: semCusto ? "ESTIMATIVA" : "REAL",
   };
 }
+
+/** A ficha como está (item "geral" ligado a uma ficha: não multiplica). */
+function receitaDaFichaInteira(ficha) {
+  const ingredientes = (ficha.fichas_ingredientes || []).map((ing) => {
+    const q = n(ing.quantidade);
+    return { nome: nomeDoIngrediente(ing), quantidade: q > 0 ? qtdLegivel(q, unidadeDoIngrediente(ing)) : "—" };
+  });
+  return { status: "ok", fator: 1, rotuloFator: rotuloDoFator(1), aproximado: false, fichaNome: ficha.nome_receita || "Ficha", ingredientes, preparo: String(ficha.modo_preparo || ""), natureza: "REAL" };
+}
+
+/** Dia da semana (id) de uma data: "seg", "ter"… */
+export function diaDaData(data = new Date()) {
+  const d = data instanceof Date ? data : new Date(`${data}T12:00:00`);
+  return ["dom", "seg", "ter", "qua", "qui", "sex", "sab"][d.getDay()];
+}
+
+/**
+ * Como montar o prato de cada pessoa no fim (dono, 22/11/2026): a porção de
+ * cada item por pessoa; o que é geral (salada) vai à parte.
+ */
+export function pratoDaPessoa(cardapio) {
+  const itens = (cardapio?.pratos || []).flatMap((p) => p.itens || []);
+  return itens.filter((i) => i.nome).map((i) => ({
+    nome: i.nome,
+    texto: i.modo === "geral" ? "à parte, para todos" : i.porcaoN > 0 ? `${i.porcaoN.toLocaleString("pt-BR")} ${MODOS_PORCAO.find((m) => m.id === i.modo)?.curto || "g"}` : "—",
+    geral: i.modo === "geral",
+  }));
+}
+
+/** A janta tem algo para servir neste dia? */
+export const temJantaNoDia = (janta, diaId) => (janta?.fixos || []).some((i) => i.nome || i.ficha_id) || (janta?.dias?.[diaId]?.pratos || []).some((p) => p.nome || (p.itens || []).length);

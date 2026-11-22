@@ -112,3 +112,34 @@ test("formato antigo (g_pessoa) continua valendo", () => {
   assert.deepEqual(normalizarItem({ nome: "Macarrão", g_pessoa: "120" }).porcao, "120");
   assert.equal(normalizarItem({ nome: "x", g_pessoa: "120" }).modo, "g");
 });
+
+test("janta do exemplo do dono (22/11/2026): por pessoa, geral, cru → pronto e o prato de cada um", async () => {
+  const { pratoDaPessoa, diaDaData, temJantaNoDia } = await import("./janta-funcionarios.mjs");
+  const j = normalizarJanta({
+    fixos: [
+      { nome: "Arroz branco", modo: "g", porcao: "200" },
+      { nome: "Salada", modo: "geral", geral: "½ pé de alface, 1 tomate em rodelas, 1 cebola em tiras" },
+    ],
+    dias: { seg: { pratos: [{ nome: "Almôndega ao molho com macarrão", itens: [
+      { nome: "Almôndega frita", modo: "un", porcao: "5" },
+      { nome: "Molho", modo: "ml", porcao: "150" },
+      { nome: "Macarrão", modo: "g", porcao: "200", rend_cozimento: "3" },
+    ] }] } },
+  });
+  const c = cardapioDoDia(j, "seg", { pessoas: 12 });
+  const itens = c.pratos.flatMap((p) => p.itens);
+  const por = Object.fromEntries(itens.map((i) => [i.nome, i]));
+  assert.equal(por["Arroz branco"].rotulo, "2,4 kg");
+  assert.equal(por["Salada"].rotulo, "½ pé de alface, 1 tomate em rodelas, 1 cebola em tiras"); // não multiplica
+  assert.equal(por["Almôndega frita"].rotulo, "60 un");
+  assert.equal(por["Molho"].rotulo, "1,8 L");
+  assert.equal(por["Macarrão"].rotulo, "2,4 kg");
+  assert.equal(por["Macarrão"].cru.rotulo, "800 g");   // 2,4 kg pronto ÷ 3
+  assert.equal(por["Arroz branco"].cru, null);         // sem rendimento de cozimento: não inventa
+  assert.deepEqual(pratoDaPessoa(c).map((x) => `${x.nome}: ${x.texto}`), [
+    "Arroz branco: 200 g", "Salada: à parte, para todos", "Almôndega frita: 5 un", "Molho: 150 ml", "Macarrão: 200 g",
+  ]);
+  assert.equal(diaDaData("2026-11-23"), "seg");
+  assert.equal(temJantaNoDia(j, "ter"), true); // os fixos valem todo dia
+  assert.equal(temJantaNoDia(normalizarJanta(null), "ter"), false);
+});

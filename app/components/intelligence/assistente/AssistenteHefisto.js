@@ -23,6 +23,9 @@ import { fetchComSessao } from "../../../lib/api-sessao";
 import { MAX_XML_BYTES, notaDoOcr, notaDoXml, reduzirImagem } from "./nota.mjs";
 import { MAX_PRINTS, cardapioDoOcr } from "../../../lib/marmitaria/concorrentes.mjs";
 import FolhaFicha from "../FolhaFicha";
+import ReceitaRapida from "../ReceitaRapida";
+import { PREFIXO as PREFIXO_RECEITA, respostaLocal } from "../../../lib/intelligence/local/receitas-locais.mjs";
+import { atualizarReceitas, lerReceitasGuardadas, precisaAtualizar } from "../../../lib/intelligence/local/receitas-cache";
 import ListaEtiquetas from "./ListaEtiquetas";
 import PlanoDeHoje from "./PlanoDeHoje";
 import ListaDeCompras from "./ListaDeCompras";
@@ -220,6 +223,7 @@ function Blocos({ blocos, onRota, onComando }) {
             </div>
           );
         }
+        if (b.tipo === "receita_rapida" && b.ficha) return <ReceitaRapida key={i} ficha={b.ficha} pedido={b.pedido} />;
         if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} onComando={onComando} />;
         if (b.tipo === "passos") return <PassosProcedimento key={i} bloco={b} onComando={onComando} />;
         if (b.tipo === "lista_compras" || b.tipo === "lista_compras_conferencia") return <ListaDeCompras key={i} bloco={b} />;
@@ -288,7 +292,7 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
     ];
     // com a folha do prato/drink, o cartaz já diz tudo: o texto longo fica só para a leitura em voz alta
     // idem para o procedimento da casa (os passos numerados já estão no bloco)
-    const temFolha = (x.blocos || []).some((b) => (b.tipo === "folha" && b.folha?.nome) || (b.tipo === "passos" && b.passos?.length));
+    const temFolha = (x.blocos || []).some((b) => (b.tipo === "receita_rapida" && b.ficha) || (b.tipo === "folha" && b.folha?.nome) || (b.tipo === "passos" && b.passos?.length));
     return (
       <div key={chave} className="space-y-1">
         <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao || temFolha || temEtiquetas}>
@@ -413,6 +417,18 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
   const carregou = useRef(false);
 
   useEffect(() => { setVozOk(voz.disponivel()); }, [voz]);
+
+  // Receita rápida (dono, 22/11/2026): as fichas ficam no aparelho e as
+  // perguntas de receita são respondidas aqui, na hora e sem internet.
+  const receitasRef = useRef(null);
+  useEffect(() => {
+    let vivo = true;
+    receitasRef.current = lerReceitasGuardadas(unidadeId);
+    if (precisaAtualizar(receitasRef.current)) {
+      atualizarReceitas(unidadeId).then((c) => { if (vivo && c) receitasRef.current = c; });
+    }
+    return () => { vivo = false; };
+  }, [unidadeId]);
   useEffect(() => () => { escutaRef.current?.parar(); voz.calar(); }, [voz]);
 
   // conversa da sessão do navegador (volta ao reabrir a tela)
@@ -467,8 +483,15 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
     // escolha de um botão aparece como o botão ("Recebimento"), não como o comando montado
     adicionar({ de: "eu", texto: exibir || limpo, canal });
     setRespondendo(null);
+    const local = respostaLocal(limpo, receitasRef.current);
+    if (local) { tratar(local, { canal }); return; }
+    if (limpo.startsWith(PREFIXO_RECEITA)) {
+      tratar({ tipo: "erro_acao", texto: "As receitas deste aparelho estão sendo atualizadas. Toque de novo em alguns segundos." }, { canal });
+      atualizarReceitas(unidadeId).then((c) => { if (c) receitasRef.current = c; });
+      return;
+    }
     await executar(() => perguntarAoHefisto(unidadeId, { texto: limpo, chave: novaChaveDeEnvio(), canal, tela: TELA, conversa: referenciaRef.current }), "Não consegui responder agora.", { canal });
-  }, [adicionar, executar, unidadeId, TELA]);
+  }, [adicionar, executar, tratar, unidadeId, TELA]);
 
   const continuar = useCallback(async (pergunta, valor, rotulo = null, { canal = "texto" } = {}) => {
     if (ocupadoRef.current) return;

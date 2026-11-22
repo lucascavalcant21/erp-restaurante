@@ -7,7 +7,7 @@
 
 import { supabase } from "../../supabase";
 
-const VERSAO = 1;
+const VERSAO = 2; // 2: guarda também a janta da equipe (22/11/2026)
 const VALIDADE_MS = 10 * 60 * 1000; // atualiza em segundo plano depois de 10 min
 const chave = (u) => `hefisto:receitas:v${VERSAO}:${u || "-"}`;
 const LOTE = 150;
@@ -74,8 +74,15 @@ export async function atualizarReceitas(unidadeId) {
     for (const e of [...etapas].sort((a, b) => Number(a.ordem) - Number(b.ordem))) {
       etapasDe.set(e.ficha_id, [...(etapasDe.get(e.ficha_id) || []), { titulo: e.titulo || null, instrucao: e.instrucao || "" }]);
     }
+    // Janta da equipe (config_sistema.params.janta_funcionarios): para "janta" responder sem internet.
+    let janta = null;
+    try {
+      const { data: cfg } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+      const j = cfg?.[0]?.params?.janta_funcionarios;
+      janta = j && typeof j === "object" ? j : null;
+    } catch { janta = null; }
     const dados = {
-      versao: VERSAO, em: Date.now(), unidadeId,
+      versao: VERSAO, em: Date.now(), unidadeId, janta,
       fichas: ativas.map((f) => ({
         id: f.id,
         nome: String(f.nome_receita || f.nome_comercial).trim(),

@@ -26,6 +26,7 @@ import { precoPorMarkup } from "../../lib/marmitaria/dia.mjs";
 import { definirDisponibilidade, salvarPrecoNoCanal } from "../../lib/marmitaria/dados";
 import { useCardapio } from "./useCardapio";
 import ModeloDaLoja from "./ModeloDaLoja";
+import ImprimirPrecificacao from "./ImprimirPrecificacao";
 import { salvarCombosMarmitaria, salvarOfertasMarmitaria } from "../../lib/parametros";
 
 const chip = (ativo) => `h-10 rounded-xl border px-3 text-sm font-bold transition ${ativo ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border bg-hf-surface text-hf-text-2 hover:bg-hf-elevated"}`;
@@ -75,6 +76,7 @@ export default function CombosPromocoes({ onEditar, abaInicial, modo = "precific
         <div className="bg-gradient-to-br from-hf-accent/15 via-hf-accent/5 to-transparent p-4 sm:p-5">
           <p className="text-xs font-black uppercase tracking-wider text-hf-accent">{modo === "combos" ? "Combos e descontos" : "Precificação"}</p>
           <h2 className="mt-0.5 text-lg font-black text-hf-text sm:text-xl">{modo === "combos" ? "Junte marmita, bebida e sobremesa e dê descontos vendo o lucro" : "O preço de cada produto e o que sobra em cada venda"}</h2>
+          {modo === "precificacao" && <div className="mt-3"><ImprimirPrecificacao canais={canais} porCanal={porCanal} custos={custos} embutidos={embutidos} metaPct={metaPct} /></div>}
           {modo === "combos" && <div className="mt-3 grid grid-cols-2 gap-2">
             {[["Combos", qtd.combos, "combos"], ["Descontos", qtd.promocoes, "promocoes"]].map(([rot, n, id]) => (
               <button key={id} type="button" onClick={() => setAba(id)} className="rounded-2xl bg-hf-surface/90 p-3 text-left shadow-sm ring-1 ring-hf-border transition hover:ring-hf-accent">

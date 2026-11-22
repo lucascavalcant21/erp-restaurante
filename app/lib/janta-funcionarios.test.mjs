@@ -143,3 +143,19 @@ test("janta do exemplo do dono (22/11/2026): por pessoa, geral, cru → pronto e
   assert.equal(temJantaNoDia(j, "ter"), true); // os fixos valem todo dia
   assert.equal(temJantaNoDia(normalizarJanta(null), "ter"), false);
 });
+
+test("repetir o dia: copia os pratos, mantém as pessoas e avisa o que substituiu", async () => {
+  const { repetirDia, normalizarJanta } = await import("./janta-funcionarios.mjs");
+  const janta = normalizarJanta({ dias: {
+    seg: { pessoas: "8", pratos: [{ id: "p1", nome: "Almôndegas ao molho", preparo: "Frite", itens: [{ id: "i1", nome: "Almôndega", modo: "un", porcao: "5" }] }] },
+    ter: { pessoas: "6", pratos: [{ id: "p2", nome: "Frango", itens: [] }] },
+  } });
+  const { janta: j, substituidos } = repetirDia(janta, "seg", ["ter", "qua", "seg"]);
+  assert.deepEqual(substituidos, ["ter"]);
+  assert.equal(j.dias.qua.pratos[0].nome, "Almôndegas ao molho");
+  assert.equal(j.dias.qua.pratos[0].itens[0].porcao, "5");
+  assert.notEqual(j.dias.qua.pratos[0].id, "p1");               // id novo: editar um não mexe no outro
+  assert.notEqual(j.dias.qua.pratos[0].itens[0].id, j.dias.ter.pratos[0].itens[0].id);
+  assert.equal(j.dias.ter.pessoas, "6");                          // pessoas do dia ficam
+  assert.equal(j.dias.seg.pratos[0].id, "p1");                    // o dia de origem não muda
+});

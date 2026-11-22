@@ -76,7 +76,7 @@ export function cascataDoPreco({ r, custo = {}, descontoApp = 0 }) {
     r.tributos > 0 && { id: "impostos", rotulo: "Impostos", valor: -r.tributos },
     { id: "repasse", rotulo: "Chega para você (repasse)", valor: r2(r.receita - r.tributos - r.variaveis), tipo: "total" },
     { id: "ingredientes", rotulo: "Ingredientes", valor: ingredientes == null ? null : -ingredientes },
-    embalagens > 0 && { id: "embalagens", rotulo: "Embalagem e sacola", valor: -embalagens },
+    embalagens > 0 && { id: "embalagens", rotulo: "Embalagens", valor: -embalagens },
     { id: "contribuicao", rotulo: "Margem de contribuição", valor: r.margemContribuicao, tipo: "total" },
     r.cmo > 0 && { id: "equipe", rotulo: "Equipe (rateio por marmita)", valor: -r2(r.cmo) },
     proLabore > 0 && { id: "prolabore", rotulo: "Pró-labore (rateio por marmita)", valor: -proLabore },

@@ -11,11 +11,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Loader2, Minus, Plus, Printer, Save, Trash2, UtensilsCrossed, Pin, BookOpen } from "lucide-react";
+import { ArrowLeft, ChevronDown, Copy, ExternalLink, Loader2, Minus, Plus, Printer, Save, Trash2, UtensilsCrossed, Pin, BookOpen } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, fetchFichas } from "../../../lib/operacao";
 import { fetchJantaFuncionarios, salvarJantaFuncionarios } from "../../../lib/parametros";
-import { DIAS_SEMANA, MODOS_PORCAO, normalizarJanta, cardapioDoDia, novoIdJanta, pessoasDoDia, normalizarItem, pratoDaPessoa } from "../../../lib/janta-funcionarios.mjs";
+import { DIAS_SEMANA, MODOS_PORCAO, normalizarJanta, cardapioDoDia, novoIdJanta, pessoasDoDia, normalizarItem, pratoDaPessoa, repetirDia } from "../../../lib/janta-funcionarios.mjs";
 import { casaBusca } from "../../../lib/busca.mjs";
 
 const brl = (v) => (v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
@@ -98,6 +98,11 @@ function LinhaItem({ i, calc, insumos, fichas, onMudar, onTirar }) {
         <option value="">Sem ficha técnica (só a quantidade)</option>
         {fichas.map((f) => <option key={f.id} value={f.id}>Receita: {f.nome_receita}</option>)}
       </select>
+      {i.ficha_id && (
+        <Link href={`/dashboard/operacao/fichas/${i.ficha_id}`} className="mt-1.5 inline-flex min-h-[40px] items-center gap-1.5 text-[13px] font-bold text-hf-accent">
+          <ExternalLink size={14} /> Ver ou editar esta receita
+        </Link>
+      )}
       {i.modo === "g" && !i.ficha_id && (
         <label className="mt-2 flex items-center gap-2 text-[12px] font-semibold text-hf-text-2">
           1 g cru vira
@@ -110,6 +115,48 @@ function LinhaItem({ i, calc, insumos, fichas, onMudar, onTirar }) {
         {calc?.receita?.status === "ok" ? ` · ${calc.receita.rotuloFator}` : calc?.receita?.status === "insuficiente" ? ` · ${calc.receita.motivo}` : ""}
         {calc?.custo != null ? ` · ${brl(calc.custo)}` : ""}
       </p>
+    </div>
+  );
+}
+
+/** Repetir o cardápio do dia em outros dias (dono, 22/11/2026). */
+function RepetirDia({ dia, rotDia, janta, onRepetir }) {
+  const [aberto, setAberto] = useState(false);
+  const [para, setPara] = useState([]);
+  const outros = DIAS_SEMANA.filter((d) => d.id !== dia);
+  const temPrato = (id) => (janta.dias[id]?.pratos || []).some((p) => p.nome || (p.itens || []).length);
+  const vaiTrocar = para.filter(temPrato).map((id) => DIAS_SEMANA.find((d) => d.id === id)?.rotulo);
+  const semPrato = !(janta.dias[dia]?.pratos || []).length;
+  if (!aberto) {
+    return (
+      <button type="button" disabled={semPrato} onClick={() => { setAberto(true); setPara([]); }}
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-hf-border bg-hf-surface text-sm font-black text-hf-text disabled:opacity-40">
+        <Copy size={16} /> Repetir o cardápio da {rotDia} em outros dias
+      </button>
+    );
+  }
+  const todos = para.length === outros.length;
+  return (
+    <div className="rounded-3xl border border-hf-border bg-hf-surface p-4">
+      <p className="text-sm font-black text-hf-text">Repetir o cardápio da {rotDia} em:</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button type="button" onClick={() => setPara(todos ? [] : outros.map((d) => d.id))} aria-pressed={todos}
+          className={`min-h-[44px] rounded-full px-4 text-sm font-bold ${todos ? "bg-hf-menu text-white" : "border border-hf-border text-hf-text-2"}`}>Todos os dias</button>
+        {outros.map((d) => {
+          const ativo = para.includes(d.id);
+          return (
+            <button key={d.id} type="button" aria-pressed={ativo} onClick={() => setPara(ativo ? para.filter((x) => x !== d.id) : [...para, d.id])}
+              className={`min-h-[44px] rounded-full px-4 text-sm font-bold ${ativo ? "bg-hf-menu text-white" : "border border-hf-border text-hf-text-2"}`}>{d.rotulo}</button>
+          );
+        })}
+      </div>
+      {vaiTrocar.length > 0 && <p className="mt-2 text-[13px] font-semibold text-hf-warning">Vai substituir o cardápio de: {vaiTrocar.join(", ")}.</p>}
+      <p className="mt-2 text-[12px] text-hf-muted">O número de pessoas de cada dia não muda. A semana já se repete sozinha toda semana.</p>
+      <div className="mt-3 flex gap-2">
+        <button type="button" onClick={() => setAberto(false)} className="h-11 flex-1 rounded-full border border-hf-border text-sm font-bold text-hf-text-2">Cancelar</button>
+        <button type="button" disabled={!para.length} onClick={() => { onRepetir(para); setAberto(false); }}
+          className="h-11 flex-1 rounded-full bg-hf-menu text-sm font-black text-white disabled:opacity-40">{vaiTrocar.length ? "Repetir e substituir" : "Repetir"}</button>
+      </div>
     </div>
   );
 }
@@ -324,6 +371,8 @@ export default function JantaFuncionarios() {
           className="flex h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-dashed border-hf-border text-sm font-black text-hf-text-2 hover:border-hf-accent hover:text-hf-accent">
           <Plus size={16} /> Adicionar prato na {rotDia}
         </button>
+        <RepetirDia dia={dia} rotDia={rotDia} janta={janta}
+          onRepetir={(para) => { const r = repetirDia(janta, dia, para); setJanta(r.janta); setMudou(true); setAviso(`Cardápio da ${rotDia} repetido. Toque em Salvar.`); setTimeout(() => setAviso(""), 4000); }} />
       </div>
       </>)}
         </section>

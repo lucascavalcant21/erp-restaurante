@@ -254,3 +254,25 @@ export function pratoDaPessoa(cardapio) {
 
 /** A janta tem algo para servir neste dia? */
 export const temJantaNoDia = (janta, diaId) => (janta?.fixos || []).some((i) => i.nome || i.ficha_id) || (janta?.dias?.[diaId]?.pratos || []).some((p) => p.nome || (p.itens || []).length);
+
+/**
+ * Repetir o cardápio de um dia em outros dias (dono, 22/11/2026: "repetir o
+ * dia"). Copia os pratos, os itens e o preparo com ids novos; o número de
+ * pessoas de cada dia não muda. A semana já se repete sozinha toda semana.
+ * @returns {{ janta, substituidos: string[] }} os dias que tinham prato e foram trocados
+ */
+export function repetirDia(janta, de, para = []) {
+  const j = normalizarJanta(janta);
+  const origem = j.dias[de];
+  if (!origem) return { janta: j, substituidos: [] };
+  const substituidos = [];
+  for (const alvo of para) {
+    if (alvo === de || !j.dias[alvo]) continue;
+    if ((j.dias[alvo].pratos || []).some((p) => p.nome || (p.itens || []).length)) substituidos.push(alvo);
+    j.dias[alvo] = {
+      ...j.dias[alvo],
+      pratos: origem.pratos.map((p) => ({ ...p, id: novoIdJanta("p"), itens: (p.itens || []).map((i) => ({ ...i, id: novoIdJanta("i") })) })),
+    };
+  }
+  return { janta: j, substituidos };
+}

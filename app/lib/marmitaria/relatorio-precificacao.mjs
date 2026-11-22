@@ -17,7 +17,20 @@ const temNumero = (v) => v !== null && v !== undefined && Number.isFinite(Number
 export const brl = (v) => (temNumero(v) ? Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—");
 export const pct = (v, dec = 1) => (temNumero(v) ? `${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec })}%` : "—");
 const markupTxt = (m) => (temNumero(m) ? `${((Number(m) - 1) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%` : "—");
-const qtdTxt = (q, un) => (temNumero(q) ? `${Number(q).toLocaleString("pt-BR", { maximumFractionDigits: 3 })}${un ? ` ${un}` : ""}` : "—");
+/**
+ * Quantidade da ficha em gramas (dono, 22/11/2026: "deixe tudo em gramas"):
+ * kg vira g e litro vira ml; unidade, porção e outras ficam como estão.
+ */
+export function qtdTxt(q, un) {
+  if (!temNumero(q)) return "—";
+  const u = String(un || "").trim().toLowerCase();
+  const fmt = (v, d = 0) => Number(v).toLocaleString("pt-BR", { maximumFractionDigits: d });
+  if (["kg", "quilo", "quilos"].includes(u)) return `${fmt(Number(q) * 1000, 1)} g`;
+  if (["g", "gr", "grama", "gramas"].includes(u)) return `${fmt(q, 1)} g`;
+  if (["l", "lt", "litro", "litros"].includes(u)) return `${fmt(Number(q) * 1000, 1)} ml`;
+  if (u === "ml") return `${fmt(q, 1)} ml`;
+  return `${fmt(q, 3)}${un ? ` ${un}` : ""}`;
+}
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 export const SECOES_RELATORIO = Object.freeze([
@@ -25,6 +38,8 @@ export const SECOES_RELATORIO = Object.freeze([
   Object.freeze({ id: "combos", nome: "Combos" }),
   Object.freeze({ id: "promocoes", nome: "Promoções" }),
 ]);
+
+const TIPO_DA_FICHA = { marmitas: "Prato", combos: "Combo", promocoes: "Promoção" };
 
 /** Quais apps entram: "todos" ou a lista escolhida (na ordem do cadastro). */
 export function canaisDoRelatorio(canais = [], escolhidos = "todos") {
@@ -93,48 +108,49 @@ export function montarRelatorio({ canais = [], escolhidos = "todos", secoes = ["
 }
 
 const CSS = `
-@page { size: A4; margin: 12mm 11mm 14mm; }
+@page { size: A4; margin: 9mm 9mm 10mm; }
 * { box-sizing: border-box; }
-body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #111; font-size: 10.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-h1 { font-size: 20pt; margin: 0; letter-spacing: -0.3px; }
-h2 { font-size: 13pt; margin: 14px 0 6px; padding-bottom: 4px; border-bottom: 2px solid #111; text-transform: uppercase; letter-spacing: .4px; }
-.topo { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; border-bottom: 4px solid #DC2626; padding-bottom: 8px; }
-.topo .sub { color: #444; margin-top: 3px; }
-.topo .dir { text-align: right; font-size: 9.5pt; color: #444; }
-.chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px; }
-.chip { border: 1px solid #111; border-radius: 99px; padding: 2px 9px; font-size: 9pt; font-weight: bold; }
-.nota { font-size: 8.5pt; color: #555; margin: 6px 0 0; }
-.caixa { border: 1px solid #ccc; border-radius: 8px; padding: 8px 10px; margin-top: 8px; font-size: 9.5pt; }
-.caixa b { color: #111; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #111; font-size: 9.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+h1 { font-size: 17pt; margin: 0; letter-spacing: -0.3px; }
+h2 { font-size: 11pt; margin: 8px 0 4px; padding-bottom: 3px; border-bottom: 2px solid #111; text-transform: uppercase; letter-spacing: .4px; }
+.topo { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; border-bottom: 4px solid #DC2626; padding-bottom: 6px; }
+.topo .sub { color: #444; margin-top: 2px; font-size: 9pt; }
+.topo .dir { text-align: right; font-size: 8.5pt; color: #444; }
+.chips { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { border: 1px solid #111; border-radius: 99px; padding: 1px 8px; font-size: 8.5pt; font-weight: bold; }
+.caixa { border: 1px solid #ccc; border-radius: 7px; padding: 5px 8px; margin-top: 6px; font-size: 8.5pt; }
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 4px 6px; border-bottom: 1px solid #e3e3e3; text-align: right; vertical-align: top; }
+th, td { padding: 2px 5px; border-bottom: 1px solid #e6e6e6; text-align: right; vertical-align: top; }
 th:first-child, td:first-child { text-align: left; }
-thead th { background: #111; color: #fff; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .3px; }
-.resumo td { font-size: 9.5pt; }
-.resumo .neg, .neg { color: #B91C1C; font-weight: bold; }
-.sec-ini { break-inside: avoid; page-break-inside: avoid; }
-.prato { border: 1px solid #bbb; border-radius: 10px; padding: 10px; margin: 10px 0; break-inside: avoid; page-break-inside: avoid; }
-.prato-topo { display: flex; gap: 10px; align-items: flex-start; }
-.prato-topo img { width: 74px; height: 74px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
-.prato h3 { margin: 0; font-size: 13pt; }
-.prato .meta { color: #555; font-size: 9pt; margin-top: 2px; }
-.cod { display: inline-block; background: #DC2626; color: #fff; font-size: 8pt; font-weight: bold; border-radius: 4px; padding: 1px 5px; margin-right: 6px; }
-.selo { display: inline-block; font-size: 8pt; font-weight: bold; border-radius: 99px; padding: 1px 7px; background: #eee; margin-left: 6px; }
+thead th { background: #111; color: #fff; font-size: 7.8pt; text-transform: uppercase; letter-spacing: .3px; }
+.resumo td { font-size: 8.8pt; white-space: nowrap; }
+.resumo td:first-child { white-space: normal; }
+.neg { color: #B91C1C; font-weight: bold; }
+.prato { border: 1px solid #bbb; border-radius: 8px; padding: 6px 7px; margin: 5px 0 6px; break-inside: avoid; page-break-inside: avoid; }
+.prato-topo { display: flex; gap: 8px; align-items: center; }
+.prato-topo img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+.prato h3 { margin: 0; font-size: 11pt; }
+.prato .meta { color: #555; font-size: 8pt; margin: 1px 0 0; }
+.cod { display: inline-block; background: #DC2626; color: #fff; font-size: 7.5pt; font-weight: bold; border-radius: 4px; padding: 0 4px; margin-right: 5px; vertical-align: 1px; }
+.tipo { display: inline-block; border: 1px solid #999; color: #444; font-size: 7pt; font-weight: bold; border-radius: 4px; padding: 0 4px; margin-right: 5px; text-transform: uppercase; vertical-align: 1px; }
+.selo { display: inline-block; font-size: 7.5pt; font-weight: bold; border-radius: 99px; padding: 0 6px; background: #eee; margin-left: 5px; vertical-align: 1px; }
 .selo.ok { background: #DCFCE7; color: #166534; } .selo.baixo { background: #FEF3C7; color: #92400E; } .selo.prejuizo { background: #FEE2E2; color: #991B1B; }
-.dois { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
-.mini th { background: #f1f1f1; color: #111; }
-.mini td, .mini th { font-size: 8.8pt; padding: 3px 5px; }
-.conta { margin-top: 8px; }
-.conta td, .conta th { font-size: 9pt; }
-.conta tr.total td { font-weight: bold; background: #f5f5f5; }
-.conta tr.final td { font-weight: bold; background: #111; color: #fff; font-size: 10pt; }
+.dois { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; }
+.mini th { background: #efefef; color: #111; }
+.mini td, .mini th { font-size: 7.8pt; padding: 1px 4px; }
+.conta { margin-top: 5px; }
+.conta td, .conta th { font-size: 8.2pt; white-space: nowrap; }
+.conta td:first-child { white-space: normal; }
+.conta tr.total td { font-weight: bold; background: #f4f4f4; }
+.conta tr.final td { font-weight: bold; background: #111; color: #fff; font-size: 9pt; }
 .conta tr.final td.neg { color: #FCA5A5; }
-.conta tr.sub td { color: #555; font-size: 8.3pt; }
-.conta tr.sub td:first-child { padding-left: 16px; }
-.pct { color: #666; font-size: 8pt; display: block; }
-.conta tr.final .pct { color: #ddd; }
-.falta { color: #92400E; font-size: 8.5pt; }
-.rodape { margin-top: 14px; font-size: 8pt; color: #666; border-top: 1px solid #ddd; padding-top: 6px; }
+.conta tr.sub td { color: #555; font-size: 7.4pt; padding-top: 0; padding-bottom: 0; }
+.conta tr.sub td:first-child { padding-left: 14px; }
+.pct { color: #777; font-size: 7pt; margin-left: 3px; font-weight: normal; }
+.conta tr.final .pct { color: #ccc; }
+.pct-b { display: block; color: #777; font-size: 7pt; }
+.falta { color: #92400E; font-size: 7.8pt; margin: 2px 0 0; }
+.rodape { margin-top: 8px; font-size: 7.5pt; color: #666; border-top: 1px solid #ddd; padding-top: 4px; }
 `;
 
 function tabelaDaConta(item) {
@@ -193,10 +209,10 @@ function blocoDoPrato(item) {
     <div class="prato-topo">
       ${item.imagem ? `<img src="${esc(item.imagem)}" alt="">` : ""}
       <div style="flex:1;min-width:0">
-        <h3>${item.codigo ? `<span class="cod">${esc(item.codigo)}</span>` : ""}${esc(item.nome)}${a0?.veredito ? `<span class="selo ${esc(a0.vereditoId)}">${esc(a0.veredito)}</span>` : ""}</h3>
+        <h3><span class="tipo">${esc(TIPO_DA_FICHA[item.secao] || "")}</span>${item.codigo ? `<span class="cod">${esc(item.codigo)}</span>` : ""}${esc(item.nome)}${a0?.veredito ? `<span class="selo ${esc(a0.vereditoId)}">${esc(a0.veredito)}</span>` : ""}</h3>
         <p class="meta">${[item.rotulo && item.secao !== "marmitas" ? item.rotulo : "", item.categoria, item.itensDoCombo.length ? "" : item.descricao].filter(Boolean).map(esc).join(" · ")}</p>
         ${combo}
-        <p class="meta">${item.porApp.map((a) => `<b>${esc(a.canal)}</b>: ${a.semPreco ? "sem preço" : `${brl(a.preco)} · CMV ${pct(a.cmvPct)} · markup ${markupTxt(a.markup)} · lucro ${brl(a.lucro)} (${pct(a.lucroPct)})`}`).join("<br>")}</p>
+        <p class="meta">${item.porApp.filter((a) => !a.semPreco).map((a) => `<b>${esc(a.canal)}</b> CMV ${pct(a.cmvPct)} · markup ${markupTxt(a.markup)}`).join(" &nbsp;·&nbsp; ")}</p>
       </div>
     </div>
     ${fichaHtml}
@@ -208,15 +224,14 @@ function blocoDoPrato(item) {
 export function htmlDoRelatorio(rel, { empresa = "", data = "", rotuloLucro = "Lucro", meta = "" } = {}) {
   const apps = rel.apps;
   const resumo = rel.itens.length ? `<table class="resumo"><thead><tr><th>Produto</th>${apps.map((a) => `<th>${esc(a.nome)}<br>preço · lucro</th>`).join("")}</tr></thead><tbody>
-    ${rel.itens.map((it) => `<tr><td>${it.codigo ? `<span class="cod">${esc(it.codigo)}</span>` : ""}${esc(it.nome)}</td>${it.porApp.map((a) => a.semPreco ? "<td>sem preço</td>" : `<td>${brl(a.preco)} · <span class="${a.lucro != null && a.lucro < 0 ? "neg" : ""}">${brl(a.lucro)}</span><span class="pct">${pct(a.lucroPct)} de lucro</span></td>`).join("")}</tr>`).join("")}
+    ${rel.itens.map((it) => `<tr><td>${it.codigo ? `<span class="cod">${esc(it.codigo)}</span>` : ""}${esc(it.nome)}</td>${it.porApp.map((a) => a.semPreco ? "<td>sem preço</td>" : `<td>${brl(a.preco)} · <span class="${a.lucro != null && a.lucro < 0 ? "neg" : ""}">${brl(a.lucro)}</span><span class="pct-b">${pct(a.lucroPct)} de lucro</span></td>`).join("")}</tr>`).join("")}
   </tbody></table>` : `<p>Nenhum produto nas seções escolhidas.</p>`;
   const r = rel.rateio;
   const rateio = r ? `<div class="caixa"><b>Em cada marmita (estimativa pelo mês):</b> equipe ${brl(r.cmoPorMarmita)} · custos fixos ${brl(r.fixosPorMarmita)}${r.proLaborePorMarmita ? ` (pró-labore ${brl(r.proLaborePorMarmita)})` : ""}${r.marmitasMes ? ` · base de ${Number(r.marmitasMes).toLocaleString("pt-BR")} marmitas no mês` : ""}.${r.completo ? "" : ` <span class="falta">Ainda não entra por completo: falta ${r.faltando.map(esc).join(", ")}. Por isso o resultado aparece como "${esc(rotuloLucro)}".</span>`}</div>` : "";
-  const porSecao = SECOES_RELATORIO.map((s) => {
-    const lista = rel.itens.filter((i) => i.secao === s.id);
-    // O título vai junto com o primeiro produto, para não ficar sozinho no fim da página.
-    return lista.length ? `<div class="sec-ini"><h2>${s.nome}</h2>${blocoDoPrato(lista[0])}</div>${lista.slice(1).map(blocoDoPrato).join("")}` : "";
-  }).join("");
+  // Fichas em sequência, duas por página (dono, 22/11/2026: "encaixa duas
+  // fichas em uma página, não deixa página com sobra"): cada ficha é compacta
+  // e não quebra no meio; o tipo (prato, combo, promoção) vai na própria ficha.
+  const porSecao = `<h2>Fichas</h2>${rel.itens.map(blocoDoPrato).join("")}`;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Precificação do delivery${empresa ? ` · ${esc(empresa)}` : ""}</title><style>${CSS}</style></head><body>
   <header class="topo">
     <div><h1>Precificação do delivery</h1><p class="sub">Do preço de cada produto até o que sobra de lucro, em cada app.</p></div>

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { cardapioDeVendas } from "./promocoes.mjs";
-import { canaisDoRelatorio, htmlDoRelatorio, montarRelatorio } from "./relatorio-precificacao.mjs";
+import { canaisDoRelatorio, htmlDoRelatorio, montarRelatorio, qtdTxt } from "./relatorio-precificacao.mjs";
 
 const IFOOD = { id: "ifood", nome: "iFood", comissao_pct: 12, taxa_pagamento_pct: 3.2, ativo: true };
 const BALCAO = { id: "balcao", nome: "Balcão", comissao_pct: 0, taxa_pagamento_pct: 0, ativo: true };
@@ -59,6 +59,7 @@ test("sem preço num app: diz que falta, não inventa", () => {
   assert.match(html, /sem preço/);
   assert.match(html, /Precificação do delivery/);
   assert.match(html, /Peito de frango/);
+  assert.match(html, /180 g/);
   assert.match(html, /Do preço ao lucro/);
   assert.match(html, /<th>iFood<br>preço · lucro<\/th>/);
   assert.doesNotMatch(html, /NaN|undefined/);
@@ -69,4 +70,13 @@ test("escapa texto vindo do cadastro", () => {
   porCanal.forEach((v) => { v.linhas[0].nome = "<script>x</script>"; });
   const html = htmlDoRelatorio(montarRelatorio({ canais: CANAIS, porCanal, custos: CUSTOS }));
   assert.doesNotMatch(html, /<script>x/);
+});
+
+test("quantidades em gramas (e ml)", () => {
+  assert.equal(qtdTxt(0.18, "kg"), "180 g");
+  assert.equal(qtdTxt(0.0255, "kg"), "25,5 g");
+  assert.equal(qtdTxt(120, "g"), "120 g");
+  assert.equal(qtdTxt(0.02, "l"), "20 ml");
+  assert.equal(qtdTxt(2, "un"), "2 un");
+  assert.equal(qtdTxt(null, "kg"), "—");
 });

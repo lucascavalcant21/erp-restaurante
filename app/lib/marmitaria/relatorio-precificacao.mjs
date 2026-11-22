@@ -124,6 +124,10 @@ th, td { padding: 2px 5px; border-bottom: 1px solid #e6e6e6; text-align: right; 
 th:first-child, td:first-child { text-align: left; }
 thead th { background: #111; color: #fff; font-size: 7.8pt; text-transform: uppercase; letter-spacing: .3px; }
 .resumo td { font-size: 8.8pt; white-space: nowrap; }
+.resumo th.app { text-align: center; border-left: 2px solid #fff; }
+.resumo tr.sub-cab th { background: #444; font-size: 7.2pt; }
+.resumo tr.sub-cab th:nth-child(3n+1), .resumo td.ini { border-left: 2px solid #ddd; }
+.resumo td.forte { font-weight: bold; }
 .resumo td:first-child { white-space: normal; }
 .neg { color: #B91C1C; font-weight: bold; }
 .prato { border: 1px solid #bbb; border-radius: 8px; padding: 6px 7px; margin: 5px 0 6px; break-inside: avoid; page-break-inside: avoid; }
@@ -223,8 +227,15 @@ function blocoDoPrato(item) {
 /** HTML pronto para imprimir (A4). O navegador oferece "Salvar como PDF". */
 export function htmlDoRelatorio(rel, { empresa = "", data = "", rotuloLucro = "Lucro", meta = "" } = {}) {
   const apps = rel.apps;
-  const resumo = rel.itens.length ? `<table class="resumo"><thead><tr><th>Produto</th>${apps.map((a) => `<th>${esc(a.nome)}<br>preço · lucro</th>`).join("")}</tr></thead><tbody>
-    ${rel.itens.map((it) => `<tr><td>${it.codigo ? `<span class="cod">${esc(it.codigo)}</span>` : ""}${esc(it.nome)}</td>${it.porApp.map((a) => a.semPreco ? "<td>sem preço</td>" : `<td>${brl(a.preco)} · <span class="${a.lucro != null && a.lucro < 0 ? "neg" : ""}">${brl(a.lucro)}</span><span class="pct-b">${pct(a.lucroPct)} de lucro</span></td>`).join("")}</tr>`).join("")}
+  // Resumo em colunas (dono, 22/11/2026: "não quero dividido por ponto, e sim
+  // como uma coluna"): para cada app, Preço | Lucro | % de lucro.
+  const resumo = rel.itens.length ? `<table class="resumo"><thead>
+    <tr><th rowspan="2">Produto</th>${apps.map((a) => `<th colspan="3" class="app">${esc(a.nome)}</th>`).join("")}</tr>
+    <tr class="sub-cab">${apps.map(() => "<th>Preço</th><th>Lucro</th><th>%</th>").join("")}</tr>
+  </thead><tbody>
+    ${rel.itens.map((it) => `<tr><td>${it.codigo ? `<span class="cod">${esc(it.codigo)}</span>` : ""}${esc(it.nome)}</td>${it.porApp.map((a) => a.semPreco
+      ? `<td class="ini" colspan="3">sem preço</td>`
+      : `<td class="ini">${brl(a.preco)}</td><td class="${a.lucro != null && a.lucro < 0 ? "neg" : "forte"}">${brl(a.lucro)}</td><td>${pct(a.lucroPct)}</td>`).join("")}</tr>`).join("")}
   </tbody></table>` : `<p>Nenhum produto nas seções escolhidas.</p>`;
   const r = rel.rateio;
   const rateio = r ? `<div class="caixa"><b>Em cada marmita (estimativa pelo mês):</b> equipe ${brl(r.cmoPorMarmita)} · custos fixos ${brl(r.fixosPorMarmita)}${r.proLaborePorMarmita ? ` (pró-labore ${brl(r.proLaborePorMarmita)})` : ""}${r.marmitasMes ? ` · base de ${Number(r.marmitasMes).toLocaleString("pt-BR")} marmitas no mês` : ""}.${r.completo ? "" : ` <span class="falta">Ainda não entra por completo: falta ${r.faltando.map(esc).join(", ")}. Por isso o resultado aparece como "${esc(rotuloLucro)}".</span>`}</div>` : "";

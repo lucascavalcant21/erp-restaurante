@@ -61,7 +61,8 @@ test("sem preço num app: diz que falta, não inventa", () => {
   assert.match(html, /Peito de frango/);
   assert.match(html, /180 g/);
   assert.match(html, /Do preço ao lucro/);
-  assert.match(html, /<th>iFood<br>preço · lucro<\/th>/);
+  assert.match(html, /<th colspan="3" class="app">iFood<\/th>/);
+  assert.match(html, /<th>Preço<\/th><th>Lucro<\/th><th>%<\/th>/);
   assert.doesNotMatch(html, /NaN|undefined/);
 });
 

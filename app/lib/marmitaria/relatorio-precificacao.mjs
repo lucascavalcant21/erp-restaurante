@@ -10,6 +10,7 @@
 // relatório diz o que falta, nunca inventa valor.
 
 import { cascataDoPreco } from "./precificacao.mjs";
+import { grupoDaCategoria } from "./cardapio.mjs";
 
 const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
 const temNumero = (v) => v !== null && v !== undefined && Number.isFinite(Number(v));
@@ -33,13 +34,28 @@ export function qtdTxt(q, un) {
 }
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+// O que pode entrar (dono, 22/11/2026: "também deve ter a precificação de
+// bebidas e de sobremesas, se houver"). Os itens avulsos do cardápio são
+// separados pela categoria da ficha técnica.
 export const SECOES_RELATORIO = Object.freeze([
-  Object.freeze({ id: "marmitas", nome: "Pratos" }),
-  Object.freeze({ id: "combos", nome: "Combos" }),
-  Object.freeze({ id: "promocoes", nome: "Promoções" }),
+  Object.freeze({ id: "pratos", nome: "Pratos", tipo: "Prato" }),
+  Object.freeze({ id: "bebidas", nome: "Bebidas", tipo: "Bebida" }),
+  Object.freeze({ id: "sobremesas", nome: "Sobremesas", tipo: "Sobremesa" }),
+  Object.freeze({ id: "combos", nome: "Combos", tipo: "Combo" }),
+  Object.freeze({ id: "promocoes", nome: "Promoções", tipo: "Promoção" }),
 ]);
 
-const TIPO_DA_FICHA = { marmitas: "Prato", combos: "Combo", promocoes: "Promoção" };
+/** Seção do relatório de uma linha do cardápio. */
+export function secaoDoItem(linha) {
+  if (linha?.secao === "combos" || linha?.secao === "promocoes") return linha.secao;
+  return { marmita: "pratos", bebida: "bebidas", sobremesa: "sobremesas" }[grupoDaCategoria(linha?.categoria || "")] || "pratos";
+}
+
+/** Só as seções que têm algum item (para oferecer na hora de imprimir). */
+export function secoesComItens(linhas = []) {
+  const tem = new Set(linhas.map(secaoDoItem));
+  return SECOES_RELATORIO.filter((s) => tem.has(s.id));
+}
 
 /** Quais apps entram: "todos" ou a lista escolhida (na ordem do cadastro). */
 export function canaisDoRelatorio(canais = [], escolhidos = "todos") {
@@ -65,11 +81,13 @@ export function contaDaLinha(linha, custoFicha = null) {
  * Junta tudo o que o relatório mostra.
  * porCanal: Map(canalId -> { linhas }) de useCardapio; custos: Map(fichaId -> custoDaMarmita).
  */
-export function montarRelatorio({ canais = [], escolhidos = "todos", secoes = ["marmitas", "combos", "promocoes"], porCanal, custos = new Map(), embutidos = null, ingredientes = true }) {
+export function montarRelatorio({ canais = [], escolhidos = "todos", secoes = SECOES_RELATORIO.map((s) => s.id), porCanal, custos = new Map(), embutidos = null, ingredientes = true }) {
   const apps = canaisDoRelatorio(canais, escolhidos);
   const base = porCanal?.get(apps[0]?.id)?.linhas || [];
-  const ordemSecao = (l) => SECOES_RELATORIO.findIndex((s) => s.id === l.secao);
-  const itens = base.filter((l) => secoes.includes(l.secao)).sort((a, b) => ordemSecao(a) - ordemSecao(b)).map((l0) => {
+  // compatível com a escolha antiga ("marmitas" = todos os avulsos)
+  const pedidas = new Set(secoes.flatMap((x) => (x === "marmitas" ? ["pratos", "bebidas", "sobremesas"] : [x])));
+  const ordemSecao = (l) => SECOES_RELATORIO.findIndex((s) => s.id === secaoDoItem(l));
+  const itens = base.filter((l) => pedidas.has(secaoDoItem(l))).sort((a, b) => ordemSecao(a) - ordemSecao(b)).map((l0) => {
     const c = l0.ficha ? custos.get(l0.ficha.id) || null : null;
     const porApp = apps.map((app) => {
       const l = porCanal.get(app.id)?.linhas.find((x) => x.id === l0.id) || null;
@@ -85,7 +103,7 @@ export function montarRelatorio({ canais = [], escolhidos = "todos", secoes = ["
       };
     });
     return {
-      id: l0.id, secao: l0.secao, nome: l0.nome, categoria: l0.categoria || "", rotulo: l0.rotulo || "",
+      id: l0.id, secao: l0.secao, tipo: SECOES_RELATORIO.find((x) => x.id === secaoDoItem(l0))?.tipo || "", nome: l0.nome, categoria: l0.categoria || "", rotulo: l0.rotulo || "",
       descricao: l0.descricao || "", codigo: l0.ficha?.codigo || "", imagem: l0.ficha?.imagem || "",
       itensDoCombo: l0.secao !== "marmitas" ? (l0.itens || []).map((i) => ({ nome: i.nome, custo: i.custo ?? null, qtd: i.qtd || 1 })) : [],
       ficha: ingredientes && c ? {
@@ -234,7 +252,7 @@ function blocoDoPrato(item, partes = null) {
     <div class="prato-topo">
       ${item.imagem ? `<img src="${esc(item.imagem)}" alt="">` : ""}
       <div style="flex:1;min-width:0">
-        <h3><span class="tipo">${esc(TIPO_DA_FICHA[item.secao] || "")}</span>${item.codigo ? `<span class="cod">${esc(item.codigo)}</span>` : ""}${esc(item.nome)}${a0?.veredito ? `<span class="selo ${esc(a0.vereditoId)}">${esc(a0.veredito)}</span>` : ""}</h3>
+        <h3><span class="tipo">${esc(item.tipo)}</span>${item.codigo ? `<span class="cod">${esc(item.codigo)}</span>` : ""}${esc(item.nome)}${a0?.veredito ? `<span class="selo ${esc(a0.vereditoId)}">${esc(a0.veredito)}</span>` : ""}</h3>
         <p class="meta">${[item.rotulo && item.secao !== "marmitas" ? item.rotulo : "", item.categoria, item.itensDoCombo.length ? "" : item.descricao].filter(Boolean).map(esc).join(" · ")}</p>
         ${combo}
         <p class="meta">${item.porApp.filter((a) => !a.semPreco).map((a) => `<b>${esc(a.canal)}</b> CMV ${pct(a.cmvPct)} · markup ${markupTxt(a.markup)}`).join(" &nbsp;·&nbsp; ")}</p>

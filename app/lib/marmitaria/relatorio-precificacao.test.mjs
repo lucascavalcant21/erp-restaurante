@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { cardapioDeVendas } from "./promocoes.mjs";
-import { canaisDoRelatorio, htmlDoRelatorio, montarRelatorio, qtdTxt } from "./relatorio-precificacao.mjs";
+import { canaisDoRelatorio, htmlDoRelatorio, montarRelatorio, qtdTxt, secaoDoItem, secoesComItens } from "./relatorio-precificacao.mjs";
 
 const IFOOD = { id: "ifood", nome: "iFood", comissao_pct: 12, taxa_pagamento_pct: 3.2, ativo: true };
 const BALCAO = { id: "balcao", nome: "Balcão", comissao_pct: 0, taxa_pagamento_pct: 0, ativo: true };
@@ -95,4 +95,16 @@ test("equipe, custos fixos e variáveis abertos item a item", () => {
   assert.match(html, /<tr class="sub"><td>Equipe fixa<\/td>/);
   assert.match(html, /<tr class="sub"><td>Extras e diárias<\/td>/);
   assert.match(html, /<tr class="sub"><td>Aluguel<\/td>/);
+});
+
+test("pratos, bebidas e sobremesas separados pela categoria; só o que existe", () => {
+  assert.equal(secaoDoItem({ secao: "marmitas", categoria: "Marmitas" }), "pratos");
+  assert.equal(secaoDoItem({ secao: "marmitas", categoria: "Sucos" }), "bebidas");
+  assert.equal(secaoDoItem({ secao: "marmitas", categoria: "Sobremesas" }), "sobremesas");
+  assert.equal(secaoDoItem({ secao: "combos" }), "combos");
+  assert.deepEqual(secoesComItens([{ secao: "marmitas", categoria: "Marmitas" }, { secao: "marmitas", categoria: "Bebidas" }]).map((x) => x.id), ["pratos", "bebidas"]);
+  const porCanal = porCanalDe({ ifood: 40, "99food": 38, balcao: 32 });
+  porCanal.forEach((v) => { v.linhas.push({ ...v.linhas[0], id: "m-b1", nome: "Suco de cajá", categoria: "Bebidas" }); });
+  const rel = montarRelatorio({ canais: CANAIS, porCanal, custos: CUSTOS, secoes: ["bebidas"] });
+  assert.deepEqual(rel.itens.map((i) => [i.nome, i.tipo]), [["Suco de cajá", "Bebida"]]);
 });

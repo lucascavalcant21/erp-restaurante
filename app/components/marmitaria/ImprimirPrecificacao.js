@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { FileDown, Printer, X } from "lucide-react";
 import { imprimirHtml } from "./imprimirGuia";
-import { SECOES_RELATORIO, htmlDoRelatorio, montarRelatorio } from "../../lib/marmitaria/relatorio-precificacao.mjs";
+import { htmlDoRelatorio, montarRelatorio, secoesComItens } from "../../lib/marmitaria/relatorio-precificacao.mjs";
 import { rotuloDoLucro } from "../../lib/marmitaria/cardapio.mjs";
 
 const chip = (ativo) => `min-h-[44px] rounded-full border px-4 text-sm font-bold transition ${ativo ? "border-hf-menu bg-hf-menu text-white" : "border-hf-border bg-hf-surface text-hf-text-2 hover:border-hf-accent"}`;
@@ -15,7 +15,9 @@ const chip = (ativo) => `min-h-[44px] rounded-full border px-4 text-sm font-bold
 export default function ImprimirPrecificacao({ canais, porCanal, custos, embutidos, metaPct }) {
   const [aberto, setAberto] = useState(false);
   const [apps, setApps] = useState(() => canais.map((c) => c.id));
-  const [secoes, setSecoes] = useState(["marmitas", "combos", "promocoes"]);
+  // Só oferece o que existe (sobremesas, se houver).
+  const disponiveis = secoesComItens(porCanal?.get(canais[0]?.id)?.linhas || []);
+  const [secoes, setSecoes] = useState(() => disponiveis.map((s) => s.id));
   const [comFicha, setComFicha] = useState(true);
   const [erro, setErro] = useState("");
   const todos = apps.length === canais.length;
@@ -63,7 +65,7 @@ export default function ImprimirPrecificacao({ canais, porCanal, custos, embutid
 
             <p className="mt-4 text-xs font-bold uppercase text-hf-muted">O que entra</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {SECOES_RELATORIO.map((s) => (
+              {disponiveis.map((s) => (
                 <button key={s.id} type="button" aria-pressed={secoes.includes(s.id)} className={chip(secoes.includes(s.id))} onClick={() => alternar(secoes, setSecoes, s.id)}>{s.nome}</button>
               ))}
             </div>

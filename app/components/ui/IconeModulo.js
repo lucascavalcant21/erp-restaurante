@@ -4,7 +4,7 @@
 // pedido do dono em 07/11/2026). A cor vem de app/lib/cores-modulo.mjs.
 
 import {
-  Bell, Bike, BookOpen, Lock, Printer, BrainCircuit, Droplets, Layers, Wheat, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
+  Bell, Bike, BookOpen, Flame, Lock, Printer, BrainCircuit, Droplets, Layers, Wheat, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
   CookingPot, CreditCard, FileText, GlassWater, GraduationCap, Hourglass, Info, ListChecks, Martini, MessageSquareText, MonitorPlay, NotebookPen,
   Package, PartyPopper, PiggyBank, Plug, Salad, Scale, Search, Settings, ShieldCheck, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan, Star, Stethoscope,
   StickyNote, Store, Tablet, Tag, Thermometer, UserRound, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
@@ -21,7 +21,7 @@ export function Coqueteleira({ strokeWidth = 2, size, ...props }) {
 }
 
 export const ICONES_MODULO = {
-  Bell, CreditCard, Info, ListChecks, Lock, Printer, Plug, Settings, ShieldCheck, Tablet, UserRound,
+  Bell, CreditCard, Info, Flame, ListChecks, Lock, Printer, Plug, Settings, ShieldCheck, Tablet, UserRound,
   Bike, BookOpen, BrainCircuit, Droplets, Layers, Wheat, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
   CookingPot, Coqueteleira, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, MonitorPlay,
   NotebookPen, Package, PartyPopper, PiggyBank, Salad, Scale, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan,

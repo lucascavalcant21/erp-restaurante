@@ -1246,12 +1246,12 @@ function IngredientesRunner() {
                         }}
                         className="text-3xs font-bold text-success hover:underline"
                       >
-                        + Criar categoria
+                        + Nova categoria
                       </button>
                     </div>
                     <select value={form.categoria} onChange={event => setForm({ ...form, categoria: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-line bg-white px-3.5 font-bold outline-none focus:border-emerald-500">
                       <option value="">Selecione...</option>
-                      {obterTodasCategoriasInsumo(setorPrincipal(form)).map(item => <option key={item} value={item}>{item}</option>)}
+                      {[...new Set([...obterTodasCategoriasInsumo(setorPrincipal(form)), ...insumos.map(i => i.categoria).filter(Boolean), form.categoria].filter(c => c && c !== "Outros"))].sort((x, y) => x.localeCompare(y, "pt-BR")).map(item => <option key={item} value={item}>{item}</option>)}
                     </select>
                   </label>
                   <label>

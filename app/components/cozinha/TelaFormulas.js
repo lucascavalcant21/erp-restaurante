@@ -12,7 +12,7 @@ import { useERP } from "../../context/ERPContext";
 import { usePermission } from "../access-control/PermissionGate";
 import { fetchFormulasCozinha, salvarListaFormulas } from "../../lib/parametros";
 import CalculadoraFormula from "./CalculadoraFormula";
-import { CATEGORIAS_SALMOURA, TIPOS_FORMULA, UNIDADES_FORMULA, conferirFormula, listaDoTipo, normalizarFormula, normalizarFormulas, novoIdFormula } from "../../lib/formulas-por-quilo.mjs";
+import { categoriaSalmoura, categoriasSalmouraDe, rotuloCategoriaSalmoura, TIPOS_FORMULA, UNIDADES_FORMULA, conferirFormula, listaDoTipo, normalizarFormula, normalizarFormulas, novoIdFormula } from "../../lib/formulas-por-quilo.mjs";
 
 const inputCls = "h-12 w-full rounded-full border border-hf-border bg-hf-surface px-4 text-[16px] font-semibold text-hf-text outline-none focus:border-hf-accent";
 const pill = (ativo) => `min-h-[44px] shrink-0 rounded-full px-4 text-sm font-bold ${ativo ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2"}`;
@@ -24,11 +24,12 @@ function novaFormula(tipo) {
     ? { tipo, nome: "", referencia: "Farinha panko", kgReferencia: 1, produtos: [], tempo: "", preparo: "",
         secoes: [{ id: novoIdFormula("s"), titulo: "Farinha temperada", itens: [{ id: novoIdFormula("i"), nome: "Sal", qtd: "", unidade: "g" }] },
                  { id: novoIdFormula("s"), titulo: "Massinha", itens: [{ id: novoIdFormula("i"), nome: "Farinha de trigo", qtd: "", unidade: "g" }, { id: novoIdFormula("i"), nome: "Sal", qtd: "", unidade: "g" }, { id: novoIdFormula("i"), nome: "Ovos", qtd: "", unidade: "un" }] }] }
-    : { tipo, nome: "", categoria: "peixe", kgReferencia: 1, produtos: [], tempo: "", preparo: "",
+    : { tipo, nome: "", categoria: "", kgReferencia: 1, produtos: [], tempo: "", preparo: "",
         secoes: [{ id: novoIdFormula("s"), titulo: "Salmoura", itens: [{ id: novoIdFormula("i"), nome: "Água", qtd: "", unidade: "ml" }, { id: novoIdFormula("i"), nome: "Sal", qtd: "", unidade: "g" }] }] };
 }
 
 function Editor({ inicial, outros, salvando, onSalvar, onCancelar }) {
+  const [novaCat, setNovaCat] = useState(false);
   const [f, setF] = useState(() => ({ ...inicial, produtosTxt: (inicial.produtos || []).join(", "), kgReferencia: String(inicial.kgReferencia ?? 1).replace(".", ","), secoes: structuredClone(inicial.secoes || []) }));
   const [erros, setErros] = useState([]);
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
@@ -41,7 +42,7 @@ function Editor({ inicial, outros, salvando, onSalvar, onCancelar }) {
     const dados = { ...f, produtos: f.produtosTxt, secoes: f.secoes.map((s) => ({ ...s, itens: s.itens.filter((i) => String(i.nome).trim()) })) };
     const e = conferirFormula(dados, outros);
     setErros(e);
-    if (!e.length) onSalvar(normalizarFormula({ ...dados, atualizado_em: new Date().toISOString() }, f.tipo));
+    if (!e.length) onSalvar(normalizarFormula({ ...dados, categoria: categoriaSalmoura(dados.categoria), atualizado_em: new Date().toISOString() }, f.tipo));
   }
 
   return (
@@ -51,7 +52,11 @@ function Editor({ inicial, outros, salvando, onSalvar, onCancelar }) {
       </label>
       {f.tipo === "salmoura" ? (
         <div><span className="text-[13px] font-medium text-hf-muted">Para</span>
-          <div className="mt-1 flex flex-wrap gap-2">{CATEGORIAS_SALMOURA.map((c) => <button key={c.id} type="button" aria-pressed={f.categoria === c.id} onClick={() => set("categoria", c.id)} className={pill(f.categoria === c.id)}>{c.rotulo}</button>)}</div>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {categoriasSalmouraDe(outros).map((c) => <button key={c.id} type="button" aria-pressed={!novaCat && f.categoria === c.id} onClick={() => { setNovaCat(false); set("categoria", f.categoria === c.id ? "" : c.id); }} className={pill(!novaCat && f.categoria === c.id)}>{c.rotulo}</button>)}
+            <button type="button" aria-pressed={novaCat} onClick={() => { setNovaCat(true); set("categoria", ""); }} className={pill(novaCat)}>+ Nova</button>
+          </div>
+          {novaCat && <input autoFocus value={f.categoria} onChange={(e) => set("categoria", e.target.value)} placeholder="Ex.: Porco, Camarão" className={`${inputCls} mt-2`} />}
         </div>
       ) : (
         <label className="block"><span className="text-[13px] font-medium text-hf-muted">Farinha</span>
@@ -140,7 +145,7 @@ export default function TelaFormulas({ tipo = "salmoura", embutido = false }) {
     return lista.filter((f) => (cat === "todas" || f.categoria === cat) && (!q || semAcento(`${f.nome} ${f.produtos.join(" ")}`).includes(q)));
   }, [lista, cat, busca]);
   const sel = lista.find((f) => f.id === selId) || (visiveis.length === 1 ? visiveis[0] : null);
-  const cats = CATEGORIAS_SALMOURA.filter((c) => lista.some((f) => f.categoria === c.id));
+  const cats = categoriasSalmouraDe(lista).filter((c) => lista.some((f) => f.categoria === c.id));
 
   async function gravar(nova, msg) {
     setSalvando(true);
@@ -219,7 +224,7 @@ export default function TelaFormulas({ tipo = "salmoura", embutido = false }) {
                 <div className="min-w-0 flex-1">
                   <p className="text-[16px] font-black text-hf-text">{f.nome}</p>
                   <p className="text-[13px] text-hf-muted">
-                    {tipo === "salmoura" ? (CATEGORIAS_SALMOURA.find((c) => c.id === f.categoria)?.rotulo || "") : f.referencia} · para {String(f.kgReferencia).replace(".", ",")} kg · {f.secoes.reduce((t, s) => t + s.itens.length, 0)} ingredientes
+                    {tipo === "salmoura" ? (rotuloCategoriaSalmoura(f.categoria) || "Sem categoria") : f.referencia} · para {String(f.kgReferencia).replace(".", ",")} kg · {f.secoes.reduce((t, s) => t + s.itens.length, 0)} ingredientes
                     {f.produtos.length ? ` · ${f.produtos.join(", ")}` : ""}
                   </p>
                 </div>

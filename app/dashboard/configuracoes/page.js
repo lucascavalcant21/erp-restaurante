@@ -1,794 +1,121 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+// CONFIGURAÇÕES (refeita em 24/11/2026: o dono achou "antiga, longa, complexa e
+// nada objetiva"). Agora é uma lista curta em grupos, como os ajustes do
+// celular: cada linha mostra o que vale hoje e abre só aquele assunto
+// (?s=empresa, ?s=ponto…). Em cima, "Falta ajustar" mostra o que está
+// incompleto ou inseguro. Grupos e regras: app/lib/configuracoes-hub.mjs.
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
-import { fetchUnidades, atualizarUnidade, inserirUnidade, removerUnidade } from "../../lib/unidades";
-import { SkeletonList } from "../../components/ui";
-import {
-  Settings, Store, Phone, Clock, Save, CheckCircle, AlertCircle, Beaker, Trash2, RefreshCw,
-  Landmark, MapPin, Mail, Loader2, Plus, Tag
-} from "lucide-react";
-import { gerarDadosFicticios, limparAmbienteTeste } from "../../lib/mock";
-import { fetchPins, salvarPins } from "../../lib/seguranca";
-import {
-  fetchParams, salvarParams, PARAMS_PADRAO,
-  fetchValidadesEtiqueta, salvarValidadesEtiqueta,
-} from "../../lib/parametros";
-import { Lock, SlidersHorizontal, Download, Smartphone, Users, Briefcase, ShieldCheck, Printer } from "lucide-react";
+import CabecalhoTela from "../../components/ui/CabecalhoTela";
+import IconeModulo from "../../components/ui/IconeModulo";
+import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
+import { gruposVisiveis, pendenciasConfig, resumoDoItem, SECOES_CONFIG } from "../../lib/configuracoes-hub.mjs";
+import { fetchPins } from "../../lib/seguranca";
+import { fetchParams, fetchValidadesEtiqueta } from "../../lib/parametros";
+import { fetchCargos } from "../../lib/rh";
+import Empresa from "./_secoes/Empresa";
+import Unidades from "./_secoes/Unidades";
+import Cargos from "./_secoes/Cargos";
+import Pin from "./_secoes/Pin";
+import Parametros from "./_secoes/Parametros";
+import Validades from "./_secoes/Validades";
+import Instalar from "./_secoes/Instalar";
 
-import { fetchCargos, inserirCargo, atualizarCargo, removerCargo } from "../../lib/rh";
-import { mascaraTelefone } from "../../lib/mascaras.mjs";
+const BASE = "/dashboard/configuracoes";
 
-// Instalar o app no aparelho (tablet/celular/PC). Usa o instalador nativo se o
-// navegador ofereceu; senão mostra o caminho manual de cada aparelho.
-function CardInstalar() {
-  const [instalado, setInstalado] = useState(false);
-  const [temPrompt, setTemPrompt] = useState(false);
-  const [mostrarComo, setMostrarComo] = useState(false);
-
-  useEffect(() => {
-    try {
-      setInstalado(window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true);
-      setTemPrompt(!!window.__hefistoInstallPrompt);
-      const t = setInterval(() => setTemPrompt(!!window.__hefistoInstallPrompt), 1500);
-      return () => clearInterval(t);
-    } catch {}
-  }, []);
-
-  const instalar = async () => {
-    const p = typeof window !== "undefined" && window.__hefistoInstallPrompt;
-    if (!p) { setMostrarComo(true); return; }
-    try { p.prompt(); await p.userChoice; window.__hefistoInstallPrompt = null; setTemPrompt(false); } catch {}
-  };
-
-  return (
-    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-emerald-50 border-b border-emerald-100 p-4 flex items-center gap-2">
-        <Smartphone size={18} className="text-success" />
-        <h2 className="font-bold text-emerald-800">Instalar o Aplicativo (tablet, celular e computador)</h2>
-      </div>
-      <div className="p-6">
-        {instalado ? (
-          <p className="text-sm font-bold text-accent flex items-center gap-2"><CheckCircle size={16}/> Você já está usando o app instalado.</p>
-        ) : (
-          <>
-            <p className="text-sm text-slate-900 mb-4">Instalado, o Hefisto abre em tela cheia como um app de verdade — sem barra de navegador, e o Modo Ponto/Estações funcionam como quiosque.</p>
-            <button type="button" onClick={instalar} className="bg-accent hover:bg-accent text-accent-fg font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors">
-              <Download size={18} /> {temPrompt ? "Instalar agora" : "Como instalar neste aparelho"}
-            </button>
-            {(mostrarComo || !temPrompt) && (
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="bg-white border border-line rounded-xl p-4">
-                  <p className="font-black text-fg-soft mb-1">Android (Chrome)</p>
-                  <p className="text-slate-900 font-medium">Toque no menu <b>⋮</b> (canto superior direito) → <b>"Instalar app"</b> ou <b>"Adicionar à tela inicial"</b>.</p>
-                </div>
-                <div className="bg-white border border-line rounded-xl p-4">
-                  <p className="font-black text-fg-soft mb-1">iPhone / iPad (Safari)</p>
-                  <p className="text-slate-900 font-medium">Toque em <b>Compartilhar</b> (quadrado com seta) → <b>"Adicionar à Tela de Início"</b>.</p>
-                </div>
-              </div>
-            )}
-            <p className="text-2xs text-subtle font-medium mt-3">Se já instalou antes e mudou a versão, desinstale e instale de novo para pegar a tela cheia nova.</p>
-          </>
-        )}
-      </div>
-    </div>
+function Linha({ item, resumo, onAbrir }) {
+  const corpo = (
+    <>
+      <IconeModulo item={{ icone: item.icone, cor: item.cor }} tamanho="sm" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-medium text-hf-text">{item.titulo}</span>
+        {resumo && <span className="block truncate text-[13px] text-hf-muted">{resumo}</span>}
+      </span>
+      <ChevronRight size={18} className="shrink-0 text-hf-muted" />
+    </>
   );
-}
-// Parâmetros ajustáveis: tolerâncias do ponto, descontos, metas... O sistema
-// passa a usar o valor novo assim que salvar.
-function CardParametros({ unidadeAtiva }) {
-  const [p, setP] = useState(null);
-  const [salvando, setSalvando] = useState(false);
-  const [ok, setOk] = useState(false);
-
-  useEffect(() => {
-    if (!unidadeAtiva) return;
-    fetchParams(unidadeAtiva).then(r => setP(r.data));
-  }, [unidadeAtiva]);
-
-  const salvar = async () => {
-    setSalvando(true);
-    const { error } = await salvarParams(unidadeAtiva, p);
-    setSalvando(false);
-    if (error) return alert("Erro ao salvar (rode o SQL da tabela config_sistema): " + error);
-    setOk(true); setTimeout(() => setOk(false), 2500);
-  };
-
-  if (!p) return null;
-  const GRUPOS = [
-    ["Ponto Eletrônico", [
-      ["tolerancia_entrada", "Liberar entrada (min antes do turno)", "A batida libera X minutos antes do horário"],
-      ["tolerancia_marcacao", "Tolerância entrada/saída (min)", "Até X min grava o horário do turno (Súmula 366)"],
-      ["tolerancia_retorno", "Tolerância volta do intervalo (min)", "Até X min depois grava a hora prevista"],
-      ["limite_atraso", "Atraso que vira falta (min)", "Passou disso, a entrada bloqueia e conta falta"],
-      ["lembrete_min", "Antecedência dos lembretes (min)", "Alerta de entrada/fim de intervalo no relógio"],
-    ]],
-    ["RH e Consumo", [
-      ["desconto_func_pct", "Desconto do funcionário no consumo (%)", "Aplicado nos consumos e vales da equipe"],
-    ]],
-    ["Financeiro", [
-      ["meta_cmv", "Meta de CMV (%)", "Acima disso o painel alerta em vermelho"],
-      ["faturamento_minimo_cmo", "Faturamento mínimo p/ CMO % (R$)", "Abaixo disso o CMO % fica em branco"],
-    ]],
-    ["Estoque", [
-      ["fator_reposicao", "Fator de reposição da lista de compras", "Sugere comprar até (fator × estoque mínimo)"],
-    ]],
-  ];
-  return (
-    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
-        <SlidersHorizontal size={18} className="text-fg" />
-        <h2 className="font-bold text-slate-800">Parâmetros do Sistema</h2>
-      </div>
-      <div className="p-6 space-y-6">
-        {GRUPOS.map(([titulo, campos]) => (
-          <div key={titulo}>
-            <p className="text-2xs font-bold uppercase tracking-widest text-subtle mb-3">{titulo}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {campos.map(([k, label, hint]) => (
-                <div key={k}>
-                  <label className="text-xs font-bold text-fg uppercase tracking-widest">{label}</label>
-                  <input type="number" min="0" step="1" value={p[k]}
-                    onChange={e => setP(prev => ({ ...prev, [k]: e.target.value === "" ? "" : Number(e.target.value) }))}
-                    className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-black text-fg-soft outline-none focus:border-emerald-500" />
-                  <p className="text-3xs text-subtle font-medium mt-1">{hint} · padrão: {PARAMS_PADRAO[k]}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={salvar} disabled={salvando}
-            className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
-            {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar parâmetros
-          </button>
-          <button type="button" onClick={() => setP({ ...PARAMS_PADRAO })} className="text-xs font-bold text-fg hover:text-fg-soft">Voltar aos padrões</button>
-          {ok && <span className="text-success font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já valendo!</span>}
-        </div>
-      </div>
-    </div>
-  );
+  const cls = "flex min-h-[64px] w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-hf-elevated";
+  return item.href
+    ? <Link href={item.href} className={cls}>{corpo}</Link>
+    : <button type="button" onClick={() => onAbrir(item.secao)} className={cls}>{corpo}</button>;
 }
 
-// Validades padrão usadas por cozinha e bar ao gerar etiquetas. Os dados são
-// persistidos por unidade no mesmo registro de configurações do sistema.
-function CardValidadesEtiquetas({ unidadeAtiva }) {
-  const [categorias, setCategorias] = useState(null);
-  const [salvando, setSalvando] = useState(false);
-  const [ok, setOk] = useState(false);
+function Hub({ abrir }) {
+  const { sessao, unidadeAtiva, unidades, unidadeInfo } = useERP();
+  const real = unidadeAtiva && unidadeAtiva !== "todas";
+  const [dados, setDados] = useState({});
 
   useEffect(() => {
-    if (!unidadeAtiva || unidadeAtiva === "todas") return;
-    fetchValidadesEtiqueta(unidadeAtiva).then((r) => setCategorias(r.data));
-  }, [unidadeAtiva]);
+    if (!real) { setDados({}); return; }
+    let vivo = true;
+    const por = (k) => (r) => vivo && setDados((d) => ({ ...d, [k]: r?.data ?? null }));
+    fetchPins(unidadeAtiva).then(por("pins"));
+    fetchParams(unidadeAtiva).then(por("params"));
+    fetchCargos(unidadeAtiva).then((r) => vivo && setDados((d) => ({ ...d, cargos: r?.data || [] })));
+    fetchValidadesEtiqueta(unidadeAtiva).then(por("validades"));
+    return () => { vivo = false; };
+  }, [unidadeAtiva, real]);
 
-  const alterar = (indice, campo, valor) => {
-    setCategorias((lista) => lista.map((item, i) => i === indice ? {
-      ...item,
-      [campo]: campo === "dias" ? valor : valor,
-    } : item));
-  };
-
-  const adicionar = () => {
-    setCategorias((lista) => [...(lista || []), {
-      id: `categoria-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      nome: "",
-      dias: 1,
-    }]);
-  };
-
-  const salvar = async () => {
-    const limpas = (categorias || []).map((item) => ({
-      ...item,
-      nome: String(item.nome || "").trim(),
-      dias: Number(item.dias),
-    }));
-    if (!limpas.length) return alert("Cadastre pelo menos uma categoria de validade.");
-    if (limpas.some((item) => !item.nome || !Number.isFinite(item.dias) || item.dias < 0)) {
-      return alert("Preencha o nome e uma quantidade válida de dias em todas as categorias.");
-    }
-    setSalvando(true);
-    const { error, data } = await salvarValidadesEtiqueta(unidadeAtiva, limpas);
-    setSalvando(false);
-    if (error) return alert("Erro ao salvar as validades: " + error);
-    setCategorias(data);
-    setOk(true); setTimeout(() => setOk(false), 2500);
-  };
-
-  if (!categorias) return null;
-  return (
-    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
-        <Tag size={18} className="text-success" />
-        <div>
-          <h2 className="font-bold text-slate-800">Validades padrão das etiquetas</h2>
-          <p className="text-2xs text-fg font-medium">Defina uma vez por unidade; cozinha e bar usam estas opções automaticamente.</p>
-        </div>
-      </div>
-      <div className="p-6 space-y-3">
-        {categorias.map((item, indice) => (
-          <div key={item.id} className="grid grid-cols-[1fr_110px_40px] gap-2 items-end">
-            <div>
-              <label className="text-3xs font-bold uppercase tracking-widest text-subtle">Categoria</label>
-              <input value={item.nome} onChange={(e) => alterar(indice, "nome", e.target.value)}
-                placeholder="Ex.: Molhos e bases"
-                className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
-            </div>
-            <div>
-              <label className="text-3xs font-bold uppercase tracking-widest text-subtle">Validade (dias)</label>
-              <input type="number" min="0" max="3650" value={item.dias}
-                onChange={(e) => alterar(indice, "dias", e.target.value)}
-                className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-black text-fg-soft outline-none focus:border-emerald-500" />
-            </div>
-            <button type="button" onClick={() => setCategorias((lista) => lista.filter((_, i) => i !== indice))}
-              title="Remover categoria" className="h-11 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center">
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))}
-        <button type="button" onClick={adicionar}
-          className="text-sm font-bold text-accent hover:text-emerald-800 flex items-center gap-1.5 py-2">
-          <Plus size={16} /> Adicionar categoria
-        </button>
-        <div className="flex items-center gap-3 pt-2">
-          <button type="button" onClick={salvar} disabled={salvando}
-            className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 disabled:opacity-50">
-            {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar validades
-          </button>
-          {ok && <span className="text-success font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já disponível nas etiquetas!</span>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Senhas e PINs: PIN do gerente (ponto) + senhas de saída das estações
-// Funções / Cargos: criar, marcar quais são de supervisão (organograma) e excluir.
-function CardCargos({ unidadeAtiva }) {
-  const [lista, setLista] = useState([]);
-  const [nome, setNome] = useState("");
-  const [ehSup, setEhSup] = useState(false);
-  const [erro, setErro] = useState("");
-  const [salvando, setSalvando] = useState(false);
-
-  const carregar = () => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchCargos(unidadeAtiva).then(r => setLista(r.data || [])); };
-  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
-
-  const criar = async () => {
-    setErro("");
-    if (!nome.trim()) return setErro("Digite o nome da função.");
-    setSalvando(true);
-    const { error } = await inserirCargo({ nome: nome.trim(), eh_supervisor: ehSup }, unidadeAtiva);
-    setSalvando(false);
-    if (error) return setErro(/eh_supervisor/.test(error) ? "Rode o SQL da coluna eh_supervisor (te passei no chat)." : "Erro ao criar: " + error);
-    setNome(""); setEhSup(false); carregar();
-  };
-  const alternarSup = async (c) => { await atualizarCargo(c.id, { eh_supervisor: !c.eh_supervisor }); carregar(); };
-  const excluir = async (c) => { if (!confirm(`Excluir a função "${c.nome}"?`)) return; await removerCargo(c.id); setLista(p => p.filter(x => x.id !== c.id)); };
+  const grupos = useMemo(() => gruposVisiveis((rota) => canAccessRoute(sessao, rota, "")), [sessao]);
+  const info = { ...dados, unidade: real ? unidadeInfo : null, unidades: (unidades || []).filter((u) => u.id !== "todas") };
+  const pendencias = pendenciasConfig({ unidade: info.unidade, pins: dados.pins });
 
   return (
-    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
-        <Briefcase size={18} className="text-fg" />
-        <div>
-          <h2 className="font-bold text-slate-800">Funções / Cargos</h2>
-          <p className="text-2xs text-fg font-medium">Crie as funções e marque quais são de supervisão (aparecem como chefia no organograma).</p>
-        </div>
-      </div>
-      <div className="p-6 space-y-4">
-        {lista.length > 0 && (
-          <div className="space-y-2">
-            {lista.map(c => (
-              <div key={c.id} className="flex items-center justify-between gap-2 border border-line rounded-xl p-3">
-                <div className="min-w-0 flex items-center gap-2">
-                  <span className="font-bold text-slate-800 truncate">{c.nome}</span>
-                  {c.eh_supervisor && <span className="text-3xs font-bold uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 flex items-center gap-1"><ShieldCheck size={11} /> Supervisor</span>}
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button onClick={() => alternarSup(c)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-card text-fg-soft hover:bg-slate-200 whitespace-nowrap">{c.eh_supervisor ? "Tirar supervisão" : "Marcar supervisor"}</button>
-                  <button onClick={() => excluir(c)} title="Excluir" className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
-                </div>
-              </div>
+    <div className="mx-auto w-full max-w-2xl px-4 pb-24 sm:px-6">
+      <CabecalhoTela titulo="Configurações" subtitulo={real ? unidadeInfo?.nome : "Escolha uma unidade"} embutido />
+
+      {pendencias.length > 0 && (
+        <section className="mt-4 rounded-2xl border border-hf-warning/40 bg-hf-warning/10 p-4">
+          <h2 className="mb-2 flex items-center gap-2 text-[14px] font-semibold text-hf-text"><AlertTriangle size={17} className="text-hf-warning" /> Falta ajustar</h2>
+          <ul className="space-y-1">
+            {pendencias.map((p) => (
+              <li key={p.texto}>
+                <button type="button" onClick={() => abrir(p.secao)} className="flex min-h-[40px] w-full items-center justify-between gap-2 text-left text-[14px] text-hf-text">
+                  {p.texto} <ChevronRight size={16} className="shrink-0 text-hf-muted" />
+                </button>
+              </li>
             ))}
+          </ul>
+        </section>
+      )}
+
+      {grupos.map((g) => (
+        <section key={g.id} className="mt-6">
+          <h2 className="mb-2 px-1 text-[13px] font-medium text-hf-muted">{g.titulo}</h2>
+          <div className="overflow-hidden rounded-2xl border border-hf-border bg-hf-surface divide-y divide-hf-border">
+            {g.itens.map((i) => <Linha key={i.id} item={i} resumo={i.resumoFixo || resumoDoItem(i.id, info)} onAbrir={abrir} />)}
           </div>
-        )}
-        <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-line-soft">
-          <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nova função (ex: Chef de Fila)"
-            className="flex-1 p-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
-          <label className="flex items-center gap-2 text-sm font-bold text-slate-900 px-2 whitespace-nowrap cursor-pointer">
-            <input type="checkbox" checked={ehSup} onChange={e => setEhSup(e.target.checked)} style={{ accentColor: "#F59E0B" }} /> É supervisor
-          </label>
-          <button onClick={criar} disabled={salvando} className="bg-accent hover:bg-accent disabled:opacity-50 text-accent-fg font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
-            {salvando ? "Criando..." : "Criar função"}
-          </button>
-        </div>
-        {erro && <p className="text-rose-600 text-sm font-bold">{erro}</p>}
-      </div>
+        </section>
+      ))}
     </div>
   );
 }
 
-// Unidades (lojas): trocar a ativa, criar novas e excluir.
-function CardUnidades() {
-  const { unidades, unidadeAtiva, setUnidadeAtiva, recarregarUnidades } = useERP();
-  const [nova, setNova] = useState("");
-  const [erro, setErro] = useState("");
-  const [salvando, setSalvando] = useState(false);
-  const reais = (unidades || []).filter(u => u.id !== "todas");
+function Configuracoes() {
+  const router = useRouter();
+  const busca = useSearchParams();
+  const secao = SECOES_CONFIG.includes(busca.get("s")) ? busca.get("s") : null;
+  const abrir = (s) => { router.push(`${BASE}?s=${s}`); window.scrollTo(0, 0); };
+  const voltar = () => { router.push(BASE); window.scrollTo(0, 0); };
 
-  const criar = async () => {
-    setErro("");
-    if (!nova.trim()) return setErro("Digite o nome da unidade.");
-    setSalvando(true);
-    const { data, error } = await inserirUnidade({ nome: nova.trim() });
-    setSalvando(false);
-    if (error) return setErro("Erro ao criar: " + error);
-    setNova("");
-    await recarregarUnidades();
-    if (data?.id) setUnidadeAtiva(data.id);
-  };
-  const excluir = async (u) => {
-    if (!confirm(`Excluir a unidade "${u.nome}"? Os dados vinculados a ela deixam de aparecer. Esta ação não pode ser desfeita.`)) return;
-    const { error } = await removerUnidade(u.id);
-    if (error) return alert("Erro ao excluir: " + error);
-    const restantes = await recarregarUnidades();
-    if (unidadeAtiva === u.id) {
-      const outra = (restantes || []).find(x => x.id !== "todas");
-      if (outra) setUnidadeAtiva(outra.id);
-    }
-  };
-
-  return (
-    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
-        <Store size={18} className="text-fg" />
-        <div>
-          <h2 className="font-bold text-slate-800">Unidades (lojas)</h2>
-          <p className="text-2xs text-fg font-medium">Troque a unidade ativa, crie novas ou exclua.</p>
-        </div>
-      </div>
-      <div className="p-6 space-y-4">
-        <div className="space-y-2">
-          {reais.map(u => (
-            <div key={u.id} className={`flex items-center justify-between gap-2 border rounded-xl p-3 ${unidadeAtiva === u.id ? "border-emerald-400 bg-emerald-50/40" : "border-line"}`}>
-              <div className="min-w-0">
-                <p className="font-bold text-slate-800 truncate">{u.nome}{unidadeAtiva === u.id && <span className="ml-2 text-3xs font-bold uppercase tracking-widest text-success">Ativa</span>}</p>
-                {u.cidade && <p className="text-2xs text-fg truncate">{u.cidade}</p>}
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                {unidadeAtiva !== u.id && (
-                  <button onClick={() => setUnidadeAtiva(u.id)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-card text-fg-soft hover:bg-slate-200">Usar</button>
-                )}
-                <button onClick={() => excluir(u)} title="Excluir unidade" className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
-              </div>
-            </div>
-          ))}
-          {reais.length === 0 && <p className="text-sm text-subtle font-medium">Nenhuma unidade cadastrada ainda.</p>}
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-line-soft">
-          <input value={nova} onChange={e => setNova(e.target.value)} placeholder="Nome da nova unidade (ex: Filial Centro)"
-            className="flex-1 p-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
-          <button onClick={criar} disabled={salvando} className="bg-accent hover:bg-accent disabled:opacity-50 text-accent-fg font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
-            <Plus size={16} /> {salvando ? "Criando..." : "Criar unidade"}
-          </button>
-        </div>
-        {erro && <p className="text-rose-600 text-sm font-bold">{erro}</p>}
-      </div>
-    </div>
-  );
+  switch (secao) {
+    case "empresa": return <Empresa onVoltar={voltar} />;
+    case "unidades": return <Unidades onVoltar={voltar} />;
+    case "cargos": return <Cargos onVoltar={voltar} />;
+    case "pin": return <Pin onVoltar={voltar} />;
+    case "ponto": return <Parametros grupo="ponto" onVoltar={voltar} />;
+    case "metas": return <Parametros grupo="metas" onVoltar={voltar} />;
+    case "validades": return <Validades onVoltar={voltar} />;
+    case "instalar": return <Instalar onVoltar={voltar} />;
+    default: return <Hub abrir={abrir} />;
+  }
 }
-
-function CardControleAcessos() {
-  return (
-    <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
-      <div className="flex items-center gap-2 border-b border-line-soft bg-white p-4">
-        <Smartphone size={18} className="text-emerald-700" />
-        <div>
-          <h2 className="font-bold text-slate-800">Apps, Estações e Controle de Acessos</h2>
-          <p className="text-2xs font-medium text-fg">Crie logins para cada tablet/app, escolha o que cada estação vê e acompanhe acessos em tempo real.</p>
-        </div>
-      </div>
-      <div className="grid gap-3 p-5 sm:grid-cols-3">
-        <a href="/dashboard/configuracoes/apps" className="group rounded-xl border-2 border-emerald-500 bg-emerald-50/50 p-4 transition hover:bg-emerald-100/60 shadow-xs">
-          <Smartphone size={22} className="mb-2 text-emerald-700" />
-          <p className="font-black text-slate-800 flex items-center gap-1.5">
-            Apps &amp; Terminais <span className="text-3xs bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold uppercase">Novo</span>
-          </p>
-          <p className="mt-1 text-xs text-slate-700 font-semibold">Crie logins e senhas para Cozinha, Bar, Salão, Estoque e veja quem acessou, que horas e local.</p>
-        </a>
-        <a href="/dashboard/configuracoes/usuarios" className="group rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
-          <Users size={20} className="mb-3 text-success" />
-          <p className="font-black text-slate-800">Usuários e acessos</p>
-          <p className="mt-1 text-xs text-fg">Criar logins individuais, redefinir senhas, limitar escopos e consultar históricos.</p>
-        </a>
-        <a href="/dashboard/configuracoes/perfis" className="group rounded-xl border border-line p-4 transition hover:border-zinc-200 hover:bg-zinc-100">
-          <ShieldCheck size={20} className="mb-3 text-emerald-700" />
-          <p className="font-black text-slate-800">Perfis de acesso</p>
-          <p className="mt-1 text-xs text-fg">Monte permissões reutilizáveis por módulo, página e ação.</p>
-        </a>
-      </div>
-    </div>
-  );
-}
-
-function CardImpressoras() {
-  return (
-    <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
-      <div className="flex items-center gap-2 border-b border-line-soft bg-white p-4">
-        <Printer size={18} className="text-emerald-600" />
-        <div>
-          <h2 className="font-bold text-slate-800">Impressoras e Hardware</h2>
-          <p className="text-2xs font-medium text-fg">Diagnóstico WebUSB, conexão de impressoras térmicas e testes de impressão.</p>
-        </div>
-      </div>
-      <div className="p-5 space-y-3">
-        <a href="/dashboard/configuracoes/impressao" className="group block rounded-xl border-2 border-emerald-500 bg-emerald-50/50 p-4 transition hover:bg-emerald-100/60">
-          <Printer size={20} className="mb-3 text-emerald-600" />
-          <p className="font-black text-slate-800">Impressão de comandas</p>
-          <p className="mt-1 text-xs text-fg">Modelos da via da cozinha, do bar, da conferência e do recibo; impressora de cada setor neste aparelho; observações prontas do garçom.</p>
-        </a>
-        <a href="/dashboard/configuracoes/impressoras" className="group block rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
-          <Printer size={20} className="mb-3 text-success" />
-          <p className="font-black text-slate-800">Diagnóstico WebUSB (Android / Tablet)</p>
-          <p className="mt-1 text-xs text-fg">Detectar impressoras USB conectadas, inspecionar Vendor/Product ID e testar comandos ESC/POS.</p>
-        </a>
-        <a href="/dashboard/configuracoes/etiquetas" className="group block rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
-          <Tag size={20} className="mb-3 text-emerald-600" />
-          <p className="font-black text-slate-800">Tamanhos e Perfis de Etiquetas</p>
-          <p className="mt-1 text-xs text-fg">Configure a largura, altura, margens e impressora de cada setor (Cozinha, Bar, etc).</p>
-        </a>
-      </div>
-    </div>
-  );
-}
-
-
-function CardSegurancaEstoque() {
-  return (
-    <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
-      <div className="flex items-center gap-2 border-b border-line-soft bg-white p-4">
-        <ShieldCheck size={18} className="text-emerald-600" />
-        <div>
-          <h2 className="font-bold text-slate-800">Estoque · Segurança da contagem</h2>
-          <p className="text-2xs font-medium text-fg">PIN do administrador para estorno e ajuste, e contagem cega.</p>
-        </div>
-      </div>
-      <div className="p-5">
-        <a href="/dashboard/configuracoes/estoque" className="group block rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
-          <Lock size={20} className="mb-3 text-emerald-600" />
-          <p className="font-black text-slate-800">Segurança da contagem</p>
-          <p className="mt-1 text-xs text-fg">Trocar o PIN (guardado só como hash), ligar ou desligar a contagem cega.</p>
-        </a>
-      </div>
-    </div>
-  );
-}
-
-function CardSenhas({ unidadeAtiva }) {
-  const [pins, setPins] = useState(null);
-  const [salvando, setSalvando] = useState(false);
-  const [ok, setOk] = useState(false);
-
-  useEffect(() => {
-    if (!unidadeAtiva) return;
-    fetchPins(unidadeAtiva).then(r => setPins(r.data));
-  }, [unidadeAtiva]);
-
-  const salvar = async () => {
-    for (const [k, v] of Object.entries(pins)) {
-      if (!/^\d{4}$/.test(String(v || ""))) return alert("Todas as senhas devem ter exatamente 4 números.");
-    }
-    setSalvando(true);
-    const { error } = await salvarPins(unidadeAtiva, pins);
-    setSalvando(false);
-    if (error) return alert("Erro ao salvar (rode o SQL da tabela config_pins): " + error);
-    setOk(true); setTimeout(() => setOk(false), 2500);
-  };
-
-  if (!pins) return null;
-  const CAMPOS_PIN = [
-    ["pin_gerente", "PIN do Gerente", "Libera entrada atrasada, destrava o Modo Tablet e sai das estações de área"],
-  ];
-  return (
-    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
-        <Lock size={18} className="text-fg" />
-        <h2 className="font-bold text-slate-800">Senhas e PINs (4 números)</h2>
-      </div>
-      <div className="p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          {CAMPOS_PIN.map(([k, label, hint]) => (
-            <div key={k}>
-              <label className="text-xs font-bold text-fg uppercase tracking-widest">{label}</label>
-              <input type="text" inputMode="numeric" maxLength={4} value={pins[k] || ""}
-                onChange={e => setPins(p => ({ ...p, [k]: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
-                className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-black text-fg-soft tracking-[0.5em] text-center outline-none focus:border-emerald-500" />
-              <p className="text-3xs text-subtle font-medium mt-1">{hint}</p>
-            </div>
-          ))}
-        </div>
-        <button type="button" onClick={salvar} disabled={salvando}
-          className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
-          {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar senhas
-        </button>
-        {ok && <p className="text-success font-bold text-sm mt-2 flex items-center gap-1"><CheckCircle size={15}/> Senhas atualizadas!</p>}
-      </div>
-    </div>
-  );
-}
-
-const CAMPOS = {
-  // públicos
-  nome: "", telefone_contato: "", horario_funcionamento: "", email_unidade: "",
-  // fiscais
-  razao_social: "", nome_fantasia: "", cnpj: "", inscricao_estadual: "", inscricao_municipal: "", regime_tributario: "",
-  // endereço físico
-  cep: "", endereco: "", numero: "", bairro: "", cidade: "", uf: "",
-};
-
-const mascaraCNPJ = (v) => {
-  v = String(v || "").replace(/\D/g, "").slice(0, 14);
-  v = v.replace(/^(\d{2})(\d)/, "$1.$2");
-  v = v.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
-  v = v.replace(/\.(\d{3})(\d)/, ".$1/$2");
-  v = v.replace(/(\d{4})(\d)/, "$1-$2");
-  return v;
-};
 
 export default function ConfiguracoesPage() {
-  const { unidadeAtiva, recarregarUnidades } = useERP();
-
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [sucesso, setSucesso] = useState(false);
-  const [buscandoCep, setBuscandoCep] = useState(false);
-  const [dadosLoja, setDadosLoja] = useState({ ...CAMPOS });
-
-  useEffect(() => {
-    async function carregar() {
-      setLoading(true);
-      if (!unidadeAtiva) return;
-      const { data } = await fetchUnidades();
-      const u = data?.find(x => x.id === unidadeAtiva);
-      if (u) {
-        const preenchido = {};
-        Object.keys(CAMPOS).forEach(k => { preenchido[k] = u[k] ?? ""; });
-        setDadosLoja(preenchido);
-      }
-      setLoading(false);
-    }
-    carregar();
-  }, [unidadeAtiva]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setDadosLoja(prev => ({ ...prev, [name]: name === "cnpj" ? mascaraCNPJ(value) : name === "telefone_contato" ? mascaraTelefone(value) : value }));
-  };
-
-  // CEP -> preenche endereço automaticamente (ViaCEP)
-  const buscarCep = async (cepRaw) => {
-    const limpo = String(cepRaw || "").replace(/\D/g, "");
-    if (limpo.length !== 8) return;
-    setBuscandoCep(true);
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
-      const d = await res.json();
-      if (!d.erro) {
-        setDadosLoja(prev => ({
-          ...prev,
-          endereco: d.logradouro || prev.endereco,
-          bairro: d.bairro || prev.bairro,
-          cidade: d.localidade || prev.cidade,
-          uf: d.uf || prev.uf,
-        }));
-      }
-    } catch { /* offline: preenche à mão */ }
-    setBuscandoCep(false);
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setSucesso(false);
-    const updates = {};
-    Object.keys(CAMPOS).forEach(k => { updates[k] = dadosLoja[k] === "" ? null : dadosLoja[k]; });
-    updates.nome = dadosLoja.nome; // nome é obrigatório
-    const { error } = await atualizarUnidade(unidadeAtiva, updates);
-    setSaving(false);
-    if (error) alert("Erro ao salvar: " + error);
-    else {
-      await recarregarUnidades();
-      setSucesso(true); setTimeout(() => setSucesso(false), 3000);
-    }
-  };
-
-  const [mockLoading, setMockLoading] = useState(false);
-  const handleGerarMock = async () => {
-    setMockLoading(true);
-    const res = await gerarDadosFicticios();
-    setMockLoading(false);
-    if (res.error) alert("Erro: " + res.error);
-    else { alert("Ambiente de teste criado! A página será atualizada."); window.location.reload(); }
-  };
-  const handleLimparMock = async () => {
-    if (!confirm("CUIDADO: Tem certeza que deseja apagar o ambiente de testes? Isso apagará a loja falsa e todos os dados gerados nela. Seus dados reais estão seguros.")) return;
-    setMockLoading(true);
-    const res = await limparAmbienteTeste();
-    setMockLoading(false);
-    if (res.error) alert("Erro: " + res.error);
-    else { alert("Ambiente de teste apagado com sucesso."); window.location.reload(); }
-  };
-
-  if (loading) return <div className="p-6"><SkeletonList /></div>;
-
-  const inputCls = "w-full bg-white border border-line rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-hf-accent focus:border-emerald-500 transition-all outline-none";
-  const labelCls = "block text-xs font-bold text-fg mb-1.5 uppercase";
-
-  return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto w-full font-sans">
-
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 bg-slate-800 text-white rounded-xl flex items-center justify-center shadow-lg">
-          <Settings size={24} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Configurações da Loja</h1>
-          <p className="text-sm text-fg font-medium">Dados cadastrais, fiscais e físicos da unidade — usados nos documentos impressos (atas, orçamentos, fichas).</p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSave} className="space-y-6">
-
-        {/* CARD 1: Informações Públicas */}
-        <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
-          <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
-            <Store size={18} className="text-fg" />
-            <h2 className="font-bold text-fg-soft">Informações Públicas</h2>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="col-span-1 md:col-span-2">
-              <label className={labelCls}>Nome da Loja</label>
-              <input type="text" name="nome" value={dadosLoja.nome} onChange={handleChange} required className={inputCls} placeholder="Ex: Seldeestrela" />
-            </div>
-            <div>
-              <label className={`${labelCls} flex items-center gap-1`}><Phone size={12} /> Telefone / WhatsApp</label>
-              <input type="text" inputMode="tel" name="telefone_contato" value={dadosLoja.telefone_contato} onChange={handleChange} className={inputCls} placeholder="(00) 00000-0000" />
-            </div>
-            <div>
-              <label className={`${labelCls} flex items-center gap-1`}><Clock size={12} /> Horário de Funcionamento</label>
-              <input type="text" name="horario_funcionamento" value={dadosLoja.horario_funcionamento} onChange={handleChange} className={inputCls} placeholder="Ex: Ter a Dom das 18h às 23h" />
-            </div>
-            <div className="col-span-1 md:col-span-2">
-              <label className={`${labelCls} flex items-center gap-1`}><Mail size={12} /> E-mail da unidade</label>
-              <input type="email" name="email_unidade" value={dadosLoja.email_unidade} onChange={handleChange} className={inputCls} placeholder="contato@seldeestrela.com.br" />
-            </div>
-          </div>
-        </div>
-
-        {/* CARD 2: Dados Fiscais */}
-        <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
-          <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
-            <Landmark size={18} className="text-success" />
-            <h2 className="font-bold text-fg-soft">Dados Fiscais</h2>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className={labelCls}>Razão Social</label>
-              <input type="text" name="razao_social" value={dadosLoja.razao_social} onChange={handleChange} className={inputCls} placeholder="Ex: Seldeestrela Restaurante LTDA" />
-            </div>
-            <div>
-              <label className={labelCls}>Nome Fantasia</label>
-              <input type="text" name="nome_fantasia" value={dadosLoja.nome_fantasia} onChange={handleChange} className={inputCls} placeholder="Ex: Seldeestrela" />
-            </div>
-            <div>
-              <label className={labelCls}>CNPJ</label>
-              <input type="text" name="cnpj" value={dadosLoja.cnpj} onChange={handleChange} className={inputCls} placeholder="00.000.000/0000-00" />
-            </div>
-            <div>
-              <label className={labelCls}>Regime Tributário</label>
-              <select name="regime_tributario" value={dadosLoja.regime_tributario || ""} onChange={handleChange} className={inputCls}>
-                <option value="">Selecione...</option>
-                <option value="MEI">MEI</option>
-                <option value="Simples Nacional">Simples Nacional</option>
-                <option value="Lucro Presumido">Lucro Presumido</option>
-                <option value="Lucro Real">Lucro Real</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Inscrição Estadual</label>
-              <input type="text" name="inscricao_estadual" value={dadosLoja.inscricao_estadual} onChange={handleChange} className={inputCls} placeholder="Isento ou número" />
-            </div>
-            <div>
-              <label className={labelCls}>Inscrição Municipal</label>
-              <input type="text" name="inscricao_municipal" value={dadosLoja.inscricao_municipal} onChange={handleChange} className={inputCls} placeholder="Número (se houver)" />
-            </div>
-          </div>
-        </div>
-
-        {/* CARD 3: Endereço Físico */}
-        <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
-          <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
-            <MapPin size={18} className="text-success" />
-            <h2 className="font-bold text-fg-soft">Endereço Físico</h2>
-          </div>
-          <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="col-span-2 md:col-span-2">
-              <label className={`${labelCls} flex items-center gap-1`}>CEP {buscandoCep && <Loader2 size={11} className="animate-spin" />}</label>
-              <input type="text" name="cep" value={dadosLoja.cep} onChange={handleChange} onBlur={e => buscarCep(e.target.value)} className={inputCls} placeholder="00000-000" />
-              <p className="text-3xs text-subtle mt-1">Digite o CEP e o endereço preenche sozinho.</p>
-            </div>
-            <div className="col-span-2 md:col-span-3">
-              <label className={labelCls}>Endereço (rua/avenida)</label>
-              <input type="text" name="endereco" value={dadosLoja.endereco} onChange={handleChange} className={inputCls} placeholder="Ex: Av. Principal" />
-            </div>
-            <div className="col-span-2 md:col-span-1">
-              <label className={labelCls}>Número</label>
-              <input type="text" name="numero" value={dadosLoja.numero} onChange={handleChange} className={inputCls} placeholder="123" />
-            </div>
-            <div className="col-span-2 md:col-span-2">
-              <label className={labelCls}>Bairro</label>
-              <input type="text" name="bairro" value={dadosLoja.bairro} onChange={handleChange} className={inputCls} placeholder="Centro" />
-            </div>
-            <div className="col-span-2 md:col-span-3">
-              <label className={labelCls}>Cidade</label>
-              <input type="text" name="cidade" value={dadosLoja.cidade} onChange={handleChange} className={inputCls} placeholder="Ex: Belém" />
-            </div>
-            <div className="col-span-2 md:col-span-1">
-              <label className={labelCls}>UF</label>
-              <input type="text" name="uf" value={dadosLoja.uf} onChange={handleChange} maxLength={2} className={`${inputCls} uppercase`} placeholder="PA" />
-            </div>
-          </div>
-        </div>
-
-        {/* BOTÕES */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-line">
-          {sucesso ? (
-            <div className="flex items-center gap-2 text-accent-strong font-bold text-sm bg-accent-soft px-4 py-2 rounded-lg">
-              <CheckCircle size={16} /> Configurações salvas com sucesso!
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-subtle font-medium text-xs">
-              <AlertCircle size={14} /> Esses dados saem no cabeçalho das atas, orçamentos e demais impressos.
-            </div>
-          )}
-          <button type="submit" disabled={saving}
-            className="w-full sm:w-auto bg-accent hover:bg-accent disabled:opacity-50 text-accent-fg font-bold py-3 px-5 sm:px-8 rounded-xl shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2">
-            {saving ? "Salvando..." : <><Save size={18} /> Salvar Alterações</>}
-          </button>
-        </div>
-
-      </form>
-
-      {/* Categorias e dias padrão usados na geração de etiquetas */}
-      <CardValidadesEtiquetas unidadeAtiva={unidadeAtiva} />
-
-      {/* Funções / Cargos + supervisor */}
-      <CardCargos unidadeAtiva={unidadeAtiva} />
-
-      {/* Unidades (lojas): trocar, criar e excluir */}
-      <CardUnidades />
-
-      {/* Controle unificado, integrado ao Supabase Auth */}
-      <CardControleAcessos />
-
-      {/* Diagnóstico de impressoras USB e WebUSB (Android / Tablet) */}
-      <CardImpressoras />
-
-
-      {/* Senhas e PINs do sistema */}
-      <CardSenhas unidadeAtiva={unidadeAtiva} />
-
-      {/* Estoque: PIN do administrador (hash) e contagem cega */}
-      <CardSegurancaEstoque />
-
-      {/* Parâmetros ajustáveis (tolerâncias, metas, descontos) */}
-      <CardParametros unidadeAtiva={unidadeAtiva} />
-
-      {/* Instalar o app no aparelho */}
-      <CardInstalar />
-
-    </div>
-  );
+  return <Suspense fallback={null}><Configuracoes /></Suspense>;
 }

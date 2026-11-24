@@ -39,6 +39,8 @@ const POR_ICONE = Object.freeze({
   Tablet: "azul", Plug: "violeta", CreditCard: "verde", UserRound: "ardosia", Info: "ardosia",
   // Página inicial: consultório e gestão pessoal (21/11/2026)
   Stethoscope: "ciano", PiggyBank: "verde",
+  // Configurações em grupos (24/11/2026)
+  Lock: "grafite", Printer: "ciano",
 });
 
 /** Tom do ícone de um card ou área do menu: `cor` explícita vence o ícone. */

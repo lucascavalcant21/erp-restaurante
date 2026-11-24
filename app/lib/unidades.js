@@ -2,6 +2,7 @@
 // unidades.js — Restaurantes (Unidades)
 // ═══════════════════════════════════════════════════════════════
 
+import { unidadeNaTela } from "./negocios.mjs";
 import { supabase, isSupabaseReady } from "./supabase";
 
 // Unidade de demonstração: só existe quando NÃO há Supabase configurado, para
@@ -23,7 +24,8 @@ export async function fetchUnidades() {
   // Sem Supabase nada é gravado, então a unidade de demonstração não faz mal.
   if (!isSupabaseReady()) return { data: [UNIDADE_DEMO], error: null };
 
-  const { data, error } = await supabase.from("unidades").select(COLUNAS_UNIDADE).order("nome");
+  const { data: todas, error } = await supabase.from("unidades").select(COLUNAS_UNIDADE).order("nome");
+  const data = todas ? todas.filter((u) => unidadeNaTela(u.id)) : todas; // consultório quieto (negocios.mjs)
 
   // Antes, erro de leitura OU tabela vazia devolviam a unidade "matriz" como se
   // fosse real. O app inteiro passava a operar nela — e "matriz" nunca foi uma

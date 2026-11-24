@@ -6,6 +6,11 @@ export const UNIDADE_MARMITARIA = "marmitaria";
 export const UNIDADE_EVENTOS = "eventos";
 // Consultório médico (dono, 21/11/2026): unidade própria, dado de saúde protegido no banco (CONS-1).
 export const UNIDADE_CONSULTORIO = "consultorio";
+// Consultório quieto por enquanto (dono, 24/11/2026: "deixar na tela só a coisa
+// voltada ao restaurante"). Os dados e as regras do banco continuam; só some das
+// telas, da busca, da troca de negócio e da página inicial. Para voltar: true.
+export const CONSULTORIO_NA_TELA = false;
+export const unidadeNaTela = (id) => CONSULTORIO_NA_TELA || id !== UNIDADE_CONSULTORIO;
 const SEPARADAS = [UNIDADE_MARMITARIA, UNIDADE_EVENTOS, UNIDADE_CONSULTORIO];
 
 export const ehNegocioSeparado = (id) => SEPARADAS.includes(id);
@@ -15,7 +20,7 @@ const NEGOCIOS = [
   { id: UNIDADE_MARMITARIA, rotulo: "Delivery", href: "/dashboard/marmitaria" }, // nome "Delivery" (dono, 17/11/2026); o id continua marmitaria
   { id: UNIDADE_EVENTOS, rotulo: "Eventos", href: "/dashboard/reservas-eventos" },
   { id: UNIDADE_CONSULTORIO, rotulo: "Consultório", href: "/dashboard/consultorio" },
-];
+].filter((n) => unidadeNaTela(n.id));
 
 const dentroDe = (caminho, base) => caminho === base || String(caminho || "").startsWith(`${base}/`);
 

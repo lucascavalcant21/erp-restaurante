@@ -9,7 +9,9 @@
 // `disponivel: false` = a área ainda não existe no app: o card diz "Em breve" e
 // o pedido entra como lista de espera. Nada de prometer o que não está pronto.
 
-export const AREAS = Object.freeze([
+import { CONSULTORIO_NA_TELA } from "../negocios.mjs";
+
+const TODAS_AREAS = Object.freeze([
   Object.freeze({
     id: "restaurante",
     nome: "Restaurante",
@@ -52,7 +54,10 @@ export const AREAS = Object.freeze([
   }),
 ]);
 
-export const areaPorId = (id) => AREAS.find((a) => a.id === String(id || "").toLowerCase()) || null;
+// Consultório quieto por enquanto (dono, 24/11/2026): fora da página inicial e do cadastro.
+export const AREAS = Object.freeze(TODAS_AREAS.filter((a) => CONSULTORIO_NA_TELA || a.id !== "consultorio"));
+
+export const areaPorId = (id) => TODAS_AREAS.find((a) => a.id === String(id || "").toLowerCase()) || null;
 
 export const soDigitos = (v) => String(v ?? "").replace(/\D/g, "");
 

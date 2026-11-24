@@ -88,6 +88,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       { titulo: "Estoque e compras", cards: [
         { label: "Estoque do bar", desc: "Entrada e retirada", href: "/dashboard/operacao/estoque?area=bar", icone: "Package", curto: "Estoque" },
         { label: "Produtos do bar", desc: "Bebidas e insumos", href: "/dashboard/operacao/ingredientes?dept=bar", icone: "Wine", curto: "Produtos" },
+        { label: "Estoque de bases", desc: "Xaropes e bases prontas", href: "/dashboard/operacao/estoque-bases?dept=bar", icone: "Layers", curto: "Bases prontas" },
         { label: "Lista de compras", desc: "Cotações e pedidos", href: "/dashboard/operacao/compras", icone: "ShoppingCart", curto: "Compras" },
       ] },
       { titulo: "Rotina da equipe", cards: [

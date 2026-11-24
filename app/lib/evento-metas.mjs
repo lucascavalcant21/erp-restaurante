@@ -120,3 +120,50 @@ export function metasDosEventos(eventos = [], { mes, metaLucroMes = null, metaFa
     },
   };
 }
+
+/**
+ * Quantos eventos fechar para pagar os custos do negócio de eventos (dono,
+ * 24/11/2026: "a mesma coisa nos eventos: quanto para pagar os custos").
+ * O lucro gravado no orçamento de cada evento já desconta os custos dele
+ * (comida, bebida, equipe do evento, aluguel, comissões, impostos); o que fica
+ * de fora são os custos do mês que existem com ou sem evento (equipe fixa,
+ * espaço, divulgação…), informados pelo dono. Base: eventos fechados dos
+ * últimos 12 meses e os já contratados para a frente, com orçamento salvo.
+ * Sem nenhum fechado, usa os orçamentos feitos (ainda não fechados) e avisa:
+ * aí é SIMULAÇÃO, não resultado.
+ *   eventos no mês = (equipe fixa + custos fixos) ÷ lucro médio por evento
+ */
+// "4.000" digitado é quatro mil reais, não 4 (ponto de milhar).
+const reais = (v) => (typeof v === "string" && /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(v.trim()) ? num(v.trim().replace(/\./g, "")) : num(v));
+
+export function paraPagarOsCustos(eventos = [], { equipeMes = null, fixosMes = null, hojeIso } = {}) {
+  const equipe = reais(equipeMes);
+  const fixos = reais(fixosMes);
+  const hoje = String(hojeIso || new Date().toISOString()).slice(0, 10);
+  const [a, m, d] = hoje.split("-").map(Number);
+  const inicio = new Date(Date.UTC(a - 1, m - 1, d)).toISOString().slice(0, 10);
+  const lista = Array.isArray(eventos) ? eventos : [];
+  const noPeriodo = (e) => { const data = String(e?.data_evento || "").slice(0, 10); return !!data && data > inicio; };
+  const fechados = lista.filter((e) => fechado(e) && noPeriodo(e) && lucroDe(e) !== null);
+  const orcamentos = lista.filter((e) => !cancelado(e) && noPeriodo(e) && lucroDe(e) !== null);
+  const origem = fechados.length ? "fechados" : "orcamentos";
+  const base = fechados.length ? fechados : orcamentos;
+  const faltando = [];
+  if (equipe === null && fixos === null) faltando.push("equipe fixa e custos fixos do mês dos eventos");
+  if (!base.length) faltando.push("eventos com o orçamento salvo (lucro calculado) nos últimos 12 meses");
+  if (faltando.length) return { ok: false, motivo: `Falta: ${faltando.join("; ")}.`, base: base.length, origem };
+  const lucroMedio = r2(base.reduce((t, e) => t + lucroDe(e), 0) / base.length);
+  const ticketMedio = r2(base.reduce((t, e) => t + faturamentoDe(e), 0) / base.length);
+  if (!(lucroMedio > 0)) return { ok: false, motivo: "Na média, os eventos não deixam lucro depois dos próprios custos: revise preços e custos dos orçamentos.", base: base.length };
+  const custoMes = r2((equipe || 0) + (fixos || 0));
+  const eventosMes = Math.ceil(custoMes / lucroMedio - 1e-9);
+  const faturamentoMes = r2(eventosMes * ticketMedio);
+  return {
+    ok: true, base: base.length, origem, natureza: origem === "fechados" ? "ESTIMATIVA" : "SIMULAÇÃO", custoMes, equipeMes: r2(equipe || 0), fixosMes: r2(fixos || 0),
+    lucroMedio, ticketMedio,
+    eventosMes,
+    // semana média do mês (12 ÷ 52); evento não se divide, então mostra com uma casa
+    eventosSemana: Math.round(((eventosMes * 12) / 52) * 10) / 10,
+    faturamentoMes, faturamentoSemana: r2((faturamentoMes * 12) / 52), faturamentoDia: r2((faturamentoMes * 12) / 365),
+  };
+}

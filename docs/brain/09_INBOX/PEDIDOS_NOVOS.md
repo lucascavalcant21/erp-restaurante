@@ -234,3 +234,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 24/11/2026 | Sem "Outros" nas categorias (varredura) | FEITO em suprimentos, notas, inventário (lista padrão e contagem por voz): "+ Nova categoria". Ficam: forma de pagamento "Outro" e a área de estoque "Outros" (não são categorias) |
 | 24/11/2026 | Nome repetido também nas fichas das marmitas | FEITO (checagem antes de salvar, por unidade) |
 | 24/11/2026 | Simulador das marmitas: quantas marmitas vender para pagar tudo (funcionários, fixos e variáveis), por mês, semana e dia | FEITO (topo do Simulador de vendas; mistura das vendas de 30 dias ou média simples) |
+| 24/11/2026 | Eventos: quanto fechar para pagar os custos (como nas marmitas) | FEITO em Eventos › Metas: equipe fixa + custos fixos do mês ÷ lucro médio por evento → eventos por mês/semana e vendas por dia. Sem evento fechado, usa os orçamentos feitos como SIMULAÇÃO |

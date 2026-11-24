@@ -14,6 +14,7 @@ import {
   ArrowRight, BadgeCheck, CalendarClock, CreditCard, Eye, Layers, LineChart, MessageSquareQuote, QrCode, ShieldCheck, Smartphone, Sparkles,
 } from "lucide-react";
 import LogoHefisto from "./components/layout/LogoHefisto";
+import JaLogado from "./components/publico/JaLogado";
 import IconeModulo from "./components/ui/IconeModulo";
 import PlanosDoInicio from "./components/publico/PlanosDoInicio";
 import { AREAS, areaPorId } from "./lib/publico/areas.mjs";
@@ -101,6 +102,7 @@ export default function PaginaInicial() {
   const anual = precoNoPeriodo(PLANOS.completo, "anual");
   return (
     <div className="min-h-[100dvh] overflow-x-hidden bg-hf-bg text-hf-text">
+      <JaLogado />
       <header className="sticky top-0 z-30 border-b border-hf-border bg-hf-surface/90 backdrop-blur" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:px-6">
           <Link href="/" className="flex min-w-0 items-center gap-2" aria-label="Héfisto, página inicial">

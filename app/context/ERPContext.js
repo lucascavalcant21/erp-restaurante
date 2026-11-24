@@ -8,6 +8,7 @@ import { fetchEstoque } from "../lib/estoque";
 import { fetchEtiquetas } from "../lib/etiquetas";
 import { fetchUnidades, unidadeDaSessao, podeVerTodas, getUnidade } from "../lib/unidades";
 import { lerSessao } from "../lib/auth";
+import { supabase, isSupabaseReady } from "../lib/supabase.js";
 import { iniciarTempoReal } from "../lib/realtime";
 import { inicioDaArea } from "../lib/menu-principal.mjs";
 import { lerOrigem } from "../lib/universo-origem";
@@ -130,6 +131,18 @@ export function ERPProvider({ children }) {
     setVersaoSessao((v) => v + 1);
   }, [pathname, sessao, sessaoLida, versaoSessao]);
 
+  // Login nesta aba, troca de conta ou token renovado: relê sessão e unidades.
+  // Antes, quem entrava às vezes caía em "Unidade Matriz / Escolha uma unidade"
+  // sem seletor e só saía recarregando a página (dono, 24/11/2026, B-049).
+  useEffect(() => {
+    if (!isSupabaseReady()) return undefined;
+    const { data } = supabase.auth.onAuthStateChange((evento) => {
+      if (evento === "SIGNED_IN" || evento === "USER_UPDATED") setVersaoSessao((v) => v + 1);
+      if (evento === "SIGNED_OUT") { setSessao(null); setUnidades([]); setUnidadeAtivaState(null); }
+    });
+    return () => data?.subscription?.unsubscribe?.();
+  }, []);
+
   useEffect(() => {
     let vivo = true;
     // Sem sessão (páginas públicas — cardápio, vagas, rastreio…) não há o que
@@ -138,7 +151,13 @@ export function ERPProvider({ children }) {
     (async () => {
       try {
         const sessaoObj = await lerSessao();
-        const resUnidades = sessaoObj ? await fetchUnidades() : { data: [], error: null };
+        let resUnidades = sessaoObj ? await fetchUnidades() : { data: [], error: null };
+        // Logado e lista vazia logo depois do login: o token ainda não tinha
+        // chegado ao cliente do banco. Tenta de novo antes de desistir.
+        for (let tentativa = 0; sessaoObj && vivo && !(resUnidades.data || []).length && tentativa < 3; tentativa += 1) {
+          await new Promise((ok) => setTimeout(ok, 800 * (tentativa + 1)));
+          resUnidades = await fetchUnidades();
+        }
         if (!vivo) return;
         setSessaoLida({ versao: versaoSessao, pagina: window.location.pathname });
         const unids = resUnidades.data || [];

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import {
   Banknote,
   CalendarDays,
@@ -101,7 +101,19 @@ export default function InicioPage() {
 
   const bloco = (k) => (dados === undefined ? undefined : dados?.[k] ?? { ok: false });
   // Dono: Início ao vivo no visual da Home da Medway (14/11/2026). Equipe: o Início de antes.
-  const { sessao: sessaoInicio } = useERP();
+  const { sessao: sessaoInicio, unidades: listaUnidades, setUnidadeAtiva, recarregarUnidades } = useERP();
+  const [buscandoUnidade, setBuscandoUnidade] = useState(false);
+  // Sem unidade escolhida: entra na primeira que a pessoa pode ver, sem
+  // precisar recarregar a página (dono, 24/11/2026, B-049).
+  async function entrarNaUnidade() {
+    setBuscandoUnidade(true);
+    try {
+      const lista = (listaUnidades || []).length ? listaUnidades : await recarregarUnidades();
+      const primeira = (lista || []).find((u) => u?.ativo !== false) || (lista || [])[0];
+      if (primeira?.id) setUnidadeAtiva(primeira.id);
+      else window.location.reload();
+    } finally { setBuscandoUnidade(false); }
+  }
   const dono = sessaoEhDono(sessaoInicio);
 
   return (
@@ -168,7 +180,11 @@ export default function InicioPage() {
 
       {semUnidade ? (
         <VazioDashboard>
-          Escolha uma unidade no seletor do topo para visualizar os números do dia.
+          <span className="block">Ainda não abriu a sua unidade.</span>
+          <button type="button" onClick={entrarNaUnidade} disabled={buscandoUnidade}
+            className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-full bg-hf-menu px-6 text-sm font-bold text-white disabled:opacity-60">
+            {buscandoUnidade ? "Abrindo…" : "Abrir a minha unidade"}
+          </button>
         </VazioDashboard>
       ) : !pode ? null : (
         <>

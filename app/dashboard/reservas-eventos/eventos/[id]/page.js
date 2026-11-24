@@ -11,7 +11,7 @@ import { fetchFichasDoEvento, fetchInsumosDoEvento } from "../../../../lib/event
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Calendar, Users, Check, Loader2, CloudOff, AlertTriangle, Copy, BookmarkPlus, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Users, Check, Loader2, CloudOff, AlertTriangle, Copy, BookmarkPlus, X, LayoutGrid, PartyPopper, UtensilsCrossed, UserRound, Sparkles, Contact, Calculator, BarChart3, FileText, Wallet, ShoppingCart, ChevronRight } from "lucide-react";
 import ComprasTab from "./ComprasTab";
 import { EtapaTipo, EtapaCardapio } from "./orcamento/EtapaCardapio";
 import { EtapaEquipe, EtapaExtras, EtapaCliente } from "./orcamento/EtapasCadastro";
@@ -29,17 +29,20 @@ import {
 } from "../../../../lib/evento-orcamento.mjs";
 import { fmtReais, fmtPct } from "../../../../lib/valor-percentual.mjs";
 
+// "Resumo" primeiro (dono, 24/11/2026: "rápido e prático como o delivery"):
+// cartões de cada etapa com o que já está feito, como o Início do Delivery.
 const ETAPAS = [
-  { id: "tipo", rotulo: "Tipo" },
-  { id: "cardapio", rotulo: "Cardápio" },
-  { id: "equipe", rotulo: "Equipe" },
-  { id: "extras", rotulo: "Espaço e decoração" },
-  { id: "cliente", rotulo: "Cliente" },
-  { id: "financeiro", rotulo: "Custos e preço" },
-  { id: "dre", rotulo: "DRE do evento" },
-  { id: "proposta", rotulo: "Orçamento" },
-  { id: "pagamentos", rotulo: "Pagamentos" },
-  { id: "compras", rotulo: "Compras" },
+  { id: "resumo", rotulo: "Resumo", icone: LayoutGrid },
+  { id: "tipo", rotulo: "Tipo", icone: PartyPopper },
+  { id: "cardapio", rotulo: "Cardápio", icone: UtensilsCrossed },
+  { id: "equipe", rotulo: "Equipe", icone: UserRound },
+  { id: "extras", rotulo: "Espaço e decoração", icone: Sparkles },
+  { id: "cliente", rotulo: "Cliente", icone: Contact },
+  { id: "financeiro", rotulo: "Custos e preço", icone: Calculator },
+  { id: "dre", rotulo: "DRE do evento", icone: BarChart3 },
+  { id: "proposta", rotulo: "Orçamento", icone: FileText },
+  { id: "pagamentos", rotulo: "Pagamentos", icone: Wallet },
+  { id: "compras", rotulo: "Compras", icone: ShoppingCart },
 ];
 
 // Grava descartando coluna que este banco não tenha (o schema não tem fonte
@@ -130,7 +133,7 @@ export default function EventoPage() {
         setOrc(o);
         // ?etapa=pagamentos (vindo do calendário) abre direto na etapa.
         const naUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("etapa") : null;
-        setEtapa(ETAPAS.some((x) => x.id === naUrl) ? naUrl : o.cardapio.length ? "dre" : "tipo");
+        setEtapa(ETAPAS.some((x) => x.id === naUrl) ? naUrl : "resumo");
       }
       setCarregando(false);
     })();
@@ -272,13 +275,14 @@ export default function EventoPage() {
   const c = orc.cliente;
   const idx = ETAPAS.findIndex((e) => e.id === etapa);
   const feito = {
+    resumo: true,
     tipo: true,
     cardapio: resumo.itens.length > 0,
     equipe: orc.equipe.length > 0,
     extras: orc.extras.length > 0,
     cliente: !!(c.cliente_nome && c.data_evento && resumo.convidados > 0),
     financeiro: resumo.precoPorPessoa > 0,
-    dre: resumo.receita > 0,
+    dre: resumo.itens.length > 0 && resumo.receita > 0,
     proposta: false,
     pagamentos: recebido > 0,
     compras: false,
@@ -293,8 +297,8 @@ export default function EventoPage() {
       <header className="border-b border-hf-border bg-hf-surface px-4 pb-4 pt-3 sm:px-8 sm:pt-4 print:hidden">
         <div className="mx-auto flex max-w-7xl flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Link href="/dashboard/reservas-eventos/eventos" className="inline-flex min-h-[44px] items-center gap-2 text-sm font-bold text-hf-text-2 hover:text-hf-text">
-              <ArrowLeft size={16} /> Funil de eventos
+            <Link href="/dashboard/reservas-eventos" className="inline-flex min-h-[44px] items-center gap-2 text-sm font-bold text-hf-text-2 hover:text-hf-text">
+              <ArrowLeft size={16} /> Eventos
             </Link>
             <EstadoGravacao g={semColunas ? { estado: "bloqueado" } : gravacao} />
           </div>
@@ -328,10 +332,6 @@ export default function EventoPage() {
               <Indicador rotulo="Total" valor={resumo.receita > 0 ? fmtReais(resumo.receita) : "—"} destaque />
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setPainel(painel === "modelo" ? null : "modelo")} className="flex min-h-[40px] items-center gap-1.5 rounded-xl border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text hover:bg-hf-elevated"><BookmarkPlus size={14} /> Salvar como modelo</button>
-            <button type="button" onClick={() => setPainel(painel === "duplicar" ? null : "duplicar")} className="flex min-h-[40px] items-center gap-1.5 rounded-xl border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text hover:bg-hf-elevated"><Copy size={14} /> Duplicar evento</button>
-          </div>
           {painel && <PainelAcao tipo={painel} onFechar={() => setPainel(null)} onModelo={salvarModelo} onDuplicar={duplicar} nomeSugerido={c.nome_evento || tipoDoEvento(orc.tipo).rotulo} />}
         </div>
       </header>
@@ -345,9 +345,11 @@ export default function EventoPage() {
               <li key={e.id} className="shrink-0">
                 <button type="button" onClick={() => setEtapa(e.id)} aria-current={ativo ? "step" : undefined} data-etapa={e.id}
                   className={`flex h-10 items-center gap-1.5 rounded-xl px-2.5 text-sm font-bold transition lg:px-2 lg:text-[13px] ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
-                  <span className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-black ${ativo ? "bg-hf-surface text-hf-accent" : feito[e.id] ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-elevated text-hf-text-2"}`}>
-                    {feito[e.id] && !ativo ? <Check size={12} strokeWidth={3} /> : i + 1}
-                  </span>
+                  {e.id === "resumo" ? <e.icone size={16} /> : (
+                    <span className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-black ${ativo ? "bg-hf-surface text-hf-accent" : feito[e.id] ? "bg-hf-accent text-hf-accent-fg" : "bg-hf-elevated text-hf-text-2"}`}>
+                      {feito[e.id] && !ativo ? <Check size={12} strokeWidth={3} /> : i}
+                    </span>
+                  )}
                   {e.rotulo}
                 </button>
               </li>
@@ -358,6 +360,10 @@ export default function EventoPage() {
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_300px] print:block print:p-0">
         <div className="min-w-0">
+          {etapa === "resumo" && (
+            <ResumoDoEvento etapas={ETAPAS.slice(1)} feito={feito} linhas={linhasDoResumo({ orc, resumo, c, recebido, temCusto })}
+              pendencias={pendencias} onAbrir={setEtapa} painel={painel} setPainel={setPainel} />
+          )}
           {etapa === "tipo" && <EtapaTipo {...props} modelos={modelos} onAplicarModelo={usarModelo} onRemoverModelo={apagarModelo} />}
           {etapa === "cardapio" && <EtapaCardapio {...props} bases={bases} onSalvarBase={salvarBase} onUsarBase={usarBase} onApagarBase={apagarBase} />}
           {etapa === "equipe" && <EtapaEquipe {...props} sugestoesEquipe={sugestoesEquipe} conflitos={conflitos} />}
@@ -418,6 +424,61 @@ export default function EventoPage() {
         </aside>
       </div>
     </main>
+  );
+}
+
+// O que mostrar em cada cartão do Resumo. Sem dado: o que falta fazer.
+function linhasDoResumo({ orc, resumo, c, recebido, temCusto }) {
+  const n = (x, um, varios) => `${x} ${x === 1 ? um : varios}`;
+  return {
+    tipo: tipoDoEvento(orc.tipo).rotulo,
+    cardapio: resumo.itens.length ? n(resumo.itens.length, "item", "itens") : "Escolher os pratos",
+    equipe: orc.equipe.length ? n(orc.equipe.length, "função", "funções") : "Montar a equipe",
+    extras: orc.extras.length ? n(orc.extras.length, "item", "itens") : "Opcional",
+    cliente: c.cliente_nome || "Nome, data e pessoas",
+    financeiro: resumo.precoPorPessoa > 0 ? `${fmtReais(resumo.precoPorPessoa)} por pessoa` : "Definir o preço",
+    dre: temCusto && resumo.receita > 0 ? `Lucro ${fmtReais(resumo.lucro)}` : "Sem dados apurados",
+    proposta: "Gerar para o cliente",
+    pagamentos: recebido > 0 ? `Recebido ${fmtReais(recebido)}` : "Nenhum pagamento",
+    compras: temCusto ? "Lista pronta" : "Depois do cardápio",
+  };
+}
+
+// Resumo do evento em cartões (modelo do Delivery): toque e vai para a etapa.
+function ResumoDoEvento({ etapas, feito, linhas, pendencias, onAbrir, painel, setPainel }) {
+  return (
+    <div className="space-y-4">
+      {pendencias.length > 0 && (
+        <div className="rounded-2xl border border-hf-warning/30 bg-hf-warning/5 p-4">
+          <p className="mb-1 flex items-center gap-1.5 text-sm font-bold text-hf-text"><AlertTriangle size={15} className="text-hf-warning" /> Falta</p>
+          <ul className="space-y-0.5">{pendencias.slice(0, 4).map((p) => <li key={p} className="text-sm text-hf-text-2">• {p}</li>)}</ul>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {etapas.map((e) => {
+          const Icone = e.icone;
+          return (
+            <button key={e.id} type="button" onClick={() => onAbrir(e.id)}
+              className="flex min-h-[112px] flex-col justify-between gap-2 rounded-2xl border border-hf-border bg-hf-surface p-3 text-left transition hover:border-hf-border-strong hover:shadow-sm">
+              <span className="flex items-start justify-between gap-2">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-hf-elevated text-hf-text"><Icone size={20} /></span>
+                {feito[e.id]
+                  ? <span className="grid h-6 w-6 place-items-center rounded-full bg-hf-success text-white" aria-label="Feito"><Check size={14} strokeWidth={3} /></span>
+                  : <ChevronRight size={18} className="text-hf-muted" />}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold leading-tight text-hf-text">{e.rotulo}</span>
+                <span className="block truncate text-xs font-medium text-hf-text-2">{linhas[e.id]}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setPainel(painel === "modelo" ? null : "modelo")} className="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-bold text-hf-text hover:bg-hf-elevated"><BookmarkPlus size={16} /> Salvar como modelo</button>
+        <button type="button" onClick={() => setPainel(painel === "duplicar" ? null : "duplicar")} className="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-bold text-hf-text hover:bg-hf-elevated"><Copy size={16} /> Duplicar evento</button>
+      </div>
+    </div>
   );
 }
 

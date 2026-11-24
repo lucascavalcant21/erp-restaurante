@@ -287,7 +287,7 @@ function CartaoEvento({ evt, hoje, arrastavel, esmaecido, onInicio, onFim }) {
 
 const campoCls = "min-h-[44px] w-full rounded-xl border border-hf-border bg-hf-surface px-3 text-sm text-hf-text outline-none focus:border-hf-accent focus:ring-2 focus:ring-hf-accent/15";
 
-function NovoEventoModal({ onClose, onSuccess, unidadeAtiva, usuarioId }) {
+export function NovoEventoModal({ onClose, onSuccess, unidadeAtiva, usuarioId }) {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [form, setForm] = useState({

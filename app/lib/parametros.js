@@ -380,6 +380,16 @@ export async function fetchJantaFuncionarios(unidadeId) {
 }
 export const salvarJantaFuncionarios = (unidadeId, janta) => salvarParams(unidadeId, { janta_funcionarios: janta });
 
+/* Posicionamento da cozinha (quanto de cada produto vai no prato, 23/11/2026):
+ * config_sistema.params.posicionamento = { versao, itens: [...] }. */
+export async function fetchPosicionamento(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: null, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: null, error: error.message };
+  return { data: data?.[0]?.params?.posicionamento || null, error: null };
+}
+export const salvarPosicionamento = (unidadeId, posicionamento) => salvarParams(unidadeId, { posicionamento });
+
 // Modelo da proposta de evento para o cliente (condições gerais, empresa,
 // assinatura, pagamento). Um só para a casa, usado em todas as propostas.
 // Sem logo próprio, usa o logo do Cardápio digital.

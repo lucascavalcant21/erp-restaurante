@@ -16,6 +16,8 @@ const limpo = (v) => String(v ?? "").replace(/\s+/g, " ").trim();
 /** Prefixo dos comandos internos dos botões (nunca vão ao servidor). */
 export const PREFIXO = "§receita";
 
+import { respostaDoPosicionamento } from "../../posicionamento.mjs";
+
 const PALAVRAS_VAZIAS = new Set(["a", "o", "as", "os", "de", "do", "da", "dos", "das", "um", "uma", "e", "com", "pra", "para", "no", "na", "em", "me"]);
 
 export function tokens(texto) {
@@ -151,6 +153,8 @@ export function lerComando(texto) {
  * @param {{ fichas: object[] }|null} cache
  */
 export function respostaLocal(texto, cache) {
+  const pos = respostaDoPosicionamento(texto, cache);
+  if (pos) return pos;
   const janta = respostaDaJanta(texto, cache);
   if (janta) return janta;
   const fichas = cache?.fichas || [];

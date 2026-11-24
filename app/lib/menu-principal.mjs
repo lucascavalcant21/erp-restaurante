@@ -38,6 +38,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       { titulo: "Receitas", cards: [
         { label: "Fichas técnicas", desc: "Receitas, rendimento e custo", href: "/dashboard/operacao/fichas?dept=cozinha", icone: "BookOpen" },
         { label: "Guia de montagem", desc: "Fotos e passo a passo", href: "/dashboard/operacao/montagem?dept=cozinha", icone: "Salad" },
+        { label: "Posicionamento", desc: "Quantas gramas vão no prato", href: "/dashboard/operacao/posicionamento?dept=cozinha", icone: "Scale" },
         { label: "Green Dot Assist", desc: "Assistente de bancada no tablet", href: "/dashboard/assistente", icone: "Sparkles" },
       ] },
       { titulo: "Estoque e compras", cards: [

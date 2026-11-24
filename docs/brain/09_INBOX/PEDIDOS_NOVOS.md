@@ -228,3 +228,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 24/11/2026 | Sem nomes repetidos (bases, ingredientes, pratos, drinks) | FEITO no salvar (fichas por setor, ingredientes por setor). Repetidos antigos continuam até o dono limpar: 3 fichas e 13 ingredientes no Seldeestrela (lista no chat). Trava no banco só depois da limpeza |
 | 24/11/2026 | Excluir base/ingrediente em uso: perguntar "tirar de todas as fichas" ou "trocar por outro", listando as fichas | FEITO (fichas e ingredientes) |
 | 24/11/2026 | % de cada ingrediente no peso da receita, entre parênteses | FEITO (composição da ficha + "Peso da receita (100%)") |
+| 24/11/2026 | Janta: sem "Ficha do dia"; fichas de produção (trazer do restaurante, marmitas, eventos ou criar), rendimento pesado ou cru × índice de cocção, receita refeita para o total do dia | FEITO (aba "Fichas de produção"; índices de referência do Guia UFV 2023, editáveis) |

@@ -8,10 +8,15 @@
 // refeita para dar as porções do dia, sem sobra. Contas em
 // app/lib/janta-funcionarios.mjs; guardado em config_sistema (todos os
 // aparelhos da unidade veem o mesmo).
+// 24/11/2026 (dono): sem "Ficha do dia". Duas abas: "Montar a semana" e
+// "Fichas de produção" (trazidas do restaurante, marmitas ou eventos, ou novas;
+// rendem X pronto, por pesagem ou cru × índice de cocção). O item da semana
+// liga à ficha de produção e a receita se refaz para o total do dia.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Copy, ExternalLink, Loader2, Minus, Plus, Printer, Save, Trash2, UtensilsCrossed, Pin, BookOpen } from "lucide-react";
+import { ArrowLeft, ChevronDown, Copy, ExternalLink, Loader2, Minus, Plus, Printer, Save, Trash2, UtensilsCrossed, Pin } from "lucide-react";
+import FichasProducao, { ReceitaRefeita } from "../../../components/janta/FichasProducao";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, fetchFichas } from "../../../lib/operacao";
 import { fetchJantaFuncionarios, salvarJantaFuncionarios } from "../../../lib/parametros";
@@ -34,49 +39,11 @@ function semanaAntiga(unidade) {
   } catch { return null; }
 }
 
-const vazioItem = () => ({ id: novoIdJanta("i"), nome: "", insumo_id: null, ficha_id: null, modo: "g", porcao: "", g_pessoa: "" });
+const vazioItem = () => ({ id: novoIdJanta("i"), nome: "", insumo_id: null, ficha_id: null, producao_id: null, modo: "g", porcao: "", g_pessoa: "" });
 const porcaoTexto = (i) => (i.porcaoN ? `${i.porcaoN.toLocaleString("pt-BR")} ${MODOS_PORCAO.find((m) => m.id === i.modo)?.curto || "g"}/pessoa` : "");
 
-// Ficha do dia (funcionário): o total grande e, se ligado à ficha técnica,
-// a receita refeita para esse total.
-function ItemDaFicha({ i, pessoas }) {
-  const [aberta, setAberta] = useState(false);
-  const r = i.receita;
-  return (
-    <li className="py-3">
-      <div className="flex items-baseline gap-3">
-        <span className="min-w-0 flex-1 text-[16px] font-semibold text-hf-text">{i.nome || "Item"}</span>
-        {i.modo !== "geral" && <span className="w-28 text-right text-xl font-black tabular-nums text-hf-text">{i.rotulo}</span>}
-      </div>
-      {i.modo === "geral"
-        ? <p className="mt-0.5 text-[15px] font-bold text-hf-text">{i.rotulo} <span className="text-[12px] font-semibold text-hf-muted">· geral, não muda com as pessoas</span></p>
-        : <p className="mt-0.5 text-[13px] text-hf-muted">{pessoas && i.porcaoN ? `${pessoas} × ${porcaoTexto(i)} (pronto)` : "Falta a porção por pessoa"}</p>}
-      {i.cru && <p className="mt-1 text-[13px] font-semibold text-hf-text">Cozinhe cerca de {i.cru.rotulo} cru <span className="text-hf-muted">(ESTIMATIVA)</span></p>}
-      {r?.status === "ok" && (
-        <div className="mt-2">
-          <button type="button" onClick={() => setAberta(!aberta)} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-hf-elevated px-4 text-[14px] font-bold text-hf-text">
-            <BookOpen size={16} /> Receita: faça {r.rotuloFator} ({r.fichaNome}) <ChevronDown size={14} className={aberta ? "rotate-180" : ""} />
-          </button>
-          {aberta && (
-            <div className="mt-2 rounded-2xl bg-hf-elevated p-4">
-              <ul className="space-y-1">
-                {r.ingredientes.map((g, k) => (
-                  <li key={k} className="flex justify-between gap-3 text-[15px]"><span>{g.nome}</span><b className="tabular-nums">{g.quantidade}</b></li>
-                ))}
-              </ul>
-              {r.aproximado && <p className="mt-2 text-[12px] text-hf-muted">ESTIMATIVA: a ficha rende em litro e a porção é em grama (1 ml ≈ 1 g).</p>}
-              {r.preparo && <p className="mt-3 whitespace-pre-line text-[14px] leading-relaxed text-hf-text">{r.preparo}</p>}
-            </div>
-          )}
-        </div>
-      )}
-      {r?.status === "insuficiente" && <p className="mt-1 text-[12px] font-semibold text-hf-warning">DADOS INSUFICIENTES para a receita: {r.motivo}</p>}
-    </li>
-  );
-}
-
 // Uma linha do editor (dono): produto, porção pronta por pessoa, medida e ficha.
-function LinhaItem({ i, calc, insumos, fichas, onMudar, onTirar }) {
+function LinhaItem({ i, calc, insumos, fichas, producao = [], onMudar, onTirar, onNovaFicha }) {
   const set = (fn) => onMudar((it) => { fn(it); if (it.modo === "g") it.g_pessoa = it.porcao; else it.g_pessoa = ""; });
   return (
     <div className="rounded-2xl border border-hf-border p-3">
@@ -94,16 +61,20 @@ function LinhaItem({ i, calc, insumos, fichas, onMudar, onTirar }) {
           {MODOS_PORCAO.map((m) => <option key={m.id} value={m.id}>{m.rotulo}</option>)}
         </select>
       </div>
-      <select aria-label="Ficha técnica (receita)" value={i.ficha_id || ""} onChange={(e) => set((it) => { it.ficha_id = e.target.value || null; })} className={`${inputCls} mt-2`}>
-        <option value="">Sem ficha técnica (só a quantidade)</option>
-        {fichas.map((f) => <option key={f.id} value={f.id}>Receita: {f.nome_receita}</option>)}
+      <select aria-label="Ficha de produção" value={i.producao_id || (i.ficha_id ? `ficha:${i.ficha_id}` : "")}
+        onChange={(e) => { const v = e.target.value; if (v === "__nova") { onNovaFicha?.(); return; } set((it) => { if (v.startsWith("ficha:")) return; it.producao_id = v || null; it.ficha_id = null; const p = producao.find((x) => x.id === v); if (p && !it.nome) it.nome = p.nome; }); }}
+        className={`${inputCls} mt-2`}>
+        <option value="">Sem ficha de produção (só a quantidade)</option>
+        {producao.map((p) => <option key={p.id} value={p.id}>Ficha: {p.nome || "sem nome"}</option>)}
+        {i.ficha_id && !i.producao_id && <option value={`ficha:${i.ficha_id}`}>Ficha técnica antiga: {fichas.find((f) => f.id === i.ficha_id)?.nome_receita || "—"}</option>}
+        <option value="__nova">+ Nova ficha de produção…</option>
       </select>
-      {i.ficha_id && (
+      {i.ficha_id && !i.producao_id && (
         <Link href={`/dashboard/operacao/fichas/${i.ficha_id}`} className="mt-1.5 inline-flex min-h-[40px] items-center gap-1.5 text-[13px] font-bold text-hf-accent">
-          <ExternalLink size={14} /> Ver ou editar esta receita
+          <ExternalLink size={14} /> Ver a ficha técnica antiga
         </Link>
       )}
-      {i.modo === "g" && !i.ficha_id && (
+      {i.modo === "g" && !i.ficha_id && !i.producao_id && (
         <label className="mt-2 flex items-center gap-2 text-[12px] font-semibold text-hf-text-2">
           1 g cru vira
           <input inputMode="decimal" aria-label="Quanto 1 g cru vira pronto" value={i.rend_cozimento ?? ""} onChange={(e) => set((it) => { it.rend_cozimento = e.target.value; })} placeholder="3" className="h-9 w-20 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold" />
@@ -115,6 +86,7 @@ function LinhaItem({ i, calc, insumos, fichas, onMudar, onTirar }) {
         {calc?.receita?.status === "ok" ? ` · ${calc.receita.rotuloFator}` : calc?.receita?.status === "insuficiente" ? ` · ${calc.receita.motivo}` : ""}
         {calc?.custo != null ? ` · ${brl(calc.custo)}` : ""}
       </p>
+      {calc?.receita && (i.producao_id || i.ficha_id) && <ReceitaRefeita r={calc.receita} />}
     </div>
   );
 }
@@ -162,13 +134,13 @@ function RepetirDia({ dia, rotDia, janta, onRepetir }) {
 }
 
 export default function JantaFuncionarios() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [janta, setJanta] = useState(normalizarJanta(null));
   const [insumos, setInsumos] = useState([]);
   const [fichas, setFichas] = useState([]);
   const [dia, setDia] = useState(diaDeHoje());
-  // "ficha": o funcionário vê o dia, põe quantas pessoas e lê a ficha pronta; "montar": o dono monta a semana
-  const [modo, setModo] = useState("ficha");
+  // "montar": o cardápio da semana; "producao": as fichas de produção da janta
+  const [modo, setModo] = useState("montar");
   const [carregando, setCarregando] = useState(true);
   const [mudou, setMudou] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -249,12 +221,16 @@ export default function JantaFuncionarios() {
 
       {/* Semana: cada dia com quantas pessoas jantam e o prato */}
       <div className="grid grid-cols-2 gap-1 rounded-full bg-hf-elevated p-1 sm:inline-grid sm:w-auto">
-        {[["ficha", "Ficha do dia"], ["montar", "Montar a semana"]].map(([id, rot]) => (
+        {[["montar", "Montar a semana"], ["producao", "Fichas de produção"]].map(([id, rot]) => (
           <button key={id} onClick={() => setModo(id)} aria-pressed={modo === id}
-            className={`h-10 rounded-full px-5 text-sm font-black transition ${modo === id ? "bg-hf-surface text-hf-text shadow-sm" : "text-hf-text-2"}`}>{rot}</button>
+            className={`min-h-[44px] rounded-full px-5 text-sm font-black transition ${modo === id ? "bg-hf-menu text-white" : "text-hf-text-2"}`}>{rot}</button>
         ))}
       </div>
 
+      {modo === "producao" ? (
+        <FichasProducao janta={janta} alterar={alterar} unidades={unidades} unidadeAtiva={unidadeAtiva}
+          avisar={(t) => { setAviso(t); setTimeout(() => setAviso(""), 4000); }} />
+      ) : (<>
       <div role="tablist" aria-label="Dia da semana" className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {semana.map((x) => (
           <button key={x.id} role="tab" aria-selected={dia === x.id} onClick={() => setDia(x.id)}
@@ -289,50 +265,26 @@ export default function JantaFuncionarios() {
         <section className="space-y-3">
           <div className="rounded-3xl border border-hf-border bg-hf-surface p-5">
             <p className="text-[11px] font-black uppercase tracking-wider text-hf-muted">Ficha da janta · {rotDia}</p>
-            {modo === "ficha" ? (
-              <p className="mt-2 text-sm font-semibold text-hf-text-2">{doDia.pessoas ? <>Quantidades para <b className="text-hf-text">{doDia.pessoas} pessoa(s)</b>. Mudou o número? Ajuste em "Quantas pessoas jantam" e a ficha atualiza.</> : "Ponha quantas pessoas vão jantar para ver as quantidades."}</p>
-            ) : (<>
             <div className="mt-3 grid grid-cols-3 gap-3">
               <div><p className="text-xs text-hf-text-2">Pessoas</p><p className="text-xl font-black tabular-nums text-hf-text">{doDia.pessoas || "—"}</p></div>
               <div><p className="text-xs text-hf-text-2">Custo da janta</p><p className="text-xl font-black tabular-nums text-hf-text">{doDia.custo > 0 ? brl(doDia.custo) : "—"}</p></div>
               <div><p className="text-xs text-hf-text-2">Por pessoa</p><p className="text-xl font-black tabular-nums text-hf-text">{brl(doDia.custoPorPessoa)}</p></div>
             </div>
             <p className="mt-2 text-xs text-hf-muted">{doDia.semCusto ? `ESTIMATIVA: ${doDia.semCusto} item(ns) sem produto com preço no cadastro.` : doDia.custo > 0 ? "Custo pelos preços do cadastro. As quantidades mudam sozinhas com o número de pessoas." : "Você põe a porção pronta por pessoa (g, unidades ou ml); o total e a receita mudam sozinhos com o número de pessoas do dia."}</p>
-            </>)}
             <button onClick={() => imprimir([{ rotulo: rotDia, r: doDia }])} className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-hf-elevated text-sm font-black text-hf-text hover:bg-hf-border"><Printer size={16} /> Imprimir a ficha da janta de {rotDia}</button>
           </div>
 
-      {modo === "ficha" ? (
-        <div className="space-y-3">
-          {doDia.pessoas > 0 && pratoDaPessoa(doDia).length > 0 && (
-            <article className="rounded-3xl border border-hf-border bg-hf-surface p-5">
-              <h2 className="text-lg font-black text-hf-text">Prato de cada pessoa</h2>
-              <ul className="mt-2 divide-y divide-hf-border">
-                {pratoDaPessoa(doDia).map((x, k) => (
-                  <li key={k} className="flex justify-between gap-3 py-2 text-[15px]"><span className="font-semibold text-hf-text">{x.nome}</span><b className="tabular-nums text-hf-text">{x.texto}</b></li>
-                ))}
-              </ul>
-            </article>
-          )}
-          {doDia.pratos.filter((p) => !p.fixo).length === 0 && (
-            <p className="rounded-3xl border border-dashed border-hf-border p-6 text-center text-sm font-semibold text-hf-text-2">Nenhum prato na {rotDia}. Monte o cardápio em <button onClick={() => setModo("montar")} className="font-black text-hf-accent underline">Montar a semana</button>.</p>
-          )}
-          {doDia.pratos.map((p) => (
-            <article key={p.id} className="rounded-3xl border border-hf-border bg-hf-surface p-5">
-              <h2 className="flex items-center gap-2 text-lg font-black text-hf-text">{p.fixo ? <Pin size={18} className="text-hf-accent" /> : <UtensilsCrossed size={18} className="text-hf-accent" />}{p.fixo ? "Todo dia (fixos)" : p.nome || "Prato"}</h2>
-              <ul className="mt-2 divide-y divide-hf-border">
-                {p.itens.map((i) => <ItemDaFicha key={i.id} i={i} pessoas={doDia.pessoas} />)}
-              </ul>
-              {p.preparo && (
-                <div className="mt-3 rounded-2xl bg-hf-elevated p-4">
-                  <p className="text-[11px] font-black uppercase tracking-wider text-hf-muted">Como fazer</p>
-                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-hf-text">{p.preparo}</p>
-                </div>
-              )}
-            </article>
-          ))}
-        </div>
-      ) : (<>
+      {doDia.pessoas > 0 && pratoDaPessoa(doDia).length > 0 && (
+        <article className="rounded-3xl border border-hf-border bg-hf-surface p-5">
+          <h2 className="text-lg font-black text-hf-text">Prato de cada pessoa</h2>
+          <ul className="mt-2 divide-y divide-hf-border">
+            {pratoDaPessoa(doDia).map((x, k) => (
+              <li key={k} className="flex justify-between gap-3 py-2 text-[15px]"><span className="font-semibold text-hf-text">{x.nome}</span><b className="tabular-nums text-hf-text">{x.texto}</b></li>
+            ))}
+          </ul>
+        </article>
+      )}
+      <>
       <datalist id="produtos-janta">{insumos.map((i) => <option key={i.id} value={i.nome} />)}</datalist>
       <div className="space-y-3">
         <article className="rounded-3xl border-2 border-hf-accent/40 bg-hf-surface p-5">
@@ -340,7 +292,7 @@ export default function JantaFuncionarios() {
           <p className="mt-1 text-[13px] text-hf-text-2">Vale para todos os dias da semana (ex.: arroz, feijão, salada). A porção é do produto <b>pronto</b>: feijão já com caldo.</p>
           <div className="mt-3 space-y-2">
             {(janta.fixos || []).map((i) => (
-              <LinhaItem key={i.id} i={i} calc={doDia.pratos.find((x) => x.fixo)?.itens.find((x) => x.id === i.id)} insumos={insumos} fichas={fichas}
+              <LinhaItem key={i.id} i={i} calc={doDia.pratos.find((x) => x.fixo)?.itens.find((x) => x.id === i.id)} insumos={insumos} fichas={fichas} producao={janta.producao || []} onNovaFicha={() => setModo("producao")}
                 onMudar={(fn) => alterar((j) => { const it = j.fixos.find((y) => y.id === i.id); if (it) fn(it); return j; })}
                 onTirar={() => alterar((j) => { j.fixos = j.fixos.filter((y) => y.id !== i.id); return j; })} />
             ))}
@@ -356,7 +308,7 @@ export default function JantaFuncionarios() {
             </div>
             <div className="mt-3 space-y-2">
               {janta.dias[dia].pratos.find((x) => x.id === p.id).itens.map((i) => (
-                <LinhaItem key={i.id} i={normalizarItem(i)} calc={p.itens.find((x) => x.id === i.id)} insumos={insumos} fichas={fichas}
+                <LinhaItem key={i.id} i={normalizarItem(i)} calc={p.itens.find((x) => x.id === i.id)} insumos={insumos} fichas={fichas} producao={janta.producao || []} onNovaFicha={() => setModo("producao")}
                   onMudar={(fn) => alterarPrato(p.id, (x) => { const it = x.itens.find((y) => y.id === i.id); if (it) fn(it); })}
                   onTirar={() => alterarPrato(p.id, (x) => { x.itens = x.itens.filter((y) => y.id !== i.id); })} />
               ))}
@@ -374,9 +326,10 @@ export default function JantaFuncionarios() {
         <RepetirDia dia={dia} rotDia={rotDia} janta={janta}
           onRepetir={(para) => { const r = repetirDia(janta, dia, para); setJanta(r.janta); setMudou(true); setAviso(`Cardápio da ${rotDia} repetido. Toque em Salvar.`); setTimeout(() => setAviso(""), 4000); }} />
       </div>
-      </>)}
+      </>
         </section>
       </div>
+      </>)}
     </div>
   );
 }

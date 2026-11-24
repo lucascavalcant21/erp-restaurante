@@ -24,6 +24,12 @@
 import { precoNormalizadoDoInsumo } from "./ingredientes-utils.mjs";
 import { pesoTotalDaFicha } from "./ficha-calculos.mjs";
 import { qtdLegivel, rotuloDoFator } from "./intelligence/metrics/adaptar-receita.mjs";
+import { normalizarProducao, producaoParaTotal } from "./janta-producao.mjs";
+
+// 24/11/2026 (dono): sem "ficha do dia"; o item liga a uma FICHA DE PRODUÇÃO
+// (janta-producao.mjs: trazida do restaurante, das marmitas, dos eventos ou
+// criada na janta) e a receita se refaz para o total do dia. O item antigo
+// ligado à ficha técnica (ficha_id) continua funcionando.
 
 export const DIAS_SEMANA = [
   { id: "seg", rotulo: "Segunda" }, { id: "ter", rotulo: "Terça" }, { id: "qua", rotulo: "Quarta" },
@@ -50,6 +56,7 @@ export function normalizarItem(i = {}) {
   const porcao = i.porcao ?? i.g_pessoa ?? "";
   return {
     id: i.id || novoIdJanta("i"), nome: String(i.nome || ""), insumo_id: i.insumo_id || null, ficha_id: i.ficha_id || null,
+    producao_id: i.producao_id || null,
     modo, porcao,
     // telas antigas leem g_pessoa: continua igual quando a porção é em gramas
     g_pessoa: modo === "g" ? porcao : "",
@@ -62,7 +69,7 @@ export function normalizarItem(i = {}) {
 }
 
 export function jantaVazia() {
-  return { pessoas_padrao: "", fixos: [], dias: Object.fromEntries(DIAS_SEMANA.map((d) => [d.id, { pessoas: "", pratos: [] }])) };
+  return { pessoas_padrao: "", fixos: [], producao: [], dias: Object.fromEntries(DIAS_SEMANA.map((d) => [d.id, { pessoas: "", pratos: [] }])) };
 }
 
 /** Lê o que veio do banco sem quebrar com dado velho ou incompleto. */
@@ -81,7 +88,8 @@ export function normalizarJanta(salvo) {
     };
   }
   const fixos = (Array.isArray(salvo.fixos) ? salvo.fixos : []).map(normalizarItem);
-  return { pessoas_padrao: salvo.pessoas_padrao ?? "", fixos, dias };
+  const producao = (Array.isArray(salvo.producao) ? salvo.producao : []).map(normalizarProducao);
+  return { pessoas_padrao: salvo.pessoas_padrao ?? "", fixos, producao, dias };
 }
 
 export const pessoasDoDia = (janta, diaId) => n(janta?.dias?.[diaId]?.pessoas) || n(janta?.pessoas_padrao);
@@ -191,11 +199,14 @@ export function cardapioDoDia(janta, diaId, { pessoas = null, insumos = new Map(
   const dia = janta?.dias?.[diaId] || { pratos: [] };
   const p = n(pessoas) || pessoasDoDia(janta, diaId);
   let custo = 0; let semCusto = 0;
-  const calcular = (itens) => (itens || []).map(normalizarItem).filter((i) => i.nome || i.insumo_id || i.ficha_id).map((i) => {
+  const producoes = new Map((janta?.producao || []).map((x) => [x.id, x]));
+  const calcular = (itens) => (itens || []).map(normalizarItem).filter((i) => i.nome || i.insumo_id || i.ficha_id || i.producao_id).map((i) => {
+    const prod = i.producao_id ? producoes.get(i.producao_id) : null;
     if (i.modo === "geral") {
       const ficha = i.ficha_id ? fichas.get(i.ficha_id) : null;
-      return { ...i, nome: i.nome || ficha?.nome_receita || "", porcaoN: 0, gPessoa: 0, totalG: 0, total: 0, geralTexto: i.geral,
-        rotulo: i.geral || "—", custo: null, cru: null, receita: ficha ? receitaDaFichaInteira(ficha) : { status: "sem_ficha" } };
+      const receita = prod ? producaoInteira(prod) : ficha ? receitaDaFichaInteira(ficha) : { status: "sem_ficha" };
+      return { ...i, nome: i.nome || prod?.nome || ficha?.nome_receita || "", porcaoN: 0, gPessoa: 0, totalG: 0, total: 0, geralTexto: i.geral,
+        rotulo: i.geral || "—", custo: null, cru: null, receita };
     }
     const porcao = n(i.porcao);
     const total = porcao * p;
@@ -204,12 +215,14 @@ export function cardapioDoDia(janta, diaId, { pessoas = null, insumos = new Map(
     if (c == null) { if (total > 0) semCusto += 1; } else custo += c;
     const ficha = i.ficha_id ? fichas.get(i.ficha_id) : null;
     return {
-      ...i, nome: i.nome || ins?.nome || ficha?.nome_receita || "",
+      ...i, nome: i.nome || ins?.nome || prod?.nome || ficha?.nome_receita || "",
       porcaoN: porcao, gPessoa: i.modo === "g" ? porcao : 0, totalG: i.modo === "g" ? total : 0, total,
       rotulo: rotuloTotal(total, i.modo), custo: c,
       // cru para cozinhar (sem ficha ligada): pronto ÷ rendimento do cozimento
-      cru: !i.ficha_id && i.modo === "g" && n(i.rend_cozimento) > 0 && total > 0 ? { g: r2(total / n(i.rend_cozimento)), rotulo: rotuloPeso(total / n(i.rend_cozimento)), natureza: "ESTIMATIVA" } : null,
-      receita: receitaDoItem(i, ficha, total),
+      cru: !i.ficha_id && !i.producao_id && i.modo === "g" && n(i.rend_cozimento) > 0 && total > 0 ? { g: r2(total / n(i.rend_cozimento)), rotulo: rotuloPeso(total / n(i.rend_cozimento)), natureza: "ESTIMATIVA" } : null,
+      receita: i.producao_id
+        ? (prod ? producaoParaTotal(prod, total, i.modo) : { status: "insuficiente", motivo: "A ficha de produção ligada a este item foi apagada." })
+        : receitaDoItem(i, ficha, total),
     };
   });
   const fixos = calcular(janta?.fixos);
@@ -222,6 +235,13 @@ export function cardapioDoDia(janta, diaId, { pessoas = null, insumos = new Map(
     custoPorPessoa: p > 0 && custo > 0 ? r2(custo / p) : null,
     natureza: semCusto ? "ESTIMATIVA" : "REAL",
   };
+}
+
+/** Ficha de produção inteira (item "geral": não multiplica). */
+function producaoInteira(prod) {
+  const p = normalizarProducao(prod);
+  const ingredientes = p.ingredientes.filter((g) => g.nome || n(g.quantidade)).map((g) => ({ nome: g.nome || "Ingrediente", principal: g.principal, quantidade: n(g.quantidade) ? qtdLegivel(n(g.quantidade), g.unidade) : "—" }));
+  return { status: "ok", fator: 1, rotuloFator: rotuloDoFator(1), aproximado: false, fichaNome: p.nome || "Ficha de produção", ingredientes, preparo: p.preparo, natureza: "REAL" };
 }
 
 /** A ficha como está (item "geral" ligado a uma ficha: não multiplica). */

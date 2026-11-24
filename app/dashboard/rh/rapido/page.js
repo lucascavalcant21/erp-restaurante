@@ -206,7 +206,7 @@ export default function RhRapido() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-5 sm:px-6">
       <CabecalhoTela titulo="Ações rápidas do RH" subtitulo="Folga de domingo, folga, atestado, feriado e correção de ponto" />
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+      <div className="flex flex-wrap gap-2 pb-1">
         {ABAS.map(({ id, rotulo, Icone }) => (
           <button key={id} type="button" onClick={() => setAba(id)} className={`${pill(aba === id)} inline-flex items-center gap-1.5`}><Icone size={16} /> {rotulo}</button>
         ))}
@@ -227,7 +227,31 @@ export default function RhRapido() {
             <button type="button" onClick={() => setSoDomingo(!soDomingo)} className={pill(soDomingo)}>Só quem trabalha domingo</button>
             <span>Toque no domingo para dar ou tirar a folga. Regra: 1 por mês (2 para mulheres).</span>
           </div>
-          <div className="overflow-x-auto rounded-3xl border border-hf-border bg-hf-surface">
+          {/* Celular: um cartão por pessoa com os domingos embaixo, quebrando
+              linha; nada de arrastar a tabela para o lado (dono, 24/11/2026). */}
+          <ul className="space-y-2 sm:hidden">
+            {linhas.map((l) => (
+              <li key={l.id} className="rounded-2xl border border-hf-border bg-hf-surface p-3">
+                <p className="font-black text-hf-text">{l.primeiro}</p>
+                <p className="text-[11px] text-hf-muted">{l.porMes.map((m) => `${m.rotulo.slice(0, 3)} ${m.n}/${m.limite}`).join(" · ")}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {l.celulas.map((c, i) => {
+                    const col = grade.colunas[i];
+                    const mes = l.porMes.find((m) => m.anoMes === col.anoMes);
+                    return (
+                      <button key={c.data} type="button" disabled={!podeMexer || ocupado} onClick={() => alternarDomingo(l, c)} aria-label={`${l.primeiro} ${c.data} ${c.folga ? "de folga" : "trabalha"}`}
+                        className={`flex h-12 min-w-[56px] flex-col items-center justify-center rounded-xl px-2 text-[12px] font-black ${c.folga ? "bg-hf-menu text-white" : mes?.situacao === "falta" && !col.passou ? "border-2 border-dashed border-hf-warning text-hf-text" : "border border-hf-border text-hf-text"} ${col.passou ? "opacity-60" : ""}`}>
+                        <span>{col.rotulo}</span>
+                        <span className="text-[10px] font-semibold">{c.folga ? "folga" : "trabalha"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </li>
+            ))}
+            {!linhas.length && <li className="rounded-2xl border border-hf-border bg-hf-surface p-5 text-center text-sm text-hf-muted">Ninguém trabalha domingo pela ficha.</li>}
+          </ul>
+          <div className="hidden overflow-x-auto rounded-3xl border border-hf-border bg-hf-surface sm:block">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
@@ -242,7 +266,7 @@ export default function RhRapido() {
               <tbody>
                 {linhas.map((l) => (
                   <tr key={l.id} className="border-t border-hf-border">
-                    <td className="sticky left-0 z-10 min-w-[120px] bg-hf-surface px-3 py-2">
+                    <td className="sticky left-0 z-10 min-w-[92px] bg-hf-surface px-2 py-2 sm:min-w-[120px] sm:px-3">
                       <p className="font-black text-hf-text">{l.primeiro}</p>
                       <p className="text-[11px] text-hf-muted">{l.porMes.map((m) => `${m.rotulo.slice(0, 3)} ${m.n}/${m.limite}`).join(" · ")}</p>
                     </td>
@@ -250,9 +274,9 @@ export default function RhRapido() {
                       const passou = grade.colunas[i].passou;
                       const mes = l.porMes.find((m) => m.anoMes === grade.colunas[i].anoMes);
                       return (
-                        <td key={c.data} className="px-1 py-1.5 text-center">
+                        <td key={c.data} className="px-0.5 py-1.5 text-center sm:px-1">
                           <button type="button" disabled={!podeMexer || ocupado} onClick={() => alternarDomingo(l, c)} aria-label={`${l.primeiro} ${c.data} ${c.folga ? "de folga" : "trabalha"}`}
-                            className={`grid h-11 w-11 place-items-center rounded-2xl text-[12px] font-black ${c.folga ? "bg-hf-menu text-white" : mes?.situacao === "falta" && !passou ? "border-2 border-dashed border-hf-warning text-hf-muted" : "border border-hf-border text-hf-muted"} ${passou ? "opacity-60" : ""}`}>
+                            className={`grid h-10 w-10 place-items-center rounded-xl text-[12px] font-black sm:h-11 sm:w-11 sm:rounded-2xl ${c.folga ? "bg-hf-menu text-white" : mes?.situacao === "falta" && !passou ? "border-2 border-dashed border-hf-warning text-hf-muted" : "border border-hf-border text-hf-muted"} ${passou ? "opacity-60" : ""}`}>
                             {c.folga ? <Check size={18} /> : ""}
                           </button>
                         </td>

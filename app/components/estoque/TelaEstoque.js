@@ -212,7 +212,7 @@ export default function TelaEstoque({ inicial = {} }) {
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto, categoria ou local…" className="h-12 w-full rounded-2xl border border-zinc-300 bg-zinc-100 pl-10 pr-10 font-semibold text-hf-text placeholder:text-zinc-500 focus:bg-hf-surface" />
             {busca ? <button onClick={() => setBusca("")} aria-label="Limpar busca" className="absolute right-3 top-1/2 -translate-y-1/2"><X size={18} /></button> : null}
           </div>
-          <div className={`flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] ${areaTravada ? "hidden" : ""}`}>
+          <div className={`flex flex-wrap gap-2 pb-1 ${areaTravada ? "hidden" : ""}`}>
             {AREAS.map(([id, rot]) => <button key={id} onClick={() => setArea(id)} aria-pressed={area === id} className={`h-9 shrink-0 rounded-full border px-3 text-sm font-bold ${area === id ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border bg-hf-surface text-hf-text"}`}>{rot}</button>)}
           </div>
           {["todas", "cozinha", "bar"].includes(area) && (
@@ -228,7 +228,7 @@ export default function TelaEstoque({ inicial = {} }) {
             </div>
           )}
           {temGrupos && (
-            <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+            <div className="flex flex-wrap gap-2 pb-1">
               {[["todos", "Todas as categorias", Object.values(contagemGrupos).reduce((a, b) => a + b, 0)], ...GRUPOS_ESTOQUE[area].filter((g) => contagemGrupos[g.id]).map((g) => [g.id, g.rotulo, contagemGrupos[g.id]])].map(([id, rot, n]) => (
                 <button key={id} onClick={() => setGrupo(id)} aria-pressed={grupo === id} className={`h-9 shrink-0 rounded-xl border px-3 text-sm font-bold ${grupo === id ? "border-hf-accent bg-hf-accent/10 text-hf-accent" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>
                   {rot} <span className="ml-0.5 text-xs opacity-70">{n}</span>

@@ -1912,3 +1912,16 @@ textarea.entrada {
     animation: none;
   }
 }
+
+/* Celular: cada produto vira um cartão, sem arrastar a tabela para o lado
+   (dono, 24/11/2026). Os canais ganham o nome antes ("Salão: Ativo"). */
+@media (max-width: 767px) {
+  .tabelaCaixa { overflow-x: visible; }
+  .tabela { min-width: 0; }
+  .tabela thead { display: none; }
+  .tabela tbody tr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px; }
+  .tabela td { padding: 0; }
+  .tabela td:first-child { flex: 1 1 100%; }
+  .tabela td[data-rotulo] { flex: 1 1 40%; min-height: 44px; display: flex; align-items: center; }
+  .tabela td[data-rotulo]::before { content: attr(data-rotulo) ":"; margin-right: 6px; font-size: 12px; font-weight: 700; color: var(--cd-texto-secundario); }
+}

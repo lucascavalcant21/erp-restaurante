@@ -228,7 +228,7 @@ export default function CardapioEditorPage() {
             <div className="min-w-0 space-y-4">
               {/* No celular as abas correm numa linha só (arrasta para o lado); a aba escolhida vem para a vista. */}
               <div role="tablist" aria-label="Partes do cardápio"
-                className="-mx-3 flex snap-x gap-1 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:rounded-xl sm:bg-hf-elevated sm:p-1 [&::-webkit-scrollbar]:hidden">
+                className="flex flex-wrap gap-1 pb-1 sm:rounded-xl sm:bg-hf-elevated sm:p-1">
                 {ABAS.map((a) => (
                   <button key={a.id} type="button" role="tab" aria-selected={aba === a.id}
                     onClick={(e) => { trocarAba(a.id); e.currentTarget.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }}

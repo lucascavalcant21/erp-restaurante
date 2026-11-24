@@ -207,7 +207,38 @@ export default function UsuariosAcessosPage() {
         <select value={filters.last} onChange={(e) => setFilters({...filters,last:e.target.value})} className={INPUT}><option value="">Qualquer acesso</option><option value="7d">Últimos 7 dias</option><option value="never">Nunca acessou</option></select>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
+      {/* Celular e tablet: um cartão por usuário, tudo encaixado (dono, 24/11/2026). */}
+      <ul className="space-y-2 lg:hidden">
+        {users.map((user) => (
+          <li key={user.id} className="rounded-2xl border border-line bg-card p-3 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{avatarInitials(user.nome)}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 break-words font-black text-slate-800">{user.nome}</p>
+                  <Status value={user.status}/>
+                </div>
+                <p className="break-all text-sm font-bold text-fg">{user.login}</p>
+                <p className="text-xs text-subtle">{[profileName(user.perfil_id), sectorName(user.setor_principal_id), unitName(user.unidade_principal_id)].filter((x) => x && x !== "—").join(" · ")}</p>
+                <p className="text-xs text-subtle">Último acesso: {formatLastAccess(user.ultimo_acesso_em)}</p>
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1 border-t border-line pt-2">
+              <button title="Visualizar" aria-label="Visualizar" onClick={()=>{setForm(user);setModal("view")}} className="grid h-11 w-11 place-items-center rounded-lg text-fg hover:bg-card"><Eye size={17}/></button>
+              <button title="Editar" aria-label="Editar" onClick={()=>openForm(user)} className="grid h-11 w-11 place-items-center rounded-lg text-emerald-700 hover:bg-zinc-100"><Pencil size={17}/></button>
+              <button title="Alterar permissões" aria-label="Alterar permissões" onClick={()=>openPermissions(user)} className="grid h-11 w-11 place-items-center rounded-lg text-emerald-700 hover:bg-zinc-100"><ShieldCheck size={17}/></button>
+              <button title="Redefinir senha" aria-label="Redefinir senha" onClick={()=>{setForm({...user,password:"",confirmPassword:""});setModal("password")}} className="grid h-11 w-11 place-items-center rounded-lg text-amber-600 hover:bg-amber-50"><KeyRound size={17}/></button>
+              {user.status==="ativo"?<button title="Bloquear" aria-label="Bloquear" onClick={()=>status(user,"bloqueado")} className="grid h-11 w-11 place-items-center rounded-lg text-amber-600 hover:bg-amber-50"><Lock size={17}/></button>:<button title="Desbloquear" aria-label="Desbloquear" onClick={()=>status(user,"ativo")} className="grid h-11 w-11 place-items-center rounded-lg text-accent-strong hover:bg-accent-soft"><CheckCircle2 size={17}/></button>}
+              <button title="Desativar" aria-label="Desativar" onClick={()=>status(user,"desativado")} className="grid h-11 w-11 place-items-center rounded-lg text-fg hover:bg-card"><Ban size={17}/></button>
+              <button title="Duplicar" aria-label="Duplicar" onClick={()=>openForm(user,true)} className="grid h-11 w-11 place-items-center rounded-lg text-emerald-700 hover:bg-zinc-100"><Copy size={17}/></button>
+              <button title="Histórico" aria-label="Histórico" onClick={()=>{setForm(user);setModal("history")}} className="grid h-11 w-11 place-items-center rounded-lg text-fg hover:bg-card"><History size={17}/></button>
+              <button title="Excluir" aria-label="Excluir" onClick={()=>remove(user)} className="grid h-11 w-11 place-items-center rounded-lg text-rose-600 hover:bg-rose-50"><Trash2 size={17}/></button>
+            </div>
+          </li>
+        ))}
+        {!users.length && <li className="rounded-2xl border border-line bg-card p-8 text-center text-sm font-bold text-subtle">Nenhum usuário encontrado.</li>}
+      </ul>
+      <div className="hidden overflow-hidden rounded-2xl border border-line bg-card shadow-sm lg:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[82rem] text-left">
             <thead className="bg-white text-3xs font-bold uppercase tracking-[.12em] text-subtle"><tr>

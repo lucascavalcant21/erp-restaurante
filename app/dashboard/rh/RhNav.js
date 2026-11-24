@@ -17,8 +17,8 @@ export default function RhNav() {
   return (
     <>
       <CabecalhoTela titulo="Equipe" subtitulo="Pessoas, ponto, escala e folha" />
-      <div className="sticky top-0 z-40 overflow-x-auto border-b border-hf-border bg-hf-bg/95 px-4 pb-3 backdrop-blur sm:px-6 lg:px-8">
-        <div className="flex gap-2" role="tablist" aria-label="Equipe">
+      <div className="sticky top-0 z-40 border-b border-hf-border bg-hf-bg/95 px-4 pb-3 backdrop-blur sm:px-6 lg:px-8">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Equipe">
           {tabs.map(t => {
             const ativo = abaAtiva === t.id;
             return (

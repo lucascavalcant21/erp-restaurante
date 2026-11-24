@@ -85,6 +85,15 @@ export default function EstoqueBases() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [setor, setSetor] = useState("todos");
+  // Cozinha é só cozinha e bar só bar (dono, 24/11/2026): vindo da área
+  // (?dept=cozinha ou ?dept=bar), a tela fica travada no setor, sem as pílulas.
+  const [setorTravado, setSetorTravado] = useState(null);
+  useEffect(() => {
+    try {
+      const d = new URLSearchParams(window.location.search).get("dept");
+      if (d === "cozinha" || d === "bar") { setSetorTravado(d); setSetor(d); }
+    } catch { /* segue */ }
+  }, []);
   const [busca, setBusca] = useState("");
   const [abertoId, setAbertoId] = useState(null);
   const [aviso, setAviso] = useState("");
@@ -107,17 +116,18 @@ export default function EstoqueBases() {
   const lista = useMemo(() => montarEstoqueBases(linhas, estoques).map((b) => ({ ...b, unidadeId: unidadeAtiva })), [linhas, estoques, unidadeAtiva]);
   const visiveis = filtrarBases(lista, { setor, busca });
   const temBar = lista.some((b) => b.setor === "bar");
-  const comSaldo = lista.filter((b) => b.saldo > 0).length;
+  const doSetor = setorTravado ? lista.filter((b) => (b.setor === "bar" ? "bar" : "cozinha") === setorTravado) : lista;
+  const comSaldo = doSetor.filter((b) => b.saldo > 0).length;
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-5 sm:px-6">
       <CabecalhoTela titulo="Estoque de bases" subtitulo="Quanto tem pronto de cada base" />
       {aviso && <p role="status" className="rounded-full bg-hf-elevated px-4 py-2 text-sm font-bold text-hf-text">{aviso}</p>}
       {erro && <p role="alert" className="rounded-2xl bg-hf-elevated px-4 py-2 text-sm font-bold text-hf-danger">Não consegui carregar: {erro}</p>}
-      {!carregando && !erro && lista.length > 0 && <p className="text-[14px] text-hf-text-2">{comSaldo} de {lista.length} bases com saldo. Toque numa base para lançar o que entrou ou saiu.</p>}
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+      {!carregando && !erro && doSetor.length > 0 && <p className="text-[14px] text-hf-text-2">{comSaldo} de {doSetor.length} bases com saldo. Toque numa base para lançar o que entrou ou saiu.</p>}
+      {!setorTravado && <div className="flex flex-wrap gap-2 pb-1">
         {[["todos", "Todas"], ["cozinha", "Cozinha"], ...(temBar ? [["bar", "Bar"]] : [])].map(([id, rot]) => <button key={id} type="button" onClick={() => setSetor(id)} className={pill(setor === id)}>{rot}</button>)}
-      </div>
+      </div>}
       {lista.length > 6 && (
         <label className="flex h-12 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4"><Search size={16} className="text-hf-muted" />
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Procurar base" aria-label="Procurar base" className="min-w-0 flex-1 bg-transparent text-[16px] outline-none" />
@@ -140,7 +150,7 @@ export default function EstoqueBases() {
               <button type="button" disabled={!podeMexer} onClick={() => setAbertoId(b.id)} className="flex min-h-[60px] w-full items-center gap-3 rounded-3xl border border-hf-border bg-hf-surface px-4 py-3 text-left disabled:cursor-default">
                 <div className="min-w-0 flex-1">
                   <p className="text-[16px] font-black text-hf-text">{b.nome}</p>
-                  <p className="text-[13px] text-hf-muted">{b.setor === "bar" ? "Bar" : "Cozinha"}{b.local ? ` · ${b.local}` : ""}</p>
+                  <p className="text-[13px] text-hf-muted">{setorTravado ? (b.local || (b.setor === "bar" ? "Bar" : "Cozinha")) : `${b.setor === "bar" ? "Bar" : "Cozinha"}${b.local ? ` · ${b.local}` : ""}`}</p>
                 </div>
                 <span className={`shrink-0 text-right text-[18px] font-black tabular-nums ${b.negativo ? "text-hf-danger" : b.saldo > 0 ? "text-hf-text" : "text-hf-muted"}`}>{textoSaldo(b.saldo, b.unidade)}</span>
               </button>

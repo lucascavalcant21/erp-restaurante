@@ -24,7 +24,7 @@ export default function EquipeTreinamentoPage() {
     const [e, t] = await Promise.all([fetchEquipe(unidadeAtiva), fetchTrilhas(unidadeAtiva)]);
     if (e.error) setErro(mensagemDeErro(e.error));
     setEquipe(e.data || { pessoas: [], matriculas: [] });
-    setTrilhas(t.data);
+    setTrilhas(Array.isArray(t.data) ? t.data : []);
   }, [unidadeAtiva]);
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -79,7 +79,7 @@ export default function EquipeTreinamentoPage() {
           </ul>
         </section>
       ))}
-      {equipe && !equipe.matriculas.length && !erro && <p className="rounded-xl border border-dashed border-hf-border p-6 text-center text-sm font-medium text-hf-text-2">Ninguém em treinamento ainda.</p>}
+      {equipe && !(equipe.matriculas || []).length && !erro && <p className="rounded-xl border border-dashed border-hf-border p-6 text-center text-sm font-medium text-hf-text-2">Ninguém em treinamento ainda.</p>}
     </div>
   );
 }

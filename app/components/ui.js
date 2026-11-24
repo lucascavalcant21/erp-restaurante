@@ -117,7 +117,7 @@ export function SearchBar({ value, onChange, placeholder = "Buscar no sistema...
 // ── Chips de filtro ────────────────────────────────────────────
 export function Chips({ options, value, onChange }) {
   return (
-    <div className="erp-chips flex gap-2 overflow-x-auto overscroll-x-contain pb-1 min-w-0" style={{ scrollbarWidth: "none" }}>
+    <div className="erp-chips flex min-w-0 flex-wrap gap-2 pb-1">
       {options.map((o) => {
         const v = typeof o === "string" ? o : o.value;
         const label = typeof o === "string" ? o : o.label;

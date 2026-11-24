@@ -281,3 +281,28 @@ test("transições como no PowerPoint: padrão esmaecer/média, valores inválid
   for (const e of sorteados) assert.ok(TRANSICOES.includes(e) && e !== "aleatoria" && e !== "nenhuma", e);
   assert.ok(sorteados.size >= 4);
 });
+
+test("parar às HH:MM: a próxima vez que o relógio da loja marcar a hora; encerrado depois dela", async () => {
+  const { pararAs, conteudoEncerrado, idsDoLote } = await import("./sinalizacao.mjs");
+  const agora = new Date("2026-11-21T17:05:30Z"); // 14:05 em São Paulo
+  assert.equal(pararAs("22:00", agora), "2026-11-22T01:00:00.000Z", "hoje à noite");
+  assert.equal(pararAs("14:00", agora), "2026-11-22T17:00:00.000Z", "já passou: amanhã");
+  assert.equal(pararAs("14:05", agora), "2026-11-22T17:05:00.000Z", "o minuto de agora: amanhã, não na hora");
+  assert.equal(pararAs("02:30", agora), "2026-11-22T05:30:00.000Z", "madrugada");
+  assert.equal(pararAs("24:00", agora), null);
+  assert.equal(pararAs("", agora), null);
+  assert.equal(conteudoEncerrado({ ate: "2026-11-22T01:00:00Z" }, new Date("2026-11-22T00:59:59Z")), false);
+  assert.equal(conteudoEncerrado({ ate: "2026-11-22T01:00:00Z" }, new Date("2026-11-22T01:00:00Z")), true);
+  assert.equal(conteudoEncerrado({}, agora), false);
+  assert.deepEqual(normalizarConteudo({ tipo: "playlist", id: M1, ate: "lixo" }), { tipo: "playlist", id: M1 });
+  assert.deepEqual(normalizarConteudo({ tipo: "playlist", id: M1, ate: "2026-11-22T01:00:00Z" }), { tipo: "playlist", id: M1, ate: "2026-11-22T01:00:00.000Z" });
+  const vale = resolverConteudo({ tela: { id: M1, conteudo: { tipo: "playlist", id: M1, ate: "2026-11-22T01:00:00Z" } }, agora: new Date("2026-11-22T00:00:00Z") });
+  assert.equal(vale.origem, "fixo");
+  const fim = resolverConteudo({ tela: { id: M1, conteudo: { tipo: "playlist", id: M1, ate: "2026-11-22T01:00:00Z" } }, agora: new Date("2026-11-22T02:00:00Z") });
+  assert.deepEqual([fim.origem, fim.conteudo, fim.encerrado], ["nenhum", null, "2026-11-22T01:00:00.000Z"]);
+  assert.equal(idsDoLote("todas"), "todas");
+  assert.deepEqual(idsDoLote([M1, M1, "x"]), [M1]);
+  assert.equal(idsDoLote([]), null);
+  assert.equal(idsDoLote("x"), null);
+  assert.equal(idsDoLote(Array.from({ length: 501 }, (_, i) => `${String(i).padStart(8, "0")}-1111-4111-8111-111111111111`)), null);
+});

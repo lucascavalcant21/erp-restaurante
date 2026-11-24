@@ -14,7 +14,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import {
   gerarCodigo, normalizarCodigo, validarEnvio, orientacaoPorMedida, validarPlaylist, normalizarConteudo,
-  validarProgramacao, resolverConteudo, montarRoteiro, midiasUsadas, statusDaTela, resumoDasTelas,
+  validarProgramacao, resolverConteudo, pararAs, idsDoLote, montarRoteiro, midiasUsadas, statusDaTela, resumoDasTelas,
   normalizarHorario, dentroDoHorario,
   texto, uuidValido, VALIDADE_CODIGO_MS, ORIENTACOES, INTERVALO_TV_MS,
 } from "../sinalizacao.mjs";
@@ -49,6 +49,8 @@ async function urlsAssinadas(db, midias, ttl) {
   return mapa;
 }
 
+const tempoMs = (v) => (v ? new Date(v).getTime() || 0 : 0);
+
 /** Tela para o painel: sem o hash do token, com status e o que passa agora. */
 function telaParaPainel(t, agora) {
   const { token_hash, ...resto } = t;
@@ -58,7 +60,7 @@ function telaParaPainel(t, agora) {
 export async function lerPainel(db, unidade, { agora = new Date() } = {}) {
   const [rT, rM, rP, rR] = await Promise.all([
     db.from("sinal_telas").select(COL_TELA).eq("unidade_id", unidade).order("nome"),
-    db.from("sinal_midias").select(COL_MIDIA).eq("unidade_id", unidade).eq("ativo", true).order("created_at", { ascending: false }),
+    db.from("sinal_midias").select(`${COL_MIDIA}, updated_at`).eq("unidade_id", unidade).order("created_at", { ascending: false }),
     db.from("sinal_playlists").select("id, nome, orientacao, itens, versao, ativa, updated_at").eq("unidade_id", unidade).order("nome"),
     db.from("sinal_programacoes").select("id, nome, playlist_id, tela_ids, dias_semana, hora_inicio, hora_fim, data_inicio, data_fim, prioridade, ativa, updated_at")
       .eq("unidade_id", unidade).order("prioridade", { ascending: false }),
@@ -67,13 +69,17 @@ export async function lerPainel(db, unidade, { agora = new Date() } = {}) {
   if (semTabelas(erro)) return { ok: false, status: 200, semTabelas: true, erro: ERRO_SEM_TABELAS };
   if (erro) return falha(500, "Não foi possível carregar a Sinalização digital.");
 
-  const midias = rM.data || [];
-  const urls = await urlsAssinadas(db, midias, TTL_PAINEL_S);
+  // Lixeira = ativo false; a data em que foi para a lixeira é o updated_at.
+  const todas = rM.data || [];
+  const midias = todas.filter((m) => m.ativo !== false);
+  const naLixeira = todas.filter((m) => m.ativo === false).sort((a, b) => tempoMs(b.updated_at) - tempoMs(a.updated_at));
+  const urls = await urlsAssinadas(db, todas, TTL_PAINEL_S);
+  const paraPainel = (m) => ({ ...m, duracao_seg: m.duracao_seg == null ? null : Number(m.duracao_seg), url: urls.get(m.id) || null });
   const programacoes = (rR.data || []).map((r) => ({ ...r, hora_inicio: r.hora_inicio?.slice(0, 5) || null, hora_fim: r.hora_fim?.slice(0, 5) || null }));
   const agoraMs = agora.getTime();
   const telas = (rT.data || []).map((t) => {
     const r = resolverConteudo({ tela: t, programacoes, agora });
-    return { ...telaParaPainel(t, agoraMs), fora_horario: !dentroDoHorario(t.horario, agora), agora: { origem: r.origem, conteudo: r.conteudo, regra: r.regra } };
+    return { ...telaParaPainel(t, agoraMs), fora_horario: !dentroDoHorario(t.horario, agora), agora: { origem: r.origem, conteudo: r.conteudo, regra: r.regra, ...(r.encerrado ? { encerrado: r.encerrado } : {}) } };
   });
 
   // Seções do cardápio para montar a página de cardápio na playlist.
@@ -84,7 +90,8 @@ export async function lerPainel(db, unidade, { agora = new Date() } = {}) {
   return ok({
     telas,
     resumo: resumoDasTelas(telas, agoraMs),
-    midias: midias.map((m) => ({ ...m, duracao_seg: m.duracao_seg == null ? null : Number(m.duracao_seg), url: urls.get(m.id) || null })),
+    midias: midias.map(paraPainel),
+    lixeira: naLixeira.map(paraPainel),
     playlists: rP.data || [],
     programacoes,
     categorias,
@@ -157,8 +164,14 @@ export async function salvarTela(db, unidade, corpo, { agora = new Date() } = {}
  * `tela_ids: "todas"` = todas as telas da unidade. `conteudo: null` limpa.
  */
 export async function trocarConteudo(db, unidade, corpo, { agora = new Date() } = {}) {
-  const conteudo = corpo?.conteudo == null ? null : normalizarConteudo(corpo.conteudo);
+  let conteudo = corpo?.conteudo == null ? null : normalizarConteudo({ ...corpo.conteudo, ate: null });
   if (corpo?.conteudo != null && !conteudo) return falha(400, "Conteúdo inválido.");
+  // "Parar às HH:MM": o servidor calcula o instante pelo relógio da loja.
+  if (conteudo && corpo?.parar_as) {
+    const ate = pararAs(corpo.parar_as, agora);
+    if (!ate) return falha(400, "Horário de parar inválido. Use HH:MM.");
+    conteudo = { ...conteudo, ate };
+  }
   if (conteudo) {
     const tabela = conteudo.tipo === "playlist" ? "sinal_playlists" : "sinal_midias";
     const { data } = await db.from(tabela).select("id").eq("id", conteudo.id).eq("unidade_id", unidade).maybeSingle();
@@ -248,17 +261,56 @@ export async function renomearMidia(db, unidade, corpo, { agora = new Date() } =
  * sem ela (o roteiro pula mídia que não existe); tela com ela fixa fica sem
  * conteúdo fixo.
  */
-export async function excluirMidia(db, unidade, id, { agora = new Date() } = {}) {
+/** Excluir uma mídia = mandar para a lixeira (dá para restaurar). */
+export async function excluirMidia(db, unidade, id, opcoes = {}) {
   if (!uuidValido(id)) return falha(400, "Mídia inválida.");
-  const { data: m } = await db.from("sinal_midias").select("id, caminho").eq("id", id).eq("unidade_id", unidade).maybeSingle();
-  if (!m) return falha(404, "Mídia não encontrada nesta unidade.");
-  const { error } = await db.from("sinal_midias").delete().eq("id", id).eq("unidade_id", unidade);
-  if (error) return falha(500, "Não foi possível excluir a mídia.");
-  await db.storage.from(BUCKET).remove([m.caminho]).catch(() => {});
+  const r = await moverParaLixeira(db, unidade, { ids: [id] }, opcoes);
+  return r.ok && !r.total ? falha(404, "Mídia não encontrada nesta unidade.") : r;
+}
+
+/**
+ * Lixeira (pedido do dono, 08/11/2026): várias de uma vez ou todas. Na
+ * lixeira a mídia some do acervo e das TVs (que só tocam mídia ativa), mas
+ * o arquivo continua guardado até alguém apagar de vez.
+ */
+export async function moverParaLixeira(db, unidade, corpo, { agora = new Date() } = {}) {
+  return marcarMidias(db, unidade, corpo?.ids, { de: true, para: false, agora, erro: "Não foi possível mandar para a lixeira." });
+}
+
+export async function restaurarMidias(db, unidade, corpo, { agora = new Date() } = {}) {
+  return marcarMidias(db, unidade, corpo?.ids, { de: false, para: true, agora, erro: "Não foi possível restaurar." });
+}
+
+async function marcarMidias(db, unidade, idsPedidos, { de, para, agora, erro }) {
+  const ids = idsDoLote(idsPedidos);
+  if (!ids) return falha(400, "Escolha as mídias.");
+  let q = db.from("sinal_midias").update({ ativo: para, updated_at: agora.toISOString() }).eq("unidade_id", unidade).eq("ativo", de);
+  if (ids !== "todas") q = q.in("id", ids);
+  const { data, error } = await q.select("id");
+  if (error) return falha(500, erro);
+  return ok({ total: (data || []).length });
+}
+
+/** Apaga de vez (só o que está na lixeira): o registro e o arquivo guardado. */
+export async function apagarMidias(db, unidade, corpo, { agora = new Date() } = {}) {
+  const ids = idsDoLote(corpo?.ids);
+  if (!ids) return falha(400, "Escolha as mídias.");
+  let q = db.from("sinal_midias").select("id, caminho").eq("unidade_id", unidade).eq("ativo", false);
+  if (ids !== "todas") q = q.in("id", ids);
+  const { data: lista, error: e1 } = await q;
+  if (e1) return falha(500, "Não foi possível apagar.");
+  if (!lista?.length) return ok({ total: 0 });
+  const alvo = lista.map((m) => m.id);
+  const { error } = await db.from("sinal_midias").delete().eq("unidade_id", unidade).eq("ativo", false).in("id", alvo);
+  if (error) return falha(500, "Não foi possível apagar.");
+  const caminhos = lista.map((m) => m.caminho).filter(Boolean);
+  if (caminhos.length) await db.storage.from(BUCKET).remove(caminhos).catch(() => {});
+  // Tela com uma dessas artes como conteúdo fixo fica sem conteúdo fixo.
   const { data: telas } = await db.from("sinal_telas").select("id, conteudo").eq("unidade_id", unidade);
-  const comEla = (telas || []).filter((t) => t.conteudo?.tipo === "midia" && t.conteudo?.id === id).map((t) => t.id);
-  if (comEla.length) await db.from("sinal_telas").update({ conteudo: null, updated_at: agora.toISOString() }).eq("unidade_id", unidade).in("id", comEla);
-  return ok();
+  const apagadas = new Set(alvo);
+  const comElas = (telas || []).filter((t) => t.conteudo?.tipo === "midia" && apagadas.has(t.conteudo?.id)).map((t) => t.id);
+  if (comElas.length) await db.from("sinal_telas").update({ conteudo: null, updated_at: agora.toISOString() }).eq("unidade_id", unidade).in("id", comElas);
+  return ok({ total: alvo.length });
 }
 
 // ─── PLAYLISTS ───────────────────────────────────────────────────────────────
@@ -405,6 +457,8 @@ export async function conteudoDaTela(db, { segredo, exibindo = null, aparelho = 
     .eq("unidade_id", tela.unidade_id).eq("ativa", true);
   const programacoes = (regras || []).map((r) => ({ ...r, hora_inicio: r.hora_inicio?.slice(0, 5) || null, hora_fim: r.hora_fim?.slice(0, 5) || null }));
   const r = resolverConteudo({ tela, programacoes, agora });
+  // Passou do "parar às": tela preta até publicarem de novo (ou uma regra valer).
+  if (r.encerrado) return ok({ estado: "pareada", tela: info, roteiro: [], assinatura: "encerrada", apagada: true, encerrada: true, intervalo_ms: INTERVALO_TV_MS });
 
   let itens = [];
   if (r.conteudo?.tipo === "playlist") {

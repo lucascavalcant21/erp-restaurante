@@ -164,6 +164,7 @@ export const MENU_PRINCIPAL = Object.freeze([
     id: "rh", label: "Equipe", href: "/dashboard/rh", icone: "Users", cor: "ciano",
     desc: "Ponto, escala e folha",
     submodules: [
+      { label: "Ações rápidas (folga, domingo, atestado)", href: "/dashboard/rh/rapido" },
       { label: "Painel da equipe", href: "/dashboard/rh" },
       { label: "Quadro de funcionários", href: "/dashboard/rh?aba=quadro" },
       { label: "Escala da semana", href: "/dashboard/rh?aba=escala" },

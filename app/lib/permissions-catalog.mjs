@@ -173,6 +173,8 @@ export const PERMISSION_MODULES = [
       { id: "employees", label: "Funcionários", route: "/dashboard/rh/gestao", actions: [...CRUD, "view_values", "view_history"] },
       // PIN do ponto (14/11/2026): quem edita funcionários define o PIN de 4 números de cada um.
       { id: "employees_pin", label: "PIN do ponto", route: "/dashboard/rh/pins", actions: ["view", "edit"] },
+      // Ações rápidas do RH (23/11/2026): folga de domingo, folga, atestado, feriado e atalho para corrigir ponto.
+      { id: "quick", label: "Ações rápidas do RH (folga, domingo, atestado, feriado)", route: "/dashboard/rh/rapido", actions: ["view", "edit"] },
       { id: "payroll", label: "Folha de pagamento", route: "/dashboard/rh/fechamento", actions: [...CRUD, "confirm", "view_values", "export"] },
       { id: "orgchart", label: "Organograma", route: "/dashboard/rh/organograma", actions: CRUD },
       { id: "recruiting", label: "Recrutamento", route: "/dashboard/rh/recrutamento", actions: CRUD },

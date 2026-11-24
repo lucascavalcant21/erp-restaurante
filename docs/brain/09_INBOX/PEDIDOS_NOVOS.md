@@ -233,3 +233,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 24/11/2026 | Conta rápida por módulos (Cozinha, Bar, RH, Ponto, Salão), não por função | FEITO: marca um ou mais módulos (+ Nico); permissões montadas no servidor. RH da conta rápida só vê resumo, escala, folgas, janta e organograma (sem salário, documento ou dado pessoal) |
 | 24/11/2026 | Sem "Outros" nas categorias (varredura) | FEITO em suprimentos, notas, inventário (lista padrão e contagem por voz): "+ Nova categoria". Ficam: forma de pagamento "Outro" e a área de estoque "Outros" (não são categorias) |
 | 24/11/2026 | Nome repetido também nas fichas das marmitas | FEITO (checagem antes de salvar, por unidade) |
+| 24/11/2026 | Simulador das marmitas: quantas marmitas vender para pagar tudo (funcionários, fixos e variáveis), por mês, semana e dia | FEITO (topo do Simulador de vendas; mistura das vendas de 30 dias ou média simples) |

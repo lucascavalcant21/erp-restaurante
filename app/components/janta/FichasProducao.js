@@ -5,12 +5,12 @@
 // ou cru × índice de cocção) e a receita refeita para o que se precisa.
 // Contas em app/lib/janta-producao.mjs.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, ChevronDown, Download, Loader2, Plus, Scale, Search, Trash2 } from "lucide-react";
 import { fetchFichas } from "../../lib/operacao";
 import { fetchEventos } from "../../lib/eventos";
 import {
-  FONTE_INDICES, INDICES_COCCAO, UNIDADES_PRODUCAO, fichasDosEventos, normalizarIngrediente, producaoDaFicha,
+  custoDaProducao, mapaDeInsumos, FONTE_INDICES, INDICES_COCCAO, UNIDADES_PRODUCAO, fichasDosEventos, normalizarIngrediente, producaoDaFicha,
   producaoDoEvento, producaoParaTotal, producaoVazia, rendimentoDaProducao, sugestaoIndice, usosDaProducao,
 } from "../../lib/janta-producao.mjs";
 import { casaBusca } from "../../lib/busca.mjs";
@@ -136,11 +136,14 @@ function TrazerFicha({ unidades, unidadeAtiva, onTrazer, onFechar }) {
 }
 
 /** Editor de uma ficha de produção com o "preciso de X". */
-function EditorProducao({ p, usos, onMudar, onApagar }) {
+const brlF = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function EditorProducao({ p, usos, onMudar, onApagar, insumos = [], mapaInsumos = new Map(), mostrarCusto = true }) {
   const [aberto, setAberto] = useState(!p.nome);
   const [preciso, setPreciso] = useState("");
   const [precisoUn, setPrecisoUn] = useState(p.rendimento_unidade === "un" ? "un" : "kg");
   const rend = rendimentoDaProducao(p);
+  const custo = custoDaProducao(p, mapaInsumos);
   const principal = p.ingredientes.find((i) => i.principal);
   const sug = sugestaoIndice(principal?.nome) || sugestaoIndice(p.nome);
   const mudar = (fn) => onMudar((x) => { fn(x); return x; });
@@ -176,7 +179,7 @@ function EditorProducao({ p, usos, onMudar, onApagar }) {
               {p.ingredientes.map((ing) => (
                 <div key={ing.id} className="rounded-2xl border border-hf-border p-2">
                   <div className="flex items-center gap-2">
-                    <input value={ing.nome} aria-label="Ingrediente" onChange={(e) => mudar((x) => { x.ingredientes.find((y) => y.id === ing.id).nome = e.target.value; })} placeholder="Ex.: Feijão carioca" className={inputCls} />
+                    <input list="janta-insumos" value={ing.nome} aria-label="Ingrediente" onChange={(e) => { const v = e.target.value; const achado = insumos.find((x) => x.nome === v); mudar((x) => { const y = x.ingredientes.find((z) => z.id === ing.id); y.nome = v; y.insumo_id = achado?.id || null; }); }} placeholder="Ex.: Feijão carioca" className={inputCls} />
                     <button type="button" aria-label={`Tirar ${ing.nome || "ingrediente"}`} onClick={() => mudar((x) => { x.ingredientes = x.ingredientes.filter((y) => y.id !== ing.id); })} className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-hf-border text-hf-muted hover:text-hf-danger"><Trash2 size={15} /></button>
                   </div>
                   <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
@@ -189,6 +192,7 @@ function EditorProducao({ p, usos, onMudar, onApagar }) {
                     <input type="radio" name={`principal-${p.id}`} checked={ing.principal} onChange={() => mudar((x) => { x.ingredientes.forEach((y) => { y.principal = y.id === ing.id; }); })} className="h-5 w-5 accent-current" />
                     É o principal (cru), o que cresce ou encolhe no cozimento
                   </label>
+                  {ing.nome && !ing.insumo_id && !/^(agua|água)\b/i.test(ing.nome.trim()) && <p className="text-[11px] text-hf-muted">Sem ligação com o cadastro: escolha da lista para entrar no custo.</p>}
                 </div>
               ))}
             </div>
@@ -219,6 +223,16 @@ function EditorProducao({ p, usos, onMudar, onApagar }) {
             </p>
           </div>
 
+          {mostrarCusto && <div className="rounded-2xl border border-hf-border p-3">
+            <p className="text-xs font-black uppercase tracking-wider text-hf-muted">Custo da ficha inteira</p>
+            {custo.custo != null ? (
+              <p className="mt-1 text-[15px] font-black text-hf-text">
+                {brlF(custo.custo)}{rend.valor != null && rend.base !== "un" ? ` · ${brlF((custo.custo / rend.valor) * 1000)} por ${rend.base === "ml" ? "L" : "kg"} pronto` : rend.valor != null ? ` · ${brlF(custo.custo / rend.valor)} por unidade` : ""}
+              </p>
+            ) : <p className="mt-1 text-[13px] font-semibold text-hf-warning">DADOS INSUFICIENTES: ligue os ingredientes ao cadastro (com preço).</p>}
+            {custo.semPreco.length > 0 && custo.custo != null && <p className="text-[12px] text-hf-warning">ESTIMATIVA: sem preço {custo.semPreco.join(", ")}.</p>}
+          </div>}
+
           <label className="block text-xs font-bold text-hf-text-2">Como fazer
             <textarea value={p.preparo} onChange={(e) => mudar((x) => { x.preparo = e.target.value; })} rows={4} placeholder="1. Deixe o feijão de molho…&#10;2. Cozinhe na pressão…" className="mt-1 w-full rounded-2xl border border-hf-border bg-hf-surface p-3 text-sm text-hf-text outline-none focus:border-hf-accent" />
           </label>
@@ -243,8 +257,9 @@ function EditorProducao({ p, usos, onMudar, onApagar }) {
   );
 }
 
-export default function FichasProducao({ janta, alterar, unidades, unidadeAtiva, avisar }) {
+export default function FichasProducao({ janta, alterar, unidades, unidadeAtiva, avisar, insumos = [], mostrarCusto = true }) {
   const [trazendo, setTrazendo] = useState(false);
+  const mapaInsumos = useMemo(() => mapaDeInsumos(insumos), [insumos]);
   const lista = janta.producao || [];
 
   return (
@@ -272,11 +287,12 @@ export default function FichasProducao({ janta, alterar, unidades, unidadeAtiva,
       )}
 
       {lista.map((p) => (
-        <EditorProducao key={p.id} p={p} usos={usosDaProducao(janta, p.id)}
+        <EditorProducao key={p.id} p={p} usos={usosDaProducao(janta, p.id)} insumos={insumos} mapaInsumos={mapaInsumos} mostrarCusto={mostrarCusto}
           onMudar={(fn) => alterar((j) => { const i = j.producao.findIndex((x) => x.id === p.id); if (i >= 0) j.producao[i] = fn(j.producao[i]); return j; })}
           onApagar={() => alterar((j) => { j.producao = j.producao.filter((x) => x.id !== p.id); return j; })} />
       ))}
 
+      <datalist id="janta-insumos">{insumos.map((i) => <option key={i.id} value={i.nome} />)}</datalist>
       <TabelaIndices />
     </div>
   );

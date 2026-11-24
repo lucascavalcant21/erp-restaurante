@@ -24,7 +24,7 @@
 import { precoNormalizadoDoInsumo } from "./ingredientes-utils.mjs";
 import { pesoTotalDaFicha } from "./ficha-calculos.mjs";
 import { qtdLegivel, rotuloDoFator } from "./intelligence/metrics/adaptar-receita.mjs";
-import { normalizarProducao, producaoParaTotal } from "./janta-producao.mjs";
+import { custoDaProducao, normalizarProducao, producaoParaTotal } from "./janta-producao.mjs";
 
 // 24/11/2026 (dono): sem "ficha do dia"; o item liga a uma FICHA DE PRODUÇÃO
 // (janta-producao.mjs: trazida do restaurante, das marmitas, dos eventos ou
@@ -211,8 +211,17 @@ export function cardapioDoDia(janta, diaId, { pessoas = null, insumos = new Map(
     const porcao = n(i.porcao);
     const total = porcao * p;
     const ins = i.insumo_id ? insumos.get(i.insumo_id) : null;
-    const c = custoDoItem(ins, total, i.modo);
-    if (c == null) { if (total > 0) semCusto += 1; } else custo += c;
+    const receita = i.producao_id
+      ? (prod ? producaoParaTotal(prod, total, i.modo) : { status: "insuficiente", motivo: "A ficha de produção ligada a este item foi apagada." })
+      : null;
+    // Custo: o produto do cadastro ligado ao item; sem ele, a ficha de produção × fator do dia.
+    let c = custoDoItem(ins, total, i.modo);
+    let parcial = false;
+    if (c == null && prod && receita?.status === "ok") {
+      const cp = custoDaProducao(prod, insumos);
+      if (cp.custo != null) { c = Math.round(cp.custo * receita.fator * 100) / 100; parcial = cp.semPreco.length > 0; }
+    }
+    if (c == null) { if (total > 0) semCusto += 1; } else { custo += c; if (parcial) semCusto += 1; }
     const ficha = i.ficha_id ? fichas.get(i.ficha_id) : null;
     return {
       ...i, nome: i.nome || ins?.nome || prod?.nome || ficha?.nome_receita || "",
@@ -220,9 +229,8 @@ export function cardapioDoDia(janta, diaId, { pessoas = null, insumos = new Map(
       rotulo: rotuloTotal(total, i.modo), custo: c,
       // cru para cozinhar (sem ficha ligada): pronto ÷ rendimento do cozimento
       cru: !i.ficha_id && !i.producao_id && i.modo === "g" && n(i.rend_cozimento) > 0 && total > 0 ? { g: r2(total / n(i.rend_cozimento)), rotulo: rotuloPeso(total / n(i.rend_cozimento)), natureza: "ESTIMATIVA" } : null,
-      receita: i.producao_id
-        ? (prod ? producaoParaTotal(prod, total, i.modo) : { status: "insuficiente", motivo: "A ficha de produção ligada a este item foi apagada." })
-        : receitaDoItem(i, ficha, total),
+      custoParcial: parcial,
+      receita: receita || receitaDoItem(i, ficha, total),
     };
   });
   const fixos = calcular(janta?.fixos);

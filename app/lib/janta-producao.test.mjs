@@ -137,3 +137,36 @@ test("normalizar: um só principal e unidades válidas", () => {
   assert.equal(p.ingredientes[1].unidade, "g");
   assert.deepEqual(naBase(2, "L"), { q: 2000, base: "ml" });
 });
+
+test("custo da ficha de produção e da janta do dia pelos preços do cadastro", async () => {
+  const { custoDaProducao } = await import("./janta-producao.mjs");
+  const insumos = new Map([
+    ["f1", { id: "f1", nome: "Feijão carioca", unidade_medida: "kg", preco_normalizado: 8 }],
+    ["a1", { id: "a1", nome: "Alho", unidade_medida: "kg", preco_normalizado: 30 }],
+  ]);
+  const p = normalizarProducao({
+    id: "fp", nome: "Feijão", indice: 3,
+    ingredientes: [
+      { nome: "Feijão carioca", quantidade: 1, unidade: "kg", principal: true, insumo_id: "f1" },
+      { nome: "Alho", quantidade: 20, unidade: "g", insumo_id: "a1" },
+      { nome: "Água", quantidade: 3, unidade: "L" },
+    ],
+  });
+  const c = custoDaProducao(p, insumos);
+  assert.equal(c.custo, 8.6); // 8 + 0,60; água fica fora sem acusar falta de preço
+  assert.equal(c.natureza, "REAL");
+  const janta = normalizarJanta({ pessoas_padrao: 10, producao: [p], fixos: [{ id: "i1", nome: "Feijão", modo: "g", porcao: 300, producao_id: "fp" }] });
+  const d = cardapioDoDia(janta, "seg", { insumos });
+  assert.equal(d.custo, 8.6); // 3 kg pronto = a ficha inteira
+  assert.equal(d.custoPorPessoa, 0.86);
+  assert.equal(d.natureza, "REAL");
+  const semPreco = custoDaProducao(normalizarProducao({ ingredientes: [{ nome: "Sal", quantidade: 10, unidade: "g" }] }), insumos);
+  assert.equal(semPreco.custo, null);
+});
+
+test("ingrediente de ficha de outra unidade acha o preço pelo nome", async () => {
+  const { custoDaProducao, mapaDeInsumos } = await import("./janta-producao.mjs");
+  const m = mapaDeInsumos([{ id: "local", nome: "Arroz Agulhinha", unidade_medida: "kg", preco_normalizado: 6 }]);
+  const p = normalizarProducao({ ingredientes: [{ nome: "arroz agulhinha", quantidade: 2, unidade: "kg", insumo_id: "de-outra-unidade" }] });
+  assert.equal(custoDaProducao(p, m).custo, 12);
+});

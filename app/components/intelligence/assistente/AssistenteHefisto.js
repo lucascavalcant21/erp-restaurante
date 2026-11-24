@@ -22,6 +22,7 @@ import FolhaFicha from "../FolhaFicha";
 import ReceitaRapida from "../ReceitaRapida";
 import JantaRapida from "../JantaRapida";
 import PosicionamentoRapido from "../PosicionamentoRapido";
+import FormulaRapida from "../FormulaRapida";
 import { PREFIXO as PREFIXO_RECEITA, respostaLocal } from "../../../lib/intelligence/local/receitas-locais.mjs";
 import { atualizarReceitas, lerReceitasGuardadas, precisaAtualizar } from "../../../lib/intelligence/local/receitas-cache";
 import ListaEtiquetas from "./ListaEtiquetas";
@@ -179,6 +180,7 @@ function Blocos({ blocos, onRota, onComando }) {
         if (b.tipo === "receita_rapida" && b.ficha) return <ReceitaRapida key={i} ficha={b.ficha} pedido={b.pedido} />;
         if (b.tipo === "janta" && b.janta) return <JantaRapida key={i} janta={b.janta} dia={b.dia} fichas={b.fichas} />;
         if (b.tipo === "posicionamento" && b.itens?.length) return <PosicionamentoRapido key={i} itens={b.itens} />;
+        if (b.tipo === "formula" && b.formula) return <FormulaRapida key={i} formula={b.formula} kg={b.kg} />;
         if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} onComando={onComando} />;
         if (b.tipo === "passos") return <PassosProcedimento key={i} bloco={b} />;
         if (b.tipo === "etiquetas") return <ListaEtiquetas key={i} bloco={b} onRota={onRota} />;
@@ -246,7 +248,7 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
     ];
     // com a folha do prato/drink, o cartaz já diz tudo: o texto longo fica só para a leitura em voz alta
     // idem para o procedimento da casa (os passos numerados já estão no bloco)
-    const temFolha = (x.blocos || []).some((b) => (b.tipo === "receita_rapida" && b.ficha) || (b.tipo === "janta" && b.janta) || (b.tipo === "posicionamento" && b.itens?.length) || (b.tipo === "folha" && b.folha?.nome) || (b.tipo === "passos" && b.passos?.length));
+    const temFolha = (x.blocos || []).some((b) => (b.tipo === "receita_rapida" && b.ficha) || (b.tipo === "janta" && b.janta) || (b.tipo === "posicionamento" && b.itens?.length) || (b.tipo === "formula" && b.formula) || (b.tipo === "folha" && b.folha?.nome) || (b.tipo === "passos" && b.passos?.length));
     return (
       <div key={chave} className="space-y-1">
         <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao || temFolha || temEtiquetas}>

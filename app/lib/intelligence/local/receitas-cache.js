@@ -7,7 +7,7 @@
 
 import { supabase } from "../../supabase";
 
-const VERSAO = 3; // 2: janta da equipe (22/11/2026) · 3: posicionamento (23/11/2026)
+const VERSAO = 4; // 2: janta (22/11) · 3: posicionamento · 4: salmouras e empanados (23/11/2026)
 const VALIDADE_MS = 10 * 60 * 1000; // atualiza em segundo plano depois de 10 min
 const chave = (u) => `hefisto:receitas:v${VERSAO}:${u || "-"}`;
 const LOTE = 150;
@@ -78,15 +78,18 @@ export async function atualizarReceitas(unidadeId) {
     // Posicionamento (params.posicionamento): "posicionamento" responde sem internet.
     let janta = null;
     let posicionamento = null;
+    let formulas = null;
     try {
       const { data: cfg } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
       const j = cfg?.[0]?.params?.janta_funcionarios;
       janta = j && typeof j === "object" ? j : null;
       const p = cfg?.[0]?.params?.posicionamento;
       posicionamento = p && typeof p === "object" ? p : null;
-    } catch { janta = null; posicionamento = null; }
+      const fq = cfg?.[0]?.params?.formulas_cozinha;
+      formulas = fq && typeof fq === "object" ? fq : null;
+    } catch { janta = null; posicionamento = null; formulas = null; }
     const dados = {
-      versao: VERSAO, em: Date.now(), unidadeId, janta, posicionamento,
+      versao: VERSAO, em: Date.now(), unidadeId, janta, posicionamento, formulas,
       fichas: ativas.map((f) => ({
         id: f.id,
         nome: String(f.nome_receita || f.nome_comercial).trim(),

@@ -104,3 +104,23 @@ test("janta: resposta no aparelho com a janta e só as fichas usadas", () => {
   assert.equal(r.blocos[0].fichas[0].fichas_ingredientes.length, 4);
   assert.match(respostaLocal("janta", { fichas: FICHAS }).texto, /ainda não foi montada/);
 });
+
+test("molhos e bases: lista para tocar; salmoura e posicionamento passam antes da receita (23/11/2026)", async () => {
+  const { respostaLocal } = await import("../local/receitas-locais.mjs");
+  const cache = {
+    fichas: [
+      { id: "m1", nome: "Molho de tucupi (base)", base: true, ingredientes: [] },
+      { id: "b1", nome: "Arroz branco (base)", base: true, ingredientes: [] },
+      { id: "p1", nome: "Frango ao molho", base: false, ingredientes: [] },
+    ],
+    formulas: { salmouras: [{ id: "s1", nome: "Salmoura de peixe", categoria: "peixe", secoes: [{ itens: [{ nome: "Sal", qtd: 50 }] }] }] },
+    posicionamento: { itens: [{ id: "x", nome: "Filé de frango", alvo: 200 }] },
+  };
+  const molhos = respostaLocal("molhos", cache);
+  assert.deepEqual(molhos.pergunta.opcoes.map((o) => o.rotulo), ["Molho de tucupi (base)"]);
+  const aberto = respostaLocal(molhos.pergunta.opcoes[0].comando, cache);
+  assert.equal(aberto.blocos[0].tipo, "receita_rapida");
+  assert.equal(respostaLocal("bases", cache).pergunta.opcoes.length, 2);
+  assert.equal(respostaLocal("salmoura", cache).blocos[0].tipo, "formula");
+  assert.equal(respostaLocal("posicionamento", cache).blocos[0].tipo, "posicionamento");
+});

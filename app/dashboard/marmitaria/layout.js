@@ -15,7 +15,7 @@ import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
 import { BarraDeAreas } from "../../components/gerencial/PainelGerencial";
-import { BadgeDollarSign, Boxes, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Settings, ShoppingCart, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
+import { BadgeDollarSign, Boxes, ChefHat, ClipboardList, Gauge, Home, Layers, Package, Settings, ShoppingCart, TrendingUp, Users, Wallet, Warehouse, Droplets, Scale, Soup, Wheat } from "lucide-react";
 
 const FICHA = "/dashboard/marmitaria/marmitas";
 const ESTOQUE = "/dashboard/marmitaria/estoque";
@@ -27,10 +27,15 @@ const AREAS = [
   { href: `${FICHA}/embalagens`, rotulo: "Cadastro de embalagens", icone: Boxes },
   { href: `${ESTOQUE}/compras`, rotulo: "Compras", icone: ShoppingCart },
   { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`], icone: Warehouse },
-  { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/processos`, `${FICHA}/produtos`], icone: ClipboardList },
+  { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/processos`, `${FICHA}/produtos`, `${FICHA}/salmouras`, `${FICHA}/empanados`, `${FICHA}/posicionamento`, `${FICHA}/molhos`], icone: ClipboardList },
   { href: `${FICHA}/cardapio`, rotulo: "Precificação", icone: BadgeDollarSign },
   { href: `${ESTOQUE}/cozinha`, rotulo: "Produção do dia", tambem: [`${ESTOQUE}/producoes`], icone: ChefHat },
   { href: `${FICHA}/processos`, rotulo: "Montagem do prato", icone: Layers },
+  // receitas da casa que servem restaurante, delivery e eventos (dono, 23/11/2026)
+  { href: `${FICHA}/molhos`, rotulo: "Molhos", icone: Soup },
+  { href: `${FICHA}/salmouras`, rotulo: "Calculadora de salmoura", icone: Droplets },
+  { href: `${FICHA}/empanados`, rotulo: "Empanados", icone: Wheat },
+  { href: `${FICHA}/posicionamento`, rotulo: "Posicionamento", icone: Scale },
   { href: `${FICHA}/lucro`, rotulo: "Faturamento", icone: TrendingUp },
   { href: "/dashboard/marmitaria/funcionarios", rotulo: "Funcionários", icone: Users },
   { href: "/dashboard/marmitaria/financeiro", rotulo: "Financeiro", icone: Wallet },

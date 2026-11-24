@@ -31,7 +31,7 @@ import { AlertTriangle, ArrowLeftRight, Check, ChevronDown, Loader2, Lock, Minus
 const fmtQ = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 const CHAVE_LOCAL = "hefisto:estoque:local";
 const FORM_VAZIO = { qtd: "", unidade: "", motivo: "", destino: "", validade: "", observacao: "", responsavel: "", justificativa: "", pin: "" };
-const SUB = { principal: "Fechados", abertos: "Abertos", expositor: "Expositor (gelada)", preparo: "Pré-preparos", embalagens: "Embalagens" };
+const SUB = { principal: "Fechados", abertos: "Abertos", expositor: "Expositor (gelada)", preparo: "Bases", embalagens: "Embalagens" };
 
 function lerLocal(unidade) { try { return localStorage.getItem(`${CHAVE_LOCAL}:${unidade}`) || ""; } catch { return ""; } }
 function gravarLocal(unidade, id) { try { localStorage.setItem(`${CHAVE_LOCAL}:${unidade}`, id); } catch { /* sem armazenamento */ } }
@@ -157,7 +157,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
     if (!base || !estoqueId || produto) return [];
     // Lista de entrada: o que está no local e, buscando, o cadastro todo (o tipo vem depois).
     const lista = produtosParaLancar({ insumos: base.insumos, itens: base.itens, estoqueId, tipo: "entrada", termo: busca, limite: 80 });
-    // Pré-preparo não aparece no estoque (pedido do dono, 28/10/2026).
+    // Base não aparece no estoque (pedido do dono, 28/10/2026).
     const comprados = lista.filter((p) => !ehPrePreparoNoEstoque(p.insumo, estoque));
     return categoria ? comprados.filter((p) => categoriaNaArea(p.insumo, area) === categoria) : comprados;
   }, [base, estoqueId, busca, produto, categoria, area, estoque]);

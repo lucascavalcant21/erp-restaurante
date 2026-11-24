@@ -128,7 +128,7 @@ const red = executar({ tipo: "reduzir_custo", pct: 10 }, ctx);
 contem("valor a cortar", red.texto, "R$ 0,92");
 contem("sugere onde cortar", red.texto, "Carne bovina");
 
-// Pré-preparo não tem CMV.
+// Base não tem CMV.
 const preparo = executar({ tipo: "simular_cmv", cmv: 30 }, {
   ...ctx, ficha: { ...ficha, eh_base: true, tipo_base: "pre" },
 });

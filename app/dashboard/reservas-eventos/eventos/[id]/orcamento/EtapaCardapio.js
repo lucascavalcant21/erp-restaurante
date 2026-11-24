@@ -63,9 +63,9 @@ export function EtapaTipo({ orc, setOrc, modelos = [], onAplicarModelo, onRemove
 }
 
 // Busca de ficha técnica para a seção (bar → fichas do bar; comida → cozinha).
-// Antes listava só as 30 primeiras em ordem alfabética, sem pré-preparos: no
+// Antes listava só as 30 primeiras em ordem alfabética, sem bases: no
 // cardápio real só apareciam os "Adicional - …" (pedido do dono, 27/10/2026).
-// Agora mostra todas, separadas em Pratos prontos e Pré-preparos, por
+// Agora mostra todas, separadas em Pratos prontos e Bases, por
 // categoria, com os adicionais no fim.
 const ehAdicionalFicha = (f) => /^adiciona(l|is)\b/i.test(String(f?.nome_receita || "").normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
 const semAcento = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -104,7 +104,7 @@ function BuscaFicha({ fichas, setor, onEscolher, onFechar }) {
   return (
     <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
       <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl bg-white p-1 ring-1 ring-slate-200" role="tablist" aria-label="Tipo de ficha">
-        {[["prontos", "Pratos prontos"], ["preparos", "Pré-preparos"]].map(([id, rot]) => (
+        {[["prontos", "Pratos prontos"], ["preparos", "Bases"]].map(([id, rot]) => (
           <button key={id} type="button" role="tab" aria-selected={tipo === id} onClick={() => { setTipo(id); setCategoria(""); }}
             className={`h-9 rounded-lg text-sm font-bold ${tipo === id ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}>
             {rot} <span className="text-xs font-semibold opacity-70">{porTipo[id].length}</span>
@@ -113,7 +113,7 @@ function BuscaFicha({ fichas, setor, onEscolher, onFechar }) {
       </div>
       <div className="relative">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={`Buscar ${tipo === "preparos" ? "pré-preparo" : "prato"} ou insumo (ex.: camarão)…`}
+        <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={`Buscar ${tipo === "preparos" ? "base" : "prato"} ou insumo (ex.: camarão)…`}
           className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500" />
       </div>
       {categorias.length > 1 && (

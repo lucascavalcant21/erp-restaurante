@@ -52,7 +52,7 @@ export const INTENT_CATALOG = [
   {
     id: "cozinha.summary",
     title: "Situação da Cozinha / Produção",
-    description: "Status das produções de hoje e atrasos de pré-preparo",
+    description: "Status das produções de hoje e atrasos de base",
     permission: "cozinha.sector.view",
     keywords: ["como esta a cozinha", "tem producao atrasada", "producao de hoje", "preparos hoje", "como estao os preparos", "lotes de hoje", "producao atrasada"]
   },

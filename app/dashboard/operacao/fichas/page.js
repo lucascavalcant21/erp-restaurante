@@ -483,7 +483,7 @@ function FichasRunner() {
     setSimAlvo(String(padrao.valor || 1));
   };
 
-  // Bases disponíveis (fichas marcadas como pré-preparo), exceto a própria ficha em edição
+  // Bases disponíveis (fichas marcadas como base), exceto a própria ficha em edição
   const basesDisponiveis = fichas.filter(f => f.eh_base && f.id !== form.id);
 
   // ─── Montar Ficha Técnica inteira com IA (texto/foto da receita) ───────────
@@ -727,10 +727,13 @@ function FichasRunner() {
     };
   }, [unidadeAtiva, deptUrl]);
 
+  // ?modo=bases abre direto na lista de bases (card "Bases" da Cozinha, 23/11/2026)
+  const modoUrl = searchParams.get("modo");
   useEffect(() => {
+    if (modoUrl === "bases") { setModoFicha("preparos"); setTipoFiltro("Bases"); return; }
     setModoFicha("principais");
     setTipoFiltro("Pratos principais");
-  }, [deptUrl]);
+  }, [deptUrl, modoUrl]);
 
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
@@ -819,7 +822,7 @@ function FichasRunner() {
       adicionais: categoriasAdicionais.filter(item => item !== nome),
       excluidas: [...new Set([...categoriasExcluidas, nome])],
     });
-    if (ok && tipoFiltro === nome) setTipoFiltro(modoFicha === "preparos" ? "Pré-preparos" : "Pratos principais");
+    if (ok && tipoFiltro === nome) setTipoFiltro(modoFicha === "preparos" ? "Bases" : "Pratos principais");
   };
 
   const organizarFichaNaCategoria = async (ficha, categoria) => {
@@ -848,7 +851,7 @@ function FichasRunner() {
     }
   }, [ingFicha, autoSoma, form.departamento, deptUrl]);
 
-  // Divisão do receituário: Pratos (prontos p/ cardápio) × Pré-preparos (bases
+  // Divisão do receituário: Pratos (prontos p/ cardápio) × Bases (bases
   // usadas dentro de outros pratos: molhos, massas, caldos...)
   const ordenarFichas = (a, b) => {
     return String(a.nome_receita || "").localeCompare(String(b.nome_receita || ""), "pt-BR", { sensitivity: "base" });
@@ -882,7 +885,7 @@ function FichasRunner() {
     if (filtroStatus === "inativas" && statusDaFicha(f) !== "inativa") return false;
     if (apenasAcimaMeta && !ehAcimaDaMeta(f)) return false;
     if (tipoFiltro === "Pratos principais") return !f.eh_base;
-    if (tipoFiltro === "Pré-preparos") return !!f.eh_base;
+    if (tipoFiltro === "Bases") return !!f.eh_base;
     if (tipoFiltro === "Pratos") return !f.eh_base;
     if (modoFicha === "preparos") return !!f.eh_base && (f.categoria || "") === tipoFiltro;
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
@@ -1219,7 +1222,7 @@ function FichasRunner() {
   // Digitar é mais rápido do que rolar uma lista com centenas de opções.
   const opcoesIngrediente = useMemo(() => [
     ...insumosAtivos.map(i => ({ valor: `insumo:${i.id}`, nome: i.nome, detalhe: i.unidade_medida, tipo: "Insumo" })),
-    ...basesDisponiveis.map(b => ({ valor: `base:${b.id}`, nome: b.nome_receita, detalhe: b.rendimento_unidade, tipo: "Pré-preparo" })),
+    ...basesDisponiveis.map(b => ({ valor: `base:${b.id}`, nome: b.nome_receita, detalhe: b.rendimento_unidade, tipo: "Base" })),
     ...embalagensCat.map(i => ({ valor: `insumo:${i.id}`, nome: i.nome, detalhe: i.unidade_medida, tipo: "Embalagem" })),
   ], [insumosAtivos, basesDisponiveis, embalagensCat]);
 
@@ -1852,7 +1855,7 @@ function FichasRunner() {
        </style></head><body>
     `;
 
-    const ORDEM_SECOES = ['Empanamentos', 'Salmouras e Marinadas', 'Molhos', 'Xaropes', 'Espumas', 'Geleias', 'Mixes e Infusões', 'Pré-preparos', 'Preparos', 'Sobremesas', 'Sucos'];
+    const ORDEM_SECOES = ['Empanamentos', 'Salmouras e Marinadas', 'Molhos', 'Xaropes', 'Espumas', 'Geleias', 'Mixes e Infusões', 'Bases', 'Preparos', 'Sobremesas', 'Sucos'];
     const secaoDe = (f) => {
       const nome = String(f.nome_receita || '').toLowerCase();
       const cat = String(f.categoria || '').toLowerCase();
@@ -1863,7 +1866,7 @@ function FichasRunner() {
       if (nome.includes('geleia') || nome.includes('geléia') || cat.includes('geleia')) return 'Geleias';
       if (cat.includes('mix') || cat.includes('infus') || nome.includes('infusão') || nome.includes('infusao')) return 'Mixes e Infusões';
       if (nome.includes('molho') || cat.includes('molho')) return 'Molhos';
-      if (f.eh_base) return 'Pré-preparos';
+      if (f.eh_base) return 'Bases';
       if (cat === 'sobremesas') return 'Sobremesas';
       if (cat === 'sucos') return 'Sucos';
       return 'Preparos';
@@ -1885,7 +1888,7 @@ function FichasRunner() {
             const base = fichas.find(x => x.id === fi.subficha_id);
             nome = base ? base.nome_receita : 'Base excluída';
             unidade = base?.rendimento_unidade || 'un';
-            obs = 'Base / Pré-preparo';
+            obs = 'Base / Base';
          }
          return `<tr>
             <td style="font-weight:700">${esc(nome)}</td>
@@ -2550,7 +2553,7 @@ function FichasRunner() {
               const tempoMedio = tempos.length ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length) : 0;
               const cardsPreparo = [
                 { rot: "Preparos", val: base.length, sub: deptUrl === "bar" ? "bases do bar" : "bases da cozinha" },
-                { rot: "Pré-preparos", val: base.length, sub: "usados em montagens" },
+                { rot: "Bases", val: base.length, sub: "usadas em montagens" },
                 { rot: "Com custo", val: comCusto, sub: `${base.length - comCusto} sem custo` },
                 { rot: "Tempo médio", val: tempoMedio ? `${tempoMedio} min` : "—", sub: `${tempos.length} informados` },
                 { rot: "Sem instruções", val: semModo, sub: "modo de preparo", alerta: semModo > 0 },
@@ -2677,9 +2680,9 @@ function FichasRunner() {
          <div className="grid grid-cols-2 gap-2 mb-3">
             {[
               {
-                id: "Pré-preparos",
+                id: "Bases",
                 modo: "preparos",
-                titulo: "Pré-preparos",
+                titulo: "Bases",
                 quantidade: fichas.filter(f => !!f.eh_base).length,
                 icone: <BookOpen size={24} />,
               },
@@ -2733,7 +2736,7 @@ function FichasRunner() {
               );
             })}
             {(modoFicha === "preparos" ? [
-              ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base).length],
+              ["Bases", "Bases", fichas.filter(f => !!f.eh_base).length],
             ] : [
               ["Pratos principais", deptUrl === "bar" ? "Todos os drinks" : "Todos os pratos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length],
             ]).map(([t, label, n]) => (
@@ -3122,7 +3125,7 @@ function FichasRunner() {
                            <h2 className="text-lg sm:text-xl font-black text-fg break-words">{f.nome_receita}</h2>
                            <span className="erp-status-ativo inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider text-emerald-700">Ativo</span>
                         </div>
-                        <p className="text-2xs font-bold text-fg mt-0.5">{f.categoria || (f.eh_base ? "Pré-preparo" : "Prato")} · {setorTxt}</p>
+                        <p className="text-2xs font-bold text-fg mt-0.5">{f.categoria || (f.eh_base ? "Base" : "Prato")} · {setorTxt}</p>
                      </div>
                      <div className="flex items-center gap-2 shrink-0">
                         {!f.eh_base && (
@@ -3498,7 +3501,7 @@ function FichasRunner() {
                {/* HEADER DO MODAL */}
                <div className="flex justify-between items-center gap-3 p-4 sm:px-6 sm:py-5 border-b border-line-soft bg-card">
                   <div className="min-w-0">
-                     <p className={`text-3xs font-bold uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-accent"}`}>{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
+                     <p className={`text-3xs font-bold uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-accent"}`}>{form.eh_base ? "Base" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
                      <h2 className="font-black text-2xl sm:text-3xl text-slate-800">{form.id ? "Editar ficha técnica" : "Nova ficha técnica"}</h2>
                      <p className="text-sm font-bold text-fg mt-1">{ingFicha.length} ingrediente(s) · custo atual <span className="text-success font-black">{fmtBRL(custoTotalFormulario(ingFicha))}</span></p>
                   </div>
@@ -3556,7 +3559,7 @@ function FichasRunner() {
                          <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "pre", categoria: categoriasPreparoDisponiveis.includes(form.categoria) ? form.categoria : categoriasPreparoDisponiveis[0] || "" })}
                            className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${form.eh_base ? "border-amber-600 bg-amber-50 text-amber-900 shadow-lg shadow-amber-600/10" : "border-line bg-card text-fg hover:border-amber-300"}`}>
                            <BookOpen size={24} className={form.eh_base ? "text-amber-700" : "text-subtle"} />
-                           <strong className="mt-2 block text-base">Pré-preparo</strong><span className="block text-xs font-semibold">base usada em outras fichas</span>
+                           <strong className="mt-2 block text-base">Base</strong><span className="block text-xs font-semibold">base usada em outras fichas</span>
                          </button>
                          <button type="button" onClick={() => setForm({ ...form, eh_base: false, produto_pronto: false, tipo_base: null, categoria: categoriasPrincipaisDisponiveis.includes(form.categoria) ? form.categoria : "", modo_preparo: "" })}
                            className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${!form.eh_base && !form.produto_pronto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-line bg-card text-fg hover:border-emerald-300"}`}>
@@ -3573,7 +3576,7 @@ function FichasRunner() {
                          <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-accent-fg ${form.eh_base ? "bg-amber-600" : form.produto_pronto ? "bg-orange-600" : "bg-accent"}`}>{form.eh_base ? <BookOpen size={21} /> : form.produto_pronto ? <Package size={21} /> : <UtensilsCrossed size={21} />}</span>
                          <div>
                            <p className="text-2xs font-bold uppercase tracking-widest text-fg">Tipo da ficha</p>
-                           <p className="text-base font-black text-fg">{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
+                           <p className="text-base font-black text-fg">{form.eh_base ? "Base" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
                            <p className="text-xs font-semibold text-fg">O tipo é definido no cadastro e não precisa ser escolhido novamente ao editar.</p>
                          </div>
                        </div>
@@ -3650,7 +3653,7 @@ function FichasRunner() {
                            <div className="flex items-center gap-2 rounded-xl border border-line bg-transparent px-3">
                               <Search size={17} className="shrink-0 text-subtle" />
                               <input value={buscaIng} onChange={e => setBuscaIng(e.target.value)}
-                                 placeholder="Digite para achar insumo, pré-preparo ou embalagem"
+                                 placeholder="Digite para achar insumo, base ou embalagem"
                                  className="h-12 w-full bg-transparent font-bold text-fg-soft outline-none" />
                               {buscaIng && <button type="button" onClick={() => setBuscaIng("")} className="shrink-0 text-subtle hover:text-slate-900"><X size={16} /></button>}
                            </div>
@@ -4369,7 +4372,7 @@ function FichasRunner() {
                      {insumosAtivos.filter(i => i.id !== substituirAlvo.chave).map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
                   </optgroup>
                   {basesDisponiveis.filter(b => b.id !== substituirAlvo.chave).length > 0 && (
-                     <optgroup label="Bases / Pré-preparos">
+                     <optgroup label="Bases / Bases">
                         {basesDisponiveis.filter(b => b.id !== substituirAlvo.chave).map(b => <option key={b.id} value={`base:${b.id}`}>{b.nome_receita} ({b.rendimento_unidade})</option>)}
                      </optgroup>
                   )}

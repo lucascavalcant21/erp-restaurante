@@ -38,10 +38,16 @@ export const MENU_PRINCIPAL = Object.freeze([
       { titulo: "Receitas", cards: [
         { label: "Fichas técnicas", desc: "Receitas, rendimento e custo", href: "/dashboard/operacao/fichas?dept=cozinha", icone: "BookOpen" },
         { label: "Guia de montagem", desc: "Fotos e passo a passo", href: "/dashboard/operacao/montagem?dept=cozinha", icone: "Salad" },
+        { label: "Bases", desc: "Arroz branco, vatapá, molhos… (base)", href: "/dashboard/operacao/fichas?dept=cozinha&modo=bases", icone: "Layers" },
+        { label: "Molhos", desc: "Receitas e quanto rende cada um", href: "/dashboard/operacao/molhos?dept=cozinha", icone: "Soup" },
+        { label: "Calculadora de salmoura", desc: "Carne, frango ou peixe por quilo", href: "/dashboard/operacao/salmouras?dept=cozinha", icone: "Droplets" },
+        { label: "Empanados", desc: "Farinha temperada e massinha por quilo", href: "/dashboard/operacao/empanados?dept=cozinha", icone: "Wheat" },
+        { label: "Posicionamento", desc: "Quantas gramas vão no prato", href: "/dashboard/operacao/posicionamento?dept=cozinha", icone: "Scale" },
         { label: "Green Dot Assist", desc: "Assistente de bancada no tablet", href: "/dashboard/assistente", icone: "Sparkles" },
       ] },
       { titulo: "Estoque e compras", cards: [
         { label: "Estoque da cozinha", desc: "Entrada e retirada", href: "/dashboard/operacao/estoque?area=cozinha", icone: "Package" },
+        { label: "Estoque de bases", desc: "Quanto tem pronto de cada base", href: "/dashboard/operacao/estoque-bases?dept=cozinha", icone: "Layers" },
         { label: "Ingredientes", desc: "Produtos usados nas receitas", href: "/dashboard/operacao/ingredientes?dept=cozinha", icone: "Carrot" },
         { label: "Lista de compras", desc: "Cotações e pedidos", href: "/dashboard/operacao/compras", icone: "ShoppingCart" },
       ] },

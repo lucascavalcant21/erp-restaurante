@@ -54,7 +54,7 @@ export const paramsSchema = s.object({
 
 /**
  * Local principal do setor do produto: o estoque chamado exatamente como o
- * setor do cadastro ("cozinha" → "Cozinha", "bar" → "Bar"). Pré-preparos,
+ * setor do cadastro ("cozinha" → "Cozinha", "bar" → "Bar"). Bases,
  * embalagens e máquinas não são o principal. Sem setor ou sem local com esse
  * nome → null (a conversa pergunta).
  */

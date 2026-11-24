@@ -44,7 +44,7 @@ test("o tipo vem de eh_base, não do nome da categoria", () => {
   assert.equal(tipoFichaDe({ eh_base: false, categoria: "Molhos e caldos" }), "prato");
   assert.equal(tipoFichaDe({ eh_base: true, categoria: "Pratos principais" }), "pre_preparo");
   assert.equal(tipoFichaDe({ eh_base: false, tipo_base: "produto_pronto" }), "produto_pronto");
-  assert.equal(configDaFicha(arrozBranco).tituloDocumento, "FICHA DE PRÉ-PREPARO");
+  assert.equal(configDaFicha(arrozBranco).tituloDocumento, "FICHA DE BASE");
   assert.equal(configDaFicha(prato).tituloDocumento, "FICHA DE PRATO");
 });
 
@@ -57,7 +57,7 @@ test("setor é independente do tipo", () => {
   assert.deepEqual(marcadoresDoTipo("prato"), { eh_base: false, tipo_base: null });
 });
 
-test("configuração central: prato é ficha de montagem, pré-preparo é de produção", () => {
+test("configuração central: prato é ficha de montagem, base é de produção", () => {
   const p = TIPOS_FICHA.prato.mostra;
   for (const campo of ["tempoPreparo", "tempoCoccao", "pesoFinal", "armazenamento",
     "equipamentos", "alergenicos", "custos", "custoEmbalagem", "observacoes", "informacoesAdicionais"]) {
@@ -68,16 +68,16 @@ test("configuração central: prato é ficha de montagem, pré-preparo é de pro
   assert.equal(p.rendimento, true);
   assert.deepEqual(TIPOS_FICHA.prato.rendimento.campo, "peso_final_g");
   assert.deepEqual(TIPOS_FICHA.prato.rendimento.unidadeFixa, "g");
-  // O do pré-preparo não tem unidade fixa.
+  // O da base não tem unidade fixa.
   assert.equal(TIPOS_FICHA.pre_preparo.rendimento.unidadeFixa, null);
   assert.equal(TIPOS_FICHA.prato.instrucoes.titulo, "Montagem do prato");
 
   const pp = TIPOS_FICHA.pre_preparo.mostra;
   for (const campo of ["rendimento", "tempoPreparo", "pesoFinal", "armazenamento", "equipamentos", "alergenicos", "custos", "responsavel"]) {
-    assert.equal(pp[campo], true, `pré-preparo deveria ter ${campo}`);
+    assert.equal(pp[campo], true, `base deveria ter ${campo}`);
   }
   for (const campo of ["tempoCoccao", "custoEmbalagem", "observacoes", "informacoesAdicionais"]) {
-    assert.equal(pp[campo], false, `pré-preparo não deveria ter ${campo}`);
+    assert.equal(pp[campo], false, `base não deveria ter ${campo}`);
   }
   assert.equal(TIPOS_FICHA.pre_preparo.instrucoes.titulo, "Modo de preparo");
   // As mesmas chaves nos dois tipos: nenhum campo fica "indefinido".
@@ -101,7 +101,7 @@ test("quantidade vai junto da unidade, num texto só", () => {
   assert.equal(textoRendimento({ rendimento_porcoes: 20, rendimento_unidade: "un", departamento: "cozinha" }), "20 un");
 });
 
-test("ingredientes: insumo em g, em kg e pré-preparo aparecem na unidade certa", () => {
+test("ingredientes: insumo em g, em kg e base aparecem na unidade certa", () => {
   const linhas = ingredientesDaFicha(arrozBranco, todas);
   assert.deepEqual(linhas, [
     { nome: "Arroz", quantidade: "1.000 g", prePreparo: false },
@@ -111,7 +111,7 @@ test("ingredientes: insumo em g, em kg e pré-preparo aparecem na unidade certa"
   assert.equal(doPrato[0].nome, "Arroz branco");
   assert.equal(doPrato[0].quantidade, "300 g");
   assert.equal(doPrato[0].prePreparo, true);
-  assert.equal(ingredientesDaFicha({ fichas_ingredientes: [sub("sumiu", 1)] }, todas)[0].nome, "Pré-preparo removido");
+  assert.equal(ingredientesDaFicha({ fichas_ingredientes: [sub("sumiu", 1)] }, todas)[0].nome, "Base removida");
 });
 
 test("passos: numeração, detalhes da IA e tempo total", () => {
@@ -129,7 +129,7 @@ test("instruções: texto atual primeiro; fichas antigas caem para o que tinham"
   assert.match(texto, /1\. Macerar o limão/);
   assert.match(texto, /Método: Montado no copo/);
   assert.match(texto, /Copo: Copo baixo/);
-  // Pré-preparo antigo com etapas estruturadas.
+  // Base antigo com etapas estruturadas.
   const preparoAntigo = { eh_base: true, modo_preparo: "" };
   const etapas = [{ titulo: "Reduzir", instrucao: "Reduzir à metade", tempo_min: 20, equipamento: "Panela" }];
   assert.equal(textoDeInstrucoes(preparoAntigo, { etapas }), "1. Reduzir: Reduzir à metade\n   • 20 min · Panela");
@@ -168,7 +168,7 @@ test("armazenamento: gravar preserva o que o editor não mostra", () => {
   assert.equal(congelado.validade_refrigerado_dias, null);
 });
 
-test("custos do pré-preparo: sem embalagem, total igual ao usado pelo ERP", () => {
+test("custos da base: sem embalagem, total igual ao usado pelo ERP", () => {
   const comEmbalagem = { ...arrozBranco, custo_embalagens_total: 2 };
   const c = custosDoPrePreparo(comEmbalagem, todas);
   // 1 kg de arroz a 6,50 + 15 g de sal a R$ 2/kg = 6,53
@@ -178,7 +178,7 @@ test("custos do pré-preparo: sem embalagem, total igual ao usado pelo ERP", () 
   assert.equal(custosDoPrePreparo(arrozBranco, todas).porUnidade.toFixed(4), (6.53 / 2).toFixed(4));
 });
 
-test("prato que usa pré-preparo herda o custo proporcional (CMV intacto)", () => {
+test("prato que usa base herda o custo proporcional (CMV intacto)", () => {
   // 300 g de arroz branco (lote de 2 kg custa 6,53) + 400 g de picanha a 90/kg.
   const esperado = (6.53 / 2) * 0.3 + 90 * 0.4;
   assert.equal(custoDeProduzirFicha(prato, todas).toFixed(4), esperado.toFixed(4));
@@ -201,7 +201,7 @@ test("dados da ficha de PRATO: só identificação, ingredientes e montagem", ()
   assert.doesNotMatch(texto, /Rendimento|Tempo de cocção|Peso final/);
 });
 
-test("dados da ficha de PRÉ-PREPARO: produção completa, sem cocção nem observações", () => {
+test("dados da ficha de BASE: produção completa, sem cocção nem observações", () => {
   const d = dadosDaFicha(arrozBranco, {
     todasFichas: todas, mostrarCustos: true,
     complementos: { equipamentos: [{ nome: "Panela 10 L" }], alergenicos: [], armazenamento: { recipiente: "GN", validade_refrigerado_dias: 3 } },
@@ -222,7 +222,7 @@ test("dados da ficha de PRÉ-PREPARO: produção completa, sem cocção nem obse
   assert.equal(dadosDaFicha({ ...arrozBranco, departamento: "bar" }).identificacao.find(i => i.rotulo === "Volume final").valor, "2 L");
 });
 
-test("gravar PRATO não escreve campos do pré-preparo nem apaga os antigos", () => {
+test("gravar PRATO não escreve campos da base nem apaga os antigos", () => {
   const campos = camposParaGravar("prato", {
     nome_receita: " Picanha ", categoria: "Pratos", departamento: "cozinha", modo_preparo: "1. Montar",
     rendimento_porcoes: "0.7", rendimento_unidade: "kg", tempo_preparo: "30", responsavel: "X", peso_final_g: "900",
@@ -265,7 +265,7 @@ test("rendimento do PRATO: peso servido em gramas, na ficha e no documento", () 
   assert.equal(dadosDaFicha(prato, { todasFichas: todas }).identificacao.some(i => i.rotulo === "Rendimento"), false);
   // No bar o prato também rende em gramas.
   assert.equal(dadosDaFicha({ ...drink, peso_final_g: 300 }).identificacao.find(i => i.rotulo === "Rendimento").valor, "300 g");
-  // Pré-preparo continua flexível: kg, L, un — não vira grama fixa.
+  // Base continua flexível: kg, L, un — não vira grama fixa.
   assert.equal(dadosDaFicha(arrozBranco).identificacao.find(i => i.rotulo === "Rendimento").valor, "2 kg");
   assert.equal(textoRendimentoDoTipo({ ...arrozBranco, rendimento_porcoes: 1.5, rendimento_unidade: "l", departamento: "bar" }), "1,5 L");
 });
@@ -322,7 +322,7 @@ test("regressão financeira: o rendimento visível do prato não muda nenhum nú
   assert.equal(camposParaGravar("prato", { nome_receita: "P", departamento: "cozinha", rendimento_porcoes: "0.7", rendimento_unidade: "kg", peso_final_g: "420" }).rendimento_porcoes, 0.7);
 });
 
-test("gravar PRÉ-PREPARO leva tempo, peso final, responsável e validade", () => {
+test("gravar BASE leva tempo, peso final, responsável e validade", () => {
   const campos = camposParaGravar("pre_preparo", {
     nome_receita: "Tucupi", departamento: "cozinha", rendimento_porcoes: "2", tempo_preparo: "40",
     peso_final_g: "1600", responsavel: "Chef", validade_dias: "3", alergenicos_pode_conter: "",

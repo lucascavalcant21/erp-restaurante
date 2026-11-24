@@ -10,7 +10,7 @@ import { MODELOS_CHECKLIST, modeloDe } from "../modelos";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 // Tipos de checklist por setor:
-// - Cozinha: mise en place, abertura, pré-preparos p/ outro dia, fechamento, limpeza
+// - Cozinha: mise en place, abertura, bases p/ outro dia, fechamento, limpeza
 // - Salão e Bar: abertura e fechamento
 const TIPOS_POR_DEPT = {
   cozinha: [
@@ -18,7 +18,7 @@ const TIPOS_POR_DEPT = {
     ["durante_turno", "Durante o Turno (Operação)"],
     ["fechamento", "Fechamento / Fim do Turno"],
     ["mise_en_place", "Mise en Place"],
-    ["pre_preparos", "Pré-preparos p/ outro dia"],
+    ["pre_preparos", "Bases p/ outro dia"],
     ["limpeza_organizacao", "Limpeza e Organização"],
   ],
   bar: [

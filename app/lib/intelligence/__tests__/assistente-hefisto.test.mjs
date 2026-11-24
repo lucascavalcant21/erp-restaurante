@@ -26,14 +26,14 @@ const ALHO = "a0000000-0000-4000-8000-0000000000c4";
 
 function tabelas() {
   const t = tabelasPadrao();
-  t.estoques.push({ id: EST_BAR, unidade_id: A, nome: "Bar", status: "ativo" }, { id: "e0000000-0000-4000-8000-0000000000bb", unidade_id: A, nome: "Pré-preparos da Cozinha", status: "ativo" });
+  t.estoques.push({ id: EST_BAR, unidade_id: A, nome: "Bar", status: "ativo" }, { id: "e0000000-0000-4000-8000-0000000000bb", unidade_id: A, nome: "Bases da Cozinha", status: "ativo" });
   t.insumos.push(
     { id: XAROPE, unidade_id: A, nome: "Xarope de guaraná", unidade_medida: "l", departamento: "bar", tamanho_embalagem: 1, custo_compra: 20, custo_unitario: 20, preco_normalizado: 20 },
     { id: TOMATE, unidade_id: A, nome: "Tomate", unidade_medida: "kg", departamento: "cozinha", tamanho_embalagem: 1, custo_compra: 10, custo_unitario: 10, preco_normalizado: 10 },
     { id: SAL, unidade_id: A, nome: "Sal Fino", unidade_medida: "kg", departamento: "cozinha", tamanho_embalagem: 1, custo_compra: 4, custo_unitario: 4, preco_normalizado: 4 },
     { id: ALHO, unidade_id: A, nome: "Alho", unidade_medida: "kg", departamento: "cozinha", tamanho_embalagem: 1, custo_compra: 30, custo_unitario: 30, preco_normalizado: 30 },
   );
-  // picanha também está nos pré-preparos: a entrada vai para a Cozinha (setor do cadastro)
+  // picanha também está nas bases: a entrada vai para a Cozinha (setor do cadastro)
   t.estoque_itens.push({ unidade_id: A, estoque_id: "e0000000-0000-4000-8000-0000000000bb", insumo_id: PICANHA, quantidade_atual: 1 });
   t.colaboradores.push(
     { id: "co4", unidade_id: A, nome: "Duda", cargo: "Garçom", area_escala: "Salão", status: "ativo", dias_trabalho: "3", horario_entrada: "14:00", horario_saida: "22:00" },
@@ -101,7 +101,7 @@ test("lote: uma frase com vários itens vira um pedido por item", () => {
 });
 
 test("local pelo setor do cadastro: cozinha → Cozinha, bar → Bar", () => {
-  const est = [{ id: "1", nome: "Cozinha" }, { id: "2", nome: "Bar" }, { id: "3", nome: "Pré-preparos da Cozinha" }];
+  const est = [{ id: "1", nome: "Cozinha" }, { id: "2", nome: "Bar" }, { id: "3", nome: "Bases da Cozinha" }];
   assert.equal(localDoSetor(est, { departamento: "bar" }).id, "2");
   assert.equal(localDoSetor(est, { departamento: "cozinha" }).id, "1");
   assert.equal(localDoSetor(est, { departamento: null }), null);
@@ -310,7 +310,7 @@ test("etiquetas: monta a fila com os nomes do cadastro e abre a tela de Etiqueta
   const r = await pedir("Eu quero 20 etiquetas de alho , 30 de caldo de camarão e 2 de vatapá");
   assert.equal(r.interpretacao.intencao, "etiquetas.imprimir");
   assert.match(r.texto, /Separei 52 etiquetas: 20 de Alho, 30 de Caldo de camarão, 2 de Vatapá\./);
-  assert.match(r.texto, /"vatapá" não está no cadastro/, "Vatapá Baiano não é pré-preparo e a ficha da loja B não vale");
+  assert.match(r.texto, /"vatapá" não está no cadastro/, "Vatapá Baiano não é base e a ficha da loja B não vale");
   const rota = r.acoes.find((a) => a.rota)?.rota || "";
   assert.ok(rota.startsWith("/dashboard/operacao/etiquetas?lote="));
   assert.deepEqual(JSON.parse(decodeURIComponent(rota.split("lote=")[1])), [[20, "Alho"], [30, "Caldo de camarão"], [2, "Vatapá"]]);

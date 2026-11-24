@@ -1,12 +1,12 @@
 "use client";
 
 // Peças do editor de fichas, usadas pelos dois formulários (prato e
-// pré-preparo). Cada peça recebe o valor e devolve o valor alterado; quem guarda
+// base). Cada peça recebe o valor e devolve o valor alterado; quem guarda
 // o estado e grava é o EditorFicha.
 //
 // A cor vem do tipo pelas variáveis --tipo, --tipo-soft e --tipo-fg (definidas
 // no contêiner do editor com estiloDoTipo), então a mesma peça fica verde no
-// prato e azul-petróleo no pré-preparo sem nenhum "if".
+// prato e azul-petróleo na base sem nenhum "if".
 
 import { useMemo, useRef, useState } from "react";
 import {
@@ -158,7 +158,7 @@ export function ListaIngredientes({ itens, opcoes, onAdicionar, onQuantidade, on
         <div className="flex items-center gap-2 rounded-xl border border-line bg-card px-3 focus-within:border-[color:var(--tipo)]">
           <Search size={17} className="shrink-0 text-subtle" />
           <input value={busca} onChange={e => setBusca(e.target.value)} aria-label="Buscar ingrediente"
-            placeholder="Digite para adicionar ingrediente ou pré-preparo"
+            placeholder="Digite para adicionar ingrediente ou base"
             className="h-12 min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-fg outline-none placeholder:font-medium placeholder:text-subtle" />
           {busca ? <button type="button" onClick={() => setBusca("")} aria-label="Limpar busca" className="shrink-0 text-subtle hover:text-fg"><X size={16} /></button> : null}
         </div>
@@ -207,7 +207,7 @@ export function ListaIngredientes({ itens, opcoes, onAdicionar, onQuantidade, on
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[15px] font-bold text-fg">{item.nome}</span>
                     {item.tipo === "base" ? (
-                      <span className="mt-0.5 inline-block rounded border border-[color:var(--ficha-preparo)] px-1.5 text-3xs font-bold uppercase tracking-wider text-[color:var(--ficha-preparo)]">pré-preparo</span>
+                      <span className="mt-0.5 inline-block rounded border border-[color:var(--ficha-preparo)] px-1.5 text-3xs font-bold uppercase tracking-wider text-[color:var(--ficha-preparo)]">base</span>
                     ) : null}
                   </span>
                   <span className="flex w-[132px] items-center justify-end gap-1.5">
@@ -362,9 +362,9 @@ export function CampoRendimentoPrato({ form, onChange, itens, ajuda = "" }) {
   );
 }
 
-// ─── Produção (pré-preparo) ─────────────────────────────────────────────────
+// ─── Produção (base) ─────────────────────────────────────────────────
 
-// Rendimento do pré-preparo: soma dos ingredientes (automático) ou digitado.
+// Rendimento da base: soma dos ingredientes (automático) ou digitado.
 // É dele que sai o custo por kg que entra nos pratos.
 export function CampoRendimento({ form, onChange, auto, onAuto, itens }) {
   const automatizavel = rendimentoEhAutomatizavel(form);
@@ -397,7 +397,7 @@ export function CampoRendimento({ form, onChange, auto, onAuto, itens }) {
           usar a soma dos ingredientes{soma ? ` (${numero(soma.valor)} ${unidadeSetor})` : ""}
         </button>
       ) : (
-        <p className="mt-1 text-xs font-medium text-fg">Mantido em {unidade}: há receitas que usam este pré-preparo nessa unidade.</p>
+        <p className="mt-1 text-xs font-medium text-fg">Mantido em {unidade}: há receitas que usam esta base nessa unidade.</p>
       )}
     </div>
   );
@@ -524,7 +524,7 @@ export function CampoAlergenicos({ selecionados, podeConter, onChange, onPodeCon
   );
 }
 
-// Custos do pré-preparo: calculados pelo sistema, sem campo para digitar.
+// Custos da base: calculados pelo sistema, sem campo para digitar.
 export function PainelCustos({ itens, form }) {
   const total = custoDosItens(itens);
   const rendimento = parseNumero(form.rendimento_porcoes);
@@ -548,7 +548,7 @@ export function PainelCustos({ itens, form }) {
           Preço por grama suspeito: {suspeitos.map(i => i.nome).join(", ")}. Confira o cadastro do ingrediente — pode ser o preço do pacote.
         </p>
       ) : null}
-      <p className="mt-2 text-xs font-medium text-fg">Os custos vêm do cadastro dos ingredientes e dos pré-preparos usados.</p>
+      <p className="mt-2 text-xs font-medium text-fg">Os custos vêm do cadastro dos ingredientes e das bases usadas.</p>
     </div>
   );
 }

@@ -21,7 +21,7 @@ const TAMPA = ins("tampa", "Tampa", "un", 0.3);
 const ESPELHO_ARROZ = ins("esp-arroz", "Arroz cozido", "kg", 0);
 const insumos = new Map([ARROZ, FRANGO, CARNE, SAL, POTE, TAMPA, ESPELHO_ARROZ].map((i) => [i.id, i]));
 
-// pré-preparo: 1 kg de arroz cru + 10 g de sal rendem 2,5 kg de arroz cozido
+// base: 1 kg de arroz cru + 10 g de sal rendem 2,5 kg de arroz cozido
 const ARROZ_COZIDO = {
   id: "arroz-cozido", nome_receita: "Arroz cozido", eh_base: true, rendimento_porcoes: 2.5, rendimento_unidade: "kg",
   fichas_ingredientes: [{ insumo_id: "arroz", insumos: ARROZ, quantidade: 1 }, { insumo_id: "sal", insumos: SAL, quantidade: 10 }],
@@ -37,7 +37,7 @@ const MARMITA_CARNE = {
   embalagens: [{ insumo_id: "pote", quantidade: 1 }, { insumo_id: "tampa", quantidade: 1 }],
 };
 
-test("custo técnico: ingrediente com FC, pré-preparo pelo rendimento e embalagens", () => {
+test("custo técnico: ingrediente com FC, base pelo rendimento e embalagens", () => {
   const c = custoDaMarmita({ ...MARMITA_FRANGO, fichas, insumos });
   // frango 0,12 kg × R$ 20 × 1,25 = 3,00
   // arroz cozido: lote = 1 kg × 6 + 10 g × R$ 2/kg = 6,02 → ÷ 2,5 kg = 2,408/kg × 0,15 = 0,3612
@@ -50,12 +50,12 @@ test("custo técnico: ingrediente com FC, pré-preparo pelo rendimento e embalag
   assert.equal(c.completo, true);
 });
 
-test("custo técnico: avisa ingrediente sem custo e pré-preparo inexistente, sem inventar valor", () => {
+test("custo técnico: avisa ingrediente sem custo e base inexistente, sem inventar valor", () => {
   const semCusto = ins("x", "Tempero novo", "kg", 0);
   const c = custoDaMarmita({ itens: [{ insumo_id: "x", quantidade: 0.01 }, { subficha_id: "nao-existe", quantidade: 1 }], fichas, insumos: new Map([["x", semCusto]]) });
   assert.equal(c.completo, false);
   assert.ok(c.pendencias.some((p) => p.includes("Tempero novo")));
-  assert.ok(c.pendencias.some((p) => p.includes("pré-preparo")));
+  assert.ok(c.pendencias.some((p) => p.includes("base")));
 });
 
 test("unidades: digitado em g vira kg do cadastro; grandezas diferentes recusam", () => {
@@ -150,7 +150,7 @@ test("80 de frango e 40 de carne: usa o arroz já cozido, explode o resto e desc
   assert.equal(r.listaDeCompras.length, 5);
 });
 
-test("pré-preparo dentro de pré-preparo: demanda completa antes de descontar o saldo", () => {
+test("base dentro de base: demanda completa antes de descontar o saldo", () => {
   const molho = { id: "molho", nome_receita: "Molho", eh_base: true, rendimento_porcoes: 1, rendimento_unidade: "kg",
     fichas_ingredientes: [{ subficha_id: "arroz-cozido", quantidade: 0.5 }] };
   const marmita = { itens: [{ subficha_id: "molho", quantidade: 0.1 }, { subficha_id: "arroz-cozido", quantidade: 0.1 }], embalagens: [] };
@@ -162,11 +162,11 @@ test("pré-preparo dentro de pré-preparo: demanda completa antes de descontar o
   assert.equal(r.itens.find((i) => i.insumo_id === "arroz").necessario, 0.2);
 });
 
-test("baixa da produção: pré-preparo sai como pré-preparo (sem baixar o arroz cru de novo) e escolhe o estoque com saldo", () => {
+test("baixa da produção: base sai como base (sem baixar o arroz cru de novo) e escolhe o estoque com saldo", () => {
   const r = baixasDaProducao({
     marmita: MARMITA_FRANGO, quantidade: 10, fichas, insumos, espelho: new Map([["arroz-cozido", "esp-arroz"]]),
     saldos: new Map([
-      ["esp-arroz", [{ estoque_id: "pre", estoque_nome: "Pré-preparos", saldo: 2, prioridade: 1 }]],
+      ["esp-arroz", [{ estoque_id: "pre", estoque_nome: "Bases", saldo: 2, prioridade: 1 }]],
       ["frango", [{ estoque_id: "marm", saldo: 1, prioridade: 0 }, { estoque_id: "coz", saldo: 5, prioridade: 1 }]],
       ["tampa", [{ estoque_id: "emb", saldo: 50, prioridade: 0 }]],
     ]),

@@ -234,7 +234,7 @@ export function executar(intencao, contexto = {}) {
     }
 
     case "simular_cmv": {
-      if (preparo) return { texto: "Pré-preparo não é vendido, então não tem CMV. Ele entra no custo dos pratos que o usam." };
+      if (preparo) return { texto: "Base não é vendido, então não tem CMV. Ele entra no custo dos pratos que o usam." };
       const alvo = parseNumero(intencao.cmv);
       const sugerido = precoSugerido(custoPorcao, alvo);
       if (!sugerido) return { texto: `Não consegui simular: preciso do custo por porção e de um CMV entre 0% e 100%.` };

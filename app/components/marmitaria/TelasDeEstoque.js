@@ -5,7 +5,7 @@
 //   Estoque    os locais da marmitaria, com validade (FEFO) e mínimo. Aqui só se
 //              retira: a entrada vem de Compras e da Cozinha
 //   Pedidos    pedidos do iFood do dia: o que separar e (opcional) baixa por pedido
-//   Produção   registra o lote e baixa ingredientes, pré-preparos e
+//   Produção   registra o lote e baixa ingredientes, bases e
 //              embalagens numa transação (marmitaria_registrar_producao)
 // Exclusivo da marmitaria: não lê nem baixa os estoques do restaurante.
 
@@ -74,8 +74,8 @@ export function Planejar() {
         <>
           {r.avisos.map((a) => <Aviso key={a} tipo="alerta">{a}</Aviso>)}
           {r.prePreparos.length > 0 && (
-            <Secao titulo="Pré-preparos" subtitulo="Primeiro usa o que já está pronto; só a diferença vira ingrediente.">
-              <Tabela cab={["Pré-preparo", "Precisa", "Em estoque", "Produzir", "Lotes"]}
+            <Secao titulo="Bases" subtitulo="Primeiro usa o que já está pronto; só a diferença vira ingrediente.">
+              <Tabela cab={["Base", "Precisa", "Em estoque", "Produzir", "Lotes"]}
                 linhas={r.prePreparos.map((p) => [p.nome, `${num(p.necessario)} ${rotuloUn(p.unidade)}`, `${num(p.disponivel)} ${rotuloUn(p.unidade)}`, <b key="p">{num(p.produzir)} {rotuloUn(p.unidade)}</b>, p.lotes === null ? "sem rendimento" : num(p.lotes, 2)])} />
             </Secao>
           )}
@@ -120,7 +120,7 @@ export function Estoque() {
     try { const r = await ativarEstoques(unidadeId); if (r.error) setMsg({ tipo: "alerta", texto: r.error }); else await recarregar(); } finally { setOcupado(false); }
   }
 
-  // ingredientes, pré-preparos e embalagens das marmitas que ainda não estão nos locais da marmitaria
+  // ingredientes, bases e embalagens das marmitas que ainda não estão nos locais da marmitaria
   const faltaVincular = useMemo(() => {
     if (!est || !estEmb) return [];
     const ja = new Set(base.itensEstoque.filter((i) => i.estoque_id === est.id || i.estoque_id === estEmb.id).map((i) => i.insumo_id));
@@ -253,7 +253,7 @@ export function RegistrarMarmitas() {
 
   return (
     <div className="space-y-4">
-      <Secao titulo="Registrar produção" subtitulo="Baixa a ficha técnica do estoque: ingrediente direto, o pré-preparo pronto (sem baixar os ingredientes dele de novo) e as embalagens.">
+      <Secao titulo="Registrar produção" subtitulo="Baixa a ficha técnica do estoque: ingrediente direto, a base pronta (sem baixar os ingredientes dela de novo) e as embalagens.">
         <div className="grid gap-3 sm:grid-cols-4">
           <Campo rotulo="Marmita" className="sm:col-span-2"><select className={inputCls} value={f.ficha} onChange={(e) => setF({ ...f, ficha: e.target.value })}>{marmitas.map((m) => <option key={m.id} value={m.id}>{m.nome_receita}</option>)}</select></Campo>
           <Campo rotulo="Quantidade produzida"><CampoNumero valor={f.qtd} onChange={(v) => setF({ ...f, qtd: v })} /></Campo>

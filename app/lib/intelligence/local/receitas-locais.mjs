@@ -1,6 +1,6 @@
 // RECEITA RÁPIDA NO APARELHO (pedido do dono, 22/11/2026).
 //
-// "Arroz" → é pré-preparo ou prato? → Arroz branco ou Arroz paraense → quanto
+// "Arroz" → é base ou prato? → Arroz branco ou Arroz paraense → quanto
 // vai fazer (o arroz é cru ou cozido?) → a receita já na medida. Tudo com um
 // toque, sem esperar o servidor nem o modelo de linguagem, e sem internet: as
 // fichas ficam guardadas no aparelho (receitas-cache.js) e as contas são feitas
@@ -15,6 +15,10 @@ const limpo = (v) => String(v ?? "").replace(/\s+/g, " ").trim();
 
 /** Prefixo dos comandos internos dos botões (nunca vão ao servidor). */
 export const PREFIXO = "§receita";
+
+import { respostaDoPosicionamento } from "../../posicionamento.mjs";
+import { respostaDaFormula } from "../../formulas-por-quilo.mjs";
+import { ehMolho } from "../../molhos.mjs";
 
 const PALAVRAS_VAZIAS = new Set(["a", "o", "as", "os", "de", "do", "da", "dos", "das", "um", "uma", "e", "com", "pra", "para", "no", "na", "em", "me"]);
 
@@ -131,7 +135,7 @@ export function buscarFichas(fichas = [], termo = "") {
     || tokens(a.nome).length - tokens(b.nome).length || a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
-const rotuloTipo = (base) => (base ? "Pré-preparo" : "Prato");
+const rotuloTipo = (base) => (base ? "Base" : "Prato");
 
 function cmd(partes) {
   return `${PREFIXO} ${JSON.stringify(partes)}`;
@@ -151,6 +155,12 @@ export function lerComando(texto) {
  * @param {{ fichas: object[] }|null} cache
  */
 export function respostaLocal(texto, cache) {
+  const formula = respostaDaFormula(texto, cache);
+  if (formula) return formula;
+  const listaBases = respostaDaLista(texto, cache);
+  if (listaBases) return listaBases;
+  const pos = respostaDoPosicionamento(texto, cache);
+  if (pos) return pos;
   const janta = respostaDaJanta(texto, cache);
   if (janta) return janta;
   const fichas = cache?.fichas || [];
@@ -175,12 +185,12 @@ export function respostaLocal(texto, cache) {
   const bases = achadas.filter((f) => f.base);
   const pratos = achadas.filter((f) => !f.base);
 
-  // 1) pré-preparo ou prato? (só quando há dos dois)
+  // 1) base ou prato? (só quando há dos dois)
   if (!pedido.tipo && bases.length && pratos.length) {
     return {
-      tipo: "local", local: true, texto: "É pré-preparo ou prato?",
-      pergunta: { texto: "É pré-preparo ou prato?", opcoes: [
-        { id: "base", rotulo: `Pré-preparo (${bases.length})`, comando: cmd({ termo: pedido.termo, tipo: "base", ...extra }) },
+      tipo: "local", local: true, texto: "É base ou prato?",
+      pergunta: { texto: "É base ou prato?", opcoes: [
+        { id: "base", rotulo: `Base (${bases.length})`, comando: cmd({ termo: pedido.termo, tipo: "base", ...extra }) },
         { id: "prato", rotulo: `Prato (${pratos.length})`, comando: cmd({ termo: pedido.termo, tipo: "prato", ...extra }) },
       ] },
     };
@@ -193,6 +203,26 @@ export function respostaLocal(texto, cache) {
     };
   }
   return respostaDaFicha(achadas[0], extra);
+}
+
+/**
+ * "molhos" / "bases" (dono, 23/11/2026): a lista para tocar e abrir a receita.
+ * Molho = base com molho no nome ou na categoria Molhos (molhos.mjs).
+ */
+function respostaDaLista(texto, cache) {
+  const t = semAcento(limpo(texto)).replace(/[?!.]+$/g, "").replace(/^(quais|qual|lista( de)?|ver|mostra|me mostra|os|as)\s+/g, "").replace(/^(os|as|de)\s+/, "").trim();
+  const tipo = /^molhos?( (da casa|cadastrados))?$/.test(t) ? "molhos" : /^bases?( (da casa|cadastradas))?$/.test(t) ? "bases" : null;
+  if (!tipo || !cache) return null;
+  const fichas = (cache.fichas || []).filter((f) => f.base && (tipo === "bases" || ehMolho(f)));
+  const rota = tipo === "molhos" ? "/dashboard/operacao/molhos?dept=cozinha" : "/dashboard/operacao/fichas?dept=cozinha&modo=bases";
+  const acoes = [{ rotulo: tipo === "molhos" ? "Abrir Molhos" : "Abrir Bases", rota }];
+  if (!fichas.length) return { tipo: "local", local: true, texto: tipo === "molhos" ? "Nenhum molho cadastrado ainda. Crie a base em Cozinha › Bases, com “Molho” no nome." : "Nenhuma base cadastrada ainda.", acoes };
+  const titulo = tipo === "molhos" ? `Molhos (${fichas.length})` : `Bases (${fichas.length})`;
+  return {
+    tipo: "local", local: true, texto: titulo,
+    pergunta: { texto: fichas.length > 12 ? `${titulo}. Mostrando 12; escreva o nome para achar outra.` : titulo, opcoes: fichas.slice(0, 12).map((f) => ({ id: f.id, rotulo: f.nome, comando: cmd({ fichaId: f.id }) })) },
+    acoes,
+  };
 }
 
 function respostaDaFicha(f, extra = {}) {

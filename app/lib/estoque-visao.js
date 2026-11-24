@@ -44,9 +44,9 @@ export async function carregarVisaoEstoque(unidadeId, { janelaDias = PADRAO_RITM
   const estoquePorId = new Map(estoques.map((e) => [e.id, e]));
   const linhas = itens
     .filter((it) => estoquePorId.has(it.estoque_id) && insumos.has(it.insumo_id))
-    // Só produtos comprados (pedido do dono, 28/10/2026: "os pré-preparos não
-    // aparecem no estoque, só os produtos cadastrados"): fora os pré-preparos
-    // (ficha técnica, categoria ou local de pré-preparo).
+    // Só produtos comprados (pedido do dono, 28/10/2026: "as bases não
+    // aparecem no estoque, só os produtos cadastrados"): fora as bases
+    // (ficha técnica, categoria ou local de base).
     .filter((it) => !ehPrePreparoNoEstoque(insumos.get(it.insumo_id), estoquePorId.get(it.estoque_id)))
     .map((it) => {
       const ins = insumos.get(it.insumo_id);

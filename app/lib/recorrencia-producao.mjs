@@ -1,8 +1,8 @@
 /**
- * Módulo de Inteligência de Compras e Recorrência de Produções / Pré-Preparos.
+ * Módulo de Inteligência de Compras e Recorrência de Produções / Bases.
  *
  * Calcula a taxa de consumo (burn-rate) de ingredientes brutos com base na
- * frequência histórica de produções/pré-preparos e determina alertas de
+ * frequência histórica de produções/bases e determina alertas de
  * recompra preventiva com base nos dias de cobertura do estoque atual.
  */
 
@@ -31,7 +31,7 @@ export function parseIngredientesUsados(raw) {
  *
  * @param {Array} producoes - Histórico de registros da tabela `producoes`
  * @param {Array} itensEstoque - Saldos atuais dos insumos/estoque (`insumos` ou `estoque_itens`)
- * @param {Array} fichas - Lista de fichas técnicas para vinculação de pré-preparos
+ * @param {Array} fichas - Lista de fichas técnicas para vinculação de bases
  * @param {Object} opcoes - { diasAnalise: 30, margemSegurancaDias: 3 }
  */
 export function calcularAlertasRecorrenciaProducao(producoes = [], itensEstoque = [], fichas = [], opcoes = {}) {
@@ -50,12 +50,12 @@ export function calcularAlertasRecorrenciaProducao(producoes = [], itensEstoque 
     return { alertas: [], estatisticas: { totalAnalisados: 0, totalAlertas: 0 } };
   }
 
-  // 2. Mapear consumo de cada ingrediente por produções/pré-preparos
+  // 2. Mapear consumo de cada ingrediente por produções/bases
   const consumoInsumos = new Map();
 
   for (const prod of producoesRecentes) {
     const ingUsados = parseIngredientesUsados(prod.ingredientes_usados);
-    const nomePrePreparo = prod.prato_nome || "Pré-preparo";
+    const nomePrePreparo = prod.prato_nome || "Base";
 
     for (const ing of ingUsados) {
       const nomeInsumo = (ing.nome || ing.insumo_nome || "").trim();
@@ -115,7 +115,7 @@ export function calcularAlertasRecorrenciaProducao(producoes = [], itensEstoque 
         consumoTotal: d.qtdTotal,
       })).sort((a, b) => b.consumoTotal - a.consumoTotal);
 
-      const principalPrePreparo = listaPrePreparos[0]?.nome || "Pré-preparos da Cozinha";
+      const principalPrePreparo = listaPrePreparos[0]?.nome || "Bases da Cozinha";
       const diasParaCobrir = Math.max(7, Math.ceil(intervaloMedioProducao * 2));
       const consumoNecessario = consumoDiario * diasParaCobrir;
       const qtdSugerida = Math.max(0, consumoNecessario - saldoAtual);

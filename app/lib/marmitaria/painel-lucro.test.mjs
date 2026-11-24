@@ -34,7 +34,7 @@ test("preço que caiu aumenta o lucro; o que não mudou ou não é usado não ap
   assert.deepEqual([r[0].subiu, r[0].pct, r[0].valorAntes, r[0].porUnidade, r[0].pratos[0].lucroAntes], [false, -20, 10, true, 13]);
 });
 
-test("mudança dentro do pré-preparo chega no prato", () => {
+test("mudança dentro da base chega no prato", () => {
   const ins = { id: "a", nome: "Feijão", unidade_medida: "un", preco_normalizado: 12 };
   const prep = { id: "p", nome_receita: "Feijão pronto", rendimento_porcoes: 10, rendimento_unidade: "un", fichas_ingredientes: [{ insumo_id: "a", insumos: ins, quantidade: 1 }] };
   const m = { id: "m", nome_receita: "Marmita", itens: [{ subficha_id: "p", quantidade: 1 }], embalagens: [] };

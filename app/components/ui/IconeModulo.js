@@ -6,7 +6,7 @@
 import {
   Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
   CookingPot, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, MonitorPlay, NotebookPen,
-  Package, PartyPopper, Salad, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan, Star,
+  Droplets, Layers, Wheat, Package, PartyPopper, Salad, Scale, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan, Star,
   StickyNote, Store, Tag, Thermometer, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
 } from "lucide-react";
 import { corDoModulo, iconeClaroSobre } from "../../lib/cores-modulo.mjs";
@@ -23,7 +23,7 @@ export function Coqueteleira({ strokeWidth = 2, size, ...props }) {
 export const ICONES_MODULO = {
   Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
   CookingPot, Coqueteleira, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, MonitorPlay,
-  NotebookPen, Package, PartyPopper, Salad, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan,
+  Droplets, Layers, Wheat, NotebookPen, Package, PartyPopper, Salad, Scale, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan,
   Star, StickyNote, Store, Tag, Thermometer, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
 };
 

@@ -31,7 +31,7 @@ test("ficha de PRATO: título próprio, ingrediente + quantidade e montagem", ()
   assert.match(html, /Montagem do prato/);
   assert.match(html, /<th>Ingrediente<\/th><th class="q">Quantidade<\/th>/);
   assert.match(html, /400 g/);
-  assert.match(html, /Tucupi reduzido<span class="tag">pré-preparo<\/span>/);
+  assert.match(html, /Tucupi reduzido<span class="tag">base<\/span>/);
   // Nada do que foi tirado do prato aparece.
   for (const proibido of ["Rendimento", "Tempo de preparo", "cocção", "Peso final", "Armazenamento", "Equipamentos",
     "Alergênicos", "Custo", "Observa", "OBSERVACAO-DO-PRATO", "Informações adicionais", "embalagem", "R$"]) {
@@ -41,20 +41,20 @@ test("ficha de PRATO: título próprio, ingrediente + quantidade e montagem", ()
   assert.match(html, /Picanha &lt;b&gt;na brasa&lt;\/b&gt;/);
 });
 
-test("ficha de PRÉ-PREPARO: produção completa, sem cocção, observações nem embalagem", () => {
+test("ficha de BASE: produção completa, sem cocção, observações nem embalagem", () => {
   const html = montarDocumentoFichas([tucupi], { todasFichas: todas, complementos, mostrarCustos: true });
-  assert.match(html, /FICHA DE PRÉ-PREPARO/);
+  assert.match(html, /FICHA DE BASE/);
   for (const esperado of ["Modo de preparo", "Armazenamento e validade", "Forma / recipiente", "Cuba GN com tampa",
     "Local e validade", "Refrigerado — validade 3 dias", "Equipamentos e utensílios", "Panela 10 L",
     "Não contém alergênicos cadastrados.", "Custo dos ingredientes", "Custo total", "Rendimento", "1,5 kg", "40 min", "Versão"]) {
     assert.ok(html.includes(esperado), `faltou "${esperado}"`);
   }
   for (const proibido of ["cocção", "OBSERVACAO-ANTIGA", "OBS-ARMAZENAMENTO", "Observa", "embalagem", "Informações adicionais"]) {
-    assert.doesNotMatch(html, new RegExp(proibido, "i"), `pré-preparo não deveria ter "${proibido}"`);
+    assert.doesNotMatch(html, new RegExp(proibido, "i"), `base não deveria ter "${proibido}"`);
   }
 });
 
-test("custos do pré-preparo só com permissão", () => {
+test("custos da base só com permissão", () => {
   const semPermissao = montarDocumentoFichas([tucupi], { todasFichas: todas, complementos, mostrarCustos: false });
   assert.doesNotMatch(semPermissao, /Custo/);
   assert.doesNotMatch(semPermissao, /R\$/);
@@ -78,10 +78,10 @@ test("Livro de Receitas mistura os dois tipos, cada ficha no seu template", () =
   assert.equal(quantas(html, '<article class="ficha tipo-prato"'), 2);
   assert.equal(quantas(html, '<article class="ficha tipo-pre-preparo"'), 2);
   assert.equal(quantas(html, ">FICHA DE PRATO<"), 2);
-  assert.equal(quantas(html, ">FICHA DE PRÉ-PREPARO<"), 2);
+  assert.equal(quantas(html, ">FICHA DE BASE<"), 2);
   assert.match(html, /class="capa"/);
   assert.match(html, /2 pratos/);
-  assert.match(html, /2 pré-preparos/);
+  assert.match(html, /2 bases/);
   assert.match(html, /class="indice"/);
   // A ordem pedida é a ordem impressa.
   const ordem = [...html.matchAll(/<h1 class="nome">([^<]+)</g)].map(m => m[1]);
@@ -108,6 +108,6 @@ test("a foto só entra se for imagem base64 da própria ficha", () => {
 
 test("nome do arquivo", () => {
   assert.equal(nomeDoArquivo([picanha]), "Prato Picanha <b>na brasa</b>");
-  assert.equal(nomeDoArquivo([tucupi]), "Pré-preparo Tucupi reduzido");
+  assert.equal(nomeDoArquivo([tucupi]), "Base Tucupi reduzido");
   assert.equal(nomeDoArquivo([picanha, tucupi], { livro: true }), "livro-de-receitas");
 });

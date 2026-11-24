@@ -22,7 +22,7 @@ test("porções: prato sem peso da porção é a receita inteira (não divide pe
   assert.deepEqual(porcoesParaCusto({ rendimento_porcoes: 0.35, rendimento_unidade: "kg" }), { porcoes: 1, definidas: false });
   assert.deepEqual(porcoesParaCusto({ rendimento_porcoes: 2, rendimento_unidade: "kg", peso_porcao_g: 250 }), { porcoes: 8, definidas: true });
   assert.deepEqual(porcoesParaCusto({ rendimento_porcoes: 6, rendimento_unidade: "porcao" }), { porcoes: 6, definidas: true });
-  // pré-preparo: custo por kg do lote
+  // base: custo por kg do lote
   assert.deepEqual(porcoesParaCusto({ eh_base: true, rendimento_porcoes: 5, rendimento_unidade: "kg" }), { porcoes: 5, definidas: true });
 });
 
@@ -81,7 +81,7 @@ test("composição do custo: linhas somam o custo da receita e mostram a perda",
   perto(l.quantidadeBruta, 0.2353, 4);
 });
 
-test("pré-preparo: custo por kg do lote, sem preço nem composição", () => {
+test("base: custo por kg do lote, sem preço nem composição", () => {
   const base = { id: "b1", eh_base: true, nome_receita: "Farofa", rendimento_porcoes: 2, rendimento_unidade: "kg",
     fichas_ingredientes: [{ insumo_id: "farinha", insumos: farinha, quantidade: 2, fator_correcao: 0 }] };
   const r = resumoFinanceiroDaFicha(base, { fichas: [base] });

@@ -6,6 +6,7 @@
 // (marmitaria_salvar_ficha, marmitaria_registrar_producao). Conta e regra de
 // negócio ficam em nucleo.mjs; aqui só se lê e se grava.
 
+import { nomeDeBase } from "../nome-base.mjs";
 import { supabase, isSupabaseReady } from "../supabase";
 import { fetchFichas, salvarInsumo } from "../operacao";
 import { calcularPrecoNormalizado } from "../ingredientes-utils.mjs";
@@ -48,7 +49,7 @@ export function mensagemErro(error) {
 
 /**
  * Tudo que as telas da marmitaria precisam numa leitura só.
- * Marmita = ficha com departamento 'marmitaria'. Pré-preparo = eh_base (da
+ * Marmita = ficha com departamento 'marmitaria'. Base = eh_base (da
  * cozinha ou do bar: base compartilhada, sem cópia).
  */
 export async function carregarBase(unidadeId) {
@@ -101,7 +102,7 @@ export async function carregarBase(unidadeId) {
       embalagens: (embPorFicha.get(f.id) || []).filter((e) => e.insumo_id),
       precos: precosPorFicha.get(f.id) || {},
     }));
-  // espelho: pré-preparo ↔ item de estoque dele (trigger sincronizar_pre_preparo_ficha)
+  // espelho: base ↔ item de estoque dele (trigger sincronizar_pre_preparo_ficha)
   const espelho = new Map(insumosLista.filter((i) => i.ficha_tecnica_id).map((i) => [i.ficha_tecnica_id, i.id]));
   const configRow = cfgR.data || null;
   const migracao = migracaoPendente(cfgR.error?.message) || migracaoPendente(precosR.error?.message);
@@ -152,7 +153,7 @@ export async function salvarConfig(unidadeId, cfg) {
   return { error: mensagemErro(error) };
 }
 
-// ─── Marmitas e pré-preparos ─────────────────────────────────────────────────
+// ─── Marmitas e bases ─────────────────────────────────────────────────
 
 async function rpcFicha(dados) {
   if (!isSupabaseReady()) return { data: null, error: SEM_BANCO };
@@ -167,7 +168,7 @@ async function rpcFicha(dados) {
 
 /** Grava a marmita inteira numa transação. `id` vem da tela (novaChave) e é reenviado igual em nova tentativa. */
 export const salvarMarmita = (dados) => rpcFicha({ ...dados, tipo: "marmita" });
-export const salvarPrePreparo = (dados) => rpcFicha({ ...dados, tipo: "pre_preparo" });
+export const salvarPrePreparo = (dados) => rpcFicha({ ...dados, ...(dados?.nome ? { nome: nomeDeBase(dados.nome) } : {}), tipo: "pre_preparo" });
 
 export async function definirDisponibilidade(fichaId, ativo) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
@@ -325,7 +326,7 @@ export async function ativarEstoques(unidadeId) {
   const agora = new Date().toISOString();
   const base = { unidade_id: unidadeId, status: "ativo", permissoes: [], controla_minimo: true, updated_at: agora };
   const { error } = await supabase.from("estoques").upsert([
-    { ...base, nome: "Marmitaria", slug: ESTOQUE_MARMITARIA, tipo: "alimentos", descricao: "Insumos e pré-preparos da marmitaria", cor: "#047857", controla_validade: true, locais_internos: [], ordem: 20 },
+    { ...base, nome: "Marmitaria", slug: ESTOQUE_MARMITARIA, tipo: "alimentos", descricao: "Insumos e bases da marmitaria", cor: "#047857", controla_validade: true, locais_internos: [], ordem: 20 },
     { ...base, nome: "Limpeza da Marmitaria", slug: "limpeza-marmitaria", tipo: "limpeza", descricao: "Produtos de limpeza da marmitaria", cor: "#047857", controla_validade: false, locais_internos: [], ordem: 13 },
     { ...base, nome: "Produção da Marmitaria", slug: "producao-marmitaria", tipo: "alimentos", descricao: "Subprodutos prontos da marmitaria", cor: "#047857", controla_validade: true, controla_minimo: false, locais_internos: [], ordem: 12 },
     { ...base, nome: "Embalagens da Marmitaria", slug: ESTOQUE_EMBALAGENS, tipo: "embalagens", descricao: "Marmitex, tampas, sacolas, talheres e etiquetas", cor: "#047857", controla_validade: false, locais_internos: [], ordem: 21 },

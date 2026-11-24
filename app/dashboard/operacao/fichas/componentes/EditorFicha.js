@@ -1,6 +1,6 @@
 "use client";
 
-// EDITOR DA FICHA — criar e editar, para prato e pré-preparo, na cozinha e no bar.
+// EDITOR DA FICHA — criar e editar, para prato e base, na cozinha e no bar.
 //
 // Um editor só: o tipo decide o formulário (FORMULARIO_DO_TIPO) e a cor; o
 // setor é um campo. Usado pela listagem de fichas e pela página da ficha.
@@ -53,7 +53,7 @@ export default function EditorFicha({
   // completado com o que vem das tabelas filhas (montagem antiga, etapas).
   const textoTocado = useRef(false);
 
-  // Seções do pré-preparo e texto antigo de montagem/etapas moram em tabelas
+  // Seções da base e texto antigo de montagem/etapas moram em tabelas
   // filhas: chegam depois, sem apagar o que a pessoa já tenha digitado.
   useEffect(() => {
     if (!ficha?.id) return undefined;
@@ -178,7 +178,7 @@ export default function EditorFicha({
     }
   };
 
-  const titulo = `${form.id ? "Editar" : "Novo"} ${cfg.id === "prato" ? "prato" : "pré-preparo"}`;
+  const titulo = form.id ? `Editar ${cfg.id === "prato" ? "prato" : "base"}` : (cfg.id === "prato" ? "Novo prato" : "Nova base");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-2 backdrop-blur-sm sm:p-4" style={estiloDoTipo(cfg)}>
@@ -190,7 +190,7 @@ export default function EditorFicha({
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-3xs font-black uppercase tracking-[0.18em] text-[color:var(--tipo)]">
-              Ficha de {cfg.id === "prato" ? "prato" : "pré-preparo"} · {form.departamento === "bar" ? "Bar" : "Cozinha"}
+              Ficha de {cfg.id === "prato" ? "prato" : "base"} · {form.departamento === "bar" ? "Bar" : "Cozinha"}
             </p>
             <h2 id="editor-ficha-titulo" className="truncate text-xl font-black text-fg sm:text-2xl">{titulo}</h2>
             <p className="hidden text-xs font-medium text-fg sm:block">{cfg.resumo}</p>
@@ -242,12 +242,12 @@ export default function EditorFicha({
             <button type="button" onClick={() => salvar(false)} disabled={salvando || carregandoComplementos}
               className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-[color:var(--tipo)] text-base font-black text-[color:var(--tipo-fg)] disabled:opacity-50">
               {salvando ? <Loader2 size={19} className="animate-spin" /> : <Save size={19} />}
-              {salvando ? "Salvando..." : `Salvar ${cfg.id === "prato" ? "prato" : "pré-preparo"}`}
+              {salvando ? "Salvando..." : `Salvar ${cfg.id === "prato" ? "prato" : "base"}`}
             </button>
             {!form.id ? (
               <button type="button" onClick={() => salvar(true)} disabled={salvando || carregandoComplementos}
                 className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-line px-5 text-sm font-black text-fg-soft hover:border-[color:var(--tipo)] disabled:opacity-50 sm:w-60">
-                <Plus size={17} /> Salvar e criar {cfg.id === "prato" ? "outro prato" : "outro pré-preparo"}
+                <Plus size={17} /> Salvar e criar {cfg.id === "prato" ? "outro prato" : "outra base"}
               </button>
             ) : null}
           </div>

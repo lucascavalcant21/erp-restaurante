@@ -16,7 +16,7 @@ function comPrecoAntigo(insumos, fichas, insumoId, precoAntigo) {
   const antigo = { ...insumos.get(insumoId), preco_normalizado: precoAntigo };
   const mapa = new Map(insumos);
   mapa.set(insumoId, antigo);
-  // Pré-preparo guarda uma cópia do ingrediente dentro da ficha.
+  // Base guarda uma cópia do ingrediente dentro da ficha.
   const lista = fichas.map((f) => (!(f.fichas_ingredientes || []).some((i) => i.insumo_id === insumoId) ? f : {
     ...f, fichas_ingredientes: f.fichas_ingredientes.map((i) => (i.insumo_id === insumoId ? { ...i, insumos: { ...(i.insumos || antigo), preco_normalizado: precoAntigo } } : i)),
   }));

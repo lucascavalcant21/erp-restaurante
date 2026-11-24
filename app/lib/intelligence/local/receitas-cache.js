@@ -7,7 +7,7 @@
 
 import { supabase } from "../../supabase";
 
-const VERSAO = 2; // 2: guarda também a janta da equipe (22/11/2026)
+const VERSAO = 4; // 2: janta (22/11) · 3: posicionamento · 4: salmouras e empanados (23/11/2026)
 const VALIDADE_MS = 10 * 60 * 1000; // atualiza em segundo plano depois de 10 min
 const chave = (u) => `hefisto:receitas:v${VERSAO}:${u || "-"}`;
 const LOTE = 150;
@@ -63,7 +63,7 @@ export async function atualizarReceitas(unidadeId) {
       const lista = ingsDe.get(i.ficha_id) || [];
       if (i.subficha_id) {
         const b = porFicha.get(i.subficha_id);
-        lista.push({ nome: b ? String(b.nome_receita || b.nome_comercial).trim() : "Pré-preparo", qtd: Number(i.quantidade), unidade: b?.rendimento_unidade || "un", base: true });
+        lista.push({ nome: b ? String(b.nome_receita || b.nome_comercial).trim() : "Base", qtd: Number(i.quantidade), unidade: b?.rendimento_unidade || "un", base: true });
       } else {
         const ins = insumos.get(i.insumo_id);
         lista.push({ nome: ins?.nome || "Produto sem cadastro", qtd: Number(i.quantidade), unidade: ins?.unidade_medida || "un", base: false });
@@ -75,14 +75,21 @@ export async function atualizarReceitas(unidadeId) {
       etapasDe.set(e.ficha_id, [...(etapasDe.get(e.ficha_id) || []), { titulo: e.titulo || null, instrucao: e.instrucao || "" }]);
     }
     // Janta da equipe (config_sistema.params.janta_funcionarios): para "janta" responder sem internet.
+    // Posicionamento (params.posicionamento): "posicionamento" responde sem internet.
     let janta = null;
+    let posicionamento = null;
+    let formulas = null;
     try {
       const { data: cfg } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
       const j = cfg?.[0]?.params?.janta_funcionarios;
       janta = j && typeof j === "object" ? j : null;
-    } catch { janta = null; }
+      const p = cfg?.[0]?.params?.posicionamento;
+      posicionamento = p && typeof p === "object" ? p : null;
+      const fq = cfg?.[0]?.params?.formulas_cozinha;
+      formulas = fq && typeof fq === "object" ? fq : null;
+    } catch { janta = null; posicionamento = null; formulas = null; }
     const dados = {
-      versao: VERSAO, em: Date.now(), unidadeId, janta,
+      versao: VERSAO, em: Date.now(), unidadeId, janta, posicionamento, formulas,
       fichas: ativas.map((f) => ({
         id: f.id,
         nome: String(f.nome_receita || f.nome_comercial).trim(),

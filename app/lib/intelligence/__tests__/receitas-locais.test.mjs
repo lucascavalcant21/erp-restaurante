@@ -25,7 +25,7 @@ test("entende o pedido: nome curto, como faz, quantidade, cru/cozido", () => {
   assert.equal(interpretarPedido("Como faz Arroz branco?").termo, "arroz branco");
   assert.deepEqual(interpretarPedido("quero fazer 2 kg de arroz cru"), { termo: "arroz", qtd: 2, unidade: "kg", estado: "cru", tipo: null });
   assert.deepEqual(interpretarPedido("vou preparar 1,5kg de arroz branco cozido"), { termo: "arroz branco", qtd: 1.5, unidade: "kg", estado: "cozido", tipo: null });
-  assert.equal(interpretarPedido("pré-preparo de arroz").tipo, "base");
+  assert.equal(interpretarPedido("base de arroz").tipo, "base");
   assert.equal(interpretarPedido("quanto vendi ontem no ifood por cada canal de venda"), null);
 });
 
@@ -37,10 +37,10 @@ test("busca sem repetir nome e com a ficha mais completa", () => {
   assert.equal(buscarFichas(FICHAS, "pizza").length, 0);
 });
 
-test("fluxo por toques: pré-preparo ou prato → qual → a receita", () => {
+test("fluxo por toques: base ou prato → qual → a receita", () => {
   const r1 = respostaLocal("Arroz", cache);
-  assert.equal(r1.texto, "É pré-preparo ou prato?");
-  assert.deepEqual(r1.pergunta.opcoes.map((o) => o.rotulo), ["Pré-preparo (2)", "Prato (2)"]);
+  assert.equal(r1.texto, "É base ou prato?");
+  assert.deepEqual(r1.pergunta.opcoes.map((o) => o.rotulo), ["Base (2)", "Prato (2)"]);
   const r2 = respostaLocal(r1.pergunta.opcoes[0].comando, cache);
   assert.deepEqual(r2.pergunta.opcoes.map((o) => o.rotulo), ["Arroz branco", "Arroz Paraense"]);
   assert.ok(r2.pergunta.opcoes[0].comando.startsWith(PREFIXO));
@@ -103,4 +103,24 @@ test("janta: resposta no aparelho com a janta e só as fichas usadas", () => {
   assert.deepEqual(r.blocos[0].fichas.map((f) => f.id), ["f-arroz"]);
   assert.equal(r.blocos[0].fichas[0].fichas_ingredientes.length, 4);
   assert.match(respostaLocal("janta", { fichas: FICHAS }).texto, /ainda não foi montada/);
+});
+
+test("molhos e bases: lista para tocar; salmoura e posicionamento passam antes da receita (23/11/2026)", async () => {
+  const { respostaLocal } = await import("../local/receitas-locais.mjs");
+  const cache = {
+    fichas: [
+      { id: "m1", nome: "Molho de tucupi (base)", base: true, ingredientes: [] },
+      { id: "b1", nome: "Arroz branco (base)", base: true, ingredientes: [] },
+      { id: "p1", nome: "Frango ao molho", base: false, ingredientes: [] },
+    ],
+    formulas: { salmouras: [{ id: "s1", nome: "Salmoura de peixe", categoria: "peixe", secoes: [{ itens: [{ nome: "Sal", qtd: 50 }] }] }] },
+    posicionamento: { itens: [{ id: "x", nome: "Filé de frango", alvo: 200 }] },
+  };
+  const molhos = respostaLocal("molhos", cache);
+  assert.deepEqual(molhos.pergunta.opcoes.map((o) => o.rotulo), ["Molho de tucupi (base)"]);
+  const aberto = respostaLocal(molhos.pergunta.opcoes[0].comando, cache);
+  assert.equal(aberto.blocos[0].tipo, "receita_rapida");
+  assert.equal(respostaLocal("bases", cache).pergunta.opcoes.length, 2);
+  assert.equal(respostaLocal("salmoura", cache).blocos[0].tipo, "formula");
+  assert.equal(respostaLocal("posicionamento", cache).blocos[0].tipo, "posicionamento");
 });

@@ -58,7 +58,7 @@ test("pendências saem dos dados", () => {
   assert.ok(passado.some((x) => /data já passou/.test(x)));
 });
 
-test("lista de compras: bruto com perda, abre o pré-preparo, soma e custeia", () => {
+test("lista de compras: bruto com perda, abre a base, soma e custeia", () => {
   const l = listaDeComprasDoEvento(EVENTO, FICHAS);
   const por = Object.fromEntries(l.itens.map((x) => [x.nome, x]));
   assert.ok(Math.abs(por["Carne de sol"].quantidade - 20 / 0.85) < 0.001); // 100 × 0,2 kg limpo ÷ 0,85

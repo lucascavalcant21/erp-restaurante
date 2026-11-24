@@ -2,7 +2,7 @@
 
 // Cadastro rápido dentro da marmita. A embalagem vai para o cadastro geral
 // pelo salvarInsumo (trava de nome repetido, histórico de
-// preço, vínculo no estoque). Pré-preparo vai para a base compartilhada da
+// preço, vínculo no estoque). Base vai para a base compartilhada da
 // cozinha pela marmitaria_salvar_ficha — o restaurante passa a enxergá-lo.
 
 import { useState } from "react";
@@ -163,7 +163,7 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
         <div className="mt-2">
           <BuscaItens base={base} modo="ingrediente" excluir={itens.map((x) => x.insumo_id)}
             onEscolher={(r) => { if (r.tipo !== "ingrediente") return; const ins = base.insumos.get(r.id); setItens([...itens, { key: novaChave(), insumo_id: r.id, qtd: "", un: unidadesCompativeis(ins?.unidade_medida)[0] }]); setBuscando(false); }}
-            onCriarIngrediente={() => setErro("Cadastre o ingrediente novo pela busca da marmita e depois volte ao pré-preparo.")} />
+            onCriarIngrediente={() => setErro("Cadastre o ingrediente novo pela busca da marmita e depois volte à base.")} />
         </div>
       ) : (
         <Botao variante="texto" type="button" className="mt-1" onClick={() => setBuscando(true)}>+ Adicionar ingrediente</Botao>

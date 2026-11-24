@@ -5,7 +5,7 @@
 //
 // A ficha em si é a MESMA da listagem: a tela desenha com FichaDocumento, o PDF
 // sai de montarDocumentoFichas e a edição abre o EditorFicha — os três
-// decididos pelo tipo (prato ou pré-preparo) em lib/ficha-modelo.mjs. Esta
+// decididos pelo tipo (prato ou base) em lib/ficha-modelo.mjs. Esta
 // página não tem formulário próprio, para não existirem dois lugares gravando
 // a mesma ficha de jeitos diferentes.
 
@@ -95,7 +95,7 @@ export default function FichaTecnicaPage() {
     const unidade = data.unidade_id || unidadeAtiva;
     const dept = data.departamento;
 
-    // As demais fichas resolvem o custo dos pré-preparos em cascata; insumos,
+    // As demais fichas resolvem o custo das bases em cascata; insumos,
     // embalagens e categorias servem ao editor.
     const [lista, resProdutos, resEmbalagensEstoque, resInsumos, resEmbalagens, resCategorias, resParams] = await Promise.all([
       fetchFichas(unidade, dept),
@@ -266,7 +266,7 @@ export default function FichaTecnicaPage() {
     router.push(`/dashboard/operacao/fichas/${id}`);
   };
 
-  // Etiqueta de validade: é do pré-preparo, que é produzido e guardado.
+  // Etiqueta de validade: é da base, que é produzido e guardado.
   const gerarEtiqueta = () => {
     const dias = validadePrincipal(complementos?.armazenamento, ficha);
     const parametros = new URLSearchParams({
@@ -340,7 +340,7 @@ export default function FichaTecnicaPage() {
           <ArrowLeft size={16} /> {cfg.rotuloPlural}
         </button>
         {podeEditar && <button onClick={() => setEditorAberto(true)} className="flex items-center gap-2 rounded-xl bg-[color:var(--tipo)] px-4 py-2 text-sm font-black text-[color:var(--tipo-fg)]">
-          <Edit3 size={15} /> Editar {tipo === "prato" ? "prato" : "pré-preparo"}
+          <Edit3 size={15} /> Editar {tipo === "prato" ? "prato" : "base"}
         </button>}
       </div>
 
@@ -387,17 +387,17 @@ export default function FichaTecnicaPage() {
       {/* A ficha: igual à do PDF, no modelo do tipo. */}
       {dados ? <FichaDocumento dados={dados} /> : null}
 
-      {/* Pré-preparo sem permissão de custo ainda precisa saber onde é usado. */}
+      {/* Base sem permissão de custo ainda precisa saber onde é usado. */}
       {tipo === "pre_preparo" && !podeVerCustos ? (
         <section className="rounded-2xl border border-line bg-card p-4">
-          <h2 className="mb-2 text-xs font-black uppercase tracking-wider text-[color:var(--tipo)]">Onde este pré-preparo é usado</h2>
+          <h2 className="mb-2 text-xs font-black uppercase tracking-wider text-[color:var(--tipo)]">Onde esta base é usada</h2>
           {usadoPor.length ? (
             <ul className="flex flex-wrap gap-2">
               {usadoPor.map(f => (
                 <li key={f.id}><button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="rounded-lg border border-line px-2.5 py-1 text-sm font-semibold text-fg-soft hover:text-fg">{f.nome_receita}</button></li>
               ))}
             </ul>
-          ) : <p className="text-sm text-fg">Nenhuma receita usa este pré-preparo ainda.</p>}
+          ) : <p className="text-sm text-fg">Nenhuma receita usa esta base ainda.</p>}
         </section>
       ) : null}
 

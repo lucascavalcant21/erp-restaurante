@@ -1523,7 +1523,7 @@ function imprimirModelo(fichas, cfgEntrada, deptLabel) {
 // nome (coquetéis clássicos e bebidas) — mas nunca pega pratos/petiscos.
 const PALAVRAS_DRINK = /(caipir|mojito|margarita|negroni|spritz|\bgin\b|vodka|tequila|\brum\b|whisk|\bdrink|coquetel|batida|daiquiri|martini|mule|t[ôo]nica|licor|sangria|espumante|\bshot\b|\bdose\b|soda|aperol|campari|cuba|pi[ñn]a colada|bloody mary|cosmopolitan)/i;
 const TIPOS_CAMADA_DRINK = new Set(["copo", "gelo", "liquido", "decoracao"]);
-// Pré-preparos do bar (xaropes, espumas, geleias) — entram no guia como
+// Bases do bar (xaropes, espumas, geleias) — entram no guia como
 // categorias próprias, pelo nome.
 const PALAVRAS_PREPARO_BAR = /(xarope|espuma|geleia|gel[ée]ia|redu[çc][ãa]o|infus[ãa]o|calda|pur[êe]|tônico caseiro|bitters?\b)/i;
 function ehDrinkGuia(m) {
@@ -1548,7 +1548,7 @@ const RE_ESPUMA = /(espuma|\bfoam\b|\bair\b|\bespumante caseiro)/i;
 const RE_GELEIA = /(geleia|gel[ée]ia|pur[êe]|marmelada|compota)/i;
 function categoriaDrink(m) {
   const nome = m.nome || "";
-  // Pré-preparos primeiro (pelo NOME): um xarope alcoólico ainda é xarope.
+  // Bases primeiro (pelo NOME): um xarope alcoólico ainda é xarope.
   if (RE_XAROPE.test(nome)) return "Xaropes";
   if (RE_ESPUMA.test(nome)) return "Espumas";
   if (RE_GELEIA.test(nome)) return "Geleias";
@@ -2049,7 +2049,7 @@ function MontagemPageInner() {
       // cardápio — sem ficha nenhuma — passavam pelo `!== "produto_pronto"` e
       // apareciam aqui como se fossem drinks a montar.
       //
-      // Pré-preparo também não entra: o guia mostra o que se monta para o
+      // Base também não entra: o guia mostra o que se monta para o
       // cliente, e molho, base ou caldo é insumo de outra receita, não prato.
       // Passavam porque tipo_base "pre" não é "produto_pronto".
       const ehPrePreparo = (f) => !!f?.eh_base || f?.tipo_base === "pre";

@@ -1,7 +1,7 @@
 "use client";
 
 // CRIAR COM IA — a receita (texto e/ou foto) vira um rascunho de ficha do tipo
-// da aba em que a pessoa está: em Pratos, ficha de montagem; em Pré-preparos,
+// da aba em que a pessoa está: em Pratos, ficha de montagem; em Bases,
 // ficha de produção. Nada é gravado aqui: o rascunho abre no editor para ser
 // conferido e salvo.
 
@@ -20,7 +20,7 @@ const DIACRITICOS = new RegExp("[" + String.fromCharCode(0x0300) + "-" + String.
 const normalizar = (s) => String(s || "").toLowerCase().normalize("NFD").replace(DIACRITICOS, "").trim();
 
 // Casa o nome lido pela IA com o que já está cadastrado. No prato, um "Arroz
-// branco" deve virar o pré-preparo da casa antes de virar o insumo "arroz".
+// branco" deve virar a base da casa antes de virar o insumo "arroz".
 function vinculoProvavel(nome, opcoes) {
   const alvo = normalizar(nome);
   if (!alvo) return "novo";
@@ -43,7 +43,7 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
   const bases = useMemo(() => fichas.filter(f => tipoFichaDe(f) === "pre_preparo"), [fichas]);
   const opcoes = useMemo(() => {
     const deInsumo = insumos.map(i => ({ valor: `insumo:${i.id}`, nome: i.nome, grupo: "Ingrediente" }));
-    const dePreparo = bases.map(b => ({ valor: `base:${b.id}`, nome: b.nome_receita, grupo: "Pré-preparo" }));
+    const dePreparo = bases.map(b => ({ valor: `base:${b.id}`, nome: b.nome_receita, grupo: "Base" }));
     return cfg.id === "prato" ? [...dePreparo, ...deInsumo] : [...deInsumo, ...dePreparo];
   }, [insumos, bases, cfg.id]);
 
@@ -142,7 +142,7 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
         <header className="flex items-center gap-3 border-b-4 border-[color:var(--tipo)] p-4 sm:px-6">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color:var(--tipo)] text-[color:var(--tipo-fg)]"><Icone size={22} /></span>
           <div className="min-w-0 flex-1">
-            <h2 id="ia-ficha-titulo" className="text-xl font-black text-fg">Criar {cfg.id === "prato" ? "prato" : "pré-preparo"} com IA</h2>
+            <h2 id="ia-ficha-titulo" className="text-xl font-black text-fg">Criar {cfg.id === "prato" ? "prato" : "base"} com IA</h2>
             <p className="text-xs font-semibold text-fg">
               {cfg.id === "prato"
                 ? "A IA monta a ficha de prato: ingredientes de um prato e a montagem."
@@ -258,7 +258,7 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
           {!resultado ? (
             <button type="button" onClick={gerar} disabled={carregando}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[color:var(--tipo)] text-base font-black text-[color:var(--tipo-fg)] disabled:opacity-50">
-              {carregando ? <><Loader2 size={18} className="animate-spin" /> Montando a ficha...</> : <><Sparkles size={18} /> Montar ficha de {cfg.id === "prato" ? "prato" : "pré-preparo"}</>}
+              {carregando ? <><Loader2 size={18} className="animate-spin" /> Montando a ficha...</> : <><Sparkles size={18} /> Montar ficha de {cfg.id === "prato" ? "prato" : "base"}</>}
             </button>
           ) : (
             <button type="button" onClick={usar}

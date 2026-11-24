@@ -1,4 +1,4 @@
-// Modelo da ficha técnica: o que é um PRATO, o que é um PRÉ-PREPARO e o que
+// Modelo da ficha técnica: o que é um PRATO, o que é uma BASE e o que
 // cada um mostra. Funções puras, sem Supabase e sem React, testadas em
 // ficha-modelo.test.mjs.
 //
@@ -80,9 +80,9 @@ export const TIPOS_FICHA = {
   },
   pre_preparo: {
     id: "pre_preparo",
-    rotulo: "Pré-preparo",
-    rotuloPlural: "Pré-preparos",
-    tituloDocumento: "FICHA DE PRÉ-PREPARO",
+    rotulo: "Base",
+    rotuloPlural: "Bases",
+    tituloDocumento: "FICHA DE BASE",
     resumo: "Ficha de produção: rendimento, preparo, armazenamento e custo.",
     // Azul-petróleo: segunda identidade, para não confundir com o prato.
     cor: "#164E63",
@@ -97,7 +97,7 @@ export const TIPOS_FICHA = {
       vazio: "Nenhum passo de preparo cadastrado.",
     },
     destaques: ["ingredientes", "instrucoes", "armazenamento"],
-    // Pré-preparo rende em peso ou volume (kg/L do setor, ou a unidade antiga
+    // Base rende em peso ou volume (kg/L do setor, ou a unidade antiga
     // da ficha) — continua flexível, não vira grama fixa.
     rendimento: { campo: "rendimento_porcoes", unidadeFixa: null, rotulo: "Rendimento", ajuda: "" },
     mostra: {
@@ -237,7 +237,7 @@ export const EQUIPAMENTOS_SUGERIDOS = [
   "Espátula", "Fouet", "GN", "Batedeira", "Coifa", "Micro-ondas",
 ];
 
-// Como o pré-preparo é conservado. Vai para `fichas_armazenamento.forma`.
+// Como a base é conservado. Vai para `fichas_armazenamento.forma`.
 export const CONSERVACOES = ["Refrigerado", "Congelado", "Temperatura ambiente", "Seco", "A vácuo"];
 
 // Método do drink. Batido e mexido não são estilo: mudam o resultado no copo.
@@ -290,7 +290,7 @@ const numeroBR = (n, casas = 2) => (Number(n) || 0).toLocaleString("pt-BR", { ma
 
 export const brl = (v) => `R$ ${(Number(v) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-// Custo por kg de pré-preparo pode ser miúdo; com duas casas "R$ 0,01" some
+// Custo por kg de base pode ser miúdo; com duas casas "R$ 0,01" some
 // justamente a informação que interessa.
 export const brlUnitario = (v) => {
   const n = Number(v) || 0;
@@ -347,7 +347,7 @@ export function textoRendimentoPrato(ficha) {
   return g > 0 ? `${numeroBR(g, 0)} g` : "";
 }
 
-// O rendimento no modelo do tipo: gramas no prato, peso/volume no pré-preparo.
+// O rendimento no modelo do tipo: gramas no prato, peso/volume na base.
 export function textoRendimentoDoTipo(ficha, tipo = tipoFichaDe(ficha)) {
   return tipo === "pre_preparo" ? textoRendimento(ficha) : textoRendimentoPrato(ficha);
 }
@@ -379,13 +379,13 @@ export function fotoDaFicha(ficha) {
 
 // Uma linha por ingrediente, só nome e quantidade — sem coluna de observação.
 // A quantidade gravada está na unidade do insumo (g, kg, L...) ou, se for um
-// pré-preparo, na unidade do rendimento dele.
+// base, na unidade do rendimento dele.
 export function ingredientesDaFicha(ficha, todasFichas = []) {
   return (ficha?.fichas_ingredientes || []).map(fi => {
     if (fi.subficha_id) {
       const base = todasFichas.find(f => f.id === fi.subficha_id);
       return {
-        nome: base?.nome_receita || "Pré-preparo removido",
+        nome: base?.nome_receita || "Base removida",
         quantidade: quantidadeComUnidade(fi.quantidade, base?.rendimento_unidade || "kg"),
         prePreparo: true,
       };
@@ -456,7 +456,7 @@ function montagemLegada(ficha, montagemPassos = []) {
 }
 
 // O texto das instruções da ficha: montagem no prato, modo de preparo no
-// pré-preparo. Mora em `modo_preparo` nos dois tipos — o rótulo é que muda.
+// base. Mora em `modo_preparo` nos dois tipos — o rótulo é que muda.
 // Fichas antigas sem esse texto caem para o que tinham antes.
 export function textoDeInstrucoes(ficha, complementos = {}) {
   const atual = texto(ficha?.modo_preparo);
@@ -513,8 +513,8 @@ export function linhasDeArmazenamento(armazenamento = {}, ficha = {}) {
 
 // ─── Custos ─────────────────────────────────────────────────────────────────
 
-// Custos do pré-preparo, sem embalagem (pré-preparo não é vendido embalado).
-// O total é o mesmo número que o ERP usa quando o pré-preparo entra num prato:
+// Custos da base, sem embalagem (base não é vendido embalado).
+// O total é o mesmo número que o ERP usa quando a base entra num prato:
 // a conta é a de custoDeProduzirFicha, não uma cópia.
 export function custosDoPrePreparo(ficha, todasFichas = []) {
   const ingredientes = custoDeProduzirFicha({ ...ficha, custo_embalagens_total: 0 }, todasFichas);
@@ -665,7 +665,7 @@ export function camposParaGravar(tipo, form = {}, { novo = false, unidadeId = nu
     // porção do CMV. Só não é mais digitado — vem da soma dos ingredientes.
     rendimento_porcoes: parseNumero(form.rendimento_porcoes) || 1,
     rendimento_unidade: texto(form.rendimento_unidade) || unidadePadraoDepartamento(departamento),
-    // Montagem (prato) ou modo de preparo (pré-preparo): o mesmo campo de texto.
+    // Montagem (prato) ou modo de preparo (base): o mesmo campo de texto.
     modo_preparo: String(form.modo_preparo ?? "").trim(),
     atualizado_em: agora,
   };
@@ -717,10 +717,10 @@ export function camposParaGravar(tipo, form = {}, { novo = false, unidadeId = nu
 // Validação do editor. Vazia = pode salvar.
 export function validarEditor(tipo, form = {}, ingredientes = []) {
   const erros = [];
-  if (!texto(form.nome_receita)) erros.push(tipo === "prato" ? "Digite o nome do prato." : "Digite o nome do pré-preparo.");
+  if (!texto(form.nome_receita)) erros.push(tipo === "prato" ? "Digite o nome do prato." : "Digite o nome da base.");
   const validos = ingredientes.filter(i => parseNumero(i?.quantidade) > 0);
   if (!validos.length) erros.push("Adicione pelo menos um ingrediente com quantidade.");
-  if (tipo === "pre_preparo" && !(parseNumero(form.rendimento_porcoes) > 0)) erros.push("Informe o rendimento do pré-preparo.");
+  if (tipo === "pre_preparo" && !(parseNumero(form.rendimento_porcoes) > 0)) erros.push("Informe o rendimento da base.");
   if (parseNumero(form.tempo_preparo) < 0) erros.push("O tempo de preparo não pode ser negativo.");
   if (parseNumero(form.peso_final_g) < 0) erros.push("O peso final não pode ser negativo.");
   return erros;
@@ -772,7 +772,7 @@ export function quantidadeParaGravar(quantidadeBase, unidadeInsumo) {
 }
 
 // Separa a lista por tipo, mantendo a ordem: é assim que o índice do Livro de
-// Receitas agrupa pratos e pré-preparos.
+// Receitas agrupa pratos e bases.
 export function agruparPorTipo(fichas = []) {
   const grupos = { prato: [], pre_preparo: [] };
   for (const f of fichas) {
@@ -782,7 +782,7 @@ export function agruparPorTipo(fichas = []) {
   return grupos;
 }
 
-// Receituário é prato e pré-preparo. Produto pronto e ficha inativada não
+// Receituário é prato e base. Produto pronto e ficha inativada não
 // entram no Livro de Receitas.
 export function entraNoReceituario(ficha) {
   const tipo = tipoFichaDe(ficha);

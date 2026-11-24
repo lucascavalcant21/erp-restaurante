@@ -101,9 +101,9 @@ export function payloadDoForm(form, ctx, unidadeId) {
   };
 }
 
-/* Catálogo de pré-preparos para montar a marmita com um toque (pedido do
+/* Catálogo de bases para montar a marmita com um toque (pedido do
  * dono, 27/10/2026: "a mesma coisa com as marmitas" do orçamento rápido de
- * eventos). Todos os pré-preparos da cozinha e do bar, por setor e categoria,
+ * eventos). Todos as bases da cozinha e do bar, por setor e categoria,
  * com o custo por kg/L/un da própria ficha (custoDeProduzirFicha ÷
  * rendimento). Sem custo ou rendimento: custo null (a tela mostra "sem custo").
  */
@@ -118,7 +118,7 @@ export function catalogoDePrePreparos(prePreparos = [], todasFichas = [], custoD
     const custo = typeof custoDeProduzir === "function" ? custoDeProduzir(f, todasFichas) : 0;
     const un = String(f.rendimento_unidade || "un").toLowerCase();
     if (!grupos.has(chave)) grupos.set(chave, { grupo: chave, setor, itens: [] });
-    grupos.get(chave).itens.push({ id: f.id, nome: f.nome_receita || "Pré-preparo", unidade: un, custoPorUnidade: rend > 0 && custo > 0 ? custo / rend : null });
+    grupos.get(chave).itens.push({ id: f.id, nome: f.nome_receita || "Base", unidade: un, custoPorUnidade: rend > 0 && custo > 0 ? custo / rend : null });
   }
   return [...grupos.values()]
     .sort((a, b) => (a.setor === b.setor ? 0 : a.setor === "Cozinha" ? -1 : 1) || (a.grupo.endsWith("Outros") - b.grupo.endsWith("Outros")) || a.grupo.localeCompare(b.grupo, "pt-BR"))

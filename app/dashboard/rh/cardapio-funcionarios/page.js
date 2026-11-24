@@ -18,11 +18,15 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, Copy, ExternalLink, Loader2, Minus, Plus, Printer, Save, Trash2, UtensilsCrossed, Pin } from "lucide-react";
 import FichasProducao, { ReceitaRefeita } from "../../../components/janta/FichasProducao";
+import HistoricoJanta from "../../../components/janta/HistoricoJanta";
+import { registrarNoHistorico, registroDoDia, tirarDoHistorico } from "../../../lib/janta-historico.mjs";
+import { mapaDeInsumos } from "../../../lib/janta-producao.mjs";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, fetchFichas } from "../../../lib/operacao";
-import { fetchJantaFuncionarios, salvarJantaFuncionarios } from "../../../lib/parametros";
+import { alterarHistoricoJanta, fetchHistoricoJanta, fetchJantaFuncionarios, salvarJantaFuncionarios } from "../../../lib/parametros";
 import { DIAS_SEMANA, MODOS_PORCAO, normalizarJanta, cardapioDoDia, novoIdJanta, pessoasDoDia, normalizarItem, pratoDaPessoa, repetirDia } from "../../../lib/janta-funcionarios.mjs";
 import { casaBusca } from "../../../lib/busca.mjs";
+import { hasPermission } from "../../../lib/permissions-catalog.mjs";
 
 const brl = (v) => (v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 // Campos em "pílula" (padrão visual do dono, 31/10/2026)
@@ -44,7 +48,7 @@ const vazioItem = () => ({ id: novoIdJanta("i"), nome: "", insumo_id: null, fich
 const porcaoTexto = (i) => (i.porcaoN ? `${i.porcaoN.toLocaleString("pt-BR")} ${MODOS_PORCAO.find((m) => m.id === i.modo)?.curto || "g"}/pessoa` : "");
 
 // Uma linha do editor (dono): produto, porção pronta por pessoa, medida e ficha.
-function LinhaItem({ i, calc, insumos, fichas, producao = [], onMudar, onTirar, onNovaFicha }) {
+function LinhaItem({ i, calc, insumos, fichas, producao = [], onMudar, onTirar, onNovaFicha, mostrarCusto = true }) {
   const set = (fn) => onMudar((it) => { fn(it); if (it.modo === "g") it.g_pessoa = it.porcao; else it.g_pessoa = ""; });
   return (
     <div className="rounded-2xl border border-hf-border p-3">
@@ -85,7 +89,7 @@ function LinhaItem({ i, calc, insumos, fichas, producao = [], onMudar, onTirar, 
       <p className="mt-1.5 text-[12px] text-hf-muted">
         Total do dia: <b className="text-hf-text">{calc?.rotulo || "—"}</b>{calc?.cru ? ` · cozinhar ~${calc.cru.rotulo} cru` : ""}
         {calc?.receita?.status === "ok" ? ` · ${calc.receita.rotuloFator}` : calc?.receita?.status === "insuficiente" ? ` · ${calc.receita.motivo}` : ""}
-        {calc?.custo != null ? ` · ${brl(calc.custo)}` : ""}
+        {mostrarCusto && calc?.custo != null ? ` · ${brl(calc.custo)}` : ""}
       </p>
       {calc?.receita && (i.producao_id || i.ficha_id) && <ReceitaRefeita r={calc.receita} />}
     </div>
@@ -135,13 +139,19 @@ function RepetirDia({ dia, rotDia, janta, onRepetir }) {
 }
 
 export default function JantaFuncionarios() {
-  const { unidadeAtiva, unidades } = useERP();
+  const { unidadeAtiva, unidades, sessao } = useERP();
+  // Custo e histórico só para quem monta a janta (conta rápida do RH só vê o cardápio)
+  const podeVerCusto = !sessao?.gerenciado || hasPermission(sessao, "rh.staff_menu.edit");
   const [janta, setJanta] = useState(normalizarJanta(null));
   const [insumos, setInsumos] = useState([]);
   const [fichas, setFichas] = useState([]);
   const [dia, setDia] = useState(diaDeHoje());
   // "montar": o cardápio da semana; "producao": as fichas de produção da janta
   const [modo, setModo] = useState("montar");
+  const [historico, setHistorico] = useState([]);
+  const [carregandoHist, setCarregandoHist] = useState(true);
+  const [dataRegistro, setDataRegistro] = useState(() => new Date().toLocaleDateString("sv-SE"));
+  const [registrando, setRegistrando] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [mudou, setMudou] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -165,10 +175,11 @@ export default function JantaFuncionarios() {
       setInsumos((rI.data || []).filter((i) => !i.arquivado_em));
       setCarregando(false);
     })();
+    fetchHistoricoJanta(unidadeAtiva).then((r) => { if (vivo) { setHistorico(r.data || []); setCarregandoHist(false); } });
     return () => { vivo = false; };
   }, [unidadeAtiva]);
 
-  const mapaInsumos = useMemo(() => new Map(insumos.map((i) => [i.id, i])), [insumos]);
+  const mapaInsumos = useMemo(() => mapaDeInsumos(insumos), [insumos]);
   const mapaFichas = useMemo(() => new Map(fichas.map((f) => [f.id, f])), [fichas]);
   // Pessoas de cada dia: o número que o dono informa (sem número no dia, o padrão)
   const semana = useMemo(() => DIAS_SEMANA.map((d) => ({ ...d, pessoas: pessoasDoDia(janta, d.id), r: cardapioDoDia(janta, d.id, { insumos: mapaInsumos, fichas: mapaFichas }) })), [janta, mapaInsumos, mapaFichas]);
@@ -227,15 +238,18 @@ export default function JantaFuncionarios() {
       {aviso && <p role="status" className="rounded-full bg-hf-elevated px-4 py-2 text-sm font-bold text-hf-text">{aviso}</p>}
 
       {/* Semana: cada dia com quantas pessoas jantam e o prato */}
-      <div className="grid grid-cols-2 gap-1 rounded-full bg-hf-elevated p-1 sm:inline-grid sm:w-auto">
-        {[["montar", "Montar a semana"], ["producao", "Fichas de produção"]].map(([id, rot]) => (
+      <div className={`grid ${podeVerCusto ? "grid-cols-3" : "grid-cols-2"} gap-1 rounded-full bg-hf-elevated p-1 sm:inline-grid sm:w-auto`}>
+        {[["montar", "Montar a semana"], ["producao", "Fichas de produção"], ...(podeVerCusto ? [["historico", "Histórico"]] : [])].map(([id, rot]) => (
           <button key={id} onClick={() => setModo(id)} aria-pressed={modo === id}
             className={`min-h-[44px] rounded-full px-5 text-sm font-black transition ${modo === id ? "bg-hf-menu text-white" : "text-hf-text-2"}`}>{rot}</button>
         ))}
       </div>
 
-      {modo === "producao" ? (
-        <FichasProducao janta={janta} alterar={alterar} unidades={unidades} unidadeAtiva={unidadeAtiva}
+      {modo === "historico" && podeVerCusto ? (
+        <HistoricoJanta historico={historico} carregando={carregandoHist}
+          onRemover={async (data) => { const r = await alterarHistoricoJanta(unidadeAtiva, (l) => tirarDoHistorico(l, data)); if (r.error) setAviso(`Não tirou: ${r.error}`); else setHistorico(r.data); }} />
+      ) : modo === "producao" ? (
+        <FichasProducao janta={janta} alterar={alterar} unidades={unidades} unidadeAtiva={unidadeAtiva} insumos={insumos} mostrarCusto={podeVerCusto}
           avisar={(t) => { setAviso(t); setTimeout(() => setAviso(""), 4000); }} />
       ) : (<>
       <div role="tablist" aria-label="Dia da semana" className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
@@ -274,11 +288,35 @@ export default function JantaFuncionarios() {
             <p className="text-[11px] font-black uppercase tracking-wider text-hf-muted">Ficha da janta · {rotDia}</p>
             <div className="mt-3 grid grid-cols-3 gap-3">
               <div><p className="text-xs text-hf-text-2">Pessoas</p><p className="text-xl font-black tabular-nums text-hf-text">{doDia.pessoas || "—"}</p></div>
-              <div><p className="text-xs text-hf-text-2">Custo da janta</p><p className="text-xl font-black tabular-nums text-hf-text">{doDia.custo > 0 ? brl(doDia.custo) : "—"}</p></div>
-              <div><p className="text-xs text-hf-text-2">Por pessoa</p><p className="text-xl font-black tabular-nums text-hf-text">{brl(doDia.custoPorPessoa)}</p></div>
+              {podeVerCusto && <><div><p className="text-xs text-hf-text-2">Custo da janta</p><p className="text-xl font-black tabular-nums text-hf-text">{doDia.custo > 0 ? brl(doDia.custo) : "—"}</p></div>
+              <div><p className="text-xs text-hf-text-2">Por pessoa</p><p className="text-xl font-black tabular-nums text-hf-text">{brl(doDia.custoPorPessoa)}</p></div></>}
             </div>
             <p className="mt-2 text-xs text-hf-muted">{doDia.semCusto ? `ESTIMATIVA: ${doDia.semCusto} item(ns) sem produto com preço no cadastro.` : doDia.custo > 0 ? "Custo pelos preços do cadastro. As quantidades mudam sozinhas com o número de pessoas." : "Você põe a porção pronta por pessoa (g, unidades ou ml); o total e a receita mudam sozinhos com o número de pessoas do dia."}</p>
             <button onClick={() => imprimir([{ rotulo: rotDia, r: doDia }])} className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-hf-elevated text-sm font-black text-hf-text hover:bg-hf-border"><Printer size={16} /> Imprimir a ficha da janta de {rotDia}</button>
+            {/* Histórico: quanto custou cada dia e por pessoa (dono, 24/11/2026) */}
+            {podeVerCusto && <div className="mt-3 rounded-2xl border border-hf-border p-3">
+              <p className="text-sm font-black text-hf-text">Registrar no histórico</p>
+              <p className="text-[12px] text-hf-muted">Confira quantas pessoas jantaram e registre: fica guardado o custo do dia e por pessoa.</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <input type="date" aria-label="Data da janta" value={dataRegistro} max={new Date().toLocaleDateString("sv-SE")} onChange={(e) => setDataRegistro(e.target.value)}
+                  className="h-11 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text" />
+                <button type="button" disabled={registrando || !(doDia.pessoas > 0) || !dataRegistro}
+                  onClick={async () => {
+                    setRegistrando(true);
+                    const reg = registroDoDia(dataRegistro, dia, doDia);
+                    const r = await alterarHistoricoJanta(unidadeAtiva, (l) => registrarNoHistorico(l, reg));
+                    setRegistrando(false);
+                    if (r.error) { setAviso(`Não registrou: ${r.error}`); return; }
+                    setHistorico(r.data);
+                    setAviso(`Janta de ${new Date(`${dataRegistro}T12:00:00`).toLocaleDateString("pt-BR")} registrada: ${reg.pessoas} pessoa(s)${reg.custo != null ? `, ${brl(reg.custo)} (${brl(reg.custoPorPessoa)} por pessoa)` : ", sem custo (falta preço)"}.`);
+                    setTimeout(() => setAviso(""), 5000);
+                  }}
+                  className="h-11 flex-1 rounded-full bg-hf-menu px-4 text-sm font-black text-white disabled:opacity-40">
+                  {registrando ? "Registrando…" : `Registrar ${doDia.pessoas || 0} pessoa(s) · ${doDia.custo > 0 ? brl(doDia.custo) : "sem custo"}`}
+                </button>
+              </div>
+              {historico.some((h) => h.data === dataRegistro) && <p className="mt-1 text-[12px] font-semibold text-hf-warning">Esta data já está no histórico: registrar de novo substitui.</p>}
+            </div>}
           </div>
 
       {doDia.pessoas > 0 && pratoDaPessoa(doDia).length > 0 && (
@@ -299,7 +337,7 @@ export default function JantaFuncionarios() {
           <p className="mt-1 text-[13px] text-hf-text-2">Vale para todos os dias da semana (ex.: arroz, feijão, salada). A porção é do produto <b>pronto</b>: feijão já com caldo.</p>
           <div className="mt-3 space-y-2">
             {(janta.fixos || []).map((i) => (
-              <LinhaItem key={i.id} i={i} calc={doDia.pratos.find((x) => x.fixo)?.itens.find((x) => x.id === i.id)} insumos={insumos} fichas={fichas} producao={janta.producao || []} onNovaFicha={() => setModo("producao")}
+              <LinhaItem key={i.id} i={i} calc={doDia.pratos.find((x) => x.fixo)?.itens.find((x) => x.id === i.id)} insumos={insumos} fichas={fichas} producao={janta.producao || []} onNovaFicha={() => setModo("producao")} mostrarCusto={podeVerCusto}
                 onMudar={(fn) => alterar((j) => { const it = j.fixos.find((y) => y.id === i.id); if (it) fn(it); return j; })}
                 onTirar={() => alterar((j) => { j.fixos = j.fixos.filter((y) => y.id !== i.id); return j; })} />
             ))}
@@ -315,7 +353,7 @@ export default function JantaFuncionarios() {
             </div>
             <div className="mt-3 space-y-2">
               {janta.dias[dia].pratos.find((x) => x.id === p.id).itens.map((i) => (
-                <LinhaItem key={i.id} i={normalizarItem(i)} calc={p.itens.find((x) => x.id === i.id)} insumos={insumos} fichas={fichas} producao={janta.producao || []} onNovaFicha={() => setModo("producao")}
+                <LinhaItem key={i.id} i={normalizarItem(i)} calc={p.itens.find((x) => x.id === i.id)} insumos={insumos} fichas={fichas} producao={janta.producao || []} onNovaFicha={() => setModo("producao")} mostrarCusto={podeVerCusto}
                   onMudar={(fn) => alterarPrato(p.id, (x) => { const it = x.itens.find((y) => y.id === i.id); if (it) fn(it); })}
                   onTirar={() => alterarPrato(p.id, (x) => { x.itens = x.itens.filter((y) => y.id !== i.id); })} />
               ))}

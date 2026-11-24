@@ -22,6 +22,15 @@
 // porque o caldo do feijão, o fogo e a panela mudam muito o número.
 
 import { qtdLegivel, rotuloDoFator } from "./intelligence/metrics/adaptar-receita.mjs";
+import { precoNormalizadoDoInsumo } from "./ingredientes-utils.mjs";
+import { chaveDoNome } from "./nomes-unicos.mjs";
+
+/** Mapa de produtos por id e por nome ("nome:<chave>"), para o custo. */
+export function mapaDeInsumos(lista = []) {
+  const m = new Map();
+  for (const i of lista || []) { if (!i?.id) continue; m.set(i.id, i); const k = `nome:${chaveDoNome(i.nome)}`; if (!m.has(k)) m.set(k, i); }
+  return m;
+}
 
 const n = (v) => { const x = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(x) && x > 0 ? x : 0; };
 const r4 = (v) => Math.round(v * 10000) / 10000;
@@ -79,7 +88,7 @@ export function naBase(quantidade, unidade) {
 }
 
 export function normalizarIngrediente(i = {}) {
-  return { id: i.id || novoIdProducao("ing"), nome: String(i.nome || ""), quantidade: i.quantidade ?? "", unidade: unidadeValida(i.unidade), principal: !!i.principal };
+  return { id: i.id || novoIdProducao("ing"), nome: String(i.nome || ""), quantidade: i.quantidade ?? "", unidade: unidadeValida(i.unidade), principal: !!i.principal, insumo_id: i.insumo_id || null };
 }
 
 export const TIPOS_ORIGEM = Object.freeze({
@@ -170,6 +179,7 @@ const UNIDADE_DO_CADASTRO = { kg: "kg", g: "g", l: "L", ml: "ml", un: "un", und:
 export function producaoDaFicha(ficha, origem = {}) {
   const ingredientes = (ficha?.fichas_ingredientes || []).map((ing) => normalizarIngrediente({
     nome: ing?.insumos?.nome || ing?.subficha?.nome_receita || ing?.nome || "",
+    insumo_id: ing?.insumos?.id || ing?.insumo_id || null,
     quantidade: n(ing.quantidade) || "",
     unidade: UNIDADE_DO_CADASTRO[String(ing?.insumos?.unidade_medida || ing?.subficha?.rendimento_unidade || ing?.unidade || "g").toLowerCase()] || "g",
   }));
@@ -201,6 +211,7 @@ const UNIDADE_DO_EVENTO = { kg: "kg", g: "g", l: "L", ml: "ml", un: "un" };
 export function producaoDoEvento(item, nomeEvento = "") {
   const ingredientes = (item?.ingredientes || []).map((ing) => normalizarIngrediente({
     nome: ing.nome || "", quantidade: n(ing.quantidade) || "", unidade: UNIDADE_DO_EVENTO[String(ing.unidade_uso || "g").toLowerCase()] || "g",
+    insumo_id: ing.insumo_id || null,
   }));
   const pesados = ingredientes.map((i) => ({ i, g: naBase(i.quantidade, i.unidade) })).filter((x) => x.g.base === "g" && x.g.q > 0);
   if (pesados.length) pesados.sort((a, b) => b.g.q - a.g.q)[0].i.principal = true;
@@ -238,4 +249,36 @@ export function usosDaProducao(janta, producaoId) {
     for (const p of d?.pratos || []) if ((p.itens || []).some((i) => i.producao_id === producaoId)) usos.push(dia);
   }
   return [...new Set(usos)];
+}
+
+// ── CUSTO (dono, 24/11/2026: "quanto a gente gasta por dia e por pessoa") ──
+
+/** Custo de uma quantidade de um produto do cadastro, ou null sem preço. */
+export function custoDoIngrediente(insumo, quantidade, unidade) {
+  if (!insumo) return null;
+  const { q, base } = naBase(quantidade, unidade);
+  if (!(q > 0)) return null;
+  const preco = precoNormalizadoDoInsumo(insumo); // por kg/L ou por unidade
+  if (!(preco > 0)) return null;
+  const uCad = String(insumo.unidade_medida || "").toLowerCase();
+  if (base === "un") return uCad === "un" ? Math.round(q * preco * 100) / 100 : null;
+  if (["kg", "g", "l", "ml"].includes(uCad)) return Math.round((q / 1000) * preco * 100) / 100;
+  const pesoUn = n(insumo.peso_peca_g) || n(insumo.peso_medio_g);
+  return uCad === "un" && pesoUn ? Math.round((q / pesoUn) * preco * 100) / 100 : null;
+}
+
+/** Custo da ficha inteira: { custo, semPreco (nomes), natureza } ou custo null. */
+export function custoDaProducao(prod, insumos = new Map()) {
+  const p = normalizarProducao(prod);
+  const linhas = p.ingredientes.filter((i) => i.nome || n(i.quantidade));
+  if (!linhas.length) return { custo: null, semPreco: [], natureza: null };
+  let custo = 0; const semPreco = [];
+  for (const i of linhas) {
+    // pelo id; se veio de outra unidade (ficha das marmitas), pelo nome no cadastro desta
+    const ins = (i.insumo_id && insumos.get(i.insumo_id)) || insumos.get(`nome:${chaveDoNome(i.nome)}`) || null;
+    const c = custoDoIngrediente(ins, i.quantidade, i.unidade);
+    if (c == null) { if (!/^(agua|água)\b/i.test(i.nome.trim())) semPreco.push(i.nome || "ingrediente"); } else custo += c;
+  }
+  const algum = linhas.length > semPreco.length;
+  return { custo: algum ? Math.round(custo * 100) / 100 : null, semPreco, natureza: semPreco.length ? "ESTIMATIVA" : "REAL" };
 }

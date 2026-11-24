@@ -497,3 +497,21 @@ export async function salvarPorcaoEstoque(unidadeId, chave, registro) {
   const r = await salvarParams(unidadeId, { estoque_porcoes: mapa });
   return { error: r?.error || null, data: mapa };
 }
+
+/* Histórico da janta dos funcionários (dono, 24/11/2026): params.janta_historico,
+ * um registro por data. Relê a lista antes de gravar (outro aparelho pode ter
+ * registrado outro dia). */
+export async function fetchHistoricoJanta(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: [], error: error.message };
+  const v = data?.[0]?.params?.janta_historico;
+  return { data: Array.isArray(v) ? v : [], error: null };
+}
+export async function alterarHistoricoJanta(unidadeId, alterar) {
+  const atual = await fetchHistoricoJanta(unidadeId);
+  if (atual.error) return { error: atual.error };
+  const lista = alterar(atual.data);
+  const r = await salvarParams(unidadeId, { janta_historico: lista });
+  return { error: r?.error || null, data: lista };
+}

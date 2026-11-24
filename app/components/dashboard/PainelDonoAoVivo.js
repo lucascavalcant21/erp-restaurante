@@ -85,9 +85,10 @@ export default function PainelDonoAoVivo() {
 
   // Implantação: primeiros passos e a próxima pergunta do Jhon (14/11/2026)
   const [impl, setImpl] = useState(null);
+  const [implLido, setImplLido] = useState(false);
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
-    carregarImplantacao(unidadeAtiva).then((d) => setImpl(d)).catch(() => {});
+    carregarImplantacao(unidadeAtiva).then((d) => setImpl(d)).catch(() => {}).finally(() => setImplLido(true));
   }, [unidadeAtiva]);
   const implStatus = impl ? statusDasEtapas(impl) : null;
   const perguntaJhon = impl && implStatus ? proximaPergunta(impl.perfil, { basicoPronto: implStatus.basicoPronto }) : null;
@@ -129,9 +130,10 @@ export default function PainelDonoAoVivo() {
   const linkJhon = "/dashboard/inteligencia/assistente?q=" + encodeURIComponent("Como foi minha empresa hoje?");
   const periodoMeta = PERIODOS_META.find((p) => p.id === dados?.meta?.periodo);
 
-  if (dados === undefined) {
-    return <p className="flex items-center gap-2 px-1 text-[15px] text-mw-sec"><Loader2 size={18} className="animate-spin" aria-hidden="true" /> Carregando as vendas…</p>;
-  }
+  // Abre já no formato final (dono, 24/11/2026: "aparece uma tela e rapidinho
+  // muda para outra"): enquanto os números chegam, cada um fica no seu lugar.
+  const carregando = dados === undefined;
+  const Espera = ({ className = "h-5 w-24" }) => <span className={`inline-block animate-pulse rounded-full bg-white/70 ${className}`} aria-hidden="true" />;
 
   return (
     <div className="space-y-6 text-mw-texto">
@@ -144,14 +146,14 @@ export default function PainelDonoAoVivo() {
               <Target size={24} strokeWidth={1.7} className="text-mw-marinho" aria-hidden="true" />
               <span className="mt-3 block text-[14px] text-mw-texto">Meta {periodoMeta ? periodoMeta.nome.toLowerCase() : ""}</span>
               <span className="mt-0.5 flex items-center gap-1.5 text-[18px] font-semibold text-mw-marinho">
-                {dados.ok && dados.meta ? brl(dados.meta.valor) : "Definir meta"}
+                {carregando ? <Espera /> : dados.ok && dados.meta ? brl(dados.meta.valor) : "Definir meta"}
                 <Pencil size={14} aria-hidden="true" />
               </span>
             </button>
             <div className="min-h-[124px] rounded-[22px] bg-white/60 p-4 backdrop-blur">
               <Wallet size={24} strokeWidth={1.7} className="text-mw-marinho" aria-hidden="true" />
               <span className="mt-3 block text-[14px] text-mw-texto">Vendido hoje</span>
-              <span className="mt-0.5 block text-[18px] font-semibold tabular-nums text-mw-marinho">{c ? brl(c.hoje.total) : "—"}</span>
+              <span className="mt-0.5 block text-[18px] font-semibold tabular-nums text-mw-marinho">{carregando ? <Espera /> : c ? brl(c.hoje.total) : "—"}</span>
               {c && <span className="text-[12px] text-mw-sec">{c.hoje.quantidade} {c.hoje.quantidade === 1 ? "venda" : "vendas"}</span>}
             </div>
           </div>
@@ -178,6 +180,7 @@ export default function PainelDonoAoVivo() {
       )}
       {aviso && <p className="text-[14px] text-hf-danger">{aviso}</p>}
 
+      {!implLido && <div className="h-[88px] animate-pulse rounded-[28px] bg-mw-suave" aria-hidden="true" />}
       {implStatus && implStatus.pct < 100 && (
         <DestaqueDegrade
           href="/dashboard/implantacao"
@@ -209,7 +212,9 @@ export default function PainelDonoAoVivo() {
 
       <JhonAvisa liberado={assistenteLiberado} linkTrancado={linkCheckout("/dashboard")} />
 
-      {!dados.ok ? (
+      {carregando ? (
+        <p className="flex items-center gap-2 px-1 text-[15px] text-mw-sec"><Loader2 size={18} className="animate-spin" aria-hidden="true" /> Carregando as vendas…</p>
+      ) : !dados.ok ? (
         <p className="rounded-[18px] border border-mw-borda bg-mw-card p-4 text-[15px] text-mw-sec">DADOS INSUFICIENTES: {dados.erro}</p>
       ) : (
         <>

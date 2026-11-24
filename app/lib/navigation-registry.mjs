@@ -355,6 +355,14 @@ export const NAVIGATION_REGISTRY = [
     searchable: true,
   },
   {
+    id: "rh-rapido", title: "Ações rápidas do RH", shortTitle: "RH rápido",
+    description: "Folga de domingo, dar folga, atestado (doente), feriados e corrigir ponto em poucos toques",
+    route: "/dashboard/rh/rapido", domain: "Equipe", section: "RH", icon: "Users",
+    keywords: ["folga", "domingo", "feriado", "atestado", "doente", "corrigir ponto", "escala", "rh"],
+    synonyms: ["dar folga", "folga de domingo", "funcionario doente", "lancar atestado"],
+    permission: "rh.quick.view", mobilePriority: 2, adminOnly: false, searchable: true,
+  },
+  {
     id: "op-salmouras", title: "Calculadora de Salmoura", shortTitle: "Salmouras",
     description: "Salmoura por quilo de carne, frango ou peixe, já calculada",
     route: "/dashboard/operacao/salmouras?dept=cozinha", domain: "Operação", section: "Cozinha & Validades", icon: "ChefHat",

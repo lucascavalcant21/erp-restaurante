@@ -231,8 +231,8 @@ export async function POST(request) {
       if (!clean(body.nome) || !clean(body.login)) return json({ error: "Nome e login são obrigatórios." }, 400);
       if (!/^[a-z0-9._@+-]+$/i.test(clean(body.login))) return json({ error: "O login contém caracteres não permitidos." }, 400);
       if (clean(body.password).length < 8) return json({ error: "A senha temporária deve ter ao menos 8 caracteres." }, 400);
-      const unidade = await unidadeDaContaRapida(db, actorRecord);
-      if (!unidade) return json({ error: "Não foi possível definir a unidade. Use Novo usuário e escolha a unidade." }, 400);
+      const unidade = await unidadeDaContaRapida(db, actorRecord, body.unidadeId);
+      if (!unidade) return json({ error: "Não foi possível definir a unidade. Escolha a unidade no topo da tela e tente de novo." }, 400);
       const perfil = await perfilDaContaRapida(db, modelo, {
         autorId: actor.id,
         gravarPermissoes: (id) => replacePermissions(db, "perfil_permissoes", "perfil_id", id, modelo.permissoes),

@@ -32,6 +32,16 @@ test("sem unidade no cadastro, só super admin de casa com uma unidade", async (
   assert.equal(await unidadeDaContaRapida(bancoFalso({ unidades: [{ id: "a" }, { id: "b" }] }), { super_admin: true }), null);
 });
 
+test("unidade aberta na tela vale se quem cria tem acesso", async () => {
+  const db = bancoFalso({ unidades: [{ id: "a" }, { id: "b" }] });
+  // super admin com várias unidades e sem unidade no cadastro (o erro do dono)
+  assert.equal((await unidadeDaContaRapida(db, { super_admin: true }, "b")).id, "b");
+  // sem acesso à pedida: cai na unidade do cadastro
+  db.from = ((orig) => (t) => { const q = orig(t); if (t === "usuario_escopos") { q.eq = () => Promise.resolve({ data: [{ unidade_id: "a", data_scope: "setor" }] }); } return q; })(db.from);
+  assert.equal((await unidadeDaContaRapida(db, { id: "u1", unidade_principal_id: "a" }, "b")).id, "a");
+  assert.equal((await unidadeDaContaRapida(db, { id: "u1", unidade_principal_id: "a" }, "a")).id, "a");
+});
+
 test("perfil já existente não é alterado", async () => {
   const db = bancoFalso({ perfil: { id: "p1" } });
   let gravou = false;

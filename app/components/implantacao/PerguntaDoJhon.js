@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { Check, Loader2, MessageCircleQuestion } from "lucide-react";
 import { validarResposta } from "../../lib/implantacao.mjs";
+import SeletorHorario from "../ui/SeletorHorario";
 
 export default function PerguntaDoJhon({ pergunta, inicial = undefined, onResponder, compacta = false }) {
   const [valor, setValor] = useState(inicial ?? (pergunta.tipo === "multipla" ? [] : ""));
@@ -47,6 +48,8 @@ export default function PerguntaDoJhon({ pergunta, inicial = undefined, onRespon
             </button>
           </>
         )}
+        {/* dias em botões e hora no relógio (dono, 24/11/2026) */}
+        {pergunta.tipo === "horario" && <SeletorHorario salvando={salvando} onConfirmar={(t) => { setValor(t); enviar(t); }} />}
         {(pergunta.tipo === "numero" || pergunta.tipo === "texto") && (
           <form onSubmit={(e) => { e.preventDefault(); enviar(); }} className="space-y-2">
             <div className="flex items-center gap-2">

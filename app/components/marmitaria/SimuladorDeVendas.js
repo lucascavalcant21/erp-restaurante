@@ -10,6 +10,41 @@ import { Aviso, Campo, CampoNumero, Secao, Selo, brl, lerNumero, pctTxt } from "
 import { ehMei } from "../../lib/marmitaria/cardapio.mjs";
 import { limiteMei, simularVendas } from "../../lib/marmitaria/painel-lucro.mjs";
 import SimulacoesSalvas from "./SimulacoesSalvas";
+import { contribuicaoMedia, pontoDeEquilibrio } from "../../lib/metas-negocio.mjs";
+
+const inteiro = (v) => Number(v || 0).toLocaleString("pt-BR");
+
+/** "Para pagar tudo você tem que vender X marmitas" por mês, semana e dia (dono, 24/11/2026). */
+function ParaPagarTudo({ linhas, embutidos, vendas30, diasMes }) {
+  const media = contribuicaoMedia(linhas, vendas30);
+  const eq = pontoDeEquilibrio({ cmoMes: embutidos?.cmoMes ?? null, fixosMes: embutidos?.fixosMes ?? null, diasMes, contribuicao: media?.contribuicao ?? null, ticket: media?.ticket ?? null });
+  return (
+    <Secao titulo="Quanto preciso vender para pagar tudo" subtitulo="Funcionários, custos fixos e os custos de cada marmita (produtos, embalagem, impostos e taxas)." direita={<Selo natureza="estimado" />}>
+      {eq.ok ? (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            {[["Por mês", eq.unidadesMes, eq.faturamentoMes], ["Por semana", eq.unidadesSemana, (eq.faturamentoMes * 12) / 52], ["Por dia", eq.unidadesDia, eq.faturamentoDia]].map(([t, q, fat]) => (
+              <div key={t} className="min-w-0 rounded-2xl bg-hf-elevated p-3">
+                <p className="text-xs font-bold text-hf-text-2">{t}</p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-hf-text">{inteiro(q)}</p>
+                <p className="text-xs text-hf-text-2">marmitas · {brl(fat)}</p>
+              </div>
+            ))}
+          </div>
+          <dl className="mt-3">
+            <Conta r="Funcionários no mês" v={brl(eq.cmoMes)} />
+            <Conta r="Custos fixos no mês" v={brl(eq.fixosMes)} />
+            <Conta r="Cada marmita deixa, depois dos custos dela" v={brl(eq.contribuicao)} />
+            <Conta forte r="Marmitas para pagar tudo no mês" v={`${inteiro(eq.unidadesMes)} (${brl(eq.custoMes)} ÷ ${brl(eq.contribuicao)})`} />
+          </dl>
+          <p className="mt-2 text-sm text-hf-text-2">
+            Acima de {inteiro(eq.unidadesDia)} por dia, cada marmita vira lucro. Conta com {diasMes} dias de venda no mês e {media.ponderada ? "a mistura do que vendeu nos últimos 30 dias" : "a média simples das marmitas (sem vendas lançadas nos últimos 30 dias)"}.
+          </p>
+        </>
+      ) : <p className="text-sm text-hf-text-2">DADOS INSUFICIENTES: {eq.motivo} Preencha em <a href="/dashboard/marmitaria/configuracoes" className="font-bold underline">Configurações</a>.</p>}
+    </Secao>
+  );
+}
 
 const GRUPOS = [["marmitas", "Sozinhos"], ["combos", "Combos"], ["promocoes", "Promoções"]];
 const ler = (chave) => { try { return JSON.parse(localStorage.getItem(chave) || "{}") || {}; } catch { return {}; } };
@@ -29,7 +64,7 @@ function Conta({ r, v, forte }) {
   return <div className={`flex justify-between gap-3 py-1 ${forte ? "border-t border-hf-border pt-2 text-base font-black text-hf-text" : "text-sm text-hf-text-2"}`}><dt>{r}</dt><dd className="shrink-0 tabular-nums">{v}</dd></div>;
 }
 
-export default function SimuladorDeVendas({ linhas, embutidos, config }) {
+export default function SimuladorDeVendas({ linhas, embutidos, config, vendas30 = [] }) {
   const { unidadeId } = useMarmitaria();
   const chave = `hefisto:marmitaria:simulador:${unidadeId}`;
   const [salvo, setSalvo] = useState(() => { const s = ler(chave); return { dias: s.dias ?? "25", quantidades: s.quantidades || {} }; });
@@ -46,6 +81,7 @@ export default function SimuladorDeVendas({ linhas, embutidos, config }) {
 
   return (
     <div className="space-y-4">
+      <ParaPagarTudo linhas={linhas} embutidos={embutidos} vendas30={vendas30} diasMes={lerNumero(salvo.dias) || Number(config?.rateio?.dias_operacao_mes) || null} />
       <Secao titulo="Simulações salvas" subtitulo="Salve com um nome para abrir depois, de qualquer aparelho.">
         <SimulacoesSalvas unidadeId={unidadeId} tipo="vendas" atual={atual} aoAbrir={(x) => mudar({ dias: x.dias, quantidades: x.quantidades })} />
       </Secao>

@@ -140,3 +140,12 @@ test("restaurante: sem vendas no mês não há parados nem estratégia", async (
   assert.deepEqual(v.pratosParados, []);
   assert.deepEqual(v.candidatos, []);
 });
+
+test("para pagar tudo: marmitas por mês, semana e dia (dono, 24/11/2026)", () => {
+  const e = pontoDeEquilibrio({ cmoMes: 15000, fixosMes: 10000, diasMes: 25, contribuicao: 20, ticket: 35 });
+  assert.equal(e.unidadesMes, 1250); // 25.000 ÷ 20
+  assert.equal(e.unidadesSemana, 289); // 1250 × 12 ÷ 52, para cima
+  assert.equal(e.unidadesDia, 50);
+  assert.equal(e.contribuicao, 20);
+  assert.equal(e.cmoMes, 15000);
+});

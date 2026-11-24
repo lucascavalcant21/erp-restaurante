@@ -48,6 +48,9 @@ export function pontoDeEquilibrio({ cmoMes = null, fixosMes = null, diasMes = nu
   return {
     ok: true, custoMes: r2(custoMes), custoDia: r2(custoMes / diasMes),
     unidadesMes, unidadesDia: Math.ceil(unidadesMes / diasMes),
+    // semana do mês médio (12 meses ÷ 52 semanas), arredondada para cima
+    unidadesSemana: Math.ceil((unidadesMes * 12) / SEMANAS_NO_ANO),
+    cmoMes: r2(num(cmoMes)), fixosMes: r2(num(fixosMes)), contribuicao: r2(num(contribuicao)),
     faturamentoMes: r2(unidadesMes * num(ticket)), faturamentoDia: r2((unidadesMes * num(ticket)) / diasMes),
   };
 }

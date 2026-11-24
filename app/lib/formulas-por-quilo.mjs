@@ -19,12 +19,29 @@ export const TIPOS_FORMULA = Object.freeze({
   empanado: { id: "empanado", titulo: "Empanados", singular: "empanado", rota: "/dashboard/operacao/empanados?dept=cozinha", referencia: "de farinha" },
 });
 
+// Sem "Outros" (dono, 24/11/2026: "não tem que estar outros, tem que estar um + para
+// adicionar novas categorias"): além de Carne, Frango e Peixe, a categoria pode ser
+// qualquer nome criado na hora ("Porco", "Camarão"…). "outro" antigo vira sem categoria.
 export const CATEGORIAS_SALMOURA = Object.freeze([
   { id: "carne", rotulo: "Carne" },
   { id: "frango", rotulo: "Frango" },
   { id: "peixe", rotulo: "Peixe" },
-  { id: "outro", rotulo: "Outros" },
 ]);
+
+/** Categoria guardada: id fixo (carne/frango/peixe), nome criado, ou "" (sem categoria). */
+export function categoriaSalmoura(v) {
+  const t = String(v ?? "").replace(/\s+/g, " ").trim();
+  if (!t || t === "outro") return "";
+  const fixa = CATEGORIAS_SALMOURA.find((c) => c.id === t.toLowerCase() || c.rotulo.toLowerCase() === t.toLowerCase());
+  return fixa ? fixa.id : (t.charAt(0).toUpperCase() + t.slice(1)).slice(0, 30);
+}
+export const rotuloCategoriaSalmoura = (cat) => CATEGORIAS_SALMOURA.find((c) => c.id === cat)?.rotulo || cat || "";
+
+/** Categorias para escolher/filtrar: as fixas e as criadas que já estão em uso. */
+export function categoriasSalmouraDe(lista = []) {
+  const criadas = [...new Set(lista.map((f) => f.categoria).filter((c) => c && !CATEGORIAS_SALMOURA.some((x) => x.id === c)))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  return [...CATEGORIAS_SALMOURA, ...criadas.map((c) => ({ id: c, rotulo: c }))];
+}
 
 export const UNIDADES_FORMULA = Object.freeze(["g", "kg", "ml", "l", "un", "colher (sopa)", "colher (chá)", "pitada"]);
 
@@ -56,7 +73,7 @@ export function normalizarFormula(f = {}, tipo = f.tipo) {
     id: f.id || novoId("f"),
     tipo: t,
     nome: limpo(f.nome).slice(0, 80),
-    categoria: t === "salmoura" ? (CATEGORIAS_SALMOURA.some((c) => c.id === f.categoria) ? f.categoria : "outro") : null,
+    categoria: t === "salmoura" ? categoriaSalmoura(f.categoria) : null,
     // empanado: a farinha de referência (ex.: Farinha panko); salmoura: o produto
     referencia: limpo(f.referencia).slice(0, 60) || (t === "empanado" ? "Farinha panko" : ""),
     kgReferencia: numeroFormula(f.kgReferencia) || 1,
@@ -214,7 +231,7 @@ export function respostaDaFormula(texto, cache) {
     return { ...escolher(lista, `Não achei ${T.singular} para "${pedido.termo}". Qual destas?`, pedido, acoes) };
   }
   if (pedido.tipo === "salmoura" && !pedido.categoria) {
-    const cats = CATEGORIAS_SALMOURA.map((cat) => ({ ...cat, n: lista.filter((f) => f.categoria === cat.id).length })).filter((cat) => cat.n);
+    const cats = categoriasSalmouraDe(lista).map((cat) => ({ ...cat, n: lista.filter((f) => f.categoria === cat.id).length })).filter((cat) => cat.n);
     if (cats.length > 1) {
       return {
         tipo: "local", local: true, atualizar: true, texto: "Salmoura para quê?",

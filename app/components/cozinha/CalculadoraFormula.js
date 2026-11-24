@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from "react";
 import { Minus, Plus } from "lucide-react";
-import { TIPOS_FORMULA, CATEGORIAS_SALMOURA, calcularFormula, textoKg } from "../../lib/formulas-por-quilo.mjs";
+import { TIPOS_FORMULA, rotuloCategoriaSalmoura, calcularFormula, textoKg } from "../../lib/formulas-por-quilo.mjs";
 
 const CHIPS = [0.5, 1, 2, 3, 5, 10];
 const fmtKg = (v) => String(Math.round(v * 100) / 100).replace(".", ",");
@@ -23,12 +23,12 @@ export default function CalculadoraFormula({ formula, kgInicial = null, cores = 
   const meta = cores?.meta || "var(--hf-muted, #6b7280)";
   const fundoItem = cores?.item || "#fff";
   const mudar = (d) => setKgTxt(fmtKg(Math.max(0.5, (kg > 0 ? kg : 0) + d)));
-  const cat = CATEGORIAS_SALMOURA.find((c) => c.id === formula.categoria);
+  const cat = formula.categoria ? { id: formula.categoria, rotulo: rotuloCategoriaSalmoura(formula.categoria) } : null;
 
   return (
     <div className="w-full">
       <p className="text-[12.5px] font-bold uppercase tracking-wide" style={{ color: meta }}>
-        {T.singular === "salmoura" ? `Salmoura${cat && cat.id !== "outro" ? ` · ${cat.rotulo}` : ""}` : `Empanado · ${formula.referencia || "farinha"}`}
+        {T.singular === "salmoura" ? `Salmoura${cat ? ` · ${cat.rotulo}` : ""}` : `Empanado · ${formula.referencia || "farinha"}`}
       </p>
       <p className="text-[19px] font-extrabold leading-tight">{formula.nome}</p>
       {formula.produtos?.length > 0 && <p className="mt-0.5 text-[14px]" style={{ color: meta }}>Usada em: {formula.produtos.join(", ")}</p>}

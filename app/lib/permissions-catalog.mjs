@@ -21,6 +21,7 @@ export const ACTION_LABELS = {
   close_inventory: "Fechar inventário",
   transfer: "Transferir produtos",
   record_loss: "Registrar perdas",
+  record: "Registrar o que foi feito",
   view_history: "Consultar histórico",
   settings: "Alterar configurações",
   manage_settings: "Configurar bobina e impressão",
@@ -118,6 +119,8 @@ export const PERMISSION_MODULES = [
       { id: "base_stock", label: "Estoque de bases (entrada e saída)", route: "/dashboard/operacao/estoque-bases", actions: ["view", "create"] },
       { id: "production", label: "Produção do dia", route: "/dashboard/operacao/producao?dept=cozinha", actions: ["view", "create", "edit", "confirm", "cancel", "print"] },
       { id: "cleaning", label: "Controles de limpeza", route: "/dashboard/operacao/controles", actions: CRUD },
+      // Fritadeira e coifa (24/11/2026): abastecer, filtrar e limpar com passo a passo, agenda e registros.
+      { id: "equipment", label: "Fritadeira e coifa (agenda e passo a passo)", route: "/dashboard/operacao/equipamentos", actions: [...CRUD, "record"] },
       // A entrada de producao acima traz ?dept=cozinha. Quando a URL vem SEM
       // dept, o filtro descarta as duas variantes e a rota caia na entrada
       // generica /dashboard. Esta entrada sem dept cobre esse caso e, por

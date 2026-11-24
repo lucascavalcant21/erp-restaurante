@@ -98,3 +98,13 @@ test("digita quilos quebrados: 1,5 e 1,8 kg", () => {
   const f = normalizarFormulas(SALVO);
   assert.deepEqual(calcularFormula(f.salmouras[0], "1,8").secoes[0].itens.map((i) => i.texto), ["1.800 ml (1,8 L)", "108 g"]);
 });
+
+test("salmoura: sem 'Outros'; categoria criada na hora vale e aparece para escolher (24/11/2026)", async () => {
+  const { categoriaSalmoura, categoriasSalmouraDe, normalizarFormula } = await import("./formulas-por-quilo.mjs");
+  assert.equal(categoriaSalmoura("outro"), "");
+  assert.equal(categoriaSalmoura("Frango"), "frango");
+  assert.equal(categoriaSalmoura("porco"), "Porco");
+  const lista = [normalizarFormula({ nome: "Salmoura suína", categoria: "Porco", secoes: [{ itens: [{ nome: "Sal", qtd: 50, unidade: "g" }] }] }, "salmoura")];
+  assert.equal(lista[0].categoria, "Porco");
+  assert.deepEqual(categoriasSalmouraDe(lista).map((c) => c.rotulo), ["Carne", "Frango", "Peixe", "Porco"]);
+});

@@ -56,6 +56,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       { titulo: "Rotina da equipe", cards: [
         { label: "Checklist operacional", desc: "Abertura e fechamento", href: "/dashboard/operacao/rotina?dept=cozinha", icone: "CheckSquare", curto: "Checklists" },
         { label: "Checklist de limpeza", desc: "Limpeza da cozinha", href: "/dashboard/operacao/rotina?dept=cozinha&tipo=limpeza", icone: "SprayCan", mais: true },
+        { label: "Fritadeira e coifa", desc: "Abastecer, filtrar e limpar no dia certo", href: "/dashboard/operacao/equipamentos?dept=cozinha", icone: "Flame", curto: "Fritadeira e coifa" },
         { label: "Controles", desc: "Temperaturas e registros", href: "/dashboard/operacao/controles", icone: "Thermometer" },
         { label: "Treinamento", desc: "Aulas com os instrutores da cozinha", href: "/dashboard/treinamento?area=cozinha", icone: "GraduationCap" },
         { label: "Guias de uso", desc: "Equipamentos e produtos", href: "/dashboard/operacao/guias", icone: "FileText", mais: true },

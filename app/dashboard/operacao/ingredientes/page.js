@@ -31,7 +31,9 @@ import {
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFornecedores } from "../../../lib/fornecedores";
-import { fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
+import { fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo, tirarDasFichas, trocarNasFichas, usosEmFichas } from "../../../lib/operacao";
+import ExcluirEmUso from "../../../components/cadastro/ExcluirEmUso";
+import { nomeRepetido } from "../../../lib/nomes-unicos.mjs";
 import { fetchPrecosDoInsumo, salvarPrecoFornecedor } from "../../../lib/insumo-fornecedores";
 import { CATEGORIAS_INSUMO, adivinharCategoria, categoriaDoProdutoBar, obterTodasCategoriasInsumo, salvarNovaCategoriaCustom } from "../../../lib/categorias-insumo";
 import { comprimirFotoParaIA } from "../../../lib/imagem";
@@ -786,6 +788,12 @@ function IngredientesRunner() {
     }
     // cozinha, bar ou os dois; a coluna departamentos só vai quando é dos dois
     // ou quando deixa de ser (sem ela no banco, o resto grava igual)
+    {
+      // Sem dois ingredientes com o mesmo nome na unidade (dono, 24/11/2026)
+      const original = form.id ? insumos.find((i) => i.id === form.id)?.nome : null;
+      const igual = nomeRepetido(form.nome, insumos.filter((i) => !i.unido_a), { idAtual: form.id || null, nomeOriginal: original });
+      if (igual) return alert(`Já existe "${igual.nome}" no cadastro. Use outro nome ou edite o que já existe.`);
+    }
     const setor = setorParaGravar(form.departamento, form.departamento_principal || (deptUrl === "bar" ? "bar" : "cozinha"));
     const camposSetor = setor.departamentos || form.departamentos_original ? setor : { departamento: setor.departamento };
     setSalvando(true);
@@ -868,8 +876,14 @@ function IngredientesRunner() {
     if (resultado.aviso) alert(resultado.aviso);
   };
 
-  const handleRemover = async insumo => {
-    if (!confirm(`Deseja remover o ${rotuloItem} "${insumo.nome}" do catálogo? Esta ação excluirá este ingrediente e desvinculará de fichas técnicas e estoques.`)) return;
+  // Em uso nas fichas: pergunta se tira de todas ou troca por outro (dono, 24/11/2026)
+  const [emUso, setEmUso] = useState(null);
+  const handleRemover = async (insumo, jaConferido = false) => {
+    if (!jaConferido) {
+      const { porId, error: erroUso } = await usosEmFichas("insumo_id", [insumo.id]);
+      if (!erroUso && (porId[insumo.id] || []).length) { setEmUso({ insumo, usos: porId }); return; }
+      if (!confirm(`Remover o ${rotuloItem} "${insumo.nome}" do catálogo?`)) return;
+    }
     const { error } = await removerInsumo(insumo.id);
     if (error) {
       mostrarToast(`Não foi possível remover: ${error}`, "erro");
@@ -896,6 +910,29 @@ function IngredientesRunner() {
 
   return (
     <div className="min-h-screen bg-hf-bg pb-20 text-slate-800">
+      {emUso && (
+        <ExcluirEmUso
+          itens={[{ id: emUso.insumo.id, nome: emUso.insumo.nome }]}
+          usos={emUso.usos}
+          rotulo="ingrediente"
+          opcoesTroca={insumos.filter((i) => i.id !== emUso.insumo.id).map((i) => ({ id: i.id, nome: i.nome, detalhe: i.unidade_medida || "" }))}
+          onFechar={() => setEmUso(null)}
+          onExcluir={async () => {
+            const r = await tirarDasFichas("insumo_id", [emUso.insumo.id]);
+            if (r.error) return r;
+            const alvo = emUso.insumo; setEmUso(null);
+            await handleRemover(alvo, true);
+            return null;
+          }}
+          onTrocar={async (paraId) => {
+            const r = await trocarNasFichas("insumo_id", emUso.insumo.id, paraId);
+            if (r.error) return r;
+            const alvo = emUso.insumo; setEmUso(null);
+            await handleRemover(alvo, true);
+            return null;
+          }}
+        />
+      )}
       <header className="border-b border-hf-border">
         <div className="mx-auto max-w-[1480px]">
           <CabecalhoTela

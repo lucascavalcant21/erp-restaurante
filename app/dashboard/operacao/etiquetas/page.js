@@ -835,14 +835,15 @@ function EtiquetasRunner() {
         ) : (
         <>
         {/* Filtro por departamento: cada área imprime etiquetas só dos seus itens */}
-        <div className="inline-flex gap-1 mb-4 rounded-xl p-1 bg-slate-100 border border-line">
+        {/* Aberta pelo módulo (dept na URL): só o setor dele, sem troca (dono, 24/11/2026). */}
+        {!deptUrl && <div className="inline-flex gap-1 mb-4 rounded-xl p-1 bg-slate-100 border border-line">
           {[["", "Todos"], ["cozinha", "Cozinha"], ["bar", "Bar"]].map(([d, l]) => (
             <button key={d} onClick={() => router.push(`/dashboard/operacao/etiquetas${d ? `?dept=${d}` : ""}`)}
               className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${ (deptUrl || "") === d ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200" }`}>
               {l}
             </button>
           ))}
-        </div>
+        </div>}
 
         {(!unidadeAtiva || unidadeAtiva === "todas") ? (
           <EmptyState icon={Tag} title="Acesso Restrito às Unidades" hint="O Cérebro (Gestão Central) apenas visualiza o Controle de Validade. Para gerar novas etiquetas, selecione uma unidade no menu lateral." />

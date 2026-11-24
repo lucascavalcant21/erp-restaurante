@@ -735,3 +735,52 @@ export async function atualizarCategoriaFicha(id, categoria) {
     .eq("id", id);
   return { error: error?.message || null };
 }
+
+// ── EXCLUIR O QUE ESTÁ EM USO (dono, 24/11/2026) ─────────────────────────────
+// "Você quer excluir? Ou quer substituir por outro ingrediente ou outra base?
+// Se eu falar que quero excluir, ele tira de todas as fichas… e só me informa
+// quais vão perder." campo: "subficha_id" (base) ou "insumo_id" (ingrediente).
+
+/** Fichas que usam cada id. { porId: { [id]: [{ ficha_id, nome, ativo }] }, error } */
+export async function usosEmFichas(campo, ids) {
+  if (!isSupabaseReady()) return { porId: {}, error: "Offline" };
+  if (!["subficha_id", "insumo_id"].includes(campo)) return { porId: {}, error: "Campo inválido." };
+  const lista = [...new Set((ids || []).filter(Boolean))];
+  const porId = Object.fromEntries(lista.map((id) => [id, []]));
+  if (!lista.length) return { porId, error: null };
+  const { data: linhas, error } = await supabase.from("fichas_ingredientes").select(`ficha_id,${campo}`).in(campo, lista);
+  if (error) return { porId, error: error.message };
+  const fichaIds = [...new Set((linhas || []).map((l) => l.ficha_id).filter(Boolean))];
+  let nomes = new Map();
+  if (fichaIds.length) {
+    const r = await supabase.from("fichas_tecnicas").select("id,nome_receita,ativo").in("id", fichaIds);
+    if (r.error) return { porId, error: r.error.message };
+    nomes = new Map((r.data || []).map((f) => [f.id, f]));
+  }
+  for (const l of linhas || []) {
+    const f = nomes.get(l.ficha_id);
+    if (!porId[l[campo]] || porId[l[campo]].some((x) => x.ficha_id === l.ficha_id)) continue;
+    porId[l[campo]].push({ ficha_id: l.ficha_id, nome: f?.nome_receita || "Ficha", ativo: f?.ativo !== false });
+  }
+  for (const id of lista) porId[id].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  return { porId, error: null };
+}
+
+/** Tira o item de todas as fichas. Devolve quantas linhas saíram. */
+export async function tirarDasFichas(campo, ids) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!["subficha_id", "insumo_id"].includes(campo)) return { error: "Campo inválido." };
+  const lista = (ids || []).filter(Boolean);
+  if (!lista.length) return { error: null, quantidade: 0 };
+  const { data, error } = await supabase.from("fichas_ingredientes").delete().in(campo, lista).select("ficha_id");
+  return { error: error?.message || null, quantidade: (data || []).length };
+}
+
+/** Troca o item por outro do mesmo tipo em todas as fichas (mesma quantidade). */
+export async function trocarNasFichas(campo, deId, paraId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!["subficha_id", "insumo_id"].includes(campo)) return { error: "Campo inválido." };
+  if (!deId || !paraId || deId === paraId) return { error: "Escolha outro item para colocar no lugar." };
+  const { data, error } = await supabase.from("fichas_ingredientes").update({ [campo]: paraId }).eq(campo, deId).select("ficha_id");
+  return { error: error?.message || null, quantidade: (data || []).length };
+}

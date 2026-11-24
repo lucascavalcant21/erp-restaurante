@@ -2,7 +2,7 @@
 
 import { limparEntradaAntiga } from "../lib/marmitaria/acesso.mjs";
 import { ehNegocioSeparado, unidadeInicial } from "../lib/negocios.mjs";
-import { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { fetchEstoque } from "../lib/estoque";
 import { fetchEtiquetas } from "../lib/etiquetas";
@@ -122,6 +122,7 @@ export function ERPProvider({ children }) {
   // estava montado na tela de login, sem sessão. Antes só rodava uma vez, e
   // quem entrava via "Escolha uma unidade" até recarregar a página (dono, 17/11/2026).
   const [versaoSessao, setVersaoSessao] = useState(0);
+  const idLidoRef = useRef(null); // id do usuário da última leitura (anti-laço)
   // a última leitura terminada: versão e página em que foi feita
   const [sessaoLida, setSessaoLida] = useState({ versao: -1, pagina: null });
   useEffect(() => {
@@ -136,9 +137,16 @@ export function ERPProvider({ children }) {
   // sem seletor e só saía recarregando a página (dono, 24/11/2026, B-049).
   useEffect(() => {
     if (!isSupabaseReady()) return undefined;
-    const { data } = supabase.auth.onAuthStateChange((evento) => {
-      if (evento === "SIGNED_IN" || evento === "USER_UPDATED") setVersaoSessao((v) => v + 1);
-      if (evento === "SIGNED_OUT") { setSessao(null); setUnidades([]); setUnidadeAtivaState(null); }
+    // Só relê quando ENTRA OUTRA PESSOA (ou ninguém estava logado): o Supabase
+    // também avisa "SIGNED_IN" ao recuperar a sessão e ao voltar para a aba, e
+    // reler a cada aviso entrava em laço (renovar → avisar → reler).
+    const { data } = supabase.auth.onAuthStateChange((evento, sessaoSupabase) => {
+      const novoId = sessaoSupabase?.user?.id || null;
+      if (evento === "SIGNED_IN" && novoId && novoId !== idLidoRef.current) {
+        idLidoRef.current = novoId;
+        setVersaoSessao((v) => v + 1);
+      }
+      if (evento === "SIGNED_OUT") { idLidoRef.current = null; setSessao(null); setUnidades([]); setUnidadeAtivaState(null); }
     });
     return () => data?.subscription?.unsubscribe?.();
   }, []);
@@ -160,6 +168,7 @@ export function ERPProvider({ children }) {
         }
         if (!vivo) return;
         setSessaoLida({ versao: versaoSessao, pagina: window.location.pathname });
+        idLidoRef.current = sessaoObj?.id || idLidoRef.current;
         const unids = resUnidades.data || [];
         setUnidades(unids);
         setErroUnidades(resUnidades.error || null);

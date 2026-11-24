@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, ChefHat, Clock, ConciergeBell, Copy, KeyRound, Loader2, Martini, Minus, Sparkles, Users, Wine, X } from "lucide-react";
 import { accessCommand } from "../../lib/access-control";
+import { useERP } from "../../context/ERPContext";
 import { CONTAS_RAPIDAS, MODULOS_CONTA, contaDosModulos, contaRapidaPorId, loginDoRestaurante, senhaDoRestaurante } from "../../lib/contas-rapidas.mjs";
 
 // Todo ícone usado em contas-rapidas.mjs precisa estar aqui (trava em
@@ -19,6 +20,8 @@ const CAMPO = "min-h-11 w-full rounded-xl border border-hf-border bg-hf-surface 
 /** Criar um acesso em três passos: função, nome e senha. */
 // Login e senha já vêm prontos pelo nome do restaurante (dono, 24/11/2026); dá para editar os dois.
 export default function ContaRapida({ onFechar, onCriada, modeloInicial = null, nomeRestaurante = "", loginsExistentes = [] }) {
+  // Unidade aberta no topo: a conta nasce nela (o servidor confere o acesso).
+  const { unidadeAtiva } = useERP();
   // Módulos marcados (dono, 24/11/2026): Cozinha, Bar, Salão, RH, Ponto, Nico.
   // Link antigo (?conta=tablet etc.) já chega com os módulos equivalentes.
   const [modulos, setModulos] = useState(() => MODULOS_DO_MODELO[modeloInicial] || MODULOS_DO_MODELO[contaRapidaPorId(modeloInicial)?.id] || []);
@@ -42,7 +45,7 @@ export default function ContaRapida({ onFechar, onCriada, modeloInicial = null, 
     if (senha.length < 8) return setErro("A senha precisa ter ao menos 8 caracteres.");
     setSalvando(true); setErro("");
     try {
-      await accessCommand("create-quick-account", { modulos, nome: nomeFinal, login, password: senha });
+      await accessCommand("create-quick-account", { modulos, nome: nomeFinal, login, password: senha, unidadeId: unidadeAtiva });
       setCriada({ nome: nomeFinal, login: login.trim().toLowerCase(), senha, funcao: modelo.nome, trocar: modelo.trocarSenha !== false });
       setUsados((u) => [...u, login.trim().toLowerCase()]);
       onCriada?.();

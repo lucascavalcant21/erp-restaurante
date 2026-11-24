@@ -93,3 +93,8 @@ Formato: **B-NNN**, situação, onde foi visto, evidência da correção.
 ## B-052 · ?ver= da ficha nunca reabria depois de recarregar (24/11/2026)
 - Causa: o efeito que grava a ficha aberta na URL apagava o `?ver=` na montagem, antes da carga ler.
 - Solução: só sincroniza a URL depois da primeira carga.
+
+## B-053 · Conta rápida: "Não foi possível definir a unidade" (24/11/2026)
+- Causa: a unidade da conta vinha só do cadastro de quem cria; o dono é super admin, sem unidade no cadastro, e a casa tem 4 unidades.
+- Solução: a tela manda a unidade aberta no topo; o servidor confere no banco (super admin, escopo "todos", escopo da unidade ou unidade do cadastro) antes de usar. Sem acesso, vale a regra antiga.
+- Evidência: TESTADO LOCAL (conta-rapida.test.mjs). Causa conferida no banco real (só leitura).

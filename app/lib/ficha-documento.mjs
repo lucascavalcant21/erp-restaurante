@@ -4,7 +4,7 @@
 //
 // Não há "ficha técnica genérica": cada ficha é desenhada pelo template do seu
 // tipo, que vem de dadosDaFicha (ficha-modelo.mjs). Um livro pode misturar
-// pratos e pré-preparos — cada página usa o seu.
+// pratos e bases — cada página usa o seu.
 //
 // Regras de impressão:
 //  · cada ficha começa numa página nova; o conteúdo corre em fluxo normal, sem
@@ -145,7 +145,7 @@ function tabelaIngredientes(dados) {
     return (h2) => `<div class="junto">${h2}<p class="vazio">Sem ingredientes cadastrados.</p></div>`;
   }
   const linhas = dados.ingredientes.map(i => `
-      <tr><td>${esc(i.nome)}${i.prePreparo ? '<span class="tag">pré-preparo</span>' : ""}</td><td class="q">${esc(i.quantidade)}</td></tr>`).join("");
+      <tr><td>${esc(i.nome)}${i.prePreparo ? '<span class="tag">base</span>' : ""}</td><td class="q">${esc(i.quantidade)}</td></tr>`).join("");
   return (h2) => `${h2}<table class="ing"><thead><tr><th>Ingrediente</th><th class="q">Quantidade</th></tr></thead><tbody>${linhas}</tbody></table>`;
 }
 
@@ -201,7 +201,7 @@ export function htmlDaFicha(dados, { logoHtml = "", numero = null, livro = false
   if (alergenicos && custos) partes.push(`<div class="duas">${alergenicos}${custos}</div>`);
   else if (alergenicos || custos) partes.push(alergenicos || custos);
 
-  const rodapeDireita = [dados.tipo === "prato" ? "Ficha de prato" : "Ficha de pré-preparo", dados.codigo, numero != null ? `Nº ${doisDigitos(numero)}` : ""]
+  const rodapeDireita = [dados.tipo === "prato" ? "Ficha de prato" : "Ficha de base", dados.codigo, numero != null ? `Nº ${doisDigitos(numero)}` : ""]
     .filter(Boolean).join(" · ");
 
   return `
@@ -224,7 +224,7 @@ export function htmlDaFicha(dados, { logoHtml = "", numero = null, livro = false
 function htmlCapa({ logoHtml, nomeUnidade, grupos, data }) {
   const contagem = [
     grupos.prato.length ? `<span style="background:${TIPOS_FICHA.prato.cor}">${grupos.prato.length} ${grupos.prato.length === 1 ? "prato" : "pratos"}</span>` : "",
-    grupos.pre_preparo.length ? `<span style="background:${TIPOS_FICHA.pre_preparo.cor}">${grupos.pre_preparo.length} ${grupos.pre_preparo.length === 1 ? "pré-preparo" : "pré-preparos"}</span>` : "",
+    grupos.pre_preparo.length ? `<span style="background:${TIPOS_FICHA.pre_preparo.cor}">${grupos.pre_preparo.length} ${grupos.pre_preparo.length === 1 ? "base" : "bases"}</span>` : "",
   ].join("");
   return `
   <section class="capa">

@@ -1,7 +1,7 @@
 "use client";
 
 // Uma leitura do banco para o módulo inteiro: as seis áreas usam a mesma base
-// (marmitas, pré-preparos, ingredientes, estoques, configuração) e recarregam
+// (marmitas, bases, ingredientes, estoques, configuração) e recarregam
 // juntas depois de gravar.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";

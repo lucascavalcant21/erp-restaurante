@@ -131,7 +131,7 @@ export const planejarProducao = Object.freeze({
   validacoes: [
     "quantidades pelas fichas técnicas (rendimento e ingredientes); sem ficha, não calcula",
     "o que um alvo usa de outro sai da produção planejada (parmegiana usa o empanado dos 300)",
-    "pré-preparo que não foi pedido desconta o estoque pronto; o resto vira 'fabricar'",
+    "base que não foi pedido desconta o estoque pronto; o resto vira 'fabricar'",
     "só grava o plano do dia (tarefas); estoque e compras não mudam",
     "plano pela função hefisto_aprovar_plano_dia (permissão do dono, conferida no banco)",
   ],

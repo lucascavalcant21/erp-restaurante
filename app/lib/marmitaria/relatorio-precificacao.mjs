@@ -238,7 +238,7 @@ function blocoDoPrato(item, partes = null) {
   const f = item.ficha;
   const fichaHtml = f ? `<div class="dois">
       <table class="mini"><thead><tr><th>Ingrediente</th><th>Qtd.</th><th>Custo</th></tr></thead><tbody>
-        ${f.ingredientes.map((x) => `<tr><td>${esc(x.nome)}${x.pre ? " (pré-preparo)" : ""}</td><td>${qtdTxt(x.qtd, x.un)}</td><td>${x.custo == null ? "falta" : brl(x.custo)}</td></tr>`).join("") || `<tr><td colspan="3">Sem ingredientes na ficha.</td></tr>`}
+        ${f.ingredientes.map((x) => `<tr><td>${esc(x.nome)}${x.pre ? " (base)" : ""}</td><td>${qtdTxt(x.qtd, x.un)}</td><td>${x.custo == null ? "falta" : brl(x.custo)}</td></tr>`).join("") || `<tr><td colspan="3">Sem ingredientes na ficha.</td></tr>`}
         <tr><td><b>Ingredientes</b></td><td></td><td><b>${brl(f.alimentos)}</b></td></tr>
       </tbody></table>
       <table class="mini"><thead><tr><th>Embalagem</th><th>Qtd.</th><th>Custo</th></tr></thead><tbody>

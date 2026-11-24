@@ -148,7 +148,7 @@ conferir("mapa de arestas das subfichas",
   JSON.stringify([...arestasDeSubfichas([burger, maionese])]),
   JSON.stringify([["burger", ["maionese"]], ["maionese", []]]));
 
-// ── Tipo da ficha: prato, pré-preparo ou comprado pronto ───────────────────
+// ── Tipo da ficha: prato, base ou comprado pronto ───────────────────
 conferir("prato comum", tipoDaFicha({ eh_base: false, tipo_base: null }), "prato");
 conferir("pre-preparo pelo eh_base", tipoDaFicha({ eh_base: true, tipo_base: "pre" }), "preparo");
 conferir("comprado pronto", tipoDaFicha({ eh_base: false, tipo_base: "produto_pronto" }), "produto_pronto");
@@ -163,7 +163,7 @@ perto("lote de 20 que rende 1000 g custa 0,02 por g",
   custoPorUnidadeDeRendimento(20, 1000), 0.02);
 perto("rendimento zero nao divide por zero", custoPorUnidadeDeRendimento(20, 0), 0);
 
-// Quem usa este pré-preparo
+// Quem usa esta base
 conferir("acha os pratos que usam a maionese",
   fichasQueUsam("maionese", [burger, maionese]).map(f => f.id).join(","), "burger");
 conferir("pre-preparo sem uso devolve vazio",

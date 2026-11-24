@@ -4,7 +4,7 @@
 //   peso limpo = bruto − perda na limpeza
 //   porções    = peso limpo ÷ peso da porção (só porções inteiras)
 //   custo da porção = custo do bruto ÷ porções (a sobra e a perda ficam no custo)
-// Grava como subproduto (pré-preparo) que rende N unidades de X g: a produção,
+// Grava como subproduto (base) que rende N unidades de X g: a produção,
 // o estoque, o custo da marmita e a etiqueta usam o que já existe.
 
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;

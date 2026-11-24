@@ -42,7 +42,7 @@ test("insumo em g: o editor trabalha em kg e grava de volta em g (não encolhe)"
   assert.equal(gravado, 20);
 });
 
-test("pré-preparo como ingrediente: quantidade na unidade do rendimento e custo proporcional", () => {
+test("base como ingrediente: quantidade na unidade do rendimento e custo proporcional", () => {
   const item = itemDeIngrediente(prato.fichas_ingredientes[0], todas);
   assert.equal(item.tipo, "base");
   assert.equal(item.nome, "Arroz branco");
@@ -54,7 +54,7 @@ test("pré-preparo como ingrediente: quantidade na unidade do rendimento e custo
   assert.equal(custoDosItens([item]).toFixed(6), custoDeProduzirFicha(prato, todas).toFixed(6));
 });
 
-test("opções de ingrediente: insumos, pré-preparos e embalagens; sem ciclo", () => {
+test("opções de ingrediente: insumos, bases e embalagens; sem ciclo", () => {
   const opcoes = opcoesDeIngrediente({ insumos: [arroz, sal], embalagens: [{ id: "e1", nome: "Marmita", unidade_medida: "un" }], fichas: todas, fichaId: "b1" });
   const valores = opcoes.map(o => o.valor);
   assert.ok(valores.includes("insumo:i-arroz"));
@@ -62,7 +62,7 @@ test("opções de ingrediente: insumos, pré-preparos e embalagens; sem ciclo", 
   // b1 não pode conter a si mesmo nem o molho que já usa b1.
   assert.ok(!valores.includes("base:b1"));
   assert.ok(!valores.includes("base:b2"));
-  // Prato novo pode usar qualquer pré-preparo; prato nunca vira ingrediente.
+  // Prato novo pode usar qualquer base; prato nunca vira ingrediente.
   const doPrato = opcoesDeIngrediente({ fichas: todas }).map(o => o.valor);
   assert.deepEqual(doPrato, ["base:b1", "base:b2"]);
   assert.equal(buscarOpcoes(opcoesDeIngrediente({ insumos: [{ id: "x", nome: "Açúcar" }] }), "acucar").length, 1);
@@ -93,7 +93,7 @@ test("ficha antiga abre no editor com o que tinha", () => {
   assert.equal(e.autoRendimento, true);
   // Prato com peso de porção não tem o rendimento mexido sozinho.
   assert.equal(estadoInicialDoEditor({ departamento: "cozinha", ficha: { ...prato, peso_porcao_g: 250 }, todasFichas: todas }).autoRendimento, false);
-  // Pré-preparo existente só soma se a pessoa pedir.
+  // Base existente só soma se a pessoa pedir.
   assert.equal(estadoInicialDoEditor({ departamento: "cozinha", ficha: base, todasFichas: todas }).autoRendimento, false);
   const comArmazenamento = estadoInicialDoEditor({
     departamento: "cozinha", ficha: base, todasFichas: todas,
@@ -129,7 +129,7 @@ test("rendimento do prato: gramas servidas, sugeridas e mantidas", () => {
   assert.equal(daIA.form.peso_final_g, "350");
   // Sem ingredientes ainda, fica vazio (nada de número inventado).
   assert.equal(estadoInicialDoEditor({ departamento: "cozinha", tipo: "prato" }).form.peso_final_g, "");
-  // Pré-preparo novo não ganha peso final nenhum.
+  // Base nova não ganha peso final nenhum.
   assert.equal(estadoInicialDoEditor({ departamento: "cozinha", tipo: "pre_preparo", rascunho: { itens: [{ unidade: "kg", quantidade: 2 }] } }).form.peso_final_g, "");
   // Prato existente reabre com o que está gravado, sem recalcular.
   const existente = estadoInicialDoEditor({ departamento: "cozinha", ficha: { ...prato, peso_final_g: 420 }, todasFichas: todas, complementos: {} });
@@ -249,7 +249,7 @@ test("entradasFinanceirasDaFicha: ordem de precedência ficha → produto → pa
 
   // 0% é escolha válida e não pode cair no padrão.
   assert.equal(entradasFinanceirasDaFicha({ imposto_pct: 0 }, { produto, params }).impostoPct, 0);
-  // Pré-preparo não é vendido: não paga maquininha nem imposto.
+  // Base não é vendido: não paga maquininha nem imposto.
   const ehBase = entradasFinanceirasDaFicha({ eh_base: true, taxa_maquininha: 2.5, imposto_pct: 4 });
   assert.equal(ehBase.taxaMaquininhaPct, 0);
   assert.equal(ehBase.impostoPct, 0);

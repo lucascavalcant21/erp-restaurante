@@ -400,7 +400,7 @@ async function preparar(ctx, params) {
   // ─── prévia ───
   const linhasPrevia = [
     { rotulo: "Nome", valor: p.nome },
-    { rotulo: "Tipo", valor: p.tipo === "base" ? "Base (pré-preparo)" : "Prato" },
+    { rotulo: "Tipo", valor: p.tipo === "base" ? "Base (base)" : "Prato" },
     { rotulo: "Setor", valor: departamento === "bar" ? "Bar" : departamento === "cozinha" ? "Cozinha" : departamento },
     ...linhas.map((l, n) => ({
       rotulo: l.alvo.tipo === "ficha" ? `${l.alvo.ficha.nome} (base)` : l.alvo.tipo === "novo" ? `${l.it.termo} (novo)` : l.insumo.nome,

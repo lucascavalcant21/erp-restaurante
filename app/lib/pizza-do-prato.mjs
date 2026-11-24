@@ -225,7 +225,7 @@ export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = 
     // porque passa por número de verdade.
     semCusto: !semRendimento && ehCustoDesprezivel(custoIngredientes + custoEmbalagem, preco),
     departamento: String(ficha.departamento || ficha.tipo_base || "").toLowerCase(),
-    // Base (pré-preparo) não se vende, então imposto e maquininha não incidem.
+    // Base (base) não se vende, então imposto e maquininha não incidem.
     impostoPct: ent.impostoPct,
     taxaMaquininhaPct: ent.taxaMaquininhaPct,
     params,
@@ -297,7 +297,7 @@ export function ingredientesDaFicha(ficha, todasFichas = [], porcoes = 1) {
       const base = todasFichas.find((x) => x.id === fi.subficha_id);
       if (!base) continue;
       itens.push({
-        rotulo: base.nome_receita || "Pré-preparo",
+        rotulo: base.nome_receita || "Base",
         valor: custoSubreceita({
           custoTotalSubficha: custoDeProduzirFicha(base, todasFichas),
           rendimentoSubficha: base.rendimento_porcoes,

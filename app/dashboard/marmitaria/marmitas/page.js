@@ -75,9 +75,9 @@ function Conteudo() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-end gap-2">
-        {/* impressão (dono, 17/11/2026): montagem das marmitas e fichas dos pré-preparos */}
+        {/* impressão (dono, 17/11/2026): montagem das marmitas e fichas das bases */}
         <Botao variante="secundario" onClick={() => router.push("/dashboard/marmitaria/marmitas/processos")}><Printer size={16} /> Imprimir montagem</Botao>
-        <Botao variante="secundario" onClick={() => router.push("/dashboard/marmitaria/estoque/producoes?aba=subprodutos")}><Printer size={16} /> Imprimir pré-preparos</Botao>
+        <Botao variante="secundario" onClick={() => router.push("/dashboard/marmitaria/estoque/producoes?aba=subprodutos")}><Printer size={16} /> Imprimir bases</Botao>
         <Botao onClick={nova}><Plus size={16} /> Nova ficha técnica</Botao>
       </div>
       {pendente && (

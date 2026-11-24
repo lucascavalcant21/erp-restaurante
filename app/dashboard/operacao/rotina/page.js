@@ -72,7 +72,7 @@ const TEMAS = {
 
 const ROTULOS_TIPO = {
   abertura: "Abertura", fechamento: "Fechamento", mise_en_place: "Mise en Place",
-  pre_preparos: "Pré-preparos p/ outro dia", limpeza_organizacao: "Limpeza e Organização", operacional: "Operacional", limpeza: "Limpeza",
+  pre_preparos: "Bases p/ outro dia", limpeza_organizacao: "Limpeza e Organização", operacional: "Operacional", limpeza: "Limpeza",
 };
 // Ordem lógica do dia para agrupar os checklists na tela
 const ORDEM_TIPOS = ["abertura", "mise_en_place", "pre_preparos", "operacional", "limpeza_organizacao", "limpeza", "fechamento"];

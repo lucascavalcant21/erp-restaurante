@@ -1,5 +1,5 @@
-// Ficha impressa do pré-preparo (dono, 17/11/2026: "posso imprimir o
-// pré-preparo do arroz, do estrogonofe…"). Monta o mesmo formato do guia de
+// Ficha impressa da base (dono, 17/11/2026: "posso imprimir o
+// base do arroz, do estrogonofe…"). Monta o mesmo formato do guia de
 // montagem (guia-impresso.mjs): ingredientes com a quantidade do lote,
 // rendimento, validade, tempo e o modo de preparo passo a passo.
 import { passosDoPreparo } from "./modo-preparo.mjs";
@@ -21,7 +21,7 @@ export function guiaDoPrePreparo(ficha, insumos = new Map(), fichas = []) {
   const componentes = (ficha.fichas_ingredientes || []).map((fi) => {
     if (fi.subficha_id) {
       const sf = porId.get(fi.subficha_id);
-      return { nome: sf?.nome_receita || "Pré-preparo", quantidade: quantidadeLegivel(fi.quantidade, sf?.rendimento_unidade) };
+      return { nome: sf?.nome_receita || "Base", quantidade: quantidadeLegivel(fi.quantidade, sf?.rendimento_unidade) };
     }
     const ins = insumos.get(fi.insumo_id) || fi.insumos;
     return { nome: ins?.nome || "Ingrediente", quantidade: quantidadeLegivel(fi.quantidade, ins?.unidade_medida) };
@@ -34,7 +34,7 @@ export function guiaDoPrePreparo(ficha, insumos = new Map(), fichas = []) {
   ].filter(Boolean).join(" · ");
   const passos = passosDoPreparo(ficha.modo_preparo);
   return {
-    nome: ficha.nome_receita || "Pré-preparo",
+    nome: ficha.nome_receita || "Base",
     codigo: ficha.codigo || "",
     descricao: info,
     foto: ficha.imagem || "",

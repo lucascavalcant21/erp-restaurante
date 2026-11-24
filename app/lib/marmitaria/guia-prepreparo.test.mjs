@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { guiaDoPrePreparo, quantidadeLegivel } from "./guia-prepreparo.mjs";
 import { htmlDosGuias } from "./guia-impresso.mjs";
 
-test("ficha impressa do pré-preparo: ingredientes legíveis, rendimento e modo de preparo; sem embalagens", () => {
+test("ficha impressa da base: ingredientes legíveis, rendimento e modo de preparo; sem embalagens", () => {
   assert.equal(quantidadeLegivel(0.07, "kg"), "70 g");
   assert.equal(quantidadeLegivel(1.8, "l"), "1,8 L");
   const insumos = new Map([["arroz", { nome: "Arroz branco", unidade_medida: "kg" }], ["alho", { nome: "Alho", unidade_medida: "kg" }]]);

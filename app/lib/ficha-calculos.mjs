@@ -160,7 +160,7 @@ export function custoSubreceita({ custoTotalSubficha, rendimentoSubficha, quanti
 // serve a um propósito distinto:
 //
 //   'prato'           o que é vendido. Importa preço, CMV, margem e montagem.
-//   'preparo'         pré-preparo (eh_base). NÃO é vendido: vira ingrediente
+//   'preparo'         base (eh_base). NÃO é vendido: vira ingrediente
 //                     de outras receitas. Importa custo por unidade de
 //                     rendimento, tamanho do lote, validade e onde é usado.
 //                     Preço e CMV aqui são ruído.
@@ -175,7 +175,7 @@ export function tipoDaFicha(ficha) {
 export const ehPreparo = (ficha) => tipoDaFicha(ficha) === "preparo";
 export const ehProdutoPronto = (ficha) => tipoDaFicha(ficha) === "produto_pronto";
 
-// Custo de uma unidade do rendimento do pré-preparo — é este número que entra
+// Custo de uma unidade do rendimento da base — é este número que entra
 // nos pratos que o usam. Ex.: lote de R$ 20,00 que rende 1000 g → R$ 0,02/g.
 export function custoPorUnidadeDeRendimento(custoTotal, rendimento) {
   const total = parseNumero(custoTotal);
@@ -185,7 +185,7 @@ export function custoPorUnidadeDeRendimento(custoTotal, rendimento) {
 }
 
 // Quais fichas usam esta como subreceita. Serve para avisar antes de mexer
-// num pré-preparo: mudar o custo dele mexe no custo de todas elas.
+// numa base: mudar o custo dele mexe no custo de todas elas.
 export function fichasQueUsam(fichaId, todasFichas = []) {
   if (!fichaId) return [];
   return todasFichas.filter(f =>
@@ -481,7 +481,7 @@ export function pesoTotalDaFicha(rendimento, unidade, pesoPorcaoG) {
 //
 //   rendimento em porções/unidades ........ o próprio rendimento
 //   rendimento em peso + peso da porção ... peso total ÷ peso da porção
-//   PRÉ-PREPARO sem peso da porção ........ o rendimento (custo por kg/L/un
+//   BASE sem peso da porção ........ o rendimento (custo por kg/L/un
 //                                            do lote, que é o que entra nos pratos)
 //   PRATO sem peso da porção .............. 1 — a receita inteira é a porção
 //
@@ -647,7 +647,7 @@ export function entradasFinanceirasDaFicha(ficha = {}, { produto = null, params 
   return {
     custoEmbalagemPorPorcao: custoEmbalagem,
     precoVenda: precoVendaEfetivo(ficha, produto),
-    // Pré-preparo não é vendido: não paga maquininha nem imposto.
+    // Base não é vendido: não paga maquininha nem imposto.
     taxaMaquininhaPct: ehBase ? 0 : parseNumero(taxa),
     impostoPct: ehBase ? 0 : parseNumero(imposto),
     cmvMeta: parseNumero(ficha?.cmv_meta) || 30,

@@ -1,4 +1,4 @@
-// Modo de preparo do pré-preparo (dono, 17/11/2026): um passo por linha, sempre
+// Modo de preparo da base (dono, 17/11/2026): um passo por linha, sempre
 // numerado ("1. …", "2. …"), no mesmo formato que o resto do Héfisto lê
 // (treinamento, Green Dot, aulas). Linha em branco some; número digitado à mão
 // é refeito na ordem.

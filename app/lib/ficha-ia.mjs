@@ -2,7 +2,7 @@
 // testado em ficha-ia.test.mjs; as rotas /api/ia-ficha e /api/ia-preparo só
 // fazem a chamada.
 //
-// O tipo da ficha manda no pedido: PRATO é ficha de montagem, PRÉ-PREPARO é
+// O tipo da ficha manda no pedido: PRATO é ficha de montagem, BASE é
 // ficha de produção. A IA nunca inventa validade nem custo: armazenamento só
 // volta preenchido se a receita disser, e alergênico só da lista oficial.
 
@@ -39,12 +39,12 @@ Responda ESTRITAMENTE com um JSON válido, sem texto antes ou depois:
   "rendimento_g": 0
 }`;
   }
-  return `Você é um chef que transforma uma receita solta (texto e/ou foto) numa FICHA DE PRÉ-PREPARO do setor "${setor}" de um restaurante.
+  return `Você é um chef que transforma uma receita solta (texto e/ou foto) numa FICHA DE BASE do setor "${setor}" de um restaurante.
 
-A ficha de pré-preparo é uma ficha de PRODUÇÃO (molhos, caldos, bases, arroz, xaropes, preparações intermediárias).
+A ficha de base é uma ficha de PRODUÇÃO (molhos, caldos, bases, arroz, xaropes, preparações intermediárias).
 
 Extraia:
-1. "nome_receita": o nome do pré-preparo.
+1. "nome_receita": o nome da base.
 2. "ingredientes": TODOS os ingredientes, com a quantidade da receita inteira:
    - "nome": limpo e genérico, sem marca e sem quantidade no nome.
    - "quantidade": só o número.
@@ -154,7 +154,7 @@ EXPLICAÇÃO:
 Responda ESTRITAMENTE com um JSON válido, sem texto antes ou depois:
 { "etapas": [ { "descricao": "..." } ] }`;
   }
-  return `Você é um chef que padroniza fichas de PRODUÇÃO (pré-preparos) de cozinha profissional.
+  return `Você é um chef que padroniza fichas de PRODUÇÃO (bases) de cozinha profissional.
 O cozinheiro vai explicar com as próprias palavras como faz. Organize em etapas numeradas; para cada uma, deduza com bom senso de cozinha:
 - "descricao": o que fazer, direto e no imperativo.
 - "equipamento": panela/utensílio, ou "".
@@ -162,7 +162,7 @@ O cozinheiro vai explicar com as próprias palavras como faz. Organize em etapas
 - "tempo": tempo estimado da etapa (ex.: "5 min").
 No final, "tempo_total" somando as etapas (ex.: "35 min").
 
-PRÉ-PREPARO: ${texto(nomeReceita) || "(sem nome)"}
+BASE: ${texto(nomeReceita) || "(sem nome)"}
 INGREDIENTES:
 ${lista}
 

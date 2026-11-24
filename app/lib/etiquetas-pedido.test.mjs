@@ -30,8 +30,8 @@ test("pedido de etiqueta × pergunta sobre etiqueta", () => {
 const CATALOGO = [
   { nome: "Cachaça de jambu", origem: "Ingrediente" }, { nome: "Gin jambu", origem: "Ingrediente" },
   { nome: "Jambu - pré cozido", origem: "Ingrediente" }, { nome: "Maniçoba", origem: "Ingrediente" },
-  { nome: "Maniçoba ", origem: "Pré-preparo" }, { nome: "Maniçoba -1", origem: "Ingrediente" },
-  { nome: "Molho de tomate", origem: "Pré-preparo" }, { nome: "Molho branco", origem: "Pré-preparo" },
+  { nome: "Maniçoba ", origem: "Base" }, { nome: "Maniçoba -1", origem: "Ingrediente" },
+  { nome: "Molho de tomate", origem: "Base" }, { nome: "Molho branco", origem: "Base" },
 ];
 
 test("casa com a lista da tela de etiquetas", () => {

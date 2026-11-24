@@ -8,7 +8,7 @@ import { lerSegurancaEstoque } from "./estoque-movimento.mjs";
 // impressão — se o estoque falhar, a etiqueta continua valendo e o motivo
 // volta para a tela.
 
-// Produto aberto/manipulado nasce no estoque de pré-preparos do setor;
+// Produto aberto/manipulado nasce no estoque de bases do setor;
 // produto lacrado fica no estoque do próprio setor.
 export function slugDoEstoqueDaEtiqueta(etiqueta) {
   const dept = String(etiqueta?.departamento || etiqueta?.setor || "cozinha").toLowerCase().includes("bar") ? "bar" : "cozinha";

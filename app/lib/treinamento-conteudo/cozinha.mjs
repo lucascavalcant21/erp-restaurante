@@ -7,7 +7,7 @@ Seu líder vai caminhar com você por toda a cozinha. Olhe, pergunte e anote.
 
 Conheça:
 - onde o alimento entra e onde fica guardado;
-- onde é o pré-preparo, onde é o fogão e onde sai o prato;
+- onde é a base, onde é o fogão e onde sai o prato;
 - onde ficam utensílios, panelas e produtos de limpeza;
 - quem responde por cada praça.
 
@@ -42,7 +42,7 @@ Marque apenas o que você fez de verdade. Marcar sem fazer é pior do que não m
     ]),
   ]),
 
-  modulo("c-preparo", "cozinha", 120, "Pré-preparo e organização", "O que acontece antes do pedido chegar.", [
+  modulo("c-preparo", "cozinha", 120, "Base e organização", "O que acontece antes do pedido chegar.", [
     aula("c-pre-1", "Mise en place", 5, `
 Mise en place é deixar tudo pronto antes do serviço: cortado, porcionado, identificado e no lugar.
 

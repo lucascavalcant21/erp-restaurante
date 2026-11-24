@@ -1,7 +1,7 @@
 "use client";
 
 // A ficha na tela, com a mesma estrutura do PDF: as duas desenham a partir de
-// dadosDaFicha (lib/ficha-modelo.mjs). Prato e pré-preparo usam o mesmo
+// dadosDaFicha (lib/ficha-modelo.mjs). Prato e base usam o mesmo
 // desenho; o que muda (seções, título, cor) vem da configuração do tipo.
 
 import { estiloDoTipo } from "../../../../lib/ficha-modelo.mjs";
@@ -76,7 +76,7 @@ export function FichaDocumento({ dados }) {
                   <tr key={`${i.nome}-${n}`} className="border-b border-line-soft even:bg-[color:var(--tipo-soft)]">
                     <td className="px-2 py-2 font-semibold text-fg">
                       {i.nome}
-                      {i.prePreparo ? <span className="ml-2 rounded border border-[color:var(--ficha-preparo)] px-1.5 text-3xs font-bold uppercase tracking-wider text-[color:var(--ficha-preparo)]">pré-preparo</span> : null}
+                      {i.prePreparo ? <span className="ml-2 rounded border border-[color:var(--ficha-preparo)] px-1.5 text-3xs font-bold uppercase tracking-wider text-[color:var(--ficha-preparo)]">base</span> : null}
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-right font-black text-fg">{i.quantidade}</td>
                   </tr>

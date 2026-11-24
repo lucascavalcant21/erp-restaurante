@@ -751,7 +751,7 @@ async function executar(ctx, payload) {
     if (error || !data?.id) return falhou(`Não consegui cadastrar ${dados.nome}: ${error?.message || "sem resposta do banco"}.`);
     ids.set(chave, data.id); feito.push(dados.nome);
   }
-  // 2. Fichas do que é feito aqui (pré-preparo), pela mesma função da tela
+  // 2. Fichas do que é feito aqui (base), pela mesma função da tela
   for (const sf of payload.subfichas || []) {
     const { data, error } = await db.rpc("marmitaria_salvar_ficha", { p_dados: {
       id: uuid(), unidade_id: unidade, tipo: "pre_preparo", departamento: "cozinha", nome: sf.nome, ativo: true,

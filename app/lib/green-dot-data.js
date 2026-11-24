@@ -614,7 +614,7 @@ export const ROTINAS_OPERACIONAIS = {
       "Ordem vertical obrigatória de armazenamento para evitar contaminação cruzada e garantir giro perfeito de lotes.",
     etapas: [
       { titulo: "Prateleira 1 (Topo): Prontos para Consumo & Laticínios", desc: "Sobremesas finalizadas, queijos fatiados, manteiga trufada e molhos frios já higienizados." },
-      { titulo: "Prateleira 2 (Meio-Alto): Pré-Preparos Cozidos & Vegetais Higienizados", desc: "Bases de risoto pré-cocidas, vatapá porcionado, caldos reduzidos e folhas sanitizadas em caixas herméticas." },
+      { titulo: "Prateleira 2 (Meio-Alto): Bases Cozidos & Vegetais Higienizados", desc: "Bases de risoto pré-cocidas, vatapá porcionado, caldos reduzidos e folhas sanitizadas em caixas herméticas." },
       { titulo: "Prateleira 3 (Meio-Baixo): Carnes Bovinas e Suínas Cruas", desc: "Sempre em GNs com grade coletora de exsudato e etiqueta visível na face frontal." },
       { titulo: "Prateleira 4 (Base): Pescados, Crustáceos e Aves Cruas", desc: "Camarões, salmão e frango na parte mais fria e inferior, evitando qualquer gotejamento sobre outros itens." },
     ],
@@ -1825,7 +1825,7 @@ export const FORMACAO_PRACAS_BASE = [
 export const LOCAIS_ARMAZENAMENTO_PADRAO = [
   {
     id: "camara-fria-prat-2",
-    nome: "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+    nome: "Câmara Fria 1 — Prateleira 2 (Bases)",
     setor: "Cozinha Quente / Fria",
     tipo: "camara-fria",
     temperatura: "2°C a 4°C",
@@ -1906,14 +1906,14 @@ export const LOCAIS_ARMAZENAMENTO_PADRAO = [
   },
 ];
 
-// Lotes de pré-preparo e estoque ativos no sistema com rastreamento de localização
+// Lotes de base e estoque ativos no sistema com rastreamento de localização
 export const LOTES_RASTREIO_INICIAIS = [
   {
     id: "rastreio-vtp-01",
-    produto: "Vatapá da Casa (Pré-Preparo Produzido)",
+    produto: "Vatapá da Casa (Base Produzido)",
     produtoId: "vatapa-baiano",
     lote: "LOTE-VTP-8921",
-    localizacao: "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+    localizacao: "Câmara Fria 1 — Prateleira 2 (Bases)",
     setor: "Cozinha Quente / Câmaras",
     temperatura: "2°C a 4°C",
     quantidade: "6,5 kg (2 cubas GN 1/2)",
@@ -1985,7 +1985,7 @@ export const LOTES_RASTREIO_INICIAIS = [
     produto: "Massa de Risoto Pré-Cozida (Arroz Carnaroli)",
     produtoId: "risoto-camarao",
     lote: "LOTE-RST-5520",
-    localizacao: "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+    localizacao: "Câmara Fria 1 — Prateleira 2 (Bases)",
     setor: "Cozinha Quente / Fogão",
     temperatura: "2°C a 4°C",
     quantidade: "12 porções de 160g em sacos ziploc identificados",
@@ -2019,10 +2019,10 @@ export function salvarRastreioEtiqueta(dados, unidadeId = "geral") {
   try {
     const novoRastreio = {
       id: `rastreio-din-${Date.now()}`,
-      produto: dados.produto || "Pré-Preparo",
+      produto: dados.produto || "Base",
       produtoId: normalizarTexto(dados.produto || "").replace(/\s+/g, "-"),
       lote: dados.lote || `LOTE-${(dados.codigo || "").slice(0, 4) || "AUTO"}`,
-      localizacao: dados.localizacao || "Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)",
+      localizacao: dados.localizacao || "Câmara Fria 1 — Prateleira 2 (Bases)",
       setor: dados.departamento || "Cozinha & Produção",
       temperatura: dados.conservacao === "Congelado" ? "-18°C" : dados.conservacao === "Resfriado" ? "2°C a 4°C" : "Ambiente",
       quantidade: `${dados.quantidade || 1} ${dados.unidade || "kg"}`,
@@ -2363,7 +2363,7 @@ export function interpretarPerguntaColaborador(pergunta, {
       {
         ordem: 1,
         acao: "Localização & Rastreio de Insumos",
-        detalhe: "Verifique os pré-preparos e cubas etiquetadas na Câmara Fria 1 (Prateleira 2) ou no Estoque Seco.",
+        detalhe: "Verifique as bases e cubas etiquetadas na Câmara Fria 1 (Prateleira 2) ou no Estoque Seco.",
       },
       {
         ordem: 2,

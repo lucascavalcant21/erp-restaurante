@@ -27,7 +27,7 @@ export async function carregarProducao(dbe, hoje) {
   ]);
   const locais = (estoques || []).filter((e) => SLUGS_MARMITARIA.includes(e.slug) && (e.status || "ativo") === "ativo");
   const itens = locais.length ? ((await ler(dbe.from("estoque_itens").select("estoque_id, insumo_id, quantidade_atual").in("estoque_id", locais.map((e) => e.id)), "estoque_itens")) || []) : [];
-  // os ingredientes das fichas já vêm com custo; o resto do cadastro completa (pré-preparos, limpeza…)
+  // os ingredientes das fichas já vêm com custo; o resto do cadastro completa (bases, limpeza…)
   const insumos = new Map(d.insumos);
   for (const i of todosInsumos || []) if (!insumos.has(i.id)) insumos.set(i.id, i); else insumos.set(i.id, { ...i, ...insumos.get(i.id), ficha_tecnica_id: i.ficha_tecnica_id ?? insumos.get(i.id).ficha_tecnica_id });
   const espelho = new Map([...insumos.values()].filter((i) => i.ficha_tecnica_id).map((i) => [i.ficha_tecnica_id, i.id]));

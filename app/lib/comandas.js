@@ -20,7 +20,7 @@ export async function fetchSalao(unidadeId) {
   return { mesas: mesas.data || [], pedidos: pedidos.data || [], error: mesas.error?.message || pedidos.error?.message || null };
 }
 
-/** Só produto ativo e vendável: o que é pré-preparo não aparece para o garçom. */
+/** Só produto ativo e vendável: o que é base não aparece para o garçom. */
 export async function fetchCardapioDoSalao(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: OFFLINE };
   const { data, error } = await supabase.from("produtos")

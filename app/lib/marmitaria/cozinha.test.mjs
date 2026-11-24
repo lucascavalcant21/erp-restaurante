@@ -64,7 +64,7 @@ test("reconhece produto de limpeza", () => {
   assert.equal(ehLimpeza({ departamento: "cozinha", categoria: "Grãos" }), false);
 });
 
-test("conversão: 5 L do molho base viram quanto de molho temperado; outros pré-preparos não aparecem", () => {
+test("conversão: 5 L do molho base viram quanto de molho temperado; outras bases não aparecem", () => {
   const base = { id: "mb", nome: "Molho de tomate", unidade_medida: "l" };
   const sal = { id: "sal", nome: "Sal", unidade_medida: "kg" };
   const temperado = { id: "mt", nome_receita: "Molho de tomate temperado", rendimento_porcoes: 10, rendimento_unidade: "l", eh_base: true,

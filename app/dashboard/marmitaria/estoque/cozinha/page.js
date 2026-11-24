@@ -81,7 +81,7 @@ function Produzir({ inicial, onFechar, aoProduzir }) {
 }
 
 // Conversão (dono, 21/11/2026): "tenho 20 L de molho e converti 5 L em molho de
-// tomate temperado". Escolhe quanto usar do item e em que pré-preparo ele vira;
+// tomate temperado". Escolhe quanto usar do item e em que base ele vira;
 // a produção baixa o item (e os temperos da ficha) e dá entrada no pronto.
 function Converter({ item, onFechar, onEscolher }) {
   const { base } = useMarmitaria();
@@ -94,7 +94,7 @@ function Converter({ item, onFechar, onEscolher }) {
       <Campo rotulo={`Quanto vai usar (${un})`}><CampoNumero valor={usar} onChange={setUsar} sufixo={un} placeholder="Ex.: 5" /></Campo>
       {q > item.saldo && <Aviso tipo="alerta" className="mt-2">Tem só {num(item.saldo)} {un} no estoque.</Aviso>}
       {!opcoes.length ? (
-        <Aviso tipo="alerta" className="mt-3">Nenhum pré-preparo leva {item.ins.nome}. Crie um em <Link href="/dashboard/marmitaria/estoque/producoes" className="font-semibold text-hf-accent">Produções</Link> (ex.: Molho de tomate temperado) com {item.ins.nome} na ficha.</Aviso>
+        <Aviso tipo="alerta" className="mt-3">Nenhuma base leva {item.ins.nome}. Crie um em <Link href="/dashboard/marmitaria/estoque/producoes" className="font-semibold text-hf-accent">Produções</Link> (ex.: Molho de tomate temperado) com {item.ins.nome} na ficha.</Aviso>
       ) : (
         <div className="mt-3 space-y-2">
           <p className="text-xs font-semibold text-hf-text-2">Vira o quê?</p>

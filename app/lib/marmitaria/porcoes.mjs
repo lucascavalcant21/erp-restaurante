@@ -71,7 +71,7 @@ export function baixaDaRepesagem(saldo, pesado) {
 }
 
 /**
- * Quanto do pré-preparo dá para FAZER com a matéria-prima do estoque (dono:
+ * Quanto da base dá para FAZER com a matéria-prima do estoque (dono:
  * "60 g de sassami + trigo + panko + 30 g de água viram um frango empanado de
  * 144 g; com o trigo e o panko que tenho, dá para quantos frangos?"). A receita
  * é do lote (fichas_ingredientes, na unidade do cadastro) e rende

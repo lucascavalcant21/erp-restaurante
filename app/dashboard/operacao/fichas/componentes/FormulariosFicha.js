@@ -23,7 +23,7 @@ function Identificacao({ cfg, form, mudar, categorias, onGerenciarCategorias, co
         <CampoFoto imagem={form.imagem} onChange={imagem => mudar({ imagem })} />
         <div className="min-w-0 flex-1">
           <label htmlFor="ficha-nome" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">
-            {cfg.id === "prato" ? "Nome do prato" : "Nome do pré-preparo"}
+            {cfg.id === "prato" ? "Nome do prato" : "Nome da base"}
           </label>
           <input id="ficha-nome" value={form.nome_receita} onChange={e => mudar({ nome_receita: e.target.value })} autoComplete="off"
             placeholder={cfg.id === "prato" ? "Ex.: Picanha na brasa" : "Ex.: Tucupi reduzido"}

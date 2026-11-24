@@ -2,7 +2,7 @@
 //
 // "Eu quero 20 etiquetas maniçoba, 30 de jambu" → [{20, maniçoba}, {30, jambu}]
 // → cada nome casado com o que a tela de Etiquetas lista (produtos do estoque e
-// pré-preparos) → a tela abre com a fila montada. Quem imprime é a tela, depois
+// bases) → a tela abre com a fila montada. Quem imprime é a tela, depois
 // da prévia e da confirmação de sempre: imprimir etiqueta dá entrada de produção
 // no estoque, então nada é impresso direto pela conversa.
 //
@@ -89,7 +89,7 @@ export function pedeEtiquetas(texto) {
 
 /**
  * Casa um termo com o catálogo da tela de etiquetas ({ nome, origem }).
- * Ordem: nome igual > nome que começa com o termo > pré-preparo com todas as
+ * Ordem: nome igual > nome que começa com o termo > base com todas as
  * palavras > qualquer nome com todas as palavras (o mais curto). Empate no
  * topo volta como ambíguo: quem chama pergunta, nunca escolhe sozinho.
  * @returns {{ item: object|null, opcoes: object[] }}
@@ -110,7 +110,7 @@ export function casarNoCatalogo(catalogo, termo) {
     let p = 0;
     if (ts.join(" ") === exato) p = 100;
     else if (alvo.every((a, i) => ts[i] === a)) p = 80;
-    else if (alvo.every((a) => ts.includes(a) || ts.some((x) => a.length >= 4 && x.startsWith(a)))) p = (c.origem === "Pré-preparo" ? 70 : 60) - Math.min(ts.length, 9);
+    else if (alvo.every((a) => ts.includes(a) || ts.some((x) => a.length >= 4 && x.startsWith(a)))) p = (c.origem === "Base" ? 70 : 60) - Math.min(ts.length, 9);
     if (p) pontos.push({ c, p });
   }
   if (!pontos.length) return { item: null, opcoes: [] };

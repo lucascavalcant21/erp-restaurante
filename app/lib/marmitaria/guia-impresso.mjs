@@ -26,7 +26,7 @@ export function htmlDosGuias(guias = []) {
   ${g.faltando.length ? `<p class="falta">Falta cadastrar: ${esc(g.faltando.join(", "))}.</p>` : ""}
 </section>`;
   }).join("");
-  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${guias.some((g) => g?.semEmbalagens) ? "Ficha de pré-preparo" : "Guia de montagem"}</title><style>
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${guias.some((g) => g?.semEmbalagens) ? "Ficha de base" : "Guia de montagem"}</title><style>
 @page{size:A4;margin:12mm}
 body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0}
 .folha{page-break-after:always;padding:4px}

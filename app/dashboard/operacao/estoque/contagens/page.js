@@ -144,7 +144,7 @@ function Painel({ unidade }) {
             </div>
             <label className="block"><span className="text-xs font-bold uppercase text-fg">Observação (opcional)</span>
               <input value={nova.nota} onChange={(e) => setNova({ ...nova, nota: e.target.value })} className="mt-1 w-full h-12 px-3 rounded-xl border border-line bg-white font-bold" /></label>
-            <p className="text-xs text-fg">Um inventário cobre a unidade inteira: cada pessoa escolhe o local (Cozinha, Bar, Pré-preparos, Outros) na hora de contar.</p>
+            <p className="text-xs text-fg">Um inventário cobre a unidade inteira: cada pessoa escolhe o local (Cozinha, Bar, Bases, Outros) na hora de contar.</p>
             <button disabled={processando} className="w-full h-12 bg-hf-accent text-white font-black rounded-2xl disabled:opacity-60">{processando ? "Abrindo..." : "Começar a contar"}</button>
           </form>
         )}

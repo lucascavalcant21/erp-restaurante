@@ -4,7 +4,7 @@
 // componente mais caro? É pra gente reajustar."
 //
 // Do preço que o cliente paga num app, quanto vai para cada coisa:
-// cada ingrediente e pré-preparo, cada embalagem, o app, o imposto, a equipe,
+// cada ingrediente e base, cada embalagem, o app, o imposto, a equipe,
 // cada conta fixa, cada custo variável e, no fim, o lucro. Conta
 // determinística (as mesmas funções da Precificação: custoDaMarmita,
 // resultadoPorCanal, custosEmbutidos). Ingrediente, embalagem e taxa: REAL do

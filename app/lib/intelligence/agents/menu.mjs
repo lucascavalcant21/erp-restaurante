@@ -19,7 +19,7 @@ const escolha = (texto, opcoes) => ({ ...r(texto), tipo: "pergunta", pergunta: {
 export const AREAS = Object.freeze({
   cozinha: { rotulo: "Cozinha", texto: "Cozinha: o que você vai fazer?", opcoes: [
     op("Fazer um prato", "Pratos da cozinha"),
-    op("Fazer uma receita base (pré-preparo)", "Bases da cozinha"),
+    op("Fazer uma base", "Bases da cozinha"),
     op("Onde vai um ingrediente?", "Atalhos: ingrediente"),
     op("Quanto tenho de um produto?", "Atalhos: saldo"),
     op("Registrar uma perda", "Atalhos: perda"),

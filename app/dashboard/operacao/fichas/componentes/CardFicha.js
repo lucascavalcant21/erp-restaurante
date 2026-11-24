@@ -203,7 +203,7 @@ function DetalheFinanceiro({ ficha, resumo, rendimentoTexto, podeVerCustos }) {
             <>
               <Linha rotulo="Custo total do lote" valor={fmtReais(resumo.custoReceita)} natureza="calculado" />
               <Linha rotulo={`Custo por ${unRend}`} valor={fmtReais(resumo.custoPorcaoReceita)} destaque natureza="calculado"
-                nota="É este valor que entra nos pratos que usam este pré-preparo." />
+                nota="É este valor que entra nos pratos que usam esta base." />
             </>
           ) : (
             <>

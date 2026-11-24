@@ -128,7 +128,7 @@ export function planilhaDaCozinha({ planoHoje = [], planoAmanha = [], produzido 
 /**
  * Conversão (dono, 21/11/2026: "tenho 20 L de molho, converti 5 L em molho de
  * tomate temperado"): para um item do estoque e quanto vai usar dele, os
- * pré-preparos que levam esse item e quanto cada um rende. A baixa dos outros
+ * bases que levam esse item e quanto cada um rende. A baixa dos outros
  * ingredientes (temperos) sai proporcional, pela própria ficha (baixasDoPreparo).
  */
 export function conversoesDoItem({ insumoId, usar, prePreparos = [], fichas = [] }) {

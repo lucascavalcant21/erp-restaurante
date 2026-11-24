@@ -136,7 +136,7 @@ function vezesDaFicha(ficha, quantidade) {
 /**
  * A conta da produção. Cada alvo explode pela ficha; o que um alvo usa de
  * outro alvo (parmegiana usa empanado) sai da produção planejada, não do
- * estoque nem de uma produção a mais; pré-preparo que não é alvo (molho)
+ * estoque nem de uma produção a mais; base que não é alvo (molho)
  * desconta o estoque e o resto vira "fabricar".
  *
  * @param {object} p
@@ -145,7 +145,7 @@ function vezesDaFicha(ficha, quantidade) {
  * @param {Map}   p.marmitas id → marmita com itens/embalagens (marmita de verdade usa a embalagem dela)
  * @param {Map}   p.insumos  id → insumo
  * @param {Map}   p.saldo    insumo_id → saldo na unidade do cadastro (estoques da marmitaria)
- * @param {Map}   p.espelho  ficha_id do pré-preparo → insumo_id do item de estoque dele
+ * @param {Map}   p.espelho  ficha_id da base → insumo_id do item de estoque dele
  */
 export function contaDaProducao({ alvos = [], fichas = [], marmitas = new Map(), insumos = new Map(), saldo = new Map(), espelho = new Map() }) {
   const avisos = [];
@@ -212,7 +212,7 @@ export function estoqueDasCoisas({ texto, insumos = new Map(), saldo = new Map()
 }
 
 /**
- * Quanto rende vender o que está pronto: as marmitas que usam o pré-preparo,
+ * Quanto rende vender o que está pronto: as marmitas que usam a base,
  * quantas dá para montar só com ele e o lucro de cada (raio-x). ESTIMATIVA:
  * supõe que o resto da marmita existe e que tudo é vendido no app do raio-x.
  * @param {(marmita) => {valido, lucro, canal, preco}} raioX

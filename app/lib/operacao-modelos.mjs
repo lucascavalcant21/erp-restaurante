@@ -31,7 +31,7 @@ export const MODELOS_PROCESSO = [
       {
         titulo: "Insumos",
         itens: [
-          { titulo: "Pré-preparos do dia conferidos", tipo: "FEITO_NAO_FEITO" },
+          { titulo: "Bases do dia conferidos", tipo: "FEITO_NAO_FEITO" },
           { titulo: "Produtos vencidos ou sem etiqueta", tipo: "SIM_NAO", resposta_esperada: "nao", exige_comentario: true },
         ],
       },

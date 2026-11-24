@@ -1,7 +1,7 @@
 "use client";
 
-// Busca da marmita: pré-preparos e produtos do cadastro da marmitaria, ou embalagens.
-// Tudo é da própria marmitaria: produto, pré-preparo e embalagem podem ser
+// Busca da marmita: bases e produtos do cadastro da marmitaria, ou embalagens.
+// Tudo é da própria marmitaria: produto, base e embalagem podem ser
 // criados aqui, sem sair da ficha.
 
 import { useMemo, useState } from "react";
@@ -35,7 +35,7 @@ export default function BuscaItens({ base, modo = "ingrediente", filtroInicial =
       const custo = custoDeProduzirFicha(f, base.fichas);
       const un = f.rendimento_unidade || "un";
       return { tipo: "pre_preparo", id: f.id, nome: f.nome_receita,
-        detalhe: rend > 0 && custo > 0 ? `Pré-preparo · rende ${rend} ${un} · ${brl(custo / rend)}/${un}` : "Pré-preparo · sem custo ou rendimento" };
+        detalhe: rend > 0 && custo > 0 ? `Base · rende ${rend} ${un} · ${brl(custo / rend)}/${un}` : "Base · sem custo ou rendimento" };
     });
     const ings = base.insumosLista.filter((i) => !i.ficha_tecnica_id && !ehEmbalagem(i) && !fora.has(i.id) && casa(i.nome)).slice(0, 30).map((i) => {
       const usos = usoPorInsumo.get(i.id) || 0;
@@ -52,7 +52,7 @@ export default function BuscaItens({ base, modo = "ingrediente", filtroInicial =
       <div className="relative p-2">
         <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-hf-muted" />
         <input autoFocus value={termo} onChange={(e) => setTermo(e.target.value)} className={`${inputCls} pl-9`}
-          placeholder={modo === "embalagem" ? "Buscar embalagem (marmitex, tampa, sacola…)" : semPrePreparos ? "Buscar ingrediente (arroz, frango, queijo…)" : "Buscar ingrediente ou pré-preparo (arroz, frango…)"} />
+          placeholder={modo === "embalagem" ? "Buscar embalagem (marmitex, tampa, sacola…)" : semPrePreparos ? "Buscar ingrediente (arroz, frango, queijo…)" : "Buscar ingrediente ou base (arroz, frango…)"} />
       </div>
       <ul className="max-h-72 overflow-y-auto border-t border-hf-border">
         {resultados.map((r) => (
@@ -77,7 +77,7 @@ export default function BuscaItens({ base, modo = "ingrediente", filtroInicial =
             </button>
             {onCriarPrePreparo && (
               <button type="button" onClick={() => onCriarPrePreparo?.(textoCriar)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg px-3 text-sm font-semibold text-hf-accent hover:bg-hf-accent/5">
-                <Plus size={15} /> Novo pré-preparo{textoCriar ? ` “${textoCriar}”` : ""}
+                <Plus size={15} /> Nova base{textoCriar ? ` “${textoCriar}”` : ""}
               </button>
             )}
           </>

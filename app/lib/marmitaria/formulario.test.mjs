@@ -68,7 +68,7 @@ test("quantidade para a tela", () => {
   assert.deepEqual(quantidadeParaTela(3, "un"), { qtd: "3", un: "un" });
 });
 
-test("catálogo de pré-preparos: cozinha antes do bar, por categoria; custo por kg da ficha", async () => {
+test("catálogo de bases: cozinha antes do bar, por categoria; custo por kg da ficha", async () => {
   const { catalogoDePrePreparos, atalhosDeQuantidade } = await import("./formulario.mjs");
   const preps = [
     { id: "a", nome_receita: "Arroz cozido", departamento: "cozinha", categoria: "Guarnições", rendimento_porcoes: 2, rendimento_unidade: "kg" },

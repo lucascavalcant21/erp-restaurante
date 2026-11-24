@@ -151,7 +151,7 @@ export function pendenciasDoEvento(evento = {}, resumo, hojeIso) {
 // ─── Lista de compras ───────────────────────────────────────────────────────
 
 /* O que comprar para o evento: cada prato × porções servidas, descendo em
- * TODAS as subfichas (o pré-preparo é feito na hora a partir do cru), com a
+ * TODAS as subfichas (a base é feito na hora a partir do cru), com a
  * quantidade BRUTA (perda do ingrediente) na unidade do cadastro e o custo de
  * compra. Ingredientes iguais em pratos diferentes somam numa linha só.
  */
@@ -186,7 +186,7 @@ export function listaDeComprasDeFichas(entradas = [], fichas = []) {
         acc.set(k, atual);
       } else if (fi.subficha_id) {
         const base = porId.get(fi.subficha_id);
-        if (!base) { avisos.push(`Pré-preparo removido em ${ficha.nome_receita}.`); continue; }
+        if (!base) { avisos.push(`Base removida em ${ficha.nome_receita}.`); continue; }
         const rend = pos(base.rendimento_porcoes) || 1;
         const q = pos(fi.quantidade) * receitas * (1 + pos(fi.fator_correcao) / 100);
         visitar(base, q / rend, caminho);

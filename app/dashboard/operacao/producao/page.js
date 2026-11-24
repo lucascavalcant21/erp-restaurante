@@ -443,7 +443,7 @@ function ProducaoRunner() {
                   <h2 className="mb-3 text-base font-black text-fg">Últimas produções feitas</h2>
                   {producoes.length === 0 ? <p className="text-sm font-bold text-fg">Ainda não há produção registrada.</p> : (
                      <div className="space-y-2">
-                        {producoes.slice(0, 6).map(item => <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2"><span className="min-w-0"><strong className="block truncate text-sm text-fg-soft">{item.fichas_tecnicas?.nome_receita || "Pré-preparo"}</strong><small className="font-bold text-subtle">{new Date(item.created_at).toLocaleString("pt-BR")} · {item.colaboradores?.nome || "Responsável não informado"}</small></span><strong className="shrink-0 text-sm text-accent">{Number(item.quantidade_produzida || 0).toLocaleString("pt-BR")} porções</strong></div>)}
+                        {producoes.slice(0, 6).map(item => <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2"><span className="min-w-0"><strong className="block truncate text-sm text-fg-soft">{item.fichas_tecnicas?.nome_receita || "Base"}</strong><small className="font-bold text-subtle">{new Date(item.created_at).toLocaleString("pt-BR")} · {item.colaboradores?.nome || "Responsável não informado"}</small></span><strong className="shrink-0 text-sm text-accent">{Number(item.quantidade_produzida || 0).toLocaleString("pt-BR")} porções</strong></div>)}
                      </div>
                   )}
                </div>

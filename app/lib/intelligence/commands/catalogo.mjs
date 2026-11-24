@@ -321,6 +321,32 @@ export const INTENCOES = Object.freeze([
     frases: [["cadastrar", "cadastra", "cadastre", "registrar", "contratei", "contratar", "admitir", "novo funcionario", "nova funcionaria"], ["funcionario", "funcionarios", "funcionaria", "funcionarias", "colaborador", "colaboradores", "colaboradora"]],
     proibidas: ["ponto", "atrasado", "folga", "escala", "uniforme"], peso: 14,
   },
+  // 24/11/2026: RH pelo Jhon (dono: "folga, domingo, feriado, ponto errado, funcionário doente… o Jhon já coloca para mim").
+  // Sempre com prévia e Confirmar; pergunta ("quem está de folga?") continua na escala.
+  {
+    id: "rh.dar_folga", tipo: "acao", acao: "rh.dayOff", agentes: ["operacoes"],
+    descricao: "Dar folga a um ou mais funcionários em um dia ou período (ex.: 'dá folga pra Eduarda amanhã', 'folga do Bruno e da Ana no domingo').",
+    frases: [["da folga", "dar folga", "de folga", "dei folga", "lanca folga", "lancar folga", "lanca uma folga", "marca folga", "marcar folga", "marca uma folga", "coloca folga", "colocar folga", "coloca de folga", "folga pra", "folga para", "folga pro", "folga da", "folga do", "folga de domingo", "vai folgar", "folgar", "tirar folga", "dia de folga", "folgas pra", "folgas para"]],
+    proibidas: ["quem", "quantas", "quantos", "quais", "qual", "quando", "esta de folga", "estao de folga", "escala de folga", "tirar a folga", "tira a folga", "cancelar", "cancela", "remover", "apagar"], peso: 13,
+  },
+  {
+    id: "rh.atestado", tipo: "acao", acao: "rh.sickLeave", agentes: ["operacoes"],
+    descricao: "Funcionário doente: lançar atestado (não conta como falta) do dia e pelos dias ditos (ex.: 'o Bruno está doente, 2 dias', 'atestado da Eduarda de hoje a sexta').",
+    frases: [["doente", "atestado", "passou mal", "passando mal", "afastado", "afastada", "licenca medica", "esta mal", "ta mal"]],
+    proibidas: ["quem", "quantos", "quantas", "quais", "foto", "anexar", "anexo", "cid", "diagnostico", "remedio"], peso: 13,
+  },
+  {
+    id: "rh.feriado", tipo: "acao", acao: "rh.holiday", agentes: ["operacoes"],
+    descricao: "Lançar um feriado da unidade (ex.: 'lança feriado dia 8 de dezembro', 'dia 20 é feriado de Consciência Negra').",
+    frases: [["feriado"]],
+    proibidas: ["quem", "quais", "qual", "quantos", "quando", "proximo feriado", "tem feriado", "e feriado?"], peso: 12,
+  },
+  {
+    id: "rh.corrigir_ponto", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Corrigir o ponto de um funcionário (bateu errado, esqueceu de bater): abre a correção já na pessoa e no dia (ex.: 'corrigir o ponto da Eduarda de ontem', 'o Bruno esqueceu de bater o ponto').",
+    frases: [["ponto"], ["corrigir", "corrige", "corrija", "consertar", "conserta", "arrumar", "arruma", "ajustar", "ajusta", "errado", "errada", "esqueceu", "esqueci", "nao bateu", "bateu errado", "bateu o ponto errado"]],
+    proibidas: ["quem", "quantos", "quantas", "posicionamento"], peso: 13,
+  },
   // 14/11/2026: lista de compras pelo Jhon e "comprei tudo, faltou isso"
   {
     id: "compras.lista_comprei", tipo: "pergunta", agentes: ["compras"],

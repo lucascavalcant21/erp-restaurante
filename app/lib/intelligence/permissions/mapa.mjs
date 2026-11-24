@@ -48,6 +48,8 @@ export const PERMISSOES = Object.freeze({
   // cadastros do delivery pelo Jhon: apps e custos fixos (Custos e apps) e funcionários (Equipe / RH)
   configurar_delivery: ["marmitaria.settings.edit"],
   cadastrar_funcionario: ["marmitaria.hr.create", "rh.employees.create"],
+  // RH pelo Jhon (folga, atestado, feriado; 24/11/2026): quem lança na tela Ações rápidas do RH
+  rh_rapido: ["rh.quick.edit", "rh.employees.edit"],
   organizador_gravar: ["marmitaria.recipes.edit", "marmitaria.recipes.create"],
   // produção do dia (quanto de cada ingrediente, o que fabricar, o que comprar): quem vê estoque e produção da marmitaria
   producao_marmitaria: ["marmitaria.stock.view", "marmitaria.recipes.view"],
@@ -84,6 +86,7 @@ export const ROTULO_CAPACIDADE = Object.freeze({
   organizador_ver: "organizador de plataforma",
   configurar_delivery: "cadastrar apps e custos fixos do delivery",
   cadastrar_funcionario: "cadastrar funcionário",
+  rh_rapido: "folga, atestado e feriado",
   organizador_gravar: "montar a vitrine da plataforma",
   producao_marmitaria: "produção da marmitaria",
   aprovar_plano: "programar o plano do dia",

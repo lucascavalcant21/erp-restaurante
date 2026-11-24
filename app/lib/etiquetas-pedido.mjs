@@ -199,3 +199,30 @@ export function agruparHabituais(linhas, limite = 15) {
     .sort((a, b) => b.vezes - a.vezes || b.etiquetas - a.etiquetas || a.nome.localeCompare(b.nome, "pt-BR"))
     .slice(0, limite);
 }
+
+// ─── Etiqueta guiada pelo Nico (dono, 24/11/2026) ────────────────────────────
+// "etiqueta" → quem está etiquetando → aberto ou fechado → quais produtos →
+// validade → prévia pronta para imprimir. A tela de Etiquetas recebe tudo na URL.
+
+/** Validade padrão pelo nome, pelas categorias de validade da casa (sem categoria: 3 dias). */
+export function validadePadraoEtiqueta(nome, categorias = []) {
+  const n = String(nome || "").toLocaleLowerCase("pt-BR");
+  const cat = (categorias || []).find((c) => c?.nome && n.includes(String(c.nome).toLocaleLowerCase("pt-BR")));
+  return cat && Number.isInteger(Number(cat.dias)) ? Number(cat.dias) : 3;
+}
+
+/** URL da tela de Etiquetas com a fila, quem etiqueta, aberto/fechado e a prévia já aberta. */
+export function urlEtiquetaGuiada({ itens = [], responsavelId = "", tipo = "aberto" } = {}) {
+  const base = loteParaUrl(itens);
+  const extra = new URLSearchParams();
+  if (responsavelId) extra.set("resp", String(responsavelId));
+  extra.set("tipo", tipo === "fechado" ? "fechado" : "aberto");
+  extra.set("imprimir", "1");
+  return `${base}&${extra.toString()}`;
+}
+
+/** "etiqueta", "etiquetas", "imprimir etiqueta", "quero imprimir etiquetas" (sem produto nem quantidade). */
+export function ehPedidoDeEtiquetaSimples(texto) {
+  const t = String(texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[?!.]+$/g, "").trim();
+  return /^((quero|vou|preciso|vamos)\s+)?((imprimir|fazer|tirar)\s+)?(uma\s+|as\s+)?etiquetas?$/.test(t);
+}

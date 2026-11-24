@@ -81,7 +81,7 @@ export function metasDosEventos(eventos = [], { mes, metaLucroMes = null, metaFa
   const composicao = receitaComp > 0 ? [
     { id: "cmv", rotulo: "Cardápio (CMV)", valor: fatia("cmv") },
     { id: "equipe", rotulo: "Equipe", valor: fatia("equipe") },
-    { id: "extras", rotulo: "Aluguel e extras", valor: fatia("extras") },
+    { id: "extras", rotulo: "Espaço e decoração", valor: fatia("extras") },
     { id: "taxas", rotulo: "Impostos, taxas e comissões", valor: fatia("taxas") },
     { id: "prolabore", rotulo: "Pró-labore", valor: fatia("prolabore") },
     { id: "lucro", rotulo: "Lucro líquido", valor: fatia("lucro") },

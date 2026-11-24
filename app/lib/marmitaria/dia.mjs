@@ -3,6 +3,7 @@
 // tem validade curta e quem decide se ela ainda serve é a equipe.
 
 import { MODELOS_CANAL, canalConfigurado, normalizarCanal, r2, resultadoPorCanal } from "./nucleo.mjs";
+import { grupoDaCategoria } from "./cardapio.mjs";
 
 const numero = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const doDia = (data, dia) => String(data || "").slice(0, 10) === dia;
@@ -75,13 +76,18 @@ const moeda = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", curr
 export function textoDoCardapio({ marmitas = [], panorama, canal, dataTexto }) {
   const linhas = panorama?.linhas || [];
   const algumaFeita = linhas.some((l) => l.temProducao);
-  const itens = marmitas.filter((m) => m.ativo !== false).map((m) => {
+  // Comidas e bebidas separadas (dono, 21/11/2026); bebida não tem produção do dia.
+  const linha = (m, bebida) => {
     const l = linhas.find((x) => x.id === m.id);
     const preco = precoNoCanal(m, canal);
-    if (!preco || (algumaFeita && !(l?.restam > 0))) return null;
+    if (!preco || (!bebida && algumaFeita && !(l?.restam > 0))) return null;
     return `• ${m.nome_comercial || m.nome_receita}: ${moeda(preco)}`;
-  }).filter(Boolean);
-  return itens.length ? `Marmitas de hoje (${dataTexto})\n${itens.join("\n")}` : null;
+  };
+  const ativas = marmitas.filter((m) => m.ativo !== false);
+  const comidas = ativas.filter((m) => grupoDaCategoria(m.categoria) !== "bebida").map((m) => linha(m, false)).filter(Boolean);
+  const bebidas = ativas.filter((m) => grupoDaCategoria(m.categoria) === "bebida").map((m) => linha(m, true)).filter(Boolean);
+  if (!comidas.length) return null;
+  return `Marmitas de hoje (${dataTexto})\n${comidas.join("\n")}${bebidas.length ? `\n\nBebidas\n${bebidas.join("\n")}` : ""}`;
 }
 
 export const CANAL_ONLINE = "cardapio_online";

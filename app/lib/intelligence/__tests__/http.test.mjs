@@ -165,3 +165,16 @@ test("pergunta respondida vira feedback ESTRUTURADO com a evidência recalculada
   assert.ok(linha.contexto.evidencias.length > 0);
   assert.ok(JSON.stringify(linha.contexto).length <= 3500);
 });
+
+test("o Nico só transmite: quem não é o dono não começa nem confirma ação pela conversa (dono, 17/11/2026)", async () => {
+  const { TEXTO_NICO_SO_TRANSMITE } = await import("../actions/servico.mjs");
+  const corpo = { texto: "Perdi 2 kg de arroz", chave: "chave-http-nico-01" };
+  const equipe = await atenderInteligencia(pedido({ token: "tok-equipe", corpo }), ask, { injecao: injecao() });
+  const rEq = await equipe.json();
+  assert.equal(rEq.tipo, "bloqueado");
+  assert.equal(rEq.texto, TEXTO_NICO_SO_TRANSMITE);
+  const confirmar = await atenderInteligencia(pedido({ token: "tok-equipe", corpo: {} }), async ({ servicoAcoes }) => ({ corpo: await servicoAcoes.confirmar({ acaoId: "00000000-0000-4000-8000-000000000001" }) }), { injecao: injecao() });
+  assert.equal((await confirmar.json()).texto, TEXTO_NICO_SO_TRANSMITE);
+  const dono = await atenderInteligencia(pedido({ corpo: { ...corpo, chave: "chave-http-nico-02" } }), ask, { injecao: injecao() });
+  assert.notEqual((await dono.json()).texto, TEXTO_NICO_SO_TRANSMITE, "o Jhon (dono) continua lançando");
+});

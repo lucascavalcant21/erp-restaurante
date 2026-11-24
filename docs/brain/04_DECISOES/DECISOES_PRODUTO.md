@@ -208,3 +208,25 @@ Decisões:
 - "Faz sentido" na Precificação vira **"Margem alcançada"** (nome profissional, como na referência).
 - **Assistente clicável** (pedido do dono, 08/11/2026): o funcionário começa por botões de área (Cozinha, Bar, Salão, Estoque) e escolhe em listas; digitar fica para o que não dá para listar, com o comando já pronto. "Adaptar a receita ao que tem": o ingrediente que mais falta limita a receita inteira (fator = menor "tenho ÷ preciso"), conta feita no aparelho por código testado; ingrediente que falta sai da conta e a tela avisa, e a sugestão de substituto (se pedida) vem do agente geral marcada como SUGESTÃO. O salão ainda não tem procedimentos cadastrados (0 processos, 0 treinamentos): a orientação é a padrão (SUGESTÃO) até o dono cadastrar o jeito da casa.
 - **Procedimentos da casa** (pedido do dono, 08/11/2026, "Quero"): tela `Inteligência > Procedimentos da casa` (`/dashboard/inteligencia/procedimentos`). Grava na Operação Inteligente que já existe (`op_processos` com `categoria = 'procedimento'`, seções "Passo a passo" e "Chame o gerente quando"), sem migração; RLS por unidade. Edita quem tem `dashboard.intelligence.settings` ou acesso à Operação Inteligente; os outros só leem. Os 9 modelos (montar a mesa, montar o jardim, reclamação, demora, alergia, erro na conta, bebida derramada, cliente passou mal, item acabou) são rascunhos: só valem depois de salvos. No Assistente, a situação do salão procura primeiro o procedimento salvo (casamento de palavras do nome, determinístico, sem modelo de linguagem) e responde com o texto da casa (REAL, bloco "passos"); sem cadastro, a orientação padrão do agente geral (SUGESTÃO) com o botão "Cadastrar o jeito da casa". Procedimentos não aparecem na lista de processos da Operação Inteligente (são texto para o Assistente, não checklist de execução).
+
+## DP — O Jhon recebe e altera; o Nico só transmite o que o dono permite (17/11/2026, pedido do dono)
+
+- Dono: "o Jhon recebe informações e alterações; o Nico só transmite e não altera nada" e "só transmite o que eu permito".
+- **No servidor** (`app/lib/intelligence/server/http.mjs` + `acoesSomenteLeitura` em `actions/servico.mjs`): quem não é o dono (Nico) não começa, não continua e não confirma nenhuma ação pela conversa (perda, entrada, nota, ficha, marmita, cardápio de concorrente, plano de produção). Resposta: "O Nico só passa informação e não altera nada…".
+- **O que o Nico transmite** é filtrado pelas permissões do perfil de quem pergunta, que o dono define em Usuários (o "sim" é do banco). O Nico continua sem falar de dinheiro, custo ou gestão.
+- As **telas** seguem as permissões de sempre (ex.: a equipe marca tarefa feita, bate ponto, imprime etiqueta).
+- Na tela do Nico somem o + (nota/cardápio) e a câmera.
+- Evidência: TESTADO EM MOCK (`__tests__/http.test.mjs`). Preview: NÃO VALIDADO.
+
+## DP — Marmitaria e Eventos no azul; Grátis com 1 negócio (17/11/2026, pedido do dono)
+
+- "Não mudou o visual para o azul; sem esse visual antigo": a identidade vermelha e preta (DP de 08/11) saiu. `.tema-gestao` agora aplica a paleta azul do novo modelo (marinho #0B2456, azul #3E7DD6, fundo #F7F8FA). Branch `hefisto-teste`.
+- Planos: "no grátis é só um negócio e nos outros são mais de um". `limites.negocios` (Grátis 1, Completo sem limite); na troca do topo, no Grátis, os outros negócios aparecem com cadeado e levam à assinatura.
+- Pendente de decisão: o nome do módulo "Marmitaria" na troca do topo e no menu (o dono disse "a marmitaria virou delivery").
+
+## 17/11/2026 — O "sistema de teste" vira o sistema novo do restaurante
+
+- Dono: "não vai para o restaurante (app antigo); fica no sistema de teste. Chama o sistema de teste de sistema novo do restaurante, não é mais teste. O sistema de teste eu chamo outro."
+- Branch `hefisto-teste` + Supabase `hefisto-staging` = **sistema novo do restaurante** (app "Héfisto Novo", selo "Sistema novo do restaurante" no login; empresa "Hefisto", unidade "Seldeestrela", Delivery, Eventos). O ambiente técnico segue `staging` (a trava contra o banco antigo continua).
+- `main` + app.hefisto.com.br + Supabase `sezccspqxgklicfndwxx` = sistema antigo: não recebe nada sem ordem expressa. Em 17/11 a publicação no antigo foi CANCELADA pelo dono (nenhum merge feito). O antigo não tem 6 migrações que o código novo usa (CONC-1, GASTOS-1, PLANO-DIA-1, PONTO-PIN-1, RH-FICHA-1, OP-CONTEUDO-1).
+- Um novo "sistema de teste" separado ainda não existe: criar quando o dono pedir.

@@ -42,6 +42,8 @@ export default function EventosKanbanPage() {
   const [modalAberto, setModalAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const [mes, setMes] = useState(""); // "" = todos; "YYYY-MM" = mês da data do evento
+  // Categoria (dono, 21/11/2026): casamento, aniversário, corporativo…
+  const [categoria, setCategoria] = useState("");
   const [arrastando, setArrastando] = useState(null);
   const [alvo, setAlvo] = useState(null);
   const [erroMover, setErroMover] = useState("");
@@ -89,7 +91,10 @@ export default function EventosKanbanPage() {
     const { error } = await supabase.from("eventos").update({ funil_status: etapa }).eq("id", eventoId);
     if (error) { setEventos(l => l.map(e => e.id === eventoId ? antes : e)); setErroMover(`Não mudou a etapa: ${error.message}`); }
   };
-  const visiveis = !termo ? doMes : doMes.filter(e => {
+  const catDe = (e) => String(e.operacao_detalhes?.orcamento?.cliente?.categoria || "").trim() || "Sem categoria";
+  const categoriasUsadas = [...new Set(eventos.map(catDe))].sort((a, b) => (a === "Sem categoria") - (b === "Sem categoria") || a.localeCompare(b, "pt-BR"));
+  const daCategoria = !categoria ? doMes : doMes.filter((e) => catDe(e) === categoria);
+  const visiveis = !termo ? daCategoria : daCategoria.filter(e => {
     const data = dataTxt(e.data_evento);
     return casaBusca([e.nome, e.cliente_nome, e.cliente_telefone, data], termo);
   });
@@ -158,6 +163,16 @@ export default function EventosKanbanPage() {
             className="min-h-[44px] w-full rounded-xl border border-hf-border bg-hf-surface pl-9 pr-3 text-sm text-hf-text outline-none focus:border-hf-accent focus:ring-2 focus:ring-hf-accent/15" />
         </div>
       </div>
+      {categoriasUsadas.length > 1 && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Categoria do evento">
+          {["", ...categoriasUsadas].map((c) => (
+            <button key={c || "todas"} type="button" aria-pressed={categoria === c} onClick={() => setCategoria(c)}
+              className={`min-h-[40px] rounded-full border px-3 text-sm font-semibold ${categoria === c ? "border-hf-menu bg-hf-menu text-white" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>
+              {c || "Todas as categorias"} <span className="tabular-nums opacity-70">({c ? doMes.filter((e) => catDe(e) === c).length : doMes.length})</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {erro && <Aviso>{erro}</Aviso>}
       {erroMover && <Aviso>{erroMover}</Aviso>}

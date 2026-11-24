@@ -8,8 +8,8 @@ import { CCT_FOZ_2026_2027 } from "./trabalhista/cct-foz-2026-2027.mjs";
 
 const hoje = new Date("2026-10-13T12:00:00Z");
 
-test("as 10 abas pedidas, na ordem", () => {
-  assert.deepEqual(ABAS_PRONTUARIO.map((a) => a.rotulo), ["Resumo", "Dados pessoais", "Contratos e vínculos", "Jornada, escala e ponto",
+test("as 11 abas, na ordem (a Ficha e ocorrências entrou em 14/11/2026)", () => {
+  assert.deepEqual(ABAS_PRONTUARIO.map((a) => a.rotulo), ["Resumo", "Ficha e ocorrências", "Dados pessoais", "Contratos e vínculos", "Jornada, escala e ponto",
     "Remuneração e benefícios", "Pagamentos e recibos", "Férias e afastamentos", "Documentos e treinamentos", "Avaliação profissional", "Histórico e auditoria"]);
 });
 

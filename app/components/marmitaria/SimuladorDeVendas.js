@@ -9,6 +9,7 @@ import { useMarmitaria } from "./contexto";
 import { Aviso, Campo, CampoNumero, Secao, Selo, brl, lerNumero, pctTxt } from "./ui";
 import { ehMei } from "../../lib/marmitaria/cardapio.mjs";
 import { limiteMei, simularVendas } from "../../lib/marmitaria/painel-lucro.mjs";
+import SimulacoesSalvas from "./SimulacoesSalvas";
 
 const GRUPOS = [["marmitas", "Sozinhos"], ["combos", "Combos"], ["promocoes", "Promoções"]];
 const ler = (chave) => { try { return JSON.parse(localStorage.getItem(chave) || "{}") || {}; } catch { return {}; } };
@@ -38,9 +39,16 @@ export default function SimuladorDeVendas({ linhas, embutidos, config }) {
   const ano = new Date().getFullYear();
   const passaDoMei = ehMei(config) && s.faturamentoAno > limiteMei(ano);
   const tem = s.itens.length > 0;
+  const atual = () => ({
+    dias: lerNumero(salvo.dias) || 25, quantidades: salvo.quantidades,
+    resultado: { resumo: `lucro ${brl(s.mes.lucro)}/mês`, mes: s.mes },
+  });
 
   return (
     <div className="space-y-4">
+      <Secao titulo="Simulações salvas" subtitulo="Salve com um nome para abrir depois, de qualquer aparelho.">
+        <SimulacoesSalvas unidadeId={unidadeId} tipo="vendas" atual={atual} aoAbrir={(x) => mudar({ dias: x.dias, quantidades: x.quantidades })} />
+      </Secao>
       <Secao titulo="Quanto vou vender" subtitulo="Coloque quantos pedidos de cada item por dia." direita={<Selo natureza="simulacao" />}>
         <Campo rotulo="Dias de venda no mês" className="mb-3 max-w-[200px]"><CampoNumero valor={salvo.dias} onChange={(v) => mudar({ dias: v })} placeholder="25" /></Campo>
         <div className="space-y-4">

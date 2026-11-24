@@ -11,6 +11,12 @@ import { somarDias } from "../core/periodos.mjs";
 import { generateDailyBrief } from "../insights/daily-brief.mjs";
 import { HANDLERS_COMPRAS, HANDLERS_RH, HANDLERS_FICHAS, HANDLERS_ETIQUETAS } from "./assistente.mjs";
 import { HANDLERS_MENU } from "./menu.mjs";
+import { HANDLERS_LISTA_COMPRAS } from "./lista-compras-agente.mjs";
+import { HANDLERS_MARMITARIA } from "./marmitaria-agente.mjs";
+import { HANDLERS_CONCORRENTES } from "./concorrentes-agente.mjs";
+import { HANDLERS_PRODUCAO } from "./producao-agente.mjs";
+import { HANDLERS_ORGANIZADOR } from "./organizador-agente.mjs";
+import { HANDLERS_MONTAR_DELIVERY } from "./montar-delivery-agente.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoInsight, blocoTexto, brl, num, ddmm, valorFormatado } from "../commands/resposta.mjs";
 
 const r = (texto, blocos = [], acoes = [], nivel = NIVEL.OBSERVAR) => ({ texto, blocos, acoes, nivel });
@@ -69,6 +75,7 @@ export const AgenteVendas = {
 export const AgenteCompras = {
   id: "compras", nome: "PurchaseAgent",
   ...HANDLERS_COMPRAS,
+  ...HANDLERS_LISTA_COMPRAS,
   async "compras.total"({ motor, params }) {
     const m = await motor.getPurchasesTotal(params.periodo || "semana");
     if (!temValor(m)) return insuf(m, "Compras");
@@ -304,6 +311,11 @@ export const AgenteRH = {
 export const AgenteOperacoes = {
   id: "operacoes", nome: "OperationsAgent",
   ...HANDLERS_FICHAS,
+  ...HANDLERS_MARMITARIA,
+  ...HANDLERS_CONCORRENTES,
+  ...HANDLERS_PRODUCAO,
+  ...HANDLERS_ORGANIZADOR,
+  ...HANDLERS_MONTAR_DELIVERY,
   ...HANDLERS_MENU,
   async "fichas.preparo"({ motor, params }) {
     // "como faz essa?" logo depois de falar de uma ficha: vale a ficha da conversa (reconferida nesta unidade)

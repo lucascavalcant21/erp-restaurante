@@ -159,7 +159,7 @@ export const MENU_PRINCIPAL = Object.freeze([
     ],
   },
   { id: "eventos", label: "Eventos", href: "/dashboard/reservas-eventos", icone: "PartyPopper", cor: "amarelo", desc: "Funil, agenda e reservas" },
-  { id: "marmitaria", label: "Marmitaria", href: "/dashboard/marmitaria", icone: "Soup", cor: "dourado", desc: "Pedidos, produção e entregas" },
+  { id: "marmitaria", label: "Delivery", href: "/dashboard/marmitaria", icone: "Soup", cor: "dourado", desc: "Pedidos, produção e entregas" },
   {
     id: "rh", label: "Equipe", href: "/dashboard/rh", icone: "Users", cor: "ciano",
     desc: "Ponto, escala e folha",
@@ -168,6 +168,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       { label: "Quadro de funcionários", href: "/dashboard/rh?aba=quadro" },
       { label: "Escala da semana", href: "/dashboard/rh?aba=escala" },
       { label: "Ponto e espelho", href: "/dashboard/rh/ponto" },
+      { label: "PIN do ponto", href: "/dashboard/rh/pins" },
       { label: "Corrigir ponto", href: "/dashboard/rh/ponto/corrigir" },
       { label: "Fechar folha", href: "/dashboard/rh/fechamento" },
       { label: "Extras e banco de horas", href: "/dashboard/rh/extra" },
@@ -177,6 +178,41 @@ export const MENU_PRINCIPAL = Object.freeze([
     ],
   },
   { id: "financeiro", label: "Financeiro", href: "/dashboard/financeiro", icone: "Wallet", cor: "verde", desc: "Contas, caixa e DRE" },
+]);
+
+// Tela "Menu" do celular (pedido do dono, 14/11/2026, visual da Medway): além
+// das áreas acima, os atalhos pessoais e as telas do sistema, em grade de
+// cartões por seção. Cada item passa pelo guard de rotas antes de aparecer.
+export const MENU_ATALHOS = Object.freeze([
+  { label: "Minhas tarefas", desc: "Checklists e pendências", href: "/dashboard/tarefas", icone: "ListChecks" },
+  { label: "Notificações", desc: "Avisos do sistema", href: "/dashboard/notificacoes", icone: "Bell" },
+]);
+
+export const MENU_SISTEMA = Object.freeze([
+  { label: "Configurações", desc: "Empresa, unidades e preferências", href: "/dashboard/configuracoes", icone: "Settings" },
+  { label: "Usuários e acessos", desc: "Equipe, perfis e permissões", href: "/dashboard/configuracoes/usuarios", icone: "ShieldCheck" },
+  { label: "Apps e terminais", desc: "Tablets, KDS e totens da loja", href: "/dashboard/configuracoes/apps", icone: "Tablet" },
+  { label: "Integrações", desc: "iFood, pagamentos e fiscal", href: "/dashboard/configuracoes/integracoes", icone: "Plug" },
+]);
+
+// ÁREA DO ADMINISTRADOR (decisão do dono, 14/11/2026): o Menu do dono vira
+// a "Área do administrador", organizada e com destaque. Só o dono vê; a equipe
+// vê o próprio Menu, filtrado pelas permissões. `area` aponta para uma área de
+// MENU_PRINCIPAL (o link segue as regras dela); `href` é uma tela direta.
+export const ADMIN_SECOES = Object.freeze([
+  { titulo: "Operação", itens: [{ area: "salao" }, { area: "cozinha" }, { area: "bar" }, { area: "operacao" }] },
+  { titulo: "Cadastros", itens: [
+    { label: "Fichas técnicas", href: "/dashboard/operacao/fichas", icone: "BookOpen" },
+    { label: "Ingredientes e produtos", href: "/dashboard/operacao/ingredientes", icone: "Carrot" },
+    { area: "estoque" }, { area: "cardapio" },
+  ] },
+  { titulo: "Gestão", itens: [{ area: "financeiro" }, { area: "rh" }, { area: "eventos" }, { area: "marmitaria" }, { area: "inteligencia" }] },
+  { titulo: "Acessos e sistema", itens: [
+    { label: "Usuários e acessos", href: "/dashboard/configuracoes/usuarios", icone: "ShieldCheck" },
+    { label: "Tablets da casa", href: "/dashboard/configuracoes/usuarios?conta=tablet", icone: "Tablet" },
+    { label: "Integrações", href: "/dashboard/configuracoes/integracoes", icone: "Plug" },
+    { label: "Configurações", href: "/dashboard/configuracoes", icone: "Settings" },
+  ] },
 ]);
 
 /** Áreas que esta sessão vê no menu. */

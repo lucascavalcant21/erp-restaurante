@@ -9,8 +9,10 @@ import { fatorSaldo, r2 } from "./nucleo.mjs";
 
 export const ESTOQUE_PRODUCAO = "producao-marmitaria";
 export const ESTOQUE_LIMPEZA = "limpeza-marmitaria";
-export const SLUGS_MARMITARIA = ["marmitaria", "embalagens-marmitaria", ESTOQUE_PRODUCAO, ESTOQUE_LIMPEZA];
-export const ROTULO_LOCAL = { marmitaria: "Produtos", "embalagens-marmitaria": "Embalagens", [ESTOQUE_LIMPEZA]: "Limpeza", [ESTOQUE_PRODUCAO]: "Produção" };
+// Bebidas (dono, 17/11/2026: "crie bebidas ao lado de ingredientes e um estoque para elas").
+export const ESTOQUE_BEBIDAS = "bebidas-marmitaria";
+export const SLUGS_MARMITARIA = ["marmitaria", ESTOQUE_BEBIDAS, "embalagens-marmitaria", ESTOQUE_PRODUCAO, ESTOQUE_LIMPEZA];
+export const ROTULO_LOCAL = { marmitaria: "Produtos", [ESTOQUE_BEBIDAS]: "Bebidas", "embalagens-marmitaria": "Embalagens", [ESTOQUE_LIMPEZA]: "Limpeza", [ESTOQUE_PRODUCAO]: "Produção" };
 export const ehEstoqueDaMarmitaria = (e) => SLUGS_MARMITARIA.includes(e?.slug);
 export const ehLimpeza = (i) => String(i?.departamento || "").toLowerCase() === "limpeza" || /limpeza/i.test(String(i?.categoria || ""));
 
@@ -121,4 +123,24 @@ export function planilhaDaCozinha({ planoHoje = [], planoAmanha = [], produzido 
   const hoje = planoHoje.map(linha);
   const amanha = planoAmanha.map(linha);
   return { hoje, amanha };
+}
+
+/**
+ * Conversão (dono, 21/11/2026: "tenho 20 L de molho, converti 5 L em molho de
+ * tomate temperado"): para um item do estoque e quanto vai usar dele, os
+ * bases que levam esse item e quanto cada um rende. A baixa dos outros
+ * ingredientes (temperos) sai proporcional, pela própria ficha (baixasDoPreparo).
+ */
+export function conversoesDoItem({ insumoId, usar, prePreparos = [], fichas = [] }) {
+  const q = Number(usar);
+  const out = [];
+  for (const f of prePreparos) {
+    const rend = Number(f.rendimento_porcoes);
+    if (!(rend > 0)) continue;
+    const calc = calcularConsumoProducao(f, rend, fichas);
+    const usado = calc.itens.filter((i) => !i.subficha_id && i.insumo?.id === insumoId).reduce((t, i) => t + Number(i.quantidade || 0), 0);
+    if (!(usado > 0)) continue;
+    out.push({ ficha: f, porLote: r3(usado), rendePorLote: rend, unidade: f.rendimento_unidade || "un", rende: q > 0 ? r3((q / usado) * rend) : null });
+  }
+  return out.sort((a, b) => String(a.ficha.nome_receita).localeCompare(String(b.ficha.nome_receita), "pt-BR"));
 }

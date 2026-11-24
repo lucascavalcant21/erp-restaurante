@@ -14,7 +14,7 @@ import { casaBusca } from "../../lib/busca.mjs";
 export const ehEmbalagem = (i) => String(i?.departamento || "").toLowerCase() === "embalagens"
   || /embalag/i.test(String(i?.categoria || "")) || String(i?.tipo || "").toLowerCase() === "embalagem";
 
-export default function BuscaItens({ base, modo = "ingrediente", filtroInicial = "", onEscolher, onCriarIngrediente, onCriarPrePreparo, onCriarEmbalagem, excluir = [] }) {
+export default function BuscaItens({ base, modo = "ingrediente", filtroInicial = "", onEscolher, onCriarIngrediente, onCriarPrePreparo, onCriarEmbalagem, excluir = [], semPrePreparos = false }) {
   const [termo, setTermo] = useState(filtroInicial);
   const usoPorInsumo = useMemo(() => {
     const m = new Map();
@@ -30,7 +30,7 @@ export default function BuscaItens({ base, modo = "ingrediente", filtroInicial =
       return base.insumosLista.filter((i) => ehEmbalagem(i) && !fora.has(i.id) && casa(i.nome)).slice(0, 30)
         .map((i) => ({ tipo: "embalagem", id: i.id, nome: i.nome, detalhe: `${brl(custoUnitarioEfetivoInsumo(i))} / un` }));
     }
-    const preps = base.prePreparos.filter((f) => !fora.has(f.id) && casa(f.nome_receita)).slice(0, 15).map((f) => {
+    const preps = semPrePreparos ? [] : base.prePreparos.filter((f) => !fora.has(f.id) && casa(f.nome_receita)).slice(0, 15).map((f) => {
       const rend = parseNumero(f.rendimento_porcoes);
       const custo = custoDeProduzirFicha(f, base.fichas);
       const un = f.rendimento_unidade || "un";
@@ -44,7 +44,7 @@ export default function BuscaItens({ base, modo = "ingrediente", filtroInicial =
         detalhe: `${c > 0 ? `${brl(c)}/${String(i.unidade_medida || "un").toLowerCase() === "g" ? "kg" : String(i.unidade_medida || "un").toLowerCase() === "ml" ? "L" : i.unidade_medida || "un"}` : "sem custo"}${usos ? ` · usado em ${usos} ficha${usos > 1 ? "s" : ""}` : ""}${i.departamento === "marmitaria" ? " · só marmitaria" : ""}` };
     });
     return [...preps, ...ings];
-  }, [termo, modo, base, usoPorInsumo, excluir]);
+  }, [termo, modo, base, usoPorInsumo, excluir, semPrePreparos]);
 
   const textoCriar = termo.trim();
   return (
@@ -52,7 +52,7 @@ export default function BuscaItens({ base, modo = "ingrediente", filtroInicial =
       <div className="relative p-2">
         <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-hf-muted" />
         <input autoFocus value={termo} onChange={(e) => setTermo(e.target.value)} className={`${inputCls} pl-9`}
-          placeholder={modo === "embalagem" ? "Buscar embalagem (marmitex, tampa, sacola…)" : "Buscar ingrediente ou base (arroz, frango…)"} />
+          placeholder={modo === "embalagem" ? "Buscar embalagem (marmitex, tampa, sacola…)" : semPrePreparos ? "Buscar ingrediente (arroz, frango, queijo…)" : "Buscar ingrediente ou base (arroz, frango…)"} />
       </div>
       <ul className="max-h-72 overflow-y-auto border-t border-hf-border">
         {resultados.map((r) => (

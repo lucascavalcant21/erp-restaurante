@@ -8,6 +8,7 @@
 // tela completa (imposto, maquininha, meta, proposta). Visual do dono: pílulas,
 // círculos ✓ e resultado limpo, em fundo branco.
 
+import { fetchFichasDoEvento, fetchInsumosDoEvento } from "../../../lib/eventos-cadastro";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Loader2, Minus, Plus, Search, Trash2 } from "lucide-react";
@@ -192,7 +193,7 @@ export default function SimuladorDoEvento() {
     let ativo = true;
     (async () => {
       setCarregando(true);
-      const [rF, rP, rI] = await Promise.all([fetchFichas(unidadeAtiva), fetchParamsDaCasa(unidadeAtiva), fetchInsumos(unidadeAtiva)]);
+      const [rF, rP, rI] = await Promise.all([fetchFichasDoEvento(unidadeAtiva), fetchParamsDaCasa(unidadeAtiva), fetchInsumosDoEvento(unidadeAtiva)]);
       if (!ativo) return;
       setFichas(rF.data || []);
       setInsumos(rI.data || []);

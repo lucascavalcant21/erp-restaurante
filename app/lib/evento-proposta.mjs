@@ -121,6 +121,7 @@ export function valoresDaProposta(resumo = {}, { soTotal = false } = {}) {
     if (resumo.precoPorPessoa > 0 && resumo.adultos > 0) linhasValor.push({ rotulo: `${resumo.adultos} pessoa(s) × ${brl(resumo.precoPorPessoa)}`, valor: r2(resumo.adultos * resumo.precoPorPessoa) });
     if (resumo.criancas > 0 && resumo.precoCrianca > 0) linhasValor.push({ rotulo: `${resumo.criancas} criança(s) × ${brl(resumo.precoCrianca)}`, valor: r2(resumo.criancas * resumo.precoCrianca) });
     if (resumo.precoMesa > 0) linhasValor.push({ rotulo: "Mesa montada (pacote fechado)", valor: r2(resumo.precoMesa) });
+    if (resumo.aluguelCobrado > 0) linhasValor.push({ rotulo: "Aluguel do espaço", valor: r2(resumo.aluguelCobrado) });
     if (resumo.desconto > 0) linhasValor.push({ rotulo: "Desconto", valor: -r2(resumo.desconto) });
   }
   return { linhas: linhasValor, total: resumo.receita > 0 ? r2(resumo.receita) : null };

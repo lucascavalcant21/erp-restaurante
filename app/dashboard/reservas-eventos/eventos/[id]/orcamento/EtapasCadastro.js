@@ -5,8 +5,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Search, History } from "lucide-react";
-import { AREAS_EQUIPE, CATEGORIAS_EXTRAS, FORMAS_PAGAMENTO, novoId, custoDaPessoa } from "../../../../../lib/evento-orcamento.mjs";
+import { AREAS_EQUIPE, CATEGORIAS_EXTRAS, FORMAS_PAGAMENTO, TIPOS_ESPACO, tipoDoEspaco, rotuloDaCategoria, novoId, custoDaPessoa } from "../../../../../lib/evento-orcamento.mjs";
 import { rotuloEtapa, normalizarEtapa } from "../../../../../lib/evento-financeiro.mjs";
+import { CATEGORIAS_EVENTO } from "../../../../../lib/evento-calendario.mjs";
 import { fmtReais } from "../../../../../lib/valor-percentual.mjs";
 import { parseNumero } from "../../../../../lib/ficha-calculos.mjs";
 import { mascaraTelefone } from "../../../../../lib/mascaras.mjs";
@@ -129,29 +130,58 @@ function ObservacoesEquipe({ orc, setOrc }) {
 export function EtapaExtras({ orc, setOrc, resumo }) {
   const mudar = (id, m) => setOrc((o) => ({ ...o, extras: o.extras.map((x) => (x.id === id ? { ...x, ...m } : x)) }));
   const adicionar = (categoria) => setOrc((o) => ({ ...o, extras: [...o.extras, { id: novoId(), categoria, descricao: "", valor: "" }] }));
+  const tipo = tipoDoEspaco(orc);
+  const mudarEspaco = (m) => setOrc((o) => ({ ...o, espaco: { tipo: tipoDoEspaco(o), ...(o.espaco || {}), ...m } }));
+  const descricoes = {
+    aluguel: tipo === "proprio" ? "O que eu gasto com o meu espaço neste evento: limpeza, energia, manutenção. Não aparece para o cliente."
+      : tipo === "cliente" ? "Mesas, cadeiras, louça, tendas que eu alugo para levar."
+      : "Aluguel do local, mesas, cadeiras, louça, tendas.",
+    decoracao: "Flores, painel, arranjos, toalhas, balões, iluminação, montagem.",
+    musica: "DJ, banda, som, iluminação de pista.",
+    outros: "Fretes, limpeza extra, gelo, brindes, qualquer outro custo.",
+  };
   return (
     <div className="space-y-5">
+      <Cartao titulo="Onde vai ser o evento?" descricao="Define se o aluguel do espaço é um custo seu ou um valor que você cobra do cliente.">
+        <div className="grid gap-2 sm:grid-cols-3">
+          {TIPOS_ESPACO.map((t) => (
+            <button key={t.id} type="button" aria-pressed={tipo === t.id} onClick={() => mudarEspaco({ tipo: t.id })}
+              className={`min-h-[64px] rounded-xl border px-3 py-2 text-left ${tipo === t.id ? "border-hf-menu bg-hf-menu text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"}`}>
+              <span className="block text-sm font-black">{t.rotulo}</span>
+              <span className={`block text-xs font-medium ${tipo === t.id ? "text-white/80" : "text-slate-500"}`}>{t.ajuda}</span>
+            </button>
+          ))}
+        </div>
+        {tipo === "proprio" && (
+          <div className="mt-4">
+            <Campo rotulo="Quanto vou cobrar do cliente pelo aluguel do espaço" ajuda="Entra na receita do evento e aparece no orçamento do cliente. Deixe vazio se o espaço já está incluso no valor por pessoa.">
+              <Numero valor={orc.espaco?.valor_cobrado ?? ""} onChange={(v) => mudarEspaco({ valor_cobrado: v })} prefixo="R$" placeholder="0,00" />
+            </Campo>
+          </div>
+        )}
+      </Cartao>
       {CATEGORIAS_EXTRAS.map((c) => {
         const itens = orc.extras.filter((x) => (x.categoria || "outros") === c.id);
         const total = resumo.extrasPorCategoria.find((x) => x.id === c.id)?.valor || 0;
         return (
-          <Cartao key={c.id} titulo={c.rotulo} acoes={total > 0 && <span className="text-sm font-black tabular-nums text-slate-900">{fmtReais(total)}</span>}
-            descricao={{ aluguel: "Espaço, mesas, cadeiras, louça, tendas.", decoracao: "Flores, painel, toalhas, iluminação.", musica: "DJ, banda, som.", outros: "Fretes, limpeza extra, gelo, brindes, qualquer outro custo." }[c.id]}>
+          <Cartao key={c.id} titulo={rotuloDaCategoria(c, orc)} acoes={total > 0 && <span className="text-sm font-black tabular-nums text-slate-900">{fmtReais(total)}</span>}
+            descricao={descricoes[c.id]}>
             <ul className="space-y-2">
               {itens.map((x) => (
                 <li key={x.id} className="flex flex-wrap items-end gap-2 sm:flex-nowrap">
-                  <Campo rotulo="Descrição" className="min-w-0 flex-1 basis-full sm:basis-auto"><Texto valor={x.descricao} onChange={(v) => mudar(x.id, { descricao: v })} placeholder={c.rotulo} /></Campo>
+                  <Campo rotulo="Descrição" className="min-w-0 flex-1 basis-full sm:basis-auto"><Texto valor={x.descricao} onChange={(v) => mudar(x.id, { descricao: v })} placeholder={c.id === "decoracao" ? "Ex.: arranjos de mesa, painel, balões" : rotuloDaCategoria(c, orc)} /></Campo>
                   <Campo rotulo="Valor" className="w-40 flex-1 sm:flex-none"><Numero valor={x.valor} onChange={(v) => mudar(x.id, { valor: v })} prefixo="R$" placeholder="0,00" /></Campo>
                   <BotaoRemover rotulo={`Remover ${x.descricao || c.rotulo}`} onClick={() => setOrc((o) => ({ ...o, extras: o.extras.filter((y) => y.id !== x.id) }))} />
                 </li>
               ))}
             </ul>
-            <div className={itens.length ? "mt-3" : ""}><BotaoAdicionar onClick={() => adicionar(c.id)}>{c.rotulo}</BotaoAdicionar></div>
+            <div className={itens.length ? "mt-3" : ""}><BotaoAdicionar onClick={() => adicionar(c.id)}>{rotuloDaCategoria(c, orc)}</BotaoAdicionar></div>
           </Cartao>
         );
       })}
       <Cartao>
-        <LinhaValor forte rotulo="Total de aluguel e extras" valor={fmtReais(resumo.extras)} />
+        <LinhaValor forte rotulo="Total de gastos do evento (espaço, decoração, música e outros)" valor={fmtReais(resumo.extras)} />
+        {resumo.aluguelCobrado > 0 && <LinhaValor rotulo="Aluguel do meu espaço (cobrado do cliente)" valor={fmtReais(resumo.aluguelCobrado)} tom="text-emerald-700" />}
         {resumo.convidados > 0 && <LinhaValor rotulo="Por convidado" valor={fmtReais(resumo.extras / resumo.convidados)} />}
       </Cartao>
     </div>
@@ -208,6 +238,16 @@ export function EtapaCliente({ orc, setOrc, unidadeAtiva, historico = [] }) {
           <Campo rotulo="Nome do cliente"><Texto valor={c.cliente_nome} onChange={(v) => mudar({ cliente_nome: v, cliente_id: null })} placeholder="Maria Souza" autoComplete="off" /></Campo>
           <Campo rotulo="WhatsApp do cliente" ajuda="Com DDD. É para onde o orçamento vai."><Texto valor={c.cliente_telefone} onChange={(v) => mudar({ cliente_telefone: mascaraTelefone(v) })} placeholder="(81) 99999-9999" inputMode="tel" autoComplete="off" /></Campo>
           <Campo rotulo="Nome do evento" className="sm:col-span-2"><Texto valor={c.nome_evento} onChange={(v) => mudar({ nome_evento: v })} placeholder="Aniversário de 30 anos" /></Campo>
+          {/* Categoria (dono, 21/11/2026): separa os eventos no calendário. Uso interno. */}
+          <div className="sm:col-span-2">
+            <p className="mb-1.5 text-xs font-bold text-slate-600">Categoria do evento</p>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Categoria do evento">
+              {CATEGORIAS_EVENTO.map((cat) => (
+                <button key={cat} type="button" role="radio" aria-checked={c.categoria === cat} onClick={() => mudar({ categoria: c.categoria === cat ? "" : cat })}
+                  className={`h-10 rounded-xl border px-3 text-sm font-bold ${c.categoria === cat ? "border-slate-800 bg-slate-800 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"}`}>{cat}</button>
+              ))}
+            </div>
+          </div>
           <Campo rotulo="Data do evento"><input type="date" value={c.data_evento || ""} onChange={(e) => mudar({ data_evento: e.target.value })} className={inputData} /></Campo>
           <div className="grid grid-cols-2 gap-3">
             <Campo rotulo="Total de pessoas"><Numero valor={c.convidados || ""} onChange={(v) => mudar({ convidados: v })} placeholder="100" /></Campo>

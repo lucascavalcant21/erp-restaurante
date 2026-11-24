@@ -34,6 +34,25 @@ export const PERMISSOES = Object.freeze({
   confirmar_compra: ["estoque.purchases.confirm"],
   // as mesmas chaves que _estoque_pode('movimentar', unidade, 'entrada') aceita no banco (EST-MOV-1)
   registrar_entrada: ["estoque.entries.create", "estoque.movements.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
+  // raio-x do preço da marmita (equipe só como total por marmita): quem vê a margem na marmitaria
+  lucro_marmitaria: ["marmitaria.recipes.view_margin", "marmitaria.management.view_margin", "marmitaria.financial.view_margin"],
+  // guia de montagem da marmita (sem custo): quem vê as fichas da marmitaria ou da cozinha
+  fichas_marmitaria: ["marmitaria.recipes.view", "marmitaria.stock.view", "fichas.recipes.view", "cozinha.recipes.view"],
+  // montar marmita pela conversa (e cadastrar o que falta nela): quem cria ficha na marmitaria
+  criar_marmita: ["marmitaria.recipes.create"],
+  // cardápios dos concorrentes do delivery: ver a comparação e guardar um cardápio lido
+  concorrentes_ver: ["marmitaria.competitors.view"],
+  concorrentes_gravar: ["marmitaria.competitors.create"],
+  // Organizador de plataforma (vitrine do app de entrega): ver e montar, como o cardápio da marmitaria
+  organizador_ver: ["marmitaria.recipes.view"],
+  // cadastros do delivery pelo Jhon: apps e custos fixos (Custos e apps) e funcionários (Equipe / RH)
+  configurar_delivery: ["marmitaria.settings.edit"],
+  cadastrar_funcionario: ["marmitaria.hr.create", "rh.employees.create"],
+  organizador_gravar: ["marmitaria.recipes.edit", "marmitaria.recipes.create"],
+  // produção do dia (quanto de cada ingrediente, o que fabricar, o que comprar): quem vê estoque e produção da marmitaria
+  producao_marmitaria: ["marmitaria.stock.view", "marmitaria.recipes.view"],
+  // programar o plano do dia (tarefas da equipe): só quem configura a Central (o dono; o banco confere de novo)
+  aprovar_plano: ["dashboard.intelligence.settings"],
   registrar_perda: ["estoque.losses.record_loss", "estoque.movements.create", "estoque.outputs.create", "estoque.overview.adjust_stock", "estoque.operation.adjust_stock", "estoque.operation.create"],
 });
 
@@ -57,6 +76,17 @@ export const ROTULO_CAPACIDADE = Object.freeze({
   custo_fichas: "custo das fichas técnicas",
   criar_ficha: "criar ficha técnica",
   confirmar_compra: "confirmar compras",
+  lucro_marmitaria: "margem da marmitaria",
+  fichas_marmitaria: "fichas da marmitaria",
+  criar_marmita: "criar marmita",
+  concorrentes_ver: "cardápios dos concorrentes",
+  concorrentes_gravar: "guardar cardápio de concorrente",
+  organizador_ver: "organizador de plataforma",
+  configurar_delivery: "cadastrar apps e custos fixos do delivery",
+  cadastrar_funcionario: "cadastrar funcionário",
+  organizador_gravar: "montar a vitrine da plataforma",
+  producao_marmitaria: "produção da marmitaria",
+  aprovar_plano: "programar o plano do dia",
 });
 
 /**

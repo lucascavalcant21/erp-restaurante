@@ -4,14 +4,17 @@
 
 export const UNIDADE_MARMITARIA = "marmitaria";
 export const UNIDADE_EVENTOS = "eventos";
-const SEPARADAS = [UNIDADE_MARMITARIA, UNIDADE_EVENTOS];
+// Consultório médico (dono, 21/11/2026): unidade própria, dado de saúde protegido no banco (CONS-1).
+export const UNIDADE_CONSULTORIO = "consultorio";
+const SEPARADAS = [UNIDADE_MARMITARIA, UNIDADE_EVENTOS, UNIDADE_CONSULTORIO];
 
 export const ehNegocioSeparado = (id) => SEPARADAS.includes(id);
 
 const NEGOCIOS = [
   { id: "restaurante", rotulo: "Restaurante", href: "/dashboard" },
-  { id: UNIDADE_MARMITARIA, rotulo: "Marmitaria", href: "/dashboard/marmitaria" },
+  { id: UNIDADE_MARMITARIA, rotulo: "Delivery", href: "/dashboard/marmitaria" }, // nome "Delivery" (dono, 17/11/2026); o id continua marmitaria
   { id: UNIDADE_EVENTOS, rotulo: "Eventos", href: "/dashboard/reservas-eventos" },
+  { id: UNIDADE_CONSULTORIO, rotulo: "Consultório", href: "/dashboard/consultorio" },
 ];
 
 const dentroDe = (caminho, base) => caminho === base || String(caminho || "").startsWith(`${base}/`);
@@ -29,6 +32,7 @@ export function unidadeInicial(unidades = [], ...preferidas) {
 /** Marmitaria tem telas próprias; no resto do app, vale a unidade ativa. */
 export function negocioAtual(caminho, unidadeAtiva) {
   if (dentroDe(caminho, "/dashboard/marmitaria")) return UNIDADE_MARMITARIA;
+  if (dentroDe(caminho, "/dashboard/consultorio")) return UNIDADE_CONSULTORIO;
   return ehNegocioSeparado(unidadeAtiva) ? unidadeAtiva : "restaurante";
 }
 

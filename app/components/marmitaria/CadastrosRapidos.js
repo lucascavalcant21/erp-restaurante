@@ -5,17 +5,23 @@
 // preço, vínculo no estoque). Base vai para a base compartilhada da
 // cozinha pela marmitaria_salvar_ficha — o restaurante passa a enxergá-lo.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trash2, X } from "lucide-react";
-import { criarProduto, salvarPrePreparo, novaChave } from "../../lib/marmitaria/dados";
+import { criarProduto, salvarPrePreparo, salvarModoDePreparo, novaChave } from "../../lib/marmitaria/dados";
+import { fetchComSessao } from "../../lib/api-sessao";
+import { apagarRascunhoNoBanco as apagarRascunho, guardarRascunhoNoBanco, lerRascunho } from "../../lib/rascunho-aparelho";
+import { numerarPassos, pesoDosIngredientes } from "../../lib/marmitaria/modo-preparo.mjs";
 import { custoDaMarmita, custoPorUnidadeDoPacote, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
 import BuscaItens from "./BuscaItens";
 import { quantidadeParaTela } from "../../lib/marmitaria/formulario.mjs";
 import { Botao, Campo, CampoNumero, inputCls, brl, num, Aviso, lerNumero } from "./ui";
 
 function Painel({ titulo, onFechar, children }) {
+  // abre à vista: o painel aparece embaixo da lista e, no celular, ficava fora da tela (17/11/2026)
+  const ref = useRef(null);
+  useEffect(() => { ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }, []);
   return (
-    <div className="rounded-2xl border border-hf-accent/30 bg-hf-surface p-4 shadow-sm">
+    <div ref={ref} className="scroll-mt-24 rounded-2xl border border-hf-accent/30 bg-hf-surface p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="text-sm font-bold text-hf-text">{titulo}</p>
         <button type="button" onClick={onFechar} aria-label="Fechar" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-hf-elevated"><X size={16} /></button>
@@ -36,6 +42,7 @@ export function CustoDaUnidade({ preco, unidades }) {
 }
 
 export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nomeInicial = "", rotuloSalvar = "Cadastrar e usar", onCriado, onFechar }) {
+  const [avisoOffline, setAvisoOffline] = useState(false);
   const [f, setF] = useState({ nome: nomeInicial, marca: "", unidade: embalagem ? "un" : limpeza ? "ml" : "kg", preco: "", tamanho: embalagem ? "" : "1" });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
@@ -57,6 +64,8 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
         categoria: embalagem ? "Embalagens da marmitaria" : limpeza ? "Limpeza da marmitaria" : "",
       });
       if (r.error) setErro(r.error);
+      // sem internet: ficou na fila do aparelho e entra quando a rede voltar (sem id ainda)
+      else if (r.offline) { setErro(null); setAvisoOffline(true); }
       else await onCriado(r.id, f.unidade);
     } finally {
       setSalvando(false);
@@ -65,6 +74,7 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
 
   return (
     <Painel titulo={embalagem ? "Nova embalagem" : limpeza ? "Novo produto de limpeza" : "Novo ingrediente"} onFechar={onFechar}>
+      {avisoOffline && <Aviso className="mb-3">Sem internet: o cadastro ficou salvo no aparelho e entra no sistema quando a internet voltar.</Aviso>}
       <div className="grid gap-3 sm:grid-cols-2">
         <Campo rotulo="Nome"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} /></Campo>
         <Campo rotulo="Marca"><input className={inputCls} value={f.marca} onChange={(e) => setF({ ...f, marca: e.target.value })} placeholder="Opcional" /></Campo>
@@ -93,17 +103,28 @@ export function NovoProduto({ unidadeId, embalagem = false, limpeza = false, nom
   );
 }
 
-export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null, onCriado, onFechar }) {
-  const [id] = useState(() => ficha?.id || novaChave());
-  const [f, setF] = useState(() => ({ nome: ficha?.nome_receita || nomeInicial, rendimento: ficha?.rendimento_porcoes ? String(ficha.rendimento_porcoes).replace(".", ",") : "",
+export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null, onCriado, onFechar: fecharSemRascunho }) {
+  // rascunho no aparelho: se a tela recarregar no meio, volta como estava (dono, 17/11/2026)
+  const chaveRascunho = ficha ? `prep:${ficha.id}` : `prep-novo:${unidadeId}`;
+  const [rascunho] = useState(() => lerRascunho(chaveRascunho));
+  const onFechar = () => { apagarRascunho(chaveRascunho); fecharSemRascunho?.(); };
+  const [id] = useState(() => ficha?.id || rascunho?.id || novaChave());
+  const [f, setF] = useState(() => rascunho?.f || ({ nome: ficha?.nome_receita || nomeInicial, rendimento: ficha?.rendimento_porcoes ? String(ficha.rendimento_porcoes).replace(".", ",") : "",
     unidade: String(ficha?.rendimento_unidade || "kg").toLowerCase(), setor: ficha?.departamento || "cozinha", validade: ficha?.validade_dias ? String(ficha.validade_dias) : "" }));
-  const [itens, setItens] = useState(() => (ficha?.fichas_ingredientes || []).filter((i) => i.insumo_id).map((i) => {
+  const [itens, setItens] = useState(() => rascunho?.itens || (ficha?.fichas_ingredientes || []).filter((i) => i.insumo_id).map((i) => {
     const t = quantidadeParaTela(i.quantidade, String(base.insumos.get(i.insumo_id)?.unidade_medida || "un").toLowerCase());
     return { key: novaChave(), insumo_id: i.insumo_id, qtd: t.qtd, un: t.un };
   }));
   const [buscando, setBuscando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
+  // modo de preparo (dono, 17/11/2026): passo a passo da produção, escrito ou organizado pela IA
+  const [preparo, setPreparo] = useState(() => rascunho?.preparo ?? (ficha?.modo_preparo || ""));
+  const [tempo, setTempo] = useState(() => rascunho?.tempo ?? (ficha?.tempo_preparo ? String(ficha.tempo_preparo) : ""));
+  // peso de cada unidade pronta (ex.: frango empanado de 144 g), quando rende em unidades
+  const [pesoUn, setPesoUn] = useState(() => rascunho?.pesoUn ?? (ficha?.peso_porcao_g ? String(ficha.peso_porcao_g).replace(".", ",") : ""));
+  const [organizando, setOrganizando] = useState(false);
+  useEffect(() => { guardarRascunhoNoBanco(chaveRascunho, { id, f, itens, preparo, tempo, pesoUn }, unidadeId); }, [chaveRascunho, id, f, itens, preparo, tempo, pesoUn, unidadeId]);
 
   const convertidos = itens.map((it) => {
     const ins = base.insumos.get(it.insumo_id);
@@ -111,6 +132,9 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
   });
   const custo = custoDaMarmita({ itens: convertidos.filter((c) => c.quantidade > 0).map((c) => ({ insumo_id: c.insumo_id, quantidade: c.quantidade })), fichas: base.fichas, insumos: base.insumos });
   const rend = lerNumero(f.rendimento);
+  // g e ml são só para digitar: o estoque e o custo trabalham em kg e L (300 g → 0,3 kg)
+  const unGravada = f.unidade === "g" ? "kg" : f.unidade === "ml" ? "l" : f.unidade;
+  const rendGravado = (f.unidade === "g" || f.unidade === "ml") && rend > 0 ? Math.round((rend / 1000) * 1e6) / 1e6 : rend;
 
   async function salvar() {
     if (salvando) return;
@@ -122,30 +146,66 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
     setSalvando(true);
     try {
       const r = await salvarPrePreparo({
-        id, unidade_id: unidadeId, nome: f.nome, departamento: f.setor, rendimento: rend, rendimento_unidade: f.unidade,
+        id, unidade_id: unidadeId, nome: f.nome, departamento: f.setor, rendimento: rendGravado, rendimento_unidade: unGravada,
         validade_dias: lerNumero(f.validade) || null,
+        // editar não apaga o que a tela não mostra: o salvar do banco regrava categoria, descrição, foto e peso
+        ...(ficha ? { categoria: ficha.categoria || "", descricao: ficha.descricao || "", foto: ficha.imagem || "", peso_final_g: ficha.peso_final_g ?? null } : {}),
         itens: convertidos.map((c) => ({ insumo_id: c.insumo_id, quantidade: c.quantidade })),
       });
-      if (r.error) setErro(r.error);
-      else await onCriado(id, f.unidade);
+      if (r.error) { setErro(r.error); return; }
+      if (preparo.trim() || tempo || pesoUn || ficha?.modo_preparo || ficha?.peso_porcao_g) {
+        const mp = await salvarModoDePreparo(id, { modo_preparo: numerarPassos(preparo), tempo_preparo: Math.round(lerNumero(tempo) || 0) || null,
+          peso_porcao_g: f.unidade === "un" ? (lerNumero(pesoUn) || null) : null });
+        if (mp.error) { setErro(`Subproduto salvo, mas ${mp.error.charAt(0).toLowerCase()}${mp.error.slice(1)}`); return; }
+      }
+      apagarRascunho(chaveRascunho);
+      await onCriado(id, unGravada);
     } finally {
       setSalvando(false);
     }
   }
 
+  async function organizarComIA() {
+    if (organizando) return;
+    if (preparo.trim().length < 10) return setErro("Escreva com suas palavras como é feito (pode ser curto) e toque de novo em Organizar com IA.");
+    setErro(null); setOrganizando(true);
+    try {
+      const ingredientes = convertidos.map((c) => `${c.ins?.nome || "ingrediente"}: ${c.qtd} ${c.un}`);
+      const resp = await fetchComSessao("/api/ia-preparo", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ explicacao: preparo, nome_receita: f.nome, ingredientes, tipo: "pre_preparo" }) });
+      const j = await resp.json().catch(() => ({}));
+      if (!resp.ok || !j.modo_preparo) setErro(j.error || "Não consegui organizar agora. O que você escreveu continua aqui.");
+      else setPreparo(j.modo_preparo);
+    } catch {
+      setErro("Não consegui organizar agora. O que você escreveu continua aqui.");
+    } finally {
+      setOrganizando(false);
+    }
+  }
+
   return (
     <Painel titulo={ficha ? `Editar ${ficha.nome_receita}` : "Novo subproduto"} onFechar={onFechar}>
+      {rascunho && <Aviso className="mb-3">Recuperei o que você estava preenchendo antes da tela recarregar. Confira e salve.</Aviso>}
       <div className="grid gap-3 sm:grid-cols-4">
         <Campo rotulo="Nome" className="sm:col-span-2"><input className={inputCls} value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Ex.: Arroz branco cozido" /></Campo>
-        <Campo rotulo="O lote rende"><CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" /></Campo>
-        <Campo rotulo="Unidade">
-          <select className={inputCls} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })}>
-            <option value="kg">kg</option><option value="l">L</option><option value="un">unidades</option>
-          </select>
+        {/* rendimento e unidade juntos (dono, 17/11/2026: "no rendimento não está a unidade de medida") */}
+        <Campo rotulo="Rendimento" className="sm:col-span-2">
+          {/* grade fixa: o número ocupa o resto e a unidade tem 112 px (com flex, o w-full dos dois brigava e o número sumia no celular) */}
+          <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
+            <CampoNumero valor={f.rendimento} onChange={(v) => setF({ ...f, rendimento: v })} placeholder="Ex.: 5" className="min-w-0" aria-label="Rendimento" />
+            <select className={`${inputCls} min-w-0`} value={f.unidade} onChange={(e) => setF({ ...f, unidade: e.target.value })} aria-label="Unidade do rendimento">
+              <option value="kg">kg</option><option value="g">g</option><option value="l">L</option><option value="ml">ml</option><option value="un">unidades</option>
+            </select>
+          </div>
         </Campo>
-        <Campo rotulo="Setor"><select className={inputCls} value={f.setor} onChange={(e) => setF({ ...f, setor: e.target.value })}><option value="cozinha">Cozinha</option><option value="bar">Bar</option></select></Campo>
+        {/* no delivery o setor é o próprio delivery (estoque "Bases da Cozinha" da unidade do delivery); bebidas vão para o do bar */}
+        <Campo rotulo="Setor"><select className={inputCls} value={f.setor} onChange={(e) => setF({ ...f, setor: e.target.value })}><option value="cozinha">Delivery</option><option value="bar">Delivery · bebidas</option></select></Campo>
         <Campo rotulo="Validade (dias)"><CampoNumero valor={f.validade} onChange={(v) => setF({ ...f, validade: v })} placeholder="opcional" /></Campo>
+        {f.unidade === "un" && <Campo rotulo="Peso de cada unidade (g)"><CampoNumero valor={pesoUn} onChange={setPesoUn} placeholder="Ex.: 144" /></Campo>}
       </div>
+      {f.unidade === "un" && (
+        <p className="mt-2 text-xs text-hf-muted">Dica: para um frango empanado, ponha "O lote rende 1 unidade" e os gramas de cada ingrediente de 1 frango (sassami, trigo, panko, água). O estoque mostra quantos dá para fazer com o trigo e o panko que tem.</p>
+      )}
       <p className="mt-3 text-xs font-semibold text-hf-text-2">Ingredientes do lote</p>
       <ul className="mt-1 space-y-2">
         {convertidos.map((c, i) => (
@@ -170,13 +230,40 @@ export function NovoPrePreparo({ unidadeId, base, nomeInicial = "", ficha = null
       )}
       <p className="mt-2 text-sm text-hf-text-2">
         Custo do lote: <b className="tabular-nums">{brl(custo.total)}</b>
-        {rend > 0 && custo.total > 0 && <> · por {f.unidade === "un" ? "unidade" : f.unidade.toUpperCase() === "L" ? "L" : f.unidade}: <b className="tabular-nums">{brl(custo.total / rend)}</b></>}
+        {rendGravado > 0 && custo.total > 0 && <> · por {unGravada === "un" ? "unidade" : unGravada === "l" ? "L" : "kg"}: <b className="tabular-nums">{brl(custo.total / rendGravado)}</b></>}
       </p>
       {custo.pendencias.length > 0 && <Aviso tipo="alerta" className="mt-2">{custo.pendencias.join(" ")}</Aviso>}
+      {(() => {
+        // peso do lote na hora, para ter uma base do rendimento (dono, 17/11/2026)
+        const p = pesoDosIngredientes(itens);
+        if (!(p.gramas > 0)) return null;
+        const txt = p.gramas >= 1000 ? `${num(Math.round(p.gramas) / 1000)} kg` : `${num(p.gramas)} g`;
+        return (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-hf-text-2">
+            <span>Peso dos ingredientes: <b className="tabular-nums text-hf-text">{txt}</b>{p.estimativa ? " (ml contado como g, estimativa)" : ""}{p.semPeso ? ` · ${p.semPeso} item(ns) em unidades fora da conta` : ""}</span>
+            <button type="button" onClick={() => setF({ ...f, rendimento: String(p.gramas >= 1000 ? Math.round(p.gramas) / 1000 : p.gramas).replace(".", ","), unidade: p.gramas >= 1000 ? "kg" : "g" })}
+              className="min-h-[36px] font-semibold text-hf-accent hover:underline">Usar como rendimento</button>
+          </div>
+        );
+      })()}
+
+      <div className="mt-4 border-t border-hf-border pt-3">
+        <div className="flex items-end justify-between gap-2">
+          <p className="text-xs font-semibold text-hf-text-2">Modo de preparo</p>
+          <Campo rotulo="Tempo total (min)" className="w-32"><CampoNumero valor={tempo} onChange={setTempo} placeholder="opcional" /></Campo>
+        </div>
+        <textarea className={`${inputCls} mt-2 min-h-[150px] py-2 leading-relaxed`} value={preparo} onChange={(e) => setPreparo(e.target.value)} maxLength={4000}
+          placeholder={"Um passo por linha. Ex.:\n1. Refogar o alho — 1 a 2 min: aqueça o óleo em fogo médio-baixo e doure o alho, sem escurecer.\n2. Refogar o arroz — 2 a 3 min: junte o arroz e mexa até envolver os grãos.\n3. Cozinhar — 15 a 20 min: água quente e sal, ferva, abaixe o fogo e tampe."} />
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Botao variante="secundario" type="button" onClick={organizarComIA} disabled={organizando}>{organizando ? "Organizando…" : "Organizar com IA"}</Botao>
+          <span className="text-xs text-hf-muted">Escreva do seu jeito e a IA arruma em passos com tempo e fogo. Confira antes de salvar.</span>
+        </div>
+      </div>
+
       {erro && <Aviso tipo="alerta" className="mt-2">{erro}</Aviso>}
       <div className="mt-3 flex justify-end gap-2">
         <Botao variante="secundario" onClick={onFechar} type="button">Cancelar</Botao>
-        <Botao onClick={salvar} disabled={salvando} type="button">{salvando ? "Salvando…" : "Cadastrar e usar"}</Botao>
+        <Botao onClick={salvar} disabled={salvando} type="button">{salvando ? "Salvando…" : ficha ? "Salvar" : "Cadastrar e usar"}</Botao>
       </div>
     </Painel>
   );

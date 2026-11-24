@@ -136,6 +136,21 @@ Segurança crítica anterior ao Intelligence Core: S-01 e S-02 em [[SEGURANCA]].
 
 [[HDEV-001]] (BLOCKED, 08/10 noite): smoke de API pronto (`npm run qa:smoke`, TESTADO EM MOCK) e checklist de deploy com rollback. Falta o harness Playwright e trazer a `main`: o runner local nega comandos com rede (BLQ-007). O smoke real roda assim que BLQ-001/003 saírem.
 
+## 17/11/2026 (tarde) — Organizador de plataforma e várias marmitas pelo Jhon (só sistema de teste)
+
+- **Organizador de plataforma** (Delivery): a vitrine do app de entrega montada igual ao app, com botão de copiar cada campo; Jhon lê prints da tela do app (+ › Tela da plataforma) e diz o que falta. Dados em `config_sistema.params.organizador_plataforma`. TESTADO EM MOCK + build; preview NÃO VALIDADO.
+- **"Jhon, vamos montar umas marmitas"**: quantas, nesta unidade ou outra, nome de cada uma, uma após a outra; a marmita confirmada entra no Delivery e na vitrine do app. TESTADO EM MOCK; preview NÃO VALIDADO.
+- Achado: o banco de teste não tem a função `merge_config_sistema_params` nem o bucket `notas-fiscais` (o código tem caminho alternativo para a função; o bucket afeta só a foto da nota). Registrado em BUGS.
+
+## 14/11/2026 — Upgrade visual Medway e preparação para venda (pedido do dono)
+
+Branch `claude/upgrade-visual-medway` (PR em rascunho):
+- **Barra de abas no rodapé** (celular e tablet, só telas de primeiro nível): Início, Assistente, Pesquisar, Tarefas, Menu.
+- **Tela Menu** em cartões por seção e **Minha conta** (conta, empresa e assinatura, indicação pelo WhatsApp, sair).
+- **Achado:** `empresas` no banco real não tem plano nem situação (Control Plane SaaS não aplicado). Minha conta mostra "Não registrado". Plano de venda em [[UPGRADE_VISUAL_MEDWAY_E_VENDA_2026-11-14]].
+- **Planos (decisão do dono):** Grátis e Completo por R$ 89,90/mês (semestral −20% = R$ 431,52; anual −40% = R$ 647,28; crédito, débito ou Pix). Página pública `/planos`, tela Plano e assinatura, cadeado nas áreas pagas para quem está no Grátis. Migração `SAAS_PLANOS_1` escrita e testada no PGlite, **APR-024 pendente**; cobrança online em BLQ-020.
+- Evidência: TESTADO LOCAL (testes novos, PGlite 12/12, app/lib sem falhas novas, catálogo e navegação OK, build OK) e TESTADO EM MOCK (Chrome 390/820/1366 px). Preview e produção: NÃO VALIDADO.
+
 <!-- hefisto-agent:agente:inicio -->
 ### Agente autônomo (gerado pelo runner)
 - Estado: **AGUARDANDO** · início: 2026-10-09T15:36:36.690Z · último heartbeat: 2026-10-10T21:15:23.328Z
@@ -143,3 +158,18 @@ Segurança crítica anterior ao Intelligence Core: S-01 e S-02 em [[SEGURANCA]].
 - Último resultado: nenhuma missão READY; confere de novo
 - Próxima missão READY: nenhuma
 <!-- hefisto-agent:agente:fim -->
+
+## 16/11/2026 — Marmitaria em sequência, Jhon monta marmita, raio-x do preço (pedido do dono)
+
+- `hefisto-teste` (commits 8a9b853 → c568ca1): sequência de 9 passos na marmitaria (muda para o dia a dia quando concluída), custos variáveis por marmita, planos por app, calculadora por app, guia de montagem impresso, nome e segmento do delivery.
+- Inteligência: `marmita.create` ("Jhon, vamos montar uma marmita"), `marmitaria.raio_x` (quem leva quanto do preço, componente mais caro) e `marmitaria.montagem` (Nico: como monta).
+- Evidência: TESTADO LOCAL (884 testes de `app/lib` com PGlite, 219 da inteligência, build) e TESTADO EM MOCK (Chrome 390 px). No banco de teste e no preview: NÃO VALIDADO (falta a cópia da estrutura, ACESSO-008).
+- Pendente: vários deliveries por unidade (HDEV-014); sobremesa no combo pela conversa; renomear "marmita" para o item do segmento (lanche, pizza) nas telas.
+
+## 17/11/2026 — Banco de teste com a estrutura da produção; Jhon e os cardápios dos concorrentes (pedido do dono)
+
+- **Banco de teste (`hefisto-staging`)**: estrutura da produção copiada pelo conector (sem dado do restaurante, sem tabelas de backup). Impressões digitais iguais à produção em funções, gatilhos, views, índices, policies e grants. TESTADO NO SUPABASE REAL (teste). Sobra no teste: `hefisto_user_in_company` e `hefisto_user_in_unit_strict` (antigas, sem permissão de execução).
+- **Concorrentes do delivery**: + do assistente → "Cardápio de concorrente" (até 6 prints) → o Jhon lê, confere nome e app, mostra a prévia e guarda com a data (ação `competitor.menu`). "Compare o cardápio da X com as nossas marmitas" compara pratos parecidos, preço no mesmo app, preço por 100 g e adicionais. Tela Marmitaria > Concorrentes. Permissão nova `marmitaria.competitors.*` (dar aos perfis em Usuários).
+- Evidência: TESTADO LOCAL (1190 testes de `app/lib` com PGlite, 231 da inteligência, build) e TESTADO EM MOCK. No banco de teste e no preview: NÃO VALIDADO (CONC-1 espera APR-029).
+- Limite conhecido: o Jhon guarda e compara na unidade ativa do assistente; a tela lê a unidade da marmitaria. Para a marmitaria, usar o assistente com o negócio Marmitaria selecionado.
+- Falta: aprovar APR-025 a APR-029 no banco de teste; login do dono e empresa de teste no `hefisto-staging`; testar o preview.

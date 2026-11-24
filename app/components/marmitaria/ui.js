@@ -4,6 +4,7 @@
 // fundo creme, cartões brancos, verde como cor de ação. Número financeiro
 // sempre com tabular-nums; valor sem dado diz que não há dado.
 
+import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Info } from "lucide-react";
 
@@ -142,10 +143,48 @@ export function lerNumero(texto) {
 
 // Guarda o TEXTO digitado ("0,05" passa por "0,0" sem virar zero); quem
 // calcula lê com parseNumero/lerNumero.
-export function CampoNumero({ valor, onChange, className = "", ...rest }) {
-  const mostrar = valor === null || valor === undefined ? "" : typeof valor === "number" ? String(valor).replace(".", ",") : valor;
+// Vírgula automática (dono, 17/11/2026): ponto digitado vira vírgula na hora,
+// só fica uma vírgula, e ao sair do campo ",5" vira "0,5" e "2," vira "2".
+export function textoNumerico(t) {
+  let s = String(t ?? "").replace(/\./g, ",").replace(/[^0-9,]/g, "");
+  const i = s.indexOf(",");
+  if (i >= 0) s = s.slice(0, i + 1) + s.slice(i + 1).replace(/,/g, "");
+  return s;
+}
+export function textoNumericoFinal(t) {
+  let s = textoNumerico(t);
+  if (s.startsWith(",")) s = `0${s}`;
+  if (s.endsWith(",")) s = s.slice(0, -1);
+  return s;
+}
+
+/** "3000" → "3.000"; "5989,31" → "5.989,31" (só para mostrar; o valor guardado não muda). */
+export function comMilhar(t) {
+  const s = String(t ?? "");
+  if (!s) return s;
+  const [int, dec] = s.split(",");
+  const comPontos = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return dec === undefined ? comPontos : `${comPontos},${dec}`;
+}
+
+// Dono, 21/11/2026: "por cifras e unidades" → R$ na frente, unidade atrás,
+// e milhar com ponto quando o campo não está sendo digitado.
+export function CampoNumero({ valor, onChange, className = "", onBlur, onFocus, prefixo = "", sufixo = "", ...rest }) {
+  const [focado, setFocado] = useState(false);
+  const cru = valor === null || valor === undefined ? "" : typeof valor === "number" ? String(valor).replace(".", ",") : valor;
+  const mostrar = focado ? cru : comMilhar(cru);
+  const entrada = (
+    <input inputMode="decimal" className={`${inputCls} tabular-nums ${prefixo ? "pl-11" : ""} ${sufixo ? (String(sufixo).length <= 2 ? "pr-9" : "pr-20") : ""} ${className}`} value={mostrar}
+      onFocus={(e) => { setFocado(true); onFocus?.(e); }}
+      onChange={(e) => onChange(textoNumerico(e.target.value))}
+      onBlur={(e) => { setFocado(false); const f = textoNumericoFinal(e.target.value); if (f !== cru) onChange(f); onBlur?.(e); }} {...rest} />
+  );
+  if (!prefixo && !sufixo) return entrada;
   return (
-    <input inputMode="decimal" className={`${inputCls} tabular-nums ${className}`} value={mostrar}
-      onChange={(e) => onChange(e.target.value.replace(/[^0-9,.]/g, ""))} {...rest} />
+    <div className="relative min-w-0">
+      {prefixo && <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-hf-muted">{prefixo}</span>}
+      {entrada}
+      {sufixo && <span className="pointer-events-none absolute right-3.5 top-1/2 max-w-[70px] -translate-y-1/2 truncate text-right text-sm font-semibold text-hf-muted">{sufixo}</span>}
+    </div>
   );
 }

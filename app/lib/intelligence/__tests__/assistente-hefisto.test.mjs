@@ -140,7 +140,7 @@ test("pedido de receita: nome e ingredientes saem da frase falada", () => {
 
 test("resposta ilegível vira aviso e a pergunta se repete", () => {
   const p = aplicarResposta({ itens: [{ termo: "Tomate" }], pendente: { tipo: "quantidade", indice: 0 } }, "resposta", "bastante");
-  assert.equal(p.aviso, "Não entendi a quantidade.");
+  assert.equal(p.aviso, "Me diga a quantidade de novo, do seu jeito.");
   const q = aplicarResposta({ itens: [{ termo: "Tomate" }], pendente: { tipo: "quantidade", indice: 0 } }, "resposta", "2 kg");
   assert.deepEqual([q.itens[0].quantidade, q.itens[0].unidade, q.aviso], [2, "kg", null]);
   const t = aplicarResposta({ itens: [{ termo: "Tomate" }, { termo: "Sal" }], pendente: { tipo: "cadastro", indice: 1 } }, "resposta", "tirar");
@@ -231,7 +231,7 @@ test("ficha pela conversa: cadastra o que falta, custo, 200 g, base → prato co
   r = await responder(acao, "100 g");
   assert.match(r.texto, /"Pimenta do reino" não está cadastrado/);
   r = await responder(acao, "custa muito");
-  assert.match(r.texto, /^Não entendi a embalagem e o preço\./);
+  assert.match(r.texto, /^Me diga a embalagem e o preço de novo, do seu jeito\./);
   r = await responder(acao, "1 kg por 50 reais");
   assert.match(r.texto, /Quanto de Pimenta do reino/);
   r = await responder(acao, "10 g");

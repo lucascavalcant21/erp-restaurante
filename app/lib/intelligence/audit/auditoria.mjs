@@ -20,11 +20,14 @@ const PADROES = [
   [/\b(?:\d[ -]?){13,19}\b/g, "[numero-removido]"],
 ];
 
-export function redigir(texto) {
+export function redigir(texto, limite = LIMITE_TEXTO) {
   let t = String(texto ?? "");
   for (const [re, sub] of PADROES) t = t.replace(re, sub);
-  return t.length > LIMITE_TEXTO ? `${t.slice(0, LIMITE_TEXTO)}…` : t;
+  return t.length > limite ? `${t.slice(0, limite)}…` : t;
 }
+// A resposta do Jhon/Nico fica inteira no histórico (dono, 17/11/2026: "todas as
+// conversas ficam salvas, nenhuma é apagada, vejo tudo como histórico").
+const LIMITE_RESPOSTA = 4000;
 
 function limparConsultas(consultas = []) {
   return consultas.slice(0, 40).map((c) => ({
@@ -58,7 +61,7 @@ export function eventoDeAuditoria(escopo, e) {
     intencao: e.intencao ?? null,
     agentes: e.agentes ?? null,
     consultas: e.consultas ? limparConsultas(e.consultas) : null,
-    recomendacao: e.recomendacao != null ? redigir(e.recomendacao) : null,
+    recomendacao: e.recomendacao != null ? redigir(e.recomendacao, LIMITE_RESPOSTA) : null,
     acao_id: e.acaoId ?? null,
     acao_tipo: e.acaoTipo ?? null,
     risco: e.risco ?? null,

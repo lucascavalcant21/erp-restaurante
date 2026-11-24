@@ -41,6 +41,7 @@ import { useContextoInteligencia } from "../../../../components/intelligence/use
 import { fetchConvencaoAtiva } from "../../../../lib/trabalhista/convencoes-dados";
 import { regrasDaCompetencia } from "../../../../lib/trabalhista/regras-competencia.mjs";
 import VinculosAba from "./VinculosAba";
+import FichaAba from "./FichaAba";
 import SimulacaoMes from "./SimulacaoMes";
 import { aniversario } from "../../../../lib/contrato-experiencia.mjs";
 import { fetchVinculos } from "../../../../lib/vinculos-dados";
@@ -350,6 +351,10 @@ export default function ProntuarioColaboradorPage() {
               {convencao && <Linha rotulo="Convenção aplicada" valor="CCT Foz 2026/2027" />}
             </Card>
           </div>
+        )}
+
+        {aba === "ficha" && (
+          <FichaAba func={func} podeEditar={podeEditar} quem={sessao?.nome || sessao?.email || ""} empresa={unidadeInfo?.nome || ""} onAviso={setAviso} />
         )}
 
         {aba === "pessoais" && (

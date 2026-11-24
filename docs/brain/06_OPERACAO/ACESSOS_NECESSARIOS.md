@@ -25,7 +25,7 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 - **Escopo mínimo:** só esses domínios
 - **Risco:** BAIXO
 - **Como validar depois:** `curl -s -o /dev/null -w '%{http_code}' https://app.hefisto.com.br/api/intelligence/brief` deve dar 401 (sem sessão)
-- **Estado:** PENDENTE
+- **Estado:** PENDENTE. Agora pesa mais: em 17/11/2026 o sistema de teste virou o sistema novo do restaurante (DECISOES_PRODUTO)
 
 ## ACESSO-002
 
@@ -105,3 +105,40 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 - **Risco:** BAIXO
 - **Como validar depois:** o conector lista recursos
 - **Estado:** PENDENTE (sem missão ainda)
+
+## ACESSO-008
+
+- **Serviço:** GitHub Actions (segredos do repositório) + Supabase (senha do banco)
+- **Motivo:** sistema de teste do Héfisto vendável com banco próprio (pedido do dono, 14/11/2026: "os tablets não mudam; um sistema de teste"). O workflow `.github/workflows/clonar-estrutura-teste.yml` copia só a ESTRUTURA da produção (pg_dump --schema-only, só leitura) para o `hefisto-staging`, sem nenhum dado do restaurante
+- **O que precisa ser liberado:** em GitHub > Settings > Secrets and variables > Actions, dois segredos: `HEFISTO_PROD_DB_URL` (Supabase cerebro-erp > Connect > Session pooler, com a senha do banco) e `HEFISTO_TESTE_DB_URL` (o mesmo no hefisto-staging). Depois, um push na branch `ferramenta/clonar-banco-teste` roda a cópia
+- **Escopo mínimo:** a produção só é LIDA (estrutura); o teste é apagado e recriado (LIMPAR_TESTE=sim, aprovado pelo dono: "Só a estrutura")
+- **Risco:** MÉDIO (a URL da produção fica guardada como segredo do GitHub; pode ser apagada depois da cópia)
+- **Como validar depois:** no hefisto-staging, 218 tabelas no `public` (244 menos os backups), 0 linhas, impressão digital das colunas igual à da produção
+- **Estado:** RESOLVIDO SEM O SEGREDO (16–17/11/2026): a estrutura foi copiada pelo conector Supabase (dono: "Pode apagar e copiar"), sem dado do restaurante. Conferido por impressão digital igual à produção: funções 190, gatilhos 103, views 5, índices 494, policies 253, grants de tabela 3511 e de função 363, storage, gatilho do auth e realtime. TESTADO NO SUPABASE REAL (teste). Os segredos do GitHub não são mais necessários para isso
+
+## ACESSO-009
+
+- **Serviço:** Vercel (projeto erp-restaurante, variável só da branch `hefisto-teste`)
+- **Motivo:** as rotas de servidor do sistema de teste (sessão, Pix) precisam da chave secreta do banco de TESTE. Sem ela, o preview da `hefisto-teste` usa a chave geral de preview, que é a da produção, com a URL do teste: a sessão falha fechada (nenhum acesso à produção), mas as rotas de servidor não funcionam
+- **O que precisa ser liberado:** `SUPABASE_SERVICE_ROLE_KEY` = chave secreta (service_role) do hefisto-staging, tipo Sensitive, só Preview, Git branch `hefisto-teste`
+- **Escopo mínimo:** só o preview da `hefisto-teste`
+- **Risco:** BAIXO (banco de teste, sem dados do restaurante)
+- **Como validar depois:** login no preview da `hefisto-teste` e "Plano e assinatura" mostra a chave Pix; em Consultório › Pacientes, "Criar acesso ao portal" devolve login e senha
+- **Também usado por (21/11/2026):** criar o login do paciente no portal do consultório (`/api/consultorio/paciente-acesso`, BLQ-022)
+- **Estado:** PENDENTE
+
+## ACESSO-010
+
+- **Serviço:** Vercel (OPENAI_API_KEY)
+- **Motivo:** áudio do Jhon ("Transcrição de voz não configurada no servidor") e leitura de fotos no sistema novo
+- **Estado:** RESOLVIDO em 17/11/2026, com OK do dono ("Liberar a mesma chave"): a variável existente passou de "só produção" para "produção + preview". Ninguém viu o valor. Efeito colateral aceito: todas as versões de preview passam a ter a chave
+
+## ACESSO-011
+
+- **Serviço:** Whereby Embedded (conta do dono) + Vercel
+- **Motivo:** criar a sala de vídeo da teleconsulta sozinho, a partir da agenda do consultório (BLQ-021)
+- **O que precisa ser liberado:** o dono cria a conta no Whereby (o plano é decisão dele), gera a chave da API e coloca `WHEREBY_API_KEY` na Vercel, tipo Sensitive, só Preview, Git branch `hefisto-teste`; no Whereby, libera o domínio do preview para embutir a sala
+- **Escopo mínimo:** só o preview da `hefisto-teste`
+- **Risco:** BAIXO (a chave só cria salas; fica só no servidor)
+- **Como validar depois:** na agenda, numa teleconsulta, "Criar sala" devolve o link e o médico vê o vídeo no Atendimento
+- **Estado:** PENDENTE

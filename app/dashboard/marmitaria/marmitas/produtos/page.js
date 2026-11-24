@@ -48,7 +48,7 @@ function LinhaProduto({ item, saldo }) {
         <div className="mt-3 rounded-xl bg-hf-elevated/60 p-3">
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
             <Campo rotulo="Marca" className="sm:col-span-3"><input className={inputCls} value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Opcional" /></Campo>
-            <Campo rotulo="Preço pago na compra (R$)"><CampoNumero valor={preco} onChange={setPreco} placeholder="0,00" /></Campo>
+            <Campo rotulo="Preço pago na compra"><CampoNumero prefixo="R$" valor={preco} onChange={setPreco} placeholder="0,00" /></Campo>
             <Campo rotulo={`Quanto vem na compra (${un})`}><CampoNumero valor={tamanho} onChange={setTamanho} /></Campo>
             <Botao type="button" onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Botao>
           </div>
@@ -63,7 +63,7 @@ export default function ProdutosPage() {
   const { base, carregando, unidadeId, recarregar } = useMarmitaria();
   const [novo, setNovo] = useState(false);
   const [busca, setBusca] = useState("");
-  const lista = useMemo(() => (base?.insumosLista || []).filter((i) => !i.ficha_tecnica_id && !ehEmbalagem(i) && !ehLimpeza(i) && (!busca.trim() || casaBusca(`${i.nome} ${i.marca || ""}`, busca)))
+  const lista = useMemo(() => (base?.insumosLista || []).filter((i) => !i.ficha_tecnica_id && !ehEmbalagem(i) && !ehLimpeza(i) && String(i.departamento || "").toLowerCase() !== "bebidas" && (!busca.trim() || casaBusca(`${i.nome} ${i.marca || ""}`, busca)))
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR")), [base, busca]);
 
   if (!base) return carregando ? <Cartao><p className="text-sm text-hf-muted">Carregando ingredientes…</p></Cartao> : null;

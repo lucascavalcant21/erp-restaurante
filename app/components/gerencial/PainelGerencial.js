@@ -35,7 +35,7 @@ export function Natureza({ tipo }) {
   return <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${real ? "bg-hf-success/10 text-hf-success" : "bg-hf-elevated text-hf-text-2"}`}>{NATUREZA[tipo]}</span>;
 }
 
-/** Barra de áreas preta: ícone em cima do nome, a área aberta em bloco vermelho. */
+/** Barra de áreas no novo modelo (dono, 17/11/2026: "mude essa barra"): cartão branco, ícone em cima do nome, a área aberta em verde-água claro, como a barra de baixo. */
 export function BarraDeAreas({ areas, ativa, rotulo }) {
   // No celular e no tablet a barra rola de lado: a área aberta (Configurações,
   // Financeiro…) ficava fora da tela. Ao abrir, ela vem para o meio da barra.
@@ -46,16 +46,17 @@ export function BarraDeAreas({ areas, ativa, rotulo }) {
     const a = t?.querySelector("a[aria-current]");
     if (!t || !a || t.scrollWidth <= t.clientWidth) return;
     t.scrollLeft = Math.max(0, a.offsetLeft - (t.clientWidth - a.offsetWidth) / 2);
-  }, [pathname]);
+    // A lista de áreas pode trocar sem mudar de rota (marmitaria: sequência ↔ dia a dia).
+  }, [pathname, areas.map((x) => x.href).join("|")]);
   return (
-    <nav aria-label={rotulo} className="mb-5 overflow-hidden rounded-2xl bg-hf-menu shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
-      <div ref={trilho} className="flex overflow-x-auto [scrollbar-width:none]">
+    <nav aria-label={rotulo} className="mb-5 overflow-hidden rounded-[22px] border border-mw-borda bg-mw-card">
+      <div ref={trilho} className="flex gap-1 overflow-x-auto p-1.5 [scrollbar-width:none]">
         {areas.map((a) => {
           const Icone = a.icone;
           const on = ativa(a);
           return (
             <Link key={a.href} href={a.href} aria-current={on ? "page" : undefined}
-              className={`flex min-h-[64px] min-w-[92px] shrink-0 flex-col items-center justify-center gap-1 px-3 py-2 text-center text-[11px] font-semibold leading-tight transition sm:min-w-[104px] ${on ? "bg-gradient-to-b from-[rgb(239_68_68)] to-hf-accent text-white" : "text-hf-menu-muted hover:bg-hf-menu-hover hover:text-white"}`}>
+              className={`relative flex min-h-[64px] min-w-[88px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-center text-[11px] font-semibold leading-tight transition sm:min-w-[100px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mw-agua ${on ? "bg-mw-agua-claro text-mw-agua" : "text-mw-sec hover:bg-mw-bg hover:text-mw-marinho"}`}>
               {Icone && <Icone size={20} strokeWidth={1.8} className="shrink-0" />}
               <span className="max-w-[96px]">{a.rotulo}</span>
             </Link>
@@ -66,12 +67,12 @@ export function BarraDeAreas({ areas, ativa, rotulo }) {
   );
 }
 
-/** "Visão geral": a segunda parte do título em vermelho. */
+/** "Visão geral": a segunda parte do título em destaque. */
 export function TituloGestao({ antes = "Visão", destaque = "geral", icone: Icone, subtitulo, children }) {
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
-        {Icone && <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[rgb(249_115_22)] to-hf-accent text-white shadow-[0_6px_16px_-6px_rgba(220,38,38,0.6)]"><Icone size={24} /></span>}
+        {Icone && <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-mw-agua to-mw-azul text-white"><Icone size={24} /></span>}
         <div className="min-w-0">
           <h1 className="text-3xl font-bold tracking-tight text-hf-text sm:text-4xl">{antes} <span className="text-hf-accent">{destaque}</span></h1>
           {subtitulo && <p className="mt-0.5 text-sm text-hf-muted">{subtitulo}</p>}
@@ -155,11 +156,11 @@ export function GraficoMaioresMargens({ itens = [], formato = "brl", vazio }) {
   );
 }
 
-// Tons da rosca: vermelho, vermelho escuro, laranja e vermelhos claros.
+// Tons da rosca no novo modelo: marinho, verde-água, azul e marinhos claros.
 const TONS = [
   "rgb(var(--hf-accent))",
-  "rgb(var(--hf-danger))",
-  "var(--gestao-grad-de, rgb(249 115 22))",
+  "rgb(var(--mw-agua))",
+  "var(--gestao-grad-de, rgb(62 125 214))",
   "rgb(var(--hf-accent) / 0.55)",
   "rgb(var(--hf-accent) / 0.28)",
   "rgb(var(--hf-border-strong))",
@@ -236,7 +237,7 @@ export function AnaliseDoItem({ opcoes = [], valor, onChange, analise, rotuloLuc
       </select>
       {!analise ? <p className="text-sm text-hf-text-2">DADOS INSUFICIENTES: este item ainda não tem preço e custo completos.</p> : (
         <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="hidden h-36 w-36 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[rgb(249_115_22)] to-hf-accent sm:block">
+          <div className="hidden h-36 w-36 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-mw-azul to-hf-accent sm:block">
             <Foto src={analise.foto} icone={IconeSemFoto} className="h-full w-full" />
           </div>
           <ul className="min-w-0 flex-1 space-y-1.5">

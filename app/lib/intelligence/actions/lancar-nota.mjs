@@ -190,7 +190,7 @@ export function aplicarResposta(params, campo, valor) {
       if (v === "ignorar" || /^(nao lancar|nao lanca|ignorar|pular)/.test(f)) { r.ignorar = true; break; }
       if (v === "novo" || /^(cadastrar|novo)/.test(f)) { r.novo = true; delete r.insumoId; break; }
       if (/^i:/.test(v) && UUID.test(v.slice(2))) { r.insumoId = v.slice(2); delete r.novo; break; }
-      if (v.length >= 2) { r.termo = v.slice(0, 80); delete r.insumoId; delete r.novo; } else p.aviso = "Não entendi qual produto é.";
+      if (v.length >= 2) { r.termo = v.slice(0, 80); delete r.insumoId; delete r.novo; } else p.aviso = "Qual produto é? Pode dizer só o nome.";
       break;
     case "setor":
       if (!r) break;
@@ -201,7 +201,7 @@ export function aplicarResposta(params, campo, valor) {
     case "conteudo": {
       if (!r) break;
       const c = lerConteudo(v, pend.unidade || params.pendente?.unidade);
-      if (c) r.conteudo = c; else p.aviso = "Não entendi quanto vem.";
+      if (c) r.conteudo = c; else p.aviso = "Quanto vem? Ex.: 12 unidades ou 5 kg.";
       break;
     }
     case "estoque":
@@ -323,7 +323,7 @@ async function preparar(ctx, params) {
 
   // 5. Vencimento da conta a pagar
   let venc = p.vencimento === "hoje" ? hoje : p.vencimento ? lerData(p.vencimento, hoje) : null;
-  if (p.vencimento && !venc) return pergunta("vencimento", "Qual o vencimento? (ex.: 20/11)", { aviso: "Não entendi a data.", opcoes: [{ id: "hoje", rotulo: "Paguei hoje (à vista)" }] });
+  if (p.vencimento && !venc) return pergunta("vencimento", "Qual o vencimento? (ex.: 20/11)", { aviso: "Me diga a data de novo, do seu jeito.", opcoes: [{ id: "hoje", rotulo: "Paguei hoje (à vista)" }] });
   if (!venc) {
     const v = (nota.vencimentos || []).map((x) => x.data).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort()[0];
     if (v) venc = v;

@@ -85,14 +85,14 @@ export default function Vendas() {
           <Campo rotulo="Canal"><select className={inputCls} value={f.canal} onChange={(e) => setF({ ...f, canal: e.target.value })}>{canais.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></Campo>
           <Campo rotulo="Marmita" dica="Opcional; com ela aparecem as mais vendidas."><select className={inputCls} value={f.ficha_id} onChange={(e) => setF({ ...f, ficha_id: e.target.value })}><option value="">Várias / não separado</option>{base.marmitas.map((m) => <option key={m.id} value={m.id}>{m.nome_receita}</option>)}</select></Campo>
           <Campo rotulo="Marmitas vendidas"><CampoNumero valor={f.quantidade} onChange={(v) => setF({ ...f, quantidade: v })} /></Campo>
-          <Campo rotulo="Valor vendido (R$)"><CampoNumero valor={f.valor_bruto} onChange={(v) => setF({ ...f, valor_bruto: v })} /></Campo>
-          <Campo rotulo="Descontos (R$)"><CampoNumero valor={f.descontos} onChange={(v) => setF({ ...f, descontos: v })} /></Campo>
-          <Campo rotulo="Cancelamentos e estornos (R$)"><CampoNumero valor={f.cancelamentos} onChange={(v) => setF({ ...f, cancelamentos: v })} /></Campo>
-          <Campo rotulo="Tributos (R$)" dica="Vazio = estimado pela alíquota."><CampoNumero valor={f.tributos} onChange={(v) => setF({ ...f, tributos: v })} /></Campo>
-          <Campo rotulo="Comissão / taxas do canal (R$)"><CampoNumero valor={f.comissao} onChange={(v) => setF({ ...f, comissao: v })} /></Campo>
-          <Campo rotulo="Taxa de pagamento (R$)"><CampoNumero valor={f.taxa_pagamento} onChange={(v) => setF({ ...f, taxa_pagamento: v })} /></Campo>
-          <Campo rotulo="Entrega paga pela empresa (R$)"><CampoNumero valor={f.entrega_subsidiada} onChange={(v) => setF({ ...f, entrega_subsidiada: v })} /></Campo>
-          <Campo rotulo="Promoções cobradas da empresa (R$)"><CampoNumero valor={f.promocoes} onChange={(v) => setF({ ...f, promocoes: v })} /></Campo>
+          <Campo rotulo="Valor vendido"><CampoNumero prefixo="R$" valor={f.valor_bruto} onChange={(v) => setF({ ...f, valor_bruto: v })} /></Campo>
+          <Campo rotulo="Descontos"><CampoNumero prefixo="R$" valor={f.descontos} onChange={(v) => setF({ ...f, descontos: v })} /></Campo>
+          <Campo rotulo="Cancelamentos e estornos"><CampoNumero prefixo="R$" valor={f.cancelamentos} onChange={(v) => setF({ ...f, cancelamentos: v })} /></Campo>
+          <Campo rotulo="Tributos" dica="Vazio = estimado pela alíquota."><CampoNumero prefixo="R$" valor={f.tributos} onChange={(v) => setF({ ...f, tributos: v })} /></Campo>
+          <Campo rotulo="Comissão / taxas do canal"><CampoNumero prefixo="R$" valor={f.comissao} onChange={(v) => setF({ ...f, comissao: v })} /></Campo>
+          <Campo rotulo="Taxa de pagamento"><CampoNumero prefixo="R$" valor={f.taxa_pagamento} onChange={(v) => setF({ ...f, taxa_pagamento: v })} /></Campo>
+          <Campo rotulo="Entrega paga pela empresa"><CampoNumero prefixo="R$" valor={f.entrega_subsidiada} onChange={(v) => setF({ ...f, entrega_subsidiada: v })} /></Campo>
+          <Campo rotulo="Promoções cobradas da empresa"><CampoNumero prefixo="R$" valor={f.promocoes} onChange={(v) => setF({ ...f, promocoes: v })} /></Campo>
         </div>
         <label className="mt-3 flex min-h-[44px] items-center gap-2 text-sm text-hf-text-2">
           <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={f.taxasDoRepasse} onChange={(e) => setF({ ...f, taxasDoRepasse: e.target.checked })} />

@@ -1,0 +1,184 @@
+// SQL REAL da CONS-1 (consultório) em Postgres local (PGlite): quem vê o quê.
+// Rode com PGLITE=<caminho de @electric-sql/pglite>. Sem PGLITE, sai com 2.
+
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { clienteSupabase } from "../teste-banco-f21.mjs";
+
+const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+if (!process.env.PGLITE) { console.log("PGLITE não informado: testes NÃO executados."); process.exit(2); }
+let falhas = 0;
+const conferir = (nome, obtido, esperado) => {
+  const ok = JSON.stringify(obtido) === JSON.stringify(esperado);
+  if (!ok) falhas++;
+  console.log(`${ok ? "ok  " : "FALHA"} ${nome}${ok ? "" : ` obtido ${JSON.stringify(obtido)} esperado ${JSON.stringify(esperado)}`}`);
+};
+const { PGlite } = await import(pathToFileURL(path.join(process.env.PGLITE, "dist", "index.js")).href);
+const pg = new PGlite();
+const E = "e0000000-0000-4000-8000-000000000001"; const F = "e0000000-0000-4000-8000-000000000002";
+const DONO = "11111111-1111-1111-1111-111111111111", SEC = "22222222-2222-2222-2222-222222222222",
+  GER = "33333333-3333-3333-3333-333333333333", OUTRO = "44444444-4444-4444-4444-444444444444", MED2 = "55555555-5555-5555-5555-555555555555";
+await pg.exec(`
+  create role anon nologin; create role authenticated nologin; create schema auth;
+  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+  grant usage on schema auth to anon, authenticated; grant usage on schema public to anon, authenticated;
+  create table public.unidades (id text primary key, nome text not null, cor text, ativo boolean, empresa_id uuid);
+  insert into public.unidades values ('teste', 'Restaurante', null, true, '${E}'), ('marmitaria', 'Delivery', null, true, '${E}'), ('x', 'Outra empresa', null, true, '${F}');
+  create table public.usuarios_erp (id uuid primary key default gen_random_uuid(), auth_user_id uuid, status text, locked_until timestamptz, super_admin boolean default false, unidade_principal_id text);
+  create table public.config_sistema (id uuid primary key default gen_random_uuid(), unidade_id text, params jsonb default '{}');
+  create table public.usuario_escopos (id uuid primary key default gen_random_uuid(), usuario_id uuid, empresa_id uuid, unidade_id text, data_scope text);
+  insert into public.usuarios_erp (auth_user_id, status, super_admin, unidade_principal_id) values
+    ('${DONO}', 'ativo', true, 'teste'), ('${SEC}', 'ativo', false, 'consultorio'), ('${GER}', 'ativo', false, 'teste'),
+    ('${OUTRO}', 'ativo', true, 'x'), ('${MED2}', 'ativo', false, 'teste');
+  insert into public.usuario_escopos (usuario_id, empresa_id, unidade_id, data_scope)
+    select id, '${E}', null, 'empresa' from public.usuarios_erp where auth_user_id = '${GER}';
+  insert into public.usuario_escopos (usuario_id, empresa_id, unidade_id, data_scope)
+    select id, null, 'consultorio', 'unidade' from public.usuarios_erp where auth_user_id = '${MED2}';
+`);
+const sql = fs.readFileSync(path.join(raiz, "db", "consultorio", "CONS_1_CONSULTORIO.sql"), "utf8");
+await pg.exec(sql);
+conferir("cria a unidade do consultório na empresa do Delivery", (await pg.query(`select empresa_id::text e from public.unidades where id = 'consultorio'`)).rows[0]?.e, E);
+await pg.exec(sql);
+conferir("rodar de novo não duplica nem quebra", (await pg.query(`select count(*)::int n from pg_policies where tablename like 'cons\\_%'`)).rows[0].n, 16);
+
+const db = (uid) => clienteSupabase(pg, { uid });
+const [dono, sec, ger, outro, med2] = [DONO, SEC, GER, OUTRO, MED2].map(db);
+const anon = clienteSupabase(pg, { uid: "" });
+// Função que devolve várias linhas: chamada direta, com o papel do usuário.
+const fichasDe = async (uid, paciente) => {
+  await pg.exec("reset role");
+  await pg.query(`select set_config('request.jwt.claim.sub', $1, false)`, [uid]);
+  await pg.exec("set role authenticated");
+  try { return { data: (await pg.query(`select * from public.cons_fichas_do_paciente($1)`, [paciente])).rows, error: null }; }
+  catch (e) { return { data: null, error: { message: e.message } }; }
+  finally { await pg.exec("reset role"); }
+};
+
+// cadastros
+let r = await dono.from("cons_tipos_consulta").insert({ unidade_id: "consultorio", nome: "Consulta", minutos: 30, valor_particular: 250 }).select("id");
+const TIPO = r.data?.[0]?.id;
+conferir("dono cadastra tipo de consulta", [r.error, !!TIPO], [null, true]);
+r = await sec.from("cons_pacientes").insert({ unidade_id: "consultorio", nome: "Maria Souza", cpf: "12345678901", telefone: "81999990000" }).select("id");
+const PAC = r.data?.[0]?.id;
+conferir("secretária cadastra paciente", [r.error, !!PAC], [null, true]);
+r = await sec.from("cons_pacientes").insert({ unidade_id: "consultorio", nome: "Repetida", cpf: "12345678901" });
+conferir("CPF repetido na mesma unidade é recusado", !!r.error, true);
+r = await sec.from("cons_consultas").insert({ unidade_id: "consultorio", paciente_id: PAC, tipo_id: TIPO, inicio: "2026-11-24T13:00:00Z", fim: "2026-11-24T13:30:00Z", motivo: "Dor nas costas", valor: 250 }).select("id");
+const CON = r.data?.[0]?.id;
+conferir("secretária agenda com o motivo", [r.error, !!CON], [null, true]);
+r = await sec.from("cons_consultas").select("motivo").eq("id", CON);
+conferir("secretária vê o motivo", r.data?.[0]?.motivo, "Dor nas costas");
+
+// quem não deve ver
+conferir("gerente do restaurante (escopo de empresa) não vê pacientes", (await ger.from("cons_pacientes").select("id")).data?.length, 0);
+r = await ger.from("cons_pacientes").insert({ unidade_id: "consultorio", nome: "Intruso" });
+conferir("gerente do restaurante não cadastra paciente", !!r.error, true);
+conferir("administrador de outra empresa não vê pacientes", (await outro.from("cons_pacientes").select("id")).data?.length, 0);
+conferir("sem login não vê nada", (await anon.from("cons_pacientes").select("id")).data?.length ?? 0, 0);
+
+// ficha: só o médico que escreveu
+r = await dono.from("cons_fichas").insert({ unidade_id: "consultorio", paciente_id: PAC, consulta_id: CON, diagnostico: "Lombalgia", cid: "M54.5", conduta: "Analgésico e fisioterapia", retorno_dias: 30 }).select("id, medico_id");
+conferir("médico registra a ficha em nome dele", [r.error, r.data?.[0]?.medico_id], [null, DONO]);
+conferir("secretária não lê a ficha", (await sec.from("cons_fichas").select("diagnostico")).data?.length, 0);
+r = await sec.from("cons_fichas").insert({ unidade_id: "consultorio", paciente_id: PAC, medico_id: DONO, diagnostico: "falso" });
+conferir("secretária não escreve ficha em nome do médico", !!r.error, true);
+conferir("outro médico do consultório não lê a ficha", (await med2.from("cons_fichas").select("id")).data?.length, 0);
+r = await fichasDe(MED2, PAC);
+conferir("outro médico: a função devolve só as dele (nenhuma)", [r.error, r.data?.length], [null, 0]);
+r = await fichasDe(DONO, PAC);
+conferir("médico lê a própria ficha pela função", [r.error, r.data?.[0]?.diagnostico], [null, "Lombalgia"]);
+r = await fichasDe(GER, PAC);
+conferir("gerente do restaurante: a função recusa", !!r.error, true);
+const acessos = (await pg.query(`select acao, usuario_id::text u from public.cons_acessos order by em, acao`)).rows.map((x) => `${x.acao}:${x.u.slice(0, 1)}`);
+conferir("fica registrado quem criou e quem leu", acessos.sort(), ["criou:1", "leu:1", "leu:5"].sort());
+r = await dono.from("cons_fichas").update({ medico_id: MED2 }).eq("paciente_id", PAC);
+conferir("a ficha não muda de médico", !!r.error, true);
+
+// integridade e exclusão
+r = await dono.from("cons_pacientes").insert({ unidade_id: "teste", nome: "Paciente no restaurante" }).select("id");
+const PAC_RES = r.data?.[0]?.id;
+r = await dono.from("cons_consultas").insert({ unidade_id: "consultorio", paciente_id: PAC_RES, inicio: "2026-11-24T14:00:00Z", fim: "2026-11-24T14:30:00Z" });
+conferir("consulta com paciente de outra unidade é recusada", /outra unidade/.test(r.error?.message || ""), true);
+r = await dono.from("cons_pacientes").delete().eq("id", PAC);
+conferir("ninguém exclui paciente (inativa)", !!r.error, true);
+r = await sec.from("cons_consultas").update({ status: "chegou", chegada_em: "2026-11-24T12:55:00Z" }).eq("id", CON).select("status");
+conferir("secretária marca a chegada", [r.error, r.data?.[0]?.status], [null, "chegou"]);
+r = await sec.from("cons_consultas").update({ status: "inventado" }).eq("id", CON);
+conferir("status fora da lista é recusado", !!r.error, true);
+
+// ─── CONS-2: teleconsulta ────────────────────────────────────────────────
+const sql2 = fs.readFileSync(path.join(raiz, "db", "consultorio", "CONS_2_TELECONSULTA.sql"), "utf8");
+await pg.exec(sql2); await pg.exec(sql2);
+conferir("CONS-2 roda duas vezes", (await pg.query(`select count(*)::int n from pg_policies where tablename in ('cons_teleconsultas','cons_consentimentos')`)).rows[0].n, 4);
+r = await sec.from("cons_consultas").insert({ unidade_id: "consultorio", paciente_id: PAC, inicio: "2026-11-25T13:00:00Z", fim: "2026-11-25T13:30:00Z", modalidade: "teleconsulta" }).select("id, modalidade");
+const TELE = r.data?.[0]?.id;
+conferir("agenda teleconsulta", [r.error, r.data?.[0]?.modalidade], [null, "teleconsulta"]);
+const COD = "a".repeat(40);
+r = await sec.from("cons_teleconsultas").insert({ consulta_id: TELE, unidade_id: "consultorio", codigo: COD, sala_url: "https://x.whereby.com/sala", sala_medico_url: "https://x.whereby.com/sala?roomKey=1", termo_versao: "1", termo_texto: "Termo de teste" });
+conferir("secretária cria a sala", r.error, null);
+conferir("gerente do restaurante não vê a sala", (await ger.from("cons_teleconsultas").select("codigo")).data?.length, 0);
+const comoAnon = async (sqlTxt, params) => {
+  await pg.exec("reset role"); await pg.query(`select set_config('request.jwt.claim.sub', '', false)`); await pg.exec("set role anon");
+  try { return (await pg.query(sqlTxt, params)).rows[0]; } catch (e) { return { erro: e.message }; } finally { await pg.exec("reset role"); }
+};
+let conv = (await comoAnon(`select public.cons_convite_teleconsulta($1) j`, [COD])).j;
+conferir("paciente sem login vê o convite, sem a sala antes do aceite", [conv.ok, conv.primeiro_nome, conv.sala_url ?? null, conv.aceito_em ?? null], [true, "Maria", null, null]);
+conferir("código errado não abre nada", (await comoAnon(`select public.cons_convite_teleconsulta($1) j`, ["b".repeat(40)])).j.ok, false);
+conferir("sem login não lê a tabela de salas", !!(await comoAnon(`select count(*) from public.cons_teleconsultas`)).erro, true);
+let ac = (await comoAnon(`select public.cons_aceitar_termo($1, $2) j`, [COD, "Teste/1.0"])).j;
+conferir("aceite devolve a sala", [ac.ok, ac.sala_url], [true, "https://x.whereby.com/sala"]);
+await comoAnon(`select public.cons_aceitar_termo($1, $2) j`, [COD, "Teste/1.0"]);
+const cons = (await pg.query(`select count(*)::int n, max(termo_md5) h from public.cons_consentimentos where consulta_id = $1`, [TELE])).rows[0];
+conferir("um aceite só, com o hash do termo", [cons.n, cons.h], [1, (await pg.query(`select md5('Termo de teste') h`)).rows[0].h]);
+conferir("médico vê o aceite", (await dono.from("cons_consentimentos").select("aceito_em")).data?.length, 1);
+r = await dono.from("cons_consentimentos").update({ termo_texto: "outro" }).eq("consulta_id", TELE);
+conferir("ninguém altera o aceite", !!r.error || (await pg.query(`select termo_texto from public.cons_consentimentos`)).rows[0].termo_texto === "Termo de teste", true);
+await sec.from("cons_consultas").update({ status: "cancelada" }).eq("id", TELE);
+conferir("consulta cancelada fecha o convite", (await comoAnon(`select public.cons_convite_teleconsulta($1) j`, [COD])).j.ok, false);
+
+// ─── CONS-3: portal do paciente ──────────────────────────────────────────
+const sql3 = fs.readFileSync(path.join(raiz, "db", "consultorio", "CONS_3_PORTAL_PACIENTE.sql"), "utf8");
+await pg.exec(sql3); await pg.exec(sql3);
+const PACU = "66666666-6666-6666-6666-666666666666", OUTROP = "77777777-7777-7777-7777-777777777777";
+await pg.query(`update public.cons_pacientes set auth_user_id = $1, login = '12345678901' where id = $2`, [PACU, PAC]);
+r = await dono.from("cons_pacientes").insert({ unidade_id: "consultorio", nome: "Outro Paciente" }).select("id");
+await pg.query(`update public.cons_pacientes set auth_user_id = $1 where id = $2`, [OUTROP, r.data[0].id]);
+await pg.query(`insert into public.config_sistema (unidade_id, params) values ('consultorio', '{"consultorio_custos":{"expediente":{"inicio":"08:00","fim":"10:00"}}}')`);
+const comoPac = async (uid, q, params) => {
+  await pg.exec("reset role"); await pg.query(`select set_config('request.jwt.claim.sub', $1, false)`, [uid]); await pg.exec("set role authenticated");
+  try { return { rows: (await pg.query(q, params)).rows }; } catch (e) { return { erro: e.message }; } finally { await pg.exec("reset role"); }
+};
+conferir("paciente não lê a tabela de pacientes direto", (await comoPac(PACU, `select count(*)::int n from public.cons_pacientes`)).rows[0].n, 0);
+conferir("paciente não lê fichas direto", (await comoPac(PACU, `select count(*)::int n from public.cons_fichas`)).rows[0].n, 0);
+conferir("meus dados", (await comoPac(PACU, `select public.cons_paciente_eu() j`)).rows[0].j.nome, "Maria Souza");
+conferir("login sem paciente não vê nada", (await comoPac(GER, `select public.cons_paciente_eu() j`)).rows[0].j.ok, false);
+const minhas = (await comoPac(PACU, `select * from public.cons_paciente_consultas()`)).rows;
+conferir("minhas consultas (inclui a teleconsulta com convite)", [minhas.length, minhas.some((x) => x.convite === COD)], [2, true]);
+conferir("outro paciente não vê as minhas", (await comoPac(OUTROP, `select count(*)::int n from public.cons_paciente_consultas()`)).rows[0].n, 0);
+conferir("tipos de consulta com valor", (await comoPac(PACU, `select nome, valor::float8 v from public.cons_paciente_tipos()`)).rows, [{ nome: "Consulta", v: 250 }]);
+const amanha = (await pg.query(`select ((now() at time zone 'America/Sao_Paulo')::date + 1)::text d`)).rows[0].d;
+const livres = (await comoPac(PACU, `select h from public.cons_paciente_horarios($1, $2::date) h`, [TIPO, amanha])).rows;
+conferir("horários livres do dia (08 às 10, 30 min)", livres.length, 4);
+const h0 = livres[0].h;
+let m = (await comoPac(PACU, `select public.cons_paciente_marcar($1, $2, 'teleconsulta', 'retorno') j`, [TIPO, h0])).rows[0].j;
+conferir("paciente marca no horário livre", m.ok, true);
+m = (await comoPac(OUTROP, `select public.cons_paciente_marcar($1, $2, 'presencial', null) j`, [TIPO, h0])).rows[0].j;
+conferir("o mesmo horário não marca duas vezes", [m.ok, /livre/.test(m.erro)], [false, true]);
+conferir("o horário some da lista", (await comoPac(PACU, `select count(*)::int n from public.cons_paciente_horarios($1, $2::date)`, [TIPO, amanha])).rows[0].n, 3);
+const fora = (await pg.query(`select (($1::date + time '21:00') at time zone 'America/Sao_Paulo') t`, [amanha])).rows[0].t;
+m = (await comoPac(PACU, `select public.cons_paciente_marcar($1, $2, 'presencial', null) j`, [TIPO, fora])).rows[0].j;
+conferir("fora do horário de atendimento é recusado", m.ok, false);
+const nova = (await comoPac(PACU, `select id from public.cons_paciente_consultas() where status = 'agendada' and modalidade = 'teleconsulta' order by inicio desc limit 1`)).rows[0].id;
+m = (await comoPac(OUTROP, `select public.cons_paciente_cancelar($1) j`, [nova])).rows[0].j;
+conferir("outro paciente não cancela a minha", m.ok, false);
+m = (await comoPac(PACU, `select public.cons_paciente_cancelar($1) j`, [nova])).rows[0].j;
+conferir("paciente cancela a própria", m.ok, true);
+await pg.query(`update public.cons_fichas set orientacoes = 'Fazer fisioterapia 2x por semana', anotacoes = 'nota interna' where paciente_id = $1`, [PAC]);
+const res = (await comoPac(PACU, `select * from public.cons_paciente_resumos()`)).rows;
+conferir("resumo para o paciente, sem anotação interna", [res.length, res[0]?.diagnostico, res[0]?.orientacoes, "anotacoes" in (res[0] || {})], [1, "Lombalgia", "Fazer fisioterapia 2x por semana", false]);
+conferir("leitura do paciente registrada", (await pg.query(`select count(*)::int n from public.cons_acessos where usuario_id = $1 and acao = 'leu'`, [PACU])).rows[0].n, 1);
+conferir("paciente não acessa o consultório da equipe", (await comoPac(PACU, `select public.cons_pode_acessar('consultorio') b`)).rows[0].b, false);
+
+console.log(falhas ? `\n${falhas} FALHA(S)` : "\nTodos os casos passaram.");
+process.exit(falhas ? 1 : 0);

@@ -3,19 +3,22 @@
 // Processos da marmitaria: o passo a passo de cada marmita, da montagem até o
 // motoboy, e quais embalagens servem para ela. Fica sob /marmitas para herdar a
 // mesma permissão de rota. Os processos ficam em config_sistema.
+// Guia impresso (16/11/2026): "Imprimir guia" por marmita e "Imprimir todos".
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, Check, ClipboardList, ImagePlus, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, ClipboardList, ImagePlus, Plus, Printer, Trash2 } from "lucide-react";
+import { imprimirGuias } from "../../../../components/marmitaria/imprimirGuia";
+import { useJornada } from "../../../../components/marmitaria/useJornada";
 import { useMarmitaria } from "../../../../components/marmitaria/contexto";
 import { ehEmbalagem } from "../../../../components/marmitaria/BuscaItens";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, inputCls } from "../../../../components/marmitaria/ui";
 import { fetchProcessosMarmitaria, salvarProcessosMarmitaria } from "../../../../lib/parametros";
 import { uploadFotoMontagem } from "../../../../lib/montagem";
 import { novaChave } from "../../../../lib/marmitaria/dados";
-import { ETAPAS, moverEtapa, normalizarProcesso, resumoDoProcesso } from "../../../../lib/marmitaria/processos.mjs";
+import { ETAPAS, compartimentosDe, componentesDaFicha, guiaDeMontagem, montarPelaFicha, moverEtapa, normalizarProcesso, resumoDoProcesso } from "../../../../lib/marmitaria/processos.mjs";
 import { ordenarCategorias } from "../../../../lib/marmitaria/cardapio.mjs";
 
-function Etapa({ etapa, grupo, nome, mudar, tirar, mover }) {
+function Etapa({ etapa, grupo, nome, mudar, tirar, mover, compartimentos = [] }) {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState(null);
   async function foto(arquivo) {
@@ -34,7 +37,25 @@ function Etapa({ etapa, grupo, nome, mudar, tirar, mover }) {
         <button type="button" aria-label="Descer" onClick={() => mover(1)} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-hf-muted hover:bg-hf-elevated"><ArrowDown size={16} /></button>
         <button type="button" aria-label={`Tirar ${etapa.titulo}`} onClick={tirar} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-hf-muted hover:bg-hf-elevated"><Trash2 size={16} /></button>
       </div>
-      <textarea className={`${inputCls} mt-2 min-h-[72px] py-2`} value={etapa.texto} onChange={(e) => mudar({ texto: e.target.value })} placeholder="Como fazer" aria-label={`Como fazer: ${etapa.titulo}`} />
+      {grupo.id === "montagem" && (
+        <div className="mt-2 space-y-2">
+          <Campo rotulo="Quanto vai"><input className={inputCls} value={etapa.quantidade} onChange={(e) => mudar({ quantidade: e.target.value })} placeholder="Ex.: 120 g" aria-label={`Quanto vai de ${etapa.titulo}`} /></Campo>
+          {compartimentos.length > 1 && (
+            <div>
+              <p className="mb-1 text-[13px] font-medium text-hf-muted">Compartimento</p>
+              <div className="flex flex-wrap gap-1.5">
+                {compartimentos.map((c) => {
+                  const sel = etapa.compartimento === c.id;
+                  return <button key={c.id} type="button" aria-pressed={sel} onClick={() => mudar({ compartimento: sel ? "" : c.id })}
+                    className={`min-h-[40px] rounded-full border px-3 text-sm font-semibold ${sel ? "border-hf-menu bg-hf-menu text-white" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>{c.rotulo}</button>;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      <textarea className={`${inputCls} mt-2 min-h-[56px] py-2`} value={etapa.texto} onChange={(e) => mudar({ texto: e.target.value })}
+        placeholder={grupo.id === "montagem" ? "Observação (opcional). Ex.: molho por cima do frango" : "Observação (opcional)"} aria-label={`Observação: ${etapa.titulo}`} />
       {grupo.tempo && (
         <div className="mt-2 grid grid-cols-2 gap-2">
           <Campo rotulo="Tempo (min)"><CampoNumero valor={etapa.minutos} onChange={(v) => mudar({ minutos: v })} /></Campo>
@@ -53,14 +74,32 @@ function Etapa({ etapa, grupo, nome, mudar, tirar, mover }) {
   );
 }
 
+const guiaDe = (base, marmita, processo) => guiaDeMontagem({ marmita, processo, insumos: base.insumos, fichas: base.fichas });
+
 function Editor({ marmita, inicial, onVoltar, onSalvar }) {
   const { base } = useMarmitaria();
-  const [p, setP] = useState(() => normalizarProcesso(inicial));
+  const [p, setP] = useState(() => {
+    const n = normalizarProcesso(inicial);
+    if (!inicial && (marmita.embalagens || []).length) n.embalagens = [...new Set(marmita.embalagens.map((e) => e.insumo_id).filter(Boolean))];
+    return n;
+  });
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState(null);
   const embalagens = useMemo(() => base.insumosLista.filter(ehEmbalagem).sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR")), [base]);
+  // dono, 21/11/2026: as opções da montagem são o que está na ficha (com as gramas), e as embalagens são as cadastradas
+  const componentes = useMemo(() => componentesDaFicha({ marmita, insumos: base.insumos, fichas: base.fichas }), [base, marmita]);
+  const compartimentos = compartimentosDe(p.compartimentos);
+  const atalhosDe = (g) => {
+    if (g.id === "montagem") return componentes.length ? componentes.map((c) => ({ titulo: c.nome, rotulo: `${c.nome} · ${c.quantidade}`, quantidade: c.quantidade })) : g.atalhos.map((a) => ({ titulo: a, rotulo: a }));
+    if (g.id === "fechamento" || g.id === "entrega") {
+      const nomes = embalagens.map((e) => e.nome);
+      const extra = g.id === "entrega" ? ["Grampear a folha do pedido", "Levar ao motoboy"] : ["Fita adesiva"];
+      return [...new Set([...nomes, ...extra])].map((a) => ({ titulo: a, rotulo: a }));
+    }
+    return g.atalhos.map((a) => ({ titulo: a, rotulo: a }));
+  };
   const mudarEtapa = (id, campos) => setP((x) => ({ ...x, etapas: x.etapas.map((e) => (e.id === id ? { ...e, ...campos } : e)) }));
-  const nova = (grupo, titulo) => setP((x) => ({ ...x, etapas: [...x.etapas, { id: novaChave(), grupo, titulo, texto: "", minutos: "", graus: "", foto: "" }] }));
+  const nova = (grupo, titulo, quantidade = "") => setP((x) => ({ ...x, etapas: [...x.etapas, { id: novaChave(), grupo, titulo, texto: "", minutos: "", graus: "", foto: "", quantidade, compartimento: "" }] }));
 
   async function salvar() {
     if (salvando) return;
@@ -74,7 +113,29 @@ function Editor({ marmita, inicial, onVoltar, onSalvar }) {
   return (
     <div className="space-y-4">
       <button type="button" onClick={onVoltar} className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-2 text-sm font-semibold text-hf-text-2 hover:bg-hf-elevated"><ArrowLeft size={16} /> Voltar para os processos</button>
-      <h2 className="text-lg font-black text-hf-text">{marmita.nome_receita}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-black text-hf-text">{marmita.nome_receita}</h2>
+        <Botao type="button" variante="secundario" onClick={() => imprimirGuias([guiaDe(base, marmita, p)])}><Printer size={16} /> Imprimir guia</Botao>
+      </div>
+      <Secao titulo="A marmita" subtitulo="Qual marmita (pote) e quantos compartimentos ela tem.">
+        {!embalagens.length ? <p className="text-sm text-hf-text-2">Cadastre as embalagens primeiro.</p> : (
+          <div className="flex flex-wrap gap-1.5">
+            {embalagens.map((e) => {
+              const sel = p.recipiente === e.id;
+              return <button key={e.id} type="button" aria-pressed={sel} onClick={() => setP((x) => ({ ...x, recipiente: sel ? "" : e.id, embalagens: sel || x.embalagens.includes(e.id) ? x.embalagens : [...x.embalagens, e.id] }))}
+                className={`inline-flex min-h-[40px] items-center gap-1 rounded-full border px-3 text-sm font-semibold ${sel ? "border-hf-menu bg-hf-menu text-white" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>{sel && <Check size={14} />}{e.nome}</button>;
+            })}
+          </div>
+        )}
+        <p className="mb-1 mt-3 text-[13px] font-medium text-hf-muted">Compartimentos</p>
+        <div className="flex flex-wrap gap-1.5">
+          {[1, 2, 3].map((n) => {
+            const sel = p.compartimentos === n;
+            return <button key={n} type="button" aria-pressed={sel} onClick={() => setP((x) => ({ ...x, compartimentos: sel ? null : n }))}
+              className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold ${sel ? "border-hf-menu bg-hf-menu text-white" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>{n === 1 ? "1 (sem divisão)" : n}</button>;
+          })}
+        </div>
+      </Secao>
       <Secao titulo="Embalagens que servem" subtitulo="Toque nas embalagens que podem ser usadas nesta marmita.">
         {!embalagens.length ? <p className="text-sm text-hf-text-2">Cadastre as embalagens primeiro.</p> : (
           <div className="flex flex-wrap gap-1.5">
@@ -90,14 +151,18 @@ function Editor({ marmita, inicial, onVoltar, onSalvar }) {
         const lista = p.etapas.filter((e) => e.grupo === g.id);
         return (
           <Secao key={g.id} titulo={g.rotulo}>
+            {g.id === "montagem" && !lista.length && componentes.length > 0 && (
+              <Botao type="button" className="mb-3" onClick={() => setP((x) => montarPelaFicha(x, componentes, novaChave))}><ClipboardList size={16} /> Montar com os itens da ficha</Botao>
+            )}
+            {g.id === "finalizacao" && !lista.length && <p className="mb-2 text-xs text-hf-muted">Opcional. Se não vai nada por cima, deixe em branco.</p>}
             {lista.length > 0 && (
               <ol className="mb-3 space-y-2">
-                {lista.map((e) => <Etapa key={e.id} etapa={e} grupo={g} nome={marmita.nome_receita} mudar={(c) => mudarEtapa(e.id, c)}
+                {lista.map((e) => <Etapa key={e.id} etapa={e} grupo={g} nome={marmita.nome_receita} compartimentos={compartimentos} mudar={(c) => mudarEtapa(e.id, c)}
                   tirar={() => setP((x) => ({ ...x, etapas: x.etapas.filter((i) => i.id !== e.id) }))} mover={(d) => setP((x) => ({ ...x, etapas: moverEtapa(x.etapas, e.id, d) }))} />)}
               </ol>
             )}
             <div className="flex flex-wrap gap-1.5">
-              {g.atalhos.map((a) => <button key={a} type="button" onClick={() => nova(g.id, a)} className="min-h-[40px] rounded-full border border-hf-border px-3 text-sm font-semibold text-hf-text-2"><Plus size={13} className="mr-1 inline" />{a}</button>)}
+              {atalhosDe(g).map((a) => <button key={a.rotulo} type="button" onClick={() => nova(g.id, a.titulo, a.quantidade || "")} className="min-h-[40px] rounded-full border border-hf-border px-3 text-sm font-semibold text-hf-text-2"><Plus size={13} className="mr-1 inline" />{a.rotulo}</button>)}
               <button type="button" onClick={() => nova(g.id, "")} className="min-h-[40px] rounded-full border border-dashed border-hf-border-strong px-3 text-sm font-semibold text-hf-accent">Outra etapa</button>
             </div>
           </Secao>
@@ -113,6 +178,7 @@ function Editor({ marmita, inicial, onVoltar, onSalvar }) {
 
 export default function ProcessosPage() {
   const { base, carregando, unidadeId } = useMarmitaria();
+  const { recarregarJornada } = useJornada();
   const [processos, setProcessos] = useState({});
   const [abertoId, setAbertoId] = useState(null);
   useEffect(() => { if (unidadeId) fetchProcessosMarmitaria(unidadeId).then((r) => setProcessos(r.data || {})); }, [unidadeId]);
@@ -124,14 +190,19 @@ export default function ProcessosPage() {
       onSalvar={async (p) => {
         const todos = { ...processos, [aberto.id]: p };
         const r = await salvarProcessosMarmitaria(unidadeId, todos);
-        if (!r?.error) setProcessos(todos);
+        if (!r?.error) { setProcessos(todos); recarregarJornada(); }
         return r;
       }} />;
   }
 
   const categorias = ordenarCategorias(base.marmitas.map((m) => m.categoria || "Sem categoria"));
   return (
-    <Secao titulo="Montagem do prato" subtitulo="Como cada item é montado, fechado e entregue.">
+    <Secao titulo="Guia de montagem" subtitulo="Como cada marmita é montada, fechada e entregue. Toque numa marmita para escrever o passo a passo.">
+      {base.marmitas.some((m) => m.ativo !== false) && (
+        <div className="mb-3 flex justify-end">
+          <Botao type="button" variante="secundario" onClick={() => imprimirGuias(base.marmitas.filter((m) => m.ativo !== false).map((m) => guiaDe(base, m, processos[m.id])))}><Printer size={16} /> Imprimir todos os guias</Botao>
+        </div>
+      )}
       {!base.marmitas.length && <p className="text-sm text-hf-text-2">Monte as fichas técnicas primeiro.</p>}
       <div className="space-y-4">
         {categorias.map((c) => (

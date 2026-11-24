@@ -423,3 +423,110 @@ test("meta em %: valor da meta sai em reais sobre a receita", () => {
   assert.equal(r.meta.falta + r.meta.margem, Math.abs(r2v(r.lucro - 1600)));
 });
 const r2v = (v) => Math.round(v * 100) / 100;
+
+test("quantidade fechada (dono, 21/11/2026): gramas e ml do evento, custo ÷ pessoas, preço × pessoas", () => {
+  const fichas = [
+    { id: "arroz", nome_receita: "Arroz", departamento: "cozinha", rendimento_porcoes: 5, rendimento_unidade: "kg", eh_base: true,
+      fichas_ingredientes: [{ quantidade: 1, insumos: { id: "i1", nome: "arroz cru", unidade_medida: "kg", custo_compra: 25, tamanho_embalagem: 1 } }] },
+    { id: "suco", nome_receita: "Suco", departamento: "bar", rendimento_porcoes: 1, rendimento_unidade: "l", eh_base: true,
+      fichas_ingredientes: [{ quantidade: 1, insumos: { id: "i2", nome: "polpa", unidade_medida: "kg", custo_compra: 20, tamanho_embalagem: 1 } }] },
+  ];
+  const orc = orcamentoVazio();
+  orc.cliente.convidados = 40;
+  orc.cliente.criancas = 10;
+  orc.financeiro.modo_preco = "fechado";
+  orc.cardapio = [
+    { id: "a", origem: "ficha", ficha_id: "arroz", secao: "buffet", quantidade_total: "4000", unidade_total: "g" },
+    { id: "b", origem: "ficha", ficha_id: "suco", secao: "bar", quantidade_total: "3000", unidade_total: "ml" },
+  ];
+  orc.financeiro.preco_por_pessoa = "10";
+  const r = resumoDoOrcamento(orc, fichas);
+  assert.equal(r.totalComidaG, 4000);
+  assert.equal(r.totalBebidaMl, 3000);
+  assert.equal(r.cmv, 80); // 4 kg × R$ 5/kg + 3 L × R$ 20/L
+  assert.equal(r.custoCardapioPorPessoa, 2);
+  assert.equal(r.receita, 400); // R$ 10 × 40 pessoas (criança paga igual)
+  assert.ok(r.precoSugeridoPorPessoa > 0);
+});
+
+test("espaço: meu espaço cobra aluguel (receita); alugado é custo; decoração é gasto", async () => {
+  const { resumoDoOrcamento, incluidoNaProposta, linhasDeValor } = await import("./evento-orcamento.mjs");
+  const base = {
+    cliente: { convidados: 50 }, itens: [], equipe: [],
+    extras: [{ id: "a", categoria: "aluguel", descricao: "Limpeza", valor: "200" }, { id: "d", categoria: "decoracao", descricao: "Arranjos", valor: "500" }],
+    financeiro: { preco_por_pessoa: "100", imposto_pct: "0", maquininha_pct: "0", prolabore: { modo: "valor", valor: "300" }, comissoes: [] },
+  };
+  const proprio = resumoDoOrcamento({ ...base, espaco: { tipo: "proprio", valor_cobrado: "1000" } }, []);
+  assert.equal(proprio.aluguelCobrado, 1000);
+  assert.equal(proprio.receita, 6000);
+  assert.equal(proprio.extras, 700);
+  assert.equal(proprio.prolabore, 300);
+  assert.equal(proprio.lucro, 5000);
+  assert.ok(proprio.dre.some((l) => l.id === "extra_aluguel" && l.rotulo === "(−) Custos do meu espaço"));
+  assert.ok(proprio.dre.some((l) => l.id === "extra_decoracao"));
+  assert.ok(linhasDeValor(proprio).some((l) => l.startsWith("Aluguel do espaço")));
+  // custos internos do espaço não vão para o cliente; decoração vai
+  assert.deepEqual(incluidoNaProposta({ ...base, espaco: { tipo: "proprio" } }).servicos, ["Arranjos"]);
+  const alugado = resumoDoOrcamento(base, []);
+  assert.equal(alugado.aluguelCobrado, 0);
+  assert.equal(alugado.receita, 5000);
+  assert.equal(alugado.lucro, 4000);
+  // preço sugerido desconta o aluguel cobrado
+  assert.equal(alugado.precoMinimoPorPessoa, 20); // (700 + 300) ÷ 50
+  const s1 = resumoDoOrcamento({ ...base, espaco: { tipo: "proprio", valor_cobrado: "500" } }, []);
+  assert.equal(s1.precoMinimoPorPessoa, 10); // o aluguel cobrado já cobre 500
+});
+
+test("DRE do evento: tudo o que se preenche aparece e a conta fecha no centavo", async () => {
+  const { realizadoDoEvento, resumoParaFunil } = await import("./evento-orcamento.mjs");
+  const soma = (l) => Math.round(l.reduce((t, x) => t + x.valor, 0) * 100) / 100;
+  for (const tipo of ["proprio", "terceiros", "cliente"]) {
+    const o = orcBase();
+    o.tipo = "combinado"; // a mesa montada existe no Combinado
+    o.cardapio.push({ id: "m1", secao: "mesa", origem: "ficha", ficha_id: "prato", nome: "Mesa de frios", medida: "total", quantidade_total: "10" });
+    o.financeiro.preco_mesa = "900";
+    o.cliente.criancas = 10;
+    o.financeiro.desconto = { modo: "valor", valor: "200" };
+    o.financeiro.comissoes.push({ id: "k2", nome: "Vendedor", modo: "pct", valor: 2 });
+    o.extras.push({ id: "x3", categoria: "aluguel", descricao: tipo === "proprio" ? "Limpeza e energia" : "Salão", valor: 700 }, { id: "x4", categoria: "outros", descricao: "Gelo", valor: 150 });
+    o.espaco = { tipo, valor_cobrado: "1500" };
+    const r = resumoDoOrcamento(o, FICHAS);
+    const l = Object.fromEntries(r.dre.map((x) => [x.id, x]));
+    // cada coisa preenchida tem a sua linha
+    for (const id of ["receita", "imposto", "maquininha", "cmv_comida", "cmv_bebida", "equipe", "extra_aluguel", "extra_decoracao", "extra_musica", "extra_outros", "comissao_k1", "comissao_k2", "prolabore", "desconto", "lucro"]) assert.ok(l[id], `${tipo}: falta a linha ${id}`);
+    assert.equal(!!l.receita_espaco, tipo === "proprio");
+    // receita = pessoas + crianças + mesa + aluguel cobrado − desconto
+    const esperadaBruta = 90 * 80 + 10 * 40 + 900 + (tipo === "proprio" ? 1500 : 0);
+    assert.equal(l.receita_bruta.valor, esperadaBruta);
+    assert.equal(r.receita, esperadaBruta - 200);
+    // receita − todas as linhas de custo = lucro líquido
+    const custos = r.dre.filter((x) => x.tipo === "custo" && x.id !== "desconto");
+    assert.equal(Math.round((r.receita - soma(custos)) * 100) / 100, r.lucro, `${tipo}: DRE não fecha`);
+    assert.equal(l.lucro.valor, r.lucro);
+    assert.equal(l.extra_aluguel.valor + l.extra_decoracao.valor + l.extra_musica.valor + l.extra_outros.valor, r.extras);
+    assert.equal(r.extras, 1850);
+    // a mesa montada entra no custo da comida
+    assert.ok(r.cmvComida > 0 && r.custoMesa > 0 && r.cmvComida >= r.custoMesa);
+    // orçado × realizado e funil usam os mesmos números
+    const real = realizadoDoEvento(o, r);
+    assert.equal(real.lucroReal, r.lucro);
+    const f = resumoParaFunil(r);
+    assert.equal(Math.round((f.receita - f.cmv - f.equipe - f.extras - f.taxas - f.prolabore) * 100) / 100, r.lucro);
+  }
+});
+
+test("conferência do evento: projeção antes, real depois, e estouro do orçado", async () => {
+  const { conferenciaDoEvento, realizadoDoEvento } = await import("./evento-orcamento.mjs");
+  const o = orcBase();
+  const r = resumoDoOrcamento(o, FICHAS);
+  const antes = conferenciaDoEvento(r, realizadoDoEvento(o, r));
+  assert.equal(antes.natureza, "PROJEÇÃO");
+  assert.equal(antes.lucro, r.lucro);
+  // equipe custou 700 em vez de 500 (+40%): estoura; o resto lançado igual
+  o.realizado = { cmv_comida: r.cmvComida, cmv_bebida: r.cmvBebida, equipe: 700, extras: r.extras, imposto: r.imposto, maquininha: r.maquininha, comissoes: r.comissoesTotal, prolabore: r.prolabore };
+  const depois = conferenciaDoEvento(r, realizadoDoEvento(o, r));
+  assert.equal(depois.natureza, "REAL");
+  assert.equal(depois.lucro, Math.round((r.lucro - 200) * 100) / 100);
+  assert.deepEqual(depois.estouros.map((e) => [e.id, e.diferenca, e.pct]), [["equipe", 200, 40]]);
+  assert.equal(conferenciaDoEvento({ receita: 0 }, null).situacao, "sem_dado");
+});

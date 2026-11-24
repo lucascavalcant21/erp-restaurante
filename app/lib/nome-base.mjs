@@ -1,4 +1,4 @@
-// Nome das bases (pedido do dono, 23/11/2026): o que era "base" agora se
+// Nome das bases (pedido do dono, 23/11/2026): o que era "pré-preparo" agora se
 // chama BASE, e o nome sempre termina com "(base)": "Arroz branco (base)".
 // Assim a base nunca se confunde com o prato de mesmo nome ("Arroz branco").
 

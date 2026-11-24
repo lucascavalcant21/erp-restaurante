@@ -13,11 +13,15 @@
 
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Lock, Camera, Plus } from "lucide-react";
+import { useERP } from "../../../context/ERPContext";
+import { assistenteDaSessao } from "../../../lib/assistentes.mjs";
+import { canAccessRoute } from "../../../lib/permissions-catalog.mjs";
+import { ChevronLeft, ChevronRight, Mic, Send, Square, Volume2, VolumeX, X, Bot, CheckCheck, Check, AlertTriangle, ShieldAlert, ExternalLink, Camera, Plus, Receipt, Smartphone, Store, ChefHat, Martini, UtensilsCrossed, Package, SprayCan, Wallet, Users, TrendingUp, Rocket, Clock, History, ShieldCheck, Sparkles } from "lucide-react";
 import { perguntarAoHefisto, confirmarAcao, cancelarAcao, novaChaveDeEnvio } from "../../../lib/intelligence/client/api";
 import { provedorDeVoz } from "../../../lib/intelligence/voice/voice-provider";
 import { fetchComSessao } from "../../../lib/api-sessao";
 import { MAX_XML_BYTES, notaDoOcr, notaDoXml, reduzirImagem } from "./nota.mjs";
+import { MAX_PRINTS, cardapioDoOcr } from "../../../lib/marmitaria/concorrentes.mjs";
 import FolhaFicha from "../FolhaFicha";
 import ReceitaRapida from "../ReceitaRapida";
 import JantaRapida from "../JantaRapida";
@@ -26,9 +30,13 @@ import FormulaRapida from "../FormulaRapida";
 import { PREFIXO as PREFIXO_RECEITA, respostaLocal } from "../../../lib/intelligence/local/receitas-locais.mjs";
 import { atualizarReceitas, lerReceitasGuardadas, precisaAtualizar } from "../../../lib/intelligence/local/receitas-cache";
 import ListaEtiquetas from "./ListaEtiquetas";
+import PlanoDeHoje from "./PlanoDeHoje";
+import ListaDeCompras from "./ListaDeCompras";
 import PassosProcedimento from "../PassosProcedimento";
 
-export const NOME_ASSISTENTE = "Assistente Héfisto";
+// Nome padrão. Na tela, o nome vem de quem está logado (app/lib/assistentes.mjs):
+// Jhon para o dono, Nico para a equipe (decisão do dono, 14/11/2026).
+export const NOME_ASSISTENTE = "Nico";
 
 export const SUGESTOES_ASSISTENTE = Object.freeze([
   "Adicione 3 kg de picanha, 4 litros de xarope de guaraná",
@@ -40,23 +48,29 @@ export const SUGESTOES_ASSISTENTE = Object.freeze([
   "Como foi minha empresa hoje?",
 ]);
 
+// Tema escuro do WhatsApp (pedido do dono, 14/11/2026: "deixe a tela
+// completa e ponha um fundo escuro nessa página"). Os blocos que usam os
+// tokens hf-* (fichas, procedimentos, listas) ficam escuros pela classe
+// .wa-escuro do globals.css, sem editar componente por componente.
+// Contraste: texto #E9EDEF sobre #0B141A 16:1; sobre #202C33 12:1; #8696A0
+// sobre #202C33 4,6:1; branco sobre #005C4B 7,6:1.
 const CORES = {
-  "--wa-fundo": "#EFEAE2",
-  "--wa-topo": "#008069",
-  "--wa-eu": "#BDEBAA",
-  "--wa-ele": "#FFFFFF",
-  "--wa-texto": "#111B21",
-  "--wa-meta": "#667781",
-  "--wa-verde": "#007A63",
-  "--wa-verde-escuro": "#005A49",
+  "--wa-fundo": "#0B141A",
+  "--wa-topo": "#202C33",
+  "--wa-eu": "#005C4B",
+  "--wa-ele": "#202C33",
+  "--wa-texto": "#E9EDEF",
+  "--wa-meta": "#8696A0",
+  "--wa-verde": "#00A884",
+  "--wa-verde-escuro": "#00A884",
   "--wa-lido": "#53BDEB",
-  "--wa-aviso": "#FFEECD",
-  "--wa-barra": "rgba(246,246,246,0.96)",
-  "--wa-linha": "#D1D1D6",
+  "--wa-aviso": "#182229",
+  "--wa-barra": "rgba(32,44,51,0.97)",
+  "--wa-linha": "#2A3942",
 };
 
 // Papel de parede: rabiscos leves repetidos (SVG inline, sem imagem externa).
-const PAPEL = `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><g fill="none" stroke="#d6cfc4" stroke-width="1.4" stroke-linecap="round" opacity="0.55"><circle cx="18" cy="20" r="7"/><path d="M48 14l8 8M56 14l-8 8"/><path d="M84 18c6-6 14 2 8 8s-14-2-8-8z"/><rect x="12" y="52" width="14" height="10" rx="3"/><path d="M50 58c4-8 12-8 16 0"/><circle cx="94" cy="58" r="3"/><path d="M20 96l6-8 6 8z"/><path d="M52 92h16M60 84v16"/><path d="M88 92c0-6 10-6 10 0s-10 6-10 0z"/></g></svg>')}")`;
+const PAPEL = `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><g fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" opacity="0.045"><circle cx="18" cy="20" r="7"/><path d="M48 14l8 8M56 14l-8 8"/><path d="M84 18c6-6 14 2 8 8s-14-2-8-8z"/><rect x="12" y="52" width="14" height="10" rx="3"/><path d="M50 58c4-8 12-8 16 0"/><circle cx="94" cy="58" r="3"/><path d="M20 96l6-8 6 8z"/><path d="M52 92h16M60 84v16"/><path d="M88 92c0-6 10-6 10 0s-10 6-10 0z"/></g></svg>')}")`;
 
 const FMT_HORA = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 const hora = (t) => FMT_HORA.format(new Date(t || Date.now()));
@@ -113,12 +127,49 @@ function Balao({ lado, children, hora: h, lido, cauda = true, largo = false }) {
 
 // Lista longa (receitas, drinks): campo de busca e rolagem, para escolher com um toque.
 const semAcento = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-const AREAS_INICIO = [
-  { rotulo: "Cozinha", icone: "🍳", comando: "Atalhos da cozinha" },
-  { rotulo: "Bar", icone: "🍹", comando: "Atalhos do bar" },
-  { rotulo: "Salão", icone: "🍽️", comando: "Atalhos do salão" },
-  { rotulo: "Estoque", icone: "📦", comando: "Atalhos do estoque" },
+// Tela inicial (dono, 17/11/2026: "muito feia, nada profissional; letras brancas;
+// o card ocupa a tela toda"): ícones de linha em quadrado colorido, texto branco,
+// cartões na largura toda. O Jhon (dono) vê a gestão; o Nico, as áreas da operação.
+const AREAS_OPERACAO = [
+  { rotulo: "Cozinha", detalhe: "Preparo, fichas e etiquetas", Icone: ChefHat, cor: "#E8590C", comando: "Atalhos da cozinha" },
+  { rotulo: "Bar", detalhe: "Drinks e reposição", Icone: Martini, cor: "#C2255C", comando: "Atalhos do bar" },
+  { rotulo: "Salão", detalhe: "Atendimento e mesas", Icone: UtensilsCrossed, cor: "#1971C2", comando: "Atalhos do salão" },
+  { rotulo: "Estoque", detalhe: "Saldo, perdas e validade", Icone: Package, cor: "#2F9E44", comando: "Atalhos do estoque" },
+  { rotulo: "Limpeza e equipamentos", detalhe: "Rotinas e manutenção", Icone: SprayCan, cor: "#0C8599", comando: "Atalhos de limpeza e equipamentos" },
 ];
+const AREAS_GESTAO = [
+  { rotulo: "Montar o delivery", detalhe: "Apps, custos, equipe e marmitas, passo a passo", Icone: Rocket, cor: "#3E7DD6", comando: "Vamos montar o delivery", largo: true },
+  { rotulo: "Marmitas", detalhe: "Montar, preço e lucro", Icone: Store, cor: "#0E9680", comando: "Marmita" },
+  { rotulo: "Plataformas", detalhe: "Apps, taxas e vitrine", Icone: Smartphone, cor: "#7048E8", comando: "plataformas" },
+  { rotulo: "Custos", detalhe: "Fixos e compras", Icone: Wallet, cor: "#E8590C", comando: "custos" },
+  { rotulo: "Equipe", detalhe: "Cadastro e horários", Icone: Users, cor: "#C2255C", comando: "equipe" },
+  { rotulo: "Estoque", detalhe: "Saldo, perdas e validade", Icone: Package, cor: "#2F9E44", comando: "Atalhos do estoque" },
+  { rotulo: "Vendas e resultado", detalhe: "Faturamento e lucro", Icone: TrendingUp, cor: "#1971C2", comando: "vendas" },
+];
+
+function CartaoArea({ a, onClick, desabilitado }) {
+  const { Icone } = a;
+  return (
+    <button type="button" disabled={desabilitado} onClick={onClick}
+      className={`${a.largo ? "col-span-2 " : ""}flex min-h-[64px] w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left text-white transition active:scale-[0.99] disabled:opacity-50`}
+      style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" }}>
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl" style={{ background: a.cor }}><Icone size={22} strokeWidth={1.9} color="#fff" /></span>
+      <span className="min-w-0">
+        <span className="block text-[15.5px] font-semibold leading-tight text-white">{a.rotulo}</span>
+        <span className="mt-0.5 block text-[12.5px] leading-snug text-white/65">{a.detalhe}</span>
+      </span>
+    </button>
+  );
+}
+
+// O Nico (equipe) começa por perguntas da operação; as de gestão são do Jhon (14/11/2026).
+const SUGESTOES_NICO = Object.freeze([
+  "Como faz o prato do dia?",
+  "Quero imprimir etiquetas",
+  "Posicionamento",
+  "Salmoura",
+  "Aconteceu um problema no salão, como resolvo?",
+]);
 
 const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabilitado }) {
   const [filtro, setFiltro] = useState("");
@@ -127,7 +178,7 @@ const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabili
   const visiveis = longa && filtro.trim() ? opcoes.filter((o) => semAcento(o.rotulo).includes(semAcento(filtro.trim()))) : opcoes;
   return (
     <div className="flex justify-start px-3 pb-1.5 sm:px-[6%]">
-      <div className="grid w-full max-w-[82%] gap-1 sm:max-w-[520px]">
+      <div className="grid w-full gap-1.5 sm:max-w-[640px]">
         {longa && (
           <input type="search" value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder={`Procurar entre ${opcoes.length}…`} aria-label="Procurar na lista"
             className="min-h-[46px] rounded-[14px] border-0 px-3 text-[16px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] outline-none" style={{ background: "var(--wa-ele)" }} />
@@ -140,11 +191,11 @@ const BotoesRapidos = memo(function BotoesRapidos({ opcoes, onEscolher, desabili
             type="button"
             disabled={desabilitado}
             onClick={() => onEscolher(o)}
-            className="flex min-h-[46px] items-center justify-center gap-1.5 rounded-[14px] px-3 py-2 text-center text-[16.5px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.99] disabled:opacity-50"
-            style={{ background: "var(--wa-ele)", color: "var(--wa-verde-escuro)" }}
+            className="flex min-h-[48px] w-full items-center justify-between gap-2 rounded-2xl border px-4 py-2.5 text-left text-[15.5px] font-medium text-white transition active:scale-[0.99] disabled:opacity-50"
+            style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" }}
           >
-            {o.rota && <ExternalLink size={14} />}
-            {o.rotulo}
+            <span className="min-w-0">{o.rotulo}</span>
+            {o.rota ? <ExternalLink size={15} className="shrink-0 text-white/60" /> : <ChevronRight size={17} className="shrink-0 text-white/40" />}
           </button>
         ))}
         </div>
@@ -182,7 +233,8 @@ function Blocos({ blocos, onRota, onComando }) {
         if (b.tipo === "posicionamento" && b.itens?.length) return <PosicionamentoRapido key={i} itens={b.itens} />;
         if (b.tipo === "formula" && b.formula) return <FormulaRapida key={i} formula={b.formula} kg={b.kg} />;
         if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} onComando={onComando} />;
-        if (b.tipo === "passos") return <PassosProcedimento key={i} bloco={b} />;
+        if (b.tipo === "passos") return <PassosProcedimento key={i} bloco={b} onComando={onComando} />;
+        if (b.tipo === "lista_compras" || b.tipo === "lista_compras_conferencia") return <ListaDeCompras key={i} bloco={b} />;
         if (b.tipo === "etiquetas") return <ListaEtiquetas key={i} bloco={b} onRota={onRota} />;
         if (b.tipo === "texto") return <p key={i} className="text-[14px]" style={{ color: "var(--wa-meta)" }}>{b.qualificador ? <strong>{b.qualificador}: </strong> : null}{b.texto}</p>;
         if (b.tipo === "insight" && b.insight?.titulo) return <p key={i} className="text-[14.5px]">• {b.insight.titulo}</p>;
@@ -299,12 +351,12 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
   return conteudo(r, m.id, true, caudaGrupo);
 });
 
-const MensagemMinha = memo(function MensagemMinha({ m, cauda = true }) {
+const MensagemMinha = memo(function MensagemMinha({ m, cauda = true, nome = NOME_ASSISTENTE }) {
   return (
     <Balao lado="eu" hora={m.em} lido={m.lido} cauda={cauda}>
       {m.citacao && (
         <span className="mb-1 block rounded-md border-l-4 bg-black/5 px-2 py-1 text-[14px]" style={{ borderColor: "var(--wa-verde)" }}>
-          <span className="block font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{NOME_ASSISTENTE}</span>
+          <span className="block font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>{nome}</span>
           <span className="line-clamp-2" style={{ color: "var(--wa-meta)" }}>{m.citacao}</span>
         </span>
       )}
@@ -340,6 +392,11 @@ function Digitando() {
 
 // ─── tela ─────────────────────────────────────────────────────────────────────
 const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, unidadeNome = "", perguntaInicial = null, tela = null, rotuloOrigem = null, onVoltar, onPerguntaInicialEnviada = null }, ref) {
+  const { sessao } = useERP() || {};
+  const nomeAssistente = assistenteDaSessao(sessao).nome;
+  const ehNico = nomeAssistente !== "Jhon";
+  // Tablet do Nico + ponto: o ponto é um botão do Nico (decisão do dono, 14/11/2026).
+  const bateponto = !!sessao && canAccessRoute(sessao, "/dashboard/rh/ponto", "");
   // tela de origem (atalho Alt+H de outra página): rota e registro aberto viram contexto da conversa
   const TELA = tela || TELA_PADRAO;
   const router = useRouter();
@@ -554,6 +611,46 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
     setLendoNota(false);
   }, [adicionar, executar, unidadeId, TELA]);
 
+  // ─── cardápio de concorrente (prints do app de delivery, até 6) ───
+  const cardapioRef = useRef(null);
+  const telaRef = useRef(null);
+  const cameraCardapioRef = useRef(null);
+  const [lendoCardapio, setLendoCardapio] = useState(false);
+  const [menuAnexo, setMenuAnexo] = useState(false);
+  // depois de "vou mandar o cardápio do concorrente", a câmera fotografa o cardápio (não a nota)
+  const esperandoCardapio = () => referenciaRef.current?.intencao === "marmitaria.concorrente_ler";
+  const enviarCardapio = useCallback(async (lista, destino = "concorrente") => {
+    const vitrine = destino === "vitrine";
+    const arquivos = [...(lista || [])].filter((f) => /^image\//.test(f.type || "") || /\.(jpe?g|png|webp)$/i.test(f.name || ""));
+    if (!arquivos.length || ocupadoRef.current) return;
+    if (arquivos.length > MAX_PRINTS) {
+      adicionar({ de: "assistente", resposta: { tipo: "erro_acao", texto: `Mande até ${MAX_PRINTS} prints de cada vez. Se o cardápio for maior, mande o resto depois: cada envio fica guardado com a data.` } });
+      return;
+    }
+    let fotos;
+    try {
+      fotos = await Promise.all(arquivos.map((a) => reduzirImagem(a)));
+      // juntos, os prints precisam caber no envio: reduz mais se passar
+      if (fotos.reduce((t, f) => t + f.dataUrl.length, 0) > 4_000_000) fotos = await Promise.all(arquivos.map((a) => reduzirImagem(a, { lado: 1280, qualidade: 0.7 })));
+    } catch {
+      adicionar({ de: "assistente", resposta: { tipo: "erro_acao", texto: "Não consegui abrir algum dos prints. Tente de novo." } });
+      return;
+    }
+    adicionar({ de: "eu", texto: `${vitrine ? "Tela da plataforma" : "Cardápio de concorrente"} (${fotos.length} ${fotos.length === 1 ? "print" : "prints"})`, imagem: fotos[0].miniatura });
+    setRespondendo(null);
+    setLendoCardapio(true);
+    await executar(async () => {
+      const r = await fetchComSessao("/api/ocr/cardapio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imagens: fotos.map((f) => f.dataUrl) }) });
+      const lido = await r.json().catch(() => null);
+      if (!r.ok) return { ok: false, dados: { erro: r.status === 400 && lido?.error ? lido.error : "Não consegui ler os prints agora. Tente de novo em instantes." } };
+      const cardapio = cardapioDoOcr(lido);
+      if (!cardapio) return { ok: false, dados: { erro: "Não encontrei pratos com preço nesses prints. Mande prints em que apareçam o nome e o preço de cada prato." } };
+      setLendoCardapio(false);
+      return perguntarAoHefisto(unidadeId, { cardapio, ...(vitrine ? { destino: "vitrine" } : {}), chave: novaChaveDeEnvio(), tela: TELA, conversa: referenciaRef.current });
+    }, vitrine ? "Não consegui montar a vitrine." : "Não consegui guardar o cardápio.");
+    setLendoCardapio(false);
+  }, [adicionar, executar, unidadeId, TELA]);
+
   // ─── voz ───
   const alternarMicrofone = useCallback(() => {
     if (ouvindo) {
@@ -598,20 +695,25 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
   }, [texto]);
 
   const vazio = mensagens.length === 0;
-  const status = ouvindo ? (voz.nome === "gravada" ? "gravando áudio…" : "ouvindo…") : transcrevendo ? "transcrevendo áudio…" : lendoNota ? "lendo a nota…" : ocupado ? "digitando…" : "online";
+  const status = ouvindo ? (voz.nome === "gravada" ? "gravando áudio…" : "ouvindo…") : transcrevendo ? "transcrevendo áudio…" : lendoNota ? "lendo a nota…" : lendoCardapio ? "lendo o cardápio…" : ocupado ? "digitando…" : "online";
 
   return (
-    <div className="flex h-full min-h-0 flex-col" style={{ ...CORES, background: "var(--wa-fundo)" }}>
+    <div className="wa-escuro flex h-full min-h-0 flex-col" style={{ ...CORES, background: "var(--wa-fundo)", color: "var(--wa-texto)" }}>
       {/* topo */}
-      <header className="flex min-h-[58px] shrink-0 items-center gap-2.5 border-b px-2.5 backdrop-blur-md" style={{ background: "var(--wa-barra)", borderColor: "var(--wa-linha)", color: "var(--wa-texto)" }}>
+      <header className="flex min-h-[58px] shrink-0 items-center gap-2.5 border-b px-2.5 backdrop-blur-md" style={{ background: "var(--wa-barra)", borderColor: "var(--wa-linha)", color: "var(--wa-texto)", paddingTop: "var(--erp-safe-top, env(safe-area-inset-top, 0px))" }}>
         <button type="button" onClick={onVoltar || (() => router.back())} aria-label="Voltar" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] active:bg-black/5">
           <ChevronLeft size={26} strokeWidth={2.2} />
         </button>
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white" style={{ background: "var(--wa-verde)" }}><Bot size={22} /></span>
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-[18px] font-semibold">{NOME_ASSISTENTE}</p>
+          <p className="truncate text-[18px] font-semibold">{nomeAssistente}</p>
           <p className="truncate text-[14.5px]" style={{ color: "var(--wa-meta)" }} aria-live="polite">{status}{unidadeNome ? ` · ${unidadeNome}` : ""}</p>
         </div>
+        {/* histórico das conversas (dono, 17/11/2026: "nenhuma é apagada, vejo tudo como histórico") */}
+        <button type="button" onClick={() => router.push("/dashboard/inteligencia/historico")} aria-label="Histórico das conversas"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white/85 active:bg-white/10">
+          <History size={21} />
+        </button>
         {vozOk && voz.sinteseDisponivel?.() && (
           <button type="button" onClick={() => { setLerEmVoz((v) => !v); voz.calar(); }} aria-label={lerEmVoz ? "Parar de ler as respostas em voz alta" : "Ler as respostas de voz em voz alta"} className="grid h-10 w-12 shrink-0 place-items-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] active:bg-black/5">
             {lerEmVoz ? <Volume2 size={21} /> : <VolumeX size={21} />}
@@ -630,36 +732,44 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
               <span className="max-w-full truncate rounded-[7.5px] px-3 py-1 text-[13.5px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]" style={{ background: "var(--wa-ele)", color: "var(--wa-meta)" }}>Vindo de: {rotuloOrigem}</span>
             </div>
           )}
-          <div className="flex justify-center px-4">
-            <p className="max-w-md rounded-[7.5px] px-3 py-1.5 text-center text-[14px] leading-snug" style={{ background: "var(--wa-aviso)", color: "#54656F" }}>
-              <Lock size={11} className="mr-1 inline -translate-y-px" />
-              Respostas só com os dados da sua unidade. Nada é gravado sem você confirmar, e tudo fica na auditoria.
-            </p>
-          </div>
 
           {vazio && (
-            <div className="space-y-1">
-              <Balao lado="ele" hora={Date.now()}>
-                <p>Olá! Sou o {NOME_ASSISTENTE}. Toque na sua área para começar. Se preferir, escreva ou mande um áudio.</p>
-              </Balao>
-              {/* Assistente clicável (pedido do dono, 08/11/2026): o funcionário toca mais do que digita */}
-              <div className="flex justify-start px-3 pb-1.5 sm:px-[6%]">
-                <div className="grid w-full max-w-[82%] grid-cols-2 gap-1.5 sm:max-w-[520px]">
-                  {AREAS_INICIO.map((a) => (
-                    <button key={a.comando} type="button" disabled={ocupado} onClick={() => enviarComando(a.comando)}
-                      className="flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-[16px] px-2 py-3 text-center shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:scale-[0.98] disabled:opacity-50"
-                      style={{ background: "var(--wa-ele)", color: "var(--wa-verde-escuro)" }}>
-                      <span className="text-[30px] leading-none" aria-hidden="true">{a.icone}</span>
-                      <span className="text-[17px] font-semibold">{a.rotulo}</span>
-                    </button>
-                  ))}
+            <div className="space-y-2 px-3 pt-1 sm:px-[6%]">
+              <section className="w-full rounded-3xl border p-4 text-white sm:max-w-[640px]" style={{ background: "linear-gradient(160deg, rgba(62,125,214,0.22), rgba(11,36,86,0.35))", borderColor: "rgba(255,255,255,0.10)" }}>
+                <div className="flex items-center gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: "#3E7DD6" }}><Sparkles size={22} color="#fff" /></span>
+                  <div className="min-w-0">
+                    <p className="text-[18px] font-semibold leading-tight text-white">{ehNico ? `Olá! Sou o ${nomeAssistente}.` : `Olá! Sou o ${nomeAssistente}, seu assistente de gestão.`}</p>
+                    <p className="mt-0.5 text-[13.5px] leading-snug text-white/70">{ehNico ? "Toque na sua área, escreva ou mande um áudio." : "Toque num assunto, escreva ou mande um áudio. Eu monto, cadastro e calculo com você."}</p>
+                  </div>
                 </div>
+                <p className="mt-3 flex items-center gap-1.5 text-[12px] text-white/55"><ShieldCheck size={13} /> Só os dados da sua unidade. Nada é gravado sem você confirmar.</p>
+              </section>
+              {/* Plano do dia aprovado pelo dono (Jhon + Nico, 14/11/2026): "cheguei, o que eu faço agora?" */}
+              <PlanoDeHoje unidadeId={unidadeId} onComando={(c) => enviarComando(c)} desabilitado={ocupado} />
+              <div className="grid w-full grid-cols-2 gap-2 sm:max-w-[640px]">
+                {(ehNico ? AREAS_OPERACAO : AREAS_GESTAO).map((a, idx, lista) => (
+                  <CartaoArea key={a.comando} a={{ ...a, largo: a.largo || (idx === lista.length - 1 && lista.filter((x) => !x.largo).length % 2 === 1) }} desabilitado={ocupado} onClick={() => enviarComando(a.comando)} />
+                ))}
+                {bateponto && ehNico && (
+                  <CartaoArea a={{ rotulo: "Bater o ponto", detalhe: "Entrada, intervalo e saída", Icone: Clock, cor: "#3E7DD6", largo: true }} onClick={() => router.push("/dashboard/rh/ponto")} />
+                )}
               </div>
-              <BotoesRapidos opcoes={SUGESTOES_ASSISTENTE.slice(0, 3).map((s) => ({ id: s, rotulo: s, comando: s }))} desabilitado={ocupado} onEscolher={(o) => enviarComando(o.comando)} />
+              {!ehNico && (
+                <>
+                  <p className="pt-1 text-[12.5px] font-medium uppercase tracking-wide text-white/50">Na operação</p>
+                  <div className="grid w-full grid-cols-2 gap-2 sm:max-w-[640px]">
+                    {AREAS_OPERACAO.filter((a) => a.rotulo !== "Estoque").map((a) => (
+                      <CartaoArea key={a.comando} a={a} desabilitado={ocupado} onClick={() => enviarComando(a.comando)} />
+                    ))}
+                  </div>
+                </>
+              )}
+              {ehNico && <div className="-mx-3 sm:-mx-[6%]"><BotoesRapidos opcoes={SUGESTOES_NICO.map((s) => ({ id: s, rotulo: s, comando: s }))} desabilitado={ocupado} onEscolher={(o) => enviarComando(o.comando)} /></div>}
             </div>
           )}
 
-          {mensagens.map((m, i) => (m.de === "eu" ? <MensagemMinha key={m.id} m={m} cauda={mensagens[i + 1]?.de !== "eu"} /> : (
+          {mensagens.map((m, i) => (m.de === "eu" ? <MensagemMinha key={m.id} m={m} cauda={mensagens[i + 1]?.de !== "eu"} nome={nomeAssistente} /> : (
             <RespostaAssistente key={m.id} m={m} ultima={i === mensagens.length - 1} cauda={mensagens[i + 1]?.de !== m.de || i === mensagens.length - 1} ocupado={ocupado} resolvidas={resolvidas}
               onComando={enviarComando} onRota={(r) => router.push(r)} onContinuar={continuar}
               onConfirmar={confirmar} onCancelar={cancelar} onConfirmarTodos={confirmarTodos} />
@@ -675,7 +785,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
           {respondendo && (
             <div className="mx-1 mb-1 flex items-start gap-2 rounded-lg border-l-4 bg-white px-2.5 py-1.5" style={{ borderColor: "var(--wa-verde)" }}>
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>Respondendo a {NOME_ASSISTENTE}</p>
+                <p className="text-[14px] font-semibold" style={{ color: "var(--wa-verde-escuro)" }}>Respondendo a {nomeAssistente}</p>
                 <p className="line-clamp-2 text-[14px]" style={{ color: "var(--wa-meta)" }}>{respondendo.texto}</p>
               </div>
               <button type="button" onClick={() => setRespondendo(null)} aria-label="Não responder a esta pergunta" className="grid h-8 w-8 place-items-center rounded-full" style={{ color: "var(--wa-meta)" }}><X size={16} /></button>
@@ -691,15 +801,42 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
             </div>
           ) : (
             <form onSubmit={submeter} className="flex items-end gap-1 pb-0.5">
-              {/* + abre a galeria; a câmera abre direto a câmera traseira (foto da nota) */}
+              {/* + abre o menu (nota fiscal ou cardápio de concorrente); a câmera abre direto a câmera traseira */}
               <input ref={fotoRef} type="file" accept="image/*,.xml,text/xml,application/xml" className="hidden" aria-hidden="true" tabIndex={-1}
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) enviarFoto(f); }} />
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" aria-hidden="true" tabIndex={-1}
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) enviarFoto(f); }} />
-              <button type="button" onClick={() => fotoRef.current?.click()} disabled={ocupado} aria-label="Escolher foto ou XML da nota fiscal"
-                className="grid h-11 w-10 shrink-0 place-items-center rounded-full disabled:opacity-50" style={{ color: "var(--wa-texto)" }}>
-                <Plus size={28} strokeWidth={1.8} />
-              </button>
+              <input ref={cardapioRef} type="file" accept="image/*" multiple className="hidden" aria-hidden="true" tabIndex={-1}
+                onChange={(e) => { const fs = [...(e.target.files || [])]; e.target.value = ""; if (fs.length) enviarCardapio(fs); }} />
+              <input ref={telaRef} type="file" accept="image/*" multiple className="hidden" aria-hidden="true" tabIndex={-1}
+                onChange={(e) => { const fs = [...(e.target.files || [])]; e.target.value = ""; if (fs.length) enviarCardapio(fs, "vitrine"); }} />
+              <input ref={cameraCardapioRef} type="file" accept="image/*" capture="environment" className="hidden" aria-hidden="true" tabIndex={-1}
+                onChange={(e) => { const fs = [...(e.target.files || [])]; e.target.value = ""; if (fs.length) enviarCardapio(fs); }} />
+              {!ehNico && (
+              <div className="relative shrink-0" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setMenuAnexo(false); }}
+                onKeyDown={(e) => { if (e.key === "Escape") setMenuAnexo(false); }}>
+                <button type="button" onClick={() => setMenuAnexo((v) => !v)} disabled={ocupado} aria-label="Anexar nota fiscal ou cardápio de concorrente" aria-expanded={menuAnexo}
+                  className="grid h-11 w-10 place-items-center rounded-full disabled:opacity-50" style={{ color: "var(--wa-texto)" }}>
+                  <Plus size={28} strokeWidth={1.8} />
+                </button>
+                {menuAnexo && (
+                  <div role="menu" className="absolute bottom-12 left-0 z-20 w-64 overflow-hidden rounded-2xl border bg-white shadow-lg" style={{ borderColor: "var(--wa-linha)" }}>
+                    <button type="button" role="menuitem" onClick={() => { setMenuAnexo(false); fotoRef.current?.click(); }}
+                      className="flex min-h-[48px] w-full items-center gap-3 px-4 text-left text-[15px]" style={{ color: "var(--wa-texto)" }}>
+                      <Receipt size={20} /> <span>Nota fiscal <span className="block text-[12px]" style={{ color: "var(--wa-meta)" }}>foto da DANFE ou XML</span></span>
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { setMenuAnexo(false); cardapioRef.current?.click(); }}
+                      className="flex min-h-[48px] w-full items-center gap-3 border-t px-4 text-left text-[15px]" style={{ color: "var(--wa-texto)", borderColor: "var(--wa-linha)" }}>
+                      <Store size={20} /> <span>Cardápio de concorrente <span className="block text-[12px]" style={{ color: "var(--wa-meta)" }}>até {MAX_PRINTS} prints do app</span></span>
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { setMenuAnexo(false); telaRef.current?.click(); }}
+                      className="flex min-h-[48px] w-full items-center gap-3 border-t px-4 text-left text-[15px]" style={{ color: "var(--wa-texto)", borderColor: "var(--wa-linha)" }}>
+                      <Smartphone size={20} /> <span>Tela da plataforma <span className="block text-[12px]" style={{ color: "var(--wa-meta)" }}>a nossa vitrine no app</span></span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              )}
               <textarea
                 ref={campoRef}
                 rows={1}
@@ -708,7 +845,7 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                 onChange={(e) => setTexto(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submeter(); } }}
                 placeholder={respondendo ? "Sua resposta" : ""}
-                aria-label={`Mensagem para o ${NOME_ASSISTENTE}`}
+                aria-label={`Mensagem para o ${nomeAssistente}`}
                 className="mb-[3px] block min-h-[38px] min-w-0 flex-1 resize-none rounded-[20px] border bg-white px-3.5 py-[8px] text-[17px] leading-5 outline-none"
                 style={{ color: "var(--wa-texto)", borderColor: "var(--wa-linha)" }}
               />
@@ -718,10 +855,13 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
                 </button>
               ) : (
                 <>
-                  <button type="button" onClick={() => cameraRef.current?.click()} disabled={ocupado} aria-label="Tirar foto da nota fiscal"
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50" style={{ color: "var(--wa-texto)" }}>
-                    <Camera size={25} strokeWidth={1.8} />
-                  </button>
+                  {/* o Nico só transmite: foto de nota ou cardápio (que gravam) é do Jhon */}
+                  {!ehNico && (
+                    <button type="button" onClick={() => (esperandoCardapio() ? cameraCardapioRef : cameraRef).current?.click()} disabled={ocupado} aria-label="Tirar foto da nota fiscal ou do cardápio"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50" style={{ color: "var(--wa-texto)" }}>
+                      <Camera size={25} strokeWidth={1.8} />
+                    </button>
+                  )}
                   <button type="button" onClick={alternarMicrofone} disabled={ocupado || transcrevendo} aria-label="Gravar áudio" className="mb-[1px] grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition active:scale-95 disabled:opacity-60" style={{ background: "var(--wa-verde)" }}>
                     <Mic size={21} />
                   </button>

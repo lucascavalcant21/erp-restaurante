@@ -7,6 +7,7 @@
 // depois da última alteração) em eventos.operacao_detalhes.orcamento, e as
 // colunas que o funil, a agenda e a tela inicial leem são atualizadas junto.
 
+import { fetchFichasDoEvento, fetchInsumosDoEvento } from "../../../../lib/eventos-cadastro";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -32,7 +33,7 @@ const ETAPAS = [
   { id: "tipo", rotulo: "Tipo" },
   { id: "cardapio", rotulo: "Cardápio" },
   { id: "equipe", rotulo: "Equipe" },
-  { id: "extras", rotulo: "Aluguel e extras" },
+  { id: "extras", rotulo: "Espaço e decoração" },
   { id: "cliente", rotulo: "Cliente" },
   { id: "financeiro", rotulo: "Custos e preço" },
   { id: "dre", rotulo: "DRE do evento" },
@@ -89,7 +90,7 @@ export default function EventoPage() {
       const outros = (colunas) => supabase.from("eventos").select(colunas).eq("unidade_id", unidadeAtiva).neq("id", id);
       const [{ data, error }, resFichas, resParams, resOutrosCompleto, resModelos] = await Promise.all([
         supabase.from("eventos").select("*").eq("id", id).single(),
-        fetchFichas(unidadeAtiva),
+        fetchFichasDoEvento(unidadeAtiva),
         fetchParamsDaCasa(unidadeAtiva),
         // Outros eventos da loja: histórico do cliente, conflito de equipe e nomes já usados.
         outros("id, nome, cliente_nome, cliente_telefone, data_evento, valor_contratado, capacidade, funil_status, operacao_detalhes"),
@@ -110,7 +111,7 @@ export default function EventoPage() {
       }
       if (!ativo) return;
       setFichas(resFichas.data || []);
-      fetchInsumos(unidadeAtiva).then((r) => { if (ativo) setInsumos(r.data || []); });
+      fetchInsumosDoEvento(unidadeAtiva).then((r) => { if (ativo) setInsumos(r.data || []); });
       setOutrosEventos(resOutros.error ? [] : resOutros.data || []);
       setModelos(resModelos.data || []);
       fetchBasesEvento(unidadeAtiva).then((r) => { if (ativo) setBases(r.data || []); });
@@ -119,7 +120,9 @@ export default function EventoPage() {
         const o = orcamentoDoEvento(data, params, equipeLegada);
         setEvento(data);
         setOrc(o);
-        setEtapa(o.cardapio.length ? "dre" : "tipo");
+        // ?etapa=pagamentos (vindo do calendário) abre direto na etapa.
+        const naUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("etapa") : null;
+        setEtapa(ETAPAS.some((x) => x.id === naUrl) ? naUrl : o.cardapio.length ? "dre" : "tipo");
       }
       setCarregando(false);
     })();
@@ -355,7 +358,7 @@ export default function EventoPage() {
           {etapa === "financeiro" && <EtapaFinanceiro {...props} />}
           {etapa === "dre" && <EtapaDRE {...props} recebido={recebido} />}
           {etapa === "proposta" && <EtapaProposta {...props} unidadeAtiva={unidadeAtiva} casa={unidadeInfo?.nome || ""} eventoId={id} telefoneCasa={unidadeInfo?.telefone || ""} criadoEm={evento?.created_at || null} />}
-          {etapa === "pagamentos" && <EtapaPagamentos pagamentos={pagamentos} salvarPagamentos={salvarPagamentos} resumo={resumo} salvando={salvandoPag} />}
+          {etapa === "pagamentos" && <EtapaPagamentos pagamentos={pagamentos} salvarPagamentos={salvarPagamentos} resumo={resumo} salvando={salvandoPag} orc={orc} setOrc={setOrc} unidadeAtiva={unidadeAtiva} />}
           {etapa === "compras" && compras && <ComprasTab lista={compras} valor={resumo.receita} nItens={resumo.itens.length} cmvCardapio={resumo.cmv} />}
 
           <div className="mt-6 flex items-center justify-between gap-3 print:hidden">

@@ -4,10 +4,10 @@
 // pedido do dono em 07/11/2026). A cor vem de app/lib/cores-modulo.mjs.
 
 import {
-  Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
-  CookingPot, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, MonitorPlay, NotebookPen,
-  Droplets, Layers, Wheat, Package, PartyPopper, Salad, Scale, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan, Star,
-  StickyNote, Store, Tag, Thermometer, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
+  Bell, Bike, BookOpen, BrainCircuit, Droplets, Layers, Wheat, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
+  CookingPot, CreditCard, FileText, GlassWater, GraduationCap, Hourglass, Info, ListChecks, Martini, MessageSquareText, MonitorPlay, NotebookPen,
+  Package, PartyPopper, PiggyBank, Plug, Salad, Scale, Search, Settings, ShieldCheck, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan, Star, Stethoscope,
+  StickyNote, Store, Tablet, Tag, Thermometer, UserRound, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
 } from "lucide-react";
 import { corDoModulo, iconeClaroSobre } from "../../lib/cores-modulo.mjs";
 
@@ -21,10 +21,11 @@ export function Coqueteleira({ strokeWidth = 2, size, ...props }) {
 }
 
 export const ICONES_MODULO = {
-  Bike, BookOpen, BrainCircuit, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
+  Bell, CreditCard, Info, ListChecks, Plug, Settings, ShieldCheck, Tablet, UserRound,
+  Bike, BookOpen, BrainCircuit, Droplets, Layers, Wheat, Carrot, CheckSquare, ChefHat, Citrus, ClipboardList, ConciergeBell,
   CookingPot, Coqueteleira, FileText, GlassWater, GraduationCap, Hourglass, Martini, MessageSquareText, MonitorPlay,
-  Droplets, Layers, Wheat, NotebookPen, Package, PartyPopper, Salad, Scale, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan,
-  Star, StickyNote, Store, Tag, Thermometer, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
+  NotebookPen, Package, PartyPopper, PiggyBank, Salad, Scale, Search, ShoppingCart, Smartphone, Soup, Sparkles, SprayCan,
+  Star, Stethoscope, StickyNote, Store, Tag, Thermometer, Users, UtensilsCrossed, Wallet, WandSparkles, Wine,
 };
 
 // Classes escritas por extenso: o Tailwind só gera o que encontra no código.

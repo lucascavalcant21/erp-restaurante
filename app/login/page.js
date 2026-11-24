@@ -126,14 +126,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-5 py-6" style={{ background: "var(--surface)", paddingTop: "calc(var(--erp-safe-top, 3.5rem) + 1rem)" }}>
+    <div className="hf-login-fundo min-h-screen flex flex-col items-center justify-center px-4 sm:px-5 py-6" style={{ paddingTop: "calc(var(--erp-safe-top, 3.5rem) + 1rem)" }}>
+      <span aria-hidden="true" className="hf-login-mancha hf-login-mancha-1" />
+      <span aria-hidden="true" className="hf-login-mancha hf-login-mancha-2" />
+      <span aria-hidden="true" className="hf-login-mancha hf-login-mancha-3" />
       <div className="mb-8 flex flex-col items-center">
         <LogoHefisto className="w-14 h-14 mb-4" />
         <p className="text-2xl font-bold tracking-tight" style={{ color: "var(--fg)" }}>Hefisto</p>
         <p className="text-sm font-medium mt-0.5" style={{ color: "var(--dim)" }}>Gestão inteligente para food service</p>
       </div>
 
-      <form onSubmit={handleLogin} className="w-full max-w-sm erp-card p-5 sm:p-6 space-y-4">
+      <form onSubmit={handleLogin} className="hf-login-cartao w-full max-w-sm erp-card p-5 sm:p-6 space-y-4">
         <div>
           <h1 className="text-xl font-bold" style={{ color: "var(--fg)" }}>Entrar</h1>
           <p className="text-sm font-medium" style={{ color: "var(--dim)" }}>Acesse sua conta para continuar.</p>
@@ -141,16 +144,16 @@ export default function LoginPage() {
 
         <div>
           <label className="erp-label block mb-1.5">Usuário ou E-mail</label>
-          <input type="text" autoComplete="username" value={email} placeholder="Ex: seldeestrela ou seu@email.com"
+          <input type="text" autoComplete="username" value={email} placeholder="Digite seu usuário ou e-mail"
             onChange={(e) => { setEmail(e.target.value); setErro(""); }} className="erp-input" />
         </div>
 
         <div>
           <label className="erp-label block mb-1.5">Senha</label>
           <div className="relative">
-            <input type={ver ? "text" : "password"} autoComplete="current-password" value={senha} placeholder="Sua senha"
+            <input type={ver ? "text" : "password"} autoComplete="current-password" value={senha} placeholder="Digite sua senha"
               onChange={(e) => { setSenha(e.target.value); setErro(""); }} className="erp-input" style={{ paddingRight: 44 }} />
-            <button type="button" onClick={() => setVer(!ver)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--dim)" }}>
+            <button type="button" onClick={() => setVer(!ver)} aria-label={ver ? "Ocultar senha" : "Mostrar senha"} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--dim)" }}>
               {ver ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
@@ -173,9 +176,9 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="text-sm font-medium mt-6 text-center" style={{ color: "var(--muted)" }}>
-        Precisa de acesso? Solicite seu usuário ao administrador.
-      </p>
+      <a href="/planos" className="mt-6 block text-center text-sm font-bold" style={{ color: "var(--accent-fg)" }}>
+        Ainda não usa o Héfisto? Conheça os planos
+      </a>
     </div>
   );
 }

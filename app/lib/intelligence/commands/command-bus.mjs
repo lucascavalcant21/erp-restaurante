@@ -7,6 +7,7 @@
 //     navegacao → rota da lista fechada, se o usuário pode abrir
 //   → resposta tipada + auditoria do pedido (com correlation id)
 
+import { assistenteDoContexto } from "../../assistentes.mjs";
 import { s } from "../schemas/schema.mjs";
 import { intencaoPorId, DESTINOS, INTENCOES, IDS_INTENCAO } from "./catalogo.mjs";
 import { interpretar } from "./interpretar.mjs";
@@ -14,14 +15,20 @@ import { palavras } from "./interpretador-regras.mjs";
 import { motivoDaEntrada, MOTIVOS_ENTRADA } from "../actions/registrar-entrada.mjs";
 import { dividirEmItens } from "./lote.mjs";
 import { paramsDoComando } from "../actions/criar-ficha.mjs";
-import { responderLivre, FOCO_SALAO } from "../agents/geral.mjs";
+import { paramsDoComando as paramsDaMarmita } from "../actions/criar-marmita.mjs";
+import { PARAMS_DOS_CADASTROS } from "../actions/cadastros-delivery.mjs";
+import { menuDoAssunto } from "./assuntos.mjs";
+import { interpretarPorRegras } from "./interpretador-regras.mjs";
+import { responderLivre, FOCO_SALAO, FOCO_ROTINA, ehPedidoDeRotina } from "../agents/geral.mjs";
 import { sugestoesDaResposta } from "./sugestoes.mjs";
 import { notaSchema } from "../actions/lancar-nota.mjs";
+import { cardapioSchema } from "../actions/ler-cardapio-concorrente.mjs";
 import { responderPergunta } from "../agents/orquestrador.mjs";
 import { criarTrilha, NIVEL } from "../core/niveis.mjs";
 import { auditar, ETAPA_AUDITORIA } from "../audit/auditoria.mjs";
 import { canAccessRoute, hasPermission } from "../../permissions-catalog.mjs";
 import { buscarProcedimento } from "../agents/procedimentos.mjs";
+import { ehPerguntaDoQueFazer, planoDeHojeDoBanco, respostaDoPlano } from "../agents/plano-do-dia-nico.mjs";
 
 export const pedidoSchema = s.object({
   texto: s.opcional(s.string({ min: 1, max: 500 })),
@@ -35,6 +42,10 @@ export const pedidoSchema = s.object({
   canal: s.opcional(s.enum(["texto", "voz"])),
   // leitura da foto da DANFE (/api/ocr): começa o lançamento da compra (purchase.fromInvoice)
   nota: s.opcional(notaSchema),
+  // leitura dos prints do cardápio de um concorrente (/api/ocr/cardapio): começa a ação competitor.menu
+  cardapio: s.opcional(cardapioSchema),
+  // o que fazer com o cardápio lido: guardar como concorrente (padrão) ou montar a nossa vitrine (Organizador de plataforma)
+  destino: s.opcional(s.enum(["concorrente", "vitrine"])),
   // O que a resposta ANTERIOR desta conversa citou (devolvido pelo servidor em
   // `referencia`). Não confiável: produto é reconferido no banco da unidade e
   // insight é procurado entre os recalculados agora — nunca usado como dado.
@@ -155,8 +166,40 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       const total = n.valor_total ? `, total ${Number(n.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "";
       resposta = { ...resposta, texto: `Li a nota${n.numero ? ` ${n.numero}` : ""}${n.fornecedor ? ` de ${n.fornecedor}` : ""}: ${n.itens.length} ${n.itens.length === 1 ? "item" : "itens"}${total}. ${resposta.texto}` };
     }
+  } else if (pedido.cardapio && pedido.destino === "vitrine") {
+    // prints da tela do NOSSO app: categorias, nomes, descrições e preços vão para o Organizador de plataforma
+    intencao = intencaoPorId("marmitaria.organizador");
+    interp = { intencao: intencao.id, confianca: 1, periodo: null, produto: null };
+    origem = "regras";
+    trilha.passar("acao", NIVEL.AGIR);
+    const c = pedido.cardapio;
+    resposta = await servicoAcoes.iniciar({ acaoId: "platform.screen", params: { cardapio: c }, comando: "Tela da plataforma", chave: pedido.chave, correlationId });
+    if (resposta?.texto && ["pergunta", "confirmacao"].includes(resposta.tipo)) {
+      resposta = { ...resposta, texto: `Li ${c.itens.length} ${c.itens.length === 1 ? "item" : "itens"} da tela. ${resposta.texto}` };
+    }
+  } else if (pedido.cardapio) {
+    // prints do cardápio de um concorrente: confere nome e app, mostra a prévia e guarda com a data
+    intencao = intencaoPorId("marmitaria.concorrente_ler");
+    interp = { intencao: intencao.id, confianca: 1, periodo: null, produto: null };
+    origem = "regras";
+    trilha.passar("acao", NIVEL.AGIR);
+    const c = pedido.cardapio;
+    resposta = await servicoAcoes.iniciar({ acaoId: "competitor.menu", params: { cardapio: c }, comando: `Cardápio de concorrente${c.concorrente ? ` — ${c.concorrente}` : ""}`.slice(0, 500), chave: pedido.chave, correlationId });
+    if (resposta?.texto && ["pergunta", "confirmacao"].includes(resposta.tipo)) {
+      const pratos = c.itens.filter((i) => i.tipo === "prato" || i.tipo === "combo").length;
+      const adic = c.itens.filter((i) => i.tipo === "adicional").length;
+      const lido = [`${pratos} ${pratos === 1 ? "prato" : "pratos"}`, adic ? `${adic} ${adic === 1 ? "adicional" : "adicionais"}` : null, c.itens.length - pratos - adic > 0 ? `${c.itens.length - pratos - adic} outros itens` : null].filter(Boolean).join(", ");
+      resposta = { ...resposta, texto: `Li o cardápio${c.concorrente ? ` da ${c.concorrente}` : ""}: ${lido}. ${resposta.texto}` };
+    }
   } else if (!pedido.texto) {
     resposta = { tipo: "nao_entendi", texto: "Diga ou digite o que você precisa.", sugestoes: EXEMPLOS.slice(0, 5) };
+  } else if (interpretarPorRegras(pedido.texto).valor?.intencao === "desconhecido" && menuDoAssunto(pedido.texto)) {
+    // só o assunto ("Marmita"): responde na hora com o que dá para fazer, sem ir à IA
+    const m = menuDoAssunto(pedido.texto);
+    interp = { intencao: "desconhecido", confianca: "media", periodo: null, produto: null };
+    origem = "regras";
+    resposta = { tipo: "resposta", texto: m.texto, sugestoes: m.sugestoes, agentes: ["geral"], natureza: "REAL" };
+    trilha.passar("explicacao", NIVEL.OBSERVAR);
   } else if ((lote = dividirEmItens(pedido.texto))) {
     // "Adicione 3 kg de picanha, 4 kg de xarope": uma ação por item, cada uma com prévia própria
     intencao = intencaoPorId(lote.intencao);
@@ -195,18 +238,21 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       // sem cadastro, o passo a passo padrão do agente geral (SUGESTÃO). Nada é gravado.
       const sessaoServidor = { gerenciado: true, super_admin: ic.usuario.superAdmin, permissions: [...(ic.permissoes || [])] };
       const podeEditar = hasPermission(sessaoServidor, "dashboard.intelligence.settings") || canAccessRoute(sessaoServidor, "/dashboard/operacao/inteligente");
-      const daCasa = await buscarProcedimento({ texto: pedido.texto, dbe: motor.ambiente.dbe, podeEditar });
+      // "cheguei, o que eu faço agora?": com plano do dia aprovado, é ele (Jhon + Nico, 14/11/2026)
+      const planoHoje = ehPerguntaDoQueFazer(pedido.texto) ? await planoDeHojeDoBanco(motor.ambiente.dbe, motor.ambiente.hoje) : null;
+      const daCasa = planoHoje?.tarefas?.length ? { resposta: respostaDoPlano(planoHoje) } : await buscarProcedimento({ texto: pedido.texto, dbe: motor.ambiente.dbe, podeEditar });
       if (daCasa.resposta) {
         resposta = daCasa.resposta;
       } else {
-        const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS, foco: FOCO_SALAO });
+        const foco = ehPedidoDeRotina(pedido.texto) ? FOCO_ROTINA : FOCO_SALAO;
+        const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS, foco, assistente: assistenteDoContexto(ic) });
         resposta = { ...livre.resposta, agentes: ["geral"], acoes: [...(livre.resposta.acoes || []), ...(daCasa.cadastrar ? [daCasa.cadastrar] : [])] };
         if (livre.ia) ia = { ...(ia || {}), ...livre.ia };
       }
       trilha.passar("explicacao", NIVEL.ANALISAR);
     } else if (!intencao) {
       // nenhum comando pronto: o agente geral responde com os dados do sistema (nunca "não sei")
-      const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS });
+      const livre = await responderLivre({ texto: pedido.texto, motor, store, provedor, nomeUsuario, exemplos: EXEMPLOS, assistente: assistenteDoContexto(ic) });
       resposta = { ...livre.resposta, agentes: ["geral"] };
       if (livre.ia) ia = { ...(ia || {}), ...livre.ia };
       trilha.passar("explicacao", NIVEL.ANALISAR);
@@ -222,7 +268,7 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       trilha.passar("recomendacao", NIVEL.RECOMENDAR);
       if (usaProduto && semProdutoDito && produtoCtx && !produtoCtx.ambiguo) params.insumoId = produtoCtx.id;
       if (intencao.acao === "stock.registerEntry") params.motivoEntrada = motivoDaEntrada(pedido.texto);
-      const paramsAcao = intencao.acao === "recipe.create" ? paramsDoComando(pedido.texto, conversa) : params;
+      const paramsAcao = intencao.acao === "recipe.create" ? paramsDoComando(pedido.texto, conversa) : intencao.acao === "marmita.create" ? paramsDaMarmita(pedido.texto) : intencao.acao === "production.plan" ? { pedido: String(pedido.texto).slice(0, 500) } : PARAMS_DOS_CADASTROS[intencao.acao] ? PARAMS_DOS_CADASTROS[intencao.acao](pedido.texto) : params;
       resposta = await servicoAcoes.iniciar({ acaoId: intencao.acao, params: paramsAcao, comando: pedido.texto, chave: pedido.chave, correlationId });
       trilha.passar("acao", NIVEL.AGIR);
     } else {
@@ -268,14 +314,25 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
     comando: pedido.texto ?? (pedido.continuar ? `[resposta ${pedido.continuar.campo}]` : null),
     entidadeTipo: ic.entidade?.tipo || null, entidadeId: ic.entidade?.id || null,
     intencao: final.interpretacao, agentes: final.agentes, consultas,
-    recomendacao: resposta.tipo === "resposta" ? resposta.texto : null,
+    // o que o assistente respondeu, em qualquer tipo de resposta (histórico das conversas)
+    recomendacao: textoDoHistorico(resposta),
     acaoId: resposta.confirmacao?.acaoId || resposta.pergunta?.acaoId || resposta.resultado?.acaoId || null,
-    resultado: { tipo: resposta.tipo, nivel: final.etapas.nivel },
+    resultado: { tipo: resposta.tipo, nivel: final.etapas.nivel, assistente: assistenteDoContexto(ic) },
     latenciaMs, provedor: ia?.provedor || null, modelo: ia?.modelo || null,
     tokensEntrada: ia?.uso?.entrada ?? null, tokensSaida: ia?.uso?.saida ?? null,
     fallback: ia?.erro ? `regras (IA: ${ia.erro})` : ia?.fallback || null,
   });
   return final;
+}
+
+/** A resposta como a pessoa leu: texto, pergunta com as opções, prévia com as linhas. */
+export function textoDoHistorico(r) {
+  if (!r) return null;
+  const partes = [r.texto || null];
+  if (r.pergunta?.opcoes?.length) partes.push(`Opções: ${r.pergunta.opcoes.map((o) => o.rotulo).join(" · ")}`);
+  if (r.confirmacao) partes.push([r.confirmacao.titulo, ...(r.confirmacao.linhas || []).map((l) => `${l.rotulo}: ${l.valor}`)].filter(Boolean).join("\n"));
+  const t = partes.filter(Boolean).join("\n");
+  return t || null;
 }
 
 export { INTENCOES };

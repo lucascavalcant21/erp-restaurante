@@ -76,6 +76,19 @@ export const TABELAS = Object.freeze({
   op_itens: { tenant: false, pai: { tabela: "op_processos", coluna: "processo_id" }, rotulo: "Passos do procedimento" },
   fichas_ingredientes: { tenant: false, pai: { tabela: "fichas_tecnicas", coluna: "ficha_id" }, rotulo: "Ingredientes da ficha" },
   fin_categorias: { tenant: false, rotulo: "Plano de contas" },
+  // Marmitaria (raio-x do preço, 16/11/2026)
+  marmitaria_configuracoes: { tenant: true, rotulo: "Custos e apps da marmitaria" },
+  marmitaria_fichas_embalagens: { tenant: true, rotulo: "Embalagens das marmitas" },
+  marmitaria_precificacao_canais: { tenant: true, rotulo: "Preço das marmitas por app" },
+  marmitaria_rh_alocacoes: { tenant: true, rotulo: "Equipe da marmitaria" },
+  marmitaria_vendas: { tenant: true, rotulo: "Vendas da marmitaria" },
+  // Plano do dia (PLANO-DIA-1): o Nico lê o plano aprovado; o Jhon confere se já há plano na data (17/11/2026)
+  plano_dia: { tenant: true, rotulo: "Plano do dia" },
+  plano_dia_tarefa: { tenant: true, rotulo: "Tarefas do plano do dia" },
+  // Cardápios dos concorrentes do delivery (CONC-1, 17/11/2026)
+  delivery_concorrentes: { tenant: true, rotulo: "Concorrentes do delivery" },
+  delivery_concorrentes_leituras: { tenant: true, rotulo: "Cardápios lidos dos concorrentes" },
+  delivery_concorrentes_itens: { tenant: true, rotulo: "Itens dos cardápios dos concorrentes" },
 });
 
 // Métodos de filtro/ordem permitidos. `or` fica de fora de propósito.

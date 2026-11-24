@@ -512,6 +512,23 @@ textarea *,
   --hf-tile-verde:    22 163 74;  /* #16A34A */
   --hf-tile-grafite:  32 33 36;   /* #202124 */
   --hf-tile-ardosia:  100 116 139;/* #64748B */
+
+  /* ═══ VISUAL MEDWAY (pedido do dono, 14/11/2026: "analise as telas, botões,
+     cores… e vamos fazer um upgrade no Héfisto usando isso") ═══
+     Fundo cinza claro, cartão branco com borda fina, texto azul-marinho,
+     rótulo de seção azul-acinzentado e verde-água no item ativo e no
+     progresso. Usado no topo do celular, na barra de abas, no Menu, em Minha
+     conta e nas telas de cards de Cozinha, Bar e Salão. */
+  --mw-bg:          247 248 250;  /* #F7F8FA página */
+  --mw-card:        255 255 255;  /* #FFFFFF cartão */
+  --mw-borda:       226 230 237;  /* #E2E6ED borda do cartão */
+  --mw-marinho:     11 36 86;     /* #0B2456 título, botão principal */
+  --mw-texto:       35 49 82;     /* #233152 texto (12:1) */
+  --mw-sec:         86 103 138;   /* #56678A rótulo de seção, secundário (5,6:1) */
+  --mw-suave:       230 234 240;  /* #E6EAF0 botão claro (Feito, Pular), trilho */
+  --mw-agua:        14 150 128;   /* #0E9680 verde-água: aba ativa, progresso (4,6:1) */
+  --mw-agua-claro:  214 245 238;  /* #D6F5EE selo verde-água */
+  --mw-azul:        62 125 214;   /* #3E7DD6 fim do degradê */
 }
 
 /* Botão dourado escrito em branco (telas antigas: "bg-hf-accent text-white") fica com o texto
@@ -622,6 +639,14 @@ textarea *,
   transform-origin: 41px 34px;
   animation: hf-perna-feliz 1.1s ease-in-out infinite;
 }
+/* Puxar para atualizar: o H saltita rápido enquanto a tela carrega (17/11/2026). */
+@keyframes hf-saltitando {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  15% { transform: translateY(0) scale(1.08, .9); }
+  45% { transform: translateY(-38%) scale(.96, 1.05); }
+  75% { transform: translateY(0) scale(1.06, .92); }
+}
+.hf-saltitando { animation: hf-saltitando .45s ease-in-out infinite; transform-origin: center bottom; }
 /* Cambalhota do menu lateral: agacha, sobe girando e cai amortecendo. */
 @keyframes hf-logo-cambalhota {
   0%, 46%, 100% { transform: translateY(0) rotate(0deg) scale(1, 1); }
@@ -635,7 +660,7 @@ textarea *,
   animation: hf-logo-cambalhota 3.6s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .hf-logo-feliz, .hf-perna-feliz, .hf-logo-cambalhota { animation: none; }
+  .hf-logo-feliz, .hf-perna-feliz, .hf-logo-cambalhota, .hf-saltitando { animation: none; }
 }
 
 /* ═══ VISUAL DO NINA DENTRO DAS TELAS (pedido do dono, 07/11/2026) ═══════
@@ -673,51 +698,102 @@ body[data-cabecalho-tela] .erp-barra-universo { display: none; }
   background-color: rgb(var(--hf-menu-hover)) !important;
 }
 
-/* ═══ IDENTIDADE "GESTÃO" — Marmitaria e Eventos (pedido do dono, 08/11/2026) ═══
-   "Quero essa identidade deles": o visual do dashboard de gestão de referência
-   (vermelho, barra de áreas preta com ícone em cima do nome, cards brancos sobre
-   fundo areia, barras em degradê laranja → vermelho). Vale SÓ dentro de
-   `.tema-gestao` (layouts da Marmitaria e de Eventos); o resto do Héfisto segue
-   branco e dourado. Os tokens hf-* são redefinidos aqui, então as telas antigas
-   desses módulos mudam sem editar arquivo por arquivo.
-   Contraste: branco sobre #DC2626 4,8:1; #B91C1C sobre branco 6,5:1. */
+/* ═══ IDENTIDADE AZUL (Medway) — Marmitaria e Eventos (dono, 17/11/2026) ═══
+   "Não mudou o visual para o azul; sem esse visual antigo": o vermelho e preto
+   da identidade "Gestão" (08/11/2026) saiu. Dentro de `.tema-gestao` (nome
+   mantido para não mexer nos layouts), os tokens hf-* passam para a paleta
+   azul do novo modelo (tokens --mw-* do Início e do Menu): marinho #0B2456 na
+   marca, nos botões e na barra de áreas; azul #3E7DD6 na área aberta e nas
+   barras; fundo cinza-azulado #F7F8FA. Contraste: branco sobre #0B2456 15:1;
+   #0B2456 sobre branco 15:1; branco sobre #3E7DD6 4,1:1 (texto ≥ 11 px seminegrito). */
 .tema-gestao {
-  --hf-bg:            245 243 240;/* #F5F3F0 areia */
+  --hf-bg:            247 248 250;/* #F7F8FA */
   --hf-surface:       255 255 255;
-  --hf-elevated:      248 246 243;/* #F8F6F3 */
-  --hf-border:        232 228 223;/* #E8E4DF */
-  --hf-border-strong: 214 208 200;
-  --hf-accent:        220 38 38;  /* #DC2626 vermelho da marca */
+  --hf-elevated:      241 244 248;/* #F1F4F8 */
+  --hf-border:        226 230 237;/* #E2E6ED */
+  --hf-border-strong: 203 210 222;
+  --hf-accent:        11 36 86;   /* #0B2456 marinho da marca */
   --hf-accent-fg:     255 255 255;
-  --hf-accent-text:   185 28 28;  /* #B91C1C texto vermelho sobre branco */
-  --hf-danger:        153 27 27;  /* #991B1B: negativo fica mais escuro que a marca */
-  --hf-menu:          23 23 23;   /* #171717 barra preta */
-  --hf-menu-hover:    38 38 38;
-  --hf-menu-border:   55 55 55;
-  --hf-menu-accent:   220 38 38;
-  --gestao-grad-de:   #F97316;    /* laranja do topo das barras */
-  --gestao-grad-ate:  #DC2626;
-  --accent:        #DC2626;
-  --accent-strong: #B91C1C;
+  --hf-accent-text:   11 36 86;
+  --hf-menu:          11 36 86;   /* barra de áreas marinho */
+  --hf-menu-hover:    22 52 112;
+  --hf-menu-border:   35 66 128;
+  --hf-menu-accent:   62 125 214;
+  --gestao-grad-de:   #3E7DD6;    /* azul do topo das barras */
+  --gestao-grad-ate:  #0B2456;
+  --accent:        #0B2456;
+  --accent-strong: #08193D;
   --accent-fg:     #FFFFFF;
-  --accent-soft:   rgba(220,38,38,0.12);
+  --accent-soft:   rgba(11,36,86,0.10);
   background-color: rgb(var(--hf-bg));
 }
-/* Botão de ação, aba e filtro selecionado: vermelho com letra branca (no resto
-   do app eles são pretos). */
+/* Botão de ação, aba e filtro selecionado: marinho com letra branca. */
 .tema-gestao :is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado) {
   background-color: rgb(var(--hf-accent)) !important;
-  background-image: linear-gradient(180deg, #EF4444, #DC2626) !important;
+  background-image: linear-gradient(180deg, #16357A, #0B2456) !important;
   color: #fff !important;
-  box-shadow: 0 1px 2px rgba(127, 29, 29, 0.25), 0 4px 12px -4px rgba(220, 38, 38, 0.45);
+  box-shadow: 0 1px 2px rgba(8, 25, 61, 0.25), 0 4px 12px -4px rgba(11, 36, 86, 0.45);
 }
 .tema-gestao :is(button, a, [role="button"], [role="tab"]):is([class~="bg-hf-accent"], [class~="bg-accent"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"], [class~="bg-emerald-800"]):not(.hf-manter-dourado):not(:disabled):hover {
-  background-color: #B91C1C !important;
-  background-image: linear-gradient(180deg, #DC2626, #B91C1C) !important;
+  background-color: #08193D !important;
+  background-image: linear-gradient(180deg, #0B2456, #08193D) !important;
 }
-/* Texto e borda dourados das telas antigas (escala emerald) viram vermelho. */
+/* Texto e borda dourados das telas antigas (escala emerald) viram marinho. */
 .tema-gestao [class~="text-emerald-600"], .tema-gestao [class~="text-emerald-700"], .tema-gestao [class~="text-emerald-800"] { color: rgb(var(--hf-accent-text)); }
 .tema-gestao [class~="border-emerald-500"], .tema-gestao [class~="border-emerald-600"] { border-color: rgb(var(--hf-accent)); }
 /* Barra em degradê das peças do painel gerencial. */
-.gestao-barra { background-image: linear-gradient(180deg, var(--gestao-grad-de, #F97316), var(--gestao-grad-ate, #DC2626)); }
-.gestao-barra-h { background-image: linear-gradient(90deg, var(--gestao-grad-de, #F97316), var(--gestao-grad-ate, #DC2626)); }
+.gestao-barra { background-image: linear-gradient(180deg, var(--gestao-grad-de, #3E7DD6), var(--gestao-grad-ate, #0B2456)); }
+.gestao-barra-h { background-image: linear-gradient(90deg, var(--gestao-grad-de, #3E7DD6), var(--gestao-grad-ate, #0B2456)); }
+
+/* ═══ Assistente (Nico e Jhon) em tela escura (dono, 14/11/2026) ═══════════
+   Os tokens hf-* dos blocos (fichas, procedimentos, listas, plano do dia)
+   viram escuros só dentro da conversa. Contraste: #E9EDEF sobre #202C33 12:1;
+   #AEBAC1 sobre #202C33 7,4:1; #8696A0 sobre #202C33 4,6:1. */
+.wa-escuro {
+  --hf-bg:            11 20 26;   /* #0B141A */
+  --hf-surface:       32 44 51;   /* #202C33 */
+  --hf-elevated:      42 57 66;   /* #2A3942 */
+  --hf-border:        52 68 78;   /* #34444E */
+  --hf-border-strong: 74 92 103;
+  --hf-text:          233 237 239;/* #E9EDEF */
+  --hf-text-2:        174 186 193;/* #AEBAC1 */
+  --hf-muted:         134 150 160;/* #8696A0 */
+  --hf-accent:        226 194 125;/* dourado claro sobre escuro */
+  --hf-accent-text:   226 194 125;
+  --hf-success:       0 168 132;  /* #00A884 */
+  --hf-warning:       255 179 71; /* #FFB347 */
+  --hf-danger:        248 113 113;/* #F87171 */
+  --hf-menu:          0 92 75;    /* #005C4B botão de ação, letra branca */
+  --hf-menu-hover:    0 110 90;
+  color-scheme: dark;
+}
+.wa-escuro .bg-white { background-color: var(--wa-ele) !important; color: var(--wa-texto); }
+.wa-escuro [class~="border-black/10"] { border-color: rgba(255, 255, 255, 0.14) !important; }
+.wa-escuro [class~="bg-black/5"] { background-color: rgba(255, 255, 255, 0.06) !important; }
+.wa-escuro [class~="bg-black/10"] { background-color: rgba(255, 255, 255, 0.12) !important; }
+.wa-escuro :is(input, textarea, select) { color: var(--wa-texto); }
+.wa-escuro :is(input, textarea)::placeholder { color: var(--wa-meta); }
+
+/* Fundo da tela de login com movimento (dono, 21/11/2026): manchas douradas e
+   grafite bem suaves que flutuam devagar. Sem movimento para quem pediu menos
+   movimento no aparelho. */
+.hf-login-fundo { position: relative; isolation: isolate; overflow: hidden; background: #FBFAF7; }
+.hf-login-fundo::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(rgb(var(--hf-menu) / 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+}
+.hf-login-mancha { position: absolute; z-index: -1; border-radius: 9999px; filter: blur(60px); pointer-events: none; will-change: transform; }
+.hf-login-mancha-1 { width: 26rem; height: 26rem; top: -8rem; left: -8rem; background: rgb(var(--hf-accent) / 0.38); animation: hf-flutuar-1 22s ease-in-out infinite alternate; }
+.hf-login-mancha-2 { width: 22rem; height: 22rem; bottom: -7rem; right: -7rem; background: rgb(var(--hf-accent) / 0.30); animation: hf-flutuar-2 26s ease-in-out infinite alternate; }
+.hf-login-mancha-3 { width: 16rem; height: 16rem; top: 40%; left: 55%; background: rgb(var(--hf-menu) / 0.10); animation: hf-flutuar-3 30s ease-in-out infinite alternate; }
+@keyframes hf-flutuar-1 { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(18vw, 12vh) scale(1.15); } 100% { transform: translate(6vw, 28vh) scale(0.95); } }
+@keyframes hf-flutuar-2 { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-16vw, -14vh) scale(1.1); } 100% { transform: translate(-4vw, -30vh) scale(1.2); } }
+@keyframes hf-flutuar-3 { 0% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-90%, -20%) scale(1.25); } 100% { transform: translate(-20%, -80%) scale(0.9); } }
+.hf-login-cartao { background: rgb(255 255 255 / 0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); animation: hf-surgir 0.6s ease-out both; }
+@keyframes hf-surgir { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .hf-login-mancha, .hf-login-cartao { animation: none; }
+}

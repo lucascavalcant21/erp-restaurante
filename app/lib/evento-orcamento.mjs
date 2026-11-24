@@ -9,7 +9,7 @@
 // evento é só dele: não lê nem escreve nada do DRE da casa.
 
 import { custoPorcaoDaFicha, listaDeComprasDeFichas } from "./evento-financeiro.mjs";
-import { parseNumero } from "./ficha-calculos.mjs";
+import { parseNumero, porcoesParaCusto } from "./ficha-calculos.mjs";
 import { arred2, percentualDe } from "./valor-percentual.mjs";
 
 const pos = (v) => Math.max(0, parseNumero(v));
@@ -57,6 +57,22 @@ export const CATEGORIAS_EXTRAS = [
   { id: "outros", rotulo: "Outros" },
 ];
 
+// Onde acontece o evento (pedido do dono, 21/11/2026). "proprio": o espaço é
+// meu e eu cobro o aluguel do cliente (receita); o que gasto com ele (limpeza,
+// energia) é custo. "terceiros": eu pago o aluguel (custo). "cliente": no local
+// do cliente, sem aluguel de espaço.
+export const TIPOS_ESPACO = [
+  { id: "proprio", rotulo: "Meu espaço", ajuda: "Eu alugo para o cliente: o aluguel entra na receita." },
+  { id: "terceiros", rotulo: "Espaço alugado", ajuda: "Eu pago o aluguel do local: entra como custo." },
+  { id: "cliente", rotulo: "Local do cliente", ajuda: "Na casa ou no salão do cliente: sem aluguel de espaço." },
+];
+export const tipoDoEspaco = (orc = {}) => (TIPOS_ESPACO.some((t) => t.id === orc.espaco?.tipo) ? orc.espaco.tipo : "terceiros");
+export function rotuloDaCategoria(c, orc = {}) {
+  if (c.id !== "aluguel") return c.rotulo;
+  const t = tipoDoEspaco(orc);
+  return t === "proprio" ? "Custos do meu espaço" : t === "cliente" ? "Aluguel de material" : "Aluguel do espaço";
+}
+
 export const FORMAS_PAGAMENTO = ["PIX", "Cartão de crédito", "Cartão de débito", "Dinheiro", "Transferência", "Boleto"];
 
 // Unidades da ficha exclusiva. Embalagem e uso podem ser diferentes (compra
@@ -94,6 +110,10 @@ export function orcamentoVazio(params = {}) {
       prolabore: { modo: "pct", valor: 0 },
       comissoes: [],
       preco_por_pessoa: 0,
+      // Como monta (dono, 21/11/2026): "pessoa" = porção por convidado;
+      // "fechado" = quantidade total do evento (g, ml, unidades) dividida pelas
+      // pessoas. O preço é sempre por pessoa e o total é preço × pessoas.
+      modo_preco: "pessoa",
       // Criança: paga % do adulto (ou um valor fixo) e come uma fração de um adulto.
       preco_crianca: { modo: "pct", valor: 50 },
       consumo_crianca_pct: 50,
@@ -223,13 +243,28 @@ export function secaoDoItem(item, tipo) {
  * pessoa = gramas ÷ peso da porção (da ficha técnica, ou o informado na ficha
  * exclusiva).
  */
+/** Gramas (ou ml) de UMA porção da ficha: peso da porção; senão o rendimento em kg/L ÷ porções; senão o peso final. */
+export function gramasDaPorcao(ficha, pesoPorcao = 0) {
+  if (pos(pesoPorcao) > 0) return pos(pesoPorcao);
+  if (!ficha) return 0;
+  const rend = pos(ficha.rendimento_porcoes);
+  const un = String(ficha.rendimento_unidade || "").toLowerCase();
+  const porcoes = porcoesParaCusto(ficha).porcoes || 1;
+  if ((un === "kg" || un === "l") && rend > 0) return (rend * 1000) / porcoes;
+  if ((un === "g" || un === "ml") && rend > 0) return rend / porcoes;
+  return pos(ficha.peso_final_g);
+}
+
 export function itensDoOrcamento(orc = {}, fichas = []) {
   const porId = new Map((fichas || []).map((f) => [f.id, f]));
   // Ticket por pessoa: a mesa é montada em quantidade fechada; não importa
   // quanto cada um come (pedido do dono, 28/10/2026: "gastei 100 reais, são
   // 50 pessoas, custo por pessoa 2 reais").
   // Na seção "Mesa montada" (tipo Combinado) também: quantidade fechada.
-  const mesaFechada = !!tipoDoEvento(orc.tipo).quantidadeFechada;
+  // Quantidade fechada no evento inteiro (dono, 21/11/2026): "escolho quantas
+  // gramas de cada coisa, deu 4 kg de comida e 3 L de bebida, R$ 160; divide
+  // pelas pessoas e esse é o custo individual".
+  const mesaFechada = !!tipoDoEvento(orc.tipo).quantidadeFechada || orc.financeiro?.modo_preco === "fechado";
   return (orc.cardapio || []).map((item0) => {
     const fechada = mesaFechada || !!SECOES[secaoDoItem(item0, orc.tipo)]?.fechada;
     const item = fechada && item0.medida !== "total" ? { ...item0, medida: "total", quantidade_total: item0.quantidade_total ?? "1" } : item0;
@@ -251,11 +286,18 @@ export function itensDoOrcamento(orc = {}, fichas = []) {
     // quantidade_total = porções da ficha para o evento inteiro (não × pessoas,
     // sem sobra); fatia_g opcional mostra quantas fatias/copos dá.
     if (item.medida === "total") {
-      const qtd = pos(item.quantidade_total);
+      // Quantidade em gramas/ml (ou unidades) vira porções da ficha.
+      const unTotal = ["g", "ml", "un"].includes(item.unidade_total) ? item.unidade_total : "porcao";
+      const gPorcao = unTotal === "g" || unTotal === "ml" ? gramasDaPorcao(ficha, pesoPorcao) : 0;
+      const bruto = pos(item.quantidade_total);
+      const qtd = unTotal === "g" || unTotal === "ml" ? (gPorcao > 0 ? bruto / gPorcao : 0) : bruto;
+      if ((unTotal === "g" || unTotal === "ml") && !(gPorcao > 0) && bruto > 0) problemas = [...problemas, "a ficha não tem peso nem rendimento em kg/L: use unidades ou porções"];
+      const medidaTotal = unTotal === "g" || unTotal === "ml" ? { unidadeTotal: unTotal, quantidadeInformada: bruto, gramasTotal: bruto }
+        : { unidadeTotal: unTotal, quantidadeInformada: bruto, gramasTotal: gPorcao > 0 || pesoPorcao > 0 ? bruto * (gPorcao || pesoPorcao) : null };
       const fatia = pos(item.fatia_g);
       const fatias = pesoPorcao > 0 && fatia > 0 ? Math.floor((qtd * pesoPorcao) / fatia + 1e-9) : null;
       const probs = fatia > 0 && !(pesoPorcao > 0) ? [...problemas, item.origem === "exclusiva" ? "informe o peso da porção para dividir em fatias" : "a ficha não tem peso da porção; não dá para contar as fatias"] : problemas;
-      return { ...item, secao, ficha, emGramas: false, emTotal: true, quantidadeTotal: qtd, fatias, pesoPorcao, porPessoa: 0, custoPorcao, custoPorPessoa: 0, custoTotalFixo: custoPorcao * qtd, aoVivo, problemas: probs, semCusto: !(custoPorcao > 0) };
+      return { ...item, ...medidaTotal, secao, ficha, emGramas: false, emTotal: true, quantidadeTotal: qtd, fatias, pesoPorcao, porPessoa: 0, custoPorcao, custoPorPessoa: 0, custoTotalFixo: custoPorcao * qtd, aoVivo, problemas: probs, semCusto: !(custoPorcao > 0) };
     }
     const emGramas = item.medida === "g" && secao !== "bar";
     // DIVISÃO DO PRATO (pedido do dono, 28/10/2026: "pego o prato, o sistema já
@@ -321,18 +363,23 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
 
   const equipe = r2((orc.equipe || []).reduce((t, p) => t + custoDaPessoa(p), 0));
   const pessoasEquipe = (orc.equipe || []).reduce((t, p) => t + (p.quantidade === "" || p.quantidade === undefined ? 1 : pos(p.quantidade)), 0);
-  const extrasPorCategoria = CATEGORIAS_EXTRAS.map((c) => ({ ...c, valor: r2((orc.extras || []).filter((x) => (x.categoria || "outros") === c.id).reduce((t, x) => t + pos(x.valor), 0)) }));
+  const extrasPorCategoria = CATEGORIAS_EXTRAS.map((c) => ({ ...c, rotulo: rotuloDaCategoria(c, orc), valor: r2((orc.extras || []).filter((x) => (x.categoria || "outros") === c.id).reduce((t, x) => t + pos(x.valor), 0)) }));
   const extras = r2(extrasPorCategoria.reduce((t, c) => t + c.valor, 0));
 
+  // Quantidade fechada: o custo do cardápio é dividido por todas as pessoas e
+  // cada uma paga o mesmo preço; no fim, preço × pessoas.
+  const fechado = fin.modo_preco === "fechado";
   const precoPorPessoa = pos(fin.preco_por_pessoa);
-  const pc = fin.preco_crianca || { modo: "pct", valor: 50 };
+  const pc = fechado ? { modo: "pct", valor: 100 } : (fin.preco_crianca || { modo: "pct", valor: 50 });
   const precoCrianca = r2(pc.modo === "valor" ? pos(pc.valor) : precoPorPessoa * pos(pc.valor) / 100);
   // Mesa montada vendida como pacote fechado: entra inteira na receita, fora do "por pessoa".
   const temMesa = itens.some((i) => i.secao === "mesa");
   const precoMesa = temMesa ? pos(fin.preco_mesa) : 0;
   const custoMesa = r2(itens.filter((i) => i.secao === "mesa").reduce((t, i) => t + i.custoTotalFixo, 0));
   const receitaPorPessoa = r2(precoPorPessoa * adultos + precoCrianca * criancas);
-  const receitaBruta = r2(receitaPorPessoa + precoMesa);
+  const tipoEspaco = tipoDoEspaco(orc);
+  const aluguelCobrado = tipoEspaco === "proprio" ? r2(pos(orc.espaco?.valor_cobrado)) : 0;
+  const receitaBruta = r2(receitaPorPessoa + precoMesa + aluguelCobrado);
   const desconto = r2(Math.min(receitaBruta, fin.desconto?.modo === "pct" ? receitaBruta * pos(fin.desconto?.valor) / 100 : pos(fin.desconto?.valor)));
   const receita = r2(receitaBruta - desconto);
   const impostoPct = pos(fin.imposto_pct);
@@ -368,7 +415,7 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
     const fixoCriancas = pc.modo === "valor" ? pos(pc.valor) * criancas : 0;
     const pesoAdulto = adultos + (pc.modo === "valor" ? 0 : criancas * pos(pc.valor) / 100);
     if (!(pesoAdulto > 0)) return null;
-    const p = (bruta - fixoCriancas - precoMesa) / pesoAdulto; // o pacote da mesa já cobre parte
+    const p = (bruta - fixoCriancas - precoMesa - aluguelCobrado) / pesoAdulto; // o pacote da mesa já cobre parte
     return p > 0 ? Math.ceil(p * 100) / 100 : null; // arredonda para cima: nunca abaixo da meta
   };
 
@@ -380,13 +427,14 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
     const descPct = fin.desconto?.modo === "pct" ? Math.min(pos(fin.desconto?.valor), 99.99) / 100 : 0;
     const alvo = (fixos + (zero ? 0 : metaReaisTotal)) / (sobra / 100);
     const bruta = descPct ? alvo / (1 - descPct) : alvo + (fin.desconto?.modo === "pct" ? 0 : pos(fin.desconto?.valor));
-    const v = bruta - receitaPorPessoa;
+    const v = bruta - receitaPorPessoa - aluguelCobrado;
     return v > 0 ? Math.ceil(v) : null;
   };
 
   const pct = (v) => percentualDe(v, receita);
   const L = (id, rotulo, valor, tipo = "custo", extra = {}) => ({ id, rotulo, valor, pct: pct(valor), porPessoa: convidados > 0 ? r2(valor / convidados) : null, tipo, ...extra });
   const dre = [
+    ...(aluguelCobrado > 0 ? [L("receita_cardapio", "Cardápio e serviço", r2(receitaPorPessoa + precoMesa), "info"), L("receita_espaco", "Aluguel do meu espaço", aluguelCobrado, "info")] : []),
     ...(desconto > 0 ? [L("receita_bruta", "Receita bruta", receitaBruta, "receita"), L("desconto", "(−) Desconto", desconto)] : []),
     L("receita", "Receita do evento", receita, "receita"),
     L("imposto", `(−) Impostos (${impostoPct.toLocaleString("pt-BR")}%)`, imposto),
@@ -411,7 +459,7 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
   return {
     convidados, adultos, criancas, pessoasConsumo, sobraPct: pos(orc.sobra_pct), itens, dre,
     precoCrianca, receitaBruta, desconto,
-    temMesa, precoMesa, custoMesa, receitaPorPessoa,
+    temMesa, precoMesa, custoMesa, receitaPorPessoa, tipoEspaco, aluguelCobrado,
     precoSugeridoMesa: pacotePara(false), precoMinimoMesa: pacotePara(true),
     precoMedioPorPessoa: convidados > 0 && receita > 0 ? r2(receita / convidados) : null,
     cmv, cmvComida, cmvBebida, equipe, pessoasEquipe, extras, extrasPorCategoria,
@@ -432,6 +480,11 @@ export function resumoDoOrcamento(orc = {}, fichas = [], { convidados: conv } = 
       margem: diferencaMeta !== null && diferencaMeta > 0 ? diferencaMeta : 0,
       falta: diferencaMeta !== null && diferencaMeta < 0 ? r2(-diferencaMeta) : 0,
     },
+    modoPreco: fechado ? "fechado" : "pessoa",
+    // Quantidade fechada: quanto de comida (g) e de bebida (ml) foi para o evento e o custo individual.
+    totalComidaG: r2(itens.filter((i) => i.emTotal && i.secao !== "bar").reduce((t, i) => t + (i.gramasTotal || 0), 0)),
+    totalBebidaMl: r2(itens.filter((i) => i.emTotal && i.secao === "bar").reduce((t, i) => t + (i.gramasTotal || 0), 0)),
+    custoCardapioPorPessoa: convidados > 0 ? r2(cmv / convidados) : null,
     precoSugeridoPorPessoa: sugerido,
     // Sugerido arredondado para o próximo real inteiro (preço "redondo").
     precoSugeridoRedondo: sugerido ? Math.ceil(sugerido - 0.000001) : null,
@@ -448,7 +501,7 @@ export const LINHAS_REALIZADO = [
   { id: "cmv_comida", rotulo: "Comida (CMV)" },
   { id: "cmv_bebida", rotulo: "Bebidas (CMV)" },
   { id: "equipe", rotulo: "Equipe" },
-  { id: "extras", rotulo: "Aluguel e extras" },
+  { id: "extras", rotulo: "Espaço e decoração" },
   { id: "imposto", rotulo: "Impostos" },
   { id: "maquininha", rotulo: "Maquininha" },
   { id: "comissoes", rotulo: "Comissões" },
@@ -645,7 +698,8 @@ export function linhasDeValor(r) {
   const l = [];
   if (r.precoPorPessoa > 0) l.push(`Valor por pessoa: ${fmtR(r.precoPorPessoa)}`);
   if (r.precoMesa > 0) l.push(`Mesa montada (pacote fechado): ${fmtR(r.precoMesa)}`);
-  if (r.criancas > 0) l.push(`Crianças (${r.criancas}): ${fmtR(r.precoCrianca)} cada`);
+  if (r.aluguelCobrado > 0) l.push(`Aluguel do espaço: ${fmtR(r.aluguelCobrado)}`);
+  if (r.criancas > 0 && r.modoPreco !== "fechado") l.push(`Crianças (${r.criancas}): ${fmtR(r.precoCrianca)} cada`);
   if (r.desconto > 0) l.push(`Desconto: −${fmtR(r.desconto)}`);
   if (r.convidados) l.push(`Total para ${r.convidados} pessoas: ${fmtR(r.receita)}`);
   return l;
@@ -782,7 +836,9 @@ export function incluidoNaProposta(orc = {}) {
   }
   // "Garçom × 4" (sem plural inventado para cada função).
   const equipe = [...porFuncao.entries()].map(([nome, q]) => `${nome} × ${q.toLocaleString("pt-BR")}`);
+  // Custos do meu espaço (limpeza, energia) são internos: não vão para o cliente.
   const servicos = (orc.extras || [])
+    .filter((x) => !(tipoDoEspaco(orc) === "proprio" && x.categoria === "aluguel"))
     .map((x) => String(x.descricao || CATEGORIAS_EXTRAS.find((c) => c.id === x.categoria)?.rotulo || "").trim())
     .filter(Boolean);
   return { equipe, servicos: [...new Set(servicos)] };
@@ -830,4 +886,26 @@ export function aplicarBase(orc = {}, base = {}, { substituir = false } = {}) {
   });
   const atuais = (orc.cardapio || []).filter((i) => !substituir || grupoDoItem(i) !== grupo);
   return { ...orc, cardapio: [...atuais, ...novos] };
+}
+
+/* Conferência do lucro do evento (dono, 21/11/2026: "certeza de lucro").
+ * Antes do evento: o lucro é PROJEÇÃO do orçamento. Depois, com os gastos
+ * lançados: REAL, e as linhas que passaram do orçado aparecem com o quanto. */
+export const TOLERANCIA_ESTOURO_PCT = 10;
+export function conferenciaDoEvento(r, real) {
+  if (!(r?.receita > 0)) return { situacao: "sem_dado", natureza: null, texto: "Sem valor do evento ainda: defina o preço para saber o lucro.", estouros: [] };
+  const custos = (real?.linhas || []).filter((l) => !l.receita);
+  const lancadasCusto = custos.filter((l) => l.origem === "lancado").length;
+  const tudo = lancadasCusto === custos.length && custos.length > 0;
+  const natureza = lancadasCusto === 0 ? "PROJEÇÃO" : tudo ? "REAL" : "ESTIMATIVA";
+  const lucro = lancadasCusto === 0 ? r.lucro : real.lucroReal;
+  const estouros = custos
+    .filter((l) => l.origem === "lancado" && l.diferenca > 0.005 && (l.orcado > 0 ? (l.diferenca / l.orcado) * 100 > TOLERANCIA_ESTOURO_PCT : true))
+    .map((l) => ({ id: l.id, rotulo: l.rotulo, orcado: l.orcado, real: l.real, diferenca: l.diferenca, pct: l.orcado > 0 ? r2((l.diferenca / l.orcado) * 100) : null }));
+  const fmt = (v) => fmtR(v);
+  const texto = lucro < 0 ? `O evento ${natureza === "PROJEÇÃO" ? "vai dar" : "deu"} prejuízo de ${fmt(-lucro)} (${natureza}).`
+    : `O evento ${natureza === "PROJEÇÃO" ? "vai dar" : "deu"} ${fmt(lucro)} de lucro líquido, já descontado o seu pró-labore (${natureza}).`;
+  const aviso = natureza === "PROJEÇÃO" ? "Depois do evento, lance o que foi gasto de verdade (compras, equipe, espaço e decoração) para ter o lucro real."
+    : natureza === "ESTIMATIVA" ? `Faltam ${custos.length - lancadasCusto} linha(s) de gasto real: elas ainda valem o orçado.` : null;
+  return { situacao: lucro < 0 ? "alerta" : estouros.length || (r.meta?.definida && !r.meta?.atingida && natureza === "PROJEÇÃO") ? "atencao" : "ok", natureza, lucro: r2(lucro), texto, aviso, estouros };
 }

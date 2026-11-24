@@ -20,8 +20,8 @@ const numero = (v) => {
 /** Em que parte de um combo o item entra, pela categoria da ficha. */
 export function grupoDaCategoria(categoria) {
   const c = semAcento(categoria);
-  if (/refrigerante|suco|bebida|agua/.test(c)) return "bebida";
-  if (/sobremesa|doce/.test(c)) return "sobremesa";
+  if (/refrigerante|refri|suco|bebida|agua|cerveja|energetico|drink/.test(c)) return "bebida";
+  if (/sobremesa|doce|pudi[mn]|mousse|bolo|torta|sorvete|acai/.test(c)) return "sobremesa";
   return "marmita";
 }
 
@@ -45,6 +45,20 @@ export function mesAnterior(diaIso) {
 }
 
 /** Tira do DRE do mês o que é equipe e o que é custo fixo. */
+/** Da equipe alocada na marmitaria: parte fixa (salário, encargos, provisões, benefícios) e extras/diárias. */
+export function partesDaEquipe(linhas = []) {
+  let fixa = 0, extras = 0;
+  for (const l of linhas) {
+    const total = numero(l.custoTotal), naMarmitaria = numero(l.marmitaria);
+    if (!(naMarmitaria > 0)) continue;
+    const fracao = total > 0 ? naMarmitaria / total : 1;
+    const ext = Math.min(naMarmitaria, numero(l.extras) * fracao);
+    extras += ext;
+    fixa += naMarmitaria - ext;
+  }
+  return [{ nome: "Equipe fixa", valor: r2(fixa) }, { nome: "Extras e diárias", valor: r2(extras) }].filter((p) => p.valor > 0);
+}
+
 export function baseDosCustos(mesApurado) {
   const op = (mesApurado?.dre?.linhas || []).find((l) => l.id === "operacionais");
   const filhos = op?.filhos || [];
@@ -53,6 +67,8 @@ export function baseDosCustos(mesApurado) {
   return {
     cmoMes: somar(filhos.filter(ehEquipe)),
     cmoLinhas: (mesApurado?.cmo?.linhas || []).filter((l) => numero(l.marmitaria) > 0).map((l) => ({ nome: l.nome, valor: numero(l.marmitaria) })),
+    // Equipe fixa × extras e diárias (dono, 22/11/2026: "na equipe sai aparecendo fixos e extras").
+    cmoPartes: partesDaEquipe(mesApurado?.cmo?.linhas || []),
     fixosContasMes: somar(filhos.filter((f) => !ehEquipe(f))),
     vendidasMes: r2((mesApurado?.vendas || []).reduce((t, v) => t + numero(v.quantidade), 0)),
   };
@@ -63,7 +79,7 @@ export function baseDosCustos(mesApurado) {
  * em Configurações vale sobre o que veio do sistema; o volume digitado vale
  * sobre as vendas do mês. ESTIMATIVA.
  */
-export function custosEmbutidos({ cmoMes = 0, cmoLinhas = [], fixosContasMes = 0, vendidasMes = 0, config = {} } = {}) {
+export function custosEmbutidos({ cmoMes = 0, cmoLinhas = [], cmoPartes = [], fixosContasMes = 0, vendidasMes = 0, config = {} } = {}) {
   const r = config?.rateio || {};
   const mapa = (Array.isArray(r.custos_fixos) ? r.custos_fixos : []).filter((c) => String(c?.nome || "").trim() && numero(c?.valor) > 0).map((c) => ({ nome: String(c.nome).trim(), valor: numero(c.valor) }));
   const marmitasMes = numero(r.marmitas_mes) > 0 ? numero(r.marmitas_mes) : numero(vendidasMes) > 0 ? numero(vendidasMes) : null;
@@ -73,13 +89,24 @@ export function custosEmbutidos({ cmoMes = 0, cmoLinhas = [], fixosContasMes = 0
   const porMarmita = (v) => (v === null || marmitasMes === null ? null : r2(v / marmitasMes));
   const cmoPorMarmita = porMarmita(equipe);
   const fixosPorMarmita = porMarmita(fixos);
+  // Pró-labore (dono, 21/11/2026): é um custo fixo, mas aparece separado na conta do preço.
+  const proLaboreMes = r2(mapa.filter((c) => /pr[oó][\s-]*labore/i.test(c.nome)).reduce((t, c) => t + c.valor, 0));
+  const proLaborePorMarmita = proLaboreMes > 0 ? porMarmita(proLaboreMes) : 0;
+  // Custos variáveis por marmita (dono, 16/11/2026): gás, talher, sachê,
+  // etiqueta… valor que o dono informa por unidade, REAL. A embalagem não
+  // entra aqui: já está na ficha técnica de cada marmita.
+  const variaveisLinhas = (Array.isArray(r.custos_variaveis) ? r.custos_variaveis : [])
+    .filter((c) => String(c?.nome || "").trim() && numero(c?.valor) > 0)
+    .map((c) => ({ nome: String(c.nome).trim(), valor: r2(numero(c.valor)) }));
+  const variaveisPorMarmita = variaveisLinhas.length ? r2(variaveisLinhas.reduce((t, c) => t + c.valor, 0)) : 0;
   const faltando = [];
   if (marmitasMes === null) faltando.push("marmitas por mês");
   if (equipe === null) faltando.push("equipe");
   if (fixos === null) faltando.push("custos fixos");
   return {
-    marmitasMes, cmoMes: equipe, fixosMes: fixos, fixosLinhas: mapa, cmoLinhas: preenchido(r.cmo_mes) ? [] : cmoLinhas, cmoPorMarmita, fixosPorMarmita,
-    totalPorMarmita: cmoPorMarmita === null && fixosPorMarmita === null ? null : r2((cmoPorMarmita || 0) + (fixosPorMarmita || 0)),
+    marmitasMes, cmoMes: equipe, fixosMes: fixos, fixosLinhas: mapa, cmoLinhas: preenchido(r.cmo_mes) ? [] : cmoLinhas, cmoPartes: preenchido(r.cmo_mes) ? [] : cmoPartes, cmoPorMarmita, fixosPorMarmita,
+    variaveisLinhas, variaveisPorMarmita, proLaboreMes, proLaborePorMarmita,
+    totalPorMarmita: cmoPorMarmita === null && fixosPorMarmita === null && !variaveisPorMarmita ? null : r2((cmoPorMarmita || 0) + (fixosPorMarmita || 0) + variaveisPorMarmita),
     faltando, completo: faltando.length === 0,
   };
 }
@@ -112,6 +139,7 @@ export function composicaoDoPreco({ linha, custoFicha = null, embutidos = null }
     { id: "embalagens", rotulo: "Embalagens", valor: emb },
     { id: "cmo", rotulo: "CMO (equipe)", valor: r.cmo, filhos: pedacos(embutidos?.cmoLinhas || [], embutidos?.cmoMes, r.cmo || 0) },
     { id: "fixos", rotulo: "Custos fixos", valor: r.fixos, filhos: pedacos(embutidos?.fixosLinhas || [], embutidos?.fixosMes, r.fixos || 0) },
+    { id: "variaveis", rotulo: "Custos variáveis", valor: r.extras || 0, filhos: pedacos(embutidos?.variaveisLinhas || [], embutidos?.variaveisPorMarmita, r.extras || 0) },
     { id: "taxas", rotulo: "Taxas e entrega", valor: r2(r.variaveis), filhos: taxas },
     { id: "impostos", rotulo: "Impostos", valor: r.tributos },
     { id: "promocao", rotulo: "Promoção", valor: r.promocao },

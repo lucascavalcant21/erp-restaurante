@@ -16,7 +16,9 @@ import { vincularItemEstoque } from "../estoques-multiplos";
 import { transferirLancamento } from "../estoque-movimento-dados";
 import { novaChave } from "../estoque-movimento.mjs";
 import { fetchContasPagar } from "../financeiro";
-import { fetchColaboradores, fetchRecibosPrestacaoUnidade, inserirColaborador } from "../rh";
+import { fetchColaboradores, fetchRecibosPrestacaoUnidade, inserirColaborador, salvarReciboPrestacao } from "../rh";
+import { cadastroDoColaborador, reciboDeDiarias } from "./diarias.mjs";
+import { comFila } from "../offline/fila.mjs";
 import { normalizarCanal } from "./nucleo.mjs";
 import { fetchResultadoMensal } from "../parametros";
 import { parametrosDoResultado, configComResultado } from "../resultado-mes.mjs";
@@ -111,7 +113,7 @@ export async function carregarBase(unidadeId) {
     migracaoPendente: migracao || (configRow && !("canais" in configRow)),
     unidade: unR.data || null,
     fichas, marmitas,
-    prePreparos: fichas.filter((f) => f.eh_base && f.departamento !== "marmitaria"),
+    prePreparos: fichas.filter((f) => f.eh_base && f.departamento !== "marmitaria" && f.ativo !== false),
     insumosLista, insumos, espelho,
     estoques: estR.data || [],
     itensEstoque: itensR.data || [],
@@ -167,8 +169,31 @@ async function rpcFicha(dados) {
 }
 
 /** Grava a marmita inteira numa transação. `id` vem da tela (novaChave) e é reenviado igual em nova tentativa. */
-export const salvarMarmita = (dados) => rpcFicha({ ...dados, tipo: "marmita" });
-export const salvarPrePreparo = (dados) => rpcFicha({ ...dados, ...(dados?.nome ? { nome: nomeDeBase(dados.nome) } : {}), tipo: "pre_preparo" });
+const salvarMarmitaOnline = (dados) => rpcFicha({ ...dados, tipo: "marmita" });
+const salvarPrePreparoOnline = (dados) => rpcFicha({ ...dados, ...(dados?.nome ? { nome: nomeDeBase(dados.nome) } : {}), tipo: "pre_preparo" });
+
+/**
+ * Excluir base (dono, 17/11/2026: "posso editar uma base ou excluir?").
+ * Arquiva (ativo = false): some da lista e da busca, mas o histórico de estoque,
+ * de produção e as marmitas antigas continuam com o custo certo. Nada é apagado.
+ */
+async function arquivarPrePreparoOnline(fichaId) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const { data, error } = await supabase.from("fichas_tecnicas")
+    .update({ ativo: false, atualizado_em: new Date().toISOString() }).eq("id", fichaId).eq("eh_base", true).select("id");
+  if (error) return { error: mensagemErro(error) };
+  return { error: data?.length ? null : "Não consegui excluir (sem permissão para alterar a ficha)." };
+}
+
+/** Modo de preparo da base (17/11/2026): passos numerados ("1. …\n2. …") e tempo total em minutos. */
+async function salvarModoDePreparoOnline(fichaId, { modo_preparo, tempo_preparo, peso_porcao_g = null }) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const { data, error } = await supabase.from("fichas_tecnicas")
+    .update({ modo_preparo: modo_preparo || null, tempo_preparo: tempo_preparo || null, peso_porcao_g: peso_porcao_g || null, atualizado_em: new Date().toISOString() })
+    .eq("id", fichaId).select("id");
+  if (error) return { error: mensagemErro(error) };
+  return { error: data?.length ? null : "O modo de preparo não foi gravado (sem permissão para alterar a ficha)." };
+}
 
 export async function definirDisponibilidade(fichaId, ativo) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
@@ -180,7 +205,7 @@ export async function definirDisponibilidade(fichaId, ativo) {
  * Ingrediente ou embalagem novo pelo cadastro oficial (salvarInsumo): trava de
  * nome repetido, histórico de preço e vínculo no estoque vêm junto.
  */
-export async function criarProduto({ unidadeId, nome, marca = "", unidade_medida, preco_embalagem, tamanho_embalagem, departamento = "marmitaria", categoria = "" }) {
+async function criarProdutoOnline({ unidadeId, nome, marca = "", unidade_medida, preco_embalagem, tamanho_embalagem, departamento = "marmitaria", categoria = "" }) {
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
   const nomeLimpo = String(nome || "").trim();
   if (nomeLimpo.length < 2) return { error: "Informe o nome do produto." };
@@ -195,7 +220,44 @@ export async function criarProduto({ unidadeId, nome, marca = "", unidade_medida
     custo_compra: preco, valor_embalagem: preco,
   }, { origem: "marmitaria" });
   if (r?.error) return { error: mensagemErro(r.error) };
+  // dono, 17/11/2026: "cadastrei e não veio para o estoque". Já entra no local da marmitaria (saldo 0).
+  if (r?.id) await colocarNoEstoqueDaMarmitaria({ unidadeId, insumoId: r.id, departamento });
   return { id: r?.id || null, error: null };
+}
+
+/** Local do estoque da marmitaria para um produto, pelo departamento. */
+export const slugDoLocal = (departamento) => (departamento === "embalagens" ? ESTOQUE_EMBALAGENS : departamento === "limpeza" ? "limpeza-marmitaria" : departamento === "bebidas" ? "bebidas-marmitaria" : ESTOQUE_MARMITARIA);
+
+/**
+ * Bebida pronta (dono, 17/11/2026): o produto comprado (vai para o estoque de
+ * Bebidas) e o item de venda (ficha "Bebidas" com 1 unidade do produto), que
+ * aparece na Precificação e nos Combos.
+ */
+async function criarBebidaOnline({ unidadeId, nome, marca = "", preco_embalagem, tamanho_embalagem = 1 }) {
+  const p = await criarProdutoOnline({ unidadeId, nome, marca, unidade_medida: "un", preco_embalagem, tamanho_embalagem, departamento: "bebidas", categoria: "Bebidas da marmitaria" });
+  if (p.error || !p.id) return { error: p.error || "Não foi possível cadastrar a bebida." };
+  const r = await salvarMarmitaOnline({
+    id: novaChave(), unidade_id: unidadeId, nome: String(nome).trim(), descricao: "", foto: "", categoria: "Bebidas", tamanho: "M",
+    peso_final_g: null, ativo: true, validade_dias: null, preco_venda: 0, custo_embalagens_total: 0,
+    itens: [{ insumo_id: p.id, subficha_id: null, quantidade: 1, fator_correcao: 0 }], embalagens: [], precos: [],
+  });
+  if (r?.error) return { id: p.id, error: `A bebida foi cadastrada e está no estoque, mas o item de venda não foi criado: ${r.error}` };
+  return { id: p.id, error: null };
+}
+
+/** Põe o produto no local certo do estoque da marmitaria, se ainda não estiver. Falha não impede o cadastro. */
+export async function colocarNoEstoqueDaMarmitaria({ unidadeId, insumoId, departamento }) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId) || !insumoId) return { error: null };
+  try {
+    const slug = slugDoLocal(departamento);
+    let { data: est } = await supabase.from("estoques").select("id").eq("unidade_id", unidadeId).eq("slug", slug).maybeSingle();
+    if (!est) { await ativarEstoques(unidadeId); ({ data: est } = await supabase.from("estoques").select("id").eq("unidade_id", unidadeId).eq("slug", slug).maybeSingle()); }
+    if (!est) return { error: "Local do estoque da marmitaria não encontrado." };
+    const { data: ja } = await supabase.from("estoque_itens").select("id").eq("estoque_id", est.id).eq("insumo_id", insumoId).maybeSingle();
+    if (ja) return { error: null };
+    const v = await vincularItemEstoque({ unidadeId, estoqueId: est.id, insumoId });
+    return { error: v?.error ? mensagemErro(v.error) : null };
+  } catch (e) { return { error: mensagemErro(e) }; }
 }
 
 /** Mudanças de preço desde uma data: vêm do cadastro e do recebimento de compras. */
@@ -206,7 +268,7 @@ export async function fetchHistoricoPrecos(unidadeId, desde) {
 }
 
 /** Descrição que o cliente lê. Vai nos dois campos, como a marmitaria_salvar_ficha faz. */
-export async function salvarDescricao(fichaId, descricao) {
+async function salvarDescricaoOnline(fichaId, descricao) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   const texto = String(descricao || "").trim() || null;
   const { error } = await supabase.from("fichas_tecnicas").update({ descricao: texto, descricao_comercial: texto, atualizado_em: new Date().toISOString() }).eq("id", fichaId).eq("departamento", "marmitaria");
@@ -214,7 +276,7 @@ export async function salvarDescricao(fichaId, descricao) {
 }
 
 /** Novo preço de compra de uma embalagem: passa pelo salvarInsumo para ficar no histórico de preço. */
-export async function atualizarPrecoEmbalagem({ id, marca, unidade_medida, preco_embalagem, tamanho_embalagem }) {
+async function atualizarPrecoEmbalagemOnline({ id, marca, unidade_medida, preco_embalagem, tamanho_embalagem }) {
   const preco = Number(preco_embalagem);
   const tamanho = Number(tamanho_embalagem);
   if (!(preco >= 0)) return { error: "Informe o preço de compra." };
@@ -227,7 +289,7 @@ export async function atualizarPrecoEmbalagem({ id, marca, unidade_medida, preco
 }
 
 /** Preço de um item numa plataforma. A unidade vem da sessão e a RLS confere. */
-export async function salvarPrecoNoCanal({ unidadeId, fichaId, canal, preco }) {
+async function salvarPrecoNoCanalOnline({ unidadeId, fichaId, canal, preco }) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
   const valor = Number(preco);
@@ -277,7 +339,7 @@ export async function receberPedido({ unidadeId, compra, linhas, hoje, venciment
 
 // ─── Cozinha da marmitaria ──────────────────────────────────────────────────
 
-export async function retirarDoEstoque({ unidadeId, estoqueId, insumoId, quantidadeSaldo, quantidade, unidade, motivo, chave }) {
+async function retirarDoEstoqueOnline({ unidadeId, estoqueId, insumoId, quantidadeSaldo, quantidade, unidade, motivo, chave }) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   const { data, error } = await supabase.rpc("estoque_movimentar", {
     p_unidade_id: unidadeId, p_estoque_id: estoqueId, p_insumo_id: insumoId, p_tipo: "saida", p_motivo: motivo, p_quantidade: quantidadeSaldo,
@@ -287,7 +349,7 @@ export async function retirarDoEstoque({ unidadeId, estoqueId, insumoId, quantid
   return { error: data?.ok === false ? data.erro || "Retirada recusada." : null };
 }
 
-export async function produzirPreparo(dados) {
+async function produzirPreparoOnline(dados) {
   if (!isSupabaseReady()) return { data: null, error: SEM_BANCO };
   const { data, error } = await supabase.rpc("marmitaria_produzir_preparo", { p_dados: dados });
   return { data, error: mensagemErro(error) };
@@ -309,7 +371,7 @@ export async function fetchPlanosDaCozinha(unidadeId, dias) {
   return { data: data || [], error: mensagemErro(error) };
 }
 
-export async function salvarPlanoDaCozinha({ id, unidadeId, dia, itens }) {
+async function salvarPlanoDaCozinhaOnline({ id, unidadeId, dia, itens }) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   const { error } = await supabase.from("marmitaria_planos_operacionais").upsert({
     id, unidade_id: unidadeId, data_planejada: dia, periodo_tipo: PLANO_COZINHA, dados_completos: { itens }, updated_at: new Date().toISOString(),
@@ -329,6 +391,7 @@ export async function ativarEstoques(unidadeId) {
     { ...base, nome: "Marmitaria", slug: ESTOQUE_MARMITARIA, tipo: "alimentos", descricao: "Insumos e bases da marmitaria", cor: "#047857", controla_validade: true, locais_internos: [], ordem: 20 },
     { ...base, nome: "Limpeza da Marmitaria", slug: "limpeza-marmitaria", tipo: "limpeza", descricao: "Produtos de limpeza da marmitaria", cor: "#047857", controla_validade: false, locais_internos: [], ordem: 13 },
     { ...base, nome: "Produção da Marmitaria", slug: "producao-marmitaria", tipo: "alimentos", descricao: "Subprodutos prontos da marmitaria", cor: "#047857", controla_validade: true, controla_minimo: false, locais_internos: [], ordem: 12 },
+    { ...base, nome: "Bebidas da Marmitaria", slug: "bebidas-marmitaria", tipo: "bebidas", descricao: "Refrigerantes, sucos e águas do delivery", cor: "#047857", controla_validade: true, locais_internos: [], ordem: 22 },
     { ...base, nome: "Embalagens da Marmitaria", slug: ESTOQUE_EMBALAGENS, tipo: "embalagens", descricao: "Marmitex, tampas, sacolas, talheres e etiquetas", cor: "#047857", controla_validade: false, locais_internos: [], ordem: 21 },
   ], { onConflict: "unidade_id,slug", ignoreDuplicates: true });
   return { error: mensagemErro(error) };
@@ -338,7 +401,7 @@ export const vincularProduto = ({ unidadeId, estoqueId, insumoId, minimo = null 
   vincularItemEstoque({ unidadeId, estoqueId, insumoId, minimo });
 
 /** Transferência atômica (estoque_transferir) com chave idempotente da tela. */
-export async function transferir({ unidadeId, origemId, destinoId, insumoId, quantidadeSaldo, observacao, chave }) {
+async function transferirOnline({ unidadeId, origemId, destinoId, insumoId, quantidadeSaldo, observacao, chave }) {
   const r = await transferirLancamento({
     unidade_id: unidadeId, origem_id: origemId, destino_id: destinoId, insumo_id: insumoId,
     quantidade: quantidadeSaldo, observacao: observacao || "Transferência para a marmitaria", responsavel_nome: null, chave,
@@ -346,7 +409,7 @@ export async function transferir({ unidadeId, origemId, destinoId, insumoId, qua
   return { data: r.data, error: r.error ? mensagemErro(r.error) : null };
 }
 
-export async function registrarProducao(dados) {
+async function registrarProducaoOnline(dados) {
   if (!isSupabaseReady()) return { data: null, error: SEM_BANCO };
   try {
     const { data, error } = await supabase.rpc("marmitaria_registrar_producao", { p_dados: dados });
@@ -436,6 +499,40 @@ export async function fetchPedidosDoDia(unidadeId, dia) {
   };
 }
 
+// ─── Conciliação da fatura do app (especificação 21/11/2026, item F) ─────────
+
+/** Referências "fatura:<app>:<pedido>" já importadas desse app (para não repetir). */
+export async function referenciasDaFatura(unidadeId, canal) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return new Set();
+  const { data } = await supabase.from("marmitaria_vendas").select("referencia_externa")
+    .eq("unidade_id", unidadeId).eq("fonte", "importacao").like("referencia_externa", `fatura:${canal}:%`);
+  return new Set((data || []).map((v) => String(v.referencia_externa)));
+}
+
+/** Grava os pedidos da fatura como vendas (em lotes). Importado não se edita nem se apaga pela tela. */
+export async function importarFatura(unidadeId, vendas) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO, gravadas: 0 };
+  if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade.", gravadas: 0 };
+  let gravadas = 0;
+  for (let i = 0; i < vendas.length; i += 300) {
+    const r = await importarVendas(unidadeId, vendas.slice(i, i + 300));
+    if (r.error) return { error: r.error, gravadas };
+    gravadas += Math.min(300, vendas.length - i);
+  }
+  return { error: null, gravadas };
+}
+
+/** Guarda os totais da fatura no app (só a coluna de canais; o resto da configuração não muda). */
+export async function salvarFaturaNoCanal(unidadeId, canalId, { ganhos, ofertas, taxas, periodo }) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const { data, error } = await supabase.from("marmitaria_configuracoes").select("canais").eq("unidade_id", unidadeId).maybeSingle();
+  if (error) return { error: mensagemErro(error) };
+  const canais = (data?.canais || []).map((c) => (c.id === canalId ? { ...c, fatura_ganhos: ganhos, fatura_ofertas: ofertas, fatura_taxas: taxas, fatura_periodo: periodo } : c));
+  if (!canais.some((c) => c.id === canalId)) return { error: "App não encontrado nas configurações." };
+  const r = await supabase.from("marmitaria_configuracoes").update({ canais: canais.map(normalizarCanal), updated_at: new Date().toISOString() }).eq("unidade_id", unidadeId);
+  return { error: mensagemErro(r.error) };
+}
+
 export async function importarVendas(unidadeId, vendas) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
@@ -471,22 +568,42 @@ export async function carregarEquipe(unidadeId) {
 export async function criarFuncionario(unidadeId, f) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
-  const nome = String(f.nome || "").trim();
-  const cargo = String(f.cargo || "").trim();
-  if (nome.length < 2) return { error: "Informe o nome." };
-  if (!cargo) return { error: "Informe a função." };
-  const salario = Number(f.salario);
-  if (!(salario >= 0)) return { error: "Informe o salário." };
+  // cadastro completo (dono, 21/11/2026): documentos, endereço, dias da semana, horários
+  const { erros, payload } = cadastroDoColaborador(f, { unidadeId, tipo: "fixo" });
+  if (erros.length) return { error: erros.join(" ") };
   const vt = Number(f.vale_transporte) || 0;
   const r = await inserirColaborador({
-    unidade_id: unidadeId, nome, cargo, salario, status: "ativo",
+    ...payload,
     vale_alimentacao: Number(f.vale_alimentacao) || 0,
     usa_vale_transporte: vt > 0, vale_transporte_val: vt > 0 ? vt : null,
-    data_admissao: f.data_admissao || null,
   });
   if (r.error) return { error: /row-level security|permission denied/i.test(r.error) ? "Só quem tem acesso ao RH pode cadastrar funcionário." : mensagemErro(r.error) };
   const aloc = await salvarAlocacao(unidadeId, { colaborador_id: r.data.id, tipo_alocacao: "exclusivo", turno: f.turno });
   return { id: r.data.id, error: aloc.error || null };
+}
+
+/** Extra pago por diária: cadastro no mesmo formato do RH (tipo Freelancer, salário = diária). */
+export async function criarExtra(unidadeId, f) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
+  const { erros, payload } = cadastroDoColaborador(f, { unidadeId, tipo: "extra" });
+  if (erros.length) return { error: erros.join(" ") };
+  const r = await inserirColaborador(payload);
+  if (r.error) return { error: /row-level security|permission denied/i.test(r.error) ? "Só quem tem acesso ao RH pode cadastrar." : mensagemErro(r.error) };
+  // alocado no delivery para as diárias pagas entrarem no CMO (o extra não tem salário fixo no cálculo)
+  const aloc = await salvarAlocacao(unidadeId, { colaborador_id: r.data.id, tipo_alocacao: "exclusivo", turno: "Diária" });
+  return { id: r.data.id, error: aloc.error || null };
+}
+
+/** Paga diárias: grava o recibo (rh_recibos_prestacao), que entra no CMO do mês. */
+export async function pagarDiarias(unidadeId, dados) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  if (!unidadeOk(unidadeId)) return { error: "Selecione uma unidade." };
+  const { erro, recibo } = reciboDeDiarias({ ...dados, unidadeId });
+  if (erro) return { error: erro };
+  const r = await salvarReciboPrestacao(recibo);
+  if (r.error) return { error: mensagemErro(r.error) };
+  return { recibo: r.data || recibo, error: null };
 }
 
 export async function salvarAlocacao(unidadeId, a) {
@@ -543,6 +660,36 @@ export async function fetchSimulacoes(unidadeId) {
   return { data: data || [] };
 }
 
+// Simulador de vendas e Comparar apps (dono, 17/11/2026: "posso deixar as
+// simulações salvas"): a mesma tabela, com o tipo dentro de `itens`
+// ({ tipo: "vendas" | "apps", quantidades, mix }). Mesmo nome = atualiza.
+export async function fetchSimulacoesDeVendas(unidadeId, tipo) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { data: [] };
+  const { data, error } = await supabase.from("marmitaria_simulacoes").select("id, nome, dias_operacao_mes, itens, resultado_consolidado, criado_em")
+    .eq("unidade_id", unidadeId).eq("itens->>tipo", tipo).order("criado_em", { ascending: false }).limit(30);
+  return { data: data || [], error: mensagemErro(error) };
+}
+
+export async function salvarSimulacaoDeVendas(unidadeId, { id = null, nome, tipo, dias, quantidades, mix = null, resultado = {} }) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const linha = {
+    nome: String(nome || "").trim().slice(0, 80), dias_operacao_mes: Math.min(31, Math.max(1, Math.round(Number(dias) || 25))),
+    itens: { tipo, quantidades: quantidades || {}, ...(mix ? { mix } : {}) }, resultado_consolidado: resultado || {},
+  };
+  if (linha.nome.length < 2) return { error: "Dê um nome à simulação." };
+  const q = id
+    ? supabase.from("marmitaria_simulacoes").update(linha).eq("id", id).eq("unidade_id", unidadeId).select("id").single()
+    : supabase.from("marmitaria_simulacoes").insert({ unidade_id: unidadeId, ...linha }).select("id").single();
+  const { data, error } = await q;
+  return { data, error: mensagemErro(error) };
+}
+
+export async function apagarSimulacao(unidadeId, id) {
+  if (!isSupabaseReady()) return { error: SEM_BANCO };
+  const { error } = await supabase.from("marmitaria_simulacoes").delete().eq("id", id).eq("unidade_id", unidadeId);
+  return { error: mensagemErro(error) };
+}
+
 export async function salvarSimulacao(unidadeId, { nome, diasMes, entradas, resultado }) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };
   const { error } = await supabase.from("marmitaria_simulacoes").insert({
@@ -551,3 +698,25 @@ export async function salvarSimulacao(unidadeId, { nome, diasMes, entradas, resu
   });
   return { error: mensagemErro(error) };
 }
+
+
+// ─── Sem internet (dono, 21/11/2026) ─────────────────────────────────────────
+// Cadastros, fichas, estoque e produção gravam na hora com internet; sem ela,
+// ficam na fila do aparelho (lib/offline/fila.mjs) e vão quando a rede voltar.
+// Todas são idempotentes: id/chave/lote gerados na tela, ou o banco recusa
+// o nome repetido.
+const nomeDe = (d) => d?.nome || d?.nome_receita || "";
+export const salvarMarmita = comFila("marm.salvarMarmita", salvarMarmitaOnline, (d) => `Ficha técnica ${nomeDe(d)}`);
+export const salvarPrePreparo = comFila("marm.salvarPrePreparo", salvarPrePreparoOnline, (d) => `Base ${nomeDe(d)}`);
+export const arquivarPrePreparo = comFila("marm.arquivarPrePreparo", arquivarPrePreparoOnline, "Excluir base");
+export const salvarModoDePreparo = comFila("marm.salvarModoDePreparo", salvarModoDePreparoOnline, "Modo de preparo");
+export const criarProduto = comFila("marm.criarProduto", criarProdutoOnline, (d) => `Cadastro de ${nomeDe(d)}`);
+export const criarBebida = comFila("marm.criarBebida", criarBebidaOnline, (d) => `Bebida ${nomeDe(d)}`);
+export const salvarDescricao = comFila("marm.salvarDescricao", salvarDescricaoOnline, "Descrição da ficha");
+export const atualizarPrecoEmbalagem = comFila("marm.atualizarPrecoEmbalagem", atualizarPrecoEmbalagemOnline, "Preço de embalagem");
+export const salvarPrecoNoCanal = comFila("marm.salvarPrecoNoCanal", salvarPrecoNoCanalOnline, "Preço no app");
+export const retirarDoEstoque = comFila("marm.retirarDoEstoque", retirarDoEstoqueOnline, "Retirada do estoque");
+export const produzirPreparo = comFila("marm.produzirPreparo", produzirPreparoOnline, "Produção de base");
+export const registrarProducao = comFila("marm.registrarProducao", registrarProducaoOnline, "Produção de marmitas");
+export const transferir = comFila("marm.transferir", transferirOnline, "Transferência de estoque");
+export const salvarPlanoDaCozinha = comFila("marm.salvarPlanoDaCozinha", salvarPlanoDaCozinhaOnline, "Plano da cozinha");

@@ -9,6 +9,7 @@ const ROTA = "/dashboard/marmitaria/estoque";
 export const ABAS_DA_PRODUCAO = [
   { id: "hoje", rotulo: "Hoje", href: `${ROTA}/cozinha` },
   { id: "subprodutos", rotulo: "Subprodutos", href: `${ROTA}/producoes?aba=subprodutos` },
+  { id: "porcionamento", rotulo: "Porcionamento", href: `${ROTA}/producoes?aba=porcionamento` },
   { id: "marmitas", rotulo: "Produção registrada", href: `${ROTA}/producoes?aba=marmitas` },
   { id: "planejar", rotulo: "Planejamento", href: `${ROTA}/producoes?aba=planejar` },
   { id: "pedidos", rotulo: "Pedidos do iFood", href: `${ROTA}/producoes?aba=pedidos` },

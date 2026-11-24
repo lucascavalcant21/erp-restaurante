@@ -9,6 +9,8 @@ const cabecalhosDeSeguranca = [
 
 const nextConfig = {
   env: {
+    // Versão mostrada no Menu e em Minha conta (package.json).
+    HEFISTO_VERSAO: require("./package.json").version,
     HEFISTO_ENV: process.env.NEXT_PUBLIC_HEFISTO_ENV || process.env.HEFISTO_ENV || "production",
   },
   async headers() {

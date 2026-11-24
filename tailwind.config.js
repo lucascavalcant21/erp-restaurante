@@ -107,6 +107,21 @@ module.exports = {
           "tile-grafite":  "rgb(var(--hf-tile-grafite) / <alpha-value>)",
           "tile-ardosia":  "rgb(var(--hf-tile-ardosia) / <alpha-value>)",
         },
+        // Visual do app da Medway (pedido do dono, 14/11/2026): fundo cinza
+        // claro, cartões brancos, texto azul-marinho e verde-água no que está
+        // ativo. Tokens --mw-* no globals.css.
+        mw: {
+          "bg":       "rgb(var(--mw-bg) / <alpha-value>)",
+          "card":     "rgb(var(--mw-card) / <alpha-value>)",
+          "borda":    "rgb(var(--mw-borda) / <alpha-value>)",
+          "marinho":  "rgb(var(--mw-marinho) / <alpha-value>)",
+          "texto":    "rgb(var(--mw-texto) / <alpha-value>)",
+          "sec":      "rgb(var(--mw-sec) / <alpha-value>)",
+          "suave":    "rgb(var(--mw-suave) / <alpha-value>)",
+          "agua":     "rgb(var(--mw-agua) / <alpha-value>)",
+          "agua-claro": "rgb(var(--mw-agua-claro) / <alpha-value>)",
+          "azul":     "rgb(var(--mw-azul) / <alpha-value>)",
+        },
       },
       borderRadius: {
         xl2: "14px",

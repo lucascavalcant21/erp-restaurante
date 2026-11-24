@@ -10,7 +10,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, Calculator, Gauge, Target, UtensilsCrossed } from "lucide-react";
+import { BookOpen, CalendarDays, Calculator, ClipboardList, Gauge, Target, UtensilsCrossed } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
@@ -27,6 +27,8 @@ const AREAS = [
   { href: FUNIL, rotulo: "Funil de eventos", curto: "Funil", icone: BookOpen, ativo: (p) => p === BASE || p === FUNIL },
   { href: `${BASE}/agenda`, rotulo: "Agenda", curto: "Agenda", icone: CalendarDays },
   { href: `${BASE}/metas`, rotulo: "Metas", curto: "Metas", icone: Target },
+  // Cadastro único com o delivery (dono, 21/11/2026): fichas, ingredientes, embalagens e bebidas.
+  { href: "/dashboard/marmitaria/marmitas", rotulo: "Fichas e cadastros", curto: "Cadastros", icone: ClipboardList },
   { href: `${BASE}/reservas`, rotulo: "Reservas de mesa", curto: "Reservas", icone: UtensilsCrossed },
 ];
 

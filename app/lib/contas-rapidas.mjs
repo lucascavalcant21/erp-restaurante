@@ -9,6 +9,8 @@ const ESTOQUE_DIA_A_DIA = ["estoque.operation.view", "estoque.movements.view", "
 const ESTOQUE_SO_RETIRAR = ["estoque.operation.view", "estoque.movements.view", "estoque.outputs.view", "estoque.outputs.create"];
 const ETIQUETAS = ["estoque.labels.view", "estoque.labels.create", "estoque.labels.print"];
 const TREINAMENTO = "treinamento.my.view";
+// O que o Nico do tablet consulta: fichas e busca da cozinha e do bar, sem custo.
+const NICO_CONSULTA = ["cozinha.search.view", "cozinha.recipes.view", "bar.search.view", "bar.recipes.view"];
 const LIDERAR_TREINAMENTO = ["treinamento.team.view", "treinamento.team.create", "treinamento.team.approve"];
 
 export const CONTAS_RAPIDAS = Object.freeze([
@@ -74,6 +76,37 @@ export const CONTAS_RAPIDAS = Object.freeze([
     pode: ["Bater o ponto"],
     naoPode: ["Abrir qualquer outra tela"],
     permissoes: ["ponto.clock.view", "ponto.clock.create"],
+  },
+  // Tablets do Nico (decisão do dono, 14/11/2026): o dono escolhe o que cada
+  // tablet tem — só ponto (acima), Nico + ponto ou só Nico — e o sistema gera
+  // o login e a senha, que abrem direto na tela escolhida. O Nico consulta
+  // fichas, imprime etiquetas, ensina os procedimentos e o treinamento; nunca
+  // vê custo, margem nem nada de gestão (isso é do Jhon, o assistente do dono).
+  {
+    id: "tablet-nico",
+    codigo: "conta-tablet-nico",
+    nome: "Tablet do Nico",
+    descricao: "Abre direto no Nico: fichas e como fazer, etiquetas, procedimentos do salão e treinamento.",
+    icone: "Sparkles",
+    tipoAcesso: "setor", // conta compartilhada do aparelho (valores aceitos: usuarios_erp_tipo_acesso_check)
+    paginaInicial: "/dashboard/inteligencia/assistente",
+    trocarSenha: false,
+    pode: ["Perguntar ao Nico (por toque, texto ou áudio)", "Ver fichas de pratos e drinks", "Imprimir etiquetas", "Fazer o treinamento"],
+    naoPode: ["Ver custos ou margem", "Abrir financeiro, RH ou configurações", "Bater o ponto"],
+    permissoes: ["dashboard.intelligence.view", ...NICO_CONSULTA, ...ETIQUETAS, TREINAMENTO],
+  },
+  {
+    id: "tablet-nico-ponto",
+    codigo: "conta-tablet-nico-ponto",
+    nome: "Tablet do Nico + ponto",
+    descricao: "Abre no Nico e também bate o ponto da equipe (cada um com o seu PIN).",
+    icone: "Sparkles",
+    tipoAcesso: "setor", // conta compartilhada do aparelho (valores aceitos: usuarios_erp_tipo_acesso_check)
+    paginaInicial: "/dashboard/inteligencia/assistente",
+    trocarSenha: false,
+    pode: ["Tudo do Tablet do Nico", "Bater o ponto"],
+    naoPode: ["Ver custos ou margem", "Abrir financeiro, RH ou configurações"],
+    permissoes: ["dashboard.intelligence.view", ...NICO_CONSULTA, ...ETIQUETAS, TREINAMENTO, "ponto.clock.view", "ponto.clock.create"],
   },
 ]);
 

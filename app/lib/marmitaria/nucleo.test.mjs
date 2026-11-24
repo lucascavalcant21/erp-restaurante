@@ -382,3 +382,41 @@ test("pacote: 23 reais com 30 unidades dá 0,7667 cada", async () => {
   assert.equal(custoPorUnidadeDoPacote(23, 0), null);
   assert.equal(custoPorUnidadeDoPacote(23, ""), null);
 });
+
+import { novoPlanoDoCanal, normalizarCanal as normCanal } from "./nucleo.mjs";
+test("planos do mesmo app: id único, taxas em branco, agrupados pela plataforma (16/11/2026)", () => {
+  const p2 = novoPlanoDoCanal({ id: "ifood", nome: "iFood", comissao_pct: 12, taxa_pagamento_pct: 3.2 }, ["ifood"]);
+  assert.equal(p2.id, "ifood_p2");
+  assert.equal(p2.nome, "iFood · Plano 2");
+  assert.equal(p2.plataforma, "ifood");
+  assert.equal(p2.comissao_pct, "");
+  const p3 = novoPlanoDoCanal(p2, ["ifood", "ifood_p2"]);
+  assert.equal(p3.id, "ifood_p3");
+  assert.equal(p3.nome, "iFood · Plano 3");
+  assert.equal(normCanal({ id: "keeta" }).plataforma, null);
+});
+
+test("DRE: custos fixos cadastrados entram como previsto sem contas, e não somam de novo com contas", () => {
+  const fixosCadastrados = [{ nome: "Aluguel", valor: 5000 }, { nome: "Luz", valor: "3000" }, { nome: "", valor: 10 }, { nome: "Gás", valor: 0 }];
+  const sem = dreMarmitaria({ fixosCadastrados });
+  const op = sem.linhas.find((l) => l.id === "operacionais");
+  assert.equal(op.valor, 8000);
+  assert.equal(op.natureza, "estimado");
+  assert.deepEqual(op.filhos.map((f) => f.rotulo), ["Aluguel (previsto)", "Luz (previsto)"]);
+  const contas = [{ natureza: "despesa_operacional", categoria_codigo: "aluguel", valorMarmitaria: 4800, criterio: "direto" }];
+  const com = dreMarmitaria({ fixosCadastrados, contas });
+  assert.equal(com.linhas.find((l) => l.id === "operacionais").valor, 4800);
+});
+
+test("balcão: sem app; a taxa de entrega é do motoboy, salvo o desconto que a loja dá", async () => {
+  const { resultadoPorCanal, entregaDaLoja } = await import("./nucleo.mjs");
+  const balcao = { id: "balcao", nome: "Balcão", comissao_pct: 0, taxa_pagamento_pct: 0, taxa_entrega_cliente: 8 };
+  const sem = resultadoPorCanal({ preco: 30, custoTecnico: 10, canal: balcao });
+  assert.equal(sem.comissao, 0);
+  assert.equal(sem.entrega, 0);              // cliente paga os R$ 8 ao motoboy
+  assert.equal(sem.margemContribuicao, 20);
+  const com = resultadoPorCanal({ preco: 30, custoTecnico: 10, canal: { ...balcao, desconto_entrega_pct: 50 } });
+  assert.equal(com.entrega, 4);              // 50% de desconto na taxa sai da loja
+  assert.equal(com.margemContribuicao, 16);
+  assert.equal(entregaDaLoja({ entrega_subsidiada_pedido: 2, taxa_entrega_cliente: 10, desconto_entrega_pct: 150 }), 12);
+});

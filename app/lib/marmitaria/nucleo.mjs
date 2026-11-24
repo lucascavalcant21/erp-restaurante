@@ -137,29 +137,76 @@ export const MODELOS_CANAL = [
 // As quatro formas de vender que o dono usa; o WhatsApp entra se ele quiser.
 export const PLATAFORMAS_PADRAO = ["ifood", "99food", "keeta", "balcao"];
 
-const CAMPOS_PCT = ["comissao_pct", "taxa_pagamento_pct", "promocao_pct"];
-const CAMPOS_RS = ["taxa_fixa_pedido", "entrega_subsidiada_pedido"];
+const CAMPOS_PCT = ["comissao_pct", "taxa_pagamento_pct", "promocao_pct", "desconto_entrega_pct"];
+const CAMPOS_RS = ["taxa_fixa_pedido", "entrega_subsidiada_pedido", "taxa_entrega_cliente"];
+
+/**
+ * O que a loja paga de entrega em cada pedido (R$).
+ * - entrega_subsidiada_pedido: valor fixo que sai do seu bolso por entrega;
+ * - taxa_entrega_cliente × desconto_entrega_pct: no balcão/entrega própria o
+ *   cliente paga a taxa ao motoboy (não é receita nem custo da loja), a não ser
+ *   que você dê X% de desconto nela; esse desconto sai de você
+ *   (dono, 22/11/2026).
+ */
+export function entregaDaLoja(canal) {
+  const c = canal || {};
+  return pos(c.entrega_subsidiada_pedido) + pos(c.taxa_entrega_cliente) * Math.min(1, pos(c.desconto_entrega_pct) / 100);
+}
+// Fatura do app (especificação do dono, 21/11/2026): ganhos totais, ofertas
+// pagas pela loja e taxas do app de um período. Dão a taxa REAL (observada),
+// que pode ser diferente da do contrato. É indicador histórico, não contrato.
+const CAMPOS_FATURA = ["fatura_ganhos", "fatura_ofertas", "fatura_taxas"];
+
+/** Da fatura: % de ofertas, % de taxas e o que sobra (repasse), sobre os ganhos totais. */
+export function taxaDaFatura({ ganhos, ofertas, taxas } = {}) {
+  const g = Math.max(0, parseNumero(ganhos)), o = Math.max(0, parseNumero(ofertas)), t = Math.max(0, parseNumero(taxas));
+  if (!(g > 0) || o + t > g) return null;
+  const pctDe = (v) => Math.round((v / g) * 1e6) / 1e4;
+  return { ganhos: r2(g), ofertas: r2(o), taxas: r2(t), liquido: r2(g - o - t), ofertasPct: pctDe(o), taxasPct: pctDe(t), totalPct: pctDe(o + t), repassePct: pctDe(g - o - t) };
+}
 
 export function normalizarCanal(c = {}) {
   const id = String(c.id || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 30);
   const out = {
     id, nome: String(c.nome || id).trim() || id, ativo: c.ativo !== false,
     modalidade: String(c.modalidade || "").trim(),
+    // Planos (dono, 16/11/2026): o mesmo app pode ter mais de um plano (ex.:
+    // iFood Básico e iFood Entrega), cada um com as suas taxas. Cada plano é
+    // um canal; "plataforma" agrupa os planos do mesmo app.
+    plataforma: String(c.plataforma || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 30) || null,
     comissao_base: c.comissao_base === "bruto" ? "bruto" : "receita",
     pagamento_na_comissao: !!c.pagamento_na_comissao,
     itens_por_pedido: Math.max(1, parseNumero(c.itens_por_pedido) || 1),
   };
-  for (const k of [...CAMPOS_PCT, ...CAMPOS_RS]) {
+  for (const k of [...CAMPOS_PCT, ...CAMPOS_RS, ...CAMPOS_FATURA]) {
     const v = c[k];
     out[k] = v === "" || v === null || v === undefined ? null : Math.max(0, parseNumero(v));
   }
+  out.fatura_periodo = String(c.fatura_periodo || "").trim().slice(0, 60);
+  out.fatura = taxaDaFatura({ ganhos: out.fatura_ganhos, ofertas: out.fatura_ofertas, taxas: out.fatura_taxas });
+  // Só usa a taxa da fatura se o dono mandar e a fatura fechar a conta.
+  out.usar_fatura = !!c.usar_fatura && !!out.fatura;
   return out;
+}
+
+/** Novo plano de um app já cadastrado: mesmo app, taxas em branco, id único. */
+export function novoPlanoDoCanal(canal, usados = []) {
+  const base = normalizarCanal(canal);
+  const plataforma = base.plataforma || base.id;
+  const ids = new Set(usados);
+  let n = 2;
+  while (ids.has(`${plataforma}_p${n}`)) n++;
+  return {
+    ...normalizarCanal({ id: `${plataforma}_p${n}`, nome: `${MODELOS_CANAL.find((m) => m.id === plataforma)?.nome || base.nome.split(" · ")[0]} · Plano ${n}`, plataforma, comissao_base: base.comissao_base }),
+    comissao_pct: "", taxa_pagamento_pct: "", taxa_fixa_pedido: "", entrega_subsidiada_pedido: "", taxa_entrega_cliente: "", desconto_entrega_pct: "", promocao_pct: "", itens_por_pedido: base.itens_por_pedido,
+  };
 }
 
 // Canal conta como configurado quando o dono preencheu ao menos as taxas que
 // a modalidade cobra (zero digitado é configuração; campo vazio não é).
 export function canalConfigurado(c) {
   const n = normalizarCanal(c);
+  if (n.usar_fatura) return true;
   return n.comissao_pct !== null && (n.pagamento_na_comissao || n.taxa_pagamento_pct !== null);
 }
 
@@ -190,7 +237,7 @@ function rotuloCampo(k) {
  * Percentuais sobre a RECEITA DE VENDAS. Margem de contribuição não é lucro:
  * ainda faltam CMO, despesas fixas e financeiras.
  */
-export function resultadoPorCanal({ preco, custoTecnico, canal = {}, tributosPct = null } = {}) {
+export function resultadoPorCanal({ preco, custoTecnico, canal = {}, tributosPct = null, descontoLoja = 0 } = {}) {
   const c = normalizarCanal(canal);
   const P = pos(preco);
   const custo = custoTecnico == null ? null : Math.max(0, parseNumero(custoTecnico));
@@ -200,20 +247,24 @@ export function resultadoPorCanal({ preco, custoTecnico, canal = {}, tributosPct
   if (tributosPct === null || tributosPct === undefined || tributosPct === "") avisos.push("Alíquota de tributos não configurada: a margem considera tributo zero.");
   if (custo === null) avisos.push("Custo técnico indisponível.");
 
-  const d = pct(c.promocao_pct);
-  const promocao = P * d;
+  // Taxa real da fatura (HIPÓTESE agregada): ofertas e taxas sobre o preço cheio.
+  const fat = c.usar_fatura ? c.fatura : null;
+  const d = fat ? fat.ofertasPct / 100 : pct(c.promocao_pct);
+  // desconto da loja numa promoção simulada (R$); desconto pago pelo app não entra aqui
+  const dl = Math.min(P, Math.max(0, parseNumero(descontoLoja)));
+  const promocao = P * d + dl;
   const receita = P - promocao;
   const tributos = receita * pct(tributosPct);
-  const comissao = (c.comissao_base === "bruto" ? P : receita) * pct(c.comissao_pct);
-  const taxaPagamento = c.pagamento_na_comissao ? 0 : receita * pct(c.taxa_pagamento_pct);
+  const comissao = fat ? P * (fat.taxasPct / 100) : (c.comissao_base === "bruto" ? P : receita) * pct(c.comissao_pct);
+  const taxaPagamento = fat || c.pagamento_na_comissao ? 0 : receita * pct(c.taxa_pagamento_pct);
   const taxaFixa = pos(c.taxa_fixa_pedido) / c.itens_por_pedido;
-  const entrega = pos(c.entrega_subsidiada_pedido) / c.itens_por_pedido;
+  const entrega = entregaDaLoja(c) / c.itens_por_pedido;
   const taxasCanal = comissao + taxaPagamento + taxaFixa;
   const variaveis = taxasCanal + entrega;
   const receitaLiquida = receita - tributos;
   const mc = custo === null ? null : receitaLiquida - variaveis - custo;
   return {
-    valido: true, avisos,
+    valido: true, avisos, modoTaxa: fat ? "fatura" : "contrato", descontoLoja: r2(dl),
     preco: r2(P), promocao: r2(promocao), receita: r2(receita), tributos: r2(tributos), receitaLiquida: r2(receitaLiquida),
     comissao: r2(comissao), taxaPagamento: r2(taxaPagamento), taxaFixa: r2(taxaFixa), entrega: r2(entrega),
     taxasCanal: r2(taxasCanal), variaveis: r2(variaveis), custo: r2(custo),
@@ -238,11 +289,13 @@ export function precoSugerido({ custoTecnico, canal = {}, tributosPct = null, ma
   if (!(lucroReais > 0) && (margemAlvoPct === null || margemAlvoPct === undefined || margemAlvoPct === "")) return { preco: null, motivo: "Configure a margem-alvo em Configurações." };
   // Meta em reais: soma ao que não depende do preço, e a porcentagem deixa de valer.
   const m = lucroReais > 0 ? 0 : parseNumero(margemAlvoPct) / 100;
-  const d = pct(c.promocao_pct);
+  const fat = c.usar_fatura ? c.fatura : null;
+  const d = fat ? fat.ofertasPct / 100 : pct(c.promocao_pct);
   const t = pct(tributosPct);
   const baseComissao = c.comissao_base === "bruto" ? 1 : (1 - d);
-  const k = (1 - d) * t + baseComissao * pct(c.comissao_pct) + (c.pagamento_na_comissao ? 0 : (1 - d) * pct(c.taxa_pagamento_pct));
-  const fixo = custo + lucroReais + pos(c.taxa_fixa_pedido) / c.itens_por_pedido + pos(c.entrega_subsidiada_pedido) / c.itens_por_pedido;
+  const k = fat ? (1 - d) * t + fat.taxasPct / 100
+    : (1 - d) * t + baseComissao * pct(c.comissao_pct) + (c.pagamento_na_comissao ? 0 : (1 - d) * pct(c.taxa_pagamento_pct));
+  const fixo = custo + lucroReais + pos(c.taxa_fixa_pedido) / c.itens_por_pedido + entregaDaLoja(c) / c.itens_por_pedido;
   const den = (1 - d) * (1 - m) - k;
   if (!(den > 0)) return { preco: null, motivo: "Com essas taxas e essa margem-alvo não existe preço possível: reduza a margem ou revise as taxas." };
   return { preco: Math.ceil((fixo / den) * 100) / 100, motivo: null };
@@ -679,7 +732,7 @@ export function contasDaMarmitaria(contas = [], mes, { centrosDiretos = ["marmit
  *   cmvReal: cmvRealDosEstoques(...); cmvPrev: cmvPrevisto(...) — usado só se o real faltar, marcado ESTIMATIVA
  *   cmo:     cmoMarmitaria(...)
  */
-export function dreMarmitaria({ vendas = [], contas = [], cmvReal = null, cmvPrev = null, cmo = null, tributosPct = null, nomesCategoria = new Map(), nomesCanal = new Map() } = {}) {
+export function dreMarmitaria({ vendas = [], contas = [], cmvReal = null, cmvPrev = null, cmo = null, tributosPct = null, nomesCategoria = new Map(), nomesCanal = new Map(), fixosCadastrados = [] } = {}) {
   const rv = resumoVendas(vendas);
   const linhas = [];
   const alertas = [];
@@ -771,10 +824,19 @@ export function dreMarmitaria({ vendas = [], contas = [], cmvReal = null, cmvPre
     const rateado = opContas.some((c) => (GRUPO_OPERACIONAL[c.categoria_codigo] || "Outras despesas") === grupo && c.criterio.startsWith("rateio"));
     filhosOp.push({ rotulo: rateado ? `${grupo} (inclui rateio)` : grupo, valor, natureza: "real" });
   }
+  // Dono, 17/11/2026: os custos fixos cadastrados (Custos e apps) entram no DRE.
+  // Sem conta operacional lançada no mês, entram como ESTIMATIVA (o previsto);
+  // com contas lançadas, valem as contas (o real) e o previsto não soma de novo.
+  const fixosOk = (fixosCadastrados || []).map((f) => ({ nome: String(f?.nome || "").trim(), valor: parseNumero(f?.valor) })).filter((f) => f.nome && f.valor > 0);
+  let notaFixos = null;
+  if (fixosOk.length && !opContas.length) {
+    for (const f of fixosOk) filhosOp.push({ rotulo: `${f.nome} (previsto)`, valor: r2(f.valor), natureza: "estimado" });
+    notaFixos = "Custos fixos cadastrados entram como previsto até as contas do mês serem lançadas em Gastos.";
+  } else if (fixosOk.length) notaFixos = "Custos fixos: valem as contas lançadas no mês (o previsto cadastrado não soma de novo).";
   const semRateio = contas.filter((c) => c.criterio === "rateio_nao_configurado");
   if (semRateio.length) alertas.push(`${semRateio.length} despesa(s) compartilhada(s) sem critério de rateio: configure o % em Configurações (hoje entram como 0%).`);
   const operacionais = add("operacionais", "(−) Custos operacionais", soma(filhosOp, (f) => f.valor), {
-    filhos: filhosOp, nota: notaPessoal, natureza: filhosOp.some((f) => f.natureza === "estimado") ? "estimado" : "real",
+    filhos: filhosOp, nota: [notaPessoal, notaFixos].filter(Boolean).join(" ") || null, natureza: filhosOp.some((f) => f.natureza === "estimado") ? "estimado" : "real",
   });
   const resultadoOp = add("resultado_operacional", "(=) Resultado operacional", menos(mc, operacionais), { tipo: "subtotal" });
   const finContas = contas.filter((c) => c.natureza === "financeiro" && c.valorMarmitaria > 0);

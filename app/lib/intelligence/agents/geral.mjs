@@ -14,6 +14,7 @@
 // pode orientar, marcado como SUGESTÃO. Sem modelo disponível, a resposta é
 // montada só com os dados — nunca "não sei".
 
+import { NICO, identidadeNoPrompt } from "../../assistentes.mjs";
 import { s } from "../schemas/schema.mjs";
 import { INTENCOES } from "../commands/catalogo.mjs";
 import { interpretarPorRegras } from "../commands/interpretador-regras.mjs";
@@ -64,9 +65,9 @@ export async function coletarContexto({ texto, motor, store = null, nomeUsuario 
   return dados;
 }
 
-export function promptDoAgenteGeral() {
+export function promptDoAgenteGeral(assistente = NICO) {
   const sabe = INTENCOES.map((i) => `- ${i.descricao}`).join("\n");
-  return `Você é o Assistente Héfisto, o braço direito do dono e da equipe de um restaurante, dentro do ERP Héfisto. Fale em português do Brasil, como um gerente experiente de cozinha e bar: direto, prático, curto (até 6 frases ou uma lista curta).
+  return `${identidadeNoPrompt(assistente)} Fale em português do Brasil, como um gerente experiente de cozinha e bar: direto, prático, curto (até 6 frases ou uma lista curta).
 
 Você recebe a pergunta e os DADOS do sistema desta unidade (já filtrados pelas permissões de quem pergunta).
 
@@ -149,7 +150,12 @@ export function respostaSemModelo(texto, dados, exemplos = []) {
 /** Foco do salão: passo a passo curto para o garçom resolver agora (pedido do dono, 08/11/2026). */
 export const FOCO_SALAO = `Este pedido vem do SALÃO (garçom, atendimento). Responda como um maître experiente: até 6 passos curtos numerados ("1. …"), práticos, para fazer AGORA, e diga quando chamar o gerente ou o responsável. Se for montagem (mesa, ambiente), liste o que colocar e em que ordem. A casa ainda não cadastrou o jeito dela de fazer isso: deixe claro que é a orientação padrão (SUGESTÃO) e, no fim, uma frase dizendo que a casa pode cadastrar o jeito dela em Inteligência, Procedimentos da casa. Alergia: nunca garanta que um prato é seguro; mande confirmar a ficha e falar com a cozinha.`;
 
-export async function responderLivre({ texto, motor, store = null, provedor = null, nomeUsuario = "", exemplos = [], foco = null }) {
+// 14/11/2026: abertura, fechamento, limpeza e equipamento ainda sem o jeito da casa.
+export const FOCO_ROTINA = `Este pedido é de ROTINA da equipe (abertura, fechamento, limpeza ou uso de um equipamento da cozinha). Responda como um chefe de cozinha experiente: até 8 passos curtos numerados ("1. …"), na ordem, para fazer AGORA. Em limpeza, diga o tipo de produto (ex.: desengordurante, detergente neutro, sanitizante) mas NÃO invente marca nem diluição: mande seguir o rótulo. Em equipamento elétrico, diga para conferir a voltagem na etiqueta antes de ligar; nunca afirme se é 110 V ou 220 V. Segurança primeiro: desligar da tomada ou fechar o gás antes de limpar. A casa ainda não cadastrou o jeito dela: deixe claro que é a orientação padrão (SUGESTÃO) e, no fim, uma frase dizendo que a casa pode cadastrar o jeito dela, com fotos e vídeos, em Inteligência, Procedimentos da casa.`;
+
+export const ehPedidoDeRotina = (texto) => /\b(fechamento|fechar|abertura|abrir|limp|higieniz|lavar|lavo|equipamento|liquidificador|forno|fogao|fogão|chapa|freezer|geladeira|piso|coifa|fritadeira|voltagem|110|220)/i.test(String(texto || ""));
+
+export async function responderLivre({ texto, motor, store = null, provedor = null, nomeUsuario = "", exemplos = [], foco = null, assistente = NICO }) {
   const dados = await coletarContexto({ texto, motor, store, nomeUsuario });
   const fallback = () => {
     const r = respostaSemModelo(texto, dados, exemplos);
@@ -157,7 +163,7 @@ export async function responderLivre({ texto, motor, store = null, provedor = nu
   };
   if (!provedor?.disponivel?.()) return { resposta: fallback(), ia: null };
 
-  const resp = await provedor.interpretar({ sistema: foco ? `${promptDoAgenteGeral()}\n\n${foco}` : promptDoAgenteGeral(), texto: mensagemDoAgente(texto, dados), esquemaJson: respostaLivreSchema.json(), tarefa: "responder" });
+  const resp = await provedor.interpretar({ sistema: foco ? `${promptDoAgenteGeral(assistente)}\n\n${foco}` : promptDoAgenteGeral(assistente), texto: mensagemDoAgente(texto, dados), esquemaJson: respostaLivreSchema.json(), tarefa: "responder" });
   const meta = { provedor: provedor.nome, modelo: resp.modelo || provedor.modelo || null, uso: resp.uso || null, latenciaMs: resp.latenciaMs ?? null, fallback: resp.fallback || null, agente: "geral" };
   if (!resp.ok) return { resposta: fallback(), ia: { ...meta, erro: resp.motivo } };
   const v = respostaLivreSchema.parse(resp.dados);

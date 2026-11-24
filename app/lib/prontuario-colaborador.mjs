@@ -14,6 +14,7 @@ const txt = (v) => String(v ?? "").trim();
 
 export const ABAS_PRONTUARIO = [
   { id: "resumo", rotulo: "Resumo" },
+  { id: "ficha", rotulo: "Ficha e ocorrências" },
   { id: "pessoais", rotulo: "Dados pessoais" },
   { id: "contratos", rotulo: "Contratos e vínculos" },
   { id: "jornada", rotulo: "Jornada, escala e ponto" },

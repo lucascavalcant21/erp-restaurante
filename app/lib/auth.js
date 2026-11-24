@@ -112,9 +112,15 @@ function mapUser(u) {
 async function enrichUser(u) {
   const base = mapUser(u);
   if (!base || !isSupabaseReady()) return base;
+  // Sem internet (dono, 21/11/2026): usa as permissões da última vez que entrou neste aparelho.
+  const chaveCtx = `hefisto:sessao-ctx:${u.id}`;
+  const daCopia = () => {
+    try { const c = JSON.parse(window.localStorage.getItem(chaveCtx) || "null"); return c ? { ...base, ...c, id: u.id, gerenciado: true } : base; } catch { return base; }
+  };
   try {
     const { data, error } = await supabase.rpc("hefisto_session_context");
-    if (error || !data) return base;
+    if (error || !data) return /Failed to fetch|NetworkError|Load failed|network/i.test(String(error?.message || "")) || (typeof navigator !== "undefined" && navigator.onLine === false) ? daCopia() : base;
+    try { window.localStorage.setItem(chaveCtx, JSON.stringify(data)); } catch { /* sem espaço */ }
     return {
       ...base,
       ...data,
@@ -125,9 +131,9 @@ async function enrichUser(u) {
       gerenciado: true,
     };
   } catch {
-    // A migração pode ainda não ter sido aplicada. Mantém os papéis antigos
-    // funcionando até o administrador concluir a instalação no banco.
-    return base;
+    // Sem rede: as permissões guardadas. Senão (migração ainda não aplicada),
+    // mantém os papéis antigos funcionando.
+    return typeof navigator !== "undefined" && navigator.onLine === false ? daCopia() : base;
   }
 }
 
@@ -187,7 +193,7 @@ export async function registrarUsuario({ nome, email, senha, papel, unidade }) {
   }
 }
 
-import { autenticarApp, lerSessaoAppLocal, encerrarSessaoAppLocal } from "./apps-config";
+import { encerrarSessaoAppLocal } from "./apps-config";
 
 // ── Login ──────────────────────────────────────────────────────
 export async function fazerLogin(email, senha) {
@@ -211,22 +217,16 @@ export async function fazerLogin(email, senha) {
     }
   }
 
-  // 2. Se falhar no Supabase ou for um App/Terminal criado em Configurações
-  try {
-    const sessaoApp = await autenticarApp(loginSlug, senha);
-    if (sessaoApp) {
-      return { ok: true, usuario: sessaoApp };
-    }
-  } catch (_) {}
+  // 2. O login antigo de "Apps e terminais" (senha conferida no navegador,
+  //    S-36) foi desligado no sistema de teste (14/11/2026, OK do dono): os
+  //    tablets são contas de verdade, criadas em "Montar um tablet".
 
   return { ok: false, erro: "Usuário ou senha incorretos." };
 }
 
 // ── Sessão ─────────────────────────────────────────────────────
 export async function lerSessao() {
-  // 1. Verifica se há uma sessão de App Terminal ativa
-  const appSess = lerSessaoAppLocal();
-  if (appSess) return appSess;
+  // A sessão de app montada no aparelho (S-36) não vale mais: só a do Supabase.
 
   if (!isSupabaseReady()) return null;
   let { data } = await supabase.auth.getSession();
@@ -290,6 +290,16 @@ function sessaoGuardadaNoAparelho() {
 export async function encerrarSessao() {
   encerrarSessaoAppLocal();
   if (isSupabaseReady()) await supabase.auth.signOut();
+}
+
+/** "Sair do sistema": esquece o acesso lembrado neste aparelho e encerra a sessão. */
+export async function sairDoSistema() {
+  try {
+    localStorage.removeItem("hefisto_acesso");
+    localStorage.removeItem("erp_cred");
+    localStorage.setItem("erp_lembrar", "0");
+  } catch (_) {}
+  await encerrarSessao();
 }
 
 // ── Recuperação de senha ───────────────────────────────────────

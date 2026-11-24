@@ -39,3 +39,40 @@ test("criticidade dentro do que o banco aceita (op_processos_criticidade_check: 
   const { processo } = paraEstrutura({ nome: "Montar a mesa", passos: "a" }, "u1");
   assert.ok(["baixa", "normal", "alta", "critica"].includes(processo.criticidade));
 });
+
+import { limparEtapas, limparMidias, procedimentoDoPasso, precisaDeConteudo } from "./procedimentos.mjs";
+
+test("frases da equipe acham rotina, limpeza e equipamento (14/11/2026)", () => {
+  const t = (x) => procedimentoParaTexto(MODELOS, x)?.nome || null;
+  assert.equal(t("Nico, agora chegou o fechamento, o que eu tenho que fazer?"), "Fechamento do restaurante");
+  assert.equal(t("Cheguei na cozinha, o que eu faço agora?"), "Abertura da cozinha");
+  assert.equal(t("como limpo a chapa?"), "Limpeza da chapa");
+  assert.equal(t("como higienizar o fogão"), "Limpeza do fogão");
+  assert.equal(t("como usa o liquidificador?"), "Liquidificador");
+  assert.equal(t("Procedimento da casa: Limpeza do piso"), "Limpeza do piso");
+});
+
+test("passo com produto, quantidade, vídeo e o procedimento que ele abre: ida e volta", () => {
+  const proc = { nome: "Fechamento", tipo: "rotina", area: "geral", apelidos: "fechar, fechamento", passos: [
+    { texto: "1. Limpar a chapa", produto: "Desengordurante", quantidade: "50 ml", abreNome: "Limpeza da chapa",
+      midias: [{ tipo: "video", url: "https://exemplo.supabase.co/v.mp4" }, { tipo: "foto", url: "javascript:alert(1)" }] },
+    "Apagar as luzes",
+  ] };
+  assert.equal(precisaDeConteudo(proc), true);
+  assert.equal(precisaDeConteudo({ nome: "x", passos: ["a"] }), false);
+  const e = paraEstrutura(proc, "casa", { comConteudo: true });
+  assert.deepEqual(e.processo.conteudo, { tipo: "rotina", midias: [], apelidos: ["fechar", "fechamento"] });
+  const itens = e.secoes[0].itens;
+  assert.deepEqual(itens[0].conteudo, { produto: "Desengordurante", quantidade: "50 ml", midias: [{ tipo: "video", url: "https://exemplo.supabase.co/v.mp4", legenda: null }], abreNome: "Limpeza da chapa" });
+  assert.equal("conteudo" in paraEstrutura(proc, "casa").secoes[0].itens[0], false, "sem a migração não manda a coluna");
+  const volta = deEstrutura({ id: "p", ...e.processo, secoes: e.secoes.map((s, i) => ({ ...s, ordem: i, itens: s.itens.map((it, j) => ({ ...it, ordem: j })) })) });
+  assert.equal(volta.tipo, "rotina");
+  assert.deepEqual(volta.passos, ["Limpar a chapa", "Apagar as luzes"]);
+  assert.equal(volta.etapas[0].quantidade, "50 ml");
+  assert.equal(procedimentoDoPasso(volta.etapas[0], [{ id: "c1", nome: "Limpeza da chapa" }]).id, "c1");
+});
+
+test("mídia só https", () => {
+  assert.deepEqual(limparMidias([{ tipo: "foto", url: "http://x" }, { tipo: "x", url: "https://youtu.be/abc" }]), [{ tipo: "link", url: "https://youtu.be/abc", legenda: null }]);
+  assert.deepEqual(limparEtapas("a\nb").map((e) => e.texto), ["a", "b"]);
+});

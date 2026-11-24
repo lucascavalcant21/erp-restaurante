@@ -9,7 +9,7 @@
 //              embalagens numa transação (marmitaria_registrar_producao)
 // Exclusivo da marmitaria: não lê nem baixa os estoques do restaurante.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useMarmitaria } from "./contexto";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, SemDados, brl, inputCls, num, lerNumero } from "./ui";
@@ -18,6 +18,8 @@ import RetirarProduto from "./RetirarProduto";
 import { NovoProduto } from "./CadastrosRapidos";
 import { ESTOQUE_LIMPEZA, ESTOQUE_PRODUCAO, ROTULO_LOCAL, SLUGS_MARMITARIA, ehEstoqueDaMarmitaria } from "../../lib/marmitaria/cozinha.mjs";
 import { necessidadeDeProducao, baixasDaProducao, fatorSaldo, paraUnidadeDoCadastro, unidadesCompativeis } from "../../lib/marmitaria/nucleo.mjs";
+import { porcoesDosItens, porcoesDoSaldo, pratosPossiveis } from "../../lib/marmitaria/porcoes.mjs";
+import Repesar from "./Repesar";
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
 const ehDaMarmitaria = ehEstoqueDaMarmitaria;
@@ -35,6 +37,52 @@ function useSaldos(base, estoquesIds) {
     }
     return m;
   }, [base, estoquesIds]);
+}
+
+/** Saldo somado de todos os locais da marmitaria (na unidade do estoque). */
+export function useSaldoDaMarmitaria(base) {
+  const ids = useMemo(() => base.estoques.filter(ehDaMarmitaria).map((e) => e.id), [base]);
+  return useSaldos(base, ids);
+}
+
+const pesoTxt = (q, un) => {
+  const u = String(un || "").toLowerCase();
+  if (u === "kg" && q < 1) return `${num(Math.round(q * 1000))} g`;
+  if (u === "l" && q < 1) return `${num(Math.round(q * 1000))} ml`;
+  return `${num(q)} ${rotuloUn(un)}`;
+};
+
+/** "Quantos pratos dá para vender" com o que tem no estoque (dono, 17/11/2026). */
+export function PratosQueDa() {
+  const { base } = useMarmitaria();
+  const saldo = useSaldoDaMarmitaria(base);
+  const [meta, setMeta] = useState("");
+  const m = lerNumero(meta) || null;
+  const linhas = useMemo(() => pratosPossiveis({ marmitas: base.marmitas, fichas: base.fichas, insumos: base.insumos, espelho: base.espelho, saldo, meta: m }), [base, saldo, m]);
+  if (!linhas.length) return null;
+  return (
+    <Secao titulo="Quantos pratos dá para vender" subtitulo="Pelo estoque de agora e pela porção de cada ficha técnica. A peça que acaba primeiro manda.">
+      <ul className="divide-y divide-hf-border">
+        {linhas.map((l) => (
+          <li key={l.marmita.id} className="py-2.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 truncate text-sm font-bold text-hf-text">{l.marmita.nome_receita}</span>
+              <span className="shrink-0 text-base font-black tabular-nums text-hf-text">{l.pratos === null ? "—" : `${num(l.pratos)} ${l.pratos === 1 ? "prato" : "pratos"}`}</span>
+            </div>
+            <p className="text-xs text-hf-muted">
+              {l.motivo ? `DADOS INSUFICIENTES: ${l.motivo}` : l.limita ? `Acaba primeiro: ${l.limita.nome} (${pesoTxt(l.limita.porcao, base.insumos.get(l.limita.insumoId)?.unidade_medida)} por prato)` : ""}
+            </p>
+            {m && l.comprar.length > 0 && (
+              <p className="text-xs font-semibold text-hf-warning">Para {num(m)} pratos, comprar: {l.comprar.map((c) => `${c.nome} ${pesoTxt(c.falta, base.insumos.get(c.insumoId)?.unidade_medida)}`).join(" · ")}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 max-w-[220px]">
+        <Campo rotulo="Quero vender (pratos de cada)"><CampoNumero valor={meta} onChange={setMeta} placeholder="Ex.: 50" /></Campo>
+      </div>
+    </Secao>
+  );
 }
 
 export function Planejar() {
@@ -108,7 +156,9 @@ export function Estoque() {
   const [msg, setMsg] = useState(null);
   const [ocupado, setOcupado] = useState(false);
   const [retirando, setRetirando] = useState(null);
+  const [repesando, setRepesando] = useState(null);
   const [localSlug, setLocalSlug] = useState(ESTOQUE_MARMITARIA);
+  const porcoes = useMemo(() => porcoesDosItens({ marmitas: base.marmitas, fichas: base.fichas, insumos: base.insumos, espelho: base.espelho }), [base]);
   const [novoLimpeza, setNovoLimpeza] = useState(false);
   const locais = base.estoques.filter(ehDaMarmitaria);
   const faltamLocais = locais.length > 0 && locais.length < SLUGS_MARMITARIA.length;
@@ -121,10 +171,21 @@ export function Estoque() {
   }
 
   // ingredientes, bases e embalagens das marmitas que ainda não estão nos locais da marmitaria
+  // dono, 17/11/2026: tudo que é cadastrado na marmitaria aparece no estoque, sem botão
+  const estLimp = locais.find((e) => e.slug === ESTOQUE_LIMPEZA) || null;
+  const estBeb = locais.find((e) => e.slug === "bebidas-marmitaria") || null;
   const faltaVincular = useMemo(() => {
     if (!est || !estEmb) return [];
-    const ja = new Set(base.itensEstoque.filter((i) => i.estoque_id === est.id || i.estoque_id === estEmb.id).map((i) => i.insumo_id));
+    const ja = new Set(base.itensEstoque.filter((i) => i.estoque_id === est.id || i.estoque_id === estEmb.id || (estLimp && i.estoque_id === estLimp.id) || (estBeb && i.estoque_id === estBeb.id)).map((i) => i.insumo_id));
     const ids = new Map();
+    for (const ins of base.insumosLista || []) {
+      if (ja.has(ins.id) || ins.arquivado_em) continue;
+      const dep = String(ins.departamento || "").toLowerCase();
+      if (dep === "embalagens" || String(ins.tipo || "").toLowerCase() === "embalagem") { if (/marmit/i.test(ins.categoria || "") || dep === "embalagens") ids.set(ins.id, estEmb.id); }
+      else if (dep === "limpeza") { if (estLimp) ids.set(ins.id, estLimp.id); }
+      else if (dep === "bebidas") { if (estBeb) ids.set(ins.id, estBeb.id); }
+      else if (dep === "marmitaria") ids.set(ins.id, est.id);
+    }
     for (const m of base.marmitas) {
       for (const it of m.itens) {
         const id = it.subficha_id ? base.espelho.get(it.subficha_id) : it.insumo_id;
@@ -133,7 +194,15 @@ export function Estoque() {
       for (const e of m.embalagens) if (!ja.has(e.insumo_id)) ids.set(e.insumo_id, estEmb.id);
     }
     return [...ids.entries()];
-  }, [base, est, estEmb]);
+  }, [base, est, estEmb, estLimp, estBeb]);
+  // local novo (ex.: Bebidas) é criado sozinho, sem botão
+  const jaAtivou = useRef(false);
+  useEffect(() => { if (faltamLocais && !jaAtivou.current && !ocupado) { jaAtivou.current = true; ativar(); } }, [faltamLocais]); // eslint-disable-line react-hooks/exhaustive-deps
+  const jaIncluiu = useRef(false);
+  useEffect(() => {
+    if (!faltaVincular.length || jaIncluiu.current || ocupado) return;
+    jaIncluiu.current = true; vincularTodos();
+  }, [faltaVincular.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function vincularTodos() {
     setOcupado(true); setMsg(null);
@@ -161,7 +230,7 @@ export function Estoque() {
     <div className="space-y-4">
       {faltaVincular.length > 0 && (
         <Aviso tipo="alerta">
-          {faltaVincular.length} produto(s) das marmitas ainda não estão nos locais da marmitaria.
+          {ocupado ? `Colocando ${faltaVincular.length} produto(s) cadastrados no estoque…` : `${faltaVincular.length} produto(s) cadastrados ainda não estão no estoque.`}
           <Botao variante="texto" className="ml-2 min-h-0 px-1" onClick={vincularTodos} disabled={ocupado}>{ocupado ? "Incluindo…" : "Incluir todos"}</Botao>
         </Aviso>
       )}
@@ -169,7 +238,9 @@ export function Estoque() {
       <Aviso>Aqui só se retira. O que entra vem de <Link href="/dashboard/marmitaria/estoque/compras" className="font-semibold text-hf-accent">Compras</Link> e da <Link href="/dashboard/marmitaria/estoque/producoes" className="font-semibold text-hf-accent">Produções</Link>.</Aviso>
       {faltamLocais && <Aviso tipo="alerta">Falta ativar parte do estoque.<Botao variante="texto" className="ml-2 min-h-0 px-1" onClick={ativar} disabled={ocupado}>{ocupado ? "Ativando…" : "Ativar agora"}</Botao></Aviso>}
       <Abas abas={SLUGS_MARMITARIA.filter((s) => locais.some((e) => e.slug === s)).map((s) => ({ id: s, rotulo: ROTULO_LOCAL[s] }))} valor={localSlug} onChange={setLocalSlug} />
+      <PratosQueDa />
       {retirando && <RetirarProduto key={retirando.id} item={retirando} onFechar={() => setRetirando(null)} />}
+      {repesando && <Repesar key={repesando.id} item={repesando} onFechar={() => setRepesando(null)} />}
       {novoLimpeza && <NovoProduto unidadeId={unidadeId} limpeza rotuloSalvar="Cadastrar" onFechar={() => setNovoLimpeza(false)} onCriado={async (id) => {
         const local = locais.find((e) => e.slug === ESTOQUE_LIMPEZA);
         if (id && local) await vincularProduto({ unidadeId, estoqueId: local.id, insumoId: id });
@@ -187,15 +258,24 @@ export function Estoque() {
           <Secao key={e.id} titulo={e.nome} subtitulo={`${itens.length} produto(s) · ordenado por validade (primeiro a vencer, primeiro a sair)`}
             direita={e.slug === ESTOQUE_LIMPEZA && !novoLimpeza ? <Botao variante="secundario" onClick={() => setNovoLimpeza(true)}>Novo produto de limpeza</Botao> : null}>
             {itens.length ? (
-              <Tabela cab={["Produto", "Saldo", "Mínimo", "Validade", "Situação", ""]}
+              <Tabela cab={["Produto", "Saldo", "Porções", "Mínimo", "Validade", "Situação", ""]}
                 linhas={itens.map((i) => {
                   const un = rotuloUn(i.ins?.unidade_medida);
                   const sit = i.saldo <= 0 ? <span className="font-semibold text-hf-danger">Zerado</span>
                     : i.dias !== null && i.dias < 0 ? <span className="font-semibold text-hf-danger">Vencido</span>
                       : i.dias !== null && i.dias <= 2 ? <span className="font-semibold text-hf-warning">Vence em {i.dias} dia(s)</span>
                         : i.min !== null && i.saldo < i.min ? <span className="font-semibold text-hf-warning">Abaixo do mínimo</span> : "Normal";
-                  return [i.ins?.nome || "Produto", `${num(i.saldo)} ${un}`, i.min === null ? "—" : `${num(i.min)} ${un}`, i.validade ? new Date(`${i.validade}T12:00:00`).toLocaleDateString("pt-BR") : "—", sit,
-                    i.saldo > 0 ? <button type="button" onClick={() => setRetirando({ id: i.id, estoque_id: e.id, ins: i.ins, saldo: i.saldo })} className="min-h-[36px] font-bold text-hf-accent hover:underline">Retirar</button> : ""];
+                  const p = porcoes.get(i.insumo_id);
+                  const qtdPorcoes = p ? porcoesDoSaldo(i.saldo, p.porcao) : null;
+                  const porcoesTxt = p ? <span title={p.usos.map((u) => `${u.marmita}: ${pesoTxt(u.quantidade, i.ins?.unidade_medida)}`).join(" · ")}>
+                    <b className="tabular-nums">{num(qtdPorcoes)}</b> de {pesoTxt(p.porcao, i.ins?.unidade_medida)}{p.variacoes.length ? " (varia por marmita)" : ""}</span> : "—";
+                  return [i.ins?.nome || "Produto", `${num(i.saldo)} ${un}`, porcoesTxt, i.min === null ? "—" : `${num(i.min)} ${un}`, i.validade ? new Date(`${i.validade}T12:00:00`).toLocaleDateString("pt-BR") : "—", sit,
+                    i.saldo > 0 ? (
+                      <span className="flex gap-3">
+                        <button type="button" onClick={() => setRepesando({ id: i.id, estoque_id: e.id, ins: i.ins, saldo: i.saldo, porcao: p?.porcao || null })} className="min-h-[36px] font-bold text-hf-accent hover:underline">Repesar</button>
+                        <button type="button" onClick={() => setRetirando({ id: i.id, estoque_id: e.id, ins: i.ins, saldo: i.saldo })} className="min-h-[36px] font-bold text-hf-accent hover:underline">Retirar</button>
+                      </span>
+                    ) : ""];
                 })} />
             ) : <SemDados titulo="Local vazio" motivo="O que for recebido em Compras aparece aqui." />}
           </Secao>

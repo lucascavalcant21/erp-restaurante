@@ -84,3 +84,11 @@ test("marmita com custo incompleto não aparece como lucro de 100%", async () =>
   assert.equal(l.veredito.id, "sem_dados");
   assert.equal(l.lucro, null);
 });
+
+test("custos variáveis por marmita (gás, talher…) saem do lucro do pedido", async () => {
+  const { lucroDoPedido } = await import("./promocoes.mjs");
+  const sem = lucroDoPedido({ paga: 30, custo: 10, tributosPct: 0, embutidos: { cmoPorMarmita: 5, fixosPorMarmita: 3 }, marmitas: 2 });
+  const com = lucroDoPedido({ paga: 30, custo: 10, tributosPct: 0, embutidos: { cmoPorMarmita: 5, fixosPorMarmita: 3, variaveisPorMarmita: 0.5 }, marmitas: 2 });
+  assert.equal(com.extras, 1);
+  assert.equal(Math.round((sem.lucro - com.lucro) * 100) / 100, 1);
+});

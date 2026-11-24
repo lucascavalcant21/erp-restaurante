@@ -99,6 +99,8 @@ export async function salvarEstrutura(processoId, secoes, { subirVersao = false 
       depende_valor: item.depende_valor || null,
       acao_reprovar: item.acao_reprovar || "nao_conformidade",
       criterios_ia: item.criterios_ia || null,
+      // fotos, vídeos e detalhes do passo (OP-CONTEUDO-1); só vai quando quem chama manda
+      ...(item.conteudo && typeof item.conteudo === "object" ? { conteudo: item.conteudo } : {}),
     }));
     if (itens.length) {
       const { data: gravados, error: e2 } = await supabase.from("op_itens").insert(itens).select("id");

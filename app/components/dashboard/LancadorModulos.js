@@ -6,34 +6,13 @@
 // limitado só vê as áreas que pode abrir.
 
 import Link from "next/link";
-import { useERP } from "../../context/ERPContext";
-import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
-import { menuPrincipal, menuVisivel, universoLiberado } from "../../lib/menu-principal.mjs";
-import { negociosDoLogin, semNegociosDaTroca } from "../../lib/negocios.mjs";
+import { Lock } from "lucide-react";
 import IconeModulo from "../ui/IconeModulo";
+import useModulosDoUsuario from "../navigation/useModulosDoUsuario";
 
 export default function LancadorModulos() {
-  const { sessao, unidades } = useERP();
-  if (!sessao) return null;
-
-  const pode = (rota, busca) => canAccessRoute(sessao, rota, busca);
-  const podeInteligencia = !sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view");
-  const todos = menuPrincipal({ podeInteligencia });
-  const limitado = !!sessao.gerenciado || !!sessao.is_app;
-  const liberados = limitado
-    ? menuVisivel(todos, (rota, busca) => pode(rota, busca) || universoLiberado(rota, pode))
-    : todos;
-  // Marmitaria e Eventos que estão na troca de negócio do topo não se repetem aqui.
-  const negocios = sessao.is_app ? [] : negociosDoLogin(unidades, (rota) => pode(rota));
-  const modulos = semNegociosDaTroca(liberados, negocios);
-  if (modulos.length === 0) return null;
-
-  // Para quem não pode abrir a página da área, o link é a primeira tela liberada dela.
-  const destino = (m) => {
-    const [rota, busca = ""] = m.href.split("?");
-    if (!limitado || pode(rota, busca) || universoLiberado(rota, pode)) return m.href;
-    return m.submodules?.[0]?.href || m.href;
-  };
+  const { sessao, modulos, destino, trancada } = useModulosDoUsuario();
+  if (!sessao || modulos.length === 0) return null;
 
   return (
     <section aria-label="Módulos" className="space-y-3">
@@ -45,7 +24,14 @@ export default function LancadorModulos() {
             href={destino(m)}
             className="group flex min-w-0 flex-col items-center gap-2 rounded-2xl px-1 py-1.5 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hf-accent"
           >
-            <IconeModulo item={m} tamanho="lg" className="transition group-hover:-translate-y-0.5 group-active:scale-95" />
+            <span className="relative">
+              <IconeModulo item={m} tamanho="lg" className={`transition group-hover:-translate-y-0.5 group-active:scale-95 ${trancada(m) ? "opacity-50" : ""}`} />
+              {trancada(m) && (
+                <span aria-label="plano Completo" className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full border-2 border-hf-surface bg-hf-menu text-hf-menu-accent">
+                  <Lock size={12} aria-hidden="true" />
+                </span>
+              )}
+            </span>
             <span className="min-w-0">
               <span className="block truncate text-[13px] font-semibold leading-tight text-hf-text">{m.label}</span>
               <span className="mt-0.5 hidden text-[11px] leading-tight text-hf-muted line-clamp-2 sm:block">{m.desc}</span>

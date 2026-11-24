@@ -1,7 +1,7 @@
 "use client";
 
-// Painel da marmitaria. Enquanto falta configuração, "Primeiros passos" vem
-// primeiro; sem venda no período, um aviso só (em vez de seis cartões "Sem
+// Painel da marmitaria. Enquanto a implantação não acabou, a sequência de nove
+// passos vem primeiro (JornadaDaMarmitaria, 16/11/2026); sem venda no período, um aviso só (em vez de seis cartões "Sem
 // dados apurados"); com vendas, os seis números, rankings e alertas.
 // Nenhum número de demonstração.
 
@@ -10,7 +10,8 @@ import Link from "next/link";
 import { useMarmitaria } from "../../components/marmitaria/contexto";
 import { useDreMarmitaria } from "../../components/marmitaria/Dre";
 import DiaDaMarmitaria from "../../components/marmitaria/DiaDaMarmitaria";
-import { CheckCircle2, Circle } from "lucide-react";
+import JornadaDaMarmitaria from "../../components/marmitaria/Jornada";
+import { useJornada } from "../../components/marmitaria/useJornada";
 import { Abas, Aviso, Campo, Indicador, Secao, Selo, brl, inputCls, pctTxt, num } from "../../components/marmitaria/ui";
 import { fetchVendas, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../lib/marmitaria/dados";
 import { cmvPrevisto, dreMarmitaria, fatorSaldo, periodo, rankingMarmitas, resultadoPorCanal } from "../../lib/marmitaria/nucleo.mjs";
@@ -20,6 +21,7 @@ const FILTROS = [{ id: "hoje", rotulo: "Hoje" }, { id: "semana", rotulo: "Semana
 
 export default function VisaoGeralPage() {
   const { base, unidadeId, custos, carregando } = useMarmitaria();
+  const { jornada } = useJornada();
   const [filtro, setFiltro] = useState("mes");
   const [pers, setPers] = useState({ de: `${hojeIso().slice(0, 7)}-01`, ate: hojeIso() });
   const p = periodo(filtro, hojeIso(), pers);
@@ -73,26 +75,15 @@ export default function VisaoGeralPage() {
     return motivo ? { nome: ins?.nome || "Produto", motivo } : null;
   }).filter(Boolean);
 
-  // Primeiros passos: o que precisa existir para os números aparecerem, na
-  // ordem em que o dono configura. Com tudo pronto, o cartão some.
-  const incompletas = base.marmitas.filter((m) => m.ativo !== false && !custos.get(m.id)?.completo).length;
-  const passos = [
-    { feito: base.marmitas.length > 0, texto: "Cadastrar as marmitas", href: "/dashboard/marmitaria/marmitas", acao: "Cadastrar" },
-    { feito: base.marmitas.length > 0 && !incompletas, texto: incompletas ? `Completar o custo de ${incompletas} marmita(s)` : "Custo das marmitas completo", href: "/dashboard/marmitaria/marmitas", acao: "Revisar" },
-    { feito: base.config.canais.length > 0, texto: "Canais de venda e taxas (iFood, WhatsApp, balcão)", href: "/dashboard/marmitaria/configuracoes", acao: "Configurar" },
-    { feito: base.config.tributos_pct !== null, texto: "Alíquota de tributos", href: "/dashboard/marmitaria/configuracoes", acao: "Configurar" },
-    { feito: base.config.margem_alvo_pct !== null, texto: "Margem-alvo (para sugerir preço)", href: "/dashboard/marmitaria/configuracoes", acao: "Configurar" },
-    { feito: locais.length > 0, texto: "Ativar o estoque da marmitaria (CMV real)", href: "/dashboard/marmitaria/estoque", acao: "Ativar" },
-    { feito: !!doMes?.cmo.linhas.length, texto: "Alocar quem trabalha na marmitaria (CMO)", href: "/dashboard/marmitaria/funcionarios", acao: "Alocar" },
-  ];
-  const prontos = passos.filter((x) => x.feito).length;
   const semVendas = vendas !== null && !vendas.length;
 
   const mesTxt = new Date(`${mes}-15T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const periodoTxt = filtro === "hoje" ? "hoje" : filtro === "semana" ? "nesta semana" : filtro === "mes" ? `em ${mesTxt}` : "no período";
   return (
     <div className="space-y-4">
+      {jornada && !jornada.concluida && <JornadaDaMarmitaria />}
       <DiaDaMarmitaria aoMudar={() => setVersao((v) => v + 1)} />
+      {jornada?.concluida && <JornadaDaMarmitaria />}
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[280px] flex-1"><Abas abas={FILTROS} valor={filtro} onChange={setFiltro} /></div>
@@ -103,23 +94,6 @@ export default function VisaoGeralPage() {
           </div>
         )}
       </div>
-
-      {prontos < passos.length && (
-        <Secao titulo="Primeiros passos" subtitulo={`${prontos} de ${passos.length} prontos. Sem isso, os números da marmitaria ficam incompletos.`}>
-          <div className="mb-3 h-2 overflow-hidden rounded-full bg-hf-elevated" aria-hidden="true">
-            <div className="h-full rounded-full bg-hf-accent" style={{ width: `${Math.round((prontos / passos.length) * 100)}%` }} />
-          </div>
-          <ul className="divide-y divide-hf-border">
-            {passos.map((x) => (
-              <li key={x.texto} className="flex items-center gap-3 py-1.5 text-sm">
-                {x.feito ? <CheckCircle2 size={18} className="shrink-0 text-hf-accent" /> : <Circle size={18} className="shrink-0 text-hf-border-strong" />}
-                <span className={`min-w-0 flex-1 ${x.feito ? "text-hf-muted line-through decoration-hf-border-strong" : "text-hf-text"}`}>{x.texto}</span>
-                {!x.feito && <Link href={x.href} className="inline-flex min-h-[40px] shrink-0 items-center rounded-lg px-2 font-semibold text-hf-accent hover:bg-hf-accent/5">{x.acao} →</Link>}
-              </li>
-            ))}
-          </ul>
-        </Secao>
-      )}
 
       {semVendas ? (
         <Secao>

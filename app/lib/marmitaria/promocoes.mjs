@@ -67,16 +67,21 @@ export function pedidoDaOferta(itens = [], oferta = {}) {
  * Pedido inteiro num canal: taxas sobre o que o cliente paga, custo do que sai
  * e o peso da equipe e dos custos fixos em cada marmita (custosEmbutidos).
  */
-export function lucroDoPedido({ paga, custo, canal = CANAL_DIRETO, tributosPct = null, embutidos = null, marmitas = 1 } = {}) {
+export function lucroDoPedido({ paga, custo, canal = CANAL_DIRETO, tributosPct = null, embutidos = null, marmitas = 1, descontoLoja = 0 } = {}) {
   if (!(pos(paga) > 0)) return { valido: false, motivo: "O cliente não paga nada nessa oferta." };
   // O pedido inteiro conta como 1 "item" para a taxa fixa e a entrega.
-  const r = resultadoPorCanal({ preco: paga, custoTecnico: custo, canal: { ...canal, itens_por_pedido: 1 }, tributosPct });
+  // descontoLoja: parte de uma promoção paga pela loja (R$), sobre o preço `paga` de lista.
+  const r = resultadoPorCanal({ preco: paga, custoTecnico: custo, canal: { ...canal, itens_por_pedido: 1 }, tributosPct, descontoLoja });
   if (!r.valido) return r;
   const porMarmita = (v) => (v == null ? null : r2(v * pos(marmitas)));
   const cmo = porMarmita(embutidos?.cmoPorMarmita);
   const fixos = porMarmita(embutidos?.fixosPorMarmita);
-  const lucro = r.margemContribuicao == null ? null : r2(r.margemContribuicao - (cmo || 0) - (fixos || 0));
-  return { ...r, cmo, fixos, lucro, lucroPct: lucro == null || !(r.receita > 0) ? null : r2((lucro / r.receita) * 100) };
+  // Custos variáveis por marmita (gás, talher, sachê…: Configurações, 16/11/2026).
+  const extras = embutidos?.variaveisPorMarmita > 0 ? porMarmita(embutidos.variaveisPorMarmita) : 0;
+  const lucro = r.margemContribuicao == null ? null : r2(r.margemContribuicao - (cmo || 0) - (fixos || 0) - extras);
+  // parte dos fixos que é o pró-labore (só para mostrar separado)
+  const proLabore = embutidos?.proLaborePorMarmita > 0 ? porMarmita(embutidos.proLaborePorMarmita) : 0;
+  return { ...r, cmo, fixos, extras, proLabore, lucro, lucroPct: lucro == null || !(r.receita > 0) ? null : r2((lucro / r.receita) * 100) };
 }
 
 /**
@@ -105,7 +110,7 @@ export const MODELOS_COMBO = [
   { id: "so_sobremesas", rotulo: "Só sobremesas", grupos: ["sobremesa", "sobremesa"], exemplo: "Ex.: pudim + mousse" },
   { id: "so_bebidas", rotulo: "Só bebidas", grupos: ["bebida", "bebida"], exemplo: "Ex.: refrigerante + suco" },
 ];
-export const ROTULO_GRUPO = { marmita: "Comida", bebida: "Bebida", sobremesa: "Sobremesa" };
+export const ROTULO_GRUPO = { marmita: "Marmita", bebida: "Bebida", sobremesa: "Sobremesa" };
 
 const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const ehSobremesa = (f) => /sobremesa|doce|bolo|pudim|mousse|torta|sorvete|acai/.test(semAcento(`${f.categoria} ${f.nome_receita} ${f.nome_comercial}`));

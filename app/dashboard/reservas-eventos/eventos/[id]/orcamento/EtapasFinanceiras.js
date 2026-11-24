@@ -5,23 +5,38 @@
 // (evento-orcamento.mjs). O DRE aqui é só do evento: não lê nem escreve o DRE
 // do restaurante.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Wand2, Info } from "lucide-react";
-import { FORMAS_PAGAMENTO, SECOES, novoId, realizadoDoEvento } from "../../../../../lib/evento-orcamento.mjs";
+import BuffetDoEvento, { EquilibrioDoBuffet } from "./Buffet";
+import { situacaoDoPagamento } from "../../../../../lib/evento-calendario.mjs";
+import { fetchModeloProposta } from "../../../../../lib/parametros";
+import { FORMAS_PAGAMENTO, SECOES, novoId, realizadoDoEvento, conferenciaDoEvento } from "../../../../../lib/evento-orcamento.mjs";
 import { parseNumero } from "../../../../../lib/ficha-calculos.mjs";
 import { fmtReais, fmtPct } from "../../../../../lib/valor-percentual.mjs";
 import { Cartao, Campo, Texto, Numero, ModoValor, BotaoRemover, BotaoAdicionar, LinhaValor, vp } from "./ui";
 
 const fmtNumBR = (v) => (Number(v) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
+export function EtapaFinanceiro({ orc, setOrc, resumo: r, fichas = [] }) {
   const f = orc.financeiro;
   const mudar = (m) => setOrc((o) => ({ ...o, financeiro: { ...o.financeiro, ...m } }));
   const mudarComissao = (id, m) => mudar({ comissoes: f.comissoes.map((c) => (c.id === id ? { ...c, ...m } : c)) });
+  const fechado = r.modoPreco === "fechado";
   const usarSugerido = () => r.precoSugeridoPorPessoa && mudar({ preco_por_pessoa: fmtNumBR(r.precoSugeridoPorPessoa) });
+  const sugerido = r.precoSugeridoPorPessoa;
+  const minimo = r.precoMinimoPorPessoa;
+  const kgL = (g, un) => (g >= 1000 ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${un === "ml" ? "L" : "kg"}` : `${g.toLocaleString("pt-BR")} ${un}`);
   return (
     <div className="space-y-5">
-      <Cartao titulo="Valor para o cliente" descricao="O sistema sugere o valor por pessoa que cobre todos os custos e ainda deixa sua meta de lucro líquido. Você decide o valor final.">
+      <Cartao titulo="Valor para o cliente" descricao="O sistema sugere o valor por pessoa que cobre todos os custos e ainda deixa sua meta de lucro líquido. Você decide o valor final; o total é o valor × pessoas.">
+        {fechado && (
+          <div className="mb-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            {r.totalComidaG > 0 && <>Comida <b>{kgL(r.totalComidaG, "g")}</b>{r.totalBebidaMl > 0 ? " + " : ""}</>}
+            {r.totalBebidaMl > 0 && <>bebida <b>{kgL(r.totalBebidaMl, "ml")}</b></>}
+            {(r.totalComidaG > 0 || r.totalBebidaMl > 0) ? " = " : "Cardápio: "}<b>{fmtReais(r.cmv)}</b>
+            {r.convidados > 0 ? <> ÷ {r.convidados} pessoas = <b>{fmtReais(r.custoCardapioPorPessoa)} por pessoa</b> (custo do cardápio)</> : " · informe quantas pessoas na etapa Cliente"}
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-3">
             {/* Meta em reais por convidado (regra do dono, 06/11/2026): é o dinheiro no bolso e não muda com o preço. */}
@@ -30,8 +45,8 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
           </div>
           <div className="rounded-2xl bg-slate-50 px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Sugerido por pessoa</p>
-            <p className="text-xl font-black tabular-nums text-slate-900">{r.precoSugeridoPorPessoa ? fmtReais(r.precoSugeridoPorPessoa) : "—"}</p>
-            {r.precoSugeridoPorPessoa && (
+            <p className="text-xl font-black tabular-nums text-slate-900">{sugerido ? fmtReais(sugerido) : "—"}</p>
+            {sugerido && (
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                 <button type="button" onClick={usarSugerido} className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"><Wand2 size={12} /> Usar este valor</button>
                 {r.precoSugeridoRedondo && r.precoSugeridoRedondo !== r.precoSugeridoPorPessoa && (
@@ -41,15 +56,15 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
             )}
           </div>
           <div className="rounded-2xl bg-slate-50 px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Mínimo (lucro zero)</p>
-            <p className="text-xl font-black tabular-nums text-slate-900">{r.precoMinimoPorPessoa ? fmtReais(r.precoMinimoPorPessoa) : "—"}</p>
-            <p className="text-xs font-medium text-slate-500">Abaixo disso, prejuízo.</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Ponto de equilíbrio</p>
+            <p className="text-xl font-black tabular-nums text-slate-900">{minimo ? fmtReais(minimo) : "—"}</p>
+            <p className="text-xs font-medium text-slate-500">Lucro zero. Abaixo disso, prejuízo.</p>
           </div>
         </div>
         {!(r.convidados > 0) && <p className="mt-3 flex items-center gap-2 text-sm font-bold text-amber-700"><Info size={16} /> Informe quantas pessoas (etapa Cliente) para calcular o valor sugerido.</p>}
         <div className="mt-5 grid gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4 sm:grid-cols-2">
           <div className="space-y-3">
-            <Campo rotulo={r.temMesa ? "Valor por pessoa (buffet e bar)" : "Valor por pessoa que vou passar ao cliente"}>
+            <Campo rotulo={r.temMesa ? "Valor por pessoa (buffet e bar)" : "Valor por pessoa que vou passar ao cliente"} ajuda={fechado && r.convidados > 0 && r.precoPorPessoa > 0 ? `${fmtReais(r.precoPorPessoa)} × ${r.convidados} pessoas = ${fmtReais(r.receitaBruta)}` : undefined}>
               <Numero valor={f.preco_por_pessoa} onChange={(v) => mudar({ preco_por_pessoa: v })} prefixo="R$" placeholder="0,00" className="[&_input]:h-14 [&_input]:text-xl [&_input]:font-black" />
             </Campo>
             {/* Mesa montada vendida como pacote fechado (pedido do dono, 03/11/2026). */}
@@ -60,10 +75,12 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
             )}
           </div>
           <div className="space-y-1 self-center">
-            {r.criancas > 0 && <LinhaValor rotulo={`${r.adultos} adultos + ${r.criancas} crianças (${fmtReais(r.precoCrianca)} cada)`} valor={fmtReais(r.receitaBruta)} />}
+            {r.criancas > 0 && !fechado && <LinhaValor rotulo={`${r.adultos} adultos + ${r.criancas} crianças (${fmtReais(r.precoCrianca)} cada)`} valor={fmtReais(r.receitaBruta)} />}
             {r.precoMesa > 0 && <LinhaValor rotulo="Mesa montada (pacote)" valor={fmtReais(r.precoMesa)} />}
+            {r.aluguelCobrado > 0 && <LinhaValor rotulo="Aluguel do meu espaço" valor={fmtReais(r.aluguelCobrado)} />}
             {r.desconto > 0 && <LinhaValor rotulo="Desconto" valor={`−${fmtReais(r.desconto)}`} />}
             <LinhaValor rotulo={`Total${r.convidados ? ` (${r.convidados} pessoas)` : ""}`} valor={fmtReais(r.receita)} />
+            {r.prolabore > 0 && <LinhaValor rotulo="Meu pró-labore (já descontado)" valor={fmtReais(r.prolabore)} />}
             <LinhaValor forte rotulo="Meu lucro líquido" valor={r.receita > 0 ? vp(r.lucro, r.lucroPct) : "—"}
               tom={r.prejuizo ? "text-red-600" : r.meta.atingida ? "text-emerald-700" : "text-amber-700"} />
             {!(r.receita > 0) && <p className="text-xs font-semibold text-slate-600">Digite o valor ou toque em “Usar este valor” para ver o lucro líquido.</p>}
@@ -76,7 +93,7 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
         {/* Para onde vai cada R$ que o cliente paga (pedido do dono, 28/10/2026: "melhore"). */}
         {r.receita > 0 && (() => {
           const fatias = [
-            ["Cardápio", r.cmv, "#0f766e"], ["Equipe", r.equipe, "#2563eb"], ["Aluguel e extras", r.extras, "#7c3aed"],
+            ["Cardápio", r.cmv, "#0f766e"], ["Equipe", r.equipe, "#2563eb"], ["Espaço e decoração", r.extras, "#7c3aed"],
             ["Impostos e cartão", r.imposto + r.maquininha, "#b45309"], ["Comissões e pró-labore", r.comissoesTotal + r.prolabore, "#64748b"],
             [r.lucro >= 0 ? "Lucro líquido" : "Prejuízo", Math.abs(r.lucro), r.lucro >= 0 ? "#15803d" : "#dc2626"],
           ].filter(([, v]) => v > 0);
@@ -98,6 +115,7 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
         })()}
       </Cartao>
 
+      <EquilibrioDoBuffet orc={orc} fichas={fichas} resumo={r} />
       <Cartao titulo="Taxas" descricao="Saem do valor que o cliente paga. Vêm do Resultado do mês (Financeiro); mude se este evento for diferente (ex.: pago no PIX, sem maquininha).">
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo rotulo="Impostos"><Numero valor={f.imposto_pct} onChange={(v) => mudar({ imposto_pct: v })} sufixo="%" /></Campo>
@@ -159,12 +177,25 @@ export function EtapaFinanceiro({ orc, setOrc, resumo: r }) {
   );
 }
 
-export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
+export function EtapaDRE({ orc, setOrc, resumo: r, fichas = [], recebido = 0 }) {
   const real = realizadoDoEvento(orc, r, { recebido });
-  const estilo = { receita: "font-black text-slate-900", subtotal: "font-black text-slate-900 bg-slate-50", resultado: "font-black text-base", custo: "font-semibold text-slate-700" };
+  const estilo = { receita: "font-black text-slate-900", subtotal: "font-black text-slate-900 bg-slate-50", resultado: "font-black text-base", custo: "font-semibold text-slate-700", info: "text-slate-500" };
   const taxasPP = r.convidados > 0 ? (r.imposto + r.maquininha + r.comissoesTotal + r.prolabore) / r.convidados : 0;
+  const conf = conferenciaDoEvento(r, real);
+  const corConf = { ok: "border-emerald-200 bg-emerald-50", atencao: "border-amber-200 bg-amber-50", alerta: "border-red-200 bg-red-50", sem_dado: "border-slate-200 bg-slate-50" }[conf.situacao];
   return (
     <div className="space-y-5">
+      <div className={`rounded-2xl border p-4 ${corConf}`}>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Conferência do lucro</p>
+        <p className="mt-1 text-base font-black text-slate-900">{conf.texto}</p>
+        {conf.aviso && <p className="mt-1 text-sm font-medium text-slate-700">{conf.aviso}</p>}
+        {conf.estouros.length > 0 && (
+          <ul className="mt-2 space-y-1">
+            {conf.estouros.map((e) => <li key={e.id} className="text-sm font-bold text-red-700">{e.rotulo}: gastou {fmtReais(e.real)}, orçado {fmtReais(e.orcado)} (+{fmtReais(e.diferenca)}{e.pct !== null ? `, ${e.pct.toLocaleString("pt-BR")}%` : ""})</li>)}
+          </ul>
+        )}
+      </div>
+      <BuffetDoEvento orc={orc} setOrc={setOrc} resumo={r} fichas={fichas} />
       <Cartao titulo="DRE do evento" descricao="Só deste evento. Não entra no DRE do restaurante.">
         {!(r.receita > 0) && <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">Defina o valor por pessoa (etapa Financeiro) para ver as porcentagens.</p>}
         <div className="-mx-2 overflow-x-auto">
@@ -240,7 +271,7 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
           {r.convidados > 0 && (
             <>
               <LinhaValor rotulo="Equipe por pessoa" valor={fmtReais(r.equipe / r.convidados)} />
-              <LinhaValor rotulo="Aluguel e extras por pessoa" valor={fmtReais(r.extras / r.convidados)} />
+              <LinhaValor rotulo="Espaço, decoração e extras por pessoa" valor={fmtReais(r.extras / r.convidados)} />
               {r.receita > 0 && <LinhaValor rotulo="Taxas, comissões e pró-labore por pessoa" valor={fmtReais(taxasPP)} />}
               <LinhaValor forte rotulo="Custo por pessoa" valor={fmtReais(r.custoTotalPorPessoa ?? r.custoOperacaoPorPessoa)} />
             </>
@@ -255,8 +286,14 @@ export function EtapaDRE({ orc, setOrc, resumo: r, recebido = 0 }) {
 }
 
 
-export function EtapaPagamentos({ pagamentos, salvarPagamentos, resumo: r, salvando }) {
+export function EtapaPagamentos({ pagamentos, salvarPagamentos, resumo: r, salvando, orc, setOrc, unidadeAtiva }) {
   const hoje = new Date().toISOString().slice(0, 10);
+  // Vencimento do restante (dono, 21/11/2026): padrão pela condição da proposta
+  // (X dias antes do evento); pode trocar por evento.
+  const [restanteDias, setRestanteDias] = useState(null);
+  useEffect(() => { if (unidadeAtiva) fetchModeloProposta(unidadeAtiva).then((x) => setRestanteDias(x?.data?.pagamento?.restante_dias ?? null)); }, [unidadeAtiva]);
+  const sit = situacaoDoPagamento({ total: r.receita, pagamentos, vencimentoRestante: orc?.financeiro?.vencimento_restante, dataEvento: orc?.cliente?.data_evento, restanteDias, hojeIso: hoje });
+  const mudarVencimento = (v) => setOrc?.((o) => ({ ...o, financeiro: { ...o.financeiro, vencimento_restante: v } }));
   const [novo, setNovo] = useState({ valor: "", data: hoje, metodo: "PIX", obs: "Sinal" });
   const recebido = pagamentos.reduce((t, p) => t + (Number(p.valor) || 0), 0);
   const registrar = async () => {
@@ -275,6 +312,23 @@ export function EtapaPagamentos({ pagamentos, salvarPagamentos, resumo: r, salva
           </div>
         ))}
       </div>
+      {(sit.estado === "parcial" || sit.estado === "nada") && (
+        <div className={`rounded-2xl border p-4 ${sit.atrasado ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{sit.estado === "parcial" ? "Pagamento parcial" : "Nada pago ainda"}</p>
+              <p className={`mt-1 text-base font-black ${sit.atrasado ? "text-red-700" : "text-slate-900"}`}>
+                {sit.atrasado ? `Restante de ${fmtReais(sit.falta)} ATRASADO há ${sit.diasAtraso} dia(s)` : sit.vencimento ? `Restante de ${fmtReais(sit.falta)} vence em ${new Date(`${sit.vencimento}T12:00:00`).toLocaleDateString("pt-BR")}${sit.venceEm === 0 ? " (hoje)" : sit.venceEm ? ` (em ${sit.venceEm} dia(s))` : ""}` : `Falta ${fmtReais(sit.falta)}: defina quando vence`}
+              </p>
+            </div>
+            <Campo rotulo="Vencimento do restante" ajuda={!orc?.financeiro?.vencimento_restante && sit.vencimento ? "Pela condição da proposta. Troque se combinou outra data." : undefined}>
+              <input type="date" value={orc?.financeiro?.vencimento_restante || sit.vencimento || ""} onChange={(e) => mudarVencimento(e.target.value)}
+                className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500" />
+            </Campo>
+          </div>
+        </div>
+      )}
+      {sit.estado === "pago" && <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-base font-black text-emerald-800">Pago integralmente{sit.ultimaData ? ` (último pagamento em ${new Date(`${sit.ultimaData}T12:00:00`).toLocaleDateString("pt-BR")})` : ""}.</p>}
       {/* Pagamentos mais rápidos (pedido do dono, 28/10/2026: "muda"): barra do
           que já entrou, atalhos de valor e forma/observação em botões. */}
       {r.receita > 0 && (

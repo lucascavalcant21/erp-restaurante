@@ -10,6 +10,7 @@ import { useMarmitaria } from "./contexto";
 import { Aviso, Botao, CampoNumero, Secao, brl, lerNumero, markupTxt, num } from "./ui";
 import { fetchPedidosDoDia, fetchProducoesDoDia, fetchVendas, importarVendas, salvarVenda } from "../../lib/marmitaria/dados";
 import { canaisDisponiveis, markupDaMarmita, panoramaDoDia, precoNoCanal, textoDoCardapio, vendaRapida, vendasDoCardapioOnline } from "../../lib/marmitaria/dia.mjs";
+import { grupoDaCategoria } from "../../lib/marmitaria/cardapio.mjs";
 
 const hojeIso = () => new Date().toLocaleDateString("sv-SE");
 const CHIP = "min-h-[44px] rounded-full border px-4 text-sm font-bold transition";
@@ -129,8 +130,15 @@ export default function DiaDaMarmitaria({ aoMudar }) {
         </div>
       )}
 
-      <ul className="mt-3 divide-y divide-hf-border">
-        {p.linhas.map((l) => {
+      {/* Comidas e bebidas separadas (dono, 21/11/2026). */}
+      {[["Comidas", (g) => g !== "bebida"], ["Bebidas", (g) => g === "bebida"]].map(([titulo, doGrupo]) => {
+        const linhasDoGrupo = p.linhas.filter((l) => doGrupo(grupoDaCategoria(marmitas.find((x) => x.id === l.id)?.categoria)));
+        if (!linhasDoGrupo.length) return null;
+        return (
+      <div key={titulo} className="mt-4">
+      <p className="text-[13px] font-medium uppercase tracking-wide text-hf-muted">{titulo} <span className="tabular-nums">({linhasDoGrupo.length})</span></p>
+      <ul className="mt-1 divide-y divide-hf-border">
+        {linhasDoGrupo.map((l) => {
           const m = marmitas.find((x) => x.id === l.id);
           const preco = precoNoCanal(m, canal);
           const markup = markupDaMarmita(preco, custos.get(m.id));
@@ -170,6 +178,9 @@ export default function DiaDaMarmitaria({ aoMudar }) {
           );
         })}
       </ul>
+      </div>
+        );
+      })}
 
       {p.semMarmita > 0 && <p className="mt-2 text-xs font-medium text-hf-text-2">{num(p.semMarmita, 0)} marmita(s) vendida(s) hoje sem identificar qual.</p>}
       {msg && <Aviso tipo={msg.tipo} className="mt-2">{msg.texto}</Aviso>}

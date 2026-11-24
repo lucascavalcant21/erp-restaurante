@@ -5,11 +5,12 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Search, UtensilsCrossed } from "lucide-react";
+import { Plus, Printer, Search, UtensilsCrossed } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
-import EditorMarmita from "../../../components/marmitaria/EditorMarmita";
-import { Aviso, Botao, Cartao, Secao, brl, inputCls } from "../../../components/marmitaria/ui";
-import { formDaMarmita } from "../../../lib/marmitaria/formulario.mjs";
+import EditorMarmita, { chaveRascunhoFicha } from "../../../components/marmitaria/EditorMarmita";
+import { apagarRascunhoNoBanco, lerRascunhoDoBanco } from "../../../lib/rascunho-aparelho";
+import { Botao, Cartao, Secao, brl, inputCls } from "../../../components/marmitaria/ui";
+import { formDaMarmita, payloadDoForm } from "../../../lib/marmitaria/formulario.mjs";
 import { ordenarCategorias } from "../../../lib/marmitaria/cardapio.mjs";
 import { normalizarBusca } from "../../../lib/ingredientes-utils.mjs";
 import { casaBusca } from "../../../lib/busca.mjs";
@@ -22,6 +23,27 @@ function Conteudo() {
   const router = useRouter();
   const [editando, setEditando] = useState(null);
   const [aviso, setAviso] = useState(null);
+  const [recuperado, setRecuperado] = useState(null);
+  const { unidadeId } = useMarmitaria();
+  // Rascunho de ficha não salva (a tela recarregou no meio). Dono, 17/11/2026:
+  // "quando aperto em ficha técnica aparece a ficha aberta" → a lista abre
+  // sempre fechada; o rascunho vira um aviso com Continuar / Descartar. Se o
+  // rascunho é igual à ficha salva, é descartado sem perguntar.
+  const [pendente, setPendente] = useState(null);
+  useEffect(() => {
+    if (!base || editando || params.get("editar")) return;
+    let vivo = true;
+    const chave = chaveRascunhoFicha(unidadeId);
+    lerRascunhoDoBanco(chave).then((r) => {
+      if (!vivo || !r?.form?.id) return;
+      const ctx = { insumos: base.insumos, fichas: base.fichas };
+      const salva = base.marmitas.find((m) => String(m.id) === String(r.form.id));
+      const igual = salva && JSON.stringify(payloadDoForm(r.form, ctx, unidadeId)) === JSON.stringify(payloadDoForm(formDaMarmita(salva, ctx), ctx, unidadeId));
+      if (igual || (!salva && !r.form.nome?.trim() && !r.form.itens?.length)) { apagarRascunhoNoBanco(chave); return; }
+      setPendente(r);
+    });
+    return () => { vivo = false; };
+  }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
   // Links antigos das abas de preço e de combos, e o "Editar" vindo do Cardápio.
   const editarId = params.get("editar");
   useEffect(() => { if (["combos", "precos"].includes(params.get("aba"))) router.replace("/dashboard/marmitaria/marmitas/cardapio"); }, [params, router]);
@@ -36,9 +58,14 @@ function Conteudo() {
 
   if (editando) {
     return (
-      <EditorMarmita key={editando.id} form={editando}
-        onFechar={() => setEditando(null)}
-        onSalvo={(r) => { setEditando(null); setAviso(`Ficha técnica salva${r?.codigo ? ` (${r.codigo})` : ""}.`); }} />
+      <EditorMarmita key={editando.id} form={editando} recuperado={recuperado && recuperado.form?.id === editando.id ? recuperado : null}
+        onFechar={() => { setEditando(null); setRecuperado(null); }}
+        onSalvo={(r) => {
+          // dono, 17/11/2026: salvou, fica na ficha técnica e pergunta se cadastra a próxima
+          setEditando(null); setRecuperado(null);
+          setAviso(`Ficha técnica salva${r?.codigo ? ` (${r.codigo})` : ""}.`);
+          if (typeof window !== "undefined") document.querySelector(".erp-main-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
+        }} />
     );
   }
 
@@ -47,8 +74,32 @@ function Conteudo() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><Botao onClick={nova}><Plus size={16} /> Nova ficha técnica</Botao></div>
-      {aviso && <Aviso>{aviso}</Aviso>}
+      <div className="flex flex-wrap justify-end gap-2">
+        {/* impressão (dono, 17/11/2026): montagem das marmitas e fichas das bases */}
+        <Botao variante="secundario" onClick={() => router.push("/dashboard/marmitaria/marmitas/processos")}><Printer size={16} /> Imprimir montagem</Botao>
+        <Botao variante="secundario" onClick={() => router.push("/dashboard/marmitaria/estoque/producoes?aba=subprodutos")}><Printer size={16} /> Imprimir bases</Botao>
+        <Botao onClick={nova}><Plus size={16} /> Nova ficha técnica</Botao>
+      </div>
+      {pendente && (
+        <Cartao>
+          <p className="font-semibold text-hf-text">Ficha não salva: {pendente.form.nome?.trim() || "ficha nova"}</p>
+          <p className="mt-0.5 text-sm text-hf-text-2">Ficou guardada quando a tela recarregou.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Botao onClick={() => { setRecuperado(pendente); setEditando(pendente.form); setPendente(null); }}>Continuar editando</Botao>
+            <Botao variante="secundario" onClick={() => { apagarRascunhoNoBanco(chaveRascunhoFicha(unidadeId)); setPendente(null); }}>Descartar</Botao>
+          </div>
+        </Cartao>
+      )}
+      {aviso && (
+        <Cartao>
+          <p className="font-semibold text-hf-text">{aviso}</p>
+          <p className="mt-0.5 text-sm text-hf-text-2">Cadastrar nova ficha técnica?</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Botao onClick={() => { setAviso(null); nova(); }}><Plus size={16} /> Cadastrar nova ficha</Botao>
+            <Botao variante="secundario" onClick={() => setAviso(null)}>Agora não</Botao>
+          </div>
+        </Cartao>
+      )}
       <ListaDeFichas onEditar={editar} onNova={nova} />
     </div>
   );
@@ -95,25 +146,23 @@ function ListaDeFichas({ onEditar, onNova }) {
         {grupos.map((g) => (
           <div key={g.categoria}>
             <p className="text-xs font-black uppercase tracking-wide text-hf-muted">{g.categoria}</p>
-            <ul className="divide-y divide-hf-border">
+            {/* cards fechados, fundo escuro (dono, 17/11: "ela tem que ser minimizada… organiza em cards"); toque abre para editar */}
+            <ul className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {g.itens.map((m) => {
                 const c = custos.get(m.id);
                 return (
                   <li key={m.id}>
-                    <button type="button" onClick={() => onEditar(m)} className="flex w-full items-center gap-3 py-3 text-left hover:bg-hf-elevated/40">
-                      <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-hf-elevated text-hf-muted">
-                        {m.imagem ? <img src={m.imagem} alt="" className="h-full w-full object-cover" /> : <UtensilsCrossed size={20} />}
+                    <button type="button" onClick={() => onEditar(m)} aria-label={`Abrir ficha técnica ${m.nome_receita}`}
+                      className="hf-manter-dourado flex h-full w-full flex-col overflow-hidden rounded-2xl bg-hf-menu text-left text-white shadow-sm transition active:scale-[0.98]">
+                      <span className="grid aspect-[4/3] w-full place-items-center overflow-hidden bg-white/10 text-white/60">
+                        {m.imagem ? <img src={m.imagem} alt="" className="h-full w-full object-cover" /> : <UtensilsCrossed size={28} />}
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-bold text-hf-text">{m.nome_receita}</span>
-                        <span className="block text-xs text-hf-muted">
-                          {c ? `Comida ${brl(c.alimentos + c.prePreparos)} · Embalagem ${brl(c.embalagens)}` : ""}{m.ativo === false ? " · Fora do cardápio" : ""}
-                        </span>
-                        {c && !c.completo && <span className="block text-xs font-semibold text-hf-warning">Custo incompleto</span>}
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-[11px] text-hf-muted">Custo</span>
-                        <span className="block text-base font-black tabular-nums text-hf-text">{c ? brl(c.total) : "—"}</span>
+                      <span className="flex flex-1 flex-col gap-1 p-3">
+                        <span className="line-clamp-2 text-sm font-bold leading-snug">{m.nome_receita}</span>
+                        <span className="mt-auto text-[11px] text-white/60">Custo</span>
+                        <span className="text-lg font-black tabular-nums leading-none">{c ? brl(c.total) : "—"}</span>
+                        {c && !c.completo && <span className="text-[11px] font-semibold text-amber-300">Custo incompleto</span>}
+                        {m.ativo === false && <span className="text-[11px] text-white/60">Fora do cardápio</span>}
                       </span>
                     </button>
                   </li>

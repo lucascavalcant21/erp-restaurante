@@ -11,6 +11,9 @@
 
 import { s } from "../schemas/schema.mjs";
 
+// "vamos montar 3 marmitas" (montagem de várias marmitas pelo Jhon, 17/11/2026)
+const NUMEROS_LOTE = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "duas", "tres", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez"];
+
 export const PERIODOS = Object.freeze(["hoje", "ontem", "semana", "semana_passada", "ultimos_7_dias", "mes", "mes_passado", "ultimos_30_dias"]);
 export const UNIDADES = Object.freeze(["kg", "g", "l", "ml", "un"]);
 export const MOTIVOS_PERDA = Object.freeze(["limpeza", "validade", "erro_producao", "dano", "outro"]);
@@ -52,7 +55,9 @@ export const INTENCOES = Object.freeze([
     // receita/ficha é o fluxo da ficha técnica; "era pra pedir" é conferência de recebimento
     proibidas: ["quanto", "quais", "qual", "quantas", "quando", "receita", "ficha", "prato", "era pra", "era para", "pedi", "pedido", "pedimos",
       "etiqueta", "etiquetas", "nota fiscal", "danfe", "nfe", "xml", "a nota", "nota do fornecedor",
-      "horario", "atrasado", "atrasados", "atrasada", "atrasou", "funcionario", "funcionarios", "equipe", "pontual", "ponto"], peso: 10,
+      "horario", "atrasado", "atrasados", "atrasada", "atrasou", "funcionario", "funcionarios", "equipe", "pontual", "ponto",
+      // "chegou o fechamento, o que eu tenho que fazer?" é rotina, não entrada de estoque (14/11/2026)
+      "fechamento", "abertura", "tenho que fazer", "que eu faco", "faco agora"], peso: 10,
   },
   {
     id: "empresa.resumo_dia", tipo: "pergunta", agentes: ["operacoes", "vendas", "financeiro", "estoque"],
@@ -167,8 +172,14 @@ export const INTENCOES = Object.freeze([
   },
   {
     id: "salao.orientacao", tipo: "pergunta", agentes: ["operacoes"],
-    descricao: "Situação ou montagem no salão (cliente reclamou, prato demorou, montar a mesa, montar um ambiente): passo a passo de orientação.",
-    frases: [["situacao no salao", "montagem no salao", "montar a mesa", "montar uma mesa", "monto a mesa", "montar o salao", "montar o jardim", "montar a varanda", "montar o ambiente", "como resolvo", "como eu resolvo", "o que eu faco", "o que faco agora"]], peso: 9,
+    descricao: "Procedimento da casa: situação ou montagem no salão, abertura e fechamento, limpeza (chapa, fogão, piso) e uso de equipamento (voltagem, higienização, onde fica): passo a passo com fotos e vídeos.",
+    frases: [["situacao no salao", "montagem no salao", "montar a mesa", "montar uma mesa", "monto a mesa", "montar o salao", "montar o jardim", "montar a varanda", "montar o ambiente", "como resolvo", "como eu resolvo", "o que eu faco", "o que faco agora",
+      // 14/11/2026: rotina, limpeza e equipamento (procedimentos da casa com foto e vídeo)
+      "procedimento da casa", "fechamento do restaurante", "fechamento da cozinha", "fechamento do bar", "fechamento do salao", "chegou o fechamento", "hora do fechamento", "fazer o fechamento",
+      "fechar o restaurante", "fechar a cozinha", "abertura da cozinha", "abertura do restaurante", "abrir o restaurante", "abrir a cozinha", "cheguei na cozinha", "cheguei no bar",
+      "o que eu tenho que fazer", "o que tenho que fazer", "como limpar", "como limpo", "como higienizar", "como higienizo", "como lavar", "como lavo",
+      "como usar", "como usa", "como uso", "como ligar", "como ligo", "como manusear", "qual a voltagem", "e 110 ou 220", "e 220 ou 110"]], peso: 9,
+    proibidas: ["caixa", "folha", "mes", "dre", "imposto"],
   },
   {
     id: "rh.escala_dia", tipo: "pergunta", agentes: ["rh"],
@@ -225,6 +236,102 @@ export const INTENCOES = Object.freeze([
     descricao: "Montar uma ficha técnica conversando: receita/base ou prato, com ingredientes, rendimento, preço (ex.: 'vamos montar uma receita, o nome vai ser molho de tomate, vai tomate, sal, alho', 'montar um prato com essa base').",
     frases: [["montar uma receita", "montar receita", "monta uma receita", "criar uma receita", "criar receita", "cria uma receita", "nova receita", "nova ficha", "criar ficha", "criar uma ficha", "cria uma ficha", "cadastrar ficha", "cadastrar uma ficha", "cadastrar receita", "cadastrar uma receita", "montar uma ficha", "montar ficha", "montar um prato", "monta um prato", "montar o prato", "criar um prato", "criar prato", "cadastrar um prato", "novo prato", "fazer uma ficha", "fazer uma receita", "montar uma base", "criar uma base", "nova base"]],
     proibidas: ["como monta", "como montar", "como se monta", "como faz", "como fazer", "como se faz", "ficha tecnica de", "ficha tecnica do", "ficha tecnica da"], peso: 12,
+  },
+  // 16/11/2026: "Jhon, vamos montar uma marmita" (conversa: componentes, gramas, embalagem, app, preço, combo, montagem)
+  {
+    id: "marmitaria.criar", tipo: "acao", acao: "marmita.create", agentes: ["operacoes"],
+    descricao: "Montar uma ou várias marmitas novas conversando com o Jhon (quantas, em qual unidade, nome de cada uma): componentes, gramas, ficha do que é feito aqui, embalagem, app, preço pela calculadora, combo e montagem (ex.: 'Jhon, vamos montar uma marmita', 'criar uma marmita nova').",
+    frases: [["montar uma marmita", "monta uma marmita", "montar a marmita nova", "montar marmita nova", "criar uma marmita", "criar marmita", "cria uma marmita", "nova marmita", "marmita nova", "cadastrar uma marmita", "cadastrar marmita", "vamos montar uma marmita", "montar uma quentinha", "nova quentinha", "montar umas marmitas", "montar marmitas", "montar as marmitas", "montar algumas marmitas", "montar a marmita", "marmitas agora", ...NUMEROS_LOTE.flatMap((n) => [`montar ${n} marmitas`, `montar mais ${n} marmitas`, `fazer ${n} marmitas`])]],
+    proibidas: ["como monta", "como montar", "como se monta", "guia"], peso: 15,
+  },
+  // 16/11/2026: raio-x do preço da marmita (quem leva quanto, componente mais caro)
+  {
+    id: "marmitaria.raio_x", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Raio-x do preço das marmitas: para onde vai cada real (ingredientes, embalagem, app, imposto, equipe, pró-labore, aluguel, energia), o lucro e o componente mais caro (ex.: 'como são nossas marmitas?', 'quem está ganhando quanto na marmita de frango?', 'qual o componente mais caro da marmita?').",
+    frases: [["marmita", "marmitas", "quentinha", "quentinhas"], ["raio x", "raio-x", "ganhando quanto", "quem ganha", "quem esta ganhando", "quanto sobra", "quanto ta sobrando", "quanto esta sobrando", "sobrando", "lucro", "lucrando", "componente mais caro", "mais caro", "mais cara", "quanto custa", "custo da", "custo de", "custo do", "como sao nossas", "como estao nossas", "como esta a", "como ta a", "margem", "pra onde vai", "para onde vai", "reajustar", "tirando"]],
+    proibidas: ["montar", "monta", "como monta", "como montar", "cadastrar", "criar", "vender hoje", "produzir"], peso: 12,
+  },
+  {
+    id: "marmitaria.montagem", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Guia de montagem de uma marmita: o que vai, quanto (g/un/ml), embalagens e o passo a passo (ex.: 'Nico, como monta a marmita de frango?', 'montagem da marmita de carne').",
+    frases: [["marmita", "marmitas", "quentinha"], ["como monta", "como montar", "como se monta", "como monto", "montagem", "guia", "o que vai na", "o que vai no", "quanto vai", "quantas gramas", "passo a passo"]],
+    proibidas: ["vamos montar", "montar uma", "montar a ficha", "criar", "cadastrar", "lucro", "mais caro", "ganhando"], peso: 10,
+  },
+  // 17/11/2026 (HDEV-015): produção do dia pelo Jhon — conta pelas fichas e programa o plano
+  {
+    id: "marmitaria.producao_planejar", tipo: "acao", acao: "production.plan", agentes: ["operacoes"],
+    descricao: "Planejar a produção de um dia pelas fichas: quanto de cada ingrediente, o que fabricar antes (molho), a limpeza com os materiais e o que falta comprar; confirma e vira o plano do dia (ex.: 'Jhon, amanhã precisamos produzir 300 filés de frango empanado, 150 vão ser parmegianas', 'amanhã é dia de limpar as fritadeiras').",
+    frases: [["produzir", "vamos produzir", "precisamos produzir", "precisa produzir", "temos que produzir", "tem que produzir", "fabricar", "vamos fabricar", "limpar as", "limpar a", "limpar o", "limpar os", "dia de limpar", "dia de limpeza"]],
+    proibidas: ["quanto tenho", "quanto eu tenho", "quanto temos", "quanto custa", "como faz", "como fazer", "como se faz", "comprei", "marmita nova", "montar uma marmita"], peso: 13,
+  },
+  {
+    id: "marmitaria.comparar_apps", tipo: "pergunta", agentes: ["financeiro"],
+    descricao: "Comparar os apps de delivery (iFood, 99Food, Rappi, balcão…): quanto cada marmita deixa de lucro em cada app e qual app é melhor (ex.: 'qual app dá mais lucro?', 'compare os apps', 'vale mais vender no iFood ou no 99?').",
+    frases: [["app", "apps", "aplicativo", "aplicativos", "ifood", "99food", "99", "rappi", "keeta", "aiqfome", "plataforma", "plataformas"], ["compara", "comparar", "compare", "comparativo", "comparacao", "qual app", "qual aplicativo", "qual plataforma", "melhor app", "vale mais", "da mais lucro", "mais lucro", "ou no"]],
+    proibidas: ["concorrente", "concorrentes", "concorrencia", "cardapio da", "cardapio do"], peso: 12,
+  },
+  {
+    id: "marmitaria.estoque_pronto", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Quanto tem pronto no estoque da marmitaria (empanado, molho, batata porcionada e não porcionada) e, para o que é produzido aqui, quantas marmitas dá e quanto rende vendendo (ESTIMATIVA).",
+    frases: [["quanto tenho", "quanto eu tenho", "quanto temos", "quanto tem", "quanto que eu tenho", "quanto e que eu tenho", "mostra quanto", "me mostra quanto", "mostra para mim quanto", "mostra pra mim quanto"], ["pronto", "prontos", "pronta", "prontas", "porcionada", "porcionado", "porcionadas", "porcionados", "vender", "ganhar", "lucro", "produzido", "produzidos", "empanado", "empanados", "empanada", "empanadas"]],
+    proibidas: ["produzir", "fabricar"], peso: 9,
+  },
+  // 17/11/2026: cardápios dos concorrentes do delivery (o Jhon lê o print, guarda e compara)
+  {
+    id: "marmitaria.concorrente_ler", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Mandar os prints do cardápio de um concorrente do delivery para o Jhon ler e guardar (ex.: 'Jhon, vou te mandar o cardápio de um concorrente', 'lê esse cardápio do concorrente').",
+    frases: [["concorrente", "concorrentes", "concorrencia"], ["mandar", "mando", "vou mandar", "te mandar", "enviar", "envio", "vou enviar", "ler", "le", "leia", "le esse", "analisar", "analisa", "analise", "guardar", "guarda", "salvar", "salva", "cadastrar", "cadastra", "print", "prints", "foto", "fotos"]],
+    proibidas: ["compara", "comparar", "compare", "comparando", "comparacao", "versus", "contra"], peso: 14,
+  },
+  {
+    id: "marmitaria.concorrentes", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Comparar o cardápio guardado dos concorrentes do delivery com as nossas marmitas e adicionais: o que vem em cada prato, preço, preço por 100 g e adicionais que eles têm e nós não (ex.: 'compare o cardápio da Marmitaria X com as nossas', 'estamos mais caros que os concorrentes?', 'quais adicionais os concorrentes oferecem?').",
+    frases: [["concorrente", "concorrentes", "concorrencia", "compare o cardapio", "comparar o cardapio", "compara o cardapio", "compare os cardapios", "comparar os cardapios"], ["compara", "comparar", "compare", "comparando", "comparacao", "versus", "contra", "mais caro", "mais cara", "mais caros", "mais caras", "mais barato", "mais barata", "mais baratos", "mais baratas", "preco", "precos", "adicional", "adicionais", "cardapio", "cardapios", "o que vem", "como estamos", "como esta", "quanto cobra", "quanto cobram"]],
+    proibidas: ["vou mandar", "te mandar", "vou enviar", "mandar o cardapio", "print", "prints", "foto", "fotos"], peso: 13,
+  },
+  {
+    id: "marmitaria.organizador", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Organizar a vitrine do app de entrega no Organizador de plataforma (categoria, foto, nome, descrição, preço e preço com cupom) e ver o que falta (ex.: 'Jhon, vamos organizar a nossa tela', 'monta a tela do iFood', 'o que falta na nossa vitrine?').",
+    frases: [["organizar a tela", "organizar a nossa tela", "organizar nossa tela", "organizar a plataforma", "organizador", "simulador de tela", "nossa vitrine", "a vitrine", "tela do ifood", "tela do app", "tela da plataforma", "montar a tela", "monta a tela", "organizar o ifood", "organizar o cardapio do app"]],
+    proibidas: ["concorrente", "concorrentes"], peso: 14,
+  },
+  // 17/11/2026: "Jhon, vamos montar uma unidade de delivery" (do zero, tudo pelo Jhon)
+  {
+    id: "delivery.montar", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "Montar o delivery do zero conversando com o Jhon: onde vende (apps ou balcão), custos fixos, equipe, marmitas e vitrine, um passo de cada vez (ex.: 'Jhon, vamos montar uma unidade de delivery', 'montar o delivery do zero').",
+    frases: [["montar uma unidade de delivery", "montar a unidade de delivery", "montar um delivery", "montar o delivery", "montar nosso delivery", "montar o nosso delivery", "delivery do zero", "criar um delivery", "criar o delivery", "abrir um delivery", "continuar montando o delivery", "montagem do delivery"]],
+    peso: 16,
+  },
+  // 17/11/2026: cadastros do delivery pelo Jhon (apps, custos fixos, funcionários)
+  {
+    id: "delivery.cadastrar_plataformas", tipo: "acao", acao: "channel.register", agentes: ["operacoes"],
+    descricao: "Cadastrar apps de entrega com o nome e as taxas (ex.: 'Jhon, vamos cadastrar 3 plataformas', 'cadastrar o iFood com 12% de comissão').",
+    frases: [["cadastrar", "cadastra", "cadastre", "registrar", "adicionar", "incluir", "criar", "nova", "novo"], ["plataforma", "plataformas", "aplicativo de entrega", "app de entrega", "apps de entrega", "os apps", "um app", "uns apps", ...NUMEROS_LOTE.flatMap((n) => [`${n} apps`, `${n} aplicativos`])]],
+    proibidas: ["compara", "comparar", "simula", "organizar", "tela", "vitrine", "marmita"], peso: 14,
+  },
+  {
+    id: "delivery.cadastrar_custos_fixos", tipo: "acao", acao: "fixedcost.register", agentes: ["operacoes"],
+    descricao: "Cadastrar os custos fixos do mês do delivery: aluguel, luz, água, gás, internet, contador e outros com nome (ex.: 'Jhon, quero cadastrar os custos fixos', 'faltou o gás nos custos fixos, 150').",
+    frases: [["cadastrar", "cadastra", "cadastre", "registrar", "lancar", "colocar", "coloca", "adicionar", "adiciona", "incluir", "inclui", "faltou", "falta", "quero"], ["custos fixos", "custo fixo", "custos fixo", "contas fixas", "conta fixa", "contas fixa", "despesas fixas", "despesa fixa", "gastos fixos", "gasto fixo"]],
+    peso: 14,
+  },
+  {
+    id: "delivery.cadastrar_funcionarios", tipo: "acao", acao: "employee.register", agentes: ["operacoes"],
+    descricao: "Cadastrar funcionários na equipe do delivery com nome, função e salário (ex.: 'Jhon, vamos cadastrar 2 funcionários', 'cadastrar um funcionário novo').",
+    frases: [["cadastrar", "cadastra", "cadastre", "registrar", "contratei", "contratar", "admitir", "novo funcionario", "nova funcionaria"], ["funcionario", "funcionarios", "funcionaria", "funcionarias", "colaborador", "colaboradores", "colaboradora"]],
+    proibidas: ["ponto", "atrasado", "folga", "escala", "uniforme"], peso: 14,
+  },
+  // 14/11/2026: lista de compras pelo Jhon e "comprei tudo, faltou isso"
+  {
+    id: "compras.lista_comprei", tipo: "pergunta", agentes: ["compras"],
+    descricao: "Conferir a compra contra a lista salva: o que veio e o que faltou (ex.: 'comprei tudo, faltou o tomate', 'comprei só o arroz').",
+    frases: [["comprei tudo", "comprei so", "comprei apenas", "comprei somente", "acabei de comprar", "ja comprei", "fiz as compras", "fiz a compra", "voltei das compras", "voltei do mercado", "voltei do atacado"]], peso: 13,
+  },
+  {
+    id: "compras.lista_montar", tipo: "pergunta", agentes: ["compras"],
+    descricao: "Montar a lista de compras para mandar no WhatsApp de quem compra (ex.: 'minha lista de compras para hoje é 10 kg de arroz, 5 kg de feijão').",
+    frases: [["lista de compras", "lista de compra", "preciso comprar", "tem que comprar", "temos que comprar", "precisamos comprar", "montar a lista", "monta a lista"]],
+    proibidas: ["comprei", "faltou", "abrir", "abre", "tela"], peso: 11,
   },
   {
     id: "compras.foto_nota", tipo: "pergunta", agentes: ["compras"],

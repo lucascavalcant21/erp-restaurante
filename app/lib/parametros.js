@@ -46,7 +46,10 @@ export const PARAMS_PADRAO = {
   cmo_extras_mes: 0,       //   diárias de extras pagas
   cmo_encargos_mes: 0,     //   encargos calculados pelo % acima
   rateio_por_faturamento: 1, // 1 = proporcional ao faturamento (Alternativa 1); 0 = por prato
-  faturamento_mes_ref: 160000, // faturamento mensal de referência informado pelo usuário (R$ 160.000,00)
+  // Faturamento mensal de referência: SÓ o que o usuário informar. O padrão era
+  // R$ 160.000 (número da primeira casa); para um cliente novo isso é número
+  // inventado. Sem valor, a Pizza do Lucro pede o número (14/11/2026).
+  faturamento_mes_ref: 0,
 };
 
 // Pró-labore dos sócios: lista (não número), no mesmo JSON de parâmetros.
@@ -345,6 +348,17 @@ export async function fetchProcessosMarmitaria(unidadeId) {
 }
 export const salvarProcessosMarmitaria = (unidadeId, processos) => salvarParams(unidadeId, { marmitaria_processos: processos || {} });
 
+/* Treinamento do delivery (manual de operação por posição, 21/11/2026):
+ * config_sistema.params.marmitaria_treinamento. */
+export async function fetchTreinamentoMarmitaria(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: null, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: null, error: error.message };
+  const v = data?.[0]?.params?.marmitaria_treinamento;
+  return { data: v && typeof v === "object" && !Array.isArray(v) ? v : null, error: null };
+}
+export const salvarTreinamentoMarmitaria = (unidadeId, manual) => salvarParams(unidadeId, { marmitaria_treinamento: manual || null });
+
 /* Promoções da marmitaria no cardápio de vendas (desconto, 2 por 1…):
  * config_sistema.params.marmitaria_ofertas. */
 export async function fetchOfertasMarmitaria(unidadeId) {
@@ -435,3 +449,26 @@ export const fetchModelosImpressao = (unidadeId) => lerObjetoDosParams(unidadeId
 export const salvarModelosImpressao = (unidadeId, modelos) => salvarParams(unidadeId, { modelos_impressao: modelos });
 export const fetchObservacoesProntas = (unidadeId) => lerObjetoDosParams(unidadeId, "observacoes_prontas");
 export const salvarObservacoesProntas = (unidadeId, obs) => salvarParams(unidadeId, { observacoes_prontas: obs });
+
+// Meta de vendas do Início do dono (pedido do dono, 14/11/2026: "pode ser
+// mensal, diária ou semanal"). Fica em params.meta_vendas = { periodo, valor }.
+export async function fetchMetaVendas(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: null };
+  const registro = await fetchRegistroConfig(unidadeId);
+  const meta = registro?.params?.meta_vendas;
+  return { data: meta && typeof meta === "object" ? meta : null };
+}
+
+export async function salvarMetaVendas(unidadeId, meta) {
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade" };
+  return salvarParams(unidadeId, { meta_vendas: { periodo: meta.periodo, valor: Number(meta.valor) } });
+}
+
+// Plano do dia aprovado pelo dono (Jhon + Nico, 14/11/2026). Um por unidade:
+// { data, pedido, plano: [tarefas], aprovadoPor, aprovadoEm }. O Nico da
+// equipe lê daqui.
+export async function fetchPlanoDoDia(unidadeId) {
+  const registro = await fetchRegistroConfig(unidadeId);
+  return { data: registro?.params?.plano_do_dia || null };
+}
+export const salvarPlanoDoDia = (unidadeId, plano) => salvarParams(unidadeId, { plano_do_dia: plano });

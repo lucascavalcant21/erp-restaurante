@@ -215,7 +215,7 @@ export function aplicarResposta(params, campo, valor) {
     case "extras": {
       if (pend.tipo === "extras" && /^(nao|n|nada|so isso|so|pronto|acabou|nenhum|sem mais)\b/.test(f)) { p.extrasOk = true; break; }
       const novos = lerIngredientes(v);
-      if (!novos.length) p.aviso = "Não entendi os ingredientes.";
+      if (!novos.length) p.aviso = "Me diga os ingredientes de novo, do seu jeito.";
       else { p.itens = [...p.itens, ...novos].slice(0, MAX_ITENS); if (pend.tipo === "extras") p.extrasOk = true; }
       break;
     }
@@ -231,14 +231,14 @@ export function aplicarResposta(params, campo, valor) {
       if (!item) break;
       if (tirar) { p.itens.splice(i, 1); break; }
       const c = lerCadastro(v);
-      if (c) { item.novo = c; delete item.cadastrar; } else p.aviso = "Não entendi a embalagem e o preço.";
+      if (c) { item.novo = c; delete item.cadastrar; } else p.aviso = "Me diga a embalagem e o preço de novo, do seu jeito.";
       break;
     }
     case "quantidade": {
       if (!item) break;
       if (tirar) { p.itens.splice(i, 1); break; }
       const q = lerQuantidade(v);
-      if (q) { item.quantidade = q.quantidade; item.unidade = q.unidade; } else p.aviso = "Não entendi a quantidade.";
+      if (q) { item.quantidade = q.quantidade; item.unidade = q.unidade; } else p.aviso = "Me diga a quantidade de novo, do seu jeito.";
       break;
     }
     case "rendimento": {
@@ -253,7 +253,7 @@ export function aplicarResposta(params, campo, valor) {
       break;
     case "preco": {
       const pr = lerPreco(v);
-      if (pr != null) p.precoVenda = pr; else p.aviso = "Não entendi o preço.";
+      if (pr != null) p.precoVenda = pr; else p.aviso = "Me diga o preço de novo, do seu jeito.";
       break;
     }
     default:

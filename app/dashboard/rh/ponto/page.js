@@ -14,6 +14,8 @@ import { linhasJornadaSemana } from "../../../lib/jornada-semana.mjs";
 import { fetchPins } from "../../../lib/seguranca";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { useTempoReal } from "../../../lib/realtime";
+import TecladoPin from "../../../components/ponto/TecladoPin";
+import { supabase as clientePin } from "../../../lib/supabase";
 
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
 // Data de hoje no fuso do tablet. toISOString() não serve: ele converte para
@@ -234,7 +236,24 @@ function ModalJustificativa({ titulo, subtitulo, onConfirm, onClose, confirmando
 }
 
 export default function PontoPage() {
-  const { unidadeAtiva, unidadeInfo } = useERP();
+  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
+  // Tablet compartilhado (só ponto / Nico + ponto): cada um entra pelo PIN
+  // (decisão do dono, 14/11/2026). Só vale quando o banco tem o PONTO-PIN-1;
+  // sem ele, fica a lista por área de antes.
+  const tabletCompartilhado = ["terminal_ponto", "setor"].includes(sessao?.tipo_acesso);
+  const [modoPin, setModoPin] = useState(false);
+  // Quem já tem PIN entra pelo PIN; quem ainda não tem toca no próprio nome
+  // (23/11/2026: na troca para o sistema novo ninguém tem PIN ainda, e o
+  // ponto não pode parar). Sem nenhum PIN na unidade, fica a lista de antes.
+  const [idsComPin, setIdsComPin] = useState(() => new Set());
+  useEffect(() => {
+    if (!tabletCompartilhado || !unidadeAtiva) { setModoPin(false); return; }
+    clientePin.rpc("hefisto_tem_pin", { p_unidade: unidadeAtiva }).then(({ data, error }) => {
+      const ids = new Set(error ? [] : (data || []).map((x) => (typeof x === "string" ? x : Object.values(x)[0])));
+      setIdsComPin(ids);
+      setModoPin(!error && ids.size > 0);
+    });
+  }, [tabletCompartilhado, unidadeAtiva]);
   const router = useRouter();
 
   // Area escolhida na entrada; vazio mostra os tres cards.
@@ -1173,7 +1192,25 @@ export default function PontoPage() {
         {/* Entrada por área. A busca por nome saiu: quem chega para bater vem do
             próprio setor e acha o nome na lista mais rápido do que digitaria —
             ainda mais com a mão ocupada ou molhada. */}
-        {!areaAtiva ? (
+        {modoPin ? (
+          <>
+            <TecladoPin
+              unidadeId={unidadeAtiva}
+              onAchou={(id) => { const c = colaboradores.find((x) => x.id === id); if (c) abrirFuncionario(c); }}
+            />
+            {colaboradores.some((c) => !idsComPin.has(c.id)) && (
+              <div className="mx-auto mt-6 w-full max-w-xl">
+                <p className="mb-2 text-center text-sm font-bold text-hf-text-2">Ainda não tem PIN? Toque no seu nome</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {colaboradores.filter((c) => !idsComPin.has(c.id)).sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map((c) => (
+                    <button key={c.id} type="button" onClick={() => abrirFuncionario(c)}
+                      className="min-h-[48px] rounded-full border border-hf-border bg-hf-surface px-4 text-[15px] font-bold text-hf-text">{c.nome}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : !areaAtiva ? (
           // As três áreas dividem o espaço que sobra da tela: no celular, uma
           // embaixo da outra (celular e tablet em pé); tablet deitado, lado a lado.
           <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-3 gap-3 sm:gap-4 sm:landscape:grid-cols-3 sm:landscape:grid-rows-1">
@@ -1202,7 +1239,7 @@ export default function PontoPage() {
             <ArrowLeft size={24} />
           </button>
         )}
-        {!areaAtiva ? null : loading ? (
+        {modoPin || !areaAtiva ? null : loading ? (
           <div className="text-center py-16"><Loader2 size={40} className="animate-spin text-hf-text-2 mx-auto" /></div>
         ) : filtrados.length === 0 ? (
           <p className="text-center text-hf-text-2 font-bold py-12">{colaboradores.length === 0 ? "Nenhum colaborador cadastrado no RH." : "Ninguém desta área está cadastrado no RH."}</p>

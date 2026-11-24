@@ -56,6 +56,12 @@ export default function UsuariosAcessosPage() {
   const [notice, setNotice] = useState("");
   const [filters, setFilters] = useState({ text: "", profile: "", sector: "", unit: "", status: "", last: "" });
   const [modal, setModal] = useState(null);
+  // "Montar um tablet" da Área do administrador abre direto a conta rápida (14/11/2026).
+  const [modeloInicial, setModeloInicial] = useState(null);
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("conta") === "tablet") { setModeloInicial("tablet-nico"); setModal("rapida"); }
+  }, []);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [permissionValue, setPermissionValue] = useState([]);
@@ -232,7 +238,7 @@ export default function UsuariosAcessosPage() {
         {!users.length && <div className="p-12 text-center text-sm font-bold text-subtle">Nenhum usuário encontrado.</div>}
       </div>
 
-      {modal==="rapida" && <ContaRapida onFechar={()=>setModal(null)} onCriada={load}/>}
+      {modal==="rapida" && <ContaRapida modeloInicial={modeloInicial} onFechar={()=>setModal(null)} onCriada={load}/>}
 
       {modal==="form" && <Modal title={form.id?"Editar usuário":"Novo usuário"} subtitle="Dados pessoais, vínculo, escopo e políticas de segurança." onClose={()=>setModal(null)}>
         <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">

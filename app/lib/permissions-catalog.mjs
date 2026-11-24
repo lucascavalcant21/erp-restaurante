@@ -37,11 +37,22 @@ export const PERMISSION_MODULES = [
     id: "dashboard", label: "Dashboard",
     pages: [
       { id: "overview", label: "Painel geral", route: "/dashboard", actions: ["view", "view_values", "export"] },
+      // Telas pessoais da barra inferior (14/11/2026): quem vê o Painel geral
+      // abre o próprio Menu e a própria conta. O conteúdo já sai filtrado pelas
+      // permissões de cada área, e a parte de empresa só aparece para quem
+      // administra usuários.
+      { id: "menu", label: "Menu (liberado com o Painel geral)", route: "/dashboard/menu", actions: ["view"], comInicio: true },
+      { id: "account", label: "Minha conta (liberada com o Painel geral)", route: "/dashboard/conta", actions: ["view"], comInicio: true },
+      { id: "checkout", label: "Assinar o Héfisto (liberada com o Painel geral)", route: "/dashboard/assinar", actions: ["view"], comInicio: true },
+      { id: "onboarding", label: "Primeiros passos (liberada com o Painel geral)", route: "/dashboard/implantacao", actions: ["view"], comInicio: true },
       // Central de Inteligência e "Pergunte ao Héfisto". Só abre a porta: cada
       // número ainda exige a permissão da tela de onde ele vem, conferida no
       // servidor (app/lib/intelligence/permissions/mapa.mjs).
       // settings = metas de faturamento, alertas e sensibilidade da unidade (Inteligência > Configurações)
       { id: "intelligence", label: "Central de Inteligência (Héfisto)", route: "/dashboard/inteligencia", actions: ["view", "settings"] },
+      // Histórico das conversas com o Jhon e o Nico (17/11/2026). Mesma porta da Central; o banco (RLS) mostra
+      // a cada um só as próprias conversas, e as de todos só a quem tem a auditoria (relatorios.audit.view).
+      { id: "intelligence_history", label: "Histórico das conversas (Jhon e Nico)", route: "/dashboard/inteligencia/historico", actions: ["view"] },
     ],
   },
   {
@@ -160,6 +171,8 @@ export const PERMISSION_MODULES = [
       { id: "overview", label: "Painel de RH", route: "/dashboard/rh", actions: ["view", "view_values", "export"] },
       { id: "extras", label: "Cadastro de extras", route: "/dashboard/rh/extra", actions: [...CRUD, "view_values", "view_history"] },
       { id: "employees", label: "Funcionários", route: "/dashboard/rh/gestao", actions: [...CRUD, "view_values", "view_history"] },
+      // PIN do ponto (14/11/2026): quem edita funcionários define o PIN de 4 números de cada um.
+      { id: "employees_pin", label: "PIN do ponto", route: "/dashboard/rh/pins", actions: ["view", "edit"] },
       { id: "payroll", label: "Folha de pagamento", route: "/dashboard/rh/fechamento", actions: [...CRUD, "confirm", "view_values", "export"] },
       { id: "orgchart", label: "Organograma", route: "/dashboard/rh/organograma", actions: CRUD },
       { id: "recruiting", label: "Recrutamento", route: "/dashboard/rh/recrutamento", actions: CRUD },
@@ -313,6 +326,8 @@ export const PERMISSION_MODULES = [
       // Modelos das vias (cozinha, bar, conferência, recibo), impressora de cada setor no aparelho e observações prontas (07/11/2026).
       { id: "printing", label: "Impressão e observações prontas", route: "/dashboard/configuracoes/impressao", actions: ["view", "edit"] },
       { id: "users", label: "Usuários e acessos", route: "/dashboard/configuracoes/usuarios", actions: [...CRUD, "settings", "view_history"] },
+      // Pedidos de cadastro da página inicial (21/11/2026). O banco só mostra ao administrador da plataforma.
+      { id: "signup_requests", label: "Pedidos de cadastro", route: "/dashboard/configuracoes/pedidos-cadastro", actions: ["view", "edit"] },
       { id: "profiles", label: "Perfis de acesso", route: "/dashboard/configuracoes/perfis", actions: [...CRUD, "settings"] },
       { id: "units", label: "Empresas e unidades", route: "/dashboard/configuracoes", actions: [...CRUD, "settings"] },
       { id: "stores", label: "Lojas", route: "/dashboard/lojas", actions: [...CRUD, "settings"] },
@@ -320,7 +335,20 @@ export const PERMISSION_MODULES = [
     ],
   },
   {
-    id: "marmitaria", label: "Marmitaria & Delivery",
+    // Consultório médico (21/11/2026). Dado de saúde: além da permissão da
+    // rota, o banco só mostra pacientes a quem tem a unidade do consultório
+    // (CONS-1) e a ficha só ao médico que escreveu.
+    id: "consultorio", label: "Consultório",
+    pages: [
+      { id: "schedule", label: "Agenda do consultório", route: "/dashboard/consultorio", actions: [...CRUD] },
+      { id: "care", label: "Atendimento (fila e ficha de retorno)", route: "/dashboard/consultorio/atendimento", actions: [...CRUD] },
+      { id: "patients", label: "Pacientes", route: "/dashboard/consultorio/pacientes", actions: [...CRUD] },
+      { id: "financial", label: "Preço e lucro da consulta", route: "/dashboard/consultorio/financeiro", actions: ["view", "edit", "view_values"] },
+      { id: "settings", label: "Tipos de consulta e convênios", route: "/dashboard/consultorio/cadastros", actions: ["view", "edit", "settings"] },
+    ],
+  },
+  {
+    id: "marmitaria", label: "Delivery",
     pages: [
       // Seis áreas (14/10/2026). Os ids antigos que continuam servem às mesmas
       // funções; os que sumiram (pedidos, cardápio, precificação…) viraram abas.
@@ -332,6 +360,10 @@ export const PERMISSION_MODULES = [
       { id: "hr", label: "Funcionários e CMO", route: "/dashboard/marmitaria/funcionarios", actions: [...CRUD, "view_values"] },
       { id: "financial", label: "Financeiro, DRE e Simulador", route: "/dashboard/marmitaria/financeiro", actions: [...CRUD, "view_values", "view_margin", "export"] },
       { id: "settings", label: "Configurações da Marmitaria", route: "/dashboard/marmitaria/configuracoes", actions: ["view", "edit", "settings"] },
+      // Cardápios dos concorrentes do delivery (17/11/2026): o Jhon lê o print, guarda e compara com as nossas marmitas.
+      { id: "competitors", label: "Concorrentes do delivery", route: "/dashboard/marmitaria/concorrentes", actions: [...CRUD] },
+      // Treinamento do delivery (21/11/2026): manual de operação por posição, impresso para o funcionário.
+      { id: "training", label: "Treinamento do delivery", route: "/dashboard/marmitaria/treinamento", actions: [...CRUD, "export"] },
     ],
   },
 ];
@@ -416,7 +448,8 @@ export function canAccessRoute(session, pathname, search = "") {
   }
   const found = maisEspecificas(pagesForRoute(pathname, search));
   if (!found.length) return false;
-  return found.some(({ module, page }) => hasPermission(session, permissionKey(module.id, page.id, "view")));
+  return found.some(({ module, page }) => hasPermission(session, permissionKey(module.id, page.id, "view"))
+    || (page.comInicio && hasPermission(session, permissionKey("dashboard", "overview", "view"))));
 }
 
 export function permittedRoutes(session) {

@@ -1,16 +1,20 @@
 "use client";
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { lerSessao, encerrarSessao } from "../lib/auth";
+import { lerSessao, sairDoSistema } from "../lib/auth";
 import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog.mjs";
 import { universoLiberado } from "../lib/menu-principal.mjs";
 import { HefistoPageContextProvider } from "../context/HefistoPageContext";
 import TopNavigation from "../components/layout/TopNavigation";
 import { Loader2 } from "lucide-react";
 import BarraUniverso from "../components/navigation/BarraUniverso";
+import BarraInferior from "../components/layout/BarraInferior";
+import { mostraBarraInferior } from "../lib/barra-inferior.mjs";
 import CommandCenterModal from "../components/navigation/CommandCenterModal";
 import PainelHefisto from "../components/intelligence/PainelHefisto";
 import { addRecentRoute } from "../lib/user-preferences.js";
+import { useMinhaAssinatura } from "../lib/assinatura";
+import { linkCheckout, rotaLiberada } from "../lib/planos.mjs";
 
 function ProtecaoPermissao({ sessao, children }) {
   const router = useRouter();
@@ -27,6 +31,14 @@ function ProtecaoPermissao({ sessao, children }) {
     router.replace(fallback);
   }, [deveVerificar, permitido, pathname, router, sessao]);
 
+  // Plano Grátis (14/11/2026): tela do plano Completo leva ao checkout.
+  // Sem assinatura registrada nada é trancado (app/lib/planos.mjs).
+  const assinatura = useMinhaAssinatura(sessao);
+  const areaTrancada = !!(permitido && assinatura && !rotaLiberada(assinatura.plano, pathname));
+  useEffect(() => {
+    if (areaTrancada) router.replace(linkCheckout(`${pathname}${search ? `?${search}` : ""}`));
+  }, [areaTrancada, pathname, search, router]);
+
   // Recentes e frequência da Central de Comando: só tela aberta com permissão,
   // uma vez por rota (a sessão é relida a cada navegação e não pode contar 2x).
   const ultimaRota = useRef("");
@@ -37,7 +49,7 @@ function ProtecaoPermissao({ sessao, children }) {
     addRecentRoute(sessao, pathname, search);
   }, [sessao, permitido, pathname, search]);
 
-  if (!sessao || !permitido) {
+  if (!sessao || !permitido || areaTrancada) {
     return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-900"><Loader2 className="animate-spin text-emerald-600 mr-2" />Carregando área segura...</div>;
   }
   return children;
@@ -76,12 +88,7 @@ export default function DashboardLayout({ children }) {
 
   async function sair() {
     sessaoRef.current = null;
-    try {
-      localStorage.removeItem("hefisto_acesso");
-      localStorage.removeItem("erp_cred");
-      localStorage.setItem("erp_lembrar", "0");
-    } catch (_) {}
-    await encerrarSessao();
+    await sairDoSistema();
     router.replace("/login");
   }
 
@@ -113,6 +120,11 @@ export default function DashboardLayout({ children }) {
             </ProtecaoPermissao>
           </Suspense>
         </main>
+
+        {/* Abas fixas do rodapé no celular e tablet (visual Medway, 14/11/2026) */}
+        {mostraBarraInferior(pathname, sessao) && (
+          <BarraInferior sessao={sessao} onOpenSearch={() => setCommandCenterOpen(true)} />
+        )}
 
         <CommandCenterModal isOpen={commandCenterOpen} onClose={() => setCommandCenterOpen(false)} sessao={sessao} />
 

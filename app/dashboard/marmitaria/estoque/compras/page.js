@@ -35,7 +35,7 @@ function NovoPedido({ estoques, aoCriar }) {
   const [erro, setErro] = useState(null);
   const achados = useMemo(() => (busca.trim() ? base.insumosLista.filter((i) => !i.ficha_tecnica_id && casaBusca(i.nome, busca) && !itens.some((x) => x.insumo.id === i.id)).slice(0, 8) : []), [busca, base, itens]);
   const mudar = (id, campos) => setItens((l) => l.map((i) => (i.insumo.id === id ? { ...i, ...campos } : i)));
-  const slugDe = (ins) => (ehEmbalagem(ins) ? ESTOQUE_EMBALAGENS : ehLimpeza(ins) ? ESTOQUE_LIMPEZA : ESTOQUE_MARMITARIA);
+  const slugDe = (ins) => (ehEmbalagem(ins) ? ESTOQUE_EMBALAGENS : ehLimpeza(ins) ? ESTOQUE_LIMPEZA : String(ins?.departamento || "").toLowerCase() === "bebidas" ? "bebidas-marmitaria" : ESTOQUE_MARMITARIA);
   const estoqueDe = (ins) => estoques.find((e) => e.slug === slugDe(ins))?.id;
 
   async function gerar() {
@@ -74,7 +74,7 @@ function NovoPedido({ estoques, aoCriar }) {
               <li key={i.insumo.id} className="grid grid-cols-[1fr_1fr_44px] items-start gap-2 py-2">
                 <p className="col-span-3 text-sm font-bold text-hf-text">{i.insumo.nome}</p>
                 <Campo rotulo={`Quantidade (${un})`}><CampoNumero valor={i.qtd} onChange={(v) => { const nq = lerNumero(v); mudar(i.insumo.id, { qtd: v, valor: !i.mexeuValor && nq > 0 && c > 0 ? texto(Math.round(nq * c * 100) / 100) : i.valor }); }} /></Campo>
-                <Campo rotulo="Valor total (R$)" dica={c > 0 ? `Último custo: ${brl(c)}/${un}` : "Sem custo cadastrado"}><CampoNumero valor={i.valor} onChange={(v) => mudar(i.insumo.id, { valor: v, mexeuValor: true })} /></Campo>
+                <Campo rotulo="Valor total" dica={c > 0 ? `Último custo: ${brl(c)}/${un}` : "Sem custo cadastrado"}><CampoNumero prefixo="R$" valor={i.valor} onChange={(v) => mudar(i.insumo.id, { valor: v, mexeuValor: true })} /></Campo>
                 <button type="button" aria-label={`Tirar ${i.insumo.nome}`} onClick={() => setItens((l) => l.filter((x) => x.insumo.id !== i.insumo.id))} className="mt-5 grid h-11 w-11 place-items-center rounded-lg text-hf-muted hover:bg-hf-elevated"><Trash2 size={16} /></button>
               </li>
             );
@@ -128,7 +128,7 @@ function Receber({ pedido, aoReceber }) {
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               <Campo rotulo={`Chegou (pedido: ${num(l.pedida)} ${un})`}><CampoNumero valor={l.qtd} onChange={(v) => mudar(l.item.id, { qtd: v })} placeholder="0" /></Campo>
-              <Campo rotulo="Valor cobrado (R$)"><CampoNumero valor={l.valor} onChange={(v) => mudar(l.item.id, { valor: v })} /></Campo>
+              <Campo rotulo="Valor cobrado"><CampoNumero prefixo="R$" valor={l.valor} onChange={(v) => mudar(l.item.id, { valor: v })} /></Campo>
               <Campo rotulo="Validade" className="col-span-2 sm:col-span-1" dica="Com validade, a etiqueta sai ao lançar."><input type="date" className={dataCls} value={l.validade} onChange={(e) => mudar(l.item.id, { validade: e.target.value })} /></Campo>
               {l.validade && <Campo rotulo="Conservação"><select className={inputCls} value={l.conservacao} onChange={(e) => mudar(l.item.id, { conservacao: e.target.value })}>{CONSERVACAO.map((c) => <option key={c.id} value={c.id}>{c.id}</option>)}</select></Campo>}
               {l.validade && <Campo rotulo="Etiquetas"><CampoNumero valor={l.copias} onChange={(v) => mudar(l.item.id, { copias: v })} /></Campo>}

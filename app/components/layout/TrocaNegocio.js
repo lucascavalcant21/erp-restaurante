@@ -5,16 +5,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Lock } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { negocioAtual, negociosDoLogin } from "../../lib/negocios.mjs";
 import { canAccessRoute } from "../../lib/permissions-catalog.mjs";
+import { useMinhaAssinatura } from "../../lib/assinatura";
+import { linkCheckout, negocioLiberado } from "../../lib/planos.mjs";
 
-export default function TrocaNegocio({ sessao, pathname }) {
+export default function TrocaNegocio({ sessao, pathname, claro = false }) {
   const router = useRouter();
   const { unidades, unidadeAtiva, setUnidadeAtiva } = useERP();
   const [aberto, setAberto] = useState(false);
   const caixa = useRef(null);
+  const assinatura = useMinhaAssinatura(sessao);
 
   useEffect(() => { setAberto(false); }, [pathname]);
   useEffect(() => {
@@ -28,12 +31,21 @@ export default function TrocaNegocio({ sessao, pathname }) {
 
   if (!sessao || sessao.is_app) return null;
   const lista = negociosDoLogin(unidades, (rota) => canAccessRoute(sessao, rota));
-  if (!lista.length) return null;
+  if (!lista.length) {
+    if (!claro) return null;
+    const id = typeof unidadeAtiva === "object" ? unidadeAtiva?.id : unidadeAtiva;
+    const nome = unidades?.find?.((u) => u.id === id)?.nome || "Héfisto";
+    return <span className="line-clamp-2 max-w-[12rem] text-[20px] font-medium leading-tight text-mw-marinho">{nome}</span>;
+  }
   const idAtual = negocioAtual(pathname, typeof unidadeAtiva === "object" ? unidadeAtiva?.id : unidadeAtiva);
   const atual = lista.find((n) => n.id === idAtual) || lista[0];
 
+  // Grátis: um negócio só (o primeiro); os outros levam à assinatura (dono, 17/11/2026)
+  const trancado = (n) => !negocioLiberado(assinatura?.plano, lista.indexOf(n));
+
   function escolher(n) {
     setAberto(false);
+    if (trancado(n)) { router.push(linkCheckout(n.href)); return; }
     if (n.id === atual.id && pathname === n.href) return;
     setUnidadeAtiva(n.unidadeId);
     router.push(n.href);
@@ -42,9 +54,11 @@ export default function TrocaNegocio({ sessao, pathname }) {
   return (
     <div ref={caixa} className="relative shrink-0">
       <button type="button" aria-haspopup="menu" aria-expanded={aberto} aria-label={`Negócio aberto: ${atual.rotulo}. Trocar`} onClick={() => setAberto(!aberto)}
-        className="flex h-11 items-center gap-1 rounded-lg px-2.5 text-sm font-bold text-hf-menu-text transition-colors hover:bg-white/10">
-        {atual.rotulo}
-        <ChevronDown size={16} className={`transition-transform ${aberto ? "rotate-180" : ""}`} aria-hidden="true" />
+        className={claro
+          ? "flex min-h-[48px] items-center gap-2 rounded-xl px-1 text-left text-[20px] font-medium leading-tight text-mw-marinho shadow-none"
+          : "flex h-11 items-center gap-1 rounded-lg px-2.5 text-sm font-bold text-hf-menu-text transition-colors hover:bg-white/10"}>
+        <span className={claro ? "line-clamp-2 max-w-[11rem]" : ""}>{atual.rotulo}</span>
+        <ChevronDown size={claro ? 20 : 16} className={`shrink-0 transition-transform ${aberto ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
       {aberto && (
         <div role="menu" aria-label="Trocar de negócio" className="absolute left-0 top-full z-[60] mt-1 w-48 overflow-hidden rounded-xl border border-hf-border bg-hf-surface py-1 shadow-lg">
@@ -52,7 +66,7 @@ export default function TrocaNegocio({ sessao, pathname }) {
             <button key={n.id} type="button" role="menuitem" onClick={() => escolher(n)}
               className={`flex min-h-[44px] w-full items-center justify-between gap-2 px-3 text-left text-sm font-bold text-hf-text hover:bg-hf-elevated ${n.id === atual.id ? "bg-hf-elevated" : ""}`}>
               {n.rotulo}
-              {n.id === atual.id && <Check size={16} aria-hidden="true" />}
+              {trancado(n) ? <Lock size={15} className="text-hf-muted" aria-label="No plano Completo" /> : n.id === atual.id && <Check size={16} aria-hidden="true" />}
             </button>
           ))}
         </div>

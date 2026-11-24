@@ -131,3 +131,10 @@ test("login e senha pelo nome do restaurante (24/11/2026)", async () => {
   assert.equal(senhaDoRestaurante("Seldeestrela", () => 4827), "Seldeestrela5827");
   assert.ok(senhaDoRestaurante("Seldeestrela").length >= 8);
 });
+
+test("todo ícone das contas rápidas existe na tela (B-048: ConciergeBell faltando quebrou a tela)", async () => {
+  const fs = await import("node:fs");
+  const tela = fs.readFileSync(new URL("../components/access-control/ContaRapida.js", import.meta.url), "utf8");
+  const mapa = tela.match(/ICONES_CONTA = \{([^}]+)\}/)[1].split(",").map((x) => x.trim()).filter(Boolean);
+  for (const c of CONTAS_RAPIDAS) assert.ok(mapa.includes(c.icone), `ícone ${c.icone} de ${c.id} falta em ContaRapida.js`);
+});

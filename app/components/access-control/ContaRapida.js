@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChefHat, Clock, Copy, KeyRound, Loader2, Martini, Minus, Sparkles, Wine, X } from "lucide-react";
+import { Check, ChefHat, Clock, ConciergeBell, Copy, KeyRound, Loader2, Martini, Minus, Sparkles, Wine, X } from "lucide-react";
 import { accessCommand } from "../../lib/access-control";
 import { CONTAS_RAPIDAS, contaRapidaPorId, loginDoRestaurante, senhaDoRestaurante } from "../../lib/contas-rapidas.mjs";
 
-const ICONES = { ChefHat, Clock, Martini, Sparkles, Wine };
+// Todo ícone usado em contas-rapidas.mjs precisa estar aqui (trava em
+// contas-rapidas.test.mjs); o que faltar cai no KeyRound em vez de quebrar a tela.
+export const ICONES_CONTA = { ChefHat, Clock, ConciergeBell, Martini, Sparkles, Wine };
+const ICONES = ICONES_CONTA;
 const CAMPO = "min-h-11 w-full rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent";
 
 /** Criar um acesso em três passos: função, nome e senha. */
@@ -83,7 +86,7 @@ export default function ContaRapida({ onFechar, onCriada, modeloInicial = null, 
                 <legend className="mb-2 text-sm font-extrabold text-hf-text-2">Função</legend>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {CONTAS_RAPIDAS.map((c) => {
-                    const Icone = ICONES[c.icone];
+                    const Icone = ICONES[c.icone] || KeyRound;
                     const ativo = c.id === modeloId;
                     return (
                       <button key={c.id} type="button" aria-pressed={ativo} onClick={() => setModeloId(c.id)}

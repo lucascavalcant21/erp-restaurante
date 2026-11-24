@@ -14,8 +14,9 @@ import { ehLimpeza } from "../../../../lib/marmitaria/cozinha.mjs";
 import { fatorSaldo } from "../../../../lib/marmitaria/nucleo.mjs";
 import { custoUnitarioEfetivoInsumo } from "../../../../lib/ficha-calculos.mjs";
 import { casaBusca } from "../../../../lib/busca.mjs";
+import { ListaPorCategoria, TrocarCategoria } from "../../../../components/cadastro/CategoriaDoItem";
 
-function LinhaProduto({ item, saldo }) {
+function LinhaProduto({ item, saldo, todos }) {
   const { recarregar } = useMarmitaria();
   const un = String(item.unidade_medida || "un").toLowerCase();
   const c = custoUnitarioEfetivoInsumo(item);
@@ -38,7 +39,7 @@ function LinhaProduto({ item, saldo }) {
   return (
     <li className="py-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="min-w-0"><span className="block text-sm font-bold text-hf-text">{item.nome}</span>{item.marca && <span className="block text-xs text-hf-text-2">Marca: {item.marca}</span>}<span className="block text-xs text-hf-muted">Em estoque: {num(saldo)} {un}</span></span>
+        <span className="min-w-0"><span className="block text-sm font-bold text-hf-text">{item.nome}</span>{item.marca && <span className="block text-xs text-hf-text-2">Marca: {item.marca}</span>}<span className="block text-xs text-hf-muted">Em estoque: {num(saldo)} {un}</span><TrocarCategoria item={item} todos={todos} tipo="ingrediente" onSalvo={recarregar} /></span>
         <span className="flex shrink-0 items-center gap-3">
           <span className={`text-sm font-black tabular-nums ${c > 0 ? "text-hf-text" : "text-hf-warning"}`}>{c > 0 ? `${brl(c)}/${un}` : "Sem valor"}</span>
           <button type="button" className="min-h-[40px] text-sm font-bold text-hf-accent hover:underline" onClick={() => { setMarca(item.marca || ""); setPreco(String(item.valor_embalagem ?? item.custo_compra ?? "").replace(".", ",")); setTamanho(String(item.tamanho_embalagem || 1).replace(".", ",")); setErro(null); setAberto(!aberto); }}>{aberto ? "Fechar" : "Alterar"}</button>
@@ -79,9 +80,7 @@ export default function ProdutosPage() {
       <Secao titulo="Cadastro de ingredientes" subtitulo="O que a marmitaria compra e usa nas fichas."
         direita={!novo && <Botao onClick={() => setNovo(true)}><Plus size={16} /> Novo ingrediente</Botao>}>
         <input className={`${inputCls} mb-1`} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar ingrediente ou marca" aria-label="Buscar ingrediente ou marca" />
-        <ul className="divide-y divide-hf-border">
-          {lista.map((i) => <LinhaProduto key={i.id} item={i} saldo={saldoDe(i)} />)}
-        </ul>
+        <ListaPorCategoria itens={lista} renderItem={(i) => <LinhaProduto key={i.id} item={i} saldo={saldoDe(i)} todos={lista} />} />
         {!lista.length && <p className="py-4 text-sm text-hf-muted">{busca.trim() ? "Nenhum ingrediente com essa busca." : "Nenhum ingrediente cadastrado."}</p>}
       </Secao>
     </div>

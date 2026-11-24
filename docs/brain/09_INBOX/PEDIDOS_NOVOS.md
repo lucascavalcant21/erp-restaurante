@@ -213,3 +213,10 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 24/11/2026 | "Em que dias e horários abre" devia abrir calendário e relógio | Dias em botões (atalhos Todos, Ter a Dom, Seg a Sex) + hora no relógio do celular + 2º turno opcional; no Jhon e em Configurações › Dados da empresa. Guarda o mesmo texto curto. TESTADO LOCAL |
 | 24/11/2026 | Ficha da cozinha e do bar "muito extensa e complexa, se baseia pela da marmita" | Card aberto: 3 números (custo, venda, CMV com meta), ingredientes, e a composição do preço recolhida em "Ver composição do preço". TESTADO LOCAL (build); com ficha real NÃO VALIDADO |
 | 24/11/2026 | Cozinha e Bar: "muitos cards, complexo; para o funcionário quero mais objetivo" | Cards menores, 3 por linha, nomes curtos; checklists num card só; o que é de vez em quando em "Mais ferramentas"; resumo de hoje da Cozinha recolhido. TESTADO LOCAL (390 px) |
+| 24/11/2026 | Delivery: dados preenchidos sumiram | Estavam no banco de teste; copiados para o do restaurante com OK do dono (B-047). TESTADO NO SUPABASE REAL |
+| 24/11/2026 | "Posicionamento" é Porcionamento; categorias no porcionamento; porcionamento e estoque de bases no Delivery | Nome trocado nas telas e no Nico; categorias com filtro e impressão; "Estoque de bases" no menu do Delivery (PR #296). TESTADO LOCAL |
+| 24/11/2026 | Barra de baixo fixa no celular/tablet; botão voltar no alto | Barra em todas as telas menos as de trabalho em tela cheia; "Voltar" no Menu (PR #296). TESTADO LOCAL |
+| 24/11/2026 | Janta dos funcionários na Cozinha | Card "Janta da equipe" na Cozinha (PR #296) |
+| 24/11/2026 | Categorias no cadastro de ingredientes, bebidas e embalagens | Delivery: botão de categoria em cada item, criar categoria nova, lista dividida por categoria. Cozinha e Bar já tinham categoria com "+ Criar categoria" no cadastro. TESTADO LOCAL |
+| 24/11/2026 | Logins: só ponto, só cozinha, só bar, administrador, só Nico | Já existem como contas prontas em Configurações › Usuários e senhas › Conta rápida (Só ponto, Equipe da cozinha, Equipe do bar, Tablet do Nico); o administrador é o login do dono. O dono escolhe a senha de cada um |
+

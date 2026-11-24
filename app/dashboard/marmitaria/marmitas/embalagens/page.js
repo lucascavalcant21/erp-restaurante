@@ -16,8 +16,9 @@ import { custoUnitarioEfetivoInsumo } from "../../../../lib/ficha-calculos.mjs";
 import { casaBusca } from "../../../../lib/busca.mjs";
 import { fetchProcessosMarmitaria } from "../../../../lib/parametros";
 import { marmitasDaEmbalagem } from "../../../../lib/marmitaria/processos.mjs";
+import { ListaPorCategoria, TrocarCategoria } from "../../../../components/cadastro/CategoriaDoItem";
 
-function LinhaEmbalagem({ item, usos, saldo, serve = [] }) {
+function LinhaEmbalagem({ item, usos, saldo, serve = [], todos = [] }) {
   const { recarregar } = useMarmitaria();
   const [editando, setEditando] = useState(false);
   const [preco, setPreco] = useState("");
@@ -55,6 +56,7 @@ function LinhaEmbalagem({ item, usos, saldo, serve = [] }) {
           {item.marca && <p className="text-xs text-hf-text-2">Marca: {item.marca}</p>}
           <p className="text-xs text-hf-muted">Em estoque: {num(saldo)} · {usos ? `usada em ${usos} ficha${usos > 1 ? "s" : ""}` : "em nenhuma ficha"}</p>
           {serve.length > 0 && <p className="text-xs text-hf-text-2">Serve para: {serve.join(", ")}</p>}
+          <TrocarCategoria item={item} todos={todos} tipo="embalagem" onSalvo={recarregar} />
         </div>
         <div className="shrink-0 text-right">
           <p className={`text-sm font-black tabular-nums ${custo > 0 ? "text-hf-text" : "text-hf-warning"}`}>{custo > 0 ? brl(custo) : "Sem valor"}</p>
@@ -107,9 +109,7 @@ export default function EmbalagensPage() {
       <Secao titulo="Embalagens" subtitulo="O valor de cada uma entra sozinho no custo das fichas que a usam."
         direita={!nova && <Botao onClick={() => setNova(true)}><Plus size={16} /> Nova embalagem</Botao>}>
         <input className={`${inputCls} mb-1`} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar embalagem" aria-label="Buscar embalagem" />
-        <ul className="divide-y divide-hf-border">
-          {lista.map((i) => <LinhaEmbalagem key={i.id} item={i} usos={usos.get(i.id) || 0} saldo={saldoDe(i.id)} serve={marmitasDaEmbalagem(processos, i.id, base.marmitas)} />)}
-        </ul>
+        <ListaPorCategoria itens={lista} renderItem={(i) => <LinhaEmbalagem key={i.id} item={i} usos={usos.get(i.id) || 0} saldo={saldoDe(i.id)} serve={marmitasDaEmbalagem(processos, i.id, base.marmitas)}  todos={lista} />} />
         {!lista.length && <p className="py-4 text-sm text-hf-muted">{busca.trim() ? "Nenhuma embalagem com essa busca." : "Nenhuma embalagem cadastrada."}</p>}
       </Secao>
     </div>

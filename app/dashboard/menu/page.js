@@ -66,7 +66,7 @@ export default function MenuPage() {
             <DestaqueDegrade
               href={tabletPago ? linkCheckout("/dashboard/configuracoes/usuarios") : "/dashboard/configuracoes/usuarios?conta=tablet"}
               titulo="Montar um tablet"
-              texto="Só ponto, Nico + ponto ou só Nico: o login sai pronto"
+              texto="Só ponto, só Cozinha, só Bar ou só Nico: você escolhe a senha"
               icone="Tablet"
               trancado={tabletPago}
             />

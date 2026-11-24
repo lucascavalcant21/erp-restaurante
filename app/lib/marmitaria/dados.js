@@ -288,6 +288,13 @@ async function atualizarPrecoEmbalagemOnline({ id, marca, unidade_medida, preco_
   return { error: r?.error ? mensagemErro(r.error) : null };
 }
 
+/** Categoria do item do cadastro (dono, 24/11/2026). "" tira a categoria. */
+export async function atualizarCategoriaInsumo({ id, categoria }) {
+  if (!id) return { error: "Item sem identificação." };
+  const r = await salvarInsumo({ id, categoria: String(categoria || "").trim() || null }, { origem: "marmitaria" });
+  return { error: r?.error ? mensagemErro(r.error) : null };
+}
+
 /** Preço de um item numa plataforma. A unidade vem da sessão e a RLS confere. */
 async function salvarPrecoNoCanalOnline({ unidadeId, fichaId, canal, preco }) {
   if (!isSupabaseReady()) return { error: SEM_BANCO };

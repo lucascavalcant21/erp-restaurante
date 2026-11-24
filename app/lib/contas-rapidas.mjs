@@ -122,6 +122,33 @@ export function sugerirLogin(nome) {
   return partes.length === 1 ? partes[0] : `${partes[0]}.${partes.at(-1)}`;
 }
 
+// Login e senha a partir do nome do restaurante (dono, 24/11/2026): "o sistema cria um
+// login com base no nome do meu restaurante… e a senha também; eu posso usar ou editar".
+//   login: seldeestrela123, o próximo seldeestrela1234, depois seldeestrela12345…
+//   senha: Seldeestrela + 4 números sorteados (não a sequência: sequência qualquer um adivinha).
+
+/** "Sel de Estrela Ltda" → "seldeestrela" (sem acento, espaço nem símbolo). */
+export function baseDoRestaurante(nome) {
+  const b = String(nome || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+    .replace(/\b(ltda|me|eireli|epp|s\/?a)\b/g, " ").replace(/[^a-z0-9]/g, "");
+  return b.slice(0, 24) || "hefisto";
+}
+
+/** Primeiro login livre: base + 123, + 1234, + 12345… */
+export function loginDoRestaurante(nome, existentes = []) {
+  const base = baseDoRestaurante(nome);
+  const usados = new Set(existentes.map((l) => String(l || "").trim().toLowerCase()));
+  let sufixo = "123";
+  for (let proximo = 4; usados.has(`${base}${sufixo}`); proximo++) sufixo += String(proximo % 10);
+  return `${base}${sufixo}`;
+}
+
+/** "Seldeestrela" + 4 números sorteados. */
+export function senhaDoRestaurante(nome, aleatorio = (n) => crypto.getRandomValues(new Uint32Array(1))[0] % n) {
+  const base = baseDoRestaurante(nome);
+  return `${base.charAt(0).toUpperCase()}${base.slice(1)}${1000 + aleatorio(9000)}`;
+}
+
 /** Senha temporária sem letras parecidas (l/1, O/0), para ditar sem erro. */
 export function gerarSenhaTemporaria(aleatorio = (n) => crypto.getRandomValues(new Uint32Array(1))[0] % n) {
   const letras = "abcdefghjkmnpqrstuvwxyz23456789";

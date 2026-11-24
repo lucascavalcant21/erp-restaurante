@@ -207,3 +207,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 24/11/2026 | RH mais prático (folga de domingo, folga, doente, feriado, corrigir ponto) | Equipe › Ações rápidas (`/dashboard/rh/rapido`), PR #290. Jhon fazendo pelo chat: próxima etapa de [[HDEV-017]] |
 | 24/11/2026 | Início do dono pisca (uma tela e logo outra) | Painel abre no formato final enquanto carrega, PR #290 |
 | 24/11/2026 | Etiqueta pelo Nico: quem etiqueta → aberto/fechado → produtos → validade → imprime | EtiquetaGuiada no chat + prévia pronta na tela de Etiquetas, PR #291. NÃO VALIDADO no tablet |
+| 24/11/2026 | Jhon fazendo o RH pelo chat (dar folga, funcionário doente, feriado, corrigir ponto) | Ações `rh.dayOff`, `rh.sickLeave`, `rh.holiday` com prévia e Confirmar; "corrigir ponto" abre a correção já na pessoa e no dia. [[HDEV-017]] DONE. TESTADO LOCAL; gravação com login NÃO VALIDADA |

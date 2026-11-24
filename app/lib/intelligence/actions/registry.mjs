@@ -18,6 +18,7 @@ import { lerCardapioConcorrente } from "./ler-cardapio-concorrente.mjs";
 import { planejarProducao } from "./planejar-producao.mjs";
 import { organizarVitrine } from "./organizar-vitrine.mjs";
 import { cadastrarPlataformas, cadastrarCustosFixos, cadastrarFuncionarios } from "./cadastros-delivery.mjs";
+import { darFolga, lancarAtestado, lancarFeriado } from "./rh-rapido.mjs";
 
 export const RISCO = Object.freeze({ LOW: "LOW", MEDIUM: "MEDIUM", HIGH: "HIGH", CRITICAL: "CRITICAL" });
 
@@ -35,6 +36,9 @@ export const ACOES = Object.freeze({
   "channel.register": cadastrarPlataformas,
   "fixedcost.register": cadastrarCustosFixos,
   "employee.register": cadastrarFuncionarios,
+  "rh.dayOff": darFolga,
+  "rh.sickLeave": lancarAtestado,
+  "rh.holiday": lancarFeriado,
   "stock.transfer": indisponivel("stock.transfer", "Transferir entre estoques", "estoque", RISCO.MEDIUM, "Transferência pela conversa ainda não foi liberada. Use a tela de Estoque."),
   "stock.adjust": indisponivel("stock.adjust", "Ajustar estoque", "estoque", RISCO.HIGH, "Ajuste de estoque exige PIN do administrador na tela de Estoque."),
   "stock.adjustRetroactive": indisponivel("stock.adjustRetroactive", "Alterar estoque retroativamente", "estoque", RISCO.CRITICAL, "Alteração retroativa de estoque não é permitida pela conversa."),

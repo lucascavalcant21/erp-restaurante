@@ -17,6 +17,8 @@ import { dividirEmItens } from "./lote.mjs";
 import { paramsDoComando } from "../actions/criar-ficha.mjs";
 import { paramsDoComando as paramsDaMarmita } from "../actions/criar-marmita.mjs";
 import { PARAMS_DOS_CADASTROS } from "../actions/cadastros-delivery.mjs";
+import { PARAMS_DO_RH, linkCorrigirPonto } from "../actions/rh-rapido.mjs";
+import { ler } from "../context/db-escopado.mjs";
 import { menuDoAssunto } from "./assuntos.mjs";
 import { interpretarPorRegras } from "./interpretador-regras.mjs";
 import { responderLivre, FOCO_SALAO, FOCO_ROTINA, ehPedidoDeRotina } from "../agents/geral.mjs";
@@ -264,11 +266,21 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
         ? { tipo: "navegacao", texto: `Abrindo ${d.rotulo}.`, rota: d.rota }
         : { tipo: "bloqueado", texto: `Você não tem acesso a ${d.rotulo}.` };
       trilha.passar("acao", NIVEL.OBSERVAR);
+    } else if (intencao.id === "rh.corrigir_ponto") {
+      // corrigir ponto é na tela (motivo escrito, batida original guardada): o Jhon abre já na pessoa e no dia
+      const sessaoServidor = { gerenciado: true, super_admin: ic.usuario.superAdmin, permissions: [...(ic.permissoes || [])] };
+      if (!canAccessRoute(sessaoServidor, "/dashboard/rh/ponto/corrigir")) {
+        resposta = { tipo: "bloqueado", texto: "Só quem tem acesso ao RH corrige ponto." };
+      } else {
+        const equipe = (await ler(motor.ambiente.dbe.from("colaboradores").select("id, nome, status").order("nome").limit(500), "colaboradores")) || [];
+        resposta = { tipo: "resposta", ...linkCorrigirPonto(pedido.texto, equipe) };
+      }
+      trilha.passar("acao", NIVEL.OBSERVAR);
     } else if (intencao.tipo === "acao") {
       trilha.passar("recomendacao", NIVEL.RECOMENDAR);
       if (usaProduto && semProdutoDito && produtoCtx && !produtoCtx.ambiguo) params.insumoId = produtoCtx.id;
       if (intencao.acao === "stock.registerEntry") params.motivoEntrada = motivoDaEntrada(pedido.texto);
-      const paramsAcao = intencao.acao === "recipe.create" ? paramsDoComando(pedido.texto, conversa) : intencao.acao === "marmita.create" ? paramsDaMarmita(pedido.texto) : intencao.acao === "production.plan" ? { pedido: String(pedido.texto).slice(0, 500) } : PARAMS_DOS_CADASTROS[intencao.acao] ? PARAMS_DOS_CADASTROS[intencao.acao](pedido.texto) : params;
+      const paramsAcao = intencao.acao === "recipe.create" ? paramsDoComando(pedido.texto, conversa) : intencao.acao === "marmita.create" ? paramsDaMarmita(pedido.texto) : intencao.acao === "production.plan" ? { pedido: String(pedido.texto).slice(0, 500) } : PARAMS_DOS_CADASTROS[intencao.acao] ? PARAMS_DOS_CADASTROS[intencao.acao](pedido.texto) : PARAMS_DO_RH[intencao.acao] ? PARAMS_DO_RH[intencao.acao](pedido.texto) : params;
       resposta = await servicoAcoes.iniciar({ acaoId: intencao.acao, params: paramsAcao, comando: pedido.texto, chave: pedido.chave, correlationId });
       trilha.passar("acao", NIVEL.AGIR);
     } else {

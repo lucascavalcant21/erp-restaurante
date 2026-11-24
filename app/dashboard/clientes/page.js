@@ -380,7 +380,7 @@ export default function CRMPage() {
         </div>
 
         {/* NAVEGAÇÃO DE ABAS */}
-        <div className="max-w-6xl mx-auto mt-1 flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1">
+        <div className="max-w-6xl mx-auto mt-1 flex flex-wrap items-center gap-1 pb-1">
           {[
             { id: "visao", label: "Visão Geral", icon: TrendingUp },
             { id: "base", label: "Base de Clientes", icon: Users },

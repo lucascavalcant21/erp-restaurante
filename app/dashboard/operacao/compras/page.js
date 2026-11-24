@@ -338,7 +338,7 @@ export default function ComprasHubPage() {
       </div>
       <div className="px-4 sm:px-8">
         {/* NAVEGAÇÃO DE ABAS */}
-        <div className="max-w-7xl mx-auto mt-1 flex border-b border-hf-border gap-2 overflow-x-auto scrollbar-none">
+        <div className="max-w-7xl mx-auto mt-1 flex flex-wrap border-b border-hf-border gap-2">
           <button
             onClick={() => setAbaAtiva("necessidade")}
             className={`px-5 py-3 font-black text-sm rounded-t-2xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${

@@ -1026,13 +1026,13 @@ function IngredientesRunner() {
         </section>
 
         {/* No celular e tablet, os números viram uma linha de atalhos */}
-        <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:hidden">
+        <div className="flex flex-wrap gap-2 pb-1 lg:hidden">
           <button type="button" onClick={() => setBusca("")} className="min-h-[40px] shrink-0 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text"><b>{estatisticas.total}</b> {rotuloItens}</button>
           <button type="button" onClick={() => setOrdenacao("recentes")} className="min-h-[40px] shrink-0 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text-2"><b className="text-hf-warning">{estatisticas.semPreco}</b> sem preço recente</button>
           <button type="button" onClick={() => router.push(`/dashboard/operacao/estoque?dept=${deptUrl || "cozinha"}`)} className="min-h-[40px] shrink-0 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text-2"><b className={estatisticas.abaixoMinimo ? "text-hf-danger" : ""}>{estatisticas.abaixoMinimo}</b> abaixo do mínimo</button>
         </div>
         <section className="mt-3 flex flex-col gap-2 rounded-xl border border-line bg-card p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex flex-wrap gap-2">
             {["Todas", ...categorias].map(item => (
               <button
                 key={item}

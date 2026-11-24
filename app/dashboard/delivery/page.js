@@ -215,10 +215,10 @@ export default function DeliveryKanbanPage() {
       </div>
 
       {/* BOARD KANBAN */}
-      <div className="flex-1 flex overflow-x-auto p-6 gap-6 hide-scrollbar items-start">
+      <div className="flex-1 flex flex-col gap-4 p-3 md:flex-row md:items-start md:gap-6 md:overflow-x-auto md:p-6 hide-scrollbar">
          
          {/* COLUNA 1: COZINHA (Preparando) */}
-         <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
+         <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col md:max-h-full">
             <div className="flex items-center justify-between mb-4 px-2">
                <h2 className="font-black text-fg-soft uppercase tracking-widest text-sm flex items-center gap-2">
                   <Flame size={18} className="text-slate-900" /> Na Cozinha
@@ -243,7 +243,7 @@ export default function DeliveryKanbanPage() {
          </div>
 
          {/* COLUNA 2: RAMPA (Pronto / Esperando Despacho) */}
-         <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
+         <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col md:max-h-full">
             <div className="flex items-center justify-between mb-4 px-2">
                <h2 className="font-black text-slate-800 uppercase tracking-widest text-sm flex items-center gap-2">
                   <PackageOpen size={18} className="text-emerald-500" /> Na Rampa
@@ -270,7 +270,7 @@ export default function DeliveryKanbanPage() {
          </div>
 
          {/* COLUNA 3: EM ROTA */}
-         <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
+         <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col md:max-h-full">
             <div className="flex items-center justify-between mb-4 px-2">
                <h2 className="font-black text-fg-soft uppercase tracking-widest text-sm flex items-center gap-2">
                   <Route size={18} className="text-slate-900" /> Em Rota
@@ -299,7 +299,7 @@ export default function DeliveryKanbanPage() {
          </div>
 
          {/* COLUNA 4: ENTREGUES */}
-         <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
+         <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col md:max-h-full">
             <div className="flex items-center justify-between mb-4 px-2">
                <h2 className="font-black text-fg uppercase tracking-widest text-sm flex items-center gap-2">
                   <PackageCheck size={18} /> Entregues

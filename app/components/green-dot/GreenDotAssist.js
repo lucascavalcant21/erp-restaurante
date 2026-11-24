@@ -1448,7 +1448,7 @@ export default function GreenDotAssist({ modoInicial = "boas-vindas" }) {
         <footer className="bg-[#F0F2F5] border-t border-[#E3E1DB] shrink-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="max-w-3xl mx-auto">
             {/* Atalhos rápidos (rolam para o lado) */}
-            <div className="flex gap-2 overflow-x-auto gd-sem-barra px-2.5 pt-2 pb-1">
+            <div className="flex flex-wrap gap-2 px-2.5 pt-2 pb-1">
               {ATALHOS_RAPIDOS.map((a) => (
                 <button
                   key={a.rotulo}

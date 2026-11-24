@@ -127,7 +127,7 @@ export default function PainelCardapio({
                           {p.promocao ? <span className={s.precoPromo}>{p.promocao}</span> : null}
                         </td>
                         {CANAIS_CARDAPIO.map((c) => (
-                          <td key={c.id}>
+                          <td key={c.id} data-rotulo={ROTULO_COLUNA[c.id]}>
                             <label className={s.marcar}>
                               <input type="checkbox" checked={p.canais[c.id]} disabled={ocupado} aria-label={`${c.rotulo}: ${p.nome}`}
                                 onChange={(e) => onLigar?.(p.id, c.id, e.target.checked)} />
@@ -135,7 +135,7 @@ export default function PainelCardapio({
                             </label>
                           </td>
                         ))}
-                        <td>
+                        <td data-rotulo="Hoje">
                           <label className={`${s.marcar} ${s.esgotado} ${p.esgotado ? s.esgotadoSim : ""}`}>
                             <input type="checkbox" checked={p.esgotado} disabled={ocupado} aria-label={`Esgotado hoje: ${p.nome}`}
                               onChange={(e) => onEsgotado?.(p.id, e.target.checked)} />

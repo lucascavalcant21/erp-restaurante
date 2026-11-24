@@ -299,7 +299,7 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
 
       {/* 2. Área e local */}
       {!fixo && <div className="space-y-2">
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">
+        <div className="flex flex-wrap gap-1.5 pb-0.5">
           {areas.map((a) => (
             <button key={a.id} onClick={() => trocarArea(a.id)} aria-pressed={area === a.id}
               className={`h-10 shrink-0 rounded-xl border px-3.5 text-sm font-bold ${area === a.id ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border bg-hf-surface text-hf-text-2"}`}>

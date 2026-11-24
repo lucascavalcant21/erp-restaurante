@@ -171,7 +171,7 @@ export default function GestorOnlinePage() {
          </div>
 
          {/* KANBAN BOARD */}
-         <div className="flex-1 flex p-2 gap-2 overflow-x-auto snap-x snap-mandatory">
+         <div className="flex-1 flex flex-col gap-2 overflow-y-auto p-2 sm:flex-row sm:overflow-x-auto sm:snap-x sm:snap-mandatory">
             
             {(() => {
                const pedidosFiltrados = pedidos.filter(p => {
@@ -184,7 +184,7 @@ export default function GestorOnlinePage() {
                return (
                   <>
                      {/* COLUNA 1: NOVOS */}
-            <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+            <div className="flex-1 min-w-0 sm:min-w-[300px] lg:min-w-[280px] sm:snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
                <div className="bg-[#D12B2B] text-white p-2 text-center font-bold text-xs uppercase tracking-widest rounded-t">
                   Novos
                </div>
@@ -211,7 +211,7 @@ export default function GestorOnlinePage() {
             </div>
 
             {/* COLUNA 2: EM PREPARO */}
-            <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+            <div className="flex-1 min-w-0 sm:min-w-[300px] lg:min-w-[280px] sm:snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
                <div className="bg-[#F39C12] text-white p-2 text-center font-bold text-xs uppercase tracking-widest rounded-t">
                   Em Preparo
                </div>
@@ -234,7 +234,7 @@ export default function GestorOnlinePage() {
             </div>
 
             {/* COLUNA 3: PRONTOS */}
-            <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+            <div className="flex-1 min-w-0 sm:min-w-[300px] lg:min-w-[280px] sm:snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
                <div className="bg-[#27AE60] text-white p-2 text-center font-bold text-xs uppercase tracking-widest rounded-t">
                   Prontos p/ Despacho
                </div>
@@ -262,7 +262,7 @@ export default function GestorOnlinePage() {
             </div>
 
             {/* COLUNA 4: EM ROTA (SAIU) */}
-            <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+            <div className="flex-1 min-w-0 sm:min-w-[300px] lg:min-w-[280px] sm:snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
                <div className="bg-[#7F8C8D] text-white p-2 text-center font-bold text-xs uppercase tracking-widest rounded-t">
                   Em Rota (Saiu)
                </div>

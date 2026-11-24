@@ -367,7 +367,11 @@ function FichasRunner() {
   const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
   const abrirFicha = (f) => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); };
   // A ficha aberta fica no endereço (?ver=id): recarregar volta nela (dono, 24/11/2026).
+  // Só mexe no endereço depois da primeira carga: antes, este efeito apagava o
+  // ?ver= ao abrir a tela, e a carga não achava mais qual ficha reabrir.
+  const urlDaFichaPronta = useRef(false);
   useEffect(() => {
+    if (!urlDaFichaPronta.current) return;
     try {
       const url = new URL(window.location.href);
       if (fichaView?.id) url.searchParams.set("ver", fichaView.id); else url.searchParams.delete("ver");
@@ -730,8 +734,9 @@ function FichasRunner() {
     // voltou de um recarregamento com uma ficha aberta (?ver=id)
     try {
       const ver = new URLSearchParams(window.location.search).get("ver");
+      urlDaFichaPronta.current = true;
       if (ver && !silencioso) { const f = fichasComEmbalagens.find((x) => x.id === ver); if (f) abrirFicha(f); }
-    } catch { /* segue */ }
+    } catch { urlDaFichaPronta.current = true; }
     setInsumosAtivos(resInsumos.data || []);
     setProdutos(produtosCarregados);
     setMontagens(resMontagens.data || []);
@@ -2595,7 +2600,7 @@ function FichasRunner() {
               {podeEditarFichas && <button onClick={abrirOpcaoNovo} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20 hover:bg-accent"><Plus size={18} /> {modoFicha === "preparos" ? "Criar receita" : deptUrl === "bar" ? "Criar drink" : "Criar prato"}</button>}
             </div>
           </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+          <div className="mt-3 flex flex-wrap gap-2">
             {podeEditarFichas && <button onClick={abrirModalIAFicha} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text"><Sparkles size={14} /> Criar com IA</button>}
             <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text"><BarChart3 size={14} /> {mostrarIndicadores ? "Ocultar indicadores" : "Indicadores"}</button>
             {podeImprimirFichas && <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card"><Printer size={14} /> Livro de receitas</button>}
@@ -2746,7 +2751,7 @@ function FichasRunner() {
          </div>
 
          {/* Categorias numa linha de pílulas, como nas marmitas */}
-         <div className="mb-3 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+         <div className="mb-3 flex flex-wrap items-center gap-2">
            {(modoFicha === "preparos"
              ? [["Bases", "Todas", fichas.filter(f => !!f.eh_base).length]]
              : [["Pratos principais", "Todos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length]]
@@ -3152,18 +3157,24 @@ function FichasRunner() {
          const linhas = (f.fichas_ingredientes || []).map(fi => {
             const base = fi.subficha_id ? fichas.find(x => x.id === fi.subficha_id) : null;
             const nome = fi.insumos?.nome || base?.nome_receita || "Item";
-            const un = (fi.insumos?.unidade_medida || base?.rendimento_unidade || "un").toUpperCase();
+            // Unidade da LINHA (500 ml), não a do cadastro (L): antes a linha
+            // multiplicava 500 × R$ 2,00/L e mostrava R$ 1.000,00 num drink de
+            // R$ 2,00 (dono, 24/11/2026). O custo da linha agora sai da mesma
+            // conta da ficha (custoTotalDaFicha com só esta linha).
+            const un = (fi.unidade || fi.insumos?.unidade_medida || base?.rendimento_unidade || "un").toUpperCase();
+            const unCusto = (fi.insumos?.unidade_medida || base?.rendimento_unidade || "un").toUpperCase();
             const liquida = Number(fi.quantidade) || 0;
             const fc = fi.insumos ? fatorCorrecaoDoItem(fi.insumos, fi.fator_correcao) : (Number(fi.fator_correcao) || 0);
             const bruta = liquida * (1 + fc / 100);
-            const custoUnit = fi.insumos?.custo_unitario != null ? Number(fi.insumos.custo_unitario) : (base ? custoUnitBase(base, fichas) : 0);
-            return { nome, un, liquida, fc, bruta, custoUnit, custoTot: custoUnit * bruta, base: !!base };
+            const custoUnit = fi.insumos ? custoUnitEfetivo(fi.insumos) : (base ? custoUnitBase(base, fichas) : 0);
+            const custoTot = custoTotalDaFicha({ id: `__linha-${f.id}-${fi.id || nome}`, fichas_ingredientes: [fi] }, fichas);
+            return { nome, un, unCusto, liquida, fc, bruta, custoUnit, custoTot, base: !!base };
          });
          const nf = (n) => (+Number(n || 0).toFixed(3)).toLocaleString("pt-BR");
          const setorTxt = f.departamento === "bar" ? "Bar" : "Cozinha";
          const fechar = () => setFichaView(null);
          return (
-            <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-start justify-center p-0 sm:p-4 overflow-y-auto">
+            <div className="fixed inset-0 z-[55] bg-slate-900/50 backdrop-blur-sm flex items-start justify-center p-0 sm:p-4 overflow-y-auto overscroll-contain">
                <div className="erp-ficha bg-slate-50 w-full max-w-6xl min-h-full sm:min-h-0 sm:rounded-[28px] shadow-2xl flex flex-col animate-in fade-in zoom-in-95 sm:my-8 overflow-hidden">
                   {/* CABEÇALHO */}
                   <div className="bg-card border-b border-line-soft px-4 sm:px-6 py-4 flex flex-wrap items-center gap-3">
@@ -3239,8 +3250,40 @@ function FichasRunner() {
                         {!f.produto_pronto && (
                         <div className="order-1 bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                            <p className="text-2xs font-bold uppercase tracking-widest text-accent mb-3">Ingredientes / composição</p>
-                           <div className="overflow-x-auto">
-                              <table className="w-full text-sm min-w-[560px]">
+                           {/* Celular: tudo encaixado, sem arrastar para o lado (dono, 24/11/2026).
+                               Uma linha por ingrediente: nome e custo; embaixo quantidade, FC e preço. */}
+                           <div className="sm:hidden">
+                              {linhas.length === 0 && <p className="py-6 text-center text-sm font-medium text-subtle">Sem ingredientes cadastrados.</p>}
+                              {[
+                                { titulo: "Preparos e bases", itens: linhas.filter(l => l.base) },
+                                { titulo: "Ingredientes do prato", itens: linhas.filter(l => !l.base) },
+                              ].filter(g => g.itens.length > 0).map(grupo => (
+                                <div key={grupo.titulo}>
+                                  {linhas.some(l => l.base) && linhas.some(l => !l.base) && (
+                                    <p className="pt-3 pb-1 text-2xs font-bold uppercase tracking-widest text-accent">{grupo.titulo}</p>
+                                  )}
+                                  <ul className="divide-y divide-line">
+                                    {grupo.itens.map((l, i) => (
+                                      <li key={`${grupo.titulo}-${i}`} className="py-2.5">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <p className="min-w-0 text-[15px] font-bold leading-snug text-slate-800">
+                                            {l.nome}{l.base && <span className="ml-1.5 whitespace-nowrap rounded bg-emerald-100 px-1.5 py-0.5 align-middle text-3xs font-bold uppercase tracking-widest text-emerald-700">Preparo</span>}
+                                          </p>
+                                          {podeVerCustos && <span className="shrink-0 font-black tabular-nums text-slate-800">{fmtBRL(l.custoTot)}</span>}
+                                        </div>
+                                        <p className="mt-0.5 text-xs font-semibold tabular-nums text-fg">
+                                          {nf(l.bruta)} {String(l.un || "").toLowerCase()}
+                                          {l.fc ? ` · FC ${nf(l.fc)}% · líquido ${nf(l.liquida)}` : ""}
+                                          {podeVerCustos ? ` · ${fmtBRL(l.custoUnit)}/${String(l.unCusto || "").toLowerCase()}` : ""}
+                                        </p>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                           </div>
+                           <div className="hidden sm:block">
+                              <table className="w-full text-sm">
                                  <thead>
                                     <tr className="text-3xs font-bold uppercase tracking-wider text-subtle border-b border-line">
                                        <th className="text-left font-black py-2 pr-2">Ingrediente</th>
@@ -3277,7 +3320,7 @@ function FichasRunner() {
                                             <td className="py-3 px-1 text-right font-bold text-fg-soft">{nf(l.bruta)}</td>
                                             <td className="py-3 px-1 text-right font-bold text-fg">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
                                             <td className="py-3 px-1 text-right font-bold text-fg-soft">{nf(l.liquida)}</td>
-                                            {podeVerCustos && <td className="py-3 px-1 text-right font-bold text-slate-900">{fmtBRL(l.custoUnit)}</td>}
+                                            {podeVerCustos && <td className="py-3 px-1 text-right font-bold text-slate-900">{fmtBRL(l.custoUnit)}<span className="text-2xs font-semibold text-subtle">/{String(l.unCusto || "").toLowerCase()}</span></td>}
                                             {podeVerCustos && <td className="py-3 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>}
                                           </tr>
                                         ))}

@@ -376,6 +376,12 @@ body {
   div.fixed.inset-0[class*="items-center"] > div {
     max-height: calc(100dvh - var(--erp-safe-top, 3.5rem) - 1.5rem) !important;
   }
+  /* A ficha aberta é uma página inteira: quem rola é o fundo (overflow-y-auto),
+     não a janela. Com o limite de altura acima ela era cortada e a tela
+     "travava" sem subir nem descer (dono, 24/11/2026). */
+  div.fixed.inset-0 > div.erp-ficha {
+    max-height: none !important;
+  }
 
   /* Impede o zoom automático do iOS/Android ao tocar em campos de digitação (< 16px dá zoom forçado no Safari) */
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),

@@ -83,3 +83,13 @@ Formato: **B-NNN**, situação, onde foi visto, evidência da correção.
 | B-048 | "Algo quebrou nesta tela" (React #130) em Configurações › Usuários › Contas rápidas (Configurar o tablet): o perfil Salão usa o ícone ConciergeBell, que não estava no mapa de ícones da tela | Foto do dono, 24/11/2026 09:05 | Ícone no mapa + KeyRound como reserva + trava em `contas-rapidas.test.mjs`. Achado por varredura local das 94 rotas do menu (Playwright, dados simulados). TESTADO LOCAL | CORRIGIDO |
 | B-049 | Depois de entrar, o Início às vezes abria "Unidade Matriz / Escolha uma unidade no seletor do topo" sem seletor; só saía recarregando. E a página inicial pública ("/") aparecia para quem já estava logado, parecendo que o sistema tinha deslogado. Observação: `app.hefisto.com.br` e `erp-restaurante-sand.vercel.app` são endereços diferentes, cada um com o seu login no aparelho | Dono, 24/11/2026 09:06–09:15 | ERPContext relê sessão e unidades no SIGNED_IN do Supabase e tenta de novo (3x) se a lista de unidades vier vazia logo após o login; Início sem unidade ganhou o botão "Abrir a minha unidade"; "/" leva quem tem sessão guardada para o login (que leva à tela da pessoa). TESTADO LOCAL (build); NÃO VALIDADO no tablet | CORRIGIDO (falta confirmar no tablet) |
 | B-050 | A correção do B-049 (PR #300) relia sessão e unidades a cada aviso "SIGNED_IN" do Supabase, que também chega ao recuperar a sessão e ao voltar para a aba: risco de releitura repetida | Revisão própria, 24/11/2026 | Só relê quando o id do usuário muda (ref `idLidoRef`). TESTADO LOCAL (Início com dados simulados: 4 leituras de contexto em 40 s, sem laço) | CORRIGIDO |
+
+## B-051 · Ficha aberta travava a rolagem no celular (24/11/2026)
+- Causa: regra global do `globals.css` limita a altura do filho de `div.fixed.inset-0` com `justify-center`; a ficha (`.erp-ficha`, `overflow-hidden`) ficava cortada e o fundo não tinha o que rolar.
+- Solução: exceção `div.fixed.inset-0 > div.erp-ficha { max-height: none }` e a janela acima do cabeçalho (z-55, abaixo das janelas z-60 do simulador).
+- Junto: custo por linha da ficha multiplicava a quantidade na unidade da linha (ml) pelo preço da unidade do cadastro (L); agora usa a mesma conta da ficha.
+- Evidência: TESTADO LOCAL (Playwright 390 px, rolagem 0 → 600).
+
+## B-052 · ?ver= da ficha nunca reabria depois de recarregar (24/11/2026)
+- Causa: o efeito que grava a ficha aberta na URL apagava o `?ver=` na montagem, antes da carga ler.
+- Solução: só sincroniza a URL depois da primeira carga.

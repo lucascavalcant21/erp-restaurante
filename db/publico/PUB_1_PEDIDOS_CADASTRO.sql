@@ -1,4 +1,5 @@
-/* PUB-1: pedidos de cadastro da página inicial (21/11/2026, pedido do dono:
+/* STATUS: APLICADA no banco do restaurante (sezccspqxgklicfndwxx) em 24/11/2026 com o OK do dono (BLQ-024: um sistema só). No restaurante o admin semeado é o dono de lá (79d15633…), não o do staging.
+ PUB-1: pedidos de cadastro da página inicial (21/11/2026, pedido do dono:
    "página inicial do Héfisto ... botões de login e cadastre-se para a área
    escolhida"; decisão do dono: PEDIDO de cadastro, a conta continua sendo
    criada pelo administrador).

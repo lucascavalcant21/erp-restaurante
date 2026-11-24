@@ -1,4 +1,5 @@
-/* CONS-2: teleconsulta (21/11/2026, decisão do dono: vídeo pelo Whereby,
+/* STATUS: APLICADA no banco do restaurante (sezccspqxgklicfndwxx) em 24/11/2026 com o OK do dono (BLQ-024: um sistema só).
+ CONS-2: teleconsulta (21/11/2026, decisão do dono: vídeo pelo Whereby,
    guardando consentimento + registro, SEM gravar o vídeo).
 
    ADITIVA:

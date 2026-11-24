@@ -1,4 +1,5 @@
-/* CONS-3: portal do paciente (21/11/2026, pedido do dono: "conta do paciente
+/* STATUS: APLICADA no banco do restaurante (sezccspqxgklicfndwxx) em 24/11/2026 com o OK do dono (BLQ-024: um sistema só).
+ CONS-3: portal do paciente (21/11/2026, pedido do dono: "conta do paciente
    com login e senha gerados pelo médico, onde ele marca nova consulta e vê as
    informações e o vídeo").
 

@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    CONC-1 · CARDÁPIOS DE DELIVERY DOS CONCORRENTES (lidos pelo Jhon)
 
-   STATUS: ESCRITA, NÃO APLICADA. É do SISTEMA DE TESTE (branch hefisto-teste,
+   STATUS: APLICADA no banco do restaurante (sezccspqxgklicfndwxx) em 24/11/2026 com o OK do dono (BLQ-024: um sistema só). Antes: ESCRITA, NÃO APLICADA. É do SISTEMA DE TESTE (branch hefisto-teste,
    banco hefisto-staging): o banco do restaurante não recebe. Aplicar só com a
    aprovação do dono (APR-029).
 

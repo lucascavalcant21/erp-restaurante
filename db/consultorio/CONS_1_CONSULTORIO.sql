@@ -1,4 +1,5 @@
-/* CONS-1: consultório médico (21/11/2026, decisão do dono: "vamos implementar
+/* STATUS: APLICADA no banco do restaurante (sezccspqxgklicfndwxx) em 24/11/2026 com o OK do dono (BLQ-024: um sistema só).
+ CONS-1: consultório médico (21/11/2026, decisão do dono: "vamos implementar
    no app"; consultório como unidade própria na mesma conta, como o Delivery).
 
    ADITIVA: cria a unidade "consultorio" (vazia) na mesma empresa do Delivery e

@@ -120,3 +120,14 @@ test("tipo de acesso de todo modelo é aceito pelo banco (usuarios_erp_tipo_aces
   const aceitos = ["administrador", "gerente", "supervisor", "funcionario", "personalizado", "setor", "consulta", "terminal_ponto"];
   for (const c of CONTAS_RAPIDAS) assert.ok(aceitos.includes(c.tipoAcesso || "funcionario"), `${c.id}: ${c.tipoAcesso}`);
 });
+
+test("login e senha pelo nome do restaurante (24/11/2026)", async () => {
+  const { baseDoRestaurante, loginDoRestaurante, senhaDoRestaurante } = await import("./contas-rapidas.mjs");
+  assert.equal(baseDoRestaurante("Seldeestrela comidas nortistas LTDA"), "seldeestrelacomidasnorti");
+  assert.equal(baseDoRestaurante("Sel de Estrela"), "seldeestrela");
+  assert.equal(loginDoRestaurante("Seldeestrela"), "seldeestrela123");
+  assert.equal(loginDoRestaurante("Seldeestrela", ["seldeestrela123"]), "seldeestrela1234");
+  assert.equal(loginDoRestaurante("Seldeestrela", ["SELDEESTRELA123", "seldeestrela1234"]), "seldeestrela12345");
+  assert.equal(senhaDoRestaurante("Seldeestrela", () => 4827), "Seldeestrela5827");
+  assert.ok(senhaDoRestaurante("Seldeestrela").length >= 8);
+});

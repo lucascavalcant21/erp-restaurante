@@ -6,6 +6,7 @@ import {
   Pencil, Plus, Search, ShieldCheck, Trash2, UserRound, X, Zap,
 } from "lucide-react";
 import ContaRapida from "../../../components/access-control/ContaRapida";
+import { useERP } from "../../../context/ERPContext";
 import PermissionBuilder from "../../../components/access-control/PermissionBuilder";
 import { accessCommand, avatarInitials, fetchAccessBootstrap, formatLastAccess } from "../../../lib/access-control";
 import { allPermissionKeys, permissionMatches } from "../../../lib/permissions-catalog.mjs";
@@ -50,6 +51,7 @@ function Status({ value }) {
 }
 
 export default function UsuariosAcessosPage() {
+  const { unidadeInfo, unidades } = useERP();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -238,7 +240,9 @@ export default function UsuariosAcessosPage() {
         {!users.length && <div className="p-12 text-center text-sm font-bold text-subtle">Nenhum usuário encontrado.</div>}
       </div>
 
-      {modal==="rapida" && <ContaRapida modeloInicial={modeloInicial} onFechar={()=>setModal(null)} onCriada={load}/>}
+      {modal==="rapida" && <ContaRapida modeloInicial={modeloInicial} onFechar={()=>setModal(null)} onCriada={load}
+        nomeRestaurante={unidadeInfo?.nome_fantasia || (unidades||[]).find((u)=>u.nome_fantasia)?.nome_fantasia || unidadeInfo?.nome || ""}
+        loginsExistentes={(data?.users||[]).map((u)=>u.login)}/>}
 
       {modal==="form" && <Modal title={form.id?"Editar usuário":"Novo usuário"} subtitle="Dados pessoais, vínculo, escopo e políticas de segurança." onClose={()=>setModal(null)}>
         <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">

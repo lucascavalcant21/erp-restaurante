@@ -3,36 +3,36 @@
 import { useState } from "react";
 import { Check, ChefHat, Clock, Copy, KeyRound, Loader2, Martini, Minus, Sparkles, Wine, X } from "lucide-react";
 import { accessCommand } from "../../lib/access-control";
-import { CONTAS_RAPIDAS, contaRapidaPorId, gerarSenhaTemporaria, sugerirLogin } from "../../lib/contas-rapidas.mjs";
+import { CONTAS_RAPIDAS, contaRapidaPorId, loginDoRestaurante, senhaDoRestaurante } from "../../lib/contas-rapidas.mjs";
 
 const ICONES = { ChefHat, Clock, Martini, Sparkles, Wine };
 const CAMPO = "min-h-11 w-full rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent";
 
 /** Criar um acesso em três passos: função, nome e senha. */
-export default function ContaRapida({ onFechar, onCriada, modeloInicial = null }) {
+// Login e senha já vêm prontos pelo nome do restaurante (dono, 24/11/2026); dá para editar os dois.
+export default function ContaRapida({ onFechar, onCriada, modeloInicial = null, nomeRestaurante = "", loginsExistentes = [] }) {
   const [modeloId, setModeloId] = useState(contaRapidaPorId(modeloInicial)?.id || CONTAS_RAPIDAS[0].id);
+  const [usados, setUsados] = useState(loginsExistentes);
   const [nome, setNome] = useState("");
-  const [login, setLogin] = useState("");
-  const [loginEditado, setLoginEditado] = useState(false);
-  const [senha, setSenha] = useState(() => gerarSenhaTemporaria());
+  const [login, setLogin] = useState(() => loginDoRestaurante(nomeRestaurante, loginsExistentes));
+  const [senha, setSenha] = useState(() => senhaDoRestaurante(nomeRestaurante));
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [criada, setCriada] = useState(null);
   const [copiado, setCopiado] = useState(false);
   const modelo = contaRapidaPorId(modeloId);
 
-  const mudarNome = (valor) => {
-    setNome(valor);
-    if (!loginEditado) setLogin(sugerirLogin(valor));
-  };
+  const mudarNome = (valor) => setNome(valor);
 
   const criar = async () => {
-    if (!nome.trim() || !login.trim()) return setErro("Informe o nome e o login.");
+    const nomeFinal = nome.trim() || modelo.nome;
+    if (!login.trim()) return setErro("Informe o login.");
     if (senha.length < 8) return setErro("A senha precisa ter ao menos 8 caracteres.");
     setSalvando(true); setErro("");
     try {
-      await accessCommand("create-quick-account", { modelo: modeloId, nome, login, password: senha });
-      setCriada({ nome, login: login.trim().toLowerCase(), senha, funcao: modelo.nome, trocar: modelo.trocarSenha !== false });
+      await accessCommand("create-quick-account", { modelo: modeloId, nome: nomeFinal, login, password: senha });
+      setCriada({ nome: nomeFinal, login: login.trim().toLowerCase(), senha, funcao: modelo.nome, trocar: modelo.trocarSenha !== false });
+      setUsados((u) => [...u, login.trim().toLowerCase()]);
       onCriada?.();
     } catch (e) { setErro(e.message || "Não foi possível criar a conta."); }
     setSalvando(false);
@@ -46,8 +46,9 @@ export default function ContaRapida({ onFechar, onCriada, modeloInicial = null }
   };
 
   const novaConta = () => {
-    setCriada(null); setNome(""); setLogin(""); setLoginEditado(false); setCopiado(false);
-    setSenha(gerarSenhaTemporaria());
+    setCriada(null); setNome(""); setCopiado(false);
+    setLogin(loginDoRestaurante(nomeRestaurante, usados));
+    setSenha(senhaDoRestaurante(nomeRestaurante));
   };
 
   return (
@@ -106,15 +107,15 @@ export default function ContaRapida({ onFechar, onCriada, modeloInicial = null }
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-bold text-hf-text-2">Nome
-                  <input value={nome} onChange={(e) => mudarNome(e.target.value)} autoComplete="off" className={`${CAMPO} mt-1`} />
+                  <input value={nome} onChange={(e) => mudarNome(e.target.value)} placeholder={modelo.nome} autoComplete="off" className={`${CAMPO} mt-1`} />
                 </label>
                 <label className="block text-sm font-bold text-hf-text-2">Login
-                  <input value={login} onChange={(e) => { setLogin(e.target.value); setLoginEditado(true); }} autoCapitalize="none" autoComplete="off" className={`${CAMPO} mt-1`} />
+                  <input value={login} onChange={(e) => setLogin(e.target.value)} autoCapitalize="none" autoComplete="off" className={`${CAMPO} mt-1`} />
                 </label>
-                <label className="block text-sm font-bold text-hf-text-2 sm:col-span-2">Senha temporária
+                <label className="block text-sm font-bold text-hf-text-2 sm:col-span-2">Senha (pode trocar)
                   <span className="mt-1 flex gap-2">
                     <input value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="off" className={`${CAMPO} font-mono`} />
-                    <button type="button" onClick={() => setSenha(gerarSenhaTemporaria())} aria-label="Gerar outra senha" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hf-border text-hf-text"><KeyRound size={18} aria-hidden="true" /></button>
+                    <button type="button" onClick={() => setSenha(senhaDoRestaurante(nomeRestaurante))} aria-label="Gerar outra senha" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hf-border text-hf-text"><KeyRound size={18} aria-hidden="true" /></button>
                   </span>
                 </label>
               </div>

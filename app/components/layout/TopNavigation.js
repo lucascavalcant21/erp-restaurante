@@ -116,10 +116,12 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
               <Link href="/dashboard/notificacoes" aria-label="Notificações" className="grid h-12 w-12 place-items-center rounded-full text-mw-marinho hover:bg-mw-bg">
                 <Bell size={26} strokeWidth={1.6} aria-hidden="true" />
               </Link>
+              {/* Um menu só (dono, 24/11/2026: "fica aparecendo 2 menus laterais"): as três
+                  linhas abrem o mesmo Menu da aba de baixo, não a gaveta escura antiga. */}
               {!comBarraInferior && (
-                <button type="button" onClick={() => setMobileDrawerOpen(true)} aria-label="Abrir menu" className="grid h-12 w-12 place-items-center rounded-full text-mw-marinho shadow-none hover:bg-mw-bg">
+                <Link href="/dashboard/menu" aria-label="Abrir menu" className="grid h-12 w-12 place-items-center rounded-full text-mw-marinho shadow-none hover:bg-mw-bg">
                   <Menu size={26} strokeWidth={1.6} aria-hidden="true" />
-                </button>
+                </Link>
               )}
             </div>
           </div>

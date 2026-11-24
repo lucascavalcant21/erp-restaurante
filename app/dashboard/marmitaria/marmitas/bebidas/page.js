@@ -13,6 +13,7 @@ import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, brl, inputCls, lerNume
 import { criarBebida } from "../../../../lib/marmitaria/dados";
 import { custoUnitarioEfetivoInsumo } from "../../../../lib/ficha-calculos.mjs";
 import { casaBusca } from "../../../../lib/busca.mjs";
+import { ListaPorCategoria, TrocarCategoria } from "../../../../components/cadastro/CategoriaDoItem";
 
 const ehBebida = (i) => String(i?.departamento || "").toLowerCase() === "bebidas";
 
@@ -58,7 +59,7 @@ function NovaBebida({ onFechar }) {
 }
 
 export default function BebidasPage() {
-  const { base, carregando } = useMarmitaria();
+  const { base, carregando, recarregar } = useMarmitaria();
   const [nova, setNova] = useState(false);
   const [busca, setBusca] = useState("");
 
@@ -88,8 +89,7 @@ export default function BebidasPage() {
         {!lista.length ? (
           <p className="text-sm text-hf-text-2">{busca ? "Nada encontrado." : "Nenhuma bebida ainda. Toque em \"Nova bebida\"."}</p>
         ) : (
-          <ul className="divide-y divide-hf-border">
-            {lista.map((i) => {
+          <ListaPorCategoria itens={lista} renderItem={(i) => {
               const custo = custoUnitarioEfetivoInsumo(i);
               const saldo = saldoDe(i.id);
               const venda = vendaDe(i.id);
@@ -101,6 +101,7 @@ export default function BebidasPage() {
                     <p className="break-words text-sm font-bold text-hf-text">{i.nome}</p>
                     {i.marca && <p className="text-xs text-hf-text-2">Marca: {i.marca}</p>}
                     <p className="text-xs text-hf-muted">Em estoque: {saldo === null ? "não conferido" : `${num(saldo)} un`} · {temPreco ? "com preço de venda" : venda ? "sem preço de venda" : "sem item de venda"}</p>
+                    <TrocarCategoria item={i} todos={lista} tipo="bebida" onSalvo={recarregar} />
                   </div>
                   <div className="shrink-0 text-right">
                     <p className={`text-sm font-black tabular-nums ${custo > 0 ? "text-hf-text" : "text-hf-warning"}`}>{custo > 0 ? brl(custo) : "Sem valor"}</p>
@@ -108,8 +109,7 @@ export default function BebidasPage() {
                   </div>
                 </li>
               );
-            })}
-          </ul>
+            }} />
         )}
       </Secao>
       {lista.length > 0 && (

@@ -242,9 +242,17 @@ export default function PontoPage() {
   // sem ele, fica a lista por área de antes.
   const tabletCompartilhado = ["terminal_ponto", "setor"].includes(sessao?.tipo_acesso);
   const [modoPin, setModoPin] = useState(false);
+  // Quem já tem PIN entra pelo PIN; quem ainda não tem toca no próprio nome
+  // (23/11/2026: na troca para o sistema novo ninguém tem PIN ainda, e o
+  // ponto não pode parar). Sem nenhum PIN na unidade, fica a lista de antes.
+  const [idsComPin, setIdsComPin] = useState(() => new Set());
   useEffect(() => {
     if (!tabletCompartilhado || !unidadeAtiva) { setModoPin(false); return; }
-    clientePin.rpc("hefisto_tem_pin", { p_unidade: unidadeAtiva }).then(({ error }) => setModoPin(!error));
+    clientePin.rpc("hefisto_tem_pin", { p_unidade: unidadeAtiva }).then(({ data, error }) => {
+      const ids = new Set(error ? [] : (data || []).map((x) => (typeof x === "string" ? x : Object.values(x)[0])));
+      setIdsComPin(ids);
+      setModoPin(!error && ids.size > 0);
+    });
   }, [tabletCompartilhado, unidadeAtiva]);
   const router = useRouter();
 
@@ -1185,10 +1193,23 @@ export default function PontoPage() {
             próprio setor e acha o nome na lista mais rápido do que digitaria —
             ainda mais com a mão ocupada ou molhada. */}
         {modoPin ? (
-          <TecladoPin
-            unidadeId={unidadeAtiva}
-            onAchou={(id) => { const c = colaboradores.find((x) => x.id === id); if (c) abrirFuncionario(c); }}
-          />
+          <>
+            <TecladoPin
+              unidadeId={unidadeAtiva}
+              onAchou={(id) => { const c = colaboradores.find((x) => x.id === id); if (c) abrirFuncionario(c); }}
+            />
+            {colaboradores.some((c) => !idsComPin.has(c.id)) && (
+              <div className="mx-auto mt-6 w-full max-w-xl">
+                <p className="mb-2 text-center text-sm font-bold text-hf-text-2">Ainda não tem PIN? Toque no seu nome</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {colaboradores.filter((c) => !idsComPin.has(c.id)).sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map((c) => (
+                    <button key={c.id} type="button" onClick={() => abrirFuncionario(c)}
+                      className="min-h-[48px] rounded-full border border-hf-border bg-hf-surface px-4 text-[15px] font-bold text-hf-text">{c.nome}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         ) : !areaAtiva ? (
           // As três áreas dividem o espaço que sobra da tela: no celular, uma
           // embaixo da outra (celular e tablet em pé); tablet deitado, lado a lado.

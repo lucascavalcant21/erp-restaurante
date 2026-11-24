@@ -57,6 +57,8 @@ export default function TelaEstoque({ inicial = {} }) {
   const [erro, setErro] = useState("");
   const [busca, setBusca] = useState("");
   const [area, setArea] = useState(AREAS.some(([id]) => id === inicial.area) ? inicial.area : "todas");
+  // Aberto pelo módulo da Cozinha ou do Bar: só a área dele, sem os outros filtros (dono, 24/11/2026).
+  const areaTravada = inicial.area === "cozinha" || inicial.area === "bar";
   // Grupos (Hortifrúti, Carne vermelha, Suína… / Cervejas, Destilados…), pedido do dono, 30/10/2026.
   const [grupo, setGrupo] = useState("todos");
   useEffect(() => { setGrupo("todos"); }, [area]);
@@ -210,7 +212,7 @@ export default function TelaEstoque({ inicial = {} }) {
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto, categoria ou local…" className="h-12 w-full rounded-2xl border border-zinc-300 bg-zinc-100 pl-10 pr-10 font-semibold text-hf-text placeholder:text-zinc-500 focus:bg-hf-surface" />
             {busca ? <button onClick={() => setBusca("")} aria-label="Limpar busca" className="absolute right-3 top-1/2 -translate-y-1/2"><X size={18} /></button> : null}
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+          <div className={`flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] ${areaTravada ? "hidden" : ""}`}>
             {AREAS.map(([id, rot]) => <button key={id} onClick={() => setArea(id)} aria-pressed={area === id} className={`h-9 shrink-0 rounded-full border px-3 text-sm font-bold ${area === id ? "border-hf-accent bg-hf-accent text-white" : "border-hf-border bg-hf-surface text-hf-text"}`}>{rot}</button>)}
           </div>
           {["todas", "cozinha", "bar"].includes(area) && (

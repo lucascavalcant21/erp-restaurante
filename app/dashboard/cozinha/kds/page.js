@@ -38,10 +38,13 @@ export default function KDSPage() {
   const [erro, setErro] = useState("");
   // Setor da tela (cozinha, bar ou tudo); lembrado neste aparelho.
   const [setor, setSetor] = useState("cozinha");
+  // Aberto pelo módulo (?setor=cozinha ou bar): só aquele setor, sem abas (dono, 24/11/2026).
+  const [setorTravado, setSetorTravado] = useState(false);
   useEffect(() => {
     // O card do Bar abre com ?setor=bar; sem isso, vale o último setor deste aparelho.
     try {
       const daUrl = new URLSearchParams(window.location.search).get("setor");
+      if (daUrl === "cozinha" || daUrl === "bar") setSetorTravado(true);
       const s = daUrl || localStorage.getItem("kds-setor");
       if (["cozinha", "bar", "todos"].includes(s)) setSetor(s);
     } catch { /* segue */ }
@@ -152,7 +155,7 @@ export default function KDSPage() {
                   <span className="truncate">{unidadeInfo.nome}{atualizadoEm ? ` · atualizado ${horaStr(atualizadoEm)}` : ""}</span>
                </p>
             </div>
-            <div className="hidden lg:block"><AbasDeSetor setor={setor} escolher={escolherSetor} contagem={contagem} /></div>
+            {!setorTravado && <div className="hidden lg:block"><AbasDeSetor setor={setor} escolher={escolherSetor} contagem={contagem} /></div>}
             <button onClick={() => setSomAtivo(!somAtivo)} aria-label={somAtivo ? "Som ligado: tocar para desligar" : "Som desligado: tocar para ligar"} aria-pressed={somAtivo}
                className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border ${somAtivo ? "border-hf-border bg-hf-surface text-hf-text" : "border-hf-border bg-hf-elevated text-hf-muted"}`}>
                {somAtivo ? <Volume2 size={20} /> : <VolumeX size={20} />}
@@ -167,7 +170,7 @@ export default function KDSPage() {
                <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
             </button>
          </div>
-         <div className="mt-2 lg:hidden"><AbasDeSetor setor={setor} escolher={escolherSetor} contagem={contagem} /></div>
+         {!setorTravado && <div className="mt-2 lg:hidden"><AbasDeSetor setor={setor} escolher={escolherSetor} contagem={contagem} /></div>}
       </div>
 
       {/* ÁREA DOS TICKETS */}

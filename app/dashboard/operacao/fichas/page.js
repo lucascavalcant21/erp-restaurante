@@ -1,4 +1,6 @@
 "use client";
+import ExcluirEmUso from "../../../components/cadastro/ExcluirEmUso";
+import { nomeRepetido } from "../../../lib/nomes-unicos.mjs";
 import IconeModulo from "../../../components/ui/IconeModulo";
 
 function comprimirFotoParaIA(file, maxDim = 1000, qualidade = 0.70) {
@@ -32,6 +34,7 @@ import { supabase as clienteSupabaseLimite } from "../../../lib/supabase";
 import { useERP } from "../../../context/ERPContext";
 import {
   atualizarCategoriaFicha, atualizarOrdemFicha, excluirFichasLote, fetchFichas, fetchInsumos,
+  usosEmFichas, tirarDasFichas, trocarNasFichas,
   inativarFichasLote, registrarAuditoriaFichas, salvarFicha, salvarInsumo,
 } from "../../../lib/operacao";
 import { fetchEstoques, vincularItemEstoque } from "../../../lib/estoques-multiplos";
@@ -1353,6 +1356,13 @@ function FichasRunner() {
     if (!podeEditarFichas) return;
     if (salvandoFicha) return;
     if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
+    {
+      // Sem dois pratos, drinks ou bases com o mesmo nome no setor (dono, 24/11/2026)
+      const original = form.id ? fichas.find((f) => f.id === form.id)?.nome_receita : null;
+      const mesmoSetor = fichas.filter((f) => f.ativo !== false && (f.departamento || "cozinha") === (form.departamento || "cozinha"));
+      const igual = nomeRepetido(form.nome_receita, mesmoSetor, { idAtual: form.id || null, nomeOriginal: original, campo: "nome_receita" });
+      if (igual) return alert(`Já existe "${igual.nome_receita}". Use outro nome ou edite a ficha que já existe.`);
+    }
     if(!form.rendimento_porcoes) return alert("Digite o rendimento");
     const unidadeRendimento = unidadePadraoDepartamento(form.departamento);
     const precoVendaNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
@@ -1589,9 +1599,20 @@ function FichasRunner() {
 
   const limparSelecaoLote = () => setSelecionadas([]);
 
-  const excluirImediatamente = async (lista = fichasSelecionadas) => {
+  // Base usada em outras fichas: pergunta antes (tirar de todas ou trocar) (dono, 24/11/2026)
+  const [emUso, setEmUso] = useState(null);
+  const excluirImediatamente = async (lista = fichasSelecionadas, jaConferido = false) => {
     if (!podeEditarFichas) return;
     if (!lista.length) return;
+    if (!jaConferido) {
+      const ids = lista.map((f) => f.id);
+      const { porId, error } = await usosEmFichas("subficha_id", ids);
+      if (!error) {
+        // uso dentro do próprio lote não conta (as duas saem juntas)
+        const usos = Object.fromEntries(Object.entries(porId).map(([id, us]) => [id, us.filter((u) => !ids.includes(u.ficha_id))]));
+        if (Object.values(usos).some((us) => us.length)) { setEmUso({ lista, usos }); return; }
+      }
+    }
     setProcessandoLote(true);
     setMensagemLote("");
     setErroLote("");
@@ -2505,24 +2526,34 @@ function FichasRunner() {
               <IconeModulo item={{ icone: deptUrl === "bar" ? "Martini" : "BookOpen" }} />
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-[22px] font-semibold tracking-tight text-hf-text sm:text-[26px]">Fichas técnicas</h1>
-                <div className="flex items-center gap-1 rounded-full bg-hf-elevated p-1 border border-hf-border" role="group" aria-label="Setor">
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/operacao/fichas?dept=cozinha")}
-                    aria-pressed={deptUrl !== "bar"}
-                    className={`min-h-[36px] px-3.5 text-sm font-semibold rounded-full shadow-none transition-all ${deptUrl !== "bar" ? "bg-hf-menu text-white" : "text-hf-text-2 hover:text-hf-text"}`}
-                  >
-                    👨‍🍳 Cozinha
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/operacao/fichas?dept=bar")}
-                    aria-pressed={deptUrl === "bar"}
-                    className={`min-h-[36px] px-3.5 text-sm font-semibold rounded-full shadow-none transition-all ${deptUrl === "bar" ? "bg-hf-menu text-white" : "text-hf-text-2 hover:text-hf-text"}`}
-                  >
-                    🍹 Bar
-                  </button>
-                </div>
+                {/* Sem troca Cozinha/Bar aqui: cada módulo mostra só o seu (dono, 24/11/2026). */}
+                {emUso && (
+                  <ExcluirEmUso
+                    itens={emUso.lista.map((f) => ({ id: f.id, nome: f.nome_receita }))}
+                    usos={emUso.usos}
+                    rotulo="base"
+                    opcoesTroca={fichas.filter((f) => f.eh_base && f.ativo !== false && f.departamento === emUso.lista[0]?.departamento)
+                      .map((f) => ({ id: f.id, nome: f.nome_receita, detalhe: f.rendimento_unidade || "" }))}
+                    onFechar={() => setEmUso(null)}
+                    onExcluir={async () => {
+                      const r = await tirarDasFichas("subficha_id", emUso.lista.map((f) => f.id));
+                      if (r.error) return r;
+                      const lista = emUso.lista; setEmUso(null);
+                      await excluirImediatamente(lista, true);
+                      setMensagemLote(`Tirada de ${Object.values(emUso.usos).flat().length} ficha(s) e excluída.`);
+                      return null;
+                    }}
+                    onTrocar={async (paraId) => {
+                      const r = await trocarNasFichas("subficha_id", emUso.lista[0].id, paraId);
+                      if (r.error) return r;
+                      const lista = emUso.lista; setEmUso(null);
+                      await excluirImediatamente(lista, true);
+                      const nova = fichas.find((f) => f.id === paraId)?.nome_receita || "a outra base";
+                      setMensagemLote(`Trocada por ${nova} em ${r.quantidade} linha(s) de ficha e excluída.`);
+                      return null;
+                    }}
+                  />
+                )}
               </div>
             </div>
             <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">

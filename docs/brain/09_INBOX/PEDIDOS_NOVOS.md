@@ -224,3 +224,7 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 24/11/2026 | Janta: só ficha de produção (trazer do restaurante, marmitas, eventos ou criar), itens com gramas por pessoa, rendimento cru → cozido, recalcular pela quantidade do dia | A FAZER (próximo) |
 | 24/11/2026 | Estoque: dividir em pacotes (100 un de frango empanado em 5 pacotes de 20; 1 kg de lemon pepper em 10 pacotes de 100 g) | A FAZER |
 
+| 24/11/2026 | Cozinha só cozinha, Bar só bar (sem troca Cozinha/Bar dentro do módulo) | FEITO: fichas, KDS, etiquetas e estoque abertos pelo módulo não mostram o outro setor (ingredientes seguem compartilhados) |
+| 24/11/2026 | Sem nomes repetidos (bases, ingredientes, pratos, drinks) | FEITO no salvar (fichas por setor, ingredientes por setor). Repetidos antigos continuam até o dono limpar: 3 fichas e 13 ingredientes no Seldeestrela (lista no chat). Trava no banco só depois da limpeza |
+| 24/11/2026 | Excluir base/ingrediente em uso: perguntar "tirar de todas as fichas" ou "trocar por outro", listando as fichas | FEITO (fichas e ingredientes) |
+| 24/11/2026 | % de cada ingrediente no peso da receita, entre parênteses | FEITO (composição da ficha + "Peso da receita (100%)") |

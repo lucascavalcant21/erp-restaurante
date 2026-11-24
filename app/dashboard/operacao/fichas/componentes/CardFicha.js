@@ -6,6 +6,7 @@
 // Nenhuma conta mora aqui: tudo vem pronto em `resumo`, montado por
 // resumoFinanceiroDaFicha (app/lib/ficha-financeiro.mjs). O card só desenha.
 
+import { percentuaisDePeso, textoPct, textoPeso } from "../../../../lib/ficha-percentual.mjs";
 import { useEffect, useState } from "react";
 import { ChevronDown, UtensilsCrossed } from "lucide-react";
 import { fmtBRL } from "../../../../components/ui";
@@ -369,6 +370,8 @@ function ComposicaoPreco({ c }) {
 function ComposicaoCusto({ resumo, comCusto }) {
   const linhas = resumo.linhas;
   const preco = resumo.preco;
+  // % de cada ingrediente no peso da receita, entre parênteses (dono, 24/11/2026)
+  const peso = percentuaisDePeso(linhas);
   return (
     <section className="min-w-0">
       <Titulo>Composição do custo da ficha</Titulo>
@@ -376,13 +379,13 @@ function ComposicaoCusto({ resumo, comCusto }) {
         <p className="rounded-xl border border-line px-3 py-3 text-xs font-semibold text-fg-soft">Ficha sem ingredientes.</p>
       ) : (
         <div className="overflow-hidden rounded-xl border border-line">
-          <div className="hidden grid-cols-[minmax(0,1fr)_80px_92px_118px] gap-2 bg-surface px-3 py-2 text-3xs font-bold uppercase tracking-wider text-subtle sm:grid">
+          <div className="hidden grid-cols-[minmax(0,1fr)_118px_92px_118px] gap-2 bg-surface px-3 py-2 text-3xs font-bold uppercase tracking-wider text-subtle sm:grid">
             <span>Ingrediente</span><span className="text-right">Quantidade</span>
             {comCusto ? <><span className="text-right">Custo unit.</span><span className="text-right">Na ficha · % venda</span></> : <><span /><span /></>}
           </div>
           <ul className="divide-y divide-[color:var(--line-soft)]">
             {linhas.map((l, i) => (
-              <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_80px_92px_118px] sm:items-baseline">
+              <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_118px_92px_118px] sm:items-baseline">
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold text-fg">
                     {l.nome}
@@ -400,6 +403,7 @@ function ComposicaoCusto({ resumo, comCusto }) {
                 </div>
                 <span className="text-right text-xs font-semibold tabular-nums text-fg-soft">
                   {l.tipo === "embalagem" ? "—" : fmtQtd(l.quantidade, l.unidade)}
+                  {peso.pcts[i] != null && <span className="ml-1 font-bold text-fg">{textoPct(peso.pcts[i])}</span>}
                 </span>
                 {comCusto ? (
                   <>
@@ -414,6 +418,18 @@ function ComposicaoCusto({ resumo, comCusto }) {
               </li>
             ))}
           </ul>
+          {peso.totalG > 0 && (
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 border-t border-line px-3 py-2">
+              <span className="text-2xs font-black uppercase tracking-wider text-fg-soft">Peso da receita (100%)</span>
+              <span className="ml-auto whitespace-nowrap text-sm font-black tabular-nums text-fg">{textoPeso(peso.totalG)}</span>
+              {(peso.temLiquido || peso.foraDaConta > 0) && (
+                <p className="w-full text-3xs font-medium text-subtle">
+                  {peso.temLiquido ? "Líquidos contam 1 ml ≈ 1 g (ESTIMATIVA). " : ""}
+                  {peso.foraDaConta > 0 ? `${peso.foraDaConta} item(ns) em unidade ficam fora da porcentagem.` : ""}
+                </p>
+              )}
+            </div>
+          )}
           {comCusto && (
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 bg-surface px-3 py-2">
               <span className="text-2xs font-black uppercase tracking-wider text-fg-soft">Total da ficha</span>

@@ -47,6 +47,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       ] },
       { titulo: "Estoque e compras", cards: [
         { label: "Estoque da cozinha", desc: "Entrada e retirada", href: "/dashboard/operacao/estoque?area=cozinha", icone: "Package" },
+        { label: "Estoque de bases", desc: "Quanto tem pronto de cada base", href: "/dashboard/operacao/estoque-bases?dept=cozinha", icone: "Layers" },
         { label: "Ingredientes", desc: "Produtos usados nas receitas", href: "/dashboard/operacao/ingredientes?dept=cozinha", icone: "Carrot" },
         { label: "Lista de compras", desc: "Cotações e pedidos", href: "/dashboard/operacao/compras", icone: "ShoppingCart" },
       ] },

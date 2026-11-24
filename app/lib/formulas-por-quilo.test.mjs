@@ -90,3 +90,11 @@ test("assistente: salmoura → tipo → qual → cartão; direto pelo produto", 
   assert.match(respostaDaFormula("salmoura do tambaqui", cache).texto, /Não achei salmoura para "tambaqui"/);
   assert.equal(respostaDaFormula("arroz", cache), null);
 });
+
+test("digita quilos quebrados: 1,5 e 1,8 kg", () => {
+  assert.equal(interpretarFormula("salmoura de frango 1,8 kg").kg, 1.8);
+  assert.equal(interpretarFormula("salmoura de frango 1,8 kg").categoria, "frango");
+  assert.equal(interpretarFormula("salmoura para 1.5 kg do filé de pirarucu").kg, 1.5);
+  const f = normalizarFormulas(SALVO);
+  assert.deepEqual(calcularFormula(f.salmouras[0], "1,8").secoes[0].itens.map((i) => i.texto), ["1.800 ml (1,8 L)", "108 g"]);
+});

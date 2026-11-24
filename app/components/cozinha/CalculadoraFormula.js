@@ -37,7 +37,7 @@ export default function CalculadoraFormula({ formula, kgInicial = null, cores = 
       <div className="mt-1.5 flex items-center gap-2">
         <button type="button" aria-label="Menos meio quilo" onClick={() => mudar(-0.5)} className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-black/10" style={{ background: fundoItem }}><Minus size={18} /></button>
         <label className="flex h-12 min-w-0 flex-1 items-center rounded-full border border-black/10 px-4" style={{ background: fundoItem }}>
-          <input inputMode="decimal" value={kgTxt} onChange={(e) => setKgTxt(e.target.value.replace(/[^\d,.]/g, ""))} placeholder="0" aria-label={`Quilos de ${ref}`}
+          <input inputMode="decimal" value={kgTxt} onChange={(e) => setKgTxt(e.target.value.replace(/[^\d,.]/g, ""))} placeholder="ex.: 1,8" aria-label={`Quilos de ${ref}`}
             className="min-w-0 flex-1 bg-transparent text-center text-[20px] font-extrabold tabular-nums outline-none" />
           <span className="text-[15px] font-bold" style={{ color: meta }}>kg</span>
         </label>

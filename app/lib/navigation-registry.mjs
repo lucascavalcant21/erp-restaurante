@@ -361,6 +361,14 @@ export const NAVIGATION_REGISTRY = [
     permission: "cozinha.sauces.view", mobilePriority: 3, adminOnly: false, searchable: true,
   },
   {
+    id: "op-estoque-bases", title: "Estoque de Bases", shortTitle: "Estoque de bases",
+    description: "Quanto tem pronto de cada base, com produzi, usei, perdi e venceu",
+    route: "/dashboard/operacao/estoque-bases?dept=cozinha", domain: "Operação", section: "Cozinha & Validades", icon: "ChefHat",
+    keywords: ["estoque", "bases", "base", "pre-preparo", "pronto", "saldo", "produzi"],
+    synonyms: ["estoque de pre-preparo", "quanto tem de base"],
+    permission: "cozinha.base_stock.view", mobilePriority: 3, adminOnly: false, searchable: true,
+  },
+  {
     id: "op-kds",
     title: "KDS — Telão da Cozinha",
     shortTitle: "KDS Cozinha",

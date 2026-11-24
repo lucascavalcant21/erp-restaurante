@@ -104,6 +104,7 @@ export const PERMISSION_MODULES = [
       { id: "brines", label: "Calculadora de salmoura", route: "/dashboard/operacao/salmouras", actions: CRUD },
       { id: "breading", label: "Empanados", route: "/dashboard/operacao/empanados", actions: CRUD },
       { id: "sauces", label: "Molhos (lista de bases de molho)", route: "/dashboard/operacao/molhos", actions: ["view"] },
+      { id: "base_stock", label: "Estoque de bases (entrada e saída)", route: "/dashboard/operacao/estoque-bases", actions: ["view", "create"] },
       { id: "production", label: "Produção do dia", route: "/dashboard/operacao/producao?dept=cozinha", actions: ["view", "create", "edit", "confirm", "cancel", "print"] },
       { id: "cleaning", label: "Controles de limpeza", route: "/dashboard/operacao/controles", actions: CRUD },
       // A entrada de producao acima traz ?dept=cozinha. Quando a URL vem SEM

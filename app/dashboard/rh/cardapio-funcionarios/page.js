@@ -13,6 +13,7 @@
 // rendem X pronto, por pesagem ou cru × índice de cocção). O item da semana
 // liga à ficha de produção e a receita se refaz para o total do dia.
 
+import { useRascunho } from "../../../lib/useRascunho";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, Copy, ExternalLink, Loader2, Minus, Plus, Printer, Save, Trash2, UtensilsCrossed, Pin } from "lucide-react";
@@ -145,6 +146,12 @@ export default function JantaFuncionarios() {
   const [mudou, setMudou] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState("");
+  // Mudança não salva sobrevive ao recarregar (dono, 24/11/2026)
+  const rascunhoJanta = useRascunho({
+    chave: unidadeAtiva ? `janta:${unidadeAtiva}` : "", pronto: !!unidadeAtiva && !carregando, ativo: mudou, unidadeId: unidadeAtiva,
+    estado: { janta, modo, dia },
+    aplicar: (d) => { if (!d?.janta) return; setJanta(normalizarJanta(d.janta)); if (d.modo) setModo(d.modo); if (d.dia) setDia(d.dia); setMudou(true); setAviso("Voltei para o que você estava fazendo. Toque em Salvar para gravar."); },
+  });
 
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setCarregando(false); return; }
@@ -177,7 +184,7 @@ export default function JantaFuncionarios() {
     const r = await salvarJantaFuncionarios(unidadeAtiva, janta);
     setSalvando(false);
     if (r?.error) setAviso(`Não salvou: ${r.error}`);
-    else { setMudou(false); setAviso("Janta da semana salva."); setTimeout(() => setAviso(""), 3000); }
+    else { setMudou(false); rascunhoJanta.descartar(); setAviso("Janta da semana salva."); setTimeout(() => setAviso(""), 3000); }
   }
 
   function imprimir(lista) {

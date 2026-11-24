@@ -16,8 +16,7 @@ export const CATEGORIAS_INVENTARIO = [
   "Móveis",
   "Decoração",
   "Limpeza",
-  "Outros",
-];
+]; // sem "Outros": categoria nova em "Gerenciar categorias" (dono, 24/11/2026)
 
 export async function fetchInventario(unidadeId) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };

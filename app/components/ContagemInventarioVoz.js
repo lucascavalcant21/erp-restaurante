@@ -6,6 +6,7 @@
 // lugar. Antes de salvar dá para corrigir cada linha e tirar a foto daquele
 // utensílio específico — a foto entra no cadastro e sai na lista impressa.
 
+import SelectCategoria from "./cadastro/SelectCategoria";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera, Loader2, Mic, MicOff, Plus, Printer, Save, Trash2, X,
@@ -35,7 +36,7 @@ function fileParaBase64(file) {
 let seq = 0;
 const linhaVazia = (extra = {}) => ({
   chave: `l${Date.now().toString(36)}${(seq += 1)}`,
-  nome: "", quantidade: "", categoria: "Outros", localizacao: "", foto: "",
+  nome: "", quantidade: "", categoria: "", localizacao: "", foto: "",
   ...extra,
 });
 
@@ -89,7 +90,7 @@ export default function ContagemInventarioVoz({
         ...dados.itens.map(it => linhaVazia({
           nome: it.nome,
           quantidade: String(it.quantidade ?? ""),
-          categoria: categorias.includes(it.categoria) ? it.categoria : "Outros",
+          categoria: categorias.includes(it.categoria) ? it.categoria : "",
           localizacao: it.localizacao || local || "",
         })),
       ]);
@@ -135,7 +136,7 @@ export default function ContagemInventarioVoz({
   const grupos = useMemo(() => {
     const mapa = new Map();
     linhas.forEach(l => {
-      const cat = l.categoria || "Outros";
+      const cat = l.categoria || "Sem categoria";
       const lugar = (l.localizacao || "").trim() || "Sem lugar definido";
       if (!mapa.has(cat)) mapa.set(cat, new Map());
       const porLugar = mapa.get(cat);
@@ -219,7 +220,7 @@ export default function ContagemInventarioVoz({
         existente,
         nome: linha.nome.trim(),
         quantidade: Number(linha.quantidade) || 0,
-        categoria: linha.categoria || "Outros",
+        categoria: linha.categoria || null,
         localizacao: linha.localizacao || null,
         foto: linha.foto || null,
       });
@@ -331,10 +332,8 @@ export default function ContagemInventarioVoz({
                                   style={{ background: "var(--elevated)", color: "var(--muted)" }}><Trash2 size={15} /></button>
                               </div>
                               <div className="flex flex-wrap items-center gap-2">
-                                <select value={l.categoria} onChange={e => mudar(l.chave, { categoria: e.target.value })}
-                                  className={`${inputCls} text-xs`} style={inputStyle}>
-                                  {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
+                                <SelectCategoria value={l.categoria} onChange={v => mudar(l.chave, { categoria: v })}
+                                  opcoes={categorias} className={`${inputCls} text-xs`} />
                                 <input value={l.localizacao} onChange={e => mudar(l.chave, { localizacao: e.target.value })}
                                   list="lugares-contagem" placeholder="Onde fica"
                                   className={`${inputCls} w-full text-xs sm:min-w-[120px] sm:flex-1`} style={inputStyle} />

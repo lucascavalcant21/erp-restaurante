@@ -472,3 +472,24 @@ export async function fetchPlanoDoDia(unidadeId) {
   return { data: registro?.params?.plano_do_dia || null };
 }
 export const salvarPlanoDoDia = (unidadeId, plano) => salvarParams(unidadeId, { plano_do_dia: plano });
+
+/* Porções do estoque (dono, 24/11/2026): como o saldo de cada produto está
+ * dividido em pacotes. params.estoque_porcoes = { "<estoque>:<insumo>": { linhas } }.
+ * Cada gravação relê o mapa atual e troca só a chave do produto (outro aparelho
+ * pode ter dividido outro produto). */
+export async function fetchPorcoesEstoque(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: {}, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: {}, error: error.message };
+  const v = data?.[0]?.params?.estoque_porcoes;
+  return { data: v && typeof v === "object" && !Array.isArray(v) ? v : {}, error: null };
+}
+export async function salvarPorcaoEstoque(unidadeId, chave, registro) {
+  const atual = await fetchPorcoesEstoque(unidadeId);
+  if (atual.error) return { error: atual.error };
+  const mapa = { ...atual.data };
+  if (registro && (registro.linhas || []).length) mapa[chave] = { ...registro, atualizado_em: new Date().toISOString() };
+  else delete mapa[chave];
+  const r = await salvarParams(unidadeId, { estoque_porcoes: mapa });
+  return { error: r?.error || null, data: mapa };
+}

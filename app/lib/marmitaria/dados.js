@@ -6,6 +6,7 @@
 // (marmitaria_salvar_ficha, marmitaria_registrar_producao). Conta e regra de
 // negócio ficam em nucleo.mjs; aqui só se lê e se grava.
 
+import { chaveDoNome } from "../nomes-unicos.mjs";
 import { nomeDeBase } from "../nome-base.mjs";
 import { supabase, isSupabaseReady } from "../supabase";
 import { fetchFichas, salvarInsumo } from "../operacao";
@@ -157,8 +158,21 @@ export async function salvarConfig(unidadeId, cfg) {
 
 // ─── Marmitas e bases ─────────────────────────────────────────────────
 
+// Sem duas fichas com o mesmo nome na unidade (dono, 24/11/2026).
+async function nomeJaUsado(dados) {
+  const nome = String(dados?.nome || "").trim();
+  if (!nome || !dados?.unidade_id) return null;
+  const chave = chaveDoNome(nome);
+  const { data, error } = await supabase.from("fichas_tecnicas").select("id,nome_receita")
+    .eq("unidade_id", dados.unidade_id).eq("ativo", true).ilike("nome_receita", `%${nome.slice(0, 3).replace(/[%_]/g, "")}%`).limit(500);
+  if (error) return null; // a checagem não impede salvar se a leitura falhar
+  return (data || []).find((f) => f.id !== dados.id && chaveDoNome(f.nome_receita) === chave) || null;
+}
+
 async function rpcFicha(dados) {
   if (!isSupabaseReady()) return { data: null, error: SEM_BANCO };
+  const igual = await nomeJaUsado(dados);
+  if (igual) return { data: null, error: `Já existe a ficha "${igual.nome_receita}". Use outro nome ou edite a que já existe.` };
   try {
     const { data, error } = await supabase.rpc("marmitaria_salvar_ficha", { p_dados: dados });
     if (error) return { data: null, error: mensagemErro(error) };

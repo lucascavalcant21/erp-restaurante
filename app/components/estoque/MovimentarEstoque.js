@@ -26,6 +26,9 @@ import { ehPrePreparoNoEstoque } from "../../lib/estoque-visao";
 import { tiposCompativeis } from "../../lib/estoques-multiplos-utils.mjs";
 import { useContextoInteligencia } from "../intelligence/useContextoInteligencia";
 import ModalEstorno, { fmtHora } from "./ModalEstorno";
+import PorcoesDoProduto from "./PorcoesDoProduto";
+import { fetchPorcoesEstoque, salvarPorcaoEstoque } from "../../lib/parametros";
+import { chavePorcao, retirarPorcoes, tamanhoLegivel } from "../../lib/estoque-porcoes.mjs";
 import { AlertTriangle, ArrowLeftRight, Check, ChevronDown, Loader2, Lock, Minus, Plus, RotateCcw, Search, X } from "lucide-react";
 
 const fmtQ = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -104,6 +107,9 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
   const [estorno, setEstorno] = useState(null);
   const chave = useRef(novaChave());
   const buscaRef = useRef(null);
+  // Como o saldo de cada produto está dividido em pacotes (dono, 24/11/2026)
+  const [porcoes, setPorcoes] = useState({});
+  useEffect(() => { fetchPorcoesEstoque(unidade).then((r) => setPorcoes(r.data || {})); }, [unidade]);
   useContextoInteligencia(produto ? { modulo: "estoque", tipo: "produto", id: produto.id, nome: produto.nome } : null);
 
   const carregarBase = useCallback(async () => {
@@ -228,10 +234,21 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
       return;
     }
     const saldoNovo = ehTransferencia ? r.data?.saldo_origem : r.data?.saldo_posterior;
+    // Retirou pacotes inteiros: desconta da divisão em porções
+    let textoPacote = "";
+    const chaveP = chavePorcao(estoqueId, produto.id);
+    if (tipo === "saida" && porcoes[chaveP]) {
+      const usado = retirarPorcoes(porcoes[chaveP], lanc.quantidadeSaldo);
+      if (usado) {
+        const g = await salvarPorcaoEstoque(unidade, chaveP, usado.reg);
+        if (!g.error) setPorcoes(g.data);
+        textoPacote = ` ${usado.k} pacote${usado.k === 1 ? "" : "s"} de ${tamanhoLegivel(usado.tamanho, unidadeDoSaldo(produto))} saíram da divisão.`;
+      }
+    }
     const destinoNome = ehTransferencia ? base.estoques.find((e) => e.id === form.destino)?.nome : "";
     setAviso({ tipo: "ok", texto: ehTransferencia
       ? `Transferência de ${lanc.texto} de ${produto.nome}: ${estoque?.nome} → ${destinoNome}. Saldo em ${estoque?.nome}: ${saldoOperacional(produto, saldoNovo)}.`
-      : `${tipo === "entrada" ? "Entrada" : "Retirada"} de ${lanc.texto} de ${produto.nome} registrada. Saldo em ${estoque?.nome}: ${saldoOperacional(produto, saldoNovo)}.` });
+      : `${tipo === "entrada" ? "Entrada" : "Retirada"} de ${lanc.texto} de ${produto.nome} registrada. Saldo em ${estoque?.nome}: ${saldoOperacional(produto, saldoNovo)}.${textoPacote}` });
     if (fixo) {
       // Continua no produto, pronto para outro lançamento.
       setForm(FORM_VAZIO); setTipo(""); chave.current = novaChave();
@@ -372,6 +389,20 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {}, fixo 
             </div>
             {!fixo && <button onClick={limpar} className="h-9 shrink-0 rounded-lg bg-hf-elevated px-3 text-xs font-bold text-hf-text-2">Trocar</button>}
           </div>
+
+          <PorcoesDoProduto
+            registro={porcoes[chavePorcao(estoqueId, produto.id)]}
+            saldo={saldoAtual}
+            unidade={unidadeDoSaldo(produto)}
+            unidades={unidadesDaFracao(produto)}
+            retirando={tipo === "saida" && !ehTransferencia && unidades.includes(unidadeDoSaldo(produto))}
+            onUsarPorcao={(t) => setForm((f) => ({ ...f, qtd: String(t).replace(".", ","), unidade: unidadeDoSaldo(produto) }))}
+            onSalvar={async (reg) => {
+              const g = await salvarPorcaoEstoque(unidade, chavePorcao(estoqueId, produto.id), reg);
+              if (!g.error) setPorcoes(g.data);
+              return g;
+            }}
+          />
 
           {/* Retirar ou adicionar: escolhido no produto */}
           <div role="radiogroup" aria-label="Retirar ou adicionar" className={`grid gap-2 ${soRetira ? "grid-cols-1" : "grid-cols-2"}`}>

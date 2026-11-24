@@ -1,5 +1,6 @@
 "use client";
 
+import SelectCategoria, { opcoesSemOutros } from "../../../components/cadastro/SelectCategoria";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Package, Plus, Send, AlertTriangle, Building2, Beaker, Archive } from "lucide-react";
 import {
@@ -14,7 +15,7 @@ import {
 
 const VAZIO = { nome: "", categoria: "Limpeza", unidade_medida: "UN", custo_unitario: "", fornecedor: "" };
 
-function FormItem({ inicial, onSalvar, onCancelar }) {
+function FormItem({ inicial, onSalvar, onCancelar, usadas = [] }) {
   const [f, setF] = useState(inicial ? { ...inicial, custo_unitario: String(inicial.custo_unitario) } : VAZIO);
   const [erro, setErro] = useState("");
 
@@ -27,7 +28,7 @@ function FormItem({ inicial, onSalvar, onCancelar }) {
     <>
       <Field label="Nome do item (Ex: Sabão em pó)"><TextInput value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Nome..." /></Field>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Categoria"><Select value={f.categoria} onChange={(e) => setF({ ...f, categoria: e.target.value })}>{CATEGORIAS_SUP.map(c => <option key={c}>{c}</option>)}</Select></Field>
+        <Field label="Categoria"><SelectCategoria value={f.categoria} onChange={(v) => setF({ ...f, categoria: v })} opcoes={[...CATEGORIAS_SUP, ...usadas]} className="erp-input w-full" /></Field>
         <Field label="Unidade"><Select value={f.unidade_medida} onChange={(e) => setF({ ...f, unidade_medida: e.target.value })}>{UNIDADES_SUP.map(u => <option key={u}>{u}</option>)}</Select></Field>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -187,7 +188,7 @@ export default function GestaoSuprimentosCentral() {
 
         <div className="space-y-3">
           <SearchBar value={busca} onChange={setBusca} placeholder="Buscar item..." />
-          <Chips options={["Todos", ...CATEGORIAS_SUP]} value={cat} onChange={setCat} />
+          <Chips options={["Todos", ...opcoesSemOutros(CATEGORIAS_SUP, lista.map((i) => i.categoria))]} value={cat} onChange={setCat} />
         </div>
 
         {loading ? (
@@ -268,7 +269,7 @@ export default function GestaoSuprimentosCentral() {
       </PageBody>
 
       <Modal open={modalItem} onClose={() => setModalItem(false)} title={editar ? "Editar Item" : "Cadastrar Suprimento"}>
-        <FormItem inicial={editar} onSalvar={salvarItem} onCancelar={() => setModalItem(false)} />
+        <FormItem inicial={editar} onSalvar={salvarItem} onCancelar={() => setModalItem(false)} usadas={lista.map((i) => i.categoria)} />
       </Modal>
 
       <Modal open={!!modalCompra} onClose={() => setModalCompra(null)} title="Compra Central">

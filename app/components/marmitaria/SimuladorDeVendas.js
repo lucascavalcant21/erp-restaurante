@@ -14,6 +14,27 @@ import { contribuicaoMedia, pontoDeEquilibrio } from "../../lib/metas-negocio.mj
 
 const inteiro = (v) => Number(v || 0).toLocaleString("pt-BR");
 
+/** Um grupo de custos com cada linha e o total. */
+function Detalhe({ titulo, total, linhas = [], porMarmita = false }) {
+  return (
+    <details className="rounded-2xl border border-hf-border p-3" open={linhas.length > 0 && linhas.length <= 8}>
+      <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
+        <span className="text-sm font-bold text-hf-text">{titulo}{linhas.length ? ` (${linhas.length})` : ""}</span>
+        <b className="shrink-0 tabular-nums text-hf-text">{brl(total)}{porMarmita ? " por marmita" : ""}</b>
+      </summary>
+      {linhas.length > 0 ? (
+        <ul className="mt-2 divide-y divide-hf-border">
+          {linhas.map((l, i) => (
+            <li key={`${l.nome}-${i}`} className="flex items-baseline justify-between gap-3 py-1.5 text-sm text-hf-text-2">
+              <span className="min-w-0 truncate">{l.nome}</span><span className="shrink-0 tabular-nums">{brl(l.valor)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="mt-1 text-xs text-hf-muted">Valor único, sem o detalhe por conta. Detalhe em Configurações.</p>}
+    </details>
+  );
+}
+
 /** "Para pagar tudo você tem que vender X marmitas" por mês, semana e dia (dono, 24/11/2026). */
 function ParaPagarTudo({ linhas, embutidos, vendas30, diasMes }) {
   const media = contribuicaoMedia(linhas, vendas30);
@@ -31,12 +52,22 @@ function ParaPagarTudo({ linhas, embutidos, vendas30, diasMes }) {
               </div>
             ))}
           </div>
-          <dl className="mt-3">
-            <Conta r="Funcionários no mês" v={brl(eq.cmoMes)} />
-            <Conta r="Custos fixos no mês" v={brl(eq.fixosMes)} />
-            <Conta r="Cada marmita deixa, depois dos custos dela" v={brl(eq.contribuicao)} />
-            <Conta forte r="Marmitas para pagar tudo no mês" v={`${inteiro(eq.unidadesMes)} (${brl(eq.custoMes)} ÷ ${brl(eq.contribuicao)})`} />
-          </dl>
+          {/* Os custos do mês um a um (dono, 24/11/2026: "por meus custos detalhados mensais conforme eu acrescento") */}
+          <div className="mt-4 space-y-3">
+            <Detalhe titulo="Funcionários no mês" total={eq.cmoMes} linhas={embutidos?.cmoLinhas?.length ? embutidos.cmoLinhas : embutidos?.cmoPartes || []} />
+            <Detalhe titulo="Custos fixos no mês" total={eq.fixosMes} linhas={embutidos?.fixosLinhas || []} />
+            {(embutidos?.variaveisLinhas || []).length > 0 && (
+              <Detalhe titulo="Custos que saem em cada marmita" total={embutidos.variaveisPorMarmita} linhas={embutidos.variaveisLinhas} porMarmita />
+            )}
+            <a href="/dashboard/marmitaria/configuracoes" className="inline-flex min-h-[44px] items-center rounded-full border border-hf-border px-4 text-sm font-bold text-hf-text">+ Acrescentar ou mudar custos</a>
+          </div>
+          <div className="mt-4 rounded-2xl bg-hf-elevated p-3">
+            <div className="flex items-baseline justify-between gap-3 text-sm text-hf-text-2"><span>Total do mês</span><b className="tabular-nums text-hf-text">{brl(eq.custoMes)}</b></div>
+            <div className="mt-1 flex items-baseline justify-between gap-3 text-sm text-hf-text-2"><span>Cada marmita deixa, depois dos custos dela</span><b className="tabular-nums text-hf-text">{brl(eq.contribuicao)}</b></div>
+            <p className="mt-2 border-t border-hf-border pt-2 text-base font-black text-hf-text">
+              {brl(eq.custoMes)} ÷ {brl(eq.contribuicao)} = {inteiro(eq.unidadesMes)} marmitas no mês
+            </p>
+          </div>
           <p className="mt-2 text-sm text-hf-text-2">
             Acima de {inteiro(eq.unidadesDia)} por dia, cada marmita vira lucro. Conta com {diasMes} dias de venda no mês e {media.ponderada ? "a mistura do que vendeu nos últimos 30 dias" : "a média simples das marmitas (sem vendas lançadas nos últimos 30 dias)"}.
           </p>

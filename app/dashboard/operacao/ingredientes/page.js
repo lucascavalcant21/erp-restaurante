@@ -17,6 +17,7 @@ import {
   Clock3,
   Edit3,
   FileText,
+  ChevronDown,
   History,
   Mic,
   MicOff,
@@ -391,6 +392,7 @@ function IngredientesRunner() {
   const [calculos, setCalculos] = useState({});
   const [form, setForm] = useState(() => novoFormulario(deptUrl || "cozinha"));
   const [modalCadastro, setModalCadastro] = useState(false);
+  const [linhaAberta, setLinhaAberta] = useState("");
   // Recarregou no meio do cadastro? Volta nele (dono, 24/11/2026).
   const rascunhoIng = useRascunho({
     chave: unidadeAtiva ? `ingrediente:${unidadeAtiva}:${deptUrl || "cozinha"}` : "",
@@ -964,30 +966,33 @@ function IngredientesRunner() {
                 </button>
               )}
             </label>
-            <button
-              onClick={() => { setModalMigrar(true); setItensMigracao([]); setMigrarTexto(""); setMigrarArquivos([]); setOrigemMigracaoVoz(false); setRespostaVozIngredientes(""); }}
-              className="flex h-11 items-center justify-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none transition hover:bg-hf-elevated"
-            >
-              <Camera size={18} /> Migrar por Print / Lista
-            </button>
-            <button
-              onClick={() => iniciarCadastroPorVoz(true)}
-              className="flex h-11 items-center justify-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none transition hover:bg-hf-elevated"
-            >
-              <Mic size={18} /> Adicionar por voz
-            </button>
+            {/* Ação principal primeiro; importar e voz lado a lado, menores (dono, 24/11/2026: "como as marmitas") */}
             <button
               onClick={abrirNovo}
-              className="flex h-11 items-center justify-center gap-2 rounded-full bg-hf-accent px-5 text-sm font-semibold text-hf-accent-fg shadow-none transition"
+              className="order-first flex h-12 items-center justify-center gap-2 rounded-full bg-hf-accent px-5 text-base font-semibold text-hf-accent-fg shadow-none transition sm:order-none sm:h-11 sm:text-sm"
             >
               <Plus size={18} /> Novo {rotuloItem}
             </button>
+            <div className="grid grid-cols-2 gap-2 sm:flex">
+              <button
+                onClick={() => { setModalMigrar(true); setItensMigracao([]); setMigrarTexto(""); setMigrarArquivos([]); setOrigemMigracaoVoz(false); setRespostaVozIngredientes(""); }}
+                className="flex h-11 items-center justify-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none transition hover:bg-hf-elevated"
+              >
+                <Camera size={17} /> Print ou lista
+              </button>
+              <button
+                onClick={() => iniciarCadastroPorVoz(true)}
+                className="flex h-11 items-center justify-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none transition hover:bg-hf-elevated"
+              >
+                <Mic size={17} /> Por voz
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-6 lg:px-8">
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <section className="hidden grid-cols-2 gap-3 lg:grid lg:grid-cols-4">
           {[
             { id: "todos", icon: Package, label: `Total de ${rotuloItens}`, value: estatisticas.total, note: "Clique p/ ver todos", color: "emerald", action: () => setBusca("") },
             { id: "semPreco", icon: Clock3, label: "Sem preço recente", value: estatisticas.semPreco, note: "> 30 dias sem atualizar", color: "amber", action: () => setOrdenacao("recentes") },
@@ -1020,6 +1025,12 @@ function IngredientesRunner() {
           })}
         </section>
 
+        {/* No celular e tablet, os números viram uma linha de atalhos */}
+        <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:hidden">
+          <button type="button" onClick={() => setBusca("")} className="min-h-[40px] shrink-0 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text"><b>{estatisticas.total}</b> {rotuloItens}</button>
+          <button type="button" onClick={() => setOrdenacao("recentes")} className="min-h-[40px] shrink-0 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text-2"><b className="text-hf-warning">{estatisticas.semPreco}</b> sem preço recente</button>
+          <button type="button" onClick={() => router.push(`/dashboard/operacao/estoque?dept=${deptUrl || "cozinha"}`)} className="min-h-[40px] shrink-0 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text-2"><b className={estatisticas.abaixoMinimo ? "text-hf-danger" : ""}>{estatisticas.abaixoMinimo}</b> abaixo do mínimo</button>
+        </div>
         <section className="mt-3 flex flex-col gap-2 rounded-xl border border-line bg-card p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-2 overflow-x-auto">
             {["Todas", ...categorias].map(item => (
@@ -1140,76 +1151,53 @@ function IngredientesRunner() {
           </table>
         </section>
 
-        <section className="mt-3 space-y-2 lg:hidden">
+        {/* Lista compacta, como a das marmitas: nome, categoria e preço numa linha; toca para abrir */}
+        <section className="mt-3 lg:hidden">
           {loading ? (
             <div className="rounded-2xl border border-line bg-card p-10 text-center text-sm font-bold text-subtle">Carregando {rotuloItens}...</div>
           ) : paginados.length === 0 ? (
             <div className="rounded-2xl border border-line bg-card p-10 text-center text-sm font-bold text-subtle">Nenhum {rotuloItem} encontrado.</div>
-          ) : paginados.map(insumo => {
-            const vinculados = insumo.fornecedores_vinculados || [];
-            const normalizado = precoNormalizadoDoInsumo(insumo);
-            return (
-              <article key={insumo.id} className="rounded-xl border border-line bg-card p-3 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="truncate font-black text-fg">{insumo.nome}{ehCozinhaEBar(insumo) && <span className="ml-1.5 rounded bg-zinc-100 px-1.5 py-0.5 align-middle text-3xs font-black uppercase text-zinc-800">cozinha e bar</span>}</h2>
-                    <p className="mt-1 truncate text-xs text-fg">
-                      {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || (ehBar ? "Produto" : "Ingrediente")}
-                    </p>
-                  </div>
-                  <span className="shrink-0 rounded-lg bg-card px-2.5 py-1.5 text-xs font-bold text-slate-900">{insumo.marca || "Sem marca"}</span>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Embalagem</p>
-                    <p className="mt-1 font-bold">{fmtQuantidade(insumo.tamanho_embalagem || 1)} {unidadeLabel(insumo.unidade_medida)}</p>
-                  </div>
-                  <div>
-                    <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Fornecedor</p>
-                    <p className="mt-1 truncate font-bold">{nomeFornecedorAtual(insumo)}</p>
-                    {vinculados.length > 1 && <p className="text-3xs font-bold text-success">+{vinculados.length - 1} outro(s)</p>}
-                  </div>
-                  <div>
-                    <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Valor atual</p>
-                    <p className="mt-1 font-black">{fmtBRL(insumo.custo_compra ?? 0)}</p>
-                    <p className="text-xs text-fg">{fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}</p>
-                    <CustoEfetivoLinha insumo={insumo} />
-                    {(() => {
-                      const pG = Number(insumo.peso_peca_g);
-                      const pK = Number(insumo.pecas_por_kg);
-                      if (normalizado > 0 && (pG > 0 || pK > 0)) {
-                        const custoPeca = pG > 0 ? normalizado * (pG / 1000) : normalizado / pK;
-                        const pesoF = pG || (1000 / pK);
-                        return (
-                          <span className="mt-1 inline-block rounded bg-accent-soft px-1.5 py-0.5 text-3xs font-bold text-accent-strong border border-emerald-200">
-                            ~{fmtBRL(custoPeca)}/un ({pesoF.toFixed(0)}g)
-                          </span>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                  <div>
-                    <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Variação</p>
-                    <div className="mt-1"><VariacaoPreco insumo={insumo} /></div>
-                  </div>
-                </div>
-                <div className="mt-3 border-t border-line-soft pt-3">
-                  <p className="mb-2 text-3xs font-bold uppercase tracking-wide text-subtle">Calcular quantidade</p>
-                  <CalculadoraRapida
-                    insumo={insumo}
-                    estado={calculos[insumo.id]}
-                    onChange={estado => setCalculos(atual => ({ ...atual, [insumo.id]: estado }))}
-                  />
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <button onClick={() => abrirHistorico(insumo)} className="flex-1 rounded-lg border border-line py-2.5 text-xs font-bold text-slate-900">Ver histórico</button>
-                  <button onClick={() => abrirEditar(insumo)} className="rounded-lg border border-line p-2.5 text-fg"><Edit3 size={16} /></button>
-                  <button onClick={() => handleRemover(insumo)} className="rounded-lg border border-line p-2.5 text-fg"><Trash2 size={16} /></button>
-                </div>
-              </article>
-            );
-          })}
+          ) : (
+            <ul className="divide-y divide-hf-border overflow-hidden rounded-3xl border border-hf-border bg-hf-surface">
+              {paginados.map(insumo => {
+                const normalizado = precoNormalizadoDoInsumo(insumo);
+                const aberto = linhaAberta === insumo.id;
+                return (
+                  <li key={insumo.id}>
+                    <button type="button" onClick={() => setLinhaAberta(aberto ? "" : insumo.id)} aria-expanded={aberto}
+                      className="flex min-h-[64px] w-full items-center gap-3 px-4 py-3 text-left">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[16px] font-bold text-hf-text">{insumo.nome}{insumo.marca ? <span className="font-medium text-hf-text-2"> · {insumo.marca}</span> : null}</span>
+                        <span className="block truncate text-[13px] text-hf-muted">{insumo.categoria || "Sem categoria"}{ehCozinhaEBar(insumo) ? " · cozinha e bar" : ""} · {fmtQuantidade(insumo.tamanho_embalagem || 1)} {unidadeLabel(insumo.unidade_medida)}</span>
+                      </span>
+                      <span className={`shrink-0 text-right text-[15px] font-black tabular-nums ${normalizado > 0 ? "text-hf-text" : "text-hf-warning"}`}>
+                        {normalizado > 0 ? <>{fmtBRL(normalizado)}<span className="text-[12px] font-semibold text-hf-muted">/{unidadeNormalizada(insumo.unidade_medida)}</span></> : "Sem preço"}
+                      </span>
+                      <ChevronDown size={18} className={`shrink-0 text-hf-muted transition ${aberto ? "rotate-180" : ""}`} />
+                    </button>
+                    {aberto && (
+                      <div className="space-y-3 bg-hf-elevated/60 px-4 pb-4 pt-1">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div><p className="text-[12px] text-hf-muted">Compra</p><p className="font-bold text-hf-text">{fmtBRL(insumo.custo_compra ?? 0)}</p><CustoEfetivoLinha insumo={insumo} /></div>
+                          <div><p className="text-[12px] text-hf-muted">Fornecedor</p><p className="truncate font-bold text-hf-text">{nomeFornecedorAtual(insumo)}</p></div>
+                          <div><p className="text-[12px] text-hf-muted">Variação</p><VariacaoPreco insumo={insumo} /></div>
+                        </div>
+                        <div>
+                          <p className="mb-1 text-[12px] text-hf-muted">Quanto custa se eu usar</p>
+                          <CalculadoraRapida insumo={insumo} estado={calculos[insumo.id]} onChange={estado => setCalculos(atual => ({ ...atual, [insumo.id]: estado }))} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => abrirEditar(insumo)} className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-full bg-hf-menu text-sm font-bold text-white"><Edit3 size={16} /> Alterar</button>
+                          <button onClick={() => abrirHistorico(insumo)} className="min-h-[44px] rounded-full border border-hf-border px-4 text-sm font-bold text-hf-text">Histórico</button>
+                          <button onClick={() => handleRemover(insumo)} aria-label={`Excluir ${insumo.nome}`} className="grid h-11 w-11 place-items-center rounded-full border border-hf-border text-hf-text-2"><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </section>
 
         {!loading && filtrados.length > 0 && (

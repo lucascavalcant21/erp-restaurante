@@ -210,7 +210,8 @@ export const ADMIN_SECOES = Object.freeze([
     { label: "Ingredientes e produtos", href: "/dashboard/operacao/ingredientes", icone: "Carrot" },
     { area: "estoque" }, { area: "cardapio" },
   ] },
-  { titulo: "Gestão", itens: [{ area: "financeiro" }, { area: "rh" }, { area: "eventos" }, { area: "marmitaria" }, { area: "inteligencia" }] },
+  { titulo: "Gestão", itens: [{ area: "financeiro" }, { area: "rh" },
+    { label: "Ponto dos funcionários", href: "/dashboard/rh/ponto", icone: "Clock" }, { area: "eventos" }, { area: "marmitaria" }, { area: "inteligencia" }] },
   { titulo: "Acessos e sistema", itens: [
     { label: "Usuários e acessos", href: "/dashboard/configuracoes/usuarios", icone: "ShieldCheck" },
     { label: "Tablets da casa", href: "/dashboard/configuracoes/usuarios?conta=tablet", icone: "Tablet" },

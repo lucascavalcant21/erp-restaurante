@@ -41,6 +41,8 @@ const POR_ICONE = Object.freeze({
   Stethoscope: "ciano", PiggyBank: "verde",
   // Configurações em grupos (24/11/2026)
   Lock: "grafite", Printer: "ciano", Flame: "laranja",
+  // Menu: ponto dos funcionários (24/11/2026)
+  Clock: "azul",
 });
 
 /** Tom do ícone de um card ou área do menu: `cor` explícita vence o ícone. */

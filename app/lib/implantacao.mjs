@@ -88,7 +88,7 @@ export const PERGUNTAS = Object.freeze([
   { id: "tipo_negocio", texto: "Que tipo de casa é a sua?", tipo: "escolha", opcoes: ["Restaurante", "Marmitaria", "Bar", "Lanchonete", "Pizzaria", "Cafeteria", "Buffet e eventos", "Outro"], publico: "ambos" },
   { id: "servicos", texto: "Como você atende?", tipo: "multipla", opcoes: ["Salão", "Delivery próprio", "iFood", "Retirada", "Eventos", "Marmitas"], publico: "ambos" },
   { id: "tem_bar", texto: "Tem bar (drinks preparados)?", tipo: "escolha", opcoes: ["Sim", "Não"], publico: "ambos" },
-  { id: "horario", texto: "Em que dias e horários abre?", tipo: "texto", dica: "Ex.: terça a domingo, das 11h às 23h", publico: "ambos" },
+  { id: "horario", texto: "Em que dias e horários abre?", tipo: "horario", dica: "Ex.: terça a domingo, das 11h às 23h", publico: "ambos" },
   { id: "estilo_cozinha", texto: "Qual o estilo da cozinha?", tipo: "texto", dica: "Ex.: comida paraense, caseira, japonesa", publico: "ambos" },
   { id: "lugares", texto: "Quantos lugares tem o salão?", tipo: "numero", unidade: "lugares", publico: "ambos" },
   { id: "maior_dor", texto: "O que mais te tira o sono hoje?", tipo: "multipla", opcoes: ["CMV alto", "Desperdício", "Equipe atrasa ou falta", "Atendimento demorado", "Estoque sem controle", "Não sei se tenho lucro", "Outro"], publico: "jhon" },

@@ -9,6 +9,7 @@ import { fetchUnidades, atualizarUnidade } from "../../../lib/unidades";
 import { mascaraTelefone } from "../../../lib/mascaras.mjs";
 import { cepCompleto, cnpjCompleto, mascaraCep } from "../../../lib/configuracoes-hub.mjs";
 import { Painel, Bloco, Campo, BotaoSalvar, SemUnidade, inputCls, avisarSalvo } from "./ui";
+import SeletorHorario from "../../../components/ui/SeletorHorario";
 
 const CAMPOS = ["nome", "telefone_contato", "horario_funcionamento", "email_unidade", "razao_social", "nome_fantasia", "cnpj", "regime_tributario", "inscricao_estadual", "inscricao_municipal", "cep", "endereco", "numero", "bairro", "cidade", "uf"];
 const vazio = Object.fromEntries(CAMPOS.map((k) => [k, ""]));
@@ -24,6 +25,7 @@ export default function Empresa({ onVoltar }) {
   const [ok, setOk] = useState(false);
   const [erro, setErro] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [editandoHorario, setEditandoHorario] = useState(false);
   const real = unidadeAtiva && unidadeAtiva !== "todas";
 
   useEffect(() => {
@@ -79,7 +81,13 @@ export default function Empresa({ onVoltar }) {
             <Campo rotulo="Nome da loja"><input className={inputCls} value={d.nome} onChange={set("nome")} /></Campo>
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo rotulo="Telefone / WhatsApp"><input className={inputCls} inputMode="tel" value={d.telefone_contato} onChange={set("telefone_contato")} placeholder="(00) 00000-0000" /></Campo>
-              <Campo rotulo="Horário"><input className={inputCls} value={d.horario_funcionamento} onChange={set("horario_funcionamento")} placeholder="Ex.: Ter a Dom, 18h às 23h" /></Campo>
+            </div>
+            {/* div, não <label>: dentro de um label, tocar no texto aciona o primeiro botão (Seg) */}
+            <div>
+              <span className="mb-1.5 block text-[14px] font-medium text-hf-text">Horário de funcionamento</span>
+              {editandoHorario
+                ? <SeletorHorario rotuloBotao="Usar este horário" onConfirmar={(t) => { setD((p) => ({ ...p, horario_funcionamento: t })); setEditandoHorario(false); }} />
+                : <button type="button" onClick={() => setEditandoHorario(true)} className={`${inputCls} text-left ${d.horario_funcionamento ? "" : "text-hf-muted"}`}>{d.horario_funcionamento || "Escolher dias e horas"}</button>}
             </div>
             <Campo rotulo="E-mail"><input className={inputCls} type="email" inputMode="email" value={d.email_unidade} onChange={set("email_unidade")} placeholder="contato@suaempresa.com.br" /></Campo>
           </Bloco>

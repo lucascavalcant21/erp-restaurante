@@ -423,7 +423,8 @@ export const salvarModeloProposta = (unidadeId, modelo) => salvarParams(unidadeI
  * em reais, em config_sistema.params.eventos_metas. Leitura própria porque
  * fetchParams só devolve os campos numéricos conhecidos. */
 export async function fetchMetasEventos(unidadeId) {
-  const vazio = { meta_lucro_mes: "", meta_faturamento_mes: "" };
+  // + custos do mês do negócio de eventos (24/11/2026): equipe fixa e custos fixos
+  const vazio = { meta_lucro_mes: "", meta_faturamento_mes: "", equipe_fixa_mes: "", custos_fixos_mes: "" };
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: vazio, error: null };
   const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
   if (error) return { data: vazio, error: error.message };
@@ -432,7 +433,10 @@ export async function fetchMetasEventos(unidadeId) {
 }
 
 export const salvarMetasEventos = (unidadeId, metas) => salvarParams(unidadeId, {
-  eventos_metas: { meta_lucro_mes: String(metas?.meta_lucro_mes ?? ""), meta_faturamento_mes: String(metas?.meta_faturamento_mes ?? "") },
+  eventos_metas: {
+    meta_lucro_mes: String(metas?.meta_lucro_mes ?? ""), meta_faturamento_mes: String(metas?.meta_faturamento_mes ?? ""),
+    equipe_fixa_mes: String(metas?.equipe_fixa_mes ?? ""), custos_fixos_mes: String(metas?.custos_fixos_mes ?? ""),
+  },
 });
 
 /* Modelos de impressão e observações prontas (07/11/2026), em

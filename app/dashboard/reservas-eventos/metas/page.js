@@ -10,7 +10,7 @@ import Link from "next/link";
 import { Loader2, Save } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
-import { metasDosEventos } from "../../../lib/evento-metas.mjs";
+import { metasDosEventos, paraPagarOsCustos } from "../../../lib/evento-metas.mjs";
 import { rotuloEtapa } from "../../../lib/evento-financeiro.mjs";
 import { erroDeColunaDeEventos } from "../../../lib/evento-orcamento.mjs";
 import { fetchMetasEventos, salvarMetasEventos } from "../../../lib/parametros";
@@ -81,7 +81,7 @@ function GraficoDoAno({ meses, metaMes }) {
 export default function MetasDosEventosPage() {
   const { unidadeAtiva, sessao } = useERP();
   const [eventos, setEventos] = useState([]);
-  const [metas, setMetas] = useState({ meta_lucro_mes: "", meta_faturamento_mes: "" });
+  const [metas, setMetas] = useState({ meta_lucro_mes: "", meta_faturamento_mes: "", equipe_fixa_mes: "", custos_fixos_mes: "" });
   const [mes, setMes] = useState(mesAtual());
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -111,6 +111,7 @@ export default function MetasDosEventosPage() {
     const lista = new Set([mesAtual(), ...eventos.map((e) => String(e.data_evento || "").slice(0, 7)).filter((m) => /^\d{4}-\d{2}$/.test(m))]);
     return [...lista].sort().reverse();
   }, [eventos]);
+  const pagar = useMemo(() => paraPagarOsCustos(eventos, { equipeMes: metas.equipe_fixa_mes, fixosMes: metas.custos_fixos_mes, hojeIso: new Date().toLocaleDateString("sv-SE") }), [eventos, metas.equipe_fixa_mes, metas.custos_fixos_mes]);
   const m = useMemo(() => metasDosEventos(eventos, { mes, metaLucroMes: metas.meta_lucro_mes, metaFaturamentoMes: metas.meta_faturamento_mes }), [eventos, mes, metas]);
 
   async function salvar() {
@@ -138,6 +139,35 @@ export default function MetasDosEventosPage() {
   return (
     <div className="space-y-4">
       {erro && <p className="rounded-xl border border-hf-danger/30 bg-hf-danger/10 p-3 text-sm font-semibold text-hf-danger">{erro}</p>}
+
+      <Cartao titulo="Quantos eventos fechar para pagar os custos" descricao="Os custos do mês que existem com ou sem evento. Os custos de cada evento (comida, bebida, equipe do evento, aluguel, comissões e impostos) já saem do lucro do orçamento.">
+        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          {campo("equipe_fixa_mes", "Equipe fixa dos eventos por mês")}
+          {campo("custos_fixos_mes", "Custos fixos por mês (espaço, divulgação…)")}
+          {podeEditar && (
+            <button type="button" onClick={salvar} disabled={salvando} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-hf-accent px-4 text-sm font-bold text-hf-accent-fg hover:brightness-110 disabled:opacity-60">
+              {salvando ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar
+            </button>
+          )}
+        </div>
+        {pagar.ok ? (
+          <>
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <Numero rotulo="Por mês" valor={`${pagar.eventosMes} ${pagar.eventosMes === 1 ? "evento" : "eventos"}`} nota={`${brl(pagar.faturamentoMes)} em vendas`} />
+              <Numero rotulo="Por semana" valor={`${pagar.eventosSemana.toLocaleString("pt-BR")} evento`} nota={`${brl(pagar.faturamentoSemana)} em vendas`} />
+              <Numero rotulo="Por dia" valor={brl(pagar.faturamentoDia)} nota="em vendas de eventos" />
+            </div>
+            <p className="mt-3 text-sm text-hf-text">
+              {brl(pagar.custoMes)} de custos no mês ÷ {brl(pagar.lucroMedio)} de lucro médio por evento = <b>{pagar.eventosMes} {pagar.eventosMes === 1 ? "evento fechado" : "eventos fechados"} por mês</b> para empatar. O que passar disso é lucro.
+            </p>
+            <p className="mt-1 text-xs text-hf-muted">
+              {pagar.origem === "fechados"
+                ? `ESTIMATIVA: média de ${pagar.base} ${pagar.base === 1 ? "evento fechado" : "eventos fechados"} (últimos 12 meses e contratados) com orçamento salvo, valor médio ${brl(pagar.ticketMedio)}.`
+                : `SIMULAÇÃO: ainda não há evento fechado com orçamento; a conta usa ${pagar.base} ${pagar.base === 1 ? "orçamento feito" : "orçamentos feitos"} (valor médio ${brl(pagar.ticketMedio)}). Vira estimativa quando os eventos fecharem.`}
+            </p>
+          </>
+        ) : <p className="mt-3 text-sm text-hf-text-2">DADOS INSUFICIENTES: {pagar.motivo}</p>}
+      </Cartao>
 
       <Cartao titulo="Metas do mês" descricao="Quanto você quer que sobre no bolso com os eventos de cada mês. Vale para todos os meses.">
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">

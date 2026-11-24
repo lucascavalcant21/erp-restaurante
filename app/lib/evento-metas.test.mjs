@@ -66,3 +66,35 @@ test("sem eventos: nada inventado", () => {
   assert.equal(m.metaLucro.eventosQueFaltam, null);
   assert.equal(m.composicao, null);
 });
+
+test("para pagar os custos: eventos por mês e semana pelo lucro médio dos fechados", async () => {
+  const { paraPagarOsCustos } = await import("./evento-metas.mjs");
+  const ev = (data, lucro, valor, etapa = "FINALIZADO") => ({ data_evento: data, funil_status: etapa, valor_contratado: valor, operacao_detalhes: { resumo: { lucro, receita: valor } } });
+  const eventos = [
+    ev("2026-10-10", 3000, 12000), ev("2026-09-05", 5000, 18000),
+    ev("2026-11-20", 99999, 1, "PROPOSTA ENVIADA"), // não fechado: fora
+    ev("2025-08-01", 99999, 1), // mais de 12 meses: fora
+    { data_evento: "2026-10-20", funil_status: "FINALIZADO", valor_contratado: 5000 }, // sem orçamento: fora
+  ];
+  const r = paraPagarOsCustos(eventos, { equipeMes: 6000, fixosMes: "4.000,00", hojeIso: "2026-11-24" });
+  assert.equal(r.ok, true);
+  assert.equal(r.base, 2);
+  assert.equal(r.lucroMedio, 4000);
+  assert.equal(r.custoMes, 10000);
+  assert.equal(r.eventosMes, 3); // 10.000 ÷ 4.000 = 2,5 → 3
+  assert.equal(r.eventosSemana, 0.7);
+  assert.equal(r.faturamentoMes, 45000);
+  assert.equal(paraPagarOsCustos(eventos, { equipeMes: "6.000", fixosMes: "4.000", hojeIso: "2026-11-24" }).custoMes, 10000);
+  assert.equal(r.origem, "fechados");
+  // sem nenhum fechado: usa os orçamentos feitos, como simulação
+  const so = paraPagarOsCustos([ev("2026-12-10", 2000, 8000, "NOVO CONTATO")], { fixosMes: "3000", hojeIso: "2026-11-24" });
+  assert.equal(so.origem, "orcamentos");
+  assert.equal(so.natureza, "SIMULAÇÃO");
+  assert.equal(so.eventosMes, 2);
+  const sem = paraPagarOsCustos(eventos, { hojeIso: "2026-11-24" });
+  assert.equal(sem.ok, false);
+  assert.match(sem.motivo, /custos fixos/);
+  assert.equal(paraPagarOsCustos([], { fixosMes: 100, hojeIso: "2026-11-24" }).ok, false);
+  const prejuizo = paraPagarOsCustos([ev("2026-10-10", -500, 3000)], { fixosMes: 100, hojeIso: "2026-11-24" });
+  assert.match(prejuizo.motivo, /não deixam lucro/);
+});

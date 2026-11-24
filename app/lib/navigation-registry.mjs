@@ -4,6 +4,8 @@
 import { canAccessRoute, hasPermission } from "./permissions-catalog.mjs";
 import { casaBusca } from "./busca.mjs";
 
+import { CONSULTORIO_NA_TELA } from "./negocios.mjs";
+
 export const NAVIGATION_REGISTRY = [
   // --- INÍCIO & VISÃO GERAL ---
   {
@@ -1726,6 +1728,17 @@ export function normalizeString(str = "") {
  */
 export function getAccessibleNavigation(session) {
   if (!session) return [];
+  return acessiveisSemQuietos(session);
+}
+
+// Consultório quieto (negocios.mjs, 24/11/2026): fora da busca.
+const naTela = (item) => CONSULTORIO_NA_TELA || !String(item.route || "").startsWith("/dashboard/consultorio");
+
+function acessiveisSemQuietos(session) {
+  return acessiveisTodos(session).filter(naTela);
+}
+
+function acessiveisTodos(session) {
   // Se for admin, super_admin, sem restrições ou conta não gerenciada (proprietário/gestor), retorna todas as rotas pesquisáveis
   if (session.papel === "admin" || session.super_admin || session.permissions === "*" || session.gerenciado === false) {
     return NAVIGATION_REGISTRY.filter(item => item.searchable !== false);

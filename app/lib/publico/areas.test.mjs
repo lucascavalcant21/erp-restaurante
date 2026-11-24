@@ -4,7 +4,8 @@ import { AREAS, areaPorId, conferirPedido, linkResposta, mascaraWhatsApp, mensag
 import { depoimentosPublicaveis } from "./depoimentos.mjs";
 
 test("as áreas são as mesmas que o banco aceita", () => {
-  assert.deepEqual(AREAS.map((a) => a.id), ["restaurante", "delivery", "eventos", "consultorio", "pessoal"]);
+  // consultório quieto na tela (24/11/2026); o banco ainda aceita o pedido antigo
+  assert.deepEqual(AREAS.map((a) => a.id), ["restaurante", "delivery", "eventos", "pessoal"]);
   assert.equal(areaPorId("CONSULTORIO").nome, "Consultório");
   assert.equal(areaPorId("banco"), null);
   assert.equal(areaPorId("pessoal").disponivel, false);

@@ -44,7 +44,6 @@ export const PLANOS = Object.freeze({
       "Equipe: ponto, escala, folha, banco de horas e treinamento",
       "Eventos, reservas e orçamentos",
       "Delivery com precificação, porcionamento e painel gerencial",
-      "Consultório: agenda, pacientes, teleconsulta, portal do paciente e preço da consulta",
       "Gestão pessoal (em breve), sem custo a mais",
       "Compras, notas fiscais, fornecedores e custo médio",
       "Integrações (iFood, pagamentos) e TVs do restaurante",

@@ -244,3 +244,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 24/11/2026 | "Tela travada das fichas bar e cozinha, não consigo subir nem descer" | A regra de altura das janelas no celular cortava a ficha aberta; agora rola. Custo por linha corrigido (500 ml × R$ 2/L dava R$ 1.000) e ?ver= volta a reabrir a ficha | FEITO (TESTADO LOCAL) |
 | 24/11/2026 | Comprovante do ponto "deixe em um histórico da pessoa, não dá pra imprimir" | Tela de sucesso só mostra o NSR; "Meus comprovantes" no Meu histórico com cada marcação (CPF mascarado no tablet) | FEITO (TESTADO LOCAL) |
 | 24/11/2026 | "Cozinha é só cozinha e bar só bar" (Estoque de bases) | Estoque de bases travado no setor pela área; entrada nova no Bar | FEITO |
+| 24/11/2026 | "Quando eu for digitar o menu não precisa subir junto" | Barra de baixo some enquanto o teclado está aberto (tela de toque) e volta ao sair do campo | FEITO (TESTADO LOCAL) |

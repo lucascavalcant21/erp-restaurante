@@ -137,4 +137,42 @@ test("todo ícone das contas rápidas existe na tela (B-048: ConciergeBell falta
   const tela = fs.readFileSync(new URL("../components/access-control/ContaRapida.js", import.meta.url), "utf8");
   const mapa = tela.match(/ICONES_CONTA = \{([^}]+)\}/)[1].split(",").map((x) => x.trim()).filter(Boolean);
   for (const c of CONTAS_RAPIDAS) assert.ok(mapa.includes(c.icone), `ícone ${c.icone} de ${c.id} falta em ContaRapida.js`);
+  const { MODULOS_CONTA } = await import("./contas-rapidas.mjs");
+  for (const m of MODULOS_CONTA) assert.ok(mapa.includes(m.icone), `ícone ${m.icone} do módulo ${m.id} falta em ContaRapida.js`);
+});
+
+test("módulos da conta: permissões válidas e seguras (sem editar, excluir, custo ou valor)", async () => {
+  const { MODULOS_CONTA, contaDosModulos } = await import("./contas-rapidas.mjs");
+  const validas = new Set(allPermissionKeys());
+  for (const m of MODULOS_CONTA) {
+    for (const p of m.permissoes) {
+      assert.ok(validas.has(p), `${m.id}: ${p}`);
+      assert.ok(!p.includes("*"), `${m.id}: ${p}`);
+      assert.ok(!/\.(edit|delete|view_costs|view_margin|view_values|settings|approve|adjust_stock|export)$/.test(p), `${m.id}: ${p}`);
+    }
+  }
+  const todos = contaDosModulos(MODULOS_CONTA.map((m) => m.id));
+  assert.ok(!todos.permissoes.includes("rh.employees.view"), "RH da conta rápida não vê o cadastro (dados pessoais)");
+  assert.ok(!todos.permissoes.some((p) => p.startsWith("rh.payroll") || p.startsWith("financeiro.")));
+});
+
+test("conta pelos módulos marcados: ordem fixa, código estável e página certa", async () => {
+  const { contaDosModulos } = await import("./contas-rapidas.mjs");
+  const a = contaDosModulos(["rh", "bar", "cozinha"]);
+  const b = contaDosModulos(["cozinha", "rh", "bar", "inexistente"]);
+  assert.equal(a.codigo, "conta-mod-cozinha-bar-rh");
+  assert.equal(a.codigo, b.codigo);
+  assert.equal(a.nome, "Cozinha + Bar + RH");
+  assert.equal(a.paginaInicial, "/dashboard");
+  assert.equal(contaDosModulos(["bar"]).paginaInicial, "/dashboard/bar");
+  const ponto = contaDosModulos(["ponto"]);
+  assert.equal(ponto.tipoAcesso, "terminal_ponto");
+  assert.equal(ponto.paginaInicial, "/dashboard/rh/ponto");
+  assert.equal(contaDosModulos([]), null);
+  assert.equal(contaDosModulos(["xyz"]), null);
+  const s = { gerenciado: true, papel: "funcionario", permissions: contaDosModulos(["cozinha", "rh"]).permissoes };
+  assert.ok(canAccessRoute(s, "/dashboard/operacao/fichas", "dept=cozinha"));
+  assert.ok(!canAccessRoute(s, "/dashboard/operacao/fichas", "dept=bar"));
+  assert.ok(!canAccessRoute(s, "/dashboard/financeiro", ""));
+  assert.ok(!canAccessRoute(s, "/dashboard/configuracoes/usuarios", ""));
 });

@@ -103,7 +103,7 @@ export default function InventarioPage() {
   // ── Resumo ────────────────────────────────────────────────────────────────
   const resumo = useMemo(() => {
     const totalUnidades = itens.reduce((s, i) => s + (Number(i.quantidade) || 0), 0);
-    const categorias = [...new Set(itens.map(i => i.categoria || "Outros"))];
+    const categorias = [...new Set(itens.map(i => i.categoria || "Sem categoria"))];
     const valorTotal = itens.reduce((s, i) => s + (Number(i.valor_unitario) || 0) * (Number(i.quantidade) || 0), 0);
     const mes = new Date().toISOString().slice(0, 7);
     const baixasMes = movimentos

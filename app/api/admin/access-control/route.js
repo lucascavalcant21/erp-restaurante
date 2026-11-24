@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../lib/server/supabase-server.mjs";
-import { contaRapidaPorId } from "../../../lib/contas-rapidas.mjs";
+import { contaRapidaPorId, contaDosModulos } from "../../../lib/contas-rapidas.mjs";
 import { perfilDaContaRapida, unidadeDaContaRapida } from "../../../lib/server/conta-rapida.mjs";
 
 export const dynamic = "force-dynamic";
@@ -224,8 +224,10 @@ export async function POST(request) {
     }
 
     if (body.action === "create-quick-account") {
-      const modelo = contaRapidaPorId(body.modelo);
-      if (!modelo) return json({ error: "Escolha uma função válida." }, 400);
+      // Módulos marcados (Cozinha, Bar, RH, Ponto, Salão, Nico) ou um modelo antigo.
+      // As permissões saem sempre do catálogo do servidor, nunca do navegador.
+      const modelo = Array.isArray(body.modulos) ? contaDosModulos(body.modulos.map(String)) : contaRapidaPorId(body.modelo);
+      if (!modelo) return json({ error: "Marque ao menos um módulo." }, 400);
       if (!clean(body.nome) || !clean(body.login)) return json({ error: "Nome e login são obrigatórios." }, 400);
       if (!/^[a-z0-9._@+-]+$/i.test(clean(body.login))) return json({ error: "O login contém caracteres não permitidos." }, 400);
       if (clean(body.password).length < 8) return json({ error: "A senha temporária deve ter ao menos 8 caracteres." }, 400);

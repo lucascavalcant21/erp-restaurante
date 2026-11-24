@@ -1,20 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChefHat, Clock, ConciergeBell, Copy, KeyRound, Loader2, Martini, Minus, Sparkles, Wine, X } from "lucide-react";
+import { Check, ChefHat, Clock, ConciergeBell, Copy, KeyRound, Loader2, Martini, Minus, Sparkles, Users, Wine, X } from "lucide-react";
 import { accessCommand } from "../../lib/access-control";
-import { CONTAS_RAPIDAS, contaRapidaPorId, loginDoRestaurante, senhaDoRestaurante } from "../../lib/contas-rapidas.mjs";
+import { CONTAS_RAPIDAS, MODULOS_CONTA, contaDosModulos, contaRapidaPorId, loginDoRestaurante, senhaDoRestaurante } from "../../lib/contas-rapidas.mjs";
 
 // Todo ícone usado em contas-rapidas.mjs precisa estar aqui (trava em
 // contas-rapidas.test.mjs); o que faltar cai no KeyRound em vez de quebrar a tela.
-export const ICONES_CONTA = { ChefHat, Clock, ConciergeBell, Martini, Sparkles, Wine };
+export const ICONES_CONTA = { ChefHat, Clock, ConciergeBell, Martini, Sparkles, Users, Wine };
 const ICONES = ICONES_CONTA;
+const MODULOS_DO_MODELO = {
+  "chefe-bar": ["bar"], "equipe-bar": ["bar"], "equipe-cozinha": ["cozinha"], garcom: ["salao"],
+  "somente-ponto": ["ponto"], "tablet-nico": ["nico"], "tablet-nico-ponto": ["nico", "ponto"],
+  tablet: ["nico"], ponto: ["ponto"], cozinha: ["cozinha"], bar: ["bar"],
+};
 const CAMPO = "min-h-11 w-full rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent";
 
 /** Criar um acesso em três passos: função, nome e senha. */
 // Login e senha já vêm prontos pelo nome do restaurante (dono, 24/11/2026); dá para editar os dois.
 export default function ContaRapida({ onFechar, onCriada, modeloInicial = null, nomeRestaurante = "", loginsExistentes = [] }) {
-  const [modeloId, setModeloId] = useState(contaRapidaPorId(modeloInicial)?.id || CONTAS_RAPIDAS[0].id);
+  // Módulos marcados (dono, 24/11/2026): Cozinha, Bar, Salão, RH, Ponto, Nico.
+  // Link antigo (?conta=tablet etc.) já chega com os módulos equivalentes.
+  const [modulos, setModulos] = useState(() => MODULOS_DO_MODELO[modeloInicial] || MODULOS_DO_MODELO[contaRapidaPorId(modeloInicial)?.id] || []);
   const [usados, setUsados] = useState(loginsExistentes);
   const [nome, setNome] = useState("");
   const [login, setLogin] = useState(() => loginDoRestaurante(nomeRestaurante, loginsExistentes));
@@ -23,17 +30,19 @@ export default function ContaRapida({ onFechar, onCriada, modeloInicial = null, 
   const [erro, setErro] = useState("");
   const [criada, setCriada] = useState(null);
   const [copiado, setCopiado] = useState(false);
-  const modelo = contaRapidaPorId(modeloId);
+  const modelo = contaDosModulos(modulos) || { nome: "", pode: [], naoPode: [], trocarSenha: false };
+  const alternar = (id) => setModulos((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
 
   const mudarNome = (valor) => setNome(valor);
 
   const criar = async () => {
+    if (!modulos.length) return setErro("Marque ao menos um módulo.");
     const nomeFinal = nome.trim() || modelo.nome;
     if (!login.trim()) return setErro("Informe o login.");
     if (senha.length < 8) return setErro("A senha precisa ter ao menos 8 caracteres.");
     setSalvando(true); setErro("");
     try {
-      await accessCommand("create-quick-account", { modelo: modeloId, nome: nomeFinal, login, password: senha });
+      await accessCommand("create-quick-account", { modulos, nome: nomeFinal, login, password: senha });
       setCriada({ nome: nomeFinal, login: login.trim().toLowerCase(), senha, funcao: modelo.nome, trocar: modelo.trocarSenha !== false });
       setUsados((u) => [...u, login.trim().toLowerCase()]);
       onCriada?.();
@@ -83,34 +92,36 @@ export default function ContaRapida({ onFechar, onCriada, modeloInicial = null, 
           <>
             <div className="space-y-5 overflow-y-auto p-5">
               <fieldset className="space-y-2">
-                <legend className="mb-2 text-sm font-extrabold text-hf-text-2">Função</legend>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {CONTAS_RAPIDAS.map((c) => {
-                    const Icone = ICONES[c.icone] || KeyRound;
-                    const ativo = c.id === modeloId;
+                <legend className="mb-1 text-sm font-extrabold text-hf-text-2">O que esta conta pode abrir?</legend>
+                <p className="mb-2 text-xs font-medium text-hf-muted">Marque um ou mais módulos.</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {MODULOS_CONTA.map((m) => {
+                    const Icone = ICONES[m.icone] || KeyRound;
+                    const ativo = modulos.includes(m.id);
                     return (
-                      <button key={c.id} type="button" aria-pressed={ativo} onClick={() => setModeloId(c.id)}
-                        className={`flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-2xl border p-2 text-center text-xs font-bold text-hf-text ${ativo ? "border-hf-accent bg-hf-elevated ring-2 ring-hf-accent" : "border-hf-border bg-hf-surface"}`}>
+                      <button key={m.id} type="button" role="checkbox" aria-checked={ativo} onClick={() => alternar(m.id)}
+                        className={`relative flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-2xl border p-2 text-center text-sm font-bold text-hf-text ${ativo ? "border-hf-accent bg-hf-elevated ring-2 ring-hf-accent" : "border-hf-border bg-hf-surface"}`}>
+                        {ativo && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-hf-menu text-white"><Check size={14} aria-hidden="true" /></span>}
                         <span className="grid h-10 w-10 place-items-center rounded-xl bg-hf-accent text-hf-accent-fg"><Icone size={21} aria-hidden="true" /></span>
-                        {c.nome}
+                        {m.nome}
                       </button>
                     );
                   })}
                 </div>
               </fieldset>
 
-              <div className="grid gap-3 rounded-2xl bg-hf-elevated p-4 text-sm font-medium text-hf-text sm:grid-cols-2">
+              {modulos.length > 0 && <div className="grid gap-3 rounded-2xl bg-hf-elevated p-4 text-sm font-medium text-hf-text sm:grid-cols-2">
                 <ul className="space-y-1.5">
                   {modelo.pode.map((t) => <li key={t} className="flex items-start gap-2"><Check size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-hf-success" />{t}</li>)}
                 </ul>
                 <ul className="space-y-1.5">
                   {modelo.naoPode.map((t) => <li key={t} className="flex items-start gap-2 text-hf-text-2"><Minus size={16} aria-hidden="true" className="mt-0.5 shrink-0" />Não: {t.charAt(0).toLowerCase() + t.slice(1)}</li>)}
                 </ul>
-              </div>
+              </div>}
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-bold text-hf-text-2">Nome
-                  <input value={nome} onChange={(e) => mudarNome(e.target.value)} placeholder={modelo.nome} autoComplete="off" className={`${CAMPO} mt-1`} />
+                  <input value={nome} onChange={(e) => mudarNome(e.target.value)} placeholder={modelo.nome || "Ex.: Tablet da cozinha"} autoComplete="off" className={`${CAMPO} mt-1`} />
                 </label>
                 <label className="block text-sm font-bold text-hf-text-2">Login
                   <input value={login} onChange={(e) => setLogin(e.target.value)} autoCapitalize="none" autoComplete="off" className={`${CAMPO} mt-1`} />
@@ -125,8 +136,8 @@ export default function ContaRapida({ onFechar, onCriada, modeloInicial = null, 
               {erro && <p role="alert" className="text-sm font-bold text-hf-danger">{erro}</p>}
             </div>
             <footer className="border-t border-hf-border p-4">
-              <button onClick={criar} disabled={salvando} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-hf-accent px-4 text-sm font-black text-hf-accent-fg disabled:opacity-60">
-                {salvando && <Loader2 size={17} aria-hidden="true" className="animate-spin" />} Criar conta de {modelo.nome}
+              <button onClick={criar} disabled={salvando || !modulos.length} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-hf-accent px-4 text-sm font-black text-hf-accent-fg disabled:opacity-60">
+                {salvando && <Loader2 size={17} aria-hidden="true" className="animate-spin" />} {modulos.length ? `Criar conta: ${modelo.nome}` : "Marque os módulos"}
               </button>
             </footer>
           </>

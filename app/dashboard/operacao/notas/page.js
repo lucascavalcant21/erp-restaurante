@@ -1,6 +1,7 @@
 "use client";
 // tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
+import SelectCategoria, { opcoesSemOutros } from "../../../components/cadastro/SelectCategoria";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useTempoReal } from "../../../lib/realtime";
 import { ReceiptText, ScanLine, Camera, Trash2, Calendar, Clock, ArrowDownAZ, CheckCircle, BrainCircuit, UploadCloud, X } from "lucide-react";
@@ -157,7 +158,7 @@ function FormScanner({ onSalvar, onCancelar }) {
             <Field label="Fornecedor"><TextInput className="py-1.5 text-sm" value={dadosIA.fornecedor} onChange={e => setDadosIA({...dadosIA, fornecedor: e.target.value})} /></Field>
             <div className="grid grid-cols-2 gap-2">
               <Field label="CNPJ"><TextInput className="py-1.5 text-sm" value={dadosIA.cnpj} onChange={e => setDadosIA({...dadosIA, cnpj: mascaraCpfCnpj(e.target.value)})} /></Field>
-              <Field label="Categoria"><Select className="py-1.5 text-sm" value={dadosIA.categoria} onChange={e => setDadosIA({...dadosIA, categoria: e.target.value})}>{CATEGORIAS_NOTA.map(c => <option key={c}>{c}</option>)}</Select></Field>
+              <Field label="Categoria"><SelectCategoria value={dadosIA.categoria} onChange={v => setDadosIA({...dadosIA, categoria: v})} opcoes={CATEGORIAS_NOTA} className="erp-input w-full py-1.5 text-sm" /></Field>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Field label="Data"><TextInput className="py-1.5 text-sm" type="date" value={dadosIA.data_emissao} onChange={e => setDadosIA({...dadosIA, data_emissao: e.target.value})} /></Field>
@@ -408,7 +409,7 @@ export default function NotasFiscaisPage() {
         <div className="space-y-3">
           <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por fornecedor ou CNPJ..." />
           <Chips options={["Todas", "A pagar", "Vencidas", "Pagas"]} value={situacao} onChange={setSituacao} />
-          <Chips options={["Todas", ...CATEGORIAS_NOTA]} value={cat} onChange={setCat} />
+          <Chips options={["Todas", ...opcoesSemOutros(CATEGORIAS_NOTA, notas.map((n) => n.categoria))]} value={cat} onChange={setCat} />
           
           <div className="flex gap-2 items-center flex-wrap" style={{ background: "var(--panel)", padding: "12px", borderRadius: "12px", border: "1px solid var(--line)" }}>
             <span className="text-xs font-bold uppercase tracking-wide mr-2" style={{ color: "var(--dim)" }}>Ordenar por:</span>

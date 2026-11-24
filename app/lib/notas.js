@@ -38,8 +38,8 @@ import { fetchComSessao } from "./api-sessao.js";
 
 export const CATEGORIAS_NOTA = [
   "Hortifruti", "Açougue/Proteína", "Laticínios", "Secos e Molhados", 
-  "Bebidas", "Limpeza", "Embalagens", "Outros"
-];
+  "Bebidas", "Limpeza", "Embalagens",
+]; // sem "Outros": categoria nova pelo "+ Nova categoria" (dono, 24/11/2026)
 
 // Removemos MOCK_NOTAS
 

@@ -47,7 +47,8 @@
 
 import { supabase, isSupabaseReady } from "./supabase";
 
-export const CATEGORIAS_SUP = ["Limpeza", "Higiene", "Escritório", "Descartáveis", "Outros"];
+// Sem "Outros": categoria nova entra pelo "+ Nova categoria" (dono, 24/11/2026)
+export const CATEGORIAS_SUP = ["Limpeza", "Higiene", "Escritório", "Descartáveis"];
 export const UNIDADES_SUP = ["UN", "L", "mL", "PCT", "CX", "RL", "KG"];
 
 let MOCK_CATALOGO = [];

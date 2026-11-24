@@ -115,6 +115,77 @@ export const CONTAS_RAPIDAS = Object.freeze([
 ]);
 
 export const contaRapidaPorId = (id) => CONTAS_RAPIDAS.find((c) => c.id === id) || null;
+function contaRapidaPorIdInterno(id) { return CONTAS_RAPIDAS.find((c) => c.id === id); }
+
+// MÓDULOS (dono, 24/11/2026): "não tem que ter chefe de bar, função; tem que
+// ter Cozinha, Bar, RH, ponto dos funcionários, salão. Eu vou selecionar quais
+// eu vou querer." A conta junta as permissões dos módulos marcados. Cada módulo
+// segue a regra dos modelos: só ver, retirar, imprimir e registrar; nada de
+// editar, excluir, custo ou valor. O servidor monta a lista pelo id dos módulos.
+export const MODULOS_CONTA = Object.freeze([
+  {
+    id: "cozinha", nome: "Cozinha", icone: "ChefHat", setor: "Cozinha", paginaInicial: "/dashboard/cozinha",
+    pode: ["Fichas, montagem e cardápio da cozinha (só ver)", "Retirar do estoque da cozinha", "Etiquetas", "Fritadeira e coifa"],
+    permissoes: [...contaRapidaPorIdInterno("equipe-cozinha").permissoes],
+  },
+  {
+    id: "bar", nome: "Bar", icone: "Wine", setor: "Bar", paginaInicial: "/dashboard/bar",
+    pode: ["Fichas de drinks e montagem (só ver)", "Retirar do estoque do bar", "Etiquetas"],
+    permissoes: [...contaRapidaPorIdInterno("equipe-bar").permissoes],
+  },
+  {
+    id: "salao", nome: "Salão", icone: "ConciergeBell", setor: "Salão", paginaInicial: "/dashboard/mesas",
+    pode: ["Abrir mesas e lançar pedidos", "Enviar à cozinha e ao bar"],
+    permissoes: [...contaRapidaPorIdInterno("garcom").permissoes],
+  },
+  {
+    id: "rh", nome: "RH", icone: "Users", paginaInicial: "/dashboard/rh",
+    pode: ["Ver o resumo da equipe, escala e folgas", "Ver e imprimir a janta dos funcionários", "Ver o organograma"],
+    naoPode: ["Ver salários, documentos e dados pessoais", "Alterar ponto, folha ou cadastro"],
+    permissoes: ["rh.overview.view", "rh.quick.view", "rh.staff_menu.view", "rh.staff_menu.print", "rh.orgchart.view", "treinamento.my.view"],
+  },
+  {
+    id: "ponto", nome: "Ponto dos funcionários", icone: "Clock", paginaInicial: "/dashboard/rh/ponto",
+    pode: ["Bater o ponto (cada um com o seu PIN)"],
+    permissoes: ["ponto.clock.view", "ponto.clock.create"],
+  },
+  {
+    id: "nico", nome: "Nico", icone: "Sparkles", paginaInicial: "/dashboard/inteligencia/assistente",
+    pode: ["Perguntar ao Nico (toque, texto ou áudio)", "Fichas e como fazer, sem custo"],
+    permissoes: ["dashboard.intelligence.view", ...NICO_CONSULTA, ...ETIQUETAS, TREINAMENTO],
+  },
+]);
+
+const ORDEM_MODULOS = MODULOS_CONTA.map((m) => m.id);
+export const NAO_PODE_MODULOS = Object.freeze(["Ver custos, margem ou valores", "Alterar ou excluir fichas e cadastros", "Abrir financeiro e configurações"]);
+
+/**
+ * Conta a partir dos módulos marcados. null se não houver módulo válido.
+ * Devolve o mesmo formato dos modelos (o servidor cria o perfil pelo código).
+ */
+export function contaDosModulos(ids) {
+  const escolhidos = ORDEM_MODULOS.filter((id) => (ids || []).includes(id)).map((id) => MODULOS_CONTA.find((m) => m.id === id));
+  if (!escolhidos.length) return null;
+  const soPonto = escolhidos.length === 1 && escolhidos[0].id === "ponto";
+  const um = escolhidos.length === 1 ? escolhidos[0] : null;
+  return {
+    id: `modulos:${escolhidos.map((m) => m.id).join("+")}`,
+    codigo: `conta-mod-${escolhidos.map((m) => m.id).join("-")}`,
+    nome: escolhidos.map((m) => m.nome).join(" + "),
+    descricao: `Conta com: ${escolhidos.map((m) => m.nome).join(", ")}.`,
+    setor: um?.setor || null,
+    icone: um?.icone || "KeyRound",
+    tipoAcesso: soPonto ? "terminal_ponto" : "setor",
+    // um módulo: abre nele; vários: o Início mostra só os módulos liberados
+    paginaInicial: um ? um.paginaInicial : escolhidos.some((m) => m.id === "nico") ? "/dashboard/inteligencia/assistente" : "/dashboard",
+    trocarSenha: false,
+    pode: escolhidos.flatMap((m) => m.pode),
+    naoPode: [...NAO_PODE_MODULOS, ...escolhidos.flatMap((m) => m.naoPode || [])],
+    permissoes: [...new Set(escolhidos.flatMap((m) => m.permissoes))],
+    modulos: escolhidos.map((m) => m.id),
+  };
+}
+
 
 /** "Ana Paula Souza" vira "ana.souza": curto de digitar no tablet. */
 export function sugerirLogin(nome) {

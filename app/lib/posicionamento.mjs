@@ -14,6 +14,10 @@ export const UNIDADES_POSICIONAMENTO = Object.freeze([
   { id: "un", rotulo: "unidades" },
 ]);
 
+// Categorias para dividir a lista (dono, 24/11/2026: "aqui podemos criar categorias para dividir").
+export const CATEGORIAS_POS_SUGERIDAS = Object.freeze(["Proteínas", "Acompanhamentos", "Guarnições", "Molhos", "Saladas", "Sobremesas"]);
+export const SEM_CATEGORIA_POS = "Sem categoria";
+
 const semAcento = (v) => String(v ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const limpo = (v) => String(v ?? "").replace(/\s+/g, " ").trim();
 
@@ -39,6 +43,7 @@ export function normalizarItemPos(i = {}) {
     max: numeroPos(i.max),
     media: !!i.media,
     obs: limpo(i.obs).slice(0, 160),
+    categoria: limpo(i.categoria).slice(0, 40),
     atualizado_em: i.atualizado_em || null,
   };
 }
@@ -50,6 +55,20 @@ export function normalizarPosicionamento(v) {
     .filter((i) => i.nome);
   itens.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   return { versao: 1, itens };
+}
+
+/** Categorias usadas, na ordem das sugeridas e depois as criadas (A–Z). */
+export function categoriasPos(itens = []) {
+  const usadas = [...new Set(itens.map((i) => limpo(i.categoria)).filter(Boolean))];
+  const ordem = (c) => { const k = CATEGORIAS_POS_SUGERIDAS.findIndex((s) => semAcento(s) === semAcento(c)); return k < 0 ? 99 : k; };
+  return usadas.sort((a, b) => ordem(a) - ordem(b) || a.localeCompare(b, "pt-BR"));
+}
+
+/** Lista dividida por categoria; o que não tem categoria vai no fim. */
+export function agruparPorCategoria(itens = []) {
+  const grupos = categoriasPos(itens).map((c) => ({ categoria: c, itens: itens.filter((i) => limpo(i.categoria) === c) }));
+  const sem = itens.filter((i) => !limpo(i.categoria));
+  return sem.length ? [...grupos, { categoria: SEM_CATEGORIA_POS, itens: sem }] : grupos;
 }
 
 /** Erros do item antes de salvar (lista vazia = pode salvar). */
@@ -95,7 +114,7 @@ const VAZIAS = new Set([
   "a", "o", "as", "os", "de", "do", "da", "dos", "das", "e", "em", "no", "na", "nos", "nas", "um", "uma", "com", "pra", "para", "me", "mostra", "mostre", "ver",
   "qual", "quais", "quanto", "quanta", "quantos", "quantas", "grama", "gramas", "g", "gr", "peso", "pesa", "vai", "vao", "leva", "levam", "tem", "ser", "sao", "fica",
   "posicionamento", "posicionamentos", "posicionado", "posicionada", "posicionados", "posicionadas", "posiciona", "posicionar", "posicao",
-  "porcionamento", "porcionado", "porcionada", "prato", "pratos", "cada", "lista", "todos", "tudo", "hoje", "certo", "correto",
+  "porcionamento", "porcionamentos", "porciona", "porcionar", "porcionado", "porcionada", "prato", "pratos", "cada", "lista", "todos", "tudo", "hoje", "certo", "correto",
 ]);
 
 const tokensPos = (t) => semAcento(t).replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(Boolean);
@@ -108,8 +127,8 @@ const tokensPos = (t) => semAcento(t).replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).
 export function interpretarPosicionamento(texto) {
   const t = semAcento(texto);
   if (!t || t.length > 120) return null;
-  const temPalavra = /\bposicion|\bporcionament|\bposicao\b/.test(t);
-  const pergunta = /\bquant[oa]s? (gramas?|g|gr)\b|\bqual (e |o )?(peso|posicionamento)\b|\bquantas? gramas?\b/.test(t);
+  const temPalavra = /\bposicion|\bporcion|\bposicao\b/.test(t);
+  const pergunta = /\bquant[oa]s? (gramas?|g|gr)\b|\bqual (e |o )?(peso|posicionamento|porcionamento)\b|\bquantas? gramas?\b/.test(t);
   if (!temPalavra && !pergunta) return null;
   const termo = tokensPos(t).filter((w) => !VAZIAS.has(w) && !/^\d+$/.test(w)).join(" ");
   if (!termo) return temPalavra ? { todos: true } : null;
@@ -145,31 +164,31 @@ export const ROTA_POSICIONAMENTO = "/dashboard/operacao/posicionamento?dept=cozi
 export function respostaDoPosicionamento(texto, cache) {
   const pedido = interpretarPosicionamento(texto);
   if (!pedido) return null;
-  const acoes = [{ rotulo: "Abrir o posicionamento", rota: ROTA_POSICIONAMENTO }];
+  const acoes = [{ rotulo: "Abrir o porcionamento", rota: ROTA_POSICIONAMENTO }];
   if (!cache) {
     if (pedido.soPergunta) return null;
-    return { tipo: "local", local: true, atualizar: true, texto: "Ainda estou baixando o posicionamento neste aparelho. Tente de novo em alguns segundos.", acoes };
+    return { tipo: "local", local: true, atualizar: true, texto: "Ainda estou baixando o porcionamento neste aparelho. Tente de novo em alguns segundos.", acoes };
   }
   const { itens } = normalizarPosicionamento(cache.posicionamento);
   if (!itens.length) {
     if (pedido.soPergunta) return null;
-    return { tipo: "local", local: true, atualizar: true, texto: "O posicionamento ainda não foi cadastrado. Cadastre em Cozinha › Posicionamento.", acoes };
+    return { tipo: "local", local: true, atualizar: true, texto: "O porcionamento ainda não foi cadastrado. Cadastre em Cozinha › Porcionamento.", acoes };
   }
   if (pedido.todos) {
-    return { tipo: "local", local: true, atualizar: true, texto: "Posicionamento", blocos: [{ tipo: "posicionamento", itens, termo: null }], acoes };
+    return { tipo: "local", local: true, atualizar: true, texto: "Porcionamento", blocos: [{ tipo: "posicionamento", itens, termo: null }], acoes };
   }
   const achados = buscarPosicionamento(itens, pedido.termo, { aproximado: !pedido.soPergunta });
   if (!achados.length) {
     if (pedido.soPergunta) return null; // "quantas gramas de arroz para 10 pessoas" etc. segue o caminho normal
     return {
       tipo: "local", local: true, atualizar: true,
-      texto: `Não tem posicionamento cadastrado para "${pedido.termo}". Veja a lista:`,
+      texto: `Não tem porcionamento cadastrado para "${pedido.termo}". Veja a lista:`,
       blocos: [{ tipo: "posicionamento", itens, termo: null }], acoes,
     };
   }
   return {
     tipo: "local", local: true, atualizar: true,
-    texto: achados.length === 1 ? textoItemPos(achados[0]) : "Posicionamento",
+    texto: achados.length === 1 ? textoItemPos(achados[0]) : "Porcionamento",
     blocos: [{ tipo: "posicionamento", itens: achados, termo: pedido.termo }], acoes,
   };
 }

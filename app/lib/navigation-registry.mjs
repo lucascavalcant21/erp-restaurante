@@ -340,8 +340,8 @@ export const NAVIGATION_REGISTRY = [
   },
   {
     id: "op-posicionamento",
-    title: "Posicionamento da Cozinha",
-    shortTitle: "Posicionamento",
+    title: "Porcionamento da Cozinha",
+    shortTitle: "Porcionamento",
     description: "Quantas gramas de cada produto vão no prato (alvo, mínimo e máximo)",
     route: "/dashboard/operacao/posicionamento?dept=cozinha",
     domain: "Operação",

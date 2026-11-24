@@ -13,7 +13,7 @@ import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 import { useERP } from "../../../context/ERPContext";
 import { usePermission } from "../../../components/access-control/PermissionGate";
 import { fetchPosicionamento, salvarPosicionamento } from "../../../lib/parametros";
-import { UNIDADES_POSICIONAMENTO, conferirItemPos, normalizarItemPos, normalizarPosicionamento, novoIdPos, textoAlvo, textoFaixa } from "../../../lib/posicionamento.mjs";
+import { CATEGORIAS_POS_SUGERIDAS, agruparPorCategoria, categoriasPos, UNIDADES_POSICIONAMENTO, conferirItemPos, normalizarItemPos, normalizarPosicionamento, novoIdPos, textoAlvo, textoFaixa } from "../../../lib/posicionamento.mjs";
 
 /** Imprime por um iframe escondido (o tablet bloqueia janela nova). */
 function imprimirHtml(html) {
@@ -27,12 +27,14 @@ function imprimirHtml(html) {
 }
 
 const inputCls = "h-12 w-full rounded-full border border-hf-border bg-hf-surface px-4 text-[16px] font-semibold text-hf-text outline-none focus:border-hf-accent";
-const VAZIO = { nome: "", unidade: "g", alvo: "", min: "", max: "", media: false, obs: "" };
+const VAZIO = { nome: "", unidade: "g", alvo: "", min: "", max: "", media: false, obs: "", categoria: "" };
 const semAcento = (v) => String(v ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 function Formulario({ inicial, outros, onSalvar, onCancelar, salvando }) {
-  const [f, setF] = useState({ ...VAZIO, ...inicial, alvo: inicial?.alvo ?? "", min: inicial?.min ?? "", max: inicial?.max ?? "" });
+  const [f, setF] = useState({ ...VAZIO, ...inicial, alvo: inicial?.alvo ?? "", min: inicial?.min ?? "", max: inicial?.max ?? "", categoria: inicial?.categoria ?? "" });
+  const opcoesCat = [...new Set([...categoriasPos(outros), ...CATEGORIAS_POS_SUGERIDAS])];
+  const [outraCat, setOutraCat] = useState(!!inicial?.categoria && !opcoesCat.includes(inicial.categoria));
   const [erros, setErros] = useState([]);
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
   const un = f.unidade === "un" ? "un" : f.unidade;
@@ -47,6 +49,18 @@ function Formulario({ inicial, outros, onSalvar, onCancelar, salvando }) {
         <span className="text-[13px] font-medium text-hf-muted">Produto</span>
         <input autoFocus value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Ex.: Filé de frango" className={`${inputCls} mt-1`} />
       </label>
+      <div>
+        <span className="text-[13px] font-medium text-hf-muted">Categoria</span>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {opcoesCat.map((c) => (
+            <button key={c} type="button" aria-pressed={!outraCat && f.categoria === c} onClick={() => { setOutraCat(false); set("categoria", f.categoria === c ? "" : c); }}
+              className={`min-h-[40px] rounded-full px-3.5 text-sm font-bold ${!outraCat && f.categoria === c ? "bg-hf-menu text-white" : "border border-hf-border text-hf-text-2"}`}>{c}</button>
+          ))}
+          <button type="button" aria-pressed={outraCat} onClick={() => { setOutraCat(true); set("categoria", ""); }}
+            className={`min-h-[40px] rounded-full px-3.5 text-sm font-bold ${outraCat ? "bg-hf-menu text-white" : "border border-dashed border-hf-border text-hf-text-2"}`}>+ Outra</button>
+        </div>
+        {outraCat && <input value={f.categoria} onChange={(e) => set("categoria", e.target.value)} placeholder="Nome da categoria" className={`${inputCls} mt-2`} autoFocus />}
+      </div>
       <div>
         <span className="text-[13px] font-medium text-hf-muted">Medida</span>
         <div className="mt-1 flex flex-wrap gap-2">
@@ -93,6 +107,7 @@ export default function Posicionamento() {
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState("");
   const [busca, setBusca] = useState("");
+  const [filtroCat, setFiltroCat] = useState("");
 
   useEffect(() => {
     let vivo = true;
@@ -108,8 +123,11 @@ export default function Posicionamento() {
 
   const lista = useMemo(() => {
     const q = semAcento(busca).trim();
-    return q ? itens.filter((i) => semAcento(i.nome).includes(q)) : itens;
-  }, [itens, busca]);
+    const porNome = q ? itens.filter((i) => semAcento(i.nome).includes(q)) : itens;
+    return filtroCat ? porNome.filter((i) => (i.categoria || "") === (filtroCat === "—" ? "" : filtroCat)) : porNome;
+  }, [itens, busca, filtroCat]);
+  const grupos = useMemo(() => agruparPorCategoria(lista), [lista]);
+  const cats = useMemo(() => categoriasPos(itens), [itens]);
 
   async function gravar(novos, msg) {
     setSalvando(true);
@@ -125,32 +143,33 @@ export default function Posicionamento() {
   }
 
   const salvarItem = (item) => gravar(editando === "novo" ? [...itens, { ...item, id: novoIdPos() }] : itens.map((i) => (i.id === item.id ? item : i)), `${item.nome} salvo.`);
-  const excluir = (item) => { if (window.confirm(`Tirar "${item.nome}" do posicionamento?`)) gravar(itens.filter((i) => i.id !== item.id), `${item.nome} removido.`); };
+  const excluir = (item) => { if (window.confirm(`Tirar "${item.nome}" do porcionamento?`)) gravar(itens.filter((i) => i.id !== item.id), `${item.nome} removido.`); };
 
   function imprimir() {
-    imprimirHtml(`<html><head><meta charset="utf-8"><title>Posicionamento</title><style>
+    imprimirHtml(`<html><head><meta charset="utf-8"><title>Porcionamento</title><style>
       body{font-family:system-ui,sans-serif;padding:24px;color:#111827} h1{font-size:22px;margin:0 0 12px}
       table{width:100%;border-collapse:collapse;font-size:16px} td,th{border-bottom:1px solid #d1d5db;padding:8px 6px;text-align:left} td.n{text-align:right;font-weight:800;white-space:nowrap}
-      .s{color:#4b5563;font-size:13px}</style></head><body><h1>Posicionamento · quanto vai no prato</h1>
+      .s{color:#4b5563;font-size:13px}</style></head><body><h1>Porcionamento · quanto vai no prato</h1>
+      ${agruparPorCategoria(itens).map((g) => `<h2 style="font-size:16px;margin:18px 0 6px">${esc(g.categoria)}</h2>
       <table><tr><th>Produto</th><th style="text-align:right">No prato</th><th>Aceita</th></tr>
-      ${itens.map((i) => `<tr><td>${esc(i.nome)}${i.obs ? `<div class="s">${esc(i.obs)}</div>` : ""}</td><td class="n">${esc(textoAlvo(i))}</td><td>${esc(textoFaixa(i)) || "—"}</td></tr>`).join("")}
-      </table></body></html>`);
+      ${g.itens.map((i) => `<tr><td>${esc(i.nome)}${i.obs ? `<div class="s">${esc(i.obs)}</div>` : ""}</td><td class="n">${esc(textoAlvo(i))}</td><td>${esc(textoFaixa(i)) || "—"}</td></tr>`).join("")}
+      </table>`).join("")}</body></html>`);
   }
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
-    return <div className="mx-auto max-w-3xl px-4 py-8 text-center font-bold text-hf-text-2">Escolha uma unidade para ver o posicionamento.</div>;
+    return <div className="mx-auto max-w-3xl px-4 py-8 text-center font-bold text-hf-text-2">Escolha uma unidade para ver o porcionamento.</div>;
   }
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-5 sm:px-6">
-      <CabecalhoTela titulo="Posicionamento" subtitulo="Quantas gramas de cada produto vão no prato" icone={Scale}>
+      <CabecalhoTela titulo="Porcionamento" subtitulo="Quantas gramas de cada produto vão no prato" icone={Scale}>
         {itens.length > 0 && (
           <button type="button" onClick={imprimir} className="inline-flex h-11 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-bold text-hf-text"><Printer size={16} /> Imprimir</button>
         )}
       </CabecalhoTela>
 
       <p className="rounded-2xl bg-hf-elevated px-4 py-3 text-[14px] text-hf-text-2">
-        A equipe pergunta ao assistente: <b>“posicionamento”</b> mostra a lista toda; <b>“posicionamento do filé de frango”</b> mostra só ele.
+        A equipe pergunta ao assistente: <b>“porcionamento”</b> mostra a lista toda; <b>“porcionamento do filé de frango”</b> mostra só ele.
       </p>
       {aviso && <p role="status" className="rounded-full bg-hf-elevated px-4 py-2 text-sm font-bold text-hf-text">{aviso}</p>}
       {erroCarga && <p role="alert" className="rounded-2xl bg-hf-elevated px-4 py-2 text-sm font-bold text-hf-danger">Não consegui carregar: {erroCarga}</p>}
@@ -169,6 +188,15 @@ export default function Posicionamento() {
         </label>
       )}
 
+      {cats.length > 0 && (
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+          {[["", "Todas"], ...cats.map((c) => [c, c]), ...(itens.some((i) => !i.categoria) ? [["—", "Sem categoria"]] : [])].map(([id, rot]) => (
+            <button key={id || "todas"} type="button" aria-pressed={filtroCat === id} onClick={() => setFiltroCat(id)}
+              className={`min-h-[40px] shrink-0 rounded-full px-4 text-sm font-bold ${filtroCat === id ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2"}`}>{rot}</button>
+          ))}
+        </div>
+      )}
+
       {carregando ? (
         <p className="py-8 text-center font-bold text-hf-text-2"><Loader2 className="mr-2 inline animate-spin" size={18} />Carregando…</p>
       ) : !itens.length ? (
@@ -177,8 +205,12 @@ export default function Posicionamento() {
           <p className="mt-1 text-sm text-hf-muted">Ex.: Filé de frango 200 g · Picanha média de 250 g · Batata frita 100 g (de 90 a 100 g).</p>
         </div>
       ) : (
+        <div className="space-y-5">
+        {grupos.map((g) => (
+        <section key={g.categoria} aria-label={g.categoria}>
+        {(cats.length > 0) && <h2 className="mb-2 px-1 text-[13px] font-medium text-hf-muted">{g.categoria} · {g.itens.length}</h2>}
         <ul className="space-y-2">
-          {lista.map((i) => editando === i.id ? (
+          {g.itens.map((i) => editando === i.id ? (
             <li key={i.id}><Formulario inicial={i} outros={itens} salvando={salvando} onSalvar={salvarItem} onCancelar={() => setEditando(null)} /></li>
           ) : (
             <li key={i.id} className="flex items-center gap-3 rounded-3xl border border-hf-border bg-hf-surface px-4 py-3">
@@ -191,8 +223,11 @@ export default function Posicionamento() {
               {podeExcluir && <button type="button" aria-label={`Excluir ${i.nome}`} onClick={() => excluir(i)} className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-hf-border text-hf-danger"><Trash2 size={16} /></button>}
             </li>
           ))}
-          {!lista.length && <li className="py-6 text-center text-sm font-semibold text-hf-muted">Nenhum produto com esse nome.</li>}
         </ul>
+        </section>
+        ))}
+          {!lista.length && <p className="py-6 text-center text-sm font-semibold text-hf-muted">Nenhum produto com esse nome.</p>}
+        </div>
       )}
     </div>
   );

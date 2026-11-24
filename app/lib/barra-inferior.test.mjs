@@ -5,13 +5,16 @@ import { ABAS, abaAtiva, abasVisiveis, mostraBarraInferior } from "./barra-infer
 
 const dono = { papel: "admin" };
 
-test("aparece só nas telas de primeiro nível", () => {
+test("aparece em todas as telas, menos as de trabalho em tela cheia (24/11/2026)", () => {
   for (const r of ["/dashboard", "/dashboard/", "/dashboard/menu", "/dashboard/tarefas", "/dashboard/cozinha", "/dashboard/bar", "/dashboard/salao"]) {
     assert.equal(mostraBarraInferior(r, dono), true, r);
   }
   // Telas de trabalho com rodapé próprio ficam sem a barra.
-  for (const r of ["/dashboard/mesas", "/dashboard/salao/mesas", "/dashboard/cozinha/kds", "/dashboard/inteligencia/assistente", "/dashboard/operacao/fichas", "/dashboard/conta"]) {
+  for (const r of ["/dashboard/mesas", "/dashboard/salao/mesas", "/dashboard/cozinha/kds", "/dashboard/inteligencia/assistente", "/dashboard/rh/ponto", "/dashboard/rh/extra/123"]) {
     assert.equal(mostraBarraInferior(r, dono), false, r);
+  }
+  for (const r of ["/dashboard/operacao/fichas", "/dashboard/conta", "/dashboard/marmitaria", "/dashboard/configuracoes", "/dashboard/rh/rapido"]) {
+    assert.equal(mostraBarraInferior(r, dono), true, r);
   }
 });
 

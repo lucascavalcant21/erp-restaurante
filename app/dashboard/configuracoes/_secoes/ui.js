@@ -9,7 +9,7 @@ export const inputCls = "w-full h-12 rounded-xl border border-hf-border bg-hf-su
 
 export function Painel({ titulo, descricao, onVoltar, children, rodape = null }) {
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-32 pt-3 sm:px-6">
+    <div className="mx-auto w-full max-w-2xl px-4 pb-6 pt-3 sm:px-6">
       <button type="button" onClick={onVoltar} className="-ml-2 mb-2 flex h-11 items-center gap-1.5 rounded-xl px-2 text-[14px] font-medium text-hf-muted hover:text-hf-text">
         <ArrowLeft size={18} /> Configurações
       </button>
@@ -17,8 +17,8 @@ export function Painel({ titulo, descricao, onVoltar, children, rodape = null })
       {descricao && <p className="mt-1 text-[14px] text-hf-muted">{descricao}</p>}
       <div className="mt-5 space-y-5">{children}</div>
       {rodape && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hf-border bg-hf-surface/95 px-4 py-3 backdrop-blur" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
-          <div className="mx-auto flex max-w-2xl items-center gap-3">{rodape}</div>
+        <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-hf-border bg-hf-surface/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+          <div className="flex items-center gap-3">{rodape}</div>
         </div>
       )}
     </div>

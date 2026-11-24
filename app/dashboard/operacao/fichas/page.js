@@ -2,6 +2,7 @@
 import { useRascunho } from "../../../lib/useRascunho";
 import ExcluirEmUso from "../../../components/cadastro/ExcluirEmUso";
 import { nomeRepetido } from "../../../lib/nomes-unicos.mjs";
+import { fmtPct } from "../../../lib/valor-percentual.mjs";
 import IconeModulo from "../../../components/ui/IconeModulo";
 
 function comprimirFotoParaIA(file, maxDim = 1000, qualidade = 0.70) {
@@ -2591,11 +2592,12 @@ function FichasRunner() {
                 <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-fg outline-none placeholder:font-medium placeholder:text-subtle" />
                 {busca && <button onClick={() => setBusca("")} className="text-subtle hover:text-fg-soft" title="Limpar busca"><X size={16} /></button>}
               </label>
-              {podeEditarFichas && <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-accent-soft px-4 text-sm font-black text-accent-strong shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>}
               {podeEditarFichas && <button onClick={abrirOpcaoNovo} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20 hover:bg-accent"><Plus size={18} /> {modoFicha === "preparos" ? "Criar receita" : deptUrl === "bar" ? "Criar drink" : "Criar prato"}</button>}
             </div>
           </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-line bg-transparent p-2">
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+            {podeEditarFichas && <button onClick={abrirModalIAFicha} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text"><Sparkles size={14} /> Criar com IA</button>}
+            <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text"><BarChart3 size={14} /> {mostrarIndicadores ? "Ocultar indicadores" : "Indicadores"}</button>
             {podeImprimirFichas && <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card"><Printer size={14} /> Livro de receitas</button>}
             {podeImprimirFichas && <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para baixar."); baixarPdfFichas(selecionadas.length ? fichas.filter(f => selecionadas.includes(f.id)) : fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card"><Download size={14} /> Baixar PDF</button>}
             {podeVerCustos && <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card"><Calculator size={14} /> Custos e CMV</button>}
@@ -2614,11 +2616,6 @@ function FichasRunner() {
 
       <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
          {/* Kanban de indicadores: CMV médio, margem, custo, ticket */}
-         <div className="mb-2 flex justify-end">
-           <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} className="flex min-h-9 items-center gap-2 rounded-lg border border-line bg-card px-3 text-xs font-bold text-slate-900 shadow-sm hover:bg-transparent">
-             <BarChart3 size={15} /> {mostrarIndicadores ? "Ocultar indicadores" : "Ver indicadores"}
-           </button>
-         </div>
          {mostrarIndicadores && (() => {
             const base = fichas.filter(f => modoFicha === "preparos"
               ? !!f.eh_base
@@ -2728,106 +2725,45 @@ function FichasRunner() {
                </button>
             </div>
          )}
-         {/* Ativas / inativas. Inativar não apaga: a ficha some da lista e
-             volta quando o usuário quiser vê-la de novo. */}
-         <div className="mb-3 flex items-center gap-1.5">
-            {[
-              { id: "ativas", rotulo: "Ativas" },
-              { id: "inativas", rotulo: "Inativas" },
-              { id: "todas", rotulo: "Todas" },
-            ].map(op => (
-              <button
-                key={op.id}
-                onClick={() => setFiltroStatus(op.id)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
-                  filtroStatus === op.id
-                    ? "bg-slate-900 text-white"
-                    : "border border-line bg-card text-fg hover:bg-transparent"
-                }`}
-              >
-                {op.rotulo}
-              </button>
-            ))}
-            {filtroStatus !== "ativas" && (
-              <span className="text-2xs font-bold text-subtle">
-                {filtradas.length} ficha(s)
-              </span>
-            )}
+         {/* Bases / Pratos e Ativas numa linha só (dono, 24/11/2026: "como as marmitas") */}
+         <div className="mb-3 flex flex-wrap items-center gap-2">
+           {[
+             { id: "Pratos principais", modo: "principais", titulo: deptUrl === "bar" ? "Drinks" : "Pratos", quantidade: fichas.filter(f => !f.eh_base).length },
+             { id: "Bases", modo: "preparos", titulo: "Bases", quantidade: fichas.filter(f => !!f.eh_base).length },
+           ].map(item => (
+             <button type="button" key={item.id} aria-pressed={modoFicha === item.modo}
+               onClick={() => { setModoFicha(item.modo); setTipoFiltro(item.id); setCategoriasRecolhidas(false); }}
+               className={`min-h-[44px] rounded-full px-5 text-sm font-bold ${modoFicha === item.modo ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2"}`}>
+               {item.titulo} <span className="opacity-70">({item.quantidade})</span>
+             </button>
+           ))}
+           <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} aria-label="Mostrar fichas"
+             className="ml-auto min-h-[44px] rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text">
+             <option value="ativas">Ativas</option>
+             <option value="inativas">Inativas</option>
+             <option value="todas">Todas</option>
+           </select>
          </div>
 
-         <div className="grid grid-cols-2 gap-2 mb-3">
-            {[
-              {
-                id: "Bases",
-                modo: "preparos",
-                titulo: "Bases",
-                quantidade: fichas.filter(f => !!f.eh_base).length,
-                icone: <BookOpen size={24} />,
-              },
-              {
-                id: "Pratos principais",
-                modo: "principais",
-                titulo: deptUrl === "bar" ? "Drinks" : "Pratos",
-                quantidade: fichas.filter(f => !f.eh_base).length,
-                icone: <UtensilsCrossed size={24} />,
-              },
-            ].map(item => (
-              <button
-                type="button"
-                key={item.id}
-                onClick={() => { setModoFicha(item.modo); setTipoFiltro(item.id); setCategoriasRecolhidas(false); }}
-                className={`min-h-[58px] rounded-xl border p-2.5 text-left transition-all sm:min-h-[66px] sm:p-3 ${modoFicha === item.modo ? (item.modo === "preparos" ? "border-amber-500 bg-amber-50 shadow-sm" : "border-emerald-500 bg-emerald-50 shadow-sm") : "border-line bg-card hover:border-slate-300 hover:shadow-sm"}`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 ${modoFicha === item.modo ? (item.modo === "preparos" ? "bg-amber-600 text-accent-fg" : "bg-accent text-accent-fg") : "bg-card text-slate-900"}`}>{item.icone}</span>
-                  <span className="min-w-0">
-                    <span className="block text-sm sm:text-base font-black leading-tight text-fg">{item.titulo} <span className={item.modo === "preparos" ? "text-amber-600" : "text-emerald-600"}>({item.quantidade})</span></span>
-                  </span>
-                </div>
-              </button>
-            ))}
-         </div>
-
-         <div className={`mb-3 rounded-xl border p-2.5 transition-colors ${modoFicha === "preparos" ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
-           <div className={`flex items-center justify-between gap-3 ${categoriasRecolhidas ? "" : "mb-2"}`}>
-             <button type="button" onClick={() => setCategoriasRecolhidas(valor => !valor)} className="flex min-h-10 flex-1 items-center gap-2 rounded-lg px-2 text-left text-sm font-black text-slate-800 hover:bg-white/70" aria-expanded={!categoriasRecolhidas}>
-               <ChevronRight size={18} className={`transition-transform ${categoriasRecolhidas ? "" : "rotate-90"}`} />
-               {modoFicha === "preparos" ? "Categorias de preparos" : deptUrl === "bar" ? "Categorias de bebidas e drinks" : "Categorias de pratos"}
-               <span className="rounded-full bg-card px-2 py-0.5 text-3xs text-fg">{categoriasDisponiveis.length}</span>
+         {/* Categorias numa linha de pílulas, como nas marmitas */}
+         <div className="mb-3 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+           {(modoFicha === "preparos"
+             ? [["Bases", "Todas", fichas.filter(f => !!f.eh_base).length]]
+             : [["Pratos principais", "Todos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length]]
+           ).concat(categoriasDisponiveis.map(cat => [cat, cat, fichasDoModo.filter(f => (f.categoria || "") === cat).length])).map(([t, label, n]) => (
+             <button key={t} type="button" onClick={() => setTipoFiltro(t)} aria-pressed={tipoFiltro === t}
+               className={`min-h-[40px] shrink-0 rounded-full px-4 text-sm font-semibold ${tipoFiltro === t ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2"}`}>
+               {label} <span className="opacity-60">({n})</span>
              </button>
-             {podeEditarFichas && (
-             <button type="button" onClick={() => setModalCategorias(true)} className={`flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-bold text-accent-fg ${modoFicha === "preparos" ? "bg-amber-700 hover:bg-amber-800" : "bg-accent hover:opacity-90"}`}>
-               <FolderPlus size={15} /> <span className="hidden sm:inline">Gerenciar</span>
-             </button>
-             )}
-           </div>
-         {!categoriasRecolhidas && <div className="flex flex-wrap items-center justify-center gap-2 py-1">
-            {categoriasDisponiveis.map(cat => {
-              const n = fichasDoModo.filter(f => (f.categoria || "") === cat).length;
-              return (
-                <div key={cat} className="flex items-center">
-                  <button onClick={() => setTipoFiltro(cat)}
-                    className={`min-h-10 rounded-xl px-3 py-2 font-bold text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === cat ? (modoFicha === "preparos" ? "bg-amber-600 text-accent-fg shadow-lg shadow-amber-600/20" : "bg-accent text-accent-fg shadow-lg shadow-emerald-600/20") : "bg-card text-fg-soft border border-line hover:bg-transparent"}`}>
-                    {cat} <span className={tipoFiltro === cat ? "text-white/75" : "text-subtle"}>({n})</span>
-                  </button>
-                </div>
-              );
-            })}
-            {(modoFicha === "preparos" ? [
-              ["Bases", "Bases", fichas.filter(f => !!f.eh_base).length],
-            ] : [
-              ["Pratos principais", deptUrl === "bar" ? "Todos os drinks" : "Todos os pratos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length],
-            ]).map(([t, label, n]) => (
-              <button key={t} onClick={() => setTipoFiltro(t)}
-                className={`min-h-10 rounded-xl px-3 py-2 font-bold text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === t ? (modoFicha === "preparos" ? "bg-amber-600 text-accent-fg shadow-lg shadow-amber-600/20" : "bg-accent text-accent-fg shadow-lg shadow-emerald-600/20") : "bg-card text-fg border border-line hover:bg-transparent"}`}>
-                {label} <span className={tipoFiltro === t ? "text-white/75" : "text-subtle"}>({n})</span>
-              </button>
-            ))}
-         </div>}
+           ))}
+           {podeEditarFichas && (
+             <button type="button" onClick={() => setModalCategorias(true)} aria-label="Categorias: criar ou organizar"
+               className="flex min-h-[40px] shrink-0 items-center gap-1 rounded-full border border-dashed border-hf-border px-3 text-sm font-bold text-hf-accent"><Plus size={15} /> Nova</button>
+           )}
          </div>
-         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-card p-2 shadow-sm">
-             <p className="px-2 text-xs font-bold text-fg">{filtradas.length} {filtradas.length === 1 ? "ficha encontrada" : "fichas encontradas"}</p>
-             <div className="flex flex-wrap items-center gap-2">
+         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+             <p className="px-1 text-xs font-bold text-hf-muted">{filtradas.length} {filtradas.length === 1 ? "ficha encontrada" : "fichas encontradas"}</p>
+             <div className={`flex-wrap items-center gap-2 ${selecionadas.length ? "flex" : "hidden lg:flex"}`}>
                 <button onClick={selecionarPaginaLote} disabled={!fichasPagina.length} className="text-xs font-bold text-slate-900 hover:text-accent px-3 py-2 rounded-lg bg-transparent border border-line disabled:opacity-50">
                   <CheckSquare2 size={15} className="inline mr-1.5" /> Selecionar página
                 </button>
@@ -2882,7 +2818,43 @@ function FichasRunner() {
                <p className="text-fg mt-2 font-medium">Cadastre suas receitas para calcular automaticamente o custo do prato.</p>
             </div>
          ) : (
-            <div className="flex flex-col gap-3">
+            <>
+            {/* Celular e tablet: cards fechados com foto, como as marmitas (dono, 24/11/2026). Toque abre a ficha. */}
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:hidden">
+              {fichasPagina.map(f => {
+                const resumo = resumoFinanceiroDaFicha(f, { fichas, produtos, params: paramsSis });
+                const img = f.imagem ? (f.imagem.startsWith("data:") || f.imagem.startsWith("http") ? f.imagem : `data:image/jpeg;base64,${f.imagem}`) : null;
+                const ehPrep = !!f.eh_base;
+                const cmvAlto = !ehPrep && resumo.preco > 0 && resumo.cmvPct > (Number(f.cmv_meta) || 30);
+                const marcada = selecionadas.includes(f.id);
+                return (
+                  <li key={f.id} className="relative">
+                    <button type="button" onClick={() => abrirFicha(f)} aria-label={`Abrir ficha ${f.nome_receita}`}
+                      className={`hf-manter-dourado flex h-full w-full flex-col overflow-hidden rounded-2xl bg-hf-menu text-left text-white shadow-sm transition active:scale-[0.98] ${marcada ? "ring-4 ring-hf-accent" : ""}`}>
+                      <span className="grid aspect-[4/3] w-full place-items-center overflow-hidden bg-white/10 text-white/60">
+                        {img ? <img src={img} alt="" className="h-full w-full object-cover" /> : <UtensilsCrossed size={28} />}
+                      </span>
+                      <span className="flex flex-1 flex-col gap-1 p-3">
+                        <span className="line-clamp-2 text-sm font-bold leading-snug">{String(f.nome_receita || "").trim()}</span>
+                        {podeVerCustos ? (
+                          <>
+                            <span className="mt-auto text-[11px] text-white/60">{ehPrep ? `Custo por ${String(f.rendimento_unidade || "un").toLowerCase()}` : "Custo"}</span>
+                            <span className="text-lg font-black tabular-nums leading-none">{fmtBRL(ehPrep ? resumo.custoPorcaoReceita : resumo.cmvValor)}</span>
+                            {!ehPrep && resumo.preco > 0 && <span className={`text-[12px] font-bold ${cmvAlto ? "text-red-300" : "text-white/80"}`}>Venda {fmtBRL(resumo.preco)} · CMV {fmtPct(resumo.cmvPct)}</span>}
+                          </>
+                        ) : <span className="mt-auto text-[11px] text-white/60">{ehPrep ? "Base" : deptUrl === "bar" ? "Drink" : "Prato"}</span>}
+                        {statusDaFicha(f) === "inativa" && <span className="text-[11px] text-white/60">Inativa</span>}
+                      </span>
+                    </button>
+                    {podeEditarFichas && (
+                      <button type="button" onClick={() => abrirEditar(f)} aria-label={`Editar ${f.nome_receita}`}
+                        className="absolute right-2 top-2 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-hf-text shadow"><Edit3 size={16} /></button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="hidden flex-col gap-3 lg:flex">
                {fichasPagina.map(f => {
                   // Todos os números do card (fechado e aberto) saem daqui:
                   // resumoFinanceiroDaFicha, a mesma conta da pizza do prato.
@@ -2936,6 +2908,7 @@ function FichasRunner() {
                   );
                })}
             </div>
+            </>
          )}
          {!loading && filtradas.length > 0 && (
            <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-line bg-card px-4 py-3 shadow-sm">

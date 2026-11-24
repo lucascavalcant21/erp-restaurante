@@ -73,3 +73,15 @@ test("fila na URL leva a validade escolhida", () => {
   const url = loteParaUrl([{ copias: 2, nome: "Açaí", dias: 30 }, { copias: 1, nome: "Goma", dias: null }, { copias: 1, nome: "X", dias: 99999 }]);
   assert.deepEqual(loteDaUrl(decodeURIComponent(url.split("lote=")[1])), [{ copias: 2, nome: "Açaí", dias: 30 }, { copias: 1, nome: "Goma" }, { copias: 1, nome: "X" }]);
 });
+
+test("etiqueta guiada: pedido simples, validade padrão e URL com quem, tipo e prévia", async () => {
+  const { ehPedidoDeEtiquetaSimples, validadePadraoEtiqueta, urlEtiquetaGuiada, loteDaUrl } = await import("./etiquetas-pedido.mjs");
+  for (const t of ["etiqueta", "Etiquetas", "imprimir etiqueta", "Quero imprimir etiquetas?", "fazer etiqueta"]) assert.equal(ehPedidoDeEtiquetaSimples(t), true, t);
+  for (const t of ["20 etiquetas de maniçoba", "etiqueta de vatapá", "configurar impressora de etiqueta"]) assert.equal(ehPedidoDeEtiquetaSimples(t), false, t);
+  assert.equal(validadePadraoEtiqueta("Molho de tucupi (base)", [{ nome: "molho", dias: 5 }]), 5);
+  assert.equal(validadePadraoEtiqueta("Arroz", []), 3);
+  const url = urlEtiquetaGuiada({ itens: [{ nome: "Vatapá", copias: 2, dias: 4 }], responsavelId: "abc", tipo: "fechado" });
+  const q = new URLSearchParams(url.split("?")[1]);
+  assert.deepEqual([q.get("resp"), q.get("tipo"), q.get("imprimir")], ["abc", "fechado", "1"]);
+  assert.deepEqual(loteDaUrl(q.get("lote")), [{ copias: 2, nome: "Vatapá", dias: 4 }]);
+});

@@ -27,6 +27,8 @@ import ReceitaRapida from "../ReceitaRapida";
 import JantaRapida from "../JantaRapida";
 import PosicionamentoRapido from "../PosicionamentoRapido";
 import FormulaRapida from "../FormulaRapida";
+import EtiquetaGuiada from "../EtiquetaGuiada";
+import { ehPedidoDeEtiquetaSimples } from "../../../lib/etiquetas-pedido.mjs";
 import { PREFIXO as PREFIXO_RECEITA, respostaLocal } from "../../../lib/intelligence/local/receitas-locais.mjs";
 import { atualizarReceitas, lerReceitasGuardadas, precisaAtualizar } from "../../../lib/intelligence/local/receitas-cache";
 import ListaEtiquetas from "./ListaEtiquetas";
@@ -232,6 +234,7 @@ function Blocos({ blocos, onRota, onComando }) {
         if (b.tipo === "janta" && b.janta) return <JantaRapida key={i} janta={b.janta} dia={b.dia} fichas={b.fichas} />;
         if (b.tipo === "posicionamento" && b.itens?.length) return <PosicionamentoRapido key={i} itens={b.itens} />;
         if (b.tipo === "formula" && b.formula) return <FormulaRapida key={i} formula={b.formula} kg={b.kg} />;
+        if (b.tipo === "etiqueta_guiada") return <EtiquetaGuiada key={i} />;
         if (b.tipo === "folha") return <FolhaFicha key={i} folha={b.folha} onComando={onComando} />;
         if (b.tipo === "passos") return <PassosProcedimento key={i} bloco={b} onComando={onComando} />;
         if (b.tipo === "lista_compras" || b.tipo === "lista_compras_conferencia") return <ListaDeCompras key={i} bloco={b} />;
@@ -300,7 +303,7 @@ const RespostaAssistente = memo(function RespostaAssistente({ m, ultima, cauda: 
     ];
     // com a folha do prato/drink, o cartaz já diz tudo: o texto longo fica só para a leitura em voz alta
     // idem para o procedimento da casa (os passos numerados já estão no bloco)
-    const temFolha = (x.blocos || []).some((b) => (b.tipo === "receita_rapida" && b.ficha) || (b.tipo === "janta" && b.janta) || (b.tipo === "posicionamento" && b.itens?.length) || (b.tipo === "formula" && b.formula) || (b.tipo === "folha" && b.folha?.nome) || (b.tipo === "passos" && b.passos?.length));
+    const temFolha = (x.blocos || []).some((b) => (b.tipo === "receita_rapida" && b.ficha) || (b.tipo === "janta" && b.janta) || (b.tipo === "posicionamento" && b.itens?.length) || (b.tipo === "formula" && b.formula) || b.tipo === "etiqueta_guiada" || (b.tipo === "folha" && b.folha?.nome) || (b.tipo === "passos" && b.passos?.length));
     return (
       <div key={chave} className="space-y-1">
         <Balao lado="ele" hora={m.em} cauda={cauda} largo={!!x.confirmacao || temFolha || temEtiquetas}>
@@ -491,6 +494,8 @@ const AssistenteHefisto = forwardRef(function AssistenteHefisto({ unidadeId, uni
     // escolha de um botão aparece como o botão ("Recebimento"), não como o comando montado
     adicionar({ de: "eu", texto: exibir || limpo, canal });
     setRespondendo(null);
+    // "etiqueta": o passo a passo por toque, no aparelho (dono, 24/11/2026)
+    if (ehPedidoDeEtiquetaSimples(limpo)) { tratar({ tipo: "local", local: true, texto: "Etiqueta", blocos: [{ tipo: "etiqueta_guiada" }] }, { canal }); return; }
     const local = respostaLocal(limpo, receitasRef.current);
     if (local) {
       tratar(local, { canal });

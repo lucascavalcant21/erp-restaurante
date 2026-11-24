@@ -6,9 +6,6 @@ import { QRCodeSVG } from "qrcode.react";
 import PreviaEtiqueta60x40 from "./etiquetas/PreviaEtiqueta60x40";
 import { ArrowLeft, Bluetooth, CheckCircle2, ChefHat, FolderOpen, Maximize2, Mic, Minus, Plus, Printer, RefreshCw, Save, Search, Tag, Trash2, UserRound, X, XCircle, List, ChevronRight, ChevronDown } from "lucide-react";
 import { useERP } from "../context/ERPContext";
-import { fetchEstoque } from "../lib/estoque";
-import { fetchProdutos } from "../lib/vendas";
-import { fetchFichas } from "../lib/operacao";
 import { fetchColaboradores } from "../lib/rh";
 import { CONSERVACAO, criarEtiqueta, excluirListaEtiquetas, fetchListasEtiquetas, gerarCodigo, salvarListaEtiquetas } from "../lib/etiquetas";
 import { fetchValidadesEtiqueta, fetchPerfisEtiquetas } from "../lib/parametros";
@@ -20,6 +17,7 @@ import { conectarImpressoraBluetooth, imprimirEtiquetasBluetooth } from "../lib/
 import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb, imprimirFilaMdk022Usb } from "../lib/impressaoMdk022";
 import { limitarEscala, rotuloEscala, PASSO_ESCALA, ESCALA_MIN, ESCALA_MAX, carregarImagem, layoutNome } from "../lib/etiqueta-centralizada.mjs";
 import { PARAMETRO_LOTE, chaveDeNome, loteDaUrl } from "../lib/etiquetas-pedido.mjs";
+import { carregarCatalogoEtiquetas } from "../lib/etiquetas-catalogo";
 
 const UNIDADES = ["UN", "UNIDADE", "GARRAFA", "LATA", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
 const TAMANHOS = {
@@ -385,26 +383,9 @@ export default function EtiquetasRapidas() {
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
     let ativo = true; setCarregando(true);
-    Promise.all(AREAS.map(area => Promise.all([fetchEstoque(unidadeAtiva, area), fetchProdutos(unidadeAtiva, area), fetchFichas(unidadeAtiva, area)]))).then((areas) => {
+    carregarCatalogoEtiquetas(unidadeAtiva).then((lista) => {
       if (!ativo) return;
-      const juntar = (i) => ({ data: areas.flatMap(area => area[i].data || []) });
-      const [estoque, cardapio, fichas] = [juntar(0), juntar(1), juntar(2)];
-      const mapa = new Map();
-      (estoque.data || []).forEach(produto => {
-        if (!produto.nome) return;
-        mapa.set(produto.nome.toLocaleLowerCase("pt-BR"), { id: `estoque:${produto.id || produto.insumo_id || produto.nome}`, nome: produto.nome, unidade: String(produto.unidade_comercial || produto.unidade_medida || produto.unidade || "UN").toUpperCase(), custo: numero(produto.custo_unitario || produto.preco_unit), origem: "Ingrediente" });
-      });
-      (fichas.data || []).filter(f => f.eh_base).forEach(ficha => {
-        const nome = ficha.nome_receita;
-        if (!nome || mapa.has(nome.toLocaleLowerCase("pt-BR"))) return;
-        mapa.set(nome.toLocaleLowerCase("pt-BR"), { id: `base:${ficha.id || nome}`, nome, unidade: String(ficha.rendimento_unidade || "UN").toUpperCase(), custo: 0, origem: "Base" });
-      });
-      (cardapio.data || []).forEach(produto => {
-        const nome = produto.nome_produto;
-        if (!nome || mapa.has(nome.toLocaleLowerCase("pt-BR"))) return;
-        mapa.set(nome.toLocaleLowerCase("pt-BR"), { id: `produto:${produto.id || nome}`, nome, unidade: "UN", custo: 0, origem: "Cardápio" });
-      });
-      setProdutos([...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
+      setProdutos(lista);
       setCarregando(false);
       setCatalogoPronto(true);
     });
@@ -441,10 +422,16 @@ export default function EtiquetasRapidas() {
 
   // Fila pedida no Assistente ("20 etiquetas de maniçoba, 30 de jambu"): chega em ?lote=
   // e entra na fila. Não imprime sozinha: quem etiquetou, prévia e confirmação continuam aqui.
-  const loteDaConversa = useSearchParams().get(PARAMETRO_LOTE);
+  const params = useSearchParams();
+  const loteDaConversa = params.get(PARAMETRO_LOTE);
+  // Etiqueta guiada pelo Nico (24/11/2026): já vem quem etiqueta, aberto/fechado e a prévia aberta.
+  const respDaConversa = params.get("resp");
+  const tipoDaConversa = params.get("tipo") === "fechado" ? "fechado" : params.get("tipo") === "aberto" ? "aberto" : null;
+  const imprimirDaConversa = params.get("imprimir") === "1";
   const loteAplicado = useRef(false);
   useEffect(() => {
     if (!loteDaConversa || loteAplicado.current || !catalogoPronto) return;
+    if (respDaConversa && !funcionarios.length) return; // espera a equipe para marcar quem etiqueta
     loteAplicado.current = true;
     const pedidos = loteDaUrl(loteDaConversa);
     try { router.replace("/dashboard/operacao/etiquetas" + (setorDaUrl ? `?dept=${setorDaUrl}` : "")); } catch { /* a fila já foi lida */ }
@@ -452,15 +439,20 @@ export default function EtiquetasRapidas() {
     const porNome = new Map(produtos.map(p => [chaveDeNome(p.nome), p]));
     const novos = pedidos.map(({ nome, copias, dias }) => {
       const produto = porNome.get(chaveDeNome(nome)) || { id: `livre:${nome}`, nome, unidade: "UN", custo: 0, origem: "Nome livre" };
-      return { ...produto, quantidade: "", informarQuantidade: false, copias, dias: Number.isInteger(dias) ? dias : validadePadraoDe(produto.nome), conservacao: "Resfriado", codigo: gerarCodigo(), modeloEtiqueta: "validade", tipoEtiqueta, escalaNome, escalaLogo, logoEtiqueta: mostrarLogo ? logoEtiqueta : "" };
+      return { ...produto, quantidade: "", informarQuantidade: false, copias, dias: Number.isInteger(dias) ? dias : validadePadraoDe(produto.nome), conservacao: "Resfriado", codigo: gerarCodigo(), modeloEtiqueta: "validade", tipoEtiqueta: tipoDaConversa || tipoEtiqueta, escalaNome, escalaLogo, logoEtiqueta: mostrarLogo ? logoEtiqueta : "" };
     });
+    if (tipoDaConversa) setTipoEtiqueta(tipoDaConversa);
+    const pessoa = respDaConversa && funcionarios.find(f => String(f.id) === String(respDaConversa));
+    if (pessoa) setResponsavelId(pessoa.id);
     setFila(atual => [...atual, ...novos]);
     setFilaAberta(true);
+    // Tudo escolhido no Nico: abre a prévia; um toque em Imprimir e sai.
+    if (imprimirDaConversa && pessoa) { setConfirmacao({ origem: "fila", lista: novos }); return; }
     const total = novos.reduce((t, p) => t + p.copias, 0);
     const livres = novos.filter(p => p.origem === "Nome livre").length;
     setAviso({ tipo: "ok", texto: `${total} etiqueta${total === 1 ? "" : "s"} do Assistente na fila${livres ? ` (${livres} com nome livre)` : ""}. Escolha quem etiquetou e imprima.`, duracao: 7000 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loteDaConversa, catalogoPronto, produtos]);
+  }, [loteDaConversa, catalogoPronto, produtos, funcionarios]);
 
   function abrirProduto(produto) {
     registrarRecente(produto.id);

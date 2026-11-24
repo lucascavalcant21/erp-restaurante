@@ -1,4 +1,5 @@
 "use client";
+import { useRascunho } from "../../../lib/useRascunho";
 import ExcluirEmUso from "../../../components/cadastro/ExcluirEmUso";
 import { nomeRepetido } from "../../../lib/nomes-unicos.mjs";
 import IconeModulo from "../../../components/ui/IconeModulo";
@@ -364,6 +365,14 @@ function FichasRunner() {
   const [salvandoTitulosLote, setSalvandoTitulosLote] = useState(false);
   const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
   const abrirFicha = (f) => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); };
+  // A ficha aberta fica no endereço (?ver=id): recarregar volta nela (dono, 24/11/2026).
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (fichaView?.id) url.searchParams.set("ver", fichaView.id); else url.searchParams.delete("ver");
+      if (url.href !== window.location.href) window.history.replaceState(window.history.state, "", url.href);
+    } catch { /* sem history: segue */ }
+  }, [fichaView?.id]);
   const [simPesoView, setSimPesoView] = useState(""); // simulador de porções da tela de visualização
   const [viewTab, setViewTab] = useState("ficha"); // aba ativa na tela de visualização
   const [histCustos, setHistCustos] = useState([]); // histórico de custos da ficha aberta
@@ -475,6 +484,20 @@ function FichasRunner() {
   // Ingredientes da ficha. Cada item tem `chave` (insumo_id OU subficha_id),
   // `tipo` ('insumo'|'base'), `custo_unitario` (por unidade-base) e `unidade`.
   const [ingFicha, setIngFicha] = useState([]);
+  // Recarregou a página no meio da ficha? Volta nela (dono, 24/11/2026).
+  const rascunhoFicha = useRascunho({
+    chave: unidadeAtiva ? `ficha-tecnica:${unidadeAtiva}:${deptUrl}` : "",
+    pronto: !!unidadeAtiva,
+    ativo: modalNovo,
+    unidadeId: unidadeAtiva,
+    estado: { form, ingFicha, fichaEmbalagens, autoSoma, novaEmbalagem },
+    aplicar: (d) => {
+      if (!d?.form) return;
+      setForm(d.form); setIngFicha(d.ingFicha || []); setFichaEmbalagens(d.fichaEmbalagens || []);
+      setAutoSoma(d.autoSoma !== false); if (d.novaEmbalagem) setNovaEmbalagem(d.novaEmbalagem);
+      setModalNovo(true);
+    },
+  });
   // Remoção de ingrediente: pergunta se quer substituir por outro cadastrado
   const [substituirAlvo, setSubstituirAlvo] = useState(null); // ingrediente sendo removido
   const [substitutoValor, setSubstitutoValor] = useState(""); // "insumo:<id>" | "base:<id>"
@@ -703,6 +726,11 @@ function FichasRunner() {
       return { ...ficha, custo_embalagens_total: custoPorPorcao * rendimento };
     });
     setFichas(fichasComEmbalagens);
+    // voltou de um recarregamento com uma ficha aberta (?ver=id)
+    try {
+      const ver = new URLSearchParams(window.location.search).get("ver");
+      if (ver && !silencioso) { const f = fichasComEmbalagens.find((x) => x.id === ver); if (f) abrirFicha(f); }
+    } catch { /* segue */ }
     setInsumosAtivos(resInsumos.data || []);
     setProdutos(produtosCarregados);
     setMontagens(resMontagens.data || []);
@@ -1481,6 +1509,7 @@ function FichasRunner() {
       }
 
       if (!criarOutra) setModalNovo(false);
+      rascunhoFicha.descartar();
       if (fichaIdSalva) {
         setForm(f => ({ ...f, id: fichaIdSalva }));
         setFichas(fichasAntigas => {
@@ -3554,7 +3583,7 @@ function FichasRunner() {
                      <h2 className="font-black text-2xl sm:text-3xl text-slate-800">{form.id ? "Editar ficha técnica" : "Nova ficha técnica"}</h2>
                      <p className="text-sm font-bold text-fg mt-1">{ingFicha.length} ingrediente(s) · custo atual <span className="text-success font-black">{fmtBRL(custoTotalFormulario(ingFicha))}</span></p>
                   </div>
-                  <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={21}/></button>
+                  <button onClick={() => { if (form.nome_receita?.trim() || ingFicha.length) { if (!confirm("Fechar sem salvar? O que você montou nesta ficha será descartado.")) return; } rascunhoFicha.descartar(); setModalNovo(false); }} aria-label="Fechar a ficha" className="w-12 h-12 shrink-0 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={21}/></button>
                </div>
 
                <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-line-soft bg-transparent px-4 py-3 sm:px-6">

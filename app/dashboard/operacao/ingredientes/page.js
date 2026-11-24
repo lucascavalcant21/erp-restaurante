@@ -1,5 +1,6 @@
 "use client";
 
+import { useRascunho } from "../../../lib/useRascunho";
 import { nomeEmbalagemDoBar, nomeEmbalagemDaCozinha, ehAGranel, OPCOES_EMBALAGEM_COZINHA } from "../../../lib/estoque-unidades.mjs";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -390,6 +391,12 @@ function IngredientesRunner() {
   const [calculos, setCalculos] = useState({});
   const [form, setForm] = useState(() => novoFormulario(deptUrl || "cozinha"));
   const [modalCadastro, setModalCadastro] = useState(false);
+  // Recarregou no meio do cadastro? Volta nele (dono, 24/11/2026).
+  const rascunhoIng = useRascunho({
+    chave: unidadeAtiva ? `ingrediente:${unidadeAtiva}:${deptUrl || "cozinha"}` : "",
+    pronto: !!unidadeAtiva, ativo: modalCadastro, unidadeId: unidadeAtiva, estado: form,
+    aplicar: (d) => { if (d && typeof d === "object") { setForm(d); setModalCadastro(true); } },
+  });
   const [modalHistorico, setModalHistorico] = useState(null);
   const [historico, setHistorico] = useState([]);
   const [historicoLoading, setHistoricoLoading] = useState(false);
@@ -869,6 +876,7 @@ function IngredientesRunner() {
     }
 
     setModalCadastro(false);
+    rascunhoIng.descartar();
     await carregar();
     const fichasTxt = (resultado.fichasAtualizadas > 0 ? ` Perda aplicada em ${resultado.fichasAtualizadas} linha(s) de ficha técnica.` : "")
       + (resultado.empanadosAtualizados > 0 ? ` Custo recalculado em ${resultado.empanadosAtualizados} empanado(s) que usam este ingrediente.` : "");
@@ -1240,7 +1248,7 @@ function IngredientesRunner() {
                 <h2 className="text-xl font-black text-fg">{form.id ? `Editar ${rotuloItem}` : `Novo ${rotuloItem}`}</h2>
                 <p className="mt-1 text-xs font-medium text-fg">Cadastre a identificação, a embalagem e o preço atual.</p>
               </div>
-              <button onClick={() => setModalCadastro(false)} className="rounded-full bg-card p-2 text-fg hover:bg-slate-200"><X size={18} /></button>
+              <button onClick={() => { rascunhoIng.descartar(); setModalCadastro(false); }} aria-label="Fechar" className="rounded-full bg-card p-2 text-fg hover:bg-slate-200"><X size={18} /></button>
             </div>
 
             <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-7">
@@ -1570,7 +1578,7 @@ function IngredientesRunner() {
             </div>
 
             <div className="flex gap-3 border-t border-line-soft bg-white px-5 py-4 sm:px-7">
-              <button onClick={() => setModalCadastro(false)} className="flex-1 rounded-xl border border-line bg-card py-3 text-sm font-bold text-slate-900 hover:bg-card">Cancelar</button>
+              <button onClick={() => { rascunhoIng.descartar(); setModalCadastro(false); }} className="flex-1 rounded-xl border border-line bg-card py-3 text-sm font-bold text-slate-900 hover:bg-card">Cancelar</button>
               <button disabled={salvando} onClick={handleSalvar} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-black text-accent-fg hover:bg-accent disabled:opacity-50">
                 {salvando ? "Salvando..." : `Salvar ${rotuloItem}`}
               </button>

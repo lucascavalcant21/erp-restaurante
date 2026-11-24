@@ -75,6 +75,14 @@ export default function EventoPage() {
   const [carregando, setCarregando] = useState(true);
   const [etapa, setEtapa] = useState("tipo");
   const [gravacao, setGravacao] = useState({ estado: "salvo", erro: "" });
+  // A etapa aberta fica no endereço: recarregar volta nela (dono, 24/11/2026).
+  useEffect(() => {
+    if (carregando) return;
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("etapa") !== etapa) { url.searchParams.set("etapa", etapa); window.history.replaceState(window.history.state, "", url.href); }
+    } catch { /* segue */ }
+  }, [etapa, carregando]);
   const [salvandoPag, setSalvandoPag] = useState(false);
   const carregado = useRef(false);
   const trilhaRef = useRef(null);

@@ -187,49 +187,76 @@ function Linha({ rotulo, valor, natureza = null, nota = null, destaque = false, 
   );
 }
 
+// Card aberto no modelo da ficha da marmita (dono, 24/11/2026: "muito extenso e
+// complexo, se baseia pelo da marmita"): três números grandes, os ingredientes,
+// e a análise completa do preço só para quem tocar em "Ver composição do preço".
+function Numero({ rotulo, valor, nota = null, forte = false, tom = "" }) {
+  return (
+    <div className={`rounded-xl p-3 ${forte ? "bg-emerald-50" : "bg-surface"}`}>
+      <p className="text-2xs font-semibold text-fg-soft">{rotulo}</p>
+      <p className={`mt-1 whitespace-nowrap tabular-nums ${forte ? "text-xl font-black" : "text-lg font-bold"} ${tom || "text-fg"}`}>{valor}</p>
+      {nota && <p className="mt-0.5 text-3xs font-medium leading-snug text-subtle">{nota}</p>}
+    </div>
+  );
+}
+
 function DetalheFinanceiro({ ficha, resumo, rendimentoTexto, podeVerCustos }) {
+  const [verPreco, setVerPreco] = useState(false);
   if (!podeVerCustos) return <ComposicaoCusto resumo={resumo} comCusto={false} />;
   const ehPreparo = resumo.tipo === "preparo";
   const preco = resumo.preco;
   const unRend = String(ficha.rendimento_unidade || "un").toLowerCase();
+  const cmvAlto = resumo.status.id === "cmv_alto";
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      <div className="min-w-0 space-y-5">
-        <section>
-          <Titulo>Resumo da ficha</Titulo>
-          <Linha rotulo="Rendimento total" valor={rendimentoTexto} />
-          {ehPreparo ? (
-            <>
-              <Linha rotulo="Custo total do lote" valor={fmtReais(resumo.custoReceita)} natureza="calculado" />
-              <Linha rotulo={`Custo por ${unRend}`} valor={fmtReais(resumo.custoPorcaoReceita)} destaque natureza="calculado"
-                nota="É este valor que entra nos pratos que usam esta base." />
-            </>
-          ) : (
-            <>
-              <Linha rotulo="Porções" valor={resumo.porcoesDefinidas ? resumo.porcoes.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "1"}
-                nota={resumo.porcoesDefinidas ? null : "A ficha do prato é uma porção: o prato montado."} />
-              <Linha rotulo="Custo total da ficha" valor={fmtValorPct(resumo.custoReceita, preco)} natureza="calculado" />
-              {resumo.embalagemPorcao > 0 && <Linha rotulo="Embalagem por porção" valor={fmtValorPct(resumo.embalagemPorcao, preco)} />}
-              <Linha rotulo="CMV por porção" valor={fmtValorPct(resumo.cmvValor, preco)} destaque natureza="calculado"
-                tom={resumo.status.id === "cmv_alto" ? "text-red-600" : ""} nota={`Meta de CMV da ficha: ${fmtPct(resumo.meta)}`} />
-              <Linha rotulo="Preço de venda" valor={preco > 0 ? `${fmtReais(preco)} · 100,00%` : "Sem preço"} destaque tom="text-emerald-700" />
-              <Linha rotulo={`Preço sugerido (meta de lucro ${resumo.metaLucro ? fmtPct(resumo.metaLucro) : "—"})`} destaque
-                valor={resumo.precoSugerido ? fmtReais(resumo.precoSugerido) : "—"}
-                nota={resumo.precoSugerido
-                  ? (resumo.composicao?.rateio?.ok
-                      ? "Preço em que o resultado bate a meta, pagando CMV, despesas variáveis, CMO, despesas operacionais e pró-labore."
-                      : "Sem rateio configurado: cobre CMV e despesas variáveis, mas ainda não CMO, despesas e pró-labore.")
-                  : "Com essas despesas variáveis e essa meta não existe preço que feche a conta."} />
-              <Linha rotulo={`Preço pela meta de CMV (${fmtPct(resumo.meta)})`} valor={resumo.precoPelaMetaCmv ? fmtReais(resumo.precoPelaMetaCmv) : "—"} />
-            </>
-          )}
-        </section>
-
-        {!ehPreparo && <ComposicaoPreco c={resumo.composicao} />}
-      </div>
+    <div className="space-y-4">
+      {ehPreparo ? (
+        <div className="grid grid-cols-3 gap-2">
+          <Numero rotulo="Rende" valor={rendimentoTexto} />
+          <Numero rotulo="Custo do lote" valor={fmtReais(resumo.custoReceita)} />
+          <Numero rotulo={`Custo por ${unRend}`} valor={fmtReais(resumo.custoPorcaoReceita)} forte nota="Entra nos pratos que usam esta base." />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            <Numero rotulo={resumo.embalagemPorcao > 0 ? "Custo (com embalagem)" : "Custo do prato"} valor={fmtReais(resumo.cmvValor)} />
+            <Numero rotulo="Preço de venda" valor={preco > 0 ? fmtReais(preco) : "Sem preço"} tom={preco > 0 ? "text-emerald-700" : "text-subtle"} />
+            <Numero rotulo="CMV" forte valor={preco > 0 ? fmtPct(resumo.cmvPct) : "—"} tom={cmvAlto ? "text-red-600" : ""} nota={`Meta ${fmtPct(resumo.meta)}`} />
+          </div>
+          {(cmvAlto || !(preco > 0)) && resumo.precoPelaMetaCmv ? (
+            <p className="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-fg-soft">
+              Para o CMV ficar em {fmtPct(resumo.meta)}, venda por <b className="text-fg">{fmtReais(resumo.precoPelaMetaCmv)}</b>.
+            </p>
+          ) : null}
+        </>
+      )}
 
       <ComposicaoCusto resumo={resumo} comCusto />
+
+      {!ehPreparo && preco > 0 && (
+        <div>
+          <button type="button" onClick={() => setVerPreco((v) => !v)} aria-expanded={verPreco}
+            className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-line px-3 text-xs font-bold text-fg-soft">
+            Ver composição do preço (lucro, despesas, rateio)
+            <ChevronDown size={16} className={`transition-transform ${verPreco ? "rotate-180" : ""}`} />
+          </button>
+          {verPreco && (
+            <div className="mt-3 space-y-4">
+              <section>
+                <Linha rotulo={`Preço sugerido (meta de lucro ${resumo.metaLucro ? fmtPct(resumo.metaLucro) : "—"})`} destaque
+                  valor={resumo.precoSugerido ? fmtReais(resumo.precoSugerido) : "—"}
+                  nota={resumo.precoSugerido
+                    ? (resumo.composicao?.rateio?.ok
+                        ? "Paga CMV, despesas variáveis, CMO, despesas operacionais e pró-labore e ainda bate a meta."
+                        : "Sem rateio configurado: cobre CMV e despesas variáveis, ainda não CMO, despesas e pró-labore.")
+                    : "Com essas despesas e essa meta não existe preço que feche a conta."} />
+                <Linha rotulo={`Preço pela meta de CMV (${fmtPct(resumo.meta)})`} valor={resumo.precoPelaMetaCmv ? fmtReais(resumo.precoPelaMetaCmv) : "—"} />
+              </section>
+              <ComposicaoPreco c={resumo.composicao} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

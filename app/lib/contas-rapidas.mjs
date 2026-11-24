@@ -10,7 +10,9 @@ const ESTOQUE_SO_RETIRAR = ["estoque.operation.view", "estoque.movements.view", 
 const ETIQUETAS = ["estoque.labels.view", "estoque.labels.create", "estoque.labels.print"];
 const TREINAMENTO = "treinamento.my.view";
 // O que o Nico do tablet consulta: fichas e busca da cozinha e do bar, sem custo.
-const NICO_CONSULTA = ["cozinha.search.view", "cozinha.recipes.view", "bar.search.view", "bar.recipes.view"];
+// + receitas da casa que o Nico responde (23/11/2026): posicionamento, salmoura, empanados, molhos e estoque de bases (só ver).
+const NICO_CONSULTA = ["cozinha.search.view", "cozinha.recipes.view", "bar.search.view", "bar.recipes.view",
+  "cozinha.portioning.view", "cozinha.brines.view", "cozinha.breading.view", "cozinha.sauces.view", "cozinha.base_stock.view"];
 const LIDERAR_TREINAMENTO = ["treinamento.team.view", "treinamento.team.create", "treinamento.team.approve"];
 
 export const CONTAS_RAPIDAS = Object.freeze([

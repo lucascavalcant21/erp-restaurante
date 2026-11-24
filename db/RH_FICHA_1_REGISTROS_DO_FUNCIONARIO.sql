@@ -2,7 +2,7 @@
    RH-FICHA-1 · FICHA DO FUNCIONÁRIO: ADVERTÊNCIAS, OCORRÊNCIAS, QUEBRAS,
    UNIFORMES, REUNIÕES, OBSERVAÇÕES E DOCUMENTOS ASSINADOS
 
-   STATUS: ESCRITA, NÃO APLICADA. É do SISTEMA DE TESTE (branch hefisto-teste):
+   STATUS: APLICADA no banco do restaurante (sezccspqxgklicfndwxx) em 24/11/2026 com o OK do dono (BLQ-024: um sistema só). Antes: ESCRITA, NÃO APLICADA. É do SISTEMA DE TESTE (branch hefisto-teste):
    o banco do restaurante não recebe. Aplicar no banco de teste depois que a
    estrutura for copiada para ele (ACESSO-008).
 

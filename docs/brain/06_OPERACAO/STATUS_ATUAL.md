@@ -2,6 +2,14 @@
 
 _Atualizado em 08/10/2026 pela sessão da Missão 000. O bloco "Agente autônomo" no fim é regenerado pelo runner._
 
+## 24/11/2026 — Um sistema só (BLQ-024)
+
+- O código do novo sistema (`hefisto-teste`) roda no **app.hefisto.com.br** sobre o **banco do restaurante** (PR #287, deploy `dpl_79qpaEg27W7Mi9Yk1aRvtpNXH1vF`). RH, ponto, fichas e demais dados ficaram onde estavam.
+- 11 migrações aditivas aplicadas no banco do restaurante com o OK do dono; estrutura igual à do banco do novo (impressão `12c41846…`, 3.642 itens). TESTADO NO SUPABASE REAL.
+- Ponto: tablet com PIN aceita o nome de quem ainda não tem PIN.
+- Daqui em diante `main` e `hefisto-teste` andam juntas; o `hefisto-staging` vira só banco de teste (pausar quando o dono confirmar).
+- Pendente do dono: logins "Héfisto Ponto" e "Héfisto Nico", PIN de cada funcionário.
+
 ## Em uma frase
 
 O ERP está em produção (`app.hefisto.com.br`, deploy da `main` `c3d45cb`).

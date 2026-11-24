@@ -1,3 +1,4 @@
+-- STATUS: APLICADA no banco do restaurante (sezccspqxgklicfndwxx) em 24/11/2026 com o OK do dono (BLQ-024: um sistema só).
 -- RASCUNHO-1 — rascunho de formulário no banco, por usuário (dono, 17/11/2026:
 -- "o sistema atualiza e some a ficha que eu estava criando… salve tudo no banco").
 -- Guarda o que está sendo montado e ainda não foi salvo (ficha da marmita,

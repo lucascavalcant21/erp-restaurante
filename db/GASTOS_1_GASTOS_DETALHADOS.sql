@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    GASTOS-1 · GASTO DETALHADO (O QUE FOI COMPRADO, CATEGORIA E PARA QUEM)
 
-   STATUS: ESCRITA. Do SISTEMA DE TESTE (branch hefisto-teste): o banco do
+   STATUS: APLICADA no banco do restaurante (sezccspqxgklicfndwxx) em 24/11/2026 com o OK do dono (BLQ-024: um sistema só). Antes: ESCRITA. Do SISTEMA DE TESTE (branch hefisto-teste): o banco do
    restaurante não recebe.
 
    PEDIDO DO DONO (17/11/2026): "comprei uma frigideira, uma panela, um avental

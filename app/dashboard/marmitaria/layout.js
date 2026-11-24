@@ -19,7 +19,7 @@ import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 import CabecalhoTela from "../../components/ui/CabecalhoTela";
 import { BarraDeAreas } from "../../components/gerencial/PainelGerencial";
-import { BadgeDollarSign, BarChart3, Boxes, Calculator, CheckCircle2, CupSoda, ChefHat, ClipboardList, Gauge, GraduationCap, Home, Layers, Package, Percent, Receipt, Settings, ShoppingCart, Smartphone, Store, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
+import { BadgeDollarSign, BarChart3, Boxes, Calculator, Droplets, Scale, Soup, Wheat, CheckCircle2, CupSoda, ChefHat, ClipboardList, Gauge, GraduationCap, Home, Layers, Package, Percent, Receipt, Settings, ShoppingCart, Smartphone, Store, TrendingUp, Users, Wallet, Warehouse } from "lucide-react";
 
 const FICHA = "/dashboard/marmitaria/marmitas";
 const ESTOQUE = "/dashboard/marmitaria/estoque";
@@ -31,12 +31,17 @@ const AREAS = [
   { href: `${ESTOQUE}/cozinha`, rotulo: "Produção do dia", tambem: [`${ESTOQUE}/producoes`], icone: ChefHat },
   { href: `${ESTOQUE}/compras`, rotulo: "Compras", icone: ShoppingCart },
   { href: ESTOQUE, rotulo: "Estoque", exceto: [`${ESTOQUE}/compras`, `${ESTOQUE}/producoes`, `${ESTOQUE}/cozinha`], icone: Warehouse },
-  { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/combos`, `${FICHA}/bebidas`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/simulador`, `${FICHA}/processos`, `${FICHA}/produtos`, `${FICHA}/organizador`], icone: ClipboardList },
+  { href: FICHA, rotulo: "Ficha técnica", exceto: [`${FICHA}/cardapio`, `${FICHA}/combos`, `${FICHA}/bebidas`, `${FICHA}/embalagens`, `${FICHA}/lucro`, `${FICHA}/simulador`, `${FICHA}/processos`, `${FICHA}/produtos`, `${FICHA}/organizador`, `${FICHA}/salmouras`, `${FICHA}/empanados`, `${FICHA}/posicionamento`, `${FICHA}/molhos`], icone: ClipboardList },
   { href: `${FICHA}/cardapio`, rotulo: "Precificação", icone: BadgeDollarSign },
   { href: `${FICHA}/combos`, rotulo: "Combos e descontos", icone: Percent },
   { href: `${FICHA}/organizador`, rotulo: "Organizador de plataforma", icone: Smartphone },
   { href: "/dashboard/marmitaria/concorrentes", rotulo: "Concorrentes", icone: Store },
   { href: `${FICHA}/processos`, rotulo: "Guia de montagem", icone: Layers },
+  // receitas da casa que servem restaurante, delivery e eventos (dono, 23/11/2026)
+  { href: `${FICHA}/molhos`, rotulo: "Molhos", icone: Soup },
+  { href: `${FICHA}/salmouras`, rotulo: "Calculadora de salmoura", icone: Droplets },
+  { href: `${FICHA}/empanados`, rotulo: "Empanados", icone: Wheat },
+  { href: `${FICHA}/posicionamento`, rotulo: "Posicionamento", icone: Scale },
   { href: `${FICHA}/produtos`, rotulo: "Ingredientes", icone: Package },
   { href: `${FICHA}/bebidas`, rotulo: "Bebidas", icone: CupSoda },
   { href: `${FICHA}/embalagens`, rotulo: "Embalagens", icone: Boxes },

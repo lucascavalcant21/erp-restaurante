@@ -390,6 +390,22 @@ export async function fetchPosicionamento(unidadeId) {
 }
 export const salvarPosicionamento = (unidadeId, posicionamento) => salvarParams(unidadeId, { posicionamento });
 
+/* Salmouras e empanados "por quilo" (23/11/2026): config_sistema.params.formulas_cozinha
+ * = { versao, salmouras: [...], empanados: [...] }. Relê antes de gravar para
+ * não apagar a lista do outro tipo salva em outro aparelho. */
+export async function fetchFormulasCozinha(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: null, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: null, error: error.message };
+  return { data: data?.[0]?.params?.formulas_cozinha || null, error: null };
+}
+export async function salvarListaFormulas(unidadeId, chave, lista) {
+  if (chave !== "salmouras" && chave !== "empanados") return { error: "Lista inválida" };
+  const { data, error } = await fetchFormulasCozinha(unidadeId);
+  if (error) return { error };
+  return salvarParams(unidadeId, { formulas_cozinha: { versao: 1, salmouras: [], empanados: [], ...(data || {}), [chave]: lista } });
+}
+
 // Modelo da proposta de evento para o cliente (condições gerais, empresa,
 // assinatura, pagamento). Um só para a casa, usado em todas as propostas.
 // Sem logo próprio, usa o logo do Cardápio digital.

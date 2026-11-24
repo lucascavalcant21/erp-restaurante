@@ -21,7 +21,7 @@ const POR_ICONE = Object.freeze({
   // Receitas e preparo
   BookOpen: "amarelo", Martini: "amarelo", StickyNote: "amarelo", Star: "amarelo",
   CookingPot: "violeta", Coqueteleira: "violeta", WandSparkles: "violeta",
-  Salad: "verde", Citrus: "verde", Sparkles: "verde", Scale: "ciano",
+  Salad: "verde", Citrus: "verde", Sparkles: "verde", Scale: "ciano", Layers: "laranja", Droplets: "azul", Wheat: "amarelo",
   // Pedidos e atendimento
   ConciergeBell: "grafite", UtensilsCrossed: "laranja", Smartphone: "azul", MonitorPlay: "rosa",
   Bike: "vermelho", Users: "rosa", MessageSquareText: "azul",

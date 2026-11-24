@@ -10,6 +10,8 @@ import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
 import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, registrarBatida } from "../../../lib/ponto";
+import { fetchMarcacoesMes } from "../../../lib/ponto-marcacao";
+import { comprovantesDoMes, mascararCpf } from "../../../lib/ponto-comprovante.mjs";
 import { linhasJornadaSemana } from "../../../lib/jornada-semana.mjs";
 import { fetchPins } from "../../../lib/seguranca";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
@@ -267,6 +269,10 @@ export default function PontoPage() {
 
   const [selecionado, setSelecionado] = useState(null);
   const [historico, setHistorico] = useState([]);
+  // Comprovantes das batidas do mês (livro ponto_marcacao), no histórico da pessoa.
+  const [comprovantes, setComprovantes] = useState([]);
+  const [verComprovantes, setVerComprovantes] = useState(false);
+  const [comprovanteAberto, setComprovanteAberto] = useState(null);
   // Mês que o funcionário está olhando no próprio histórico. Antes eram só os
   // 7 últimos dias, o que não dava para conferir o mês fechado nem contestar
   // uma batida do começo do mês.
@@ -403,6 +409,7 @@ export default function PontoPage() {
     setSelecionado(c);
     setLetra("");
     setHistorico([]);
+    setVerComprovantes(false);
     setBancoMes([]);
     const mes = isoLocal(new Date()).slice(0, 7);
     setMesHistorico(mes); // sempre abre no mês corrente
@@ -415,6 +422,11 @@ export default function PontoPage() {
     let ativo = true;
     fetchPontosMes(selecionado.id, mesHistorico)
       .then(r => { if (ativo) setHistorico(r.data || []); })
+      .catch(() => {});
+    setComprovantes([]);
+    setComprovanteAberto(null);
+    fetchMarcacoesMes(selecionado.id, mesHistorico)
+      .then(r => { if (ativo) setComprovantes(comprovantesDoMes(r.data)); })
       .catch(() => {});
     return () => { ativo = false; };
   }, [selecionado?.id, mesHistorico]);
@@ -440,50 +452,6 @@ export default function PontoPage() {
     return error ? `Não consegui anotar a ocorrência: ${error}` : "";
   };
 
-  // Comprovante em papel: janela isolada, largura de bobina térmica (58mm) para
-  // sair na mesma impressora das etiquetas. Fica fora do React de propósito —
-  // window.print() na página inteira levaria o tablet junto.
-  const imprimirComprovante = (cp) => {
-    if (!cp) return;
-    const esc = (v) => String(v ?? "").replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
-    const linhas = [
-      esc(cp.empresa),
-      cp.cnpj ? `CNPJ ${esc(cp.cnpj)}` : "",
-      "",
-      esc(cp.nome),
-      cp.cpf ? `CPF ${esc(cp.cpf)}` : "",
-      "",
-      cp.local ? `Local: ${esc(cp.local)}` : "",
-      "",
-      esc(cp.etapa),
-      cp.em.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" }),
-      "",
-      cp.registroRep ? `Registro INPI: ${esc(cp.registroRep)}` : "",
-      cp.hash ? `Hash SHA-256:<br>${esc(cp.hash)}` : "",
-    ].filter(Boolean).join("<br>");
-
-    const janela = window.open("", "_blank", "width=380,height=560");
-    if (!janela) { alert("Libere as janelas pop-up para imprimir o comprovante."); return; }
-    janela.document.write(`<!doctype html><html><head><meta charset="utf-8">
-      <title>Comprovante NSR ${cp.nsr}</title>
-      <style>
-        @page { size: 58mm auto; margin: 3mm; }
-        body { font-family: "Courier New", monospace; font-size: 11px; line-height: 1.45; color: #000; margin: 0; }
-        .nsr { font-size: 22px; font-weight: bold; letter-spacing: 0.02em; margin: 4px 0 8px; }
-        .rot { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; }
-        .rod { margin-top: 10px; font-size: 8.5px; line-height: 1.4; }
-        hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
-      </style></head><body>
-      <div class="rot">Comprovante de Registro de Ponto do Trabalhador</div>
-      <div class="nsr">NSR ${cp.nsr}</div>
-      <hr>${linhas}<hr>
-      <div class="rod">Marcação registrada nos termos da Portaria MTP 671/2021.
-      Guarde este comprovante.</div>
-      </body></html>`);
-    janela.document.close();
-    janela.focus();
-    janela.print();
-  };
 
   const mostrarSucesso = (titulo, detalhe, tone = "ok", comprovante = null) => {
     // Feedback sem olhar a tela: vibra e apita ao confirmar
@@ -498,7 +466,7 @@ export default function PontoPage() {
       setSelecionado(null);
       setAreaAtiva("");
       carregar();
-    }, comprovante ? 6000 : tone === "alerta" ? 3500 : 2000);
+    }, tone === "alerta" ? 3500 : 2000);
   };
 
   // Registra a batida de uma etapa.
@@ -714,32 +682,13 @@ export default function PontoPage() {
         <h1 className="text-hf-text font-black text-3xl sm:text-4xl md:text-6xl tracking-tight max-w-3xl">{sucesso.titulo}</h1>
         {sucesso.detalhe && <p className={`${alerta ? "text-amber-50" : "text-emerald-700"} font-bold text-lg md:text-2xl mt-5 max-w-2xl leading-relaxed`}>{sucesso.detalhe}</p>}
 
-        {/* Comprovante da marcação (Portaria MTP 671/2021, art. 84). O
-            trabalhador tem direito à prova do que bateu, e o NSR é o que
-            identifica a marcação no livro — sem ele o comprovante não serve.
-            Fica em fonte de largura fixa e número grande: o operador confere
-            de longe, sem pegar o tablet. */}
+        {/* O comprovante inteiro (com CPF) não aparece mais aqui, onde quem
+            passa vê: fica no "Meu histórico" da pessoa (dono, 24/11/2026,
+            "não dá pra imprimir o comprovante"). Aqui só o NSR, para conferir. */}
         {sucesso.comprovante && (
-          <div className="mt-7 w-full max-w-md bg-card rounded-2xl px-5 py-4 text-left shadow-2xl font-mono text-slate-800">
-            <p className="text-3xs font-bold uppercase tracking-[0.18em] text-fg">Comprovante de Registro de Ponto do Trabalhador</p>
-            <p className="mt-1 text-4xl font-black tabular-nums tracking-tight">NSR {sucesso.comprovante.nsr}</p>
-            <div className="mt-3 space-y-0.5 text-xs leading-snug">
-              <p>{sucesso.comprovante.empresa}{sucesso.comprovante.cnpj ? ` · CNPJ ${sucesso.comprovante.cnpj}` : ""}</p>
-              <p className="font-bold">{sucesso.comprovante.nome}{sucesso.comprovante.cpf ? ` · CPF ${sucesso.comprovante.cpf}` : ""}</p>
-              <p>{sucesso.comprovante.etapa} · {sucesso.comprovante.em.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" })}</p>
-              {sucesso.comprovante.local && <p>{sucesso.comprovante.local}</p>}
-              {sucesso.comprovante.hash && (
-                <p className="mt-1 break-all text-3xs leading-tight text-fg">
-                  SHA-256 {sucesso.comprovante.hash}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => imprimirComprovante(sucesso.comprovante)}
-              className="mt-3 w-full rounded-lg bg-hf-surface py-2 text-xs font-bold text-hf-text hover:bg-hf-elevated">
-              Imprimir comprovante
-            </button>
-          </div>
+          <p className={`mt-6 rounded-2xl px-5 py-3 text-base font-bold ${alerta ? "bg-white/20 text-white" : "bg-white/20 text-white"}`}>
+            Comprovante NSR {sucesso.comprovante.nsr} guardado no seu histórico
+          </p>
         )}
       </div>
     );
@@ -963,16 +912,18 @@ export default function PontoPage() {
               conferir o mês fechado — com 7 dias não dava para contestar uma
               batida do começo do mês. */}
           <div className="bg-hf-surface border border-hf-border rounded-3xl p-5">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-base font-black uppercase tracking-wider text-hf-text-2 flex items-center gap-2"><Clock size={18} /> Meu histórico</p>
-              <div className="flex items-center gap-1">
+            {/* Tudo encaixado no celular (dono, 24/11/2026): título em cima,
+                mês embaixo ocupando a largura, sem nada cortado. */}
+            <div className="mb-3 space-y-2">
+              <p className="flex items-center gap-2 text-base font-black uppercase tracking-wider text-hf-text-2"><Clock size={18} /> Meu histórico</p>
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-hf-elevated p-1">
                 <button onClick={() => andarMes(-1)} aria-label="Mês anterior"
-                  className="grid h-9 w-9 place-items-center rounded-lg bg-hf-elevated text-hf-text hover:bg-hf-border">‹</button>
-                <span className="min-w-[140px] text-center text-sm font-bold uppercase text-hf-text">
-                  {new Date(`${mesHistorico}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-hf-surface text-lg text-hf-text">‹</button>
+                <span className="min-w-0 flex-1 text-center text-sm font-bold text-hf-text">
+                  {(() => { const t = new Date(`${mesHistorico}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }); return t.charAt(0).toUpperCase() + t.slice(1); })()}
                 </span>
                 <button onClick={() => andarMes(1)} disabled={mesEhFuturo} aria-label="Próximo mês"
-                  className="grid h-9 w-9 place-items-center rounded-lg bg-hf-elevated text-hf-text hover:bg-hf-border disabled:opacity-30">›</button>
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-hf-surface text-lg text-hf-text disabled:opacity-30">›</button>
               </div>
             </div>
             {historico.length > 0 && (
@@ -987,28 +938,70 @@ export default function PontoPage() {
                 {/* Rotulo em cima de cada coluna: quatro horarios seguidos sem
                     titulo obrigam a decorar a ordem. Mesma grade das linhas
                     para os titulos cairem exatamente sobre os numeros. */}
-                <div className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-end px-2 pb-1 text-center">
-                  <span className="text-3xs font-bold uppercase tracking-wider text-hf-text-2 text-left">Dia</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-hf-text-2">Entrada</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-hf-text-2">Saiu p/<br/>intervalo</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-hf-text-2">Voltou do<br/>intervalo</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-hf-text-2">Saída</span>
+                <div className="grid grid-cols-[52px_repeat(4,minmax(0,1fr))] items-end gap-1 px-1.5 pb-1 text-center sm:grid-cols-[96px_repeat(4,minmax(0,1fr))] sm:gap-2 sm:px-2">
+                  <span className="text-left text-3xs font-bold uppercase tracking-wide text-hf-text-2">Dia</span>
+                  <span className="text-3xs font-bold uppercase tracking-wide text-hf-text-2">Entrada</span>
+                  <span className="text-3xs font-bold uppercase tracking-wide text-hf-text-2">Saiu</span>
+                  <span className="text-3xs font-bold uppercase tracking-wide text-hf-text-2">Voltou</span>
+                  <span className="text-3xs font-bold uppercase tracking-wide text-hf-text-2">Saída</span>
                 </div>
                 {historico.map(h => (
-                  <div key={h.id} className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-center text-center py-1.5 px-2 rounded-lg bg-hf-bg">
+                  <div key={h.id} className="grid grid-cols-[52px_repeat(4,minmax(0,1fr))] items-center gap-1 rounded-lg bg-hf-bg px-1.5 py-1.5 text-center sm:grid-cols-[96px_repeat(4,minmax(0,1fr))] sm:gap-2 sm:px-2">
                     {/* Dia da semana ao lado da data: quem confere o próprio
                         ponto lembra "no sábado eu saí tarde", não "no dia 15". */}
-                    <span className="text-2xs font-bold text-hf-text-2 text-left">
+                    <span className="text-left text-2xs font-bold leading-tight text-hf-text-2">
                       {h.data_referencia?.slice(5).split("-").reverse().join("/")}
-                      <span className="ml-1.5 text-hf-text-2">{siglaDiaSemana(h.data_referencia)}</span>
+                      <span className="block sm:ml-1.5 sm:inline">{siglaDiaSemana(h.data_referencia)}</span>
                     </span>
                     {["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"].map(c => (
-                      <span key={c} className={`text-xs font-bold ${h[c] ? "text-hf-text" : "text-hf-text-2"}`}>{horaDe(h[c]) || "--:--"}</span>
+                      <span key={c} className={`text-[13px] font-bold tabular-nums ${h[c] ? "text-hf-text" : "text-hf-text-2"}`}>{horaDe(h[c]) || "--:--"}</span>
                     ))}
                   </div>
                 ))}
               </div>
             )}
+            {/* Comprovantes das batidas (Portaria MTP 671/2021): cada marcação do
+                livro, com NSR e hash. Toque para ver o comprovante completo. */}
+            <div className="mt-4 border-t border-hf-border pt-3">
+              <button type="button" onClick={() => setVerComprovantes(v => !v)} aria-expanded={verComprovantes}
+                className="flex min-h-[48px] w-full items-center justify-between gap-2 rounded-xl bg-hf-elevated px-4 text-left">
+                <span className="text-sm font-black uppercase tracking-wider text-hf-text-2">Meus comprovantes</span>
+                <span className="text-sm font-bold text-hf-text">{comprovantes.length} {verComprovantes ? "▲" : "▼"}</span>
+              </button>
+              {verComprovantes && (
+                comprovantes.length === 0 ? (
+                  <p className="py-3 text-center text-sm text-hf-text-2">Nenhuma marcação neste mês.</p>
+                ) : (
+                  <ul className="mt-2 space-y-1.5">
+                    {comprovantes.map(cp => {
+                      const aberto = comprovanteAberto === cp.id;
+                      return (
+                        <li key={cp.id} className="rounded-xl bg-hf-bg">
+                          <button type="button" onClick={() => setComprovanteAberto(aberto ? null : cp.id)} aria-expanded={aberto}
+                            className="flex min-h-[44px] w-full items-center gap-2 px-3 text-left">
+                            <span className="w-11 shrink-0 text-2xs font-bold text-hf-text-2">{cp.dia.slice(5).split("-").reverse().join("/")}</span>
+                            <span className="min-w-0 flex-1 truncate text-sm font-bold text-hf-text">{cp.rotulo}</span>
+                            <span className="shrink-0 text-sm font-bold tabular-nums text-hf-text">{cp.em ? cp.em.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--"}</span>
+                            <span className="shrink-0 text-2xs font-bold tabular-nums text-hf-text-2">NSR {cp.nsr}</span>
+                          </button>
+                          {aberto && (
+                            <div className="mx-3 mb-3 rounded-lg border border-hf-border bg-hf-surface p-3 font-mono text-xs leading-snug text-hf-text">
+                              <p className="text-3xs font-bold uppercase tracking-[0.14em] text-hf-text-2">Comprovante de registro de ponto do trabalhador</p>
+                              <p className="mt-1 text-2xl font-black tabular-nums">NSR {cp.nsr}</p>
+                              <p className="mt-1">{unidadeInfo?.nome || ""}{unidadeInfo?.cnpj ? ` · CNPJ ${unidadeInfo.cnpj}` : ""}</p>
+                              <p className="font-bold">{selecionado.nome}{mascararCpf(selecionado.cpf) ? ` · CPF ${mascararCpf(selecionado.cpf)}` : ""}</p>
+                              <p>{cp.rotulo} · {cp.em ? cp.em.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" }) : ""}</p>
+                              {unidadeInfo?.endereco && <p>{unidadeInfo.endereco}</p>}
+                              {cp.hash && <p className="mt-1 break-all text-3xs text-hf-text-2">SHA-256 {cp.hash}</p>}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )
+              )}
+            </div>
             {/* O resumo do banco de horas saiu daqui junto com o cartão do
                 topo: a tela de bater ponto é para bater ponto. Saldo é
                 assunto de conferência e continua no espelho do RH. */}

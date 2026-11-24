@@ -14,7 +14,17 @@ import { useERP } from "../../../context/ERPContext";
 import { usePermission } from "../../../components/access-control/PermissionGate";
 import { fetchPosicionamento, salvarPosicionamento } from "../../../lib/parametros";
 import { UNIDADES_POSICIONAMENTO, conferirItemPos, normalizarItemPos, normalizarPosicionamento, novoIdPos, textoAlvo, textoFaixa } from "../../../lib/posicionamento.mjs";
-import { imprimirHtml } from "../../../components/marmitaria/imprimirGuia";
+
+/** Imprime por um iframe escondido (o tablet bloqueia janela nova). */
+function imprimirHtml(html) {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  doc.open(); doc.write(html); doc.close();
+  setTimeout(() => { try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } finally { setTimeout(() => iframe.remove(), 60000); } }, 50);
+}
 
 const inputCls = "h-12 w-full rounded-full border border-hf-border bg-hf-surface px-4 text-[16px] font-semibold text-hf-text outline-none focus:border-hf-accent";
 const VAZIO = { nome: "", unidade: "g", alvo: "", min: "", max: "", media: false, obs: "" };

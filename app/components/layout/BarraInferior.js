@@ -4,6 +4,7 @@
 // visual inspirado no app da Medway). As regras de onde aparece e de quais
 // abas cada pessoa vê ficam em app/lib/barra-inferior.mjs.
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bike, BrainCircuit, Home, Menu, Search } from "lucide-react";
@@ -15,9 +16,34 @@ import { assistenteDaSessao } from "../../lib/assistentes.mjs";
 // Ícones como os da Medway: casa, cérebro (assistente), lupa, quadrado com check e menu.
 const ICONES = { Bike, Home, Menu, Search, Sparkles: BrainCircuit };
 
+// Campo que abre o teclado do celular/tablet (texto, número, busca…).
+const SEM_TECLADO = new Set(["checkbox", "radio", "button", "submit", "reset", "range", "color", "file", "image", "hidden"]);
+function abreTeclado(el) {
+  if (!el || el.disabled || el.readOnly) return false;
+  if (el.isContentEditable || el.tagName === "TEXTAREA") return true;
+  return el.tagName === "INPUT" && !SEM_TECLADO.has(String(el.type || "text").toLowerCase());
+}
+
+// Com o teclado aberto a barra some: ela não sobe junto e não tampa o que se
+// digita (dono, 24/11/2026, tablet Android). Só em tela de toque.
+function useTecladoAberto() {
+  const [aberto, setAberto] = useState(false);
+  useEffect(() => {
+    const toque = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
+    if (!toque) return undefined;
+    let espera;
+    const conferir = () => { clearTimeout(espera); espera = setTimeout(() => setAberto(abreTeclado(document.activeElement)), 60); };
+    document.addEventListener("focusin", conferir);
+    document.addEventListener("focusout", conferir);
+    return () => { clearTimeout(espera); document.removeEventListener("focusin", conferir); document.removeEventListener("focusout", conferir); };
+  }, []);
+  return aberto;
+}
+
 export default function BarraInferior({ sessao, onOpenSearch }) {
   const pathname = usePathname() || "";
-  if (!sessao) return null;
+  const tecladoAberto = useTecladoAberto();
+  if (!sessao || tecladoAberto) return null;
 
   const inicio = sessao.gerenciado ? homeDoUsuario(sessao) : "/dashboard";
   const podeInteligencia = !sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view");

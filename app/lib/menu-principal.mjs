@@ -34,6 +34,8 @@ export const MENU_PRINCIPAL = Object.freeze([
         { label: "Etiquetas", desc: "Imprimir etiquetas de produção", href: "/dashboard/operacao/etiquetas?dept=cozinha", icone: "Tag" },
         { label: "Validades", desc: "O que vence primeiro", href: "/dashboard/operacao/validade", icone: "Hourglass" },
         { label: "Memorando de amanhã", desc: "O que deixar pronto", href: "/dashboard/operacao/producao/memorando", icone: "StickyNote", mais: true },
+        // Janta dos funcionários na Cozinha (dono, 24/11/2026): o cardápio da semana com a receita de cada prato.
+        { label: "Janta dos funcionários", desc: "O que a cozinha faz para a equipe hoje", href: "/dashboard/rh/cardapio-funcionarios?dept=cozinha", icone: "UtensilsCrossed", curto: "Janta da equipe" },
       ] },
       { titulo: "Receitas", cards: [
         { label: "Fichas técnicas", desc: "Receitas, rendimento e custo", href: "/dashboard/operacao/fichas?dept=cozinha", icone: "BookOpen", curto: "Fichas" },
@@ -42,7 +44,7 @@ export const MENU_PRINCIPAL = Object.freeze([
         { label: "Molhos", desc: "Receitas e quanto rende cada um", href: "/dashboard/operacao/molhos?dept=cozinha", icone: "Soup" },
         { label: "Calculadora de salmoura", desc: "Carne, frango ou peixe por quilo", href: "/dashboard/operacao/salmouras?dept=cozinha", icone: "Droplets", curto: "Salmoura" },
         { label: "Empanados", desc: "Farinha temperada e massinha por quilo", href: "/dashboard/operacao/empanados?dept=cozinha", icone: "Wheat" },
-        { label: "Posicionamento", desc: "Quantas gramas vão no prato", href: "/dashboard/operacao/posicionamento?dept=cozinha", icone: "Scale" },
+        { label: "Porcionamento", desc: "Quantas gramas vão no prato", href: "/dashboard/operacao/posicionamento?dept=cozinha", icone: "Scale" },
         { label: "Green Dot Assist", desc: "Assistente de bancada no tablet", href: "/dashboard/assistente", icone: "Sparkles", mais: true },
       ] },
       { titulo: "Estoque e compras", cards: [

@@ -33,10 +33,24 @@ const ROTAS_COM_BARRA = new Set([
 
 const semBarraFinal = (p) => (p.length > 1 ? p.replace(/\/+$/, "") : p);
 
+// 24/11/2026 (dono: "o menu no tablet e no celular… sempre fica embaixo fixo"): a barra
+// passa a ficar em TODAS as telas, menos as de trabalho em tela cheia, que têm
+// rodapé próprio fixo ou precisam da altura inteira (comandas, KDS, conversa do
+// assistente, ponto, tablet de etiquetas, contagem de estoque…).
+const SEM_BARRA = Object.freeze([
+  "/dashboard/mesas", "/dashboard/salao/mesas", "/dashboard/cozinha/kds", "/dashboard/inteligencia/assistente",
+  "/dashboard/rh/ponto", "/dashboard/operacao/etiquetas/tablet", "/dashboard/operacao/estoque/contagens",
+  "/dashboard/ia/heitor", "/dashboard/reservas-eventos/rapido", "/dashboard/rh/extra/", "/dashboard/operacao/inteligente/processos/",
+  "/dashboard/marketing/sinalizacao", "/dashboard/configuracoes/impressao", "/dashboard/assistente",
+]);
+
 /** A barra aparece nesta rota? App dedicado (tablet de loja, KDS) não tem barra. */
 export function mostraBarraInferior(pathname, sessao) {
   if (!sessao || sessao.is_app) return false;
-  return ROTAS_COM_BARRA.has(semBarraFinal(String(pathname || "")));
+  const p = semBarraFinal(String(pathname || ""));
+  if (ROTAS_COM_BARRA.has(p)) return true;
+  if (!p.startsWith("/dashboard")) return false;
+  return !SEM_BARRA.some((r) => (r.endsWith("/") ? p.startsWith(r) : p === r || p.startsWith(`${r}/`)));
 }
 
 /** Id da aba acesa nesta rota (ou null). */

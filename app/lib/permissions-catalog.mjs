@@ -111,7 +111,7 @@ export const PERMISSION_MODULES = [
       { id: "notes", label: "Anotações da cozinha", route: "/dashboard/operacao/anotacoes?dept=cozinha", actions: ["view", "create"] },
       { id: "recipes", label: "Fichas técnicas", route: "/dashboard/operacao/fichas?dept=cozinha", actions: [...CRUD, "view_costs", "print", "export"] },
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem?dept=cozinha", actions: [...CRUD, "print"] },
-      { id: "portioning", label: "Posicionamento (gramas no prato)", route: "/dashboard/operacao/posicionamento", actions: [...CRUD, "print"] },
+      { id: "portioning", label: "Porcionamento (gramas no prato)", route: "/dashboard/operacao/posicionamento", actions: [...CRUD, "print"] },
       { id: "brines", label: "Calculadora de salmoura", route: "/dashboard/operacao/salmouras", actions: CRUD },
       { id: "breading", label: "Empanados", route: "/dashboard/operacao/empanados", actions: CRUD },
       { id: "sauces", label: "Molhos (lista de bases de molho)", route: "/dashboard/operacao/molhos", actions: ["view"] },

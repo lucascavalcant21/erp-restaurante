@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ChevronLeft, FileText, Lock, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, FileText, Lock, Sparkles } from "lucide-react";
 import { ICONES_MODULO } from "./IconeModulo";
 
 /** Fundo cinza claro da tela, ocupando a altura toda. */
@@ -17,9 +17,17 @@ export function FundoMedway({ children, className = "" }) {
 }
 
 /** "Menu", "Salão": título grande à esquerda, como na Medway. */
-export function TituloGrande({ children, subtitulo = null, className = "" }) {
+export function TituloGrande({ children, subtitulo = null, className = "", voltar = true }) {
+  const router = useRouter();
+  // Voltar para a tela de antes (dono, 24/11/2026); sem histórico, vai ao Início.
+  const voltarAntes = () => (typeof window !== "undefined" && window.history.length > 1 ? router.back() : router.push("/dashboard"));
   return (
-    <header className={`px-4 pb-5 pt-6 sm:px-6 ${className}`}>
+    <header className={`px-4 pb-5 pt-4 sm:px-6 ${className}`}>
+      {voltar && (
+        <button type="button" onClick={voltarAntes} className="-ml-2 mb-1 flex h-11 items-center gap-1.5 rounded-full px-2 text-[15px] font-medium text-mw-marinho shadow-none hover:bg-mw-card">
+          <ArrowLeft size={20} aria-hidden="true" /> Voltar
+        </button>
+      )}
       <h1 className="text-[30px] font-semibold leading-tight tracking-tight text-mw-marinho">{children}</h1>
       {subtitulo && <p className="mt-1 text-[15px] text-mw-sec">{subtitulo}</p>}
     </header>

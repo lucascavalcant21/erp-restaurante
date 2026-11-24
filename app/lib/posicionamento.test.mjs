@@ -64,7 +64,7 @@ test("resposta no aparelho: lista, um produto, sem cadastro", () => {
   assert.equal(um.blocos[0].itens.length, 1);
 
   const nada = respostaDoPosicionamento("posicionamento do camarão", cache);
-  assert.match(nada.texto, /Não tem posicionamento cadastrado para "camarao"/);
+  assert.match(nada.texto, /Não tem porcionamento cadastrado para "camarao"/);
   assert.equal(nada.blocos[0].itens.length, 4);
 
   // pergunta de gramas que não é de posicionamento segue o caminho normal
@@ -75,4 +75,15 @@ test("resposta no aparelho: lista, um produto, sem cadastro", () => {
   assert.match(vazio.texto, /ainda não foi cadastrado/);
   assert.match(respostaDoPosicionamento("posicionamento", null).texto, /baixando/);
   assert.equal(respostaDoPosicionamento("como faz arroz", cache), null);
+});
+
+test("porcionamento (o nome certo, 24/11/2026) também abre a lista e acha o produto", () => {
+  assert.deepEqual(interpretarPosicionamento("porcionamento"), { todos: true });
+  assert.equal(interpretarPosicionamento("porcionamento da picanha").termo, "picanha");
+});
+
+test("categorias: divide a lista na ordem das sugeridas, sem categoria no fim", async () => {
+  const { agruparPorCategoria, normalizarItemPos } = await import("./posicionamento.mjs");
+  const itens = [{ nome: "Arroz", alvo: 120, categoria: "Acompanhamentos" }, { nome: "Filé", alvo: 150, categoria: "Proteínas" }, { nome: "Farofa", alvo: 30 }, { nome: "Pudim", alvo: 80, categoria: "Doces da casa" }].map(normalizarItemPos);
+  assert.deepEqual(agruparPorCategoria(itens).map((g) => [g.categoria, g.itens.length]), [["Proteínas", 1], ["Acompanhamentos", 1], ["Doces da casa", 1], ["Sem categoria", 1]]);
 });

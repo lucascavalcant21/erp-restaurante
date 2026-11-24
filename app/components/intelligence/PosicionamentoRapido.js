@@ -23,7 +23,7 @@ export default function PosicionamentoRapido({ itens = [] }) {
   return (
     <div className="w-full">
       <p className="mb-2 flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide" style={{ color: META }}>
-        <Scale size={15} /> Posicionamento · quanto vai no prato
+        <Scale size={15} /> Porcionamento · quanto vai no prato
       </p>
       {itens.length > 6 && (
         <label className="mb-2 flex h-11 items-center gap-2 rounded-full bg-white px-4">

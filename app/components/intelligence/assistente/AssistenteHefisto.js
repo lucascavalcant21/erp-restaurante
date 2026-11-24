@@ -168,7 +168,7 @@ function CartaoArea({ a, onClick, desabilitado }) {
 const SUGESTOES_NICO = Object.freeze([
   "Como faz o prato do dia?",
   "Quero imprimir etiquetas",
-  "Posicionamento",
+  "Porcionamento",
   "Salmoura",
   "Aconteceu um problema no salão, como resolvo?",
 ]);

@@ -16,14 +16,14 @@ export function converterQuantidadeParaEmbalagem(quantidadeBase, tamanhoEmbalage
 }
 
 /**
- * Detecta se a ação recomendada é COMPRAR (insumo de terceiro) ou PRODUZIR (pré-preparo interno).
+ * Detecta se a ação recomendada é COMPRAR (insumo de terceiro) ou PRODUZIR (base interna).
  */
 export function classificarAcaoItem(insumo) {
   const tipo = String(insumo?.tipo || "").toLowerCase();
   const departamento = String(insumo?.departamento || "").toLowerCase();
   const nome = String(insumo?.nome || "").toLowerCase();
   
-  // Se for explicitamente pré-preparo ou produzido na casa
+  // Se for explicitamente base ou produzido na casa
   if (tipo === "pre_preparo" || tipo === "subreceita" || insumo?.tem_ficha || nome.startsWith("molho") || nome.startsWith("xarope artesanal") || nome.startsWith("pré-")) {
     return "PRODUZIR";
   }

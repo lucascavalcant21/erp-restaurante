@@ -277,7 +277,7 @@ export async function detectOverdueProduction(unitId) {
           domain: "cozinha",
           severity: "ATTENTION",
           title: `${qtdPendentes} produção(ões) previstas continuam pendentes`,
-          summary: `Existem ${qtdPendentes} lote(s) de pré-preparo aguardando conclusão na cozinha hoje`,
+          summary: `Existem ${qtdPendentes} lote(s) de base aguardando conclusão na cozinha hoje`,
           evidence: [
             `• Preparos Previstos para Hoje: ${qtdPendentes} lote(s) pendentes`,
             `• Setor: Cozinha Principal`,

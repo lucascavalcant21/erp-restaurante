@@ -10,10 +10,9 @@ export function ordenarFichasDocumento(fichas, ordem = "selecao", idsPersonaliza
       || String(a.nome_receita || "").localeCompare(String(b.nome_receita || ""), "pt-BR"));
   }
   if (ordem === "tipo") {
-    const tipo = ficha => ficha.eh_base
-      ? "Pré-preparo"
-      : (ficha.tipo_base === "produto_pronto" ? "Produto pronto" : "Prato");
-    return lista.sort((a, b) => tipo(a).localeCompare(tipo(b), "pt-BR")
+    // pratos, depois produtos prontos, depois bases (ordem de antes da troca de nome)
+    const tipo = ficha => ficha.eh_base ? 2 : (ficha.tipo_base === "produto_pronto" ? 1 : 0);
+    return lista.sort((a, b) => tipo(a) - tipo(b)
       || String(a.nome_receita || "").localeCompare(String(b.nome_receita || ""), "pt-BR"));
   }
   if (ordem === "personalizada") {

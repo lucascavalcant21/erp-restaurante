@@ -24,7 +24,7 @@ export const subUnidade = (unidade) => SUB_UNIDADES[String(unidade || "").toLowe
 const DIACRITICOS = new RegExp("[" + String.fromCharCode(0x0300) + "-" + String.fromCharCode(0x036f) + "]", "g");
 const normalizar = (s) => String(s || "").toLowerCase().normalize("NFD").replace(DIACRITICOS, "").trim();
 
-// Custo de 1 unidade do rendimento de um pré-preparo (o que entra no prato).
+// Custo de 1 unidade do rendimento de uma base (o que entra no prato).
 export function custoUnitarioDoPrePreparo(base, todasFichas = []) {
   return custoDeProduzirFicha(base, todasFichas) / (parseNumero(base?.rendimento_porcoes) || 1);
 }
@@ -36,7 +36,7 @@ export function itemDeIngrediente(fi, todasFichas = []) {
     const unidade = base?.rendimento_unidade || "kg";
     return {
       chave: fi.subficha_id, tipo: "base", subficha_id: fi.subficha_id, insumo_id: null,
-      nome: base?.nome_receita || "Pré-preparo removido",
+      nome: base?.nome_receita || "Base removida",
       unidade, unidade_insumo: unidade,
       custo_unitario: base ? custoUnitarioDoPrePreparo(base, todasFichas) : 0,
       quantidade: parseNumero(fi.quantidade),
@@ -75,8 +75,8 @@ export function itemDeOpcao(valor, { insumos = [], embalagens = [], fichas = [] 
   return { ...item, quantidade };
 }
 
-// Tudo o que pode virar ingrediente: insumos do setor, pré-preparos e
-// embalagens. Fica de fora o pré-preparo que já usa esta ficha (direta ou
+// Tudo o que pode virar ingrediente: insumos do setor, bases e
+// embalagens. Fica de fora a base que já usa esta ficha (direta ou
 // indiretamente): ele formaria um ciclo e o custo não fecharia.
 export function opcoesDeIngrediente({ insumos = [], embalagens = [], fichas = [], fichaId = null } = {}) {
   const arestas = arestasDeSubfichas(fichas);
@@ -85,7 +85,7 @@ export function opcoesDeIngrediente({ insumos = [], embalagens = [], fichas = []
     ...fichas
       .filter(f => tipoFichaDe(f) === "pre_preparo" && f.id !== fichaId)
       .filter(f => !fichaId || !criariaCiclo(fichaId, f.id, arestas))
-      .map(f => ({ valor: `base:${f.id}`, nome: f.nome_receita, detalhe: f.rendimento_unidade, grupo: "Pré-preparo" })),
+      .map(f => ({ valor: `base:${f.id}`, nome: f.nome_receita, detalhe: f.rendimento_unidade, grupo: "Base" })),
     ...embalagens.map(i => ({ valor: `insumo:${i.id}`, nome: i.nome, detalhe: i.unidade_medida, grupo: "Embalagem" })),
   ];
 }
@@ -159,7 +159,7 @@ export function estadoInicialDoEditor({ departamento, tipo = null, ficha = null,
       // Ficha existente abre com o rendimento gravado. O prato (que não mostra
       // rendimento) continua somando os ingredientes como antes, exceto quando
       // tem peso de porção — aí o rendimento define quantas porções saem e não
-      // pode mudar sem a pessoa ver. O pré-preparo só soma se ela pedir.
+      // pode mudar sem a pessoa ver. A base só soma se ela pedir.
       autoRendimento: tipoFichaDe(ficha) === "prato"
         && !(parseNumero(ficha.peso_porcao_g) > 0)
         && rendimentoEhAutomatizavel({ id: ficha.id, departamento: dept, rendimento_unidade: ficha.rendimento_unidade }),

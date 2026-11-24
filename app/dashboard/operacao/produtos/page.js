@@ -751,7 +751,7 @@ function CardapioRunner() {
                         <option value="">{form.departamento === "bar" ? "Selecione o drink..." : "Selecione o prato..."}</option>
                         {fichas.filter(f => f.departamento === form.departamento && !f.eh_base).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
                      </select>
-                     <p className="text-3xs text-subtle font-medium mt-1">A montagem (insumos + pré-preparos) é feita em Fichas Técnicas. Aqui você só precifica.</p>
+                     <p className="text-3xs text-subtle font-medium mt-1">A montagem (insumos + bases) é feita em Fichas Técnicas. Aqui você só precifica.</p>
                   </div>
 
                   {/* Compatibilidade: produto antigo montado com VÁRIOS componentes

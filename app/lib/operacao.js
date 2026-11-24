@@ -1,3 +1,4 @@
+import { nomeDeBase } from "./nome-base.mjs";
 import { supabase, isSupabaseReady } from "./supabase";
 import { calcularPrecoNormalizado, ehInsumoPrePreparo, SETORES_COMPARTILHAVEIS, insumoEstaNoSetor, setoresDoInsumo } from "./ingredientes-utils.mjs";
 import { empanamentoDaComposicao, fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
@@ -489,6 +490,8 @@ export async function salvarFicha(ficha, ingredientes) {
   let fichaId = ficha.id;
   // `id` nulo quebra o INSERT (mesma constraint NOT NULL da tabela insumos)
   const { id: _id, created_at, ...camposFicha } = ficha;
+  // base sempre com "(base)" no fim do nome (dono, 23/11/2026)
+  if (camposFicha.eh_base && camposFicha.nome_receita) camposFicha.nome_receita = nomeDeBase(camposFicha.nome_receita);
   if (!camposFicha.versao) {
     camposFicha.versao = "1.0";
   }

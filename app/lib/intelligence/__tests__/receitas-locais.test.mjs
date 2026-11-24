@@ -25,7 +25,7 @@ test("entende o pedido: nome curto, como faz, quantidade, cru/cozido", () => {
   assert.equal(interpretarPedido("Como faz Arroz branco?").termo, "arroz branco");
   assert.deepEqual(interpretarPedido("quero fazer 2 kg de arroz cru"), { termo: "arroz", qtd: 2, unidade: "kg", estado: "cru", tipo: null });
   assert.deepEqual(interpretarPedido("vou preparar 1,5kg de arroz branco cozido"), { termo: "arroz branco", qtd: 1.5, unidade: "kg", estado: "cozido", tipo: null });
-  assert.equal(interpretarPedido("pré-preparo de arroz").tipo, "base");
+  assert.equal(interpretarPedido("base de arroz").tipo, "base");
   assert.equal(interpretarPedido("quanto vendi ontem no ifood por cada canal de venda"), null);
 });
 
@@ -37,10 +37,10 @@ test("busca sem repetir nome e com a ficha mais completa", () => {
   assert.equal(buscarFichas(FICHAS, "pizza").length, 0);
 });
 
-test("fluxo por toques: pré-preparo ou prato → qual → a receita", () => {
+test("fluxo por toques: base ou prato → qual → a receita", () => {
   const r1 = respostaLocal("Arroz", cache);
-  assert.equal(r1.texto, "É pré-preparo ou prato?");
-  assert.deepEqual(r1.pergunta.opcoes.map((o) => o.rotulo), ["Pré-preparo (2)", "Prato (2)"]);
+  assert.equal(r1.texto, "É base ou prato?");
+  assert.deepEqual(r1.pergunta.opcoes.map((o) => o.rotulo), ["Base (2)", "Prato (2)"]);
   const r2 = respostaLocal(r1.pergunta.opcoes[0].comando, cache);
   assert.deepEqual(r2.pergunta.opcoes.map((o) => o.rotulo), ["Arroz branco", "Arroz Paraense"]);
   assert.ok(r2.pergunta.opcoes[0].comando.startsWith(PREFIXO));

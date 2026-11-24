@@ -16,7 +16,7 @@ export function fichaParaConsulta(ficha = {}, montagem = null) {
   const passos = (daTabela.length ? daTabela : daFicha).filter(Boolean);
   return {
     id: `ficha:${ficha.id}`,
-    tipo: ficha.eh_base ? "Pré-preparo" : "Ficha técnica",
+    tipo: ficha.eh_base ? "Base" : "Ficha técnica",
     nome: ficha.nome_comercial || ficha.nome_receita || "",
     categoria: ficha.categoria || "",
     foto: ficha.imagem || ficha.montagem_foto || montagem?.foto_url || "",

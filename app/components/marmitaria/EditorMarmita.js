@@ -1,6 +1,6 @@
 "use client";
 
-// Ficha técnica numa tela só: dados, ingredientes e pré-preparos, embalagens e
+// Ficha técnica numa tela só: dados, ingredientes e bases, embalagens e
 // o custo final, recalculado a cada tecla. Preço não mora aqui: fica no
 // Cardápio, por plataforma. Salvar nunca fica preso
 // em "Salvando…" (finally) e, se der erro, o que foi digitado continua aqui.
@@ -140,9 +140,9 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
         </div>
       </Secao>
 
-      {/* B — ingredientes e pré-preparos */}
-      <Secao titulo="Ingredientes e pré-preparos" subtitulo="Vêm do cadastro da marmitaria."
-        direita={<p className="text-sm text-hf-text-2">Alimentos <b className="tabular-nums">{brl(custo.alimentos)}</b> · Pré-preparos <b className="tabular-nums">{brl(custo.prePreparos)}</b></p>}>
+      {/* B — ingredientes e bases */}
+      <Secao titulo="Ingredientes e bases" subtitulo="Vêm do cadastro da marmitaria."
+        direita={<p className="text-sm text-hf-text-2">Alimentos <b className="tabular-nums">{brl(custo.alimentos)}</b> · Bases <b className="tabular-nums">{brl(custo.prePreparos)}</b></p>}>
         {form.itens.length > 0 && (
           <ul className="divide-y divide-hf-border">
             {form.itens.map((it) => {
@@ -153,7 +153,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
                 <li key={it.key} className="grid grid-cols-[1fr_auto] gap-2 py-2 sm:grid-cols-[1fr_110px_90px_110px_44px] sm:items-center">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-hf-text">{nome || "Item removido do cadastro"}</p>
-                    <p className="text-xs text-hf-muted">{it.subficha_id ? "Pré-preparo" : "Ingrediente"}{it.fator_correcao > 0 ? ` · FC +${pctTxt(it.fator_correcao, 0)}` : ""}</p>
+                    <p className="text-xs text-hf-muted">{it.subficha_id ? "Base" : "Ingrediente"}{it.fator_correcao > 0 ? ` · FC +${pctTxt(it.fator_correcao, 0)}` : ""}</p>
                   </div>
                   <button type="button" aria-label="Remover" onClick={() => setForm((x) => ({ ...x, itens: x.itens.filter((i) => i.key !== it.key) }))} className="flex h-11 w-11 items-center justify-center rounded-lg text-hf-muted hover:bg-hf-elevated sm:order-last"><Trash2 size={16} /></button>
                   <CampoNumero valor={it.qtd} onChange={(v) => mudarItem(it.key, { qtd: v })} placeholder="Qtd." aria-label={`Quantidade de ${nome}`} />
@@ -177,7 +177,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
         <div className="mt-3 space-y-3">
           <button type="button" onClick={() => setVerLista((v) => !v)} aria-expanded={verLista}
             className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-bold text-hf-text">
-            {verLista ? "Esconder a lista de pré-preparos" : `Escolher da lista (${catalogo.reduce((t, g) => t + g.itens.length, 0)} pré-preparos)`}
+            {verLista ? "Esconder a lista de bases" : `Escolher da lista (${catalogo.reduce((t, g) => t + g.itens.length, 0)} bases)`}
           </button>
           {verLista && (
             <div className="rounded-xl border border-hf-border">
@@ -190,10 +190,10 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
                 </div>
               )}
               <div className="border-b border-hf-border p-2">
-                <input className={inputCls} value={buscaPrep} onChange={(e) => setBuscaPrep(e.target.value)} placeholder="Buscar pré-preparo (ex.: feijão, frango)" aria-label="Buscar pré-preparo" />
+                <input className={inputCls} value={buscaPrep} onChange={(e) => setBuscaPrep(e.target.value)} placeholder="Buscar base (ex.: feijão, frango)" aria-label="Buscar base" />
               </div>
               <div className="space-y-2 p-2">
-                {!catalogo.length && <p className="p-2 text-sm text-hf-muted">Nenhum pré-preparo cadastrado. Use a busca para ingredientes ou crie um pré-preparo.</p>}
+                {!catalogo.length && <p className="p-2 text-sm text-hf-muted">Nenhuma base cadastrada. Use a busca para ingredientes ou crie uma base.</p>}
                 {catalogo.filter((g) => !grupoSel || g.grupo === grupoSel)
                   .map((g) => ({ ...g, itens: g.itens.filter((it) => !buscaPrep.trim() || normalizarBusca(it.nome).includes(normalizarBusca(buscaPrep))) }))
                   .filter((g) => g.itens.length).map((g) => (
@@ -234,7 +234,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
               onCriado={async (id, unidade) => { await recarregar(); adicionarItem({ tipo: "pre_preparo", id, unidade }); }} />
           )}
           {painel !== "busca-item" && painel !== "novo-prod" && painel !== "novo-prep" && (
-            <Botao variante="secundario" type="button" onClick={() => setPainel("busca-item")}>+ Adicionar ingrediente ou pré-preparo</Botao>
+            <Botao variante="secundario" type="button" onClick={() => setPainel("busca-item")}>+ Adicionar ingrediente ou base</Botao>
           )}
         </div>
       </Secao>
@@ -285,7 +285,7 @@ export default function EditorMarmita({ form: formInicial, onFechar, onSalvo }) 
       <Secao titulo="Custo" subtitulo="Comida e embalagem. O preço, as taxas e o lucro ficam no Cardápio.">
         <div className="grid gap-3 sm:grid-cols-4">
           <Resumo rotulo="Alimentos" valor={custo.alimentos} />
-          <Resumo rotulo="Pré-preparos" valor={custo.prePreparos} />
+          <Resumo rotulo="Bases" valor={custo.prePreparos} />
           <Resumo rotulo="Embalagens" valor={custo.embalagens} />
           <Resumo rotulo="Custo total" valor={custo.total} forte />
         </div>

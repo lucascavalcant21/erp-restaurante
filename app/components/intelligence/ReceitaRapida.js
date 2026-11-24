@@ -59,7 +59,7 @@ export default function ReceitaRapida({ ficha, pedido = {} }) {
   return (
     <section className="-mx-0.5 space-y-3" aria-label={`Receita de ${ficha.nome}`}>
       <header>
-        <p className="text-[12.5px] font-bold uppercase tracking-wide" style={{ color: META }}>{ficha.base ? "Pré-preparo" : ficha.departamento === "bar" ? "Drink" : "Prato"}</p>
+        <p className="text-[12.5px] font-bold uppercase tracking-wide" style={{ color: META }}>{ficha.base ? "Base" : ficha.departamento === "bar" ? "Drink" : "Prato"}</p>
         <h3 className="text-[22px] font-extrabold leading-tight">{ficha.nome}</h3>
         <p className="mt-0.5 flex flex-wrap gap-x-3 text-[13.5px]" style={{ color: META }}>
           {rend.valor > 0 && <span>Ficha rende {porcoes ? `${String(ficha.rendQtd).replace(".", ",")} ${ficha.rendUn || "porções"}` : quantidadeTexto(ficha.rendQtd, ficha.rendUn)}</span>}

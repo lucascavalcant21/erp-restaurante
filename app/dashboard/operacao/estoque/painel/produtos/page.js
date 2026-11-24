@@ -59,7 +59,7 @@ const CATEGORIAS_ESTOQUE_COZINHA = [
   "Hortifrúti",
   "Secos",
   "Líquidos",
-  "Pré-preparos",
+  "Bases",
 ];
 
 // Categorias oficiais do Bar na ordem exata solicitada pelo usuário
@@ -71,11 +71,11 @@ const CATEGORIAS_ESTOQUE_BAR = [
   "Água",
   "Refrigerantes",
   "Bombons",
-  "Pré-preparos",
+  "Bases",
 ];
 
 // O estoque é o lugar físico; o departamento é o setor dono do ingrediente.
-// "Pré-preparos da Cozinha" e "Embalagens da Cozinha" são estoques diferentes,
+// "Bases da Cozinha" e "Embalagens da Cozinha" são estoques diferentes,
 // mas o ingrediente que nasce neles pertence à cozinha do mesmo jeito.
 function departamentoDoEstoque(estoque) {
   const texto = `${estoque?.slug || ""} ${estoque?.nome || ""}`.toLowerCase();
@@ -525,7 +525,7 @@ function EstoqueRunner() {
       ehEstoqueEmbalagem ? fetchEmbalagens(unidadeAtiva) : Promise.resolve({ data: [] }),
     ]);
     // Prato e drink montados na hora não têm saldo para contar: quem tem é o
-    // ingrediente e o pré-preparo, que fica no estoque próprio dele. Comprado
+    // ingrediente e a base, que fica no estoque próprio dele. Comprado
     // pronto (cerveja, refrigerante) continua na lista, porque é estoque mesmo.
     const prontos = new Set(resProntos.data || []);
     // No estoque de embalagens só entra o que está cadastrado como embalagem.
@@ -573,7 +573,7 @@ function EstoqueRunner() {
   // e já entra vinculado a este estoque, pronto para receber a entrada.
   //
   // O departamento vinha do slug do estoque, então quem cadastrasse pelo
-  // "Pré-preparos da Cozinha" criava um ingrediente de departamento
+  // "Bases da Cozinha" criava um ingrediente de departamento
   // "pre-preparos-cozinha" — que não existe em lugar nenhum e sumia da lista de
   // ingredientes. Aqui o estoque é traduzido para o setor de verdade.
   const cadastrarProdutoAqui = async () => {
@@ -2038,7 +2038,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                           "Água": "bg-zinc-100 text-zinc-900 border-zinc-200",
                           "Refrigerantes": "bg-red-100 text-red-950 border-red-300",
                           "Bombons": "bg-pink-100 text-pink-950 border-pink-300",
-                          "Pré-preparos": "bg-zinc-100 text-zinc-900 border-zinc-200",
+                          "Bases": "bg-zinc-100 text-zinc-900 border-zinc-200",
                           "Carne vermelha": "bg-red-100 text-red-950 border-red-300",
                           "Peixe": "bg-zinc-100 text-zinc-900 border-zinc-200",
                           "Aves": "bg-amber-100 text-amber-950 border-amber-300",

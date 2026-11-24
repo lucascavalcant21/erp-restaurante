@@ -36,8 +36,8 @@ export const MODELOS_CHECKLIST = {
 
         { texto: "Limpar potes de colheres, prateleiras, bancadas, pias, utensílios e louças", categoria: "6. Organização e Higienização Inicial", fase_turno: "abertura", horario_previsto: "09:30", tempo_minutos: 15 },
 
-        { texto: "Corte de hortaliças: Tomate em cubos brunoise, Cebola chicélê e brunoise", categoria: "7. Pré-Preparo de Hortaliças", fase_turno: "abertura", horario_previsto: "09:45", tempo_minutos: 20 },
-        { texto: "Picar cheiro-verde e pimenta-de-cheiro e armazenar identificados", categoria: "7. Pré-Preparo de Hortaliças", fase_turno: "abertura", horario_previsto: "10:05", tempo_minutos: 15 },
+        { texto: "Corte de hortaliças: Tomate em cubos brunoise, Cebola chicélê e brunoise", categoria: "7. Base de Hortaliças", fase_turno: "abertura", horario_previsto: "09:45", tempo_minutos: 20 },
+        { texto: "Picar cheiro-verde e pimenta-de-cheiro e armazenar identificados", categoria: "7. Base de Hortaliças", fase_turno: "abertura", horario_previsto: "10:05", tempo_minutos: 15 },
 
         { texto: "Conferir porcionados: Costelinha de tambaqui, Pirarucu, Mandioca, Batata frita, Frango kids, Moqueca, Molhos e Camarões", categoria: "8. Conferência de Porcionados", fase_turno: "abertura", horario_previsto: "10:20", tempo_minutos: 15 },
 

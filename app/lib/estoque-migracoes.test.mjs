@@ -41,7 +41,7 @@ await pg.exec(`
     controla_validade boolean default false, controla_minimo boolean default true, locais_internos text[] default '{}', ordem int default 0,
     created_at timestamptz default now(), updated_at timestamptz default now(), unique (unidade_id, slug));
   insert into public.estoques (unidade_id, nome, slug, tipo) values
-    ('seldeestrela','Bar','bar','bebidas'), ('seldeestrela','Pré-preparos do Salão','pre-preparos-salao','alimentos'),
+    ('seldeestrela','Bar','bar','bebidas'), ('seldeestrela','Bases do Salão','pre-preparos-salao','alimentos'),
     ('seldeestrela','Depósito','deposito','materiais');
   create table public.estoque_itens (id uuid primary key default gen_random_uuid(), estoque_id uuid, insumo_id uuid, quantidade_atual numeric);
   create table public.estoque_movimentacoes_multi (id uuid primary key default gen_random_uuid(), estoque_id uuid, estoque_destino_id uuid);

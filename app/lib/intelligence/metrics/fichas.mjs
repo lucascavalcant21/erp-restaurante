@@ -51,7 +51,7 @@ async function lerOpcional(consulta, tabela) {
  * @param {object} amb
  * @param {{ termo?: string, frase?: string|null, fichaId?: string|null }} op
  *   frase = o pedido inteiro ("como faz a caipirinha clássica?"): o nome do cadastro dito inteiro manda.
- *   tipo  = "base" (a receita/pré-preparo) ou "prato" (o prato ou drink servido): filtra quando a pessoa já disse.
+ *   tipo  = "base" (a receita/base) ou "prato" (o prato ou drink servido): filtra quando a pessoa já disse.
  */
 export function fichaDoPrato(amb, { termo, frase = null, fichaId = null, tipo = null } = {}) {
   const periodo = { de: amb.hoje, ate: amb.hoje, rotulo: "cadastro atual" };

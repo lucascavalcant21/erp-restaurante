@@ -397,7 +397,7 @@ export default function EtiquetasRapidas() {
       (fichas.data || []).filter(f => f.eh_base).forEach(ficha => {
         const nome = ficha.nome_receita;
         if (!nome || mapa.has(nome.toLocaleLowerCase("pt-BR"))) return;
-        mapa.set(nome.toLocaleLowerCase("pt-BR"), { id: `base:${ficha.id || nome}`, nome, unidade: String(ficha.rendimento_unidade || "UN").toUpperCase(), custo: 0, origem: "Pré-preparo" });
+        mapa.set(nome.toLocaleLowerCase("pt-BR"), { id: `base:${ficha.id || nome}`, nome, unidade: String(ficha.rendimento_unidade || "UN").toUpperCase(), custo: 0, origem: "Base" });
       });
       (cardapio.data || []).forEach(produto => {
         const nome = produto.nome_produto;
@@ -416,7 +416,7 @@ export default function EtiquetasRapidas() {
     const termo = busca.trim().toLocaleLowerCase("pt-BR");
     let lista = produtos;
     if (filtroMenu === "Ingredientes") lista = lista.filter(p => p.origem === "Ingrediente");
-    if (filtroMenu === "Preparos") lista = lista.filter(p => p.origem === "Pré-preparo" || p.origem === "Cardápio");
+    if (filtroMenu === "Preparos") lista = lista.filter(p => p.origem === "Base" || p.origem === "Cardápio");
     if (filtroMenu === "Recentes") lista = lista.filter(p => recentesIds.includes(p.id));
     return lista.filter(produto => !termo || produto.nome.toLocaleLowerCase("pt-BR").includes(termo));
   }, [busca, produtos, filtroMenu, recentesIds]);
@@ -741,7 +741,7 @@ export default function EtiquetasRapidas() {
             {visiveis.map(p => (
               <button key={p.id} className="ux-card-produto" onClick={() => abrirProduto(p)}>
                 <strong>{p.nome}</strong>
-                {p.origem === "Pré-preparo" ? <span className="prep"><ChefHat size={12}/> Preparo</span> : <span><Tag size={12}/> {p.origem}</span>}
+                {p.origem === "Base" ? <span className="prep"><ChefHat size={12}/> Preparo</span> : <span><Tag size={12}/> {p.origem}</span>}
               </button>
             ))}
             {visiveis.length === 0 && <p className="ux-vazio">Nenhum produto encontrado.</p>}

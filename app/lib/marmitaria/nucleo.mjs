@@ -4,7 +4,7 @@
 // Regra da casa: nunca inventar número. Sem dado, o valor sai `null` com o
 // motivo; cada resultado diz a natureza (real, estimativa, simulação).
 //
-// Custo de ingrediente e de pré-preparo NÃO é recalculado aqui por fórmula
+// Custo de ingrediente e de base NÃO é recalculado aqui por fórmula
 // própria: cada linha passa por custoDeProduzirFicha (ficha-calculos.mjs), a
 // mesma conta das fichas técnicas do restaurante. Assim a marmita e o prato
 // que usam o mesmo arroz cozido dão o mesmo custo de arroz.
@@ -46,7 +46,7 @@ export function custoPorUnidadeDoPacote(preco, unidades) {
 }
 
 // Quantidade digitada (g, kg, ml, L, un) → unidade do cadastro do insumo ou do
-// rendimento do pré-preparo. Grandezas incompatíveis devolvem null.
+// rendimento da base. Grandezas incompatíveis devolvem null.
 // pesos (opcional): { unidadeG, porcaoG } do cadastro, para digitar "3 un" ou
 // "2 porções" de um produto comprado em kg (pedido do dono, 30/10/2026).
 export function paraUnidadeDoCadastro(quantidade, unidadeDigitada, unidadeCadastro, pesos = null) {
@@ -75,9 +75,9 @@ export function unidadesCompativeis(unidadeCadastro, pesos = null) {
 
 /**
  * itens:      [{ insumo_id | subficha_id, quantidade, fator_correcao }]
- *             quantidade na unidade do cadastro do insumo / do rendimento do pré-preparo
+ *             quantidade na unidade do cadastro do insumo / do rendimento da base
  * embalagens: [{ insumo_id, quantidade }]
- * fichas:     fichas da unidade com fichas_ingredientes(*, insumos(*)) — para os pré-preparos
+ * fichas:     fichas da unidade com fichas_ingredientes(*, insumos(*)) — para as bases
  * insumos:    Map id → insumo
  */
 export function custoDaMarmita({ itens = [], embalagens = [], fichas = [], insumos = new Map() } = {}) {
@@ -87,7 +87,7 @@ export function custoDaMarmita({ itens = [], embalagens = [], fichas = [], insum
     const q = parseNumero(it.quantidade);
     if (it.subficha_id) {
       const base = fichas.find((f) => f.id === it.subficha_id);
-      if (!base) { pendencias.push("Um pré-preparo da marmita não foi encontrado."); linhas.push({ ...it, tipo: "pre_preparo", nome: it.nome || "Pré-preparo", custo: null }); continue; }
+      if (!base) { pendencias.push("Uma base da marmita não foi encontrado."); linhas.push({ ...it, tipo: "pre_preparo", nome: it.nome || "Base", custo: null }); continue; }
       const custo = custoDeProduzirFicha({ id: "__linha", fichas_ingredientes: [{ subficha_id: base.id, quantidade: q, fator_correcao: it.fator_correcao }] }, fichas);
       const rend = parseNumero(base.rendimento_porcoes);
       if (!(rend > 0)) pendencias.push(`"${base.nome_receita}" está sem rendimento: informe quanto o lote rende.`);
@@ -257,12 +257,12 @@ const chaveIns = (id) => `i:${id}`;
  *
  * plano:        [{ ficha_id, quantidade }]  (fichas de marmita da unidade)
  * marmitas:     Map ficha_id → { itens:[{insumo_id|subficha_id, quantidade, fator_correcao}], embalagens:[{insumo_id, quantidade}] }
- * fichas:       fichas da unidade (pré-preparos com fichas_ingredientes(*, insumos(*)))
+ * fichas:       fichas da unidade (bases com fichas_ingredientes(*, insumos(*)))
  * insumos:      Map id → insumo
  * saldo:        Map insumo_id → saldo disponível NA UNIDADE DO CADASTRO
- * espelho:      Map ficha_id do pré-preparo → insumo_id do item de estoque dele
+ * espelho:      Map ficha_id da base → insumo_id do item de estoque dele
  *
- * Pré-preparo com saldo é usado antes de produzir mais; só a diferença vira
+ * Base com saldo é usado antes de produzir mais; só a diferença vira
  * ingrediente. Assim o arroz que já está cozido não é comprado de novo.
  */
 export function necessidadeDeProducao({ plano = [], marmitas = new Map(), fichas = [], insumos = new Map(), saldo = new Map(), espelho = new Map() } = {}) {
@@ -294,13 +294,13 @@ export function necessidadeDeProducao({ plano = [], marmitas = new Map(), fichas
   }
 
   // Ordem topológica: quem usa vem antes de quem é usado, para que a demanda
-  // de um pré-preparo esteja completa antes de descontar o saldo dele.
+  // de uma base esteja completa antes de descontar o saldo dele.
   const ordem = [];
   const visit = new Set();
   const temp = new Set();
   const dfs = (id) => {
     if (visit.has(id)) return;
-    if (temp.has(id)) { avisos.push("Referência circular entre pré-preparos: revise as fichas."); return; }
+    if (temp.has(id)) { avisos.push("Referência circular entre bases: revise as fichas."); return; }
     temp.add(id);
     for (const fi of fichaPorId.get(id)?.fichas_ingredientes || []) if (fi.subficha_id) dfs(fi.subficha_id);
     temp.delete(id); visit.add(id); ordem.push(id);
@@ -312,7 +312,7 @@ export function necessidadeDeProducao({ plano = [], marmitas = new Map(), fichas
   for (const id of ordem) {
     const f = fichaPorId.get(id);
     const necessario = precisaPrep.get(id) || 0;
-    if (!f) { avisos.push("Pré-preparo de uma ficha não foi encontrado."); continue; }
+    if (!f) { avisos.push("Base de uma ficha não foi encontrado."); continue; }
     const espelhoId = espelho.get(id);
     const disponivel = espelhoId && saldo.has(espelhoId) ? Math.max(0, saldo.get(espelhoId)) : 0;
     const produzir = Math.max(0, necessario - disponivel);
@@ -355,7 +355,7 @@ export function necessidadeDeProducao({ plano = [], marmitas = new Map(), fichas
 }
 
 /**
- * Baixas de estoque de uma produção: ingrediente direto, o PRÓPRIO pré-preparo
+ * Baixas de estoque de uma produção: ingrediente direto, o PRÓPRIA base
  * (não os ingredientes dele, que já saíram quando ele foi produzido) e as
  * embalagens. Quantidade na unidade do saldo (g/ml/un).
  *
@@ -383,7 +383,7 @@ export function baixasDaProducao({ marmita, quantidade, fichas = [], insumos = n
 
 /**
  * Quanto de cada item de estoque N marmitas consomem (unidade do saldo):
- * ingrediente direto com fator de correção, o PRÓPRIO pré-preparo (pelo item
+ * ingrediente direto com fator de correção, o PRÓPRIA base (pelo item
  * espelho) e as embalagens. Base da baixa da produção e da baixa por pedido.
  *   → { precisa: Map insumo_id → { q, nome }, faltas: [texto] }
  */
@@ -405,8 +405,8 @@ export function consumoDaMarmita({ marmita, quantidade, fichas = [], insumos = n
     if (!(q > 0)) continue;
     if (fi.subficha_id) {
       const id = espelho.get(fi.subficha_id);
-      const nome = fichaPorId.get(fi.subficha_id)?.nome_receita || "Pré-preparo";
-      if (!id) { faltas.push(`"${nome}" não tem item de estoque de pré-preparo.`); continue; }
+      const nome = fichaPorId.get(fi.subficha_id)?.nome_receita || "Base";
+      if (!id) { faltas.push(`"${nome}" não tem item de estoque de base.`); continue; }
       add(id, q, nome);
     } else {
       const ins = insumos.get(fi.insumo_id);

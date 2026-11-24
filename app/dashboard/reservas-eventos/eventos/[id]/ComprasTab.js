@@ -2,7 +2,7 @@
 
 // Lista de compras do evento: listaDeComprasDoOrcamento (evento-orcamento.mjs).
 // Fichas exclusivas entram pelos ingredientes cadastrados no evento.
-// Cada prato × porções servidas, abrindo os pré-preparos até o cru, com a
+// Cada prato × porções servidas, abrindo as bases até o cru, com a
 // quantidade BRUTA (perda do ingrediente) e o custo de compra. A versão
 // anterior lia colunas que não existem no cadastro (custo_unit, peso_unit) e
 // ignorava rendimento, perda e subfichas.
@@ -46,7 +46,7 @@ export default function ComprasTab({ lista, valor = 0, nItens = 0, cmvCardapio =
         <div className="min-w-0">
           <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2"><ShoppingCart className="text-emerald-600"/> Lista de compras</h2>
           <p className="text-slate-700 font-medium text-sm mt-1">
-            Para {nItens} produto(s) do cardápio, com a quantidade bruta (já com a perda de cada ingrediente) e os pré-preparos abertos até o ingrediente cru.
+            Para {nItens} produto(s) do cardápio, com a quantidade bruta (já com a perda de cada ingrediente) e as bases abertas até o ingrediente cru.
           </p>
         </div>
         <button onClick={() => window.print()} className="h-10 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 font-bold flex items-center gap-2 hover:bg-slate-100 print:hidden">

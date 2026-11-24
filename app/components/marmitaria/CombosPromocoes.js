@@ -219,7 +219,7 @@ function CardapioVendas({ linhas, custos, onRemoverOferta, msg, onEditar, irPara
                       {precoAberto === l.id && <FormarPreco linha={l} comum={comum} metaPct={metaPct} aoSalvar={() => setPrecoAberto(null)} />}
                       {abrir && l.sim && (
                         <div className="mt-2">
-                          {c && <p className="text-xs text-hf-text-2">Custo de 1 unidade: alimentos {brl(c.alimentos)} · pré-preparos {brl(c.prePreparos)} · embalagens {brl(c.embalagens)} = <b>{brl(c.total)}</b>{!c.completo ? " (incompleto)" : ""}</p>}
+                          {c && <p className="text-xs text-hf-text-2">Custo de 1 unidade: alimentos {brl(c.alimentos)} · bases {brl(c.prePreparos)} · embalagens {brl(c.embalagens)} = <b>{brl(c.total)}</b>{!c.completo ? " (incompleto)" : ""}</p>}
                           {l.secao === "combos" && <p className="text-xs text-hf-text-2">Itens: {l.itens.map((i) => `${i.nome} (custo ${i.custo == null ? "—" : brl(i.custo)})`).join(" · ")}</p>}
                           <ComposicaoDoPreco c={composicaoDoPreco({ linha: l, custoFicha: l.secao === "combos" ? null : c, embutidos: comum.embutidos })} />
                           {l.secao === "marmitas" ? <Comparacao s={{ ...l.sim, sem: l.sim.com }} rotuloSem="Preço cheio" rotuloCom="Preço cheio" unico rotuloLucro={rotuloLucro} /> : <Comparacao s={l.sim} rotuloSem={l.secao === "combos" ? "Separado" : "Sem promoção"} rotuloCom={l.secao === "combos" ? "Combo" : "Com promoção"} rotuloLucro={rotuloLucro} />}

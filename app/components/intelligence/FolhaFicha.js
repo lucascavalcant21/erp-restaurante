@@ -14,7 +14,7 @@ import PrepararReceita from "./PrepararReceita";
 const VERDE = "var(--wa-verde-escuro, var(--hf-accent))";
 const META = "var(--wa-meta, var(--hf-muted))";
 const FUNDO_VERDE = "rgba(0, 90, 73, 0.07)";
-const TIPO = { drink: "Drink", prato: "Prato", base: "Pré-preparo" };
+const TIPO = { drink: "Drink", prato: "Prato", base: "Base" };
 
 function Titulo({ children }) {
   return <p className="mb-1.5 text-[12px] font-bold uppercase tracking-[0.08em]" style={{ color: VERDE }}>{children}</p>;

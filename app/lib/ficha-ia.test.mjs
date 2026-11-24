@@ -13,7 +13,7 @@ test("o pedido à IA muda com o tipo da ficha", () => {
   assert.doesNotMatch(prato, /armazenamento|alergenicos|tempo_preparo_min/);
 
   const preparo = promptDaFichaIA({ tipo: "pre_preparo", departamento: "bar" });
-  assert.match(preparo, /FICHA DE PRÉ-PREPARO/);
+  assert.match(preparo, /FICHA DE BASE/);
   assert.match(preparo, /setor "bar"/);
   assert.match(preparo, /tempo_preparo_min/);
   assert.match(preparo, /NÃO invente validade/);
@@ -46,7 +46,7 @@ test("resposta de PRATO vira ingredientes + montagem", () => {
   assert.equal("tempo_preparo" in ficha, false);
 });
 
-test("resposta de PRÉ-PREPARO: produção, alergênico só da lista, sem validade inventada", () => {
+test("resposta de BASE: produção, alergênico só da lista, sem validade inventada", () => {
   const ficha = normalizarFichaIA({
     nome_receita: "Tucupi reduzido",
     ingredientes: [{ nome: "Tucupi", quantidade: 1, unidade: "l" }],

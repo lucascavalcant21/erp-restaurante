@@ -682,7 +682,7 @@ export function linkWhatsApp(telefone, texto) {
 
 // ─── Lista de compras ───────────────────────────────────────────────────────
 
-/* Compras do orçamento: fichas do sistema (abrindo pré-preparos até o cru,
+/* Compras do orçamento: fichas do sistema (abrindo bases até o cru,
  * com a perda de cada ingrediente) + ingredientes das fichas exclusivas
  * (quantidade ÷ aproveitamento). Quantidade total = porções por pessoa ×
  * pessoas.

@@ -5,7 +5,7 @@
 // aparece para quem tem permissão de ver custos.
 //
 // A ficha de prato não mostra custo nenhum, mas o custo do prato continua
-// sendo calculado aqui, pelos ingredientes e pelos pré-preparos que ele usa.
+// sendo calculado aqui, pelos ingredientes e pelas bases que ele usa.
 
 import { useMemo } from "react";
 import { Plus } from "lucide-react";
@@ -47,7 +47,7 @@ export default function PainelCustosInternos({
   return (
     <div className="space-y-4">
       <p className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold text-fg">
-        Números calculados pelo sistema para gestão. {prePreparo ? "O custo por kg é o que entra nos pratos que usam este pré-preparo." : "Não aparecem na ficha de prato impressa."}
+        Números calculados pelo sistema para gestão. {prePreparo ? "O custo por kg é o que entra nos pratos que usam esta base." : "Não aparecem na ficha de prato impressa."}
       </p>
 
       {prePreparo ? (
@@ -69,7 +69,7 @@ export default function PainelCustosInternos({
 
       {usadoPor.length ? (
         <section className="rounded-2xl border border-line bg-card p-4">
-          <h4 className="mb-2 text-xs font-black uppercase tracking-wider text-[color:var(--tipo)]">Receitas que usam este pré-preparo</h4>
+          <h4 className="mb-2 text-xs font-black uppercase tracking-wider text-[color:var(--tipo)]">Receitas que usam esta base</h4>
           <ul className="flex flex-wrap gap-2">
             {usadoPor.map(f => (
               <li key={f.id}>
@@ -90,7 +90,7 @@ export default function PainelCustosInternos({
               return (
                 <div key={i}>
                   <div className="mb-1 flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate font-bold text-fg-soft">{l.nome}{l.prePreparo ? <span className="ml-1.5 text-3xs font-bold uppercase tracking-wider text-fg">pré-preparo</span> : null}</span>
+                    <span className="truncate font-bold text-fg-soft">{l.nome}{l.prePreparo ? <span className="ml-1.5 text-3xs font-bold uppercase tracking-wider text-fg">base</span> : null}</span>
                     <span className="shrink-0 font-black text-fg">{fmtBRL(l.custo)} <span className="font-bold text-fg">· {pct.toFixed(1)}%</span></span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-card"><div className="h-full rounded-full bg-[color:var(--tipo)]" style={{ width: `${Math.min(100, pct)}%` }} /></div>

@@ -122,7 +122,7 @@ function Painel() {
             analise={escolhido ? d.analises.find((a) => a.id === escolhido) || null : atual} icone={UtensilsCrossed} />
             : <FaltaDado motivo="Monte as fichas e forme os preços para analisar cada produto." href="/dashboard/marmitaria/marmitas/cardapio" acao="Abrir a Precificação" />}
         </Bloco>
-        <Bloco icone={ListOrdered} titulo="Maiores custos" subtitulo="Custo de cada unidade: alimentos, pré-preparos e embalagem">
+        <Bloco icone={ListOrdered} titulo="Maiores custos" subtitulo="Custo de cada unidade: alimentos, bases e embalagem">
           {d.custos.length ? <BarrasHorizontais itens={d.custos.map((a) => ({ id: a.id, nome: a.nome, valor: a.custo }))} />
             : <FaltaDado motivo="Nenhuma marmita com custo completo." href="/dashboard/marmitaria/marmitas" acao="Revisar as fichas" />}
         </Bloco>

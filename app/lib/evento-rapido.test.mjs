@@ -14,7 +14,7 @@ const velho = { id: "velho", nome_receita: "Prato antigo", departamento: "cozinh
 const semCat = { id: "sc", nome_receita: "Açaí", departamento: "cozinha" };
 const FICHAS = [prato, molho, drink, velho, semCat];
 
-test("catálogo: cozinha e bar por categoria, sem pré-preparo nem inativa; ficha sem custo = null", () => {
+test("catálogo: cozinha e bar por categoria, sem base nem inativa; ficha sem custo = null", () => {
   const c = catalogoDeFichas(FICHAS);
   assert.equal(c.total, 3);
   assert.deepEqual(c.cozinha.map((g) => g.categoria), ["Prato principal", "Outros"]);

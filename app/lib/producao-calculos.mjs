@@ -93,7 +93,7 @@ export function totaisPorUnidade(producoes) {
 // estoque. O consumo aparece como previsão, para conferência.
 
 const n = (v) => { const x = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(x) ? x : NaN; };
-const nomeDoItem = (item) => item.subficha_id ? (item.insumo?.nome || "Pré-preparo") : (item.insumo?.nome || "Ingrediente");
+const nomeDoItem = (item) => item.subficha_id ? (item.insumo?.nome || "Base") : (item.insumo?.nome || "Ingrediente");
 
 export function previaProducaoSimples(ficha, quantidade, todasFichas = []) {
   const qtd = n(quantidade);

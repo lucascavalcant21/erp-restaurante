@@ -32,7 +32,7 @@ const op = (...ids) => ids.map((id) => ({ id, rotulo: OPCOES[id] }));
 export const CATALOGO = Object.freeze({
   contagem_falta: {
     causas: [
-      ["perda", "Perda não registrada"], ["producao", "Produção ou pré-preparo não registrado"], ["erro_ficha", "Ficha técnica com quantidade errada"],
+      ["perda", "Perda não registrada"], ["producao", "Produção ou base não registrado"], ["erro_ficha", "Ficha técnica com quantidade errada"],
       ["consumo_interno", "Consumo interno (refeição da equipe)"], ["evento", "Uso em evento"], ["transferencia", "Transferência não lançada"], ["erro_contagem", "Erro de contagem"],
     ],
     pergunta: "O que ocorreu com aproximadamente {quantidade} de {produto}?",

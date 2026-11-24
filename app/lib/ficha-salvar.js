@@ -12,11 +12,11 @@ import {
 import { custoDosItens } from "./ficha-editor.mjs";
 import { parseNumero, pesoTotalDaFicha } from "./ficha-calculos.mjs";
 
-// Leitura e gravação do editor de fichas (prato e pré-preparo).
+// Leitura e gravação do editor de fichas (prato e base).
 //
 // A ficha em si continua indo por salvarFicha (lib/operacao.js), que também
 // sincroniza o Guia de Montagem. Aqui fica o que depende do tipo: seções do
-// pré-preparo, vínculo do prato com o cardápio, estoque de preparos e histórico
+// base, vínculo do prato com o cardápio, estoque de preparos e histórico
 // de custo.
 
 // Complementos de UMA ficha, dizendo se a leitura falhou.
@@ -88,7 +88,7 @@ async function vincularEmbalagensAoEstoque({ unidadeId, departamento, itens, ids
 
 // Grava a ficha do editor. Devolve { id, avisos, error }.
 //
-// `complementosCarregados` falso = a leitura das seções do pré-preparo falhou;
+// `complementosCarregados` falso = a leitura das seções da base falhou;
 // nesse caso elas não são gravadas (senão sairiam apagadas).
 export async function salvarFichaDoEditor({
   tipo, form, itens, armazenamento, armazenamentoOriginal, equipamentos, alergenicos,
@@ -144,7 +144,7 @@ export async function salvarFichaDoEditor({
       departamento: campos.departamento,
       custoUnitario: custoTotal / Math.max(1, parseNumero(campos.rendimento_porcoes) || 1),
     });
-    if (estoque?.error) avisos.push(`A ficha foi salva, mas não entrou no estoque de pré-preparos: ${estoque.error}`);
+    if (estoque?.error) avisos.push(`A ficha foi salva, mas não entrou no estoque de bases: ${estoque.error}`);
   } else {
     try {
       const r = await vincularPratoAoCardapio({ unidadeId: unidade, fichaId, campos, precoVenda: form.preco_venda });

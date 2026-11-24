@@ -66,7 +66,7 @@ export function avaliarSinaisEstoque(estoqueInsumos = [], validadeLotes = []) {
 }
 
 /**
- * 2. SUGESTÃO DE PRODUÇÃO DE PRÉ-PREPAROS (SUB-RECEITAS)
+ * 2. SUGESTÃO DE PRODUÇÃO DE BASES (SUB-RECEITAS)
  */
 export function avaliarProducaoSugerida(fichasBases = [], estoqueAtualMap = {}) {
   const sugestoes = [];

@@ -38,7 +38,7 @@ conferir("água: 2 fardos de 12 garrafas + 5 garrafas = 29 garrafas", quantidade
 conferir("unidades da fração: kg→[kg,g], L→[L,ml], garrafa→[garrafa]", [unidadesDaFracao("kg"), unidadesDaFracao("l"), unidadesDaFracao("garrafa")], [["kg", "g"], ["L", "ml"], ["garrafa"]]);
 conferir("conversões aceitas e recusadas", [paraUnidadeDoCadastro(500, "g", "kg"), paraUnidadeDoCadastro(2, "kg", "g"), paraUnidadeDoCadastro(1, "ml", "kg"), paraUnidadeDoCadastro(3, "un", "un")], [0.5, 2000, null, 3]);
 const granel = { unidade_medida: "kg", tamanho_embalagem: 1, unidade_comercial: "kg", categoria: "Pre-preparos" };
-conferir("pré-preparo a granel não tem embalagem", [embalagemDoProduto(granel), quantidadeDoLancamento({ insumo: granel, embalagens: "1" }).erro != null], [null, true]);
+conferir("base a granel não tem embalagem", [embalagemDoProduto(granel), quantidadeDoLancamento({ insumo: granel, embalagens: "1" }).erro != null], [null, true]);
 conferir("erros: vazio, negativo, embalagem quebrada, zero, unidade que não combina, precisão",
   [quantidadeDoLancamento({ insumo: arrozCad }).erro, quantidadeDoLancamento({ insumo: arrozCad, fracao: "-1" }).erro,
    quantidadeDoLancamento({ insumo: arrozCad, embalagens: "1,5" }).erro, quantidadeDoLancamento({ insumo: arrozCad, fracao: "0" }).erro,

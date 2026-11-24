@@ -4,7 +4,7 @@
 //
 // Letras grandes, alto contraste, alvos de toque folgados e NENHUMA informação
 // financeira. Mostra o que a ficha do tipo mostra (dadosDaFicha): no prato,
-// ingredientes e montagem; no pré-preparo, também rendimento, tempo,
+// ingredientes e montagem; na base, também rendimento, tempo,
 // equipamentos, alergênicos e armazenamento.
 //
 // Riscar um item ou passo é só visual e não é gravado: serve para não perder
@@ -23,7 +23,7 @@ export default function ModoCozinha({ dados, onSair }) {
     return proximo;
   });
 
-  // Rendimento, tempo e peso final (só existem no pré-preparo).
+  // Rendimento, tempo e peso final (só existem na base).
   const producao = dados.identificacao.filter(i => !["Categoria", "Setor"].includes(i.rotulo));
 
   return (

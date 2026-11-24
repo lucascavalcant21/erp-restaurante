@@ -1,6 +1,6 @@
 // RECEITA RÁPIDA NO APARELHO (pedido do dono, 22/11/2026).
 //
-// "Arroz" → é pré-preparo ou prato? → Arroz branco ou Arroz paraense → quanto
+// "Arroz" → é base ou prato? → Arroz branco ou Arroz paraense → quanto
 // vai fazer (o arroz é cru ou cozido?) → a receita já na medida. Tudo com um
 // toque, sem esperar o servidor nem o modelo de linguagem, e sem internet: as
 // fichas ficam guardadas no aparelho (receitas-cache.js) e as contas são feitas
@@ -133,7 +133,7 @@ export function buscarFichas(fichas = [], termo = "") {
     || tokens(a.nome).length - tokens(b.nome).length || a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
-const rotuloTipo = (base) => (base ? "Pré-preparo" : "Prato");
+const rotuloTipo = (base) => (base ? "Base" : "Prato");
 
 function cmd(partes) {
   return `${PREFIXO} ${JSON.stringify(partes)}`;
@@ -179,12 +179,12 @@ export function respostaLocal(texto, cache) {
   const bases = achadas.filter((f) => f.base);
   const pratos = achadas.filter((f) => !f.base);
 
-  // 1) pré-preparo ou prato? (só quando há dos dois)
+  // 1) base ou prato? (só quando há dos dois)
   if (!pedido.tipo && bases.length && pratos.length) {
     return {
-      tipo: "local", local: true, texto: "É pré-preparo ou prato?",
-      pergunta: { texto: "É pré-preparo ou prato?", opcoes: [
-        { id: "base", rotulo: `Pré-preparo (${bases.length})`, comando: cmd({ termo: pedido.termo, tipo: "base", ...extra }) },
+      tipo: "local", local: true, texto: "É base ou prato?",
+      pergunta: { texto: "É base ou prato?", opcoes: [
+        { id: "base", rotulo: `Base (${bases.length})`, comando: cmd({ termo: pedido.termo, tipo: "base", ...extra }) },
         { id: "prato", rotulo: `Prato (${pratos.length})`, comando: cmd({ termo: pedido.termo, tipo: "prato", ...extra }) },
       ] },
     };

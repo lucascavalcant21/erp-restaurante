@@ -20,7 +20,7 @@ export const GUIA_FUNCOES_PADRAO = [
       { hora: "15:40", fim: "15:50", atividade: "Bater o ponto e vestir o uniforme completo: avental, touca cobrindo todo o cabelo e calçado fechado antiderrapante. Celular, bolsa e casaco ficam no armário — nada de pertence pessoal na área de manipulação. Unhas curtas, sem esmalte e sem anel, relógio ou pulseira." },
       { hora: "15:50", fim: "16:10", atividade: "Higienizar bancadas, tábuas e utensílios com detergente e depois sanitizante, deixando agir o tempo do rótulo. Medir a temperatura das geladeiras e do freezer e anotar no controle: refrigerado até 5 °C, congelado até -18 °C. Fora disso, avisar o cozinheiro ANTES de guardar qualquer coisa." },
       { hora: "16:10", fim: "16:40", atividade: "Ler o memorando de produção de amanhã e separar o que ele pede: tirar do freezer para descongelar na geladeira (nunca na pia), conferir se há quantidade suficiente e avisar o que estiver faltando enquanto ainda dá tempo de comprar." },
-      { hora: "16:40", fim: "17:30", atividade: "Pré-preparos seguindo a ficha técnica de cada item — corte, tempero e peso. Etiquetar tudo com nome, data de produção e validade antes de guardar. O que sobrar de ontem vai na frente para sair primeiro." },
+      { hora: "16:40", fim: "17:30", atividade: "Bases seguindo a ficha técnica de cada item — corte, tempero e peso. Etiquetar tudo com nome, data de produção e validade antes de guardar. O que sobrar de ontem vai na frente para sair primeiro." },
       { hora: "17:30", fim: "17:50", atividade: "Abastecer a praça nas posições de sempre: potes de molho cheios, temperos completos, papel e descartáveis à mão. Repor o que está pela metade agora — no meio do movimento não dá tempo." },
       { hora: "17:50", atividade: "Praça montada: bancada limpa, mise en place completo, lixeira vazia e pano higienizado. A partir daqui é serviço — o que faltar vai ser sentido no primeiro pedido." },
       { hora: "19:30", fim: "20:00", atividade: "Intervalo", intervalo: true },
@@ -50,7 +50,7 @@ export const GUIA_FUNCOES_PADRAO = [
     blocos: [
       { hora: "15:40", fim: "15:50", atividade: "Bater o ponto e vestir o uniforme: avental impermeável, touca, calçado fechado antiderrapante e luvas. Cabelo todo preso — a área é molhada e escorrega." },
       { hora: "15:50", fim: "16:20", atividade: "Preparar a área: detergente e sanitizante nos dosadores, panos limpos separados por uso (um para louça, outro para bancada — nunca o mesmo). Ligar a máquina e conferir se aquece; sem temperatura ela não higieniza, só molha." },
-      { hora: "16:20", fim: "17:50", atividade: "Lavar o que o pré-preparo vai liberando, sem deixar acumular na pia. Ordem: pré-lavagem para tirar o grosso, lavagem, enxágue e secagem ao ar no escorredor. Panela suja de molho vai de molho antes, senão volta." },
+      { hora: "16:20", fim: "17:50", atividade: "Lavar o que a base vai liberando, sem deixar acumular na pia. Ordem: pré-lavagem para tirar o grosso, lavagem, enxágue e secagem ao ar no escorredor. Panela suja de molho vai de molho antes, senão volta." },
       { hora: "17:50", atividade: "Pia vazia, louça guardada e área seca para o movimento começar." },
       { hora: "19:00", fim: "19:30", atividade: "Intervalo", intervalo: true },
       { hora: "22:30", fim: "23:20", atividade: "Louça do salão, higienização do piso da cozinha (incluindo debaixo das bancadas) e limpeza dos ralos. Retirar o lixo, trocar os sacos e lavar as lixeiras. Fechar a máquina limpa e aberta para secar." },

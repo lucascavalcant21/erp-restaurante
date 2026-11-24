@@ -63,7 +63,7 @@ export async function atualizarReceitas(unidadeId) {
       const lista = ingsDe.get(i.ficha_id) || [];
       if (i.subficha_id) {
         const b = porFicha.get(i.subficha_id);
-        lista.push({ nome: b ? String(b.nome_receita || b.nome_comercial).trim() : "Pré-preparo", qtd: Number(i.quantidade), unidade: b?.rendimento_unidade || "un", base: true });
+        lista.push({ nome: b ? String(b.nome_receita || b.nome_comercial).trim() : "Base", qtd: Number(i.quantidade), unidade: b?.rendimento_unidade || "un", base: true });
       } else {
         const ins = insumos.get(i.insumo_id);
         lista.push({ nome: ins?.nome || "Produto sem cadastro", qtd: Number(i.quantidade), unidade: ins?.unidade_medida || "un", base: false });

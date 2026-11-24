@@ -62,7 +62,7 @@ export function linhasDeCustoDaFicha(ficha = {}, fichas = []) {
       const rend = parseNumero(base?.rendimento_porcoes) || 1;
       linhas.push({
         tipo: "preparo",
-        nome: base?.nome_receita || "Pré-preparo removido",
+        nome: base?.nome_receita || "Base removida",
         quantidade: parseNumero(fi.quantidade),
         unidade: String(fi.unidade || base?.rendimento_unidade || "un").toLowerCase(),
         unidadeBase: String(base?.rendimento_unidade || "un").toLowerCase(),

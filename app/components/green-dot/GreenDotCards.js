@@ -3284,7 +3284,7 @@ export function EtiquetaQuickGeneratorCard({
   const [quantidade, setQuantidade] = useState("2");
   const [unidadeMedida, setUnidadeMedida] = useState("kg");
   const [responsavel, setResponsavel] = useState("Líder de Turno");
-  const [localizacao, setLocalizacao] = useState("Câmara Fria 1 — Prateleira 2 (Bases & Pré-Preparos)");
+  const [localizacao, setLocalizacao] = useState("Câmara Fria 1 — Prateleira 2 (Bases)");
   const [modoOutroLocal, setModoOutroLocal] = useState(false);
   const [outroLocalTexto, setOutroLocalTexto] = useState("");
   const [erroValidacao, setErroValidacao] = useState("");
@@ -3421,7 +3421,7 @@ export function EtiquetaQuickGeneratorCard({
           <div className="sm:col-span-7 space-y-3">
             <div>
               <label className="block text-xs font-black text-[#1C2826] mb-1">
-                Nome do Produto / Pré-Preparo
+                Nome do Produto / Base
               </label>
               <input
                 type="text"

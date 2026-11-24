@@ -261,7 +261,7 @@ export default function CozinhaHub({ onVerGestaoCompleta, embutido = false }) {
                   <Flame size={32} className="mx-auto text-slate-600" />
                   <p className="text-sm font-bold text-hf-text-2">Nenhum lote de produção lançado hoje até o momento.</p>
                   <p className="text-xs text-hf-text-2 max-w-md mx-auto">
-                    Acesse a Produção do Dia para selecionar fichas técnicas e registrar lotes de pré-preparo.
+                    Acesse a Produção do Dia para selecionar fichas técnicas e registrar lotes de base.
                   </p>
                   {podeVerProducao && (
                     <div className="pt-2 flex justify-center">

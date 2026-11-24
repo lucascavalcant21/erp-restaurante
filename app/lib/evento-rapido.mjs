@@ -19,7 +19,7 @@ const ehAdicional = (nome) => /^adiciona(l|is)\b/.test(normal(nome));
 
 /**
  * Fichas que podem entrar num evento, por setor (cozinha/bar) e categoria,
- * com o custo de uma porção. Fora: pré-preparo (é ingrediente de outra ficha)
+ * com o custo de uma porção. Fora: base (é ingrediente de outra ficha)
  * e ficha inativa.
  * @returns {{ cozinha: Array<{categoria, itens}>, bar: Array<{categoria, itens}>, total: number }}
  */

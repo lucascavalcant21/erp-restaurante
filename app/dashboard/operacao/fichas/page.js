@@ -3175,7 +3175,7 @@ function FichasRunner() {
          const fechar = () => setFichaView(null);
          return (
             <div className="fixed inset-0 z-[55] bg-slate-900/50 backdrop-blur-sm flex items-start justify-center p-0 sm:p-4 overflow-y-auto overscroll-contain">
-               <div className="erp-ficha bg-slate-50 w-full max-w-6xl min-h-full sm:min-h-0 sm:rounded-[28px] shadow-2xl flex flex-col animate-in fade-in zoom-in-95 sm:my-8 overflow-hidden">
+               <div className="erp-ficha erp-ficha-ver bg-slate-50 w-full max-w-6xl min-h-full sm:min-h-0 sm:rounded-[28px] shadow-2xl flex flex-col animate-in fade-in zoom-in-95 sm:my-8 overflow-hidden">
                   {/* CABEÇALHO */}
                   <div className="bg-card border-b border-line-soft px-4 sm:px-6 py-4 flex flex-wrap items-center gap-3">
                      <button onClick={fechar} className="w-10 h-10 rounded-full bg-card hover:bg-slate-200 flex items-center justify-center text-slate-900 shrink-0"><ArrowLeft size={19} /></button>
@@ -3602,7 +3602,7 @@ function FichasRunner() {
                   <button onClick={() => { if (form.nome_receita?.trim() || ingFicha.length) { if (!confirm("Fechar sem salvar? O que você montou nesta ficha será descartado.")) return; } rascunhoFicha.descartar(); setModalNovo(false); }} aria-label="Fechar a ficha" className="w-12 h-12 shrink-0 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={21}/></button>
                </div>
 
-               <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-line-soft bg-transparent px-4 py-3 sm:px-6">
+               <nav className="grid shrink-0 grid-cols-2 gap-2 border-b border-line-soft bg-transparent px-4 py-3 sm:flex sm:flex-wrap sm:px-6">
                   {[
                     ["ficha-dados", "1. Dados", !!form.nome_receita],
                     ["ficha-ingredientes", "2. Ingredientes", form.produto_pronto || ingFicha.length > 0],

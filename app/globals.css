@@ -379,7 +379,10 @@ body {
   /* A ficha aberta é uma página inteira: quem rola é o fundo (overflow-y-auto),
      não a janela. Com o limite de altura acima ela era cortada e a tela
      "travava" sem subir nem descer (dono, 24/11/2026). */
-  div.fixed.inset-0 > div.erp-ficha {
+  /* Só a ficha ABERTA (.erp-ficha-ver). O editor (.erp-editor-ficha) rola por
+     dentro e precisa do limite: sem ele cresceu além da tela e travou
+     (B-054, 25/11/2026). */
+  div.fixed.inset-0 > div.erp-ficha-ver {
     max-height: none !important;
   }
 

@@ -98,3 +98,9 @@ Formato: **B-NNN**, situação, onde foi visto, evidência da correção.
 - Causa: a unidade da conta vinha só do cadastro de quem cria; o dono é super admin, sem unidade no cadastro, e a casa tem 4 unidades.
 - Solução: a tela manda a unidade aberta no topo; o servidor confere no banco (super admin, escopo "todos", escopo da unidade ou unidade do cadastro) antes de usar. Sem acesso, vale a regra antiga.
 - Evidência: TESTADO LOCAL (conta-rapida.test.mjs). Causa conferida no banco real (só leitura).
+
+## B-054 · Editor da ficha técnica travava no celular (25/11/2026)
+- Causa: a correção do B-051 (`div.fixed.inset-0 > div.erp-ficha { max-height: none }`) pegou também o editor (`.erp-editor-ficha`), que rola por dentro. Sem o limite, o editor cresceu além da tela e o fundo não rola: tela travada. Regressão minha do PR #312.
+- Solução: a exceção vale só para a ficha aberta (`.erp-ficha-ver`). Abas do editor em grade de 2 no celular (sem rolar de lado).
+- Evidência: TESTADO LOCAL (Playwright 390 px: ficha aberta rola 1543/844; editor 816 px de altura numa tela de 844, corpo rola 2326/551).
+- Aprendizado: regra global de CSS por seletor de classe compartilhada (`erp-ficha`) pega outras telas; usar classe própria.

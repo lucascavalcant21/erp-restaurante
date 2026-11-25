@@ -15,6 +15,7 @@ import { comprovantesDoMes, mascararCpf } from "../../../lib/ponto-comprovante.m
 import { linhasJornadaSemana } from "../../../lib/jornada-semana.mjs";
 import { fetchPins } from "../../../lib/seguranca";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
+import { homeDoUsuario, sairDoSistema } from "../../../lib/auth";
 import { useTempoReal } from "../../../lib/realtime";
 import TecladoPin from "../../../components/ponto/TecladoPin";
 import { supabase as clientePin } from "../../../lib/supabase";
@@ -239,6 +240,19 @@ function ModalJustificativa({ titulo, subtitulo, onConfirm, onClose, confirmando
 
 export default function PontoPage() {
   const { unidadeAtiva, unidadeInfo, sessao } = useERP();
+  // Conta só do ponto (conta rápida): não tem Painel nem Modo Tablet, só "Sair"
+  // para entrar com outro login (dono, 24/11/2026).
+  // Só para quem cai direto aqui (terminal do ponto / setor ou início no ponto):
+  // conta de cozinha ou bar continua com o "Painel" para voltar ao trabalho.
+  const contaSoPonto = !!sessao?.gerenciado && (["terminal_ponto", "setor"].includes(sessao?.tipo_acesso)
+    || String(homeDoUsuario(sessao) || "").startsWith("/dashboard/rh/ponto"));
+  const [confirmarSair, setConfirmarSair] = useState(false);
+  const [saindo, setSaindo] = useState(false);
+  const sairDaConta = async () => {
+    setSaindo(true);
+    try { await sairDoSistema(); } catch { /* segue para o login */ }
+    window.location.replace("/login");
+  };
   // Tablet compartilhado (só ponto / Nico + ponto): cada um entra pelo PIN
   // (decisão do dono, 14/11/2026). Só vale quando o banco tem o PONTO-PIN-1;
   // sem ele, fica a lista por área de antes.
@@ -775,34 +789,35 @@ export default function PontoPage() {
           />
         )}
 
-        <div className="max-w-3xl mx-auto p-6 md:p-10">
-          <div className="mb-4 flex">
-            <button onClick={() => setSelecionado(null)} className="flex min-h-[52px] items-center gap-2 px-5 bg-hf-surface border border-hf-border hover:bg-hf-elevated text-hf-text rounded-full text-lg font-bold transition-colors">
-              <ArrowLeft size={22} /> Voltar
+        <div className="max-w-3xl mx-auto px-4 pb-6 pt-3 sm:p-6 md:p-10">
+          {/* Compacto (dono, 24/11/2026): voltar, relógio e data numa linha só,
+              para o cartão da pessoa e o botão de bater caberem na tela. */}
+          <div className="mb-3 flex items-center gap-3">
+            <button onClick={() => setSelecionado(null)} aria-label="Voltar para a lista" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-hf-border bg-hf-surface text-hf-text hover:bg-hf-elevated">
+              <ArrowLeft size={18} />
             </button>
-          </div>
-          {/* Relógio no meio, grande (dono, 24/11/2026) */}
-          <div className="mb-6 text-center">
-            <p className="text-6xl sm:text-7xl font-black tracking-tight text-hf-text tabular-nums leading-none">{horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</p>
-            <p className="mt-2 text-hf-text-2 font-bold text-base uppercase tracking-widest">{horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</p>
+            <div className="min-w-0 flex-1 text-right">
+              <p className="text-3xl font-black leading-none tracking-tight text-hf-text tabular-nums sm:text-5xl">{horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-hf-text-2">{horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</p>
+            </div>
           </div>
 
           {/* Identificação */}
-          <div className="bg-hf-surface border border-hf-border rounded-[2rem] p-6 mb-5 shadow-sm">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div className="w-24 h-24 rounded-full overflow-hidden bg-emerald-500/15 border-4 border-emerald-500/40 flex items-center justify-center text-4xl font-black text-emerald-700 shrink-0">
+          <div className="bg-hf-surface border border-hf-border rounded-2xl p-3 mb-3 shadow-sm">
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-14 h-14 rounded-full overflow-hidden bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center text-xl font-black text-emerald-700 shrink-0">
                 {selecionado.foto ? <img src={`data:image/jpeg;base64,${selecionado.foto}`} alt={selecionado.nome} className="w-full h-full object-cover" /> : selecionado.nome[0].toUpperCase()}
               </div>
               <div className="min-w-0">
-                <h2 className="text-3xl sm:text-4xl font-black text-hf-text leading-tight">{selecionado.nome}</h2>
-                <p className="mt-1 text-hf-text-2 font-bold text-base uppercase tracking-widest">{selecionado.cargo || "—"}</p>
+                <h2 className="text-lg sm:text-2xl font-black text-hf-text leading-tight">{selecionado.nome}</h2>
+                <p className="text-hf-text-2 font-bold text-xs uppercase tracking-wide">{selecionado.cargo || "—"}</p>
                 {/* A jornada da semana inteira, agrupada como no espelho:
                     "Terça a domingo: 15:40 às 00:00", e o domingo em linha
                     própria quando tem horário diferente. Mostrar só o horário
                     de hoje escondia justamente o dia que muda — que é o dia em
                     que a pessoa erra. */}
                 {linhasJornadaSemana(selecionado).map(linha => (
-                  <p key={linha} className="text-hf-text font-semibold text-lg mt-1">{linha}</p>
+                  <p key={linha} className="text-hf-text font-semibold text-sm">{linha}</p>
                 ))}
               </div>
             </div>
@@ -827,16 +842,16 @@ export default function PontoPage() {
           )}
 
           {/* Linha do dia: as 4 batidas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-4 gap-2 mb-3">
             {ETAPAS.map(e => {
               const hora = horaDe(reg?.[e.campo]);
               const puladoAqui = pulouIntervalo && (e.id === "saida_intervalo" || e.id === "retorno_intervalo");
               const ativa = e.id === etapa;
               return (
-                <div key={e.id} className={`p-5 rounded-3xl border-2 text-center ${hora ? "bg-emerald-500/10 border-emerald-500/40" : puladoAqui ? "bg-amber-500/10 border-amber-500/30" : ativa ? "bg-hf-elevated border-hf-border-strong border-dashed" : "bg-hf-surface border-hf-border"}`}>
-                  <e.icon size={26} className={`mx-auto mb-2 ${hora ? "text-emerald-700" : puladoAqui ? "text-amber-700" : "text-hf-text-2"}`} />
-                  <p className="text-sm font-bold uppercase tracking-wider text-hf-text-2">{e.label}</p>
-                  <p className={`text-3xl font-black tabular-nums mt-1 ${hora ? "text-emerald-700" : puladoAqui ? "text-amber-700 text-xs leading-tight" : "text-hf-text-2"}`}>
+                <div key={e.id} className={`px-1 py-2 rounded-2xl border-2 text-center ${hora ? "bg-emerald-500/10 border-emerald-500/40" : puladoAqui ? "bg-amber-500/10 border-amber-500/30" : ativa ? "bg-hf-elevated border-hf-border-strong border-dashed" : "bg-hf-surface border-hf-border"}`}>
+                  <e.icon size={18} className={`mx-auto mb-1 ${hora ? "text-emerald-700" : puladoAqui ? "text-amber-700" : "text-hf-text-2"}`} />
+                  <p className="text-[10px] font-bold uppercase leading-tight text-hf-text-2 sm:text-xs">{e.label}</p>
+                  <p className={`text-lg sm:text-2xl font-black tabular-nums mt-0.5 ${hora ? "text-emerald-700" : puladoAqui ? "text-amber-700 text-xs leading-tight" : "text-hf-text-2"}`}>
                     {hora || (puladoAqui ? "não tirado" : "--:--")}
                   </p>
                 </div>
@@ -850,11 +865,11 @@ export default function PontoPage() {
             const resta = prevista.getTime() - horaLocal.getTime();
             const estourou = resta <= 0;
             return (
-              <div className={`rounded-3xl p-6 text-center mb-4 border ${estourou ? "bg-rose-500/10 border-rose-500/40" : "bg-amber-500/10 border-amber-500/30"}`}>
+              <div className={`rounded-2xl p-3 text-center mb-3 border ${estourou ? "bg-rose-500/10 border-rose-500/40" : "bg-amber-500/10 border-amber-500/30"}`}>
                 <p className={`text-3xs font-bold uppercase tracking-widest ${estourou ? "text-red-700" : "text-amber-700"}`}>
                   {estourou ? "Intervalo estourado" : "Em intervalo"}
                 </p>
-                <p className={`text-4xl sm:text-5xl font-black tabular-nums mt-2 ${estourou ? "text-red-700" : "text-amber-700"}`}>
+                <p className={`text-3xl sm:text-4xl font-black tabular-nums mt-1 ${estourou ? "text-red-700" : "text-amber-700"}`}>
                   {estourou ? `+${Math.floor(-resta / 60000)}min` : fmtFalta(resta)}
                 </p>
                 <p className="text-hf-text-2 font-bold text-xs mt-2">
@@ -868,36 +883,36 @@ export default function PontoPage() {
 
           {/* Ação principal */}
           {etapa === "concluido" ? (
-            <div className="bg-emerald-500/10 border border-emerald-500/40 rounded-3xl p-5 sm:p-8 text-center mb-6">
-              <CheckCircle2 size={40} className="text-emerald-700 mx-auto mb-3" />
-              <p className="text-3xl font-black text-hf-text">Jornada de hoje concluída!</p>
-              <p className="text-hf-text-2 font-bold text-lg mt-2">Todas as batidas foram registradas.</p>
+            <div className="bg-emerald-500/10 border border-emerald-500/40 rounded-2xl p-4 text-center mb-4">
+              <CheckCircle2 size={28} className="text-emerald-700 mx-auto mb-2" />
+              <p className="text-xl font-black text-hf-text">Jornada de hoje concluída!</p>
+              <p className="text-hf-text-2 font-bold text-sm mt-1">Todas as batidas foram registradas.</p>
             </div>
           ) : bloqueiaFolga ? (
-            <div className="bg-rose-500/10 border border-rose-500/40 rounded-3xl p-5 sm:p-8 text-center mb-6">
-              <Ban size={44} className="text-red-700 mx-auto mb-3" />
-              <p className="text-3xl font-black text-hf-text">Hoje é sua folga</p>
-              <p className="text-red-700 font-bold text-lg mt-2">{info.motivo}. Não é possível bater o ponto em dia de folga.</p>
+            <div className="bg-rose-500/10 border border-rose-500/40 rounded-2xl p-4 text-center mb-4">
+              <Ban size={28} className="text-red-700 mx-auto mb-2" />
+              <p className="text-xl font-black text-hf-text">Hoje é sua folga</p>
+              <p className="text-red-700 font-bold text-sm mt-1">{info.motivo}. Não é possível bater o ponto em dia de folga.</p>
               <p className="text-hf-text-2 font-medium text-sm mt-2">Se isso está errado, procure a gerência para ajustar sua escala.</p>
             </div>
           ) : bloqueiaJanela ? (
-            <div className="bg-hf-surface border-2 border-hf-border rounded-[2rem] p-6 sm:p-10 text-center mb-6 shadow-sm">
-              <Timer size={56} className="text-amber-700 mx-auto mb-4" />
-              <p className="text-2xl sm:text-3xl font-black text-hf-text">Ainda não dá para bater a entrada</p>
-              <p className="text-hf-text-2 font-bold text-lg mt-2">
+            <div className="bg-hf-surface border-2 border-hf-border rounded-2xl p-4 sm:p-6 text-center mb-4 shadow-sm">
+              <Timer size={32} className="text-amber-700 mx-auto mb-2" />
+              <p className="text-xl sm:text-2xl font-black text-hf-text">Ainda não dá para bater a entrada</p>
+              <p className="text-hf-text-2 font-bold text-sm mt-1">
                 Seu horário é {janela.entradaStr}. A entrada libera às {janela.permiteEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
               </p>
-              <p className="text-6xl sm:text-7xl font-black text-amber-700 tabular-nums mt-6 leading-none">{fmtFalta(janela.faltaMs)}</p>
-              <p className="text-base font-bold uppercase tracking-widest text-hf-text-2 mt-2">faltam para liberar</p>
+              <p className="text-4xl sm:text-5xl font-black text-amber-700 tabular-nums mt-3 leading-none">{fmtFalta(janela.faltaMs)}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-hf-text-2 mt-1">faltam para liberar</p>
               <button onClick={() => setPinAntecipada(true)}
-                className="mt-7 min-h-[56px] w-full max-w-md px-6 rounded-full bg-hf-menu text-white font-black text-base transition-colors">
+                className="mt-4 min-h-[52px] w-full max-w-md px-6 rounded-full bg-hf-menu text-white font-black text-base transition-colors">
                 Reunião / serviço mais cedo? Liberar — PIN do gerente
               </button>
             </div>
           ) : (
             <button onClick={bater} disabled={batendo}
-              className="w-full py-8 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-3xl font-black text-2xl md:text-3xl transition-all active:scale-[0.98] shadow-2xl shadow-emerald-600/30 flex items-center justify-center gap-4 mb-4">
-              {batendo ? <Loader2 size={30} className="animate-spin" /> : etapaInfo && <etapaInfo.icon size={30} />}
+              className="w-full min-h-[64px] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-2xl font-black text-xl md:text-2xl transition-all active:scale-[0.98] shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-3 mb-4">
+              {batendo ? <Loader2 size={24} className="animate-spin" /> : etapaInfo && <etapaInfo.icon size={24} />}
               Bater: {etapaInfo?.label}
             </button>
           )}
@@ -1039,26 +1054,21 @@ export default function PontoPage() {
     }
     return (
       <button key={c.id} onClick={() => abrirFuncionario(c)}
-        className={`p-6 rounded-[2rem] border-2 text-center shadow-sm transition-all active:scale-[.98] ${reg?.hora_entrada && !concluido ? "bg-hf-surface border-zinc-500/40 hover:border-zinc-400/70" : info.folga || faltou ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-hf-surface border-hf-border opacity-60" : "bg-hf-surface border-hf-border hover:border-emerald-500/60"}`}>
-        <div className="flex flex-col items-center gap-3 mb-4">
-          <div className={`w-20 h-20 rounded-full overflow-hidden bg-hf-elevated flex items-center justify-center text-3xl font-black shrink-0 ring-4 ${info.folga || faltou ? "ring-rose-500/40 text-red-700" : concluido ? "ring-hf-border text-hf-text-2" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-700" : "ring-hf-border text-emerald-700"}`}>{c.foto ? <img src={`data:image/jpeg;base64,${c.foto}`} alt={c.nome} className="w-full h-full object-cover" /> : c.nome[0].toUpperCase()}</div>
-          <div className="min-w-0">
-            <p className="font-black text-hf-text leading-tight break-words text-[1.75rem]">{c.nome}</p>
-            <p className="mt-1 text-sm font-bold text-hf-text-2 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
-          </div>
-        </div>
-        <div className="flex flex-col items-center gap-2">
+        className={`flex items-center gap-3 rounded-2xl border-2 p-3 text-left shadow-sm transition-all active:scale-[.98] ${reg?.hora_entrada && !concluido ? "bg-hf-surface border-zinc-500/40 hover:border-zinc-400/70" : info.folga || faltou ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-hf-surface border-hf-border opacity-60" : "bg-hf-surface border-hf-border hover:border-emerald-500/60"}`}>
+        <div className={`w-14 h-14 rounded-full overflow-hidden bg-hf-elevated flex items-center justify-center text-xl font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-red-700" : concluido ? "ring-hf-border text-hf-text-2" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-700" : "ring-hf-border text-emerald-700"}`}>{c.foto ? <img src={`data:image/jpeg;base64,${c.foto}`} alt={c.nome} className="w-full h-full object-cover" /> : c.nome[0].toUpperCase()}</div>
+        <div className="min-w-0 flex-1">
+            <p className="font-black text-hf-text leading-tight break-words text-lg">{c.nome}</p>
+            <p className="text-xs font-bold text-hf-text-2 uppercase tracking-wide truncate">{c.cargo || "—"}{entradaStr && !info.folga ? ` · ${entradaStr}${saidaDoDia(c, horaLocal) ? ` às ${saidaDoDia(c, horaLocal)}` : ""}` : ""}</p>
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
           {/* PRIORIDADE: jornada aberta (mesmo em dia de folga — turno de ontem
               que virou a madrugada) vem antes do selo de folga */}
           {/* Folga não é falta: sai em âmbar, não em vermelho. E cada tipo diz
               o próprio nome — quem monta a escala precisa saber se a pessoa
               está de folga semanal ou se foi a vez dela no domingo. */}
-          <div className={`text-sm font-bold uppercase tracking-wider px-4 py-2 rounded-full inline-flex items-center gap-2 ${bloqueado && !reg?.hora_entrada ? "bg-zinc-500/10 text-emerald-700" : reg?.hora_entrada && !concluido ? "bg-zinc-500/10 text-emerald-700" : info.folga ? (info.tipo === "domingo" ? "bg-amber-500/10 text-amber-700" : "bg-hf-border text-hf-text") : faltou ? "bg-rose-500/10 text-red-700" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-hf-elevated text-hf-text-2"}`}>
-            {bloqueado && !reg?.hora_entrada ? <><Ban size={16} /> Aguardando liberação</> : reg?.hora_entrada && !concluido ? <><Clock size={16} /> Próxima: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={16} /> {info.motivo}</> : faltou ? <><Ban size={16} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={16} /> Jornada concluída</> : <><LogIn size={16} /> Aguardando entrada</>}
+          <div className={`text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 ${bloqueado && !reg?.hora_entrada ? "bg-zinc-500/10 text-emerald-700" : reg?.hora_entrada && !concluido ? "bg-zinc-500/10 text-emerald-700" : info.folga ? (info.tipo === "domingo" ? "bg-amber-500/10 text-amber-700" : "bg-hf-border text-hf-text") : faltou ? "bg-rose-500/10 text-red-700" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-hf-elevated text-hf-text-2"}`}>
+            {bloqueado && !reg?.hora_entrada ? <><Ban size={13} /> Aguardando liberação</> : reg?.hora_entrada && !concluido ? <><Clock size={13} /> Próxima: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={13} /> {info.motivo}</> : faltou ? <><Ban size={13} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={13} /> Jornada concluída</> : <><LogIn size={13} /> Aguardando entrada</>}
           </div>
-          {entradaStr && !info.folga && (
-            <span className="text-lg font-black tabular-nums text-hf-text-2">{entradaStr}{saidaDoDia(c, horaLocal) ? ` às ${saidaDoDia(c, horaLocal)}` : ""}</span>
-          )}
+        </div>
         </div>
       </button>
     );
@@ -1079,42 +1089,67 @@ export default function PontoPage() {
           onSuccess={sairKiosk}
         />
       )}
-      <div className={`max-w-4xl mx-auto ${areaAtiva ? "p-6 md:p-10" : "flex h-full flex-col px-4 pb-4 pt-3 sm:px-6 md:p-10"}`}>
-        <div className={`flex shrink-0 items-center justify-between ${areaAtiva ? "mb-6" : "mb-2 sm:mb-6"}`}>
+      {confirmarSair && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Sair da conta">
+          <div className="w-full max-w-sm rounded-3xl bg-hf-surface p-5 text-center shadow-xl">
+            <p className="text-lg font-black text-hf-text">Sair desta conta?</p>
+            <p className="mt-1 text-sm text-hf-text-2">Para voltar ao ponto neste aparelho será preciso entrar de novo com o login e a senha.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setConfirmarSair(false)} disabled={saindo} className="min-h-[48px] rounded-xl border border-hf-border font-bold text-hf-text">Cancelar</button>
+              <button type="button" onClick={sairDaConta} disabled={saindo} className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-hf-menu font-bold text-white">{saindo ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />} Sair</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className={`max-w-4xl mx-auto ${areaAtiva ? "px-4 pb-6 pt-3 sm:p-6 md:p-10" : "flex h-full flex-col px-4 pb-4 pt-3 sm:px-6 md:p-10"}`}>
+        <div className="mb-2 flex shrink-0 items-center justify-between sm:mb-4">
           {kiosk ? (
             <button onClick={() => setPinSair(true)} aria-label="Destravar com PIN do gerente" className="grid h-12 w-12 place-items-center bg-hf-surface hover:bg-hf-elevated text-hf-text-2 hover:text-hf-text rounded-2xl transition-colors border border-hf-border" title="Destravar com PIN do gerente">
               <Lock size={18} />
             </button>
+          ) : contaSoPonto ? (
+            <span />
           ) : (
-            <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2 px-4 py-3 bg-hf-elevated hover:bg-hf-border text-hf-text rounded-2xl font-bold transition-colors">
-              <ArrowLeft size={18} /> Painel
+            <button onClick={() => router.push("/dashboard")} className="flex min-h-[44px] items-center gap-2 rounded-xl bg-hf-elevated px-3 text-sm font-bold text-hf-text transition-colors hover:bg-hf-border">
+              <ArrowLeft size={16} /> Painel
             </button>
           )}
-          {!kiosk && (
-            <button onClick={ativarKiosk} className="flex items-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-sm transition-colors shadow-lg shadow-emerald-600/25" title="Trava em tela cheia para tablet/celular — só sai com o PIN do gerente">
-              <Tablet size={17} /> Modo Tablet
+          {!kiosk && contaSoPonto && (
+            <button onClick={() => setConfirmarSair(true)} className="flex min-h-[44px] items-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-bold text-hf-text-2 hover:text-hf-text" title="Sair desta conta e entrar com outro login">
+              <LogOut size={16} /> Sair
+            </button>
+          )}
+          {!kiosk && !contaSoPonto && (
+            <button onClick={ativarKiosk} className="flex min-h-[44px] items-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-bold text-white transition-colors hover:bg-emerald-500" title="Trava em tela cheia para tablet/celular — só sai com o PIN do gerente">
+              <Tablet size={16} /> Modo Tablet
             </button>
           )}
         </div>
 
-        <div className={`text-center relative shrink-0 ${areaAtiva ? "mb-8" : "mb-3 sm:mb-8"}`}>
+        <div className={`text-center relative shrink-0 ${areaAtiva ? "mb-4 sm:mb-6" : "mb-3 sm:mb-6"}`}>
           <div className="absolute left-1/2 -translate-x-1/2 -top-8 w-[420px] max-w-full h-44 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
           <p className="text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
-          <h1 className={`font-black tabular-nums tracking-tight relative leading-none text-slate-900 dark:text-white ${areaAtiva ? "text-8xl md:text-[10rem]" : "text-[clamp(3.25rem,11vh,10rem)]"}`}>
+          <h1 className={`font-black tabular-nums tracking-tight relative leading-none text-slate-900 dark:text-white ${areaAtiva ? "text-5xl sm:text-7xl md:text-8xl" : "text-[clamp(3rem,9vh,8rem)]"}`}>
             {/* Segundos não são enfeite: o Anexo IX, item 3, exige que o
                 coletor exiba horas, minutos e segundos no momento da marcação. */}
             {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-            <span className={`text-emerald-600 dark:text-emerald-400 font-black ml-2 ${areaAtiva ? "text-4xl md:text-6xl" : "text-[clamp(1.5rem,4.5vh,3.75rem)]"}`}>:{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
+            <span className={`text-emerald-600 dark:text-emerald-400 font-black ml-2 ${areaAtiva ? "text-2xl sm:text-3xl md:text-4xl" : "text-[clamp(1.25rem,3.5vh,3rem)]"}`}>:{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
           </h1>
-          <p className={`text-hf-text-2 font-bold uppercase relative ${areaAtiva ? "tracking-widest mt-2" : "mt-1 text-xs tracking-wider sm:mt-2 sm:text-base sm:tracking-widest"}`}>
+          <p className="relative mt-1 text-xs font-bold uppercase tracking-wider text-hf-text-2 sm:mt-2 sm:text-sm">
             {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} · {unidadeInfo?.nome}
           </p>
           {/* Qual área está aberta, no meio e logo abaixo da hora: é a primeira
               coisa que quem chega procura para saber se está na lista certa. */}
           {areaAtiva && (
-            <p className="relative mt-4 text-4xl font-black tracking-tight text-hf-text md:text-5xl">
-              {AREAS_PONTO.find(a => a.id === areaAtiva)?.titulo}
-            </p>
+            <div className="relative mt-3 flex items-center justify-center gap-2">
+              <button onClick={() => setAreaAtiva("")} aria-label="Trocar de área"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-hf-border bg-hf-surface text-hf-text hover:border-hf-accent">
+                <ArrowLeft size={18} />
+              </button>
+              <p className="text-2xl font-black tracking-tight text-hf-text sm:text-3xl">
+                {AREAS_PONTO.find(a => a.id === areaAtiva)?.titulo}
+              </p>
+            </div>
           )}
         </div>
 
@@ -1213,42 +1248,36 @@ export default function PontoPage() {
               const quantos = colaboradores.filter(c => AREAS_DA_CATEGORIA[area.id].includes(categoriaFuncao(c.cargo))).length;
               return (
                 // Centralizado e com letra grande (dono, 24/11/2026): lê de longe, toca sem mirar.
+                // Celular: cartão deitado (ícone à esquerda, nome e pessoas ao lado),
+                // os três cabem numa tela; tablet deitado: lado a lado (24/11/2026).
                 <button key={area.id} onClick={() => setAreaAtiva(area.id)}
-                  className="flex min-h-0 flex-col items-center justify-center gap-[clamp(0.5rem,1.5vh,1rem)] rounded-[2rem] border-2 border-hf-border bg-hf-surface p-4 text-center shadow-sm transition-all hover:border-hf-accent active:scale-[.98]">
-                  <span className="grid h-[clamp(4rem,10vh,7rem)] w-[clamp(4rem,10vh,7rem)] shrink-0 place-items-center rounded-[1.75rem]" style={{ background: area.fundo, color: area.cor }}>
+                  className="flex min-h-0 items-center gap-4 rounded-3xl border-2 border-hf-border bg-hf-surface px-5 py-3 text-left shadow-sm transition-all hover:border-hf-accent active:scale-[.98] sm:landscape:flex-col sm:landscape:justify-center sm:landscape:text-center">
+                  <span className="grid h-[clamp(3.25rem,8vh,5.5rem)] w-[clamp(3.25rem,8vh,5.5rem)] shrink-0 place-items-center rounded-2xl" style={{ background: area.fundo, color: area.cor }}>
                     <Icone className="h-1/2 w-1/2" strokeWidth={2.2} />
                   </span>
-                  <span className="block text-[clamp(2rem,5.2vh,3.25rem)] font-black leading-none tracking-tight text-hf-text">{area.nome}</span>
-                  <span className="block text-[clamp(1rem,2.2vh,1.375rem)] font-bold text-hf-text-2">{quantos === 1 ? "1 pessoa" : `${quantos} pessoas`}</span>
+                  <span className="min-w-0">
+                    <span className="block text-[clamp(1.5rem,3.6vh,2.5rem)] font-black leading-tight tracking-tight text-hf-text">{area.nome}</span>
+                    <span className="block text-base font-bold text-hf-text-2">{quantos === 1 ? "1 pessoa" : `${quantos} pessoas`}</span>
+                  </span>
                 </button>
               );
             })}
           </div>
-        ) : (
-          // Só a seta. O nome da área já está no título, abaixo do relógio —
-          // repetir na tecla de voltar era dizer a mesma coisa duas vezes.
-          <div className="mb-6 flex justify-center">
-            <button onClick={() => setAreaAtiva("")} aria-label="Voltar para a escolha de área"
-              className="flex min-h-[56px] items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-6 text-lg font-bold text-hf-text hover:border-hf-accent">
-              <ArrowLeft size={22} /> Trocar de área
-            </button>
-          </div>
-        )}
+        ) : null /* a seta de trocar de área fica ao lado do título */}
         {modoPin || !areaAtiva ? null : loading ? (
           <div className="text-center py-16"><Loader2 size={40} className="animate-spin text-hf-text-2 mx-auto" /></div>
         ) : filtrados.length === 0 ? (
           <p className="text-center text-hf-text-2 font-bold py-12">{colaboradores.length === 0 ? "Nenhum colaborador cadastrado no RH." : "Ninguém desta área está cadastrado no RH."}</p>
         ) : (
-          <div className="space-y-7">
+          <div className="space-y-4">
             {grupos.map(g => (
               <div key={g.cat}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex-1 h-px bg-hf-border" />
-                  <p className="text-base font-black uppercase tracking-widest text-hf-text-2">{g.cat}</p>
-                  <span className="text-sm font-bold text-hf-text-2 bg-hf-surface border border-hf-border px-2.5 py-0.5 rounded-full">{g.itens.length}</span>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-xs font-black uppercase tracking-widest text-hf-text-2">{g.cat}</p>
+                  <span className="text-xs font-bold text-hf-text-2 bg-hf-surface border border-hf-border px-2 py-0.5 rounded-full">{g.itens.length}</span>
                   <div className="flex-1 h-px bg-hf-border" />
                 </div>
-                <div className="mx-auto flex max-w-3xl flex-wrap justify-center gap-4 [&>*]:w-full md:[&>*]:w-[calc(50%-0.5rem)]">
+                <div className="mx-auto grid max-w-3xl grid-cols-1 gap-2 md:grid-cols-2">
                   {g.itens.map(renderCard)}
                 </div>
               </div>

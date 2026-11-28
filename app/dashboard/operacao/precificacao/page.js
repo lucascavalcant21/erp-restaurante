@@ -49,10 +49,12 @@ function Precificacao() {
   useEffect(() => {
     if (!isSupabaseReady() || !unidadeAtiva) return;
     supabase.from("marmitaria_configuracoes").select("unidade_id, canais, tributos_pct").then(({ data }) => {
-      const linhas = (data || []).filter((l) => Array.isArray(l.canais) && l.canais.some((c) => c.ativo !== false));
+      const linhas = (data || []).filter((l) => Array.isArray(l.canais) && l.canais.length);
       const escolhida = linhas.find((l) => l.unidade_id === unidadeAtiva) || linhas[0];
       if (!escolhida) return;
-      setApps({ canais: escolhida.canais.filter((c) => c.ativo !== false), tributosPct: Number(escolhida.tributos_pct) || 0, origem: escolhida.unidade_id === unidadeAtiva ? null : escolhida.unidade_id });
+      // Todos os apps com taxa preenchida, ligados ou não no Delivery (dono,
+      // 28/11/2026: "por iFood e Keeta"); os desligados vêm marcados.
+      setApps({ canais: escolhida.canais.filter((c) => c.ativo !== false || c.comissao_pct !== null && c.comissao_pct !== undefined && c.comissao_pct !== ""), tributosPct: Number(escolhida.tributos_pct) || 0, origem: escolhida.unidade_id === unidadeAtiva ? null : escolhida.unidade_id });
     });
   }, [unidadeAtiva]);
 
@@ -126,7 +128,7 @@ function Precificacao() {
       ) : (
         <ul className="space-y-2">
           {visiveis.map(({ f, r }) => (
-            <LinhaPreco key={f.id} ficha={f} r={r} podeEditar={podeEditar} unidadeId={unidadeAtiva} params={params} apps={apps}
+            <LinhaPreco key={f.id} ficha={f} r={r} podeEditar={podeEditar} unidadeId={unidadeAtiva} params={params} apps={apps} fichas={fichas} produtos={produtos}
               onSalvo={(preco, produtoId) => setProdutos((lista) => produtosComPrecoSalvo(lista, { produtoId, fichaId: f.id, nome: f.nome_receita, preco }))} />
           ))}
         </ul>
@@ -135,12 +137,19 @@ function Precificacao() {
   );
 }
 
-function LinhaPreco({ ficha, r, podeEditar, unidadeId, onSalvo, params, apps }) {
+function LinhaPreco({ ficha, r: rSalvo, podeEditar, unidadeId, onSalvo, params, apps, fichas, produtos }) {
   const [comparar, setComparar] = useState(false);
-  const [valor, setValor] = useState(r.preco > 0 ? String(r.preco.toFixed(2)).replace(".", ",") : "");
+  const [valor, setValor] = useState(rSalvo.preco > 0 ? String(rSalvo.preco.toFixed(2)).replace(".", ",") : "");
+  // Enquanto digita, CMV, sobra e comparação já mostram o preço novo (dono,
+  // 28/11/2026: "quando digito o preço não muda automaticamente"). Só grava
+  // ao tocar no ✓. Mesma conta (resumoFinanceiroDaFicha) com o preço digitado.
+  const digitado = num(valor);
+  const r = useMemo(() => (digitado > 0 && Math.abs(digitado - (rSalvo.preco || 0)) > 0.004
+    ? resumoFinanceiroDaFicha(ficha, { fichas, params, produtos: produtosComPrecoSalvo(produtos, { fichaId: ficha.id, nome: ficha.nome_receita, preco: digitado }) })
+    : rSalvo), [digitado, rSalvo, ficha, fichas, produtos, params]);
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
-  const mudou = num(valor) !== null && Math.abs((num(valor) || 0) - (r.preco || 0)) > 0.004;
+  const mudou = num(valor) !== null && Math.abs((num(valor) || 0) - (rSalvo.preco || 0)) > 0.004;
   const cmvAlto = r.cmvPct !== null && r.cmvPct > (r.meta || 30);
   const margem = r.composicao?.temPreco ? r.composicao.margemContribuicao : null;
   const salvar = async (preco = valor) => {
@@ -203,7 +212,7 @@ function ComparacaoCanais({ r, params, apps, precoAtual }) {
   const custoC = r.cmvValor > 0 ? centavos(r.cmvValor) : null;
   const canais = [
     { ...regrasDoSalao({ taxaCartaoPct: params.taxa_cartao_pct, impostoPct: params.imposto_pct }), precoAtualC: centavos(precoAtual) },
-    ...apps.canais.map((c) => ({ ...regrasDoCanalDelivery(c, apps.tributosPct), precoAtualC: centavos(precoAtual) })),
+    ...apps.canais.map((c) => { const rc = regrasDoCanalDelivery(c, apps.tributosPct); return { ...rc, nome: c.ativo === false ? `${rc.nome} (desligado no Delivery)` : rc.nome, precoAtualC: centavos(precoAtual) }; }),
   ];
   const m = num(margem);
   const lista = compararCanais({ custoC, canais, margemPct: m });

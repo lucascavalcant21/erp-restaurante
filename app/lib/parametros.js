@@ -515,3 +515,21 @@ export async function alterarHistoricoJanta(unidadeId, alterar) {
   const r = await salvarParams(unidadeId, { janta_historico: lista });
   return { error: r?.error || null, data: lista };
 }
+
+/* Lista de compras da cozinha e do bar (dono, 28/11/2026): os ingredientes que
+ * entram na próxima ida às compras. config_sistema.params.lista_compras =
+ * { cozinha: [insumoId], bar: [insumoId] }. Relê antes de gravar para não
+ * apagar a lista do outro setor salva em outro aparelho. */
+export async function fetchListaCompras(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: {}, error: null };
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: {}, error: error.message };
+  const v = data?.[0]?.params?.lista_compras;
+  return { data: v && typeof v === "object" && !Array.isArray(v) ? v : {}, error: null };
+}
+export async function salvarListaCompras(unidadeId, setor, ids) {
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade" };
+  const { data: atual } = await fetchListaCompras(unidadeId);
+  const limpa = [...new Set((ids || []).filter(Boolean).map(String))].slice(0, 400);
+  return salvarParams(unidadeId, { lista_compras: { ...atual, [setor]: limpa } });
+}

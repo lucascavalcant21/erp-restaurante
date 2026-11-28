@@ -2864,7 +2864,7 @@ function FichasRunner() {
                           <>
                             <span className="mt-auto text-[11px] text-white/60">{ehPrep ? `Custo por ${String(f.rendimento_unidade || "un").toLowerCase()}` : "Custo"}</span>
                             <span className="text-lg font-black tabular-nums leading-none">{fmtBRL(ehPrep ? resumo.custoPorcaoReceita : resumo.cmvValor)}</span>
-                            {!ehPrep && resumo.preco > 0 && <span className={`text-[12px] font-bold ${cmvAlto ? "text-red-300" : "text-white/80"}`}>Venda {fmtBRL(resumo.preco)} · CMV {fmtPct(resumo.cmvPct)}</span>}
+                            {/* Venda e CMV ficam na Precificação (dono, 28/11/2026) */}
                           </>
                         ) : <span className="mt-auto text-[11px] text-white/60">{ehPrep ? "Base" : deptUrl === "bar" ? "Drink" : "Prato"}</span>}
                         {statusDaFicha(f) === "inativa" && <span className="text-[11px] text-white/60">Inativa</span>}
@@ -3506,37 +3506,14 @@ function FichasRunner() {
                            )}
                         </div>
 
-                        {/* CUSTO E PRECIFICAÇÃO */}
-                        {!f.eh_base && (
-                        <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
-                           <p className="text-2xs font-bold uppercase tracking-widest text-accent mb-3">Custo e precificação</p>
-                           <div className="space-y-2 text-sm">
-                              <div className="flex items-center justify-between"><span className="text-fg font-bold">Custo total da receita</span><span className="font-black text-slate-800">{fmtBRL(custoTotal)}</span></div>
-                              <div className="flex items-center justify-between"><span className="text-fg font-bold">Custo de 1 {labelUn}</span><span className="font-black text-slate-800">{custoKg !== null ? fmtBRL(custoKg) : "—"}</span></div>
-                           </div>
-                           <div className="grid grid-cols-2 gap-2 mt-3">
-                              <div className={`rounded-xl px-3 py-2 text-center border ${cmv !== null && cmv > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-100"}`}>
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">CMV</p>
-                                 <p className={`text-lg font-black ${cmv !== null && cmv > meta ? "text-red-600" : "text-accent"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</p>
-                              </div>
-                              <div className="rounded-xl px-3 py-2 text-center border bg-emerald-50 border-emerald-100">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Margem</p>
-                                 <p className="text-lg font-black text-accent">{margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>
-                              </div>
-                              <div className="rounded-xl px-3 py-2 text-center border bg-emerald-50 border-emerald-100">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Markup</p>
-                                 <p className="text-lg font-black text-accent">{markup ? `${markup.toFixed(2)}×` : "—"}</p>
-                              </div>
-                              <div className="rounded-xl px-3 py-2 text-center border bg-transparent border-line">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Preço/porção</p>
-                                 <p className="text-lg font-black text-slate-800">{preco > 0 ? fmtBRL(preco) : "—"}</p>
-                              </div>
-                           </div>
-                           <div className="mt-3 flex items-center justify-between rounded-xl bg-accent text-accent-fg px-3 py-2.5">
-                              <span className="text-2xs font-bold uppercase tracking-wider">Preço sugerido (CMV {meta}%)</span>
-                              <span className="text-lg font-black">{precoSugerido > 0 ? fmtBRL(precoSugerido) : "—"}</span>
-                           </div>
-                        </div>
+                        {/* Preço, CMV, margem e preço sugerido ficam só na Precificação
+                            (dono, 28/11/2026: "tirar esse custo e precificação e deixar só
+                            no precificação"). A ficha mostra receita e custo. */}
+                        {!f.eh_base && podeVerCustos && (
+                          <a href={`/dashboard/operacao/precificacao?dept=${f.departamento === "bar" ? "bar" : "cozinha"}`}
+                            className="flex min-h-[52px] items-center justify-between gap-2 rounded-2xl border border-line bg-card px-4 py-3 text-sm font-bold text-slate-800 shadow-sm hover:border-emerald-400">
+                            <span>Preço de venda, CMV e lucro: <b>Precificação</b></span><span aria-hidden="true">→</span>
+                          </a>
                         )}
 
                         {/* INFORMAÇÕES ADICIONAIS */}

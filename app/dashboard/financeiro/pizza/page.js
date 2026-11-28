@@ -11,7 +11,7 @@ import { fetchParams, salvarParams, PARAMS_PADRAO } from "../../../lib/parametro
 import { fetchPainelCaixa } from "../../../lib/financeiro";
 import { calcularCMO } from "../../../lib/cmo.mjs";
 import {
-  contasPorDia, equipePorDia, equilibrioDoCardapio, mediaItensPorDia,
+  contasPorDia, equilibrioDoCardapio, mediaItensPorDia,
   simularCardapio, LIMITE_PRATOS, LIMITE_BEBIDAS,
 } from "../../../lib/custo-diario.mjs";
 import { dadosDoPrato, fatiasDoPrato, precoSugerido } from "../../../lib/pizza-do-prato.mjs";
@@ -324,9 +324,7 @@ export default function PizzaDoLucroPage() {
 
   const dias = Number(params.dias_operacao_mes) || 0;
   const contasDia = useMemo(() => contasPorDia(params, dias), [params, dias]);
-  const equipeDia = useMemo(() => equipePorDia(equipe, dias), [equipe, dias]);
   // CMO com encargos (o mesmo que entra na composição do preço).
-  const cmoDia = dias > 0 && cmo ? cmoTotal / dias : 0;
   const proLaboreMes = (params.pro_labore || []).reduce((s, p) => s + (Number(p.valor_mensal) || 0), 0);
   // Preço médio do que se vende de verdade, para converter a embalagem em
   // reais num percentual sobre a venda.
@@ -339,7 +337,7 @@ export default function PizzaDoLucroPage() {
   const equilibrio = useMemo(
     () => equilibrioDoCardapio({ params, cmoMes: cmoTotal, precoMedio }),
     [params, cmoTotal, precoMedio]);
-  const custoDiaTotal = contasDia.totalDia + cmoDia;
+
   const pratosNoMes = (Number(params.dias_operacao_mes) || 0) * (Number(params.pratos_por_dia) || 0);
   const rateioPorPratoTotal = pratosNoMes > 0
     ? (contasDia.totalMes + cmoTotal + proLaboreMes) / pratosNoMes : 0;
@@ -591,97 +589,16 @@ export default function PizzaDoLucroPage() {
         ) : visao === "periodo" ? (
           <VisaoPeriodo unidadeAtiva={unidadeAtiva} params={paramsComCmo} />
         ) : visao === "dia" ? (
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            {/* Quanto sai do bolso antes de vender o primeiro prato. */}
-            <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
-              <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Custo de um dia aberto</p>
-              <p className="mt-1 text-3xl font-black text-fg">{fmt(custoDiaTotal)}</p>
-              <p className="text-2xs font-bold text-fg">
-                {dias > 0 ? `${fmt(contasDia.totalMes + cmoTotal)} por mês ÷ ${dias} dias que a casa abre` : "Preencha os dias de operação acima"}
-              </p>
-              <div className="mt-3 space-y-1.5 border-t border-line-soft pt-3 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="flex-1 font-black text-fg-soft">Gente (CMO)</span>
-                  <span className="font-black text-fg">{fmt(cmoDia)}</span>
-                  <span className="w-12 text-right font-bold text-subtle">{custoDiaTotal > 0 ? `${((cmoDia / custoDiaTotal) * 100).toFixed(0)}%` : "—"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="flex-1 font-black text-fg-soft">Contas da casa</span>
-                  <span className="font-black text-fg">{fmt(contasDia.totalDia)}</span>
-                  <span className="w-12 text-right font-bold text-subtle">{custoDiaTotal > 0 ? `${((contasDia.totalDia / custoDiaTotal) * 100).toFixed(0)}%` : "—"}</span>
-                </div>
-              </div>
-
-              {/* Ponto de equilíbrio do cardápio inteiro. Veio da tela que
-                  esta absorveu: responde em REAIS por dia, sem depender de
-                  qual prato saiu. */}
-              <div className="mt-4 rounded-xl bg-emerald-50 px-3 py-2.5">
-                <p className="text-3xs font-bold uppercase tracking-widest text-accent">Quanto faturar por dia para empatar</p>
-                {equilibrio.faturamentoDia === null ? (
-                  <p className="mt-0.5 text-2xs font-bold text-slate-900">
-                    {!equilibrio.rateavel
-                      ? "Preencha os dias de operação acima."
-                      : `Com ${equilibrio.variavelPct.toFixed(1)}% de custo variável não sobra nada de cada venda — nenhum faturamento empata. Reveja a meta de CMV, o imposto, a maquininha e a embalagem.`}
-                  </p>
-                ) : (
-                  <>
-                    <p className="text-2xl font-black text-emerald-800">{fmt(equilibrio.faturamentoDia)}</p>
-                    <p className="text-2xs font-bold text-emerald-700/80">
-                      {fmt(equilibrio.faturamentoMes)} no mês · de cada real vendido sobram {equilibrio.margemPct.toFixed(1)}% para pagar o fixo. Acima disso é lucro.
-                      {equilibrio.embalagemPct > 0 && ` Embalagem de ${fmt(params.embalagem_valor)} pesa ${equilibrio.embalagemPct.toFixed(1)}% num prato médio de ${fmt(precoMedio)}.`}
-                    </p>
-                  </>
-                )}
-              </div>
-
-              <p className="mt-4 text-3xs font-bold uppercase tracking-widest text-subtle">Cada conta por dia</p>
-              <ul className="mt-1.5 space-y-1">
-                {contasDia.itens.map((i) => (
-                  <li key={i.chave} className="flex items-center gap-2 text-xs">
-                    <span className="min-w-0 flex-1 truncate font-bold text-slate-900">{i.rotulo}</span>
-                    <span className="shrink-0 font-bold text-subtle">{fmt(i.mes)}/mês</span>
-                    <span className="w-20 shrink-0 text-right font-black text-slate-800">{fmt(i.dia)}</span>
-                  </li>
-                ))}
-                {!contasDia.itens.length && <li className="py-3 text-center text-xs font-bold text-subtle">Nenhuma conta preenchida.</li>}
-              </ul>
-            </div>
-
-            {/* Quanto cada pessoa custa por dia. */}
-            <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
-              <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Quanto cada pessoa custa por dia</p>
-              <p className="mt-1 text-2xs font-bold text-fg">
-                Contratado: salário do mês ÷ {dias || "—"} dias. Extra: a diária inteira, no dia em que vem.
-              </p>
-              <ul className="mt-3 space-y-1">
-                {equipeDia.fixos.map((pe) => (
-                  <li key={pe.id} className="flex items-center gap-2 text-xs">
-                    <span className="min-w-0 flex-1 truncate font-bold text-fg-soft">{pe.nome}
-                      {pe.cargo && <span className="font-bold text-subtle"> · {pe.cargo}</span>}</span>
-                    <span className="shrink-0 font-bold text-subtle">{fmt(pe.mes)}/mês</span>
-                    <span className="w-20 shrink-0 text-right font-black text-slate-800">{fmt(pe.dia)}</span>
-                  </li>
-                ))}
-              </ul>
-              {!!equipeDia.extras.length && (
-                <>
-                  <p className="mt-4 text-3xs font-bold uppercase tracking-widest text-subtle">Extras (só no dia que vêm)</p>
-                  <ul className="mt-1.5 space-y-1">
-                    {equipeDia.extras.map((pe) => (
-                      <li key={pe.id} className="flex items-center gap-2 text-xs">
-                        <span className="min-w-0 flex-1 truncate font-bold text-slate-900">{pe.nome}
-                          {pe.cargo && <span className="font-bold text-subtle"> · {pe.cargo}</span>}</span>
-                        <span className="w-20 shrink-0 text-right font-black text-slate-800">{fmt(pe.dia)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              {!equipeDia.fixos.length && !equipeDia.extras.length && (
-                <p className="py-6 text-center text-xs font-bold text-subtle">Nenhum colaborador ativo.</p>
-              )}
-            </div>
-          </div>
+          // A conta do dia mora numa tela só (Financeiro > Custo por dia):
+          // contratados por turno, extras pelo recibo da noite e um canal por
+          // vez. Aqui ficava uma cópia que quebrava no celular.
+          <a href="/dashboard/financeiro/custo-do-dia" className="mt-4 flex min-h-[64px] items-center justify-between gap-3 rounded-2xl border border-line bg-card p-4 shadow-sm">
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-fg">Abrir Custo por dia</span>
+              <span className="block text-xs text-subtle">Quanto cada conta e cada pessoa custa por dia, por canal, e quanto vender para pagar tudo.</span>
+            </span>
+            <ChevronDown size={18} className="-rotate-90 shrink-0 text-subtle" />
+          </a>
         ) : visao === "simulacao" ? (
           <div className="mt-4 space-y-4">
             {/* Montar o cardápio: escolher os itens e dizer quanto vende de

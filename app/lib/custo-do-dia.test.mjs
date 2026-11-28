@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { turnoDoHorario, equipePorTurno, descontosDaVenda, custoDoDia, oQueAVendaPagou } from "./custo-do-dia.mjs";
+import { turnoDoHorario, equipePorTurno, descontosDaVenda, custoDoDia, oQueAVendaPagou, extrasDoDia } from "./custo-do-dia.mjs";
 
 const params = {
   dias_operacao_mes: 26,
@@ -27,16 +27,16 @@ test("turno pelo horário de entrada", () => {
   assert.equal(turnoDoHorario("25:00"), "sem_horario");
 });
 
-test("equipe por turno: contratado ÷ dias, extra pela diária, sem salário avisado", () => {
+test("equipe por turno: só contratados; extra fica fora de turno e de sem-salário", () => {
   const r = equipePorTurno(equipe, { dias: 26 });
   const manha = r.turnos.find((t) => t.id === "manha");
   assert.equal(manha.fixos.length, 1);
   assert.equal(manha.fixos[0].dia, 100); // 2600 ÷ 26
   const tarde = r.turnos.find((t) => t.id === "tarde");
   assert.equal(tarde.fixoDia, 50);
-  const noite = r.turnos.find((t) => t.id === "noite");
-  assert.equal(noite.extras[0].diaria, 130);
-  assert.equal(noite.fixoDia, 0);
+  // Caio é extra: não aparece em turno nenhum (a noite só tinha ele).
+  assert.equal(r.turnos.find((t) => t.id === "noite"), undefined);
+  assert.ok(!r.turnos.some((t) => t.fixos.some((p) => p.id === "c")));
   const sem = r.turnos.find((t) => t.id === "sem_horario");
   assert.equal(sem.fixos[0].dia, 60);
   assert.deepEqual(r.semSalario.map((p) => p.id), ["d"]);
@@ -69,17 +69,57 @@ test("descontos: salão usa a casa, app usa as taxas do app sem cobrar imposto d
   const d = descontosDaVenda(params, app);
   assert.equal(Number(d.pct.toFixed(2)), 51.1);
   assert.equal(d.partes.length, 4);
+  assert.equal(d.fixosPorPedido, 1);
+  assert.equal(d.fixosSemTicket, true);
 });
 
-test("custo do dia e venda mínima", () => {
-  const r = custoDoDia({ params, colaboradores: equipe, extrasPagosMes: 1300 });
-  // equipe 5460 + extras 1300 + casa 11500 = 18260 ÷ 26
-  assert.equal(r.totalMes, 18260);
-  assert.equal(Number(r.totalDia.toFixed(2)), 702.31);
+test("descontos do app: promoção da loja e taxas por pedido viram % do pedido médio", () => {
+  // Comprovante do 99 (28/11/2026): comissão 8,9%, pagamento 3,2%, logística R$ 5,49 e entrega grátis R$ 6,00.
+  const app = { nome: "99", descontoLojaPct: 5, regras: [
+    { nome: "Comissão", tipo: "percentual", valor: 8.9 },
+    { nome: "Pagamento online", tipo: "percentual", valor: 3.2 },
+    { nome: "Taxa por pedido", tipo: "fixo_pedido", valor: 5.49 },
+    { nome: "Entrega paga pela loja", tipo: "fixo_pedido", valor: 6 },
+  ] };
+  const d = descontosDaVenda(params, app, { ticketMedio: 45.5 });
+  assert.equal(d.fixosPorPedido, 11.49);
+  assert.equal(d.fixosSemTicket, false);
+  const porPedido = d.partes.find((p) => /por pedido/.test(p.rotulo));
+  assert.equal(Number(porPedido.pct.toFixed(2)), 25.25); // 11,49 ÷ 45,50
+  assert.ok(d.partes.some((p) => /Promoção/.test(p.rotulo) && p.pct === 5));
+  assert.equal(Number(d.pct.toFixed(2)), Number((30 + 9 + 8.9 + 3.2 + 5 + 25.2527).toFixed(2)));
+});
+
+test("extras do dia: só os recibos com a data de hoje; o mês fica de referência", () => {
+  const recibos = [
+    { id: 1, colaborador_id: "c", valor_total: 130, data_trabalho: "2026-11-28", pagamento_realizado: false },
+    { id: 2, colaborador_id: "c", valor_total: 140, data_trabalho: "2026-11-27", pagamento_realizado: true },
+    { id: 3, colaborador_id: "x", valor_total: 0, data_trabalho: "2026-11-28" },
+    { id: 4, colaborador_id: "c", valor_total: 100, data_trabalho: "2026-10-31" },
+  ];
+  const e = extrasDoDia(recibos, equipe, "2026-11-28");
+  assert.equal(e.total, 130);
+  assert.deepEqual(e.recibos.map((r) => r.nome), ["Caio"]);
+  assert.equal(e.mesTotal, 270);
+  assert.equal(e.mesRecibos, 2);
+});
+
+test("custo do dia e venda mínima: contratados + casa; extras só os recibos de hoje", () => {
+  const r = custoDoDia({ params, colaboradores: equipe, extrasHoje: 130 });
+  // equipe 5460 + casa 11500 = 16960 ÷ 26; o extra não entra no mês
+  assert.equal(r.totalMes, 16960);
+  assert.equal(Number(r.totalDia.toFixed(2)), 652.31);
   assert.equal(r.linhas.find((l) => l.id === "custo_aluguel_mes").dia.toFixed(2), "192.31");
-  // 702,307… ÷ 0,61 = 1151,32…, arredonda para cima no centavo
-  assert.equal(r.vendaMinimaDia, 1151.33);
+  // 652,307… ÷ 0,61 = 1069,36…, arredonda para cima no centavo
+  assert.equal(r.vendaMinimaDia, 1069.36);
   assert.equal(r.motivo, null);
+  // Hoje: + R$ 130 do recibo da noite, logo depois da equipe contratada.
+  assert.equal(Number(r.totalHoje.toFixed(2)), 782.31);
+  assert.equal(r.linhasHoje[1].id, "extras_hoje");
+  assert.equal(r.vendaMinimaHoje, 1282.48);
+  const semExtra = custoDoDia({ params, colaboradores: equipe });
+  assert.equal(semExtra.linhasHoje.length, semExtra.linhas.length);
+  assert.equal(semExtra.vendaMinimaHoje, semExtra.vendaMinimaDia);
 });
 
 test("custo do dia sem dias ou com margem zero: DADOS INSUFICIENTES com motivo", () => {

@@ -8,14 +8,16 @@
 // Funções puras (testes em custo-do-dia.test.mjs). Reaproveita as fontes que
 // já existem, sem conta paralela:
 //   - contas da casa: config_sistema.params (contasPorDia, custo-diario.mjs);
-//   - equipe: cadastro do RH (salário, vale, taxa de serviço) e diárias pagas
-//     dos extras (calcularCMO, cmo.mjs);
+//   - equipe contratada: cadastro do RH (salário, vale, taxa de serviço);
+//   - extras: SÓ os recibos gerados (dono, 28/11/2026: "o funcionário que é
+//     extra, o custo dele só vai aparecer no final da noite, quando eu gerar um
+//     recibo dele"). Extra não entra em equipe, turno nem média do mês;
 //   - pró-labore: proLaboreDoMes (composicao-preco.mjs);
 //   - quanto sobra de cada venda: meta de CMV + despesas variáveis da casa
 //     (DESPESAS_VARIAVEIS) ou as taxas do app do Delivery.
 //
-// Natureza: contas = INFORMADO pelo dono; equipe fixa = REAL (cadastro do RH);
-// extras por dia = ESTIMATIVA (diárias pagas no mês ÷ dias de operação);
+// Natureza: contas = INFORMADO pelo dono; equipe contratada = REAL (cadastro do
+// RH); extras desta noite = REAL (recibos gerados com a data de hoje);
 // venda mínima e simulação = ESTIMATIVA (usam a META de CMV, não o CMV real).
 // Sem dias de operação não há "por dia": DADOS INSUFICIENTES.
 
@@ -51,33 +53,27 @@ export function turnoDoHorario(hora) {
   return "noite";
 }
 
-/* A equipe por turno, pessoa por pessoa.
- *
- * Contratado: (salário + vale-alimentação + taxa de serviço do mês + encargos
- * sobre o salário) ÷ dias de operação. Extra: a diária do cadastro já é o
- * custo de um dia — ele custa isso nos dias em que vem; dividir de novo diria
- * que um extra de R$ 130 custa R$ 5 por dia.
+/* A equipe CONTRATADA por turno (contrato definitivo ou provisório), pessoa
+ * por pessoa: (salário + vale-alimentação + taxa de serviço do mês + encargos
+ * sobre o salário) ÷ dias de operação.
+ * Extra (tipo_contrato Freelancer) não entra aqui de jeito nenhum: o custo
+ * dele é o recibo da noite (extrasDoDia). Só é contado em `pessoasExtras`.
  * Contratado sem salário no cadastro não vira zero escondido: entra em
  * `semSalario`, para a tela avisar que falta dado.
  */
 export function equipePorTurno(colaboradores = [], { dias = 0, encargosPct = 0 } = {}) {
   const d = pos(dias);
   const enc = pos(encargosPct);
-  const turnos = TURNOS.map((t) => ({ ...t, fixos: [], extras: [], fixoMes: 0, fixoDia: 0, extrasDiaria: 0 }));
+  const turnos = TURNOS.map((t) => ({ ...t, fixos: [], fixoMes: 0, fixoDia: 0 }));
   const porId = Object.fromEntries(turnos.map((t) => [t.id, t]));
   const semSalario = [];
+  let extras = 0;
 
   for (const c of colaboradores || []) {
     if (!c || !ativo(c)) continue;
     const t = porId[turnoDoHorario(c.horario_entrada)];
     const base = { id: c.id, nome: c.nome || "Sem nome", cargo: c.cargo || "" };
-    if (ehExtra(c)) {
-      const diaria = pos(c.salario);
-      if (diaria <= 0) { semSalario.push({ ...base, extra: true }); continue; }
-      t.extras.push({ ...base, diaria });
-      t.extrasDiaria += diaria;
-      continue;
-    }
+    if (ehExtra(c)) { extras++; continue; }
     const salario = pos(c.salario);
     if (salario <= 0) { semSalario.push({ ...base, extra: false }); continue; }
     const mes = salario + pos(c.vale_alimentacao) + pos(c.taxa_servico_mes) + (salario * enc) / 100;
@@ -88,28 +84,53 @@ export function equipePorTurno(colaboradores = [], { dias = 0, encargosPct = 0 }
 
   for (const t of turnos) {
     t.fixos.sort((a, b) => b.mes - a.mes);
-    t.extras.sort((a, b) => b.diaria - a.diaria);
     t.fixoDia = d > 0 ? t.fixoMes / d : null;
   }
   const fixoMes = turnos.reduce((s, t) => s + t.fixoMes, 0);
   return {
-    turnos: turnos.filter((t) => t.fixos.length || t.extras.length),
+    turnos: turnos.filter((t) => t.fixos.length),
     fixoMes,
     fixoDia: d > 0 ? fixoMes / d : null,
     pessoasFixas: turnos.reduce((s, t) => s + t.fixos.length, 0),
-    pessoasExtras: turnos.reduce((s, t) => s + t.extras.length, 0),
+    pessoasExtras: extras,
     semSalario,
   };
 }
 
+/* Extras de um dia: os recibos gerados com aquela data de trabalho. Também
+ * soma o mês, só para referência. O recibo é o custo: pago ou ainda a pagar.
+ * data: "AAAA-MM-DD" (dia local de quem olha).
+ */
+export function extrasDoDia(recibos = [], colaboradores = [], data = "") {
+  const dia = String(data || "").slice(0, 10);
+  const mes = dia.slice(0, 7);
+  const nomes = new Map((colaboradores || []).filter(Boolean).map((c) => [c.id, c.nome || "Sem nome"]));
+  const doDia = [];
+  let mesTotal = 0;
+  let mesRecibos = 0;
+  for (const r of recibos || []) {
+    if (!r) continue;
+    const d = String(r.data_trabalho || "").slice(0, 10);
+    const v = pos(r.valor_total);
+    if (!d || v <= 0) continue;
+    if (d.slice(0, 7) === mes) { mesTotal += v; mesRecibos++; }
+    if (d === dia) doDia.push({ id: r.id, nome: nomes.get(r.colaborador_id) || r.nome_prestador || "Extra", valor: v, pago: !!r.pagamento_realizado });
+  }
+  doDia.sort((a, b) => b.valor - a.valor);
+  return { data: dia, recibos: doDia, total: doDia.reduce((s, x) => s + x.valor, 0), mesTotal, mesRecibos };
+}
+
 /* Percentual de cada venda que vai embora antes de pagar qualquer conta:
  * meta de CMV + imposto + (no salão) maquininha e comissões da casa, ou (no
- * app) as taxas percentuais do app. Taxa fixa por pedido e entrega paga pela
- * loja não entram: dependem de quantos pedidos, não do valor vendido.
+ * app) as taxas percentuais do app e a promoção paga pela loja.
+ * Taxa fixa por pedido e entrega paga pela loja dependem de quantos pedidos:
+ * só entram com o pedido médio (`ticketMedio`), viram % dele. Sem pedido
+ * médio, `fixosSemTicket` avisa a tela.
  *
- * canal: null = salão/balcão; senão { nome, regras } de regrasDoCanalDelivery.
+ * canal: null = salão/balcão; senão { nome, regras, descontoLojaPct } de
+ * regrasDoCanalDelivery.
  */
-export function descontosDaVenda(params = {}, canal = null) {
+export function descontosDaVenda(params = {}, canal = null, { ticketMedio = 0 } = {}) {
   const partes = [];
   const add = (rotulo, pct) => { if (pos(pct) > 0) partes.push({ rotulo, pct: pos(pct) }); };
   add("CMV (meta)", params.meta_cmv);
@@ -117,38 +138,49 @@ export function descontosDaVenda(params = {}, canal = null) {
   if (!canal) {
     for (const [chave, rotulo] of DESPESAS_VARIAVEIS) if (chave !== "imposto_pct") add(rotulo, params[chave]);
   } else {
+    let fixos = 0;
     for (const r of canal.regras || []) {
+      if (r.tipo === "fixo_pedido") { fixos += pos(r.valor); continue; }
       if (r.tipo !== "percentual") continue;
       // O imposto da casa já entrou acima: não cobrar duas vezes.
       if (/imposto/i.test(r.nome || "")) continue;
       add(`${r.nome} (${canal.nome})`, r.valor);
     }
+    add(`Promoção paga pela loja (${canal.nome})`, canal.descontoLojaPct);
+    const t = pos(ticketMedio);
+    if (fixos > 0 && t > 0) add(`Taxas por pedido (${canal.nome})`, (fixos / t) * 100);
+    const pct = partes.reduce((s, p) => s + p.pct, 0);
+    return { partes, pct, sobraPct: 100 - pct, temMetaCmv: pos(params.meta_cmv) > 0, fixosPorPedido: fixos, fixosSemTicket: fixos > 0 && !(t > 0) };
   }
   const pct = partes.reduce((s, p) => s + p.pct, 0);
-  return { partes, pct, sobraPct: 100 - pct, temMetaCmv: pos(params.meta_cmv) > 0 };
+  return { partes, pct, sobraPct: 100 - pct, temMetaCmv: pos(params.meta_cmv) > 0, fixosPorPedido: 0, fixosSemTicket: false };
 }
 
 /* O custo do dia inteiro, conta por conta, e a venda mínima para pagá-lo. */
-export function custoDoDia({ params = {}, colaboradores = [], extrasPagosMes = 0, canal = null, referencia = new Date() } = {}) {
+export function custoDoDia({ params = {}, colaboradores = [], extrasHoje = 0, canal = null, ticketMedio = 0, referencia = new Date() } = {}) {
   const dias = pos(params.dias_operacao_mes);
   const temDias = dias > 0;
   const contas = contasPorDia(params, dias);
   const equipe = equipePorTurno(colaboradores, { dias, encargosPct: params.encargos_folha_pct });
-  const extrasMes = pos(extrasPagosMes);
+  const extras = pos(extrasHoje);
   const proLabore = proLaboreDoMes(params.pro_labore, referencia);
 
   const porDia = (mes) => (temDias ? mes / dias : null);
   // Ordem do simulador: primeiro quem trabalha, depois a casa, por último a
   // retirada dos sócios. É a ordem em que o dinheiro do dia costuma ir embora.
   const linhas = [];
-  if (equipe.fixoMes > 0) linhas.push({ id: "equipe", grupo: "equipe", rotulo: "Equipe fixa", mes: equipe.fixoMes, dia: porDia(equipe.fixoMes), natureza: "REAL" });
-  if (extrasMes > 0) linhas.push({ id: "extras", grupo: "equipe", rotulo: "Extras (média do mês)", mes: extrasMes, dia: porDia(extrasMes), natureza: "ESTIMATIVA" });
+  if (equipe.fixoMes > 0) linhas.push({ id: "equipe", grupo: "equipe", rotulo: "Equipe contratada", mes: equipe.fixoMes, dia: porDia(equipe.fixoMes), natureza: "REAL" });
   for (const c of contas.itens) linhas.push({ id: c.chave, grupo: "casa", rotulo: c.rotulo, mes: c.mes, dia: porDia(c.mes), natureza: "INFORMADO" });
   for (const p of proLabore.partes) linhas.push({ id: `pl-${p.rotulo}`, grupo: "prolabore", rotulo: `Pró-labore · ${p.rotulo}`, mes: p.valor, dia: porDia(p.valor), natureza: "INFORMADO" });
 
   const totalMes = linhas.reduce((s, l) => s + l.mes, 0);
   const totalDia = porDia(totalMes);
-  const descontos = descontosDaVenda(params, canal);
+  const descontos = descontosDaVenda(params, canal, { ticketMedio });
+  // Hoje = o custo fixo do dia + os extras dos recibos desta noite.
+  const linhasHoje = extras > 0 && temDias
+    ? [...linhas.slice(0, equipe.fixoMes > 0 ? 1 : 0), { id: "extras_hoje", grupo: "extras", rotulo: "Extras desta noite (recibos)", mes: null, dia: extras, natureza: "REAL" }, ...linhas.slice(equipe.fixoMes > 0 ? 1 : 0)]
+    : linhas;
+  const totalHoje = totalDia != null ? totalDia + extras : null;
 
   let vendaMinimaDia = null;
   let motivo = null;
@@ -157,10 +189,12 @@ export function custoDoDia({ params = {}, colaboradores = [], extrasPagosMes = 0
   else if (descontos.sobraPct <= 0) motivo = `CMV e taxas somam ${descontos.pct.toFixed(1).replace(".", ",")}% da venda: não sobra nada para pagar as contas, em nenhum valor de venda.`;
   else vendaMinimaDia = Math.ceil((totalDia / (descontos.sobraPct / 100)) * 100) / 100;
 
+  const minima = (valorDia) => (valorDia != null && descontos.sobraPct > 0 && !motivo ? Math.ceil((valorDia / (descontos.sobraPct / 100)) * 100) / 100 : null);
   return {
-    dias, temDias, linhas, contas, equipe, proLabore,
-    extrasMes, extrasDia: porDia(extrasMes),
-    totalMes, totalDia,
+    dias, temDias, linhas, linhasHoje, contas, equipe, proLabore,
+    extrasHoje: extras,
+    totalMes, totalDia, totalHoje,
+    vendaMinimaHoje: extras > 0 ? minima(totalHoje) : vendaMinimaDia,
     grupos: {
       equipe: linhas.filter((l) => l.grupo === "equipe").reduce((s, l) => s + l.mes, 0),
       casa: contas.totalMes,

@@ -1670,6 +1670,18 @@ function FichasRunner() {
     window.setTimeout(() => setMensagemLote(""), 3500);
   };
 
+  // Excluir ficha ou base de qualquer lugar (lista, ficha aberta, celular),
+  // sempre com confirmação (dono, 25/11/2026). Base usada em outras fichas
+  // ainda passa pela pergunta "tirar de todas ou trocar" (emUso).
+  const pedirExclusao = async (lista = fichasSelecionadas) => {
+    if (!podeEditarFichas || !lista.length) return false;
+    const nome = lista.length === 1 ? `"${lista[0].nome_receita}"` : `${lista.length} fichas`;
+    const tipo = lista.length === 1 ? (lista[0].eh_base ? "a base" : "a ficha") : "";
+    if (!confirm(`Excluir ${tipo ? `${tipo} ` : ""}${nome}?\n\nSe ela estiver em outras fichas, o sistema pergunta se tira de todas ou troca por outra. Se tiver histórico, ela some da lista e o histórico fica guardado.`)) return false;
+    await excluirImediatamente(lista);
+    return true;
+  };
+
   const duplicarFichasSelecionadas = async () => {
     if (!fichasSelecionadas.length || !confirm(`Duplicar ${fichasSelecionadas.length} ficha(s) selecionada(s)?`)) return;
     setProcessandoLote(true);
@@ -2794,7 +2806,7 @@ function FichasRunner() {
                  {podeImprimirFichas && <button onClick={() => abrirPreviaImpressao("livro")} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-transparent"><BookOpen size={15}/> Gerar livro</button>}
                  {podeImprimirFichas && <button onClick={() => { const lista = fichas.filter(f => selecionadas.includes(f.id)); if (lista.length) baixarPdfFichas(lista); }} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-transparent"><FileDown size={15}/> Exportar PDF</button>}
                  {podeEditarFichas && <button onClick={duplicarFichasSelecionadas} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-transparent disabled:opacity-50"><Copy size={15}/> Duplicar</button>}
-                  {podeEditarFichas && <button onClick={() => excluirImediatamente()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> {processandoLote ? "Excluindo..." : "Excluir"}</button>}
+                  {podeEditarFichas && <button onClick={() => pedirExclusao()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> {processandoLote ? "Excluindo..." : "Excluir"}</button>}
                  <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="hidden xl:flex p-2 rounded-lg bg-card text-fg hover:text-slate-800"><X size={16}/></button>
                </div>
              </div>
@@ -2852,8 +2864,12 @@ function FichasRunner() {
                       </span>
                     </button>
                     {podeEditarFichas && (
-                      <button type="button" onClick={() => abrirEditar(f)} aria-label={`Editar ${f.nome_receita}`}
-                        className="absolute right-2 top-2 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-hf-text shadow"><Edit3 size={16} /></button>
+                      <span className="absolute right-2 top-2 flex flex-col gap-1.5">
+                        <button type="button" onClick={() => abrirEditar(f)} aria-label={`Editar ${f.nome_receita}`}
+                          className="grid h-10 w-10 place-items-center rounded-full bg-white/90 text-hf-text shadow"><Edit3 size={16} /></button>
+                        <button type="button" onClick={() => pedirExclusao([f])} aria-label={`Excluir ${f.nome_receita}`}
+                          className="grid h-10 w-10 place-items-center rounded-full bg-white/90 text-red-600 shadow"><Trash2 size={16} /></button>
+                      </span>
                     )}
                   </li>
                 );
@@ -2904,7 +2920,7 @@ function FichasRunner() {
                                {podeImprimirFichas && <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><Printer size={14}/> Imprimir Ficha</button>}
                                {podeImprimirFichas && <button onClick={() => { setAcoesCardAberto(""); baixarPdfFichas([f]); }} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><FileDown size={14}/> Baixar PDF</button>}
                                {podeEditarFichas && <div className="h-px w-full bg-line-soft my-0.5"></div>}
-                               {podeEditarFichas && <button onClick={() => excluirImediatamente([f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 font-bold text-xs text-left flex items-center gap-2"><Trash2 size={14}/> Excluir Receita</button>}
+                               {podeEditarFichas && <button onClick={() => pedirExclusao([f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 font-bold text-xs text-left flex items-center gap-2"><Trash2 size={14}/> Excluir Receita</button>}
                              </div>
                            )}
                          </>
@@ -3197,6 +3213,7 @@ function FichasRunner() {
                               <button onClick={() => abrirSimulacao(f)} title="Simular rendimento" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-900 hover:border-emerald-400 flex items-center justify-center"><Calculator size={17} /></button>
                            </>
                         )}
+                        {podeEditarFichas && <button onClick={async () => { if (await pedirExclusao([f])) fechar(); }} title={f.eh_base ? "Excluir base" : "Excluir ficha"} aria-label={f.eh_base ? "Excluir base" : "Excluir ficha"} className="w-10 h-10 rounded-xl border border-red-200 bg-card text-red-600 hover:bg-red-50 flex items-center justify-center"><Trash2 size={17} /></button>}
                         {podeEditarFichas && <button onClick={() => { fechar(); abrirEditar(f); }} className="inline-flex items-center gap-2 rounded-xl bg-accent hover:bg-accent text-accent-fg font-black text-sm px-4 h-10 shadow-sm"><Edit3 size={16} /> Editar ficha</button>}
                      </div>
                   </div>

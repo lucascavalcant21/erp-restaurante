@@ -3250,35 +3250,8 @@ function FichasRunner() {
                      {/* COLUNA PRINCIPAL */}
                      <div className="flex flex-col gap-4 sm:gap-5">
                         {viewTab === "ficha" && (<>
-                        {/* INFORMAÇÕES GERAIS */}
-                        <div className="order-2 bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
-                           <p className="text-2xs font-bold uppercase tracking-widest text-accent mb-4">Informações gerais</p>
-                           <div className="flex flex-col sm:flex-row gap-4">
-                              <div className="grid grid-cols-2 gap-3 flex-1">
-                                 {[
-                                     ["Categoria", f.categoria || "—"],
-                                     ["Setor", setorTxt],
-                                     [tipoNoBar(f) === "produto" ? "Quantidade" : "Quantidade da receita", qtdMiuda(rend, labelUn)],
-                                     ...(podeVerCustos ? [[`1 ${labelUn} custa`, custoKg !== null ? fmtBRL(custoKg) : "—"]] : []),
-                                     ["Unidade padrão", labelUn],
-                                     ["Custo total", fmtBRL(custoTotal)],
-                                  ].map(([rot, val]) => (
-                                    <div key={rot} className="rounded-xl bg-transparent border border-line-soft px-3 py-2">
-                                       <p className="text-3xs font-bold uppercase tracking-wider text-subtle">{rot}</p>
-                                       <p className="text-sm font-black text-slate-800 mt-0.5 truncate">{val}</p>
-                                    </div>
-                                 ))}
-                              </div>
-                              {/* Sem foto, sem quadro (dono, 28/11/2026). */}
-                              {f.imagem ? (
-                                <div onClick={() => { if (podeEditarFichas) { fechar(); abrirEditar(f); } }} className="w-full sm:w-40 h-32 sm:h-auto shrink-0 rounded-2xl overflow-hidden bg-card border border-line cursor-pointer relative group">
-                                  <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
-                                  <div className="absolute inset-x-0 bottom-0 bg-slate-900/60 text-white text-3xs font-bold py-1 text-center opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"><Camera size={12} /> Alterar imagem</div>
-                                </div>
-                              ) : null}
-                           </div>
-                        </div>
-
+                        {/* "Informações gerais" saiu (dono, 28/11/2026): o que importa foi para
+                            o rodapé dos ingredientes e para o quadro Informações. */}
                         {/* INGREDIENTES E CUSTOS */}
                         {!f.produto_pronto && (
                         <div className="order-1 bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
@@ -3363,12 +3336,12 @@ function FichasRunner() {
                               </table>
                            </div>
                            {podeEditarFichas && <button onClick={() => { fechar(); abrirEditar(f); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 text-accent-strong font-black text-sm px-4 py-2.5 hover:bg-accent-soft"><Plus size={16} /> Adicionar ingrediente</button>}
-                           {podeVerCustos && (
-                           <div className="mt-4 pt-3 border-t border-line flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-sm">
-                              <span className="text-fg font-bold">Custo total da receita: <b className="text-accent font-black">{fmtBRL(custoTotal)}</b></span>
-                              {custoKg !== null && <span className="text-fg font-bold">1 {labelUn} custa: <b className="text-accent font-black">{fmtBRL(custoKg)}</b></span>}
+                           <div className="mt-4 pt-3 border-t border-line flex flex-col items-end gap-1 text-sm">
+                              {podeVerCustos && <span className="text-fg font-bold">Custo total da receita: <b className="text-accent font-black">{fmtBRL(custoTotal)}</b></span>}
+                              {podeVerCustos && custoKg !== null && <span className="text-fg font-bold">1 {labelUn} custa: <b className="text-accent font-black">{fmtBRL(custoKg)}</b></span>}
+                              {/* Rendimento logo abaixo (dono, 28/11/2026). */}
+                              <span className="text-fg font-bold">{tipoNoBar(f) === "produto" ? "Quantidade" : "Rende"}: <b className="text-slate-800 font-black">{nf(rend)} {labelUn}</b>{pesoPorcaoG > 0 ? <> · porção <b className="text-slate-800 font-black">{nf(pesoPorcaoG)} g</b></> : null}</span>
                            </div>
-                           )}
                         </div>
                         )}
                         </>)}
@@ -3484,54 +3457,50 @@ function FichasRunner() {
 
                      {/* SIDEBAR */}
                      <div className="space-y-4 lg:sticky lg:top-0">
-                        {/* RENDIMENTO E PORÇÕES */}
+                        {/* INFORMAÇÕES — um quadro só (dono, 28/11/2026: "tirar informações
+                            gerais e melhorar o informações adicionais para uma tela só"). */}
+                        {viewTab === "ficha" && (
                         <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
-                           <p className="text-2xs font-bold uppercase tracking-widest text-accent mb-3">Rendimento e porções</p>
-                           <div className="grid grid-cols-2 gap-3">
-                              <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Esta receita rende</p>
-                                 <p className="text-xl font-black text-accent">{nf(rend)} {labelUn}</p>
-                              </div>
-                              <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Peso total</p>
-                                 <p className="text-xl font-black text-accent">{padraoSetor.valor > 0 ? textoRendimentoPadronizado(f) : "—"}</p>
-                              </div>
-                           </div>
-                           <div className="flex items-center justify-between mt-3 text-sm">
-                              <span className="text-fg font-bold">Porção padrão</span>
-                              <span className="font-black text-slate-800">{pesoPorcaoG ? `${nf(pesoPorcaoG)} g` : "—"}</span>
-                           </div>
+                           <p className="text-2xs font-bold uppercase tracking-widest text-accent mb-2">Informações</p>
+                           {f.imagem ? (
+                             <div onClick={() => { if (podeEditarFichas) { fechar(); abrirEditar(f); } }} className="mb-3 h-40 w-full cursor-pointer overflow-hidden rounded-xl border border-line">
+                               <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="h-full w-full object-cover" />
+                             </div>
+                           ) : null}
+                           <dl className="divide-y divide-[color:var(--line-soft)] text-sm">
+                              {[
+                                 ["Categoria", f.categoria || "—"],
+                                 ["Setor", setorTxt],
+                                 [tipoNoBar(f) === "produto" ? "Quantidade" : "Rende", `${nf(rend)} ${labelUn}`],
+                                 ["Porção", pesoPorcaoG ? `${nf(pesoPorcaoG)} g` : "—"],
+                                 ["Tempo de preparo", f.tempo_preparo ? `${f.tempo_preparo} min` : "—"],
+                                 ["Validade", f.validade_dias ? `${f.validade_dias} dia${Number(f.validade_dias) !== 1 ? "s" : ""}` : "—"],
+                                 ...(metodoBar(f.metodo_bar) ? [["Método", metodoBar(f.metodo_bar).nome]] : []),
+                              ].map(([rot, val]) => (
+                                 <div key={rot} className="flex items-center justify-between gap-3 py-2">
+                                    <dt className="font-semibold text-fg">{rot}</dt>
+                                    <dd className="truncate font-black text-slate-800">{val}</dd>
+                                 </div>
+                              ))}
+                           </dl>
+                           {f.observacoes && <p className="mt-2 border-t border-line-soft pt-2 text-[13px] font-medium leading-relaxed text-fg">{f.observacoes}</p>}
                            {pesoPorcaoG > 0 && (
-                              <div className="mt-3 pt-3 border-t border-line-soft">
-                                 <p className="text-2xs font-bold text-fg-soft">Simulador de porções</p>
-                                 <p className="text-3xs font-medium text-subtle mb-2">Informe o peso disponível para ver quantas porções dá para servir.</p>
-                                 <div className="flex items-center gap-2">
-                                    <div className="flex-1 flex items-center rounded-xl border border-line bg-transparent overflow-hidden">
-                                       <input type="text" inputMode="decimal" value={simPesoView} onChange={e => setSimPesoView(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="Peso disponível" className="flex-1 min-w-0 px-3 py-2.5 bg-transparent font-black text-slate-800 outline-none" />
+                              <div className="mt-3 border-t border-line-soft pt-3">
+                                 <p className="text-2xs font-bold text-fg-soft">Quantas porções dá?</p>
+                                 <div className="mt-1 flex items-center gap-2">
+                                    <div className="flex flex-1 items-center overflow-hidden rounded-xl border border-line">
+                                       <input type="text" inputMode="decimal" value={simPesoView} onChange={e => setSimPesoView(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="Peso disponível" className="min-w-0 flex-1 bg-transparent px-3 py-2.5 font-black text-slate-800 outline-none" />
                                        <span className="px-3 text-xs font-bold text-subtle">g</span>
                                     </div>
                                     <div className="text-right">
-                                       <p className="text-lg font-black text-accent leading-none">{simN > 0 ? `${simPorcoes} porç.` : "—"}</p>
-                                       <p className="text-3xs font-bold text-subtle mt-0.5">{simN > 0 ? `sobra ${nf(simSobra)} g` : `de ${nf(pesoPorcaoG)} g`}</p>
+                                       <p className="text-lg font-black leading-none text-accent">{simN > 0 ? `${simPorcoes} porç.` : "—"}</p>
+                                       <p className="mt-0.5 text-3xs font-bold text-subtle">{simN > 0 ? `sobra ${nf(simSobra)} g` : `de ${nf(pesoPorcaoG)} g`}</p>
                                     </div>
                                  </div>
                               </div>
                            )}
                         </div>
-
-                        {/* O atalho para a Precificação saiu da ficha (dono, 28/11/2026:
-                            "isso não precisa estar na ficha"). */}
-
-                        {/* INFORMAÇÕES ADICIONAIS */}
-                        <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
-                           <p className="text-2xs font-bold uppercase tracking-widest text-accent mb-3">Informações adicionais</p>
-                           <div className="space-y-2 text-sm">
-                              <div className="flex items-center gap-2 text-slate-900"><Clock size={15} className="text-success shrink-0" /><span className="font-bold">Tempo de preparo:</span> <b className="text-slate-800">{f.tempo_preparo ? `${f.tempo_preparo} min` : "—"}</b></div>
-                              <div className="flex items-center gap-2 text-slate-900"><Thermometer size={15} className="text-success shrink-0" /><span className="font-bold">Validade:</span> <b className="text-slate-800">{f.validade_dias ? `${f.validade_dias} dia${Number(f.validade_dias) !== 1 ? "s" : ""}` : "—"}</b></div>
-                              {metodoBar(f.metodo_bar) && <div className="flex items-center gap-2 text-slate-900"><Wine size={15} className="text-success shrink-0" /><span className="font-bold">Método:</span> <b className="text-slate-800">{metodoBar(f.metodo_bar).nome}</b></div>}
-                              {f.observacoes && <p className="text-[13px] text-fg font-medium pt-1 leading-relaxed border-t border-line-soft mt-2">{f.observacoes}</p>}
-                           </div>
-                        </div>
+                        )}
                      </div>
                   </div>
                </div>
@@ -3553,7 +3522,7 @@ function FichasRunner() {
             <div className="grid gap-2.5 sm:grid-cols-2">
               <button onClick={() => { setModalEscolhaNovo(false); abrirNova(); }} className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-3 text-left text-orange-950 hover:border-orange-400">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-600 text-white"><Edit3 size={19}/></span>
-                <span><strong className="block text-sm font-black">Criar um {deptUrl === "bar" ? "drink" : "prato"}</strong><small className="mt-0.5 block font-semibold text-orange-700">Preencher a ficha completa agora</small></span>
+                <span><strong className="block text-sm font-black">Criar uma ficha</strong><small className="mt-0.5 block font-semibold text-orange-700">Preencher a ficha completa agora</small></span>
               </button>
               <button onClick={() => { setModalEscolhaNovo(false); setTitulosLote(""); setModalTitulosLote(true); }} className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-line bg-transparent p-3 text-left text-fg hover:border-orange-300">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-800 text-white"><LayoutList size={19}/></span>
@@ -3606,7 +3575,7 @@ function FichasRunner() {
                {/* HEADER DO MODAL */}
                <div className="flex justify-between items-center gap-3 p-4 sm:px-6 sm:py-5 border-b border-line-soft bg-card">
                   <div className="min-w-0">
-                     <p className={`text-3xs font-bold uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-accent"}`}>{form.eh_base ? "Base" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? (ingFicha.length === 1 ? "Produto (1 item)" : "Drink (receita)") : "Montagem de prato"}</p>
+                     <p className={`text-3xs font-bold uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-accent"}`}>{form.eh_base ? "Base" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? (form.so_produto || ingFicha.length === 1 ? "Produto" : "Drink") : "Prato"}</p>
                      <h2 className="font-black text-2xl sm:text-3xl text-slate-800">{form.id ? "Editar ficha técnica" : "Nova ficha técnica"}</h2>
                      <p className="text-sm font-bold text-fg mt-1">{ingFicha.length} ingrediente(s) · custo atual <span className="text-success font-black">{fmtBRL(custoTotalFormulario(ingFicha))}</span></p>
                   </div>
@@ -3644,25 +3613,33 @@ function FichasRunner() {
                            )}
                         </div>
                         <div className="flex-1">
-                           <label className="text-xs font-bold text-fg uppercase tracking-widest">{form.produto_pronto ? "Nome do produto" : "Nome da receita"}</label>
-                           <input type="text" placeholder={form.produto_pronto ? "Ex: Água sem gás 500 ml" : "Ex: Caipirinha de Morango"} value={form.nome_receita} onChange={e=>setForm({...form, nome_receita: e.target.value})} className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
+                           <label className="text-xs font-bold text-fg uppercase tracking-widest">{form.produto_pronto || form.so_produto ? "Nome do produto" : "Nome da receita"}</label>
+                           <input type="text" placeholder={form.produto_pronto || form.so_produto ? "Ex: Água com gás 500 ml" : deptUrl === "bar" ? "Ex: Caipirinha de Morango" : "Ex: Arroz branco"} value={form.nome_receita} onChange={e=>setForm({...form, nome_receita: e.target.value})} className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
                            {form.imagem && <button type="button" onClick={() => setForm({ ...form, imagem: "" })} className="text-2xs font-bold text-rose-500 hover:text-rose-600 mt-1.5">Remover foto</button>}
                         </div>
                      </div>
                      {/* Escolha principal, no mesmo padrão rápido do estoque */}
                      {!form.id ? <div>
                        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-fg">O que você vai cadastrar?</p>
-                       <div className="grid grid-cols-2 gap-3">
-                         <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "pre", categoria: categoriasPreparoDisponiveis.includes(form.categoria) ? form.categoria : categoriasPreparoDisponiveis[0] || "" })}
+                       <div className={`grid gap-3 ${deptUrl === "bar" ? "grid-cols-3" : "grid-cols-2"}`}>
+                         <button type="button" onClick={() => setForm({ ...form, so_produto: false, eh_base: true, produto_pronto: false, tipo_base: "pre", categoria: categoriasPreparoDisponiveis.includes(form.categoria) ? form.categoria : categoriasPreparoDisponiveis[0] || "" })}
                            className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${form.eh_base ? "border-amber-600 bg-amber-50 text-amber-900 shadow-lg shadow-amber-600/10" : "border-line bg-card text-fg hover:border-amber-300"}`}>
                            <BookOpen size={24} className={form.eh_base ? "text-amber-700" : "text-subtle"} />
                            <strong className="mt-2 block text-base">Base</strong><span className="block text-xs font-semibold">base usada em outras fichas</span>
                          </button>
-                         <button type="button" onClick={() => setForm({ ...form, eh_base: false, produto_pronto: false, tipo_base: null, categoria: categoriasPrincipaisDisponiveis.includes(form.categoria) ? form.categoria : "", modo_preparo: "" })}
-                           className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${!form.eh_base && !form.produto_pronto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-line bg-card text-fg hover:border-emerald-300"}`}>
-                           <UtensilsCrossed size={24} className={!form.eh_base && !form.produto_pronto ? "text-emerald-700" : "text-subtle"} />
-                           <strong className="mt-2 block text-base">{deptUrl === "bar" ? "Drink ou produto" : "Montagem de prato"}</strong><span className="block text-xs font-semibold">{deptUrl === "bar" ? "1 item = produto; 2 ou mais = drink" : "item final do cardápio"}</span>
+                         <button type="button" onClick={() => setForm({ ...form, so_produto: false, eh_base: false, produto_pronto: false, tipo_base: null, categoria: categoriasPrincipaisDisponiveis.includes(form.categoria) ? form.categoria : "", modo_preparo: "" })}
+                           className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${!form.eh_base && !form.produto_pronto && !form.so_produto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-line bg-card text-fg hover:border-emerald-300"}`}>
+                           <UtensilsCrossed size={24} className={!form.eh_base && !form.produto_pronto && !form.so_produto ? "text-emerald-700" : "text-subtle"} />
+                           <strong className="mt-2 block text-base">{deptUrl === "bar" ? "Drink" : "Prato"}</strong><span className="block text-xs font-semibold">{deptUrl === "bar" ? "receita com 2 ou mais itens" : "item final do cardápio"}</span>
                          </button>
+                         {/* Bar: só o produto, 1 item (dono, 28/11/2026). */}
+                         {deptUrl === "bar" && (
+                           <button type="button" onClick={() => { setForm({ ...form, so_produto: true, eh_base: false, produto_pronto: false, tipo_base: null, categoria: categoriasPrincipaisDisponiveis.includes(form.categoria) ? form.categoria : "", modo_preparo: "" }); if (ingFicha.length > 1) setIngFicha(ingFicha.slice(0, 1)); }}
+                             className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${form.so_produto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-line bg-card text-fg hover:border-emerald-300"}`}>
+                             <Package size={24} className={form.so_produto ? "text-emerald-700" : "text-subtle"} />
+                             <strong className="mt-2 block text-base">Produto</strong><span className="block text-xs font-semibold">só o produto, 1 item</span>
+                           </button>
+                         )}
                        </div>
                        {/* O botão "É um produto pronto" saiu daqui: garrafa, lata e
                            cerveja não são receituário e não aparecem mais na ficha
@@ -3696,7 +3673,7 @@ function FichasRunner() {
                      {!form.eh_base && !form.produto_pronto && (
                         <div>
                            <div className="flex items-center justify-between">
-                             <label className="text-xs font-bold text-fg uppercase tracking-widest">{deptUrl === "bar" ? "Categoria do drink" : "Categoria no cardápio"}</label>
+                             <label className="text-xs font-bold text-fg uppercase tracking-widest">{deptUrl === "bar" ? (form.so_produto ? "Categoria do produto" : "Categoria do drink") : "Categoria no cardápio"}</label>
                              <button
                                type="button"
                                onClick={() => { setModoFicha("principais"); setModalCategorias(true); }}
@@ -3736,8 +3713,11 @@ function FichasRunner() {
                            </span>
                         </div>
                      
+                        {form.so_produto && ingFicha.length >= 1 && (
+                           <p className="mb-4 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">Produto tem 1 item. Para mais itens, escolha Drink.</p>
+                        )}
                         {/* ADD INGREDIENTE — busca por digitação: a lista tem centenas de itens */}
-                        <div className="relative mb-4">
+                        <div className={`relative mb-4 ${form.so_produto && ingFicha.length >= 1 ? "hidden" : ""}`}>
                            <div className="flex items-center gap-2 rounded-xl border border-line bg-transparent px-3">
                               <Search size={17} className="shrink-0 text-subtle" />
                               <input value={buscaIng} onChange={e => setBuscaIng(e.target.value)}

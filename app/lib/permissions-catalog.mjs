@@ -204,6 +204,8 @@ export const PERMISSION_MODULES = [
       { id: "cmv", label: "CMV", route: "/dashboard/financeiro/cmv", actions: [...VIEW_EXPORT, "view_costs", "view_margin"] },
       // Resultado do mês: faturamento, custos um por um, CMO do RH, CMV das contagens, equilíbrio (27/10/2026).
       { id: "monthly_result", label: "Resultado do mês (lucro e ponto de equilíbrio)", route: "/dashboard/financeiro/resultado", actions: [...VIEW_EXPORT, "edit", "view_costs", "view_margin"] },
+      // Custo por dia: cada conta, pessoa e equipe por dia, venda mínima e simulador do dia (28/11/2026).
+      { id: "daily_cost", label: "Custo por dia", route: "/dashboard/financeiro/custo-do-dia", actions: [...VIEW_EXPORT, "view_costs"] },
       { id: "pizza_lucro", label: "Pizza do Lucro", route: "/dashboard/financeiro/pizza", actions: [...VIEW_EXPORT, "view_costs", "view_margin"] },
       { id: "fiscal", label: "Dados fiscais", route: "/dashboard/gestao/fiscal", actions: [...CRUD, "view_values", "settings"] },
     ],

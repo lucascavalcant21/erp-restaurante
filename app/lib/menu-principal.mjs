@@ -214,6 +214,7 @@ export const ADMIN_SECOES = Object.freeze([
     { area: "estoque" }, { area: "cardapio" },
   ] },
   { titulo: "Gestão", itens: [{ area: "financeiro" }, { area: "rh" },
+    { label: "Custo por dia", href: "/dashboard/financeiro/custo-do-dia", icone: "PiggyBank" },
     { label: "Ponto dos funcionários", href: "/dashboard/rh/ponto", icone: "Clock" }, { area: "eventos" }, { area: "marmitaria" }, { area: "inteligencia" }] },
   { titulo: "Acessos e sistema", itens: [
     { label: "Usuários e acessos", href: "/dashboard/configuracoes/usuarios", icone: "ShieldCheck" },

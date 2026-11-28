@@ -142,3 +142,9 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 - **Risco:** BAIXO (a chave só cria salas; fica só no servidor)
 - **Como validar depois:** na agenda, numa teleconsulta, "Criar sala" devolve o link e o médico vê o vídeo no Atendimento
 - **Estado:** PENDENTE
+
+## Repositório privado (27/11/2026)
+- **O quê:** tornar `lucascavalcant21/erp-restaurante` privado (achado S-35; autorizado pelo dono).
+- **Por que o agente não fez:** o proxy da sessão bloqueia escrita em configurações do repositório (HTTP 403).
+- **Como o dono faz:** GitHub → repositório → Settings → General → Danger Zone → Change repository visibility → Private.
+- A Vercel continua publicando: a integração do GitHub tem acesso a repositórios privados.

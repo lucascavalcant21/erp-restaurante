@@ -230,3 +230,16 @@ Decisões:
 - Branch `hefisto-teste` + Supabase `hefisto-staging` = **sistema novo do restaurante** (app "Héfisto Novo", selo "Sistema novo do restaurante" no login; empresa "Hefisto", unidade "Seldeestrela", Delivery, Eventos). O ambiente técnico segue `staging` (a trava contra o banco antigo continua).
 - `main` + app.hefisto.com.br + Supabase `sezccspqxgklicfndwxx` = sistema antigo: não recebe nada sem ordem expressa. Em 17/11 a publicação no antigo foi CANCELADA pelo dono (nenhum merge feito). O antigo não tem 6 migrações que o código novo usa (CONC-1, GASTOS-1, PLANO-DIA-1, PONTO-PIN-1, RH-FICHA-1, OP-CONTEUDO-1).
 - Um novo "sistema de teste" separado ainda não existe: criar quando o dono pedir.
+
+## DP-FIN-1 · Expansão financeira: decisões do dono (27/11/2026)
+
+Respostas às 4 perguntas da auditoria (`07_RELATORIOS/AUDITORIA_EXPANSAO_FINANCEIRA_2026-11-27.md`):
+
+1. **Perda:** "Eu cadastro o ingrediente e excluo na ficha, mas não do cadastro, só da receita."
+   - A perda oficial é a do cadastro do ingrediente e vale em todas as receitas.
+   - Na ficha ela pode ser tirada ou mudada **só naquela receita**, sem mexer no cadastro.
+   - Nunca as duas juntas.
+   - Hoje o código já usa a do cadastro (`fatorCorrecaoDoItem`); o ajuste por receita precisa da coluna `fichas_ingredientes.perda_receita_pct` (migração `db/FIN_EXP_0_PERDA_DA_RECEITA.sql`, escrita e **não aplicada**).
+2. **Taxas:** "Eles ficam na parte de precificação como no delivery." Taxa de app, de pagamento e impostos saem da ficha e ficam na precificação por canal. A ficha guarda só o custo.
+3. **Repositório privado:** autorizado pelo dono. O proxy da sessão não permite mudar configurações do repositório (HTTP 403), então o dono muda no GitHub (ver `ACESSOS_NECESSARIOS.md`).
+4. **Faturas:** o dono envia depois. Autorizou continuar ("continue e mude"). Fase 2 (motor central) iniciada.

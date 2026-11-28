@@ -52,7 +52,7 @@ export const MENU_PRINCIPAL = Object.freeze([
         { label: "Estoque da cozinha", desc: "Entrada e retirada", href: "/dashboard/operacao/estoque?area=cozinha", icone: "Package", curto: "Estoque" },
         { label: "Estoque de bases", desc: "Quanto tem pronto de cada base", href: "/dashboard/operacao/estoque-bases?dept=cozinha", icone: "Layers", curto: "Bases prontas" },
         { label: "Ingredientes", desc: "Produtos usados nas receitas", href: "/dashboard/operacao/ingredientes?dept=cozinha", icone: "Carrot" },
-        { label: "Lista de compras", desc: "Cotações e pedidos", href: "/dashboard/operacao/compras", icone: "ShoppingCart", curto: "Compras" },
+        { label: "Lista de compras", desc: "Pesquisa de preço por mercado", href: "/dashboard/operacao/lista-de-compras?dept=cozinha", icone: "ShoppingCart", curto: "Compras" },
       ] },
       { titulo: "Rotina da equipe", cards: [
         { label: "Checklist operacional", desc: "Abertura e fechamento", href: "/dashboard/operacao/rotina?dept=cozinha", icone: "CheckSquare", curto: "Checklists" },
@@ -91,7 +91,7 @@ export const MENU_PRINCIPAL = Object.freeze([
         { label: "Estoque do bar", desc: "Entrada e retirada", href: "/dashboard/operacao/estoque?area=bar", icone: "Package", curto: "Estoque" },
         { label: "Produtos do bar", desc: "Bebidas e insumos", href: "/dashboard/operacao/ingredientes?dept=bar", icone: "Wine", curto: "Produtos" },
         { label: "Estoque de bases", desc: "Xaropes e bases prontas", href: "/dashboard/operacao/estoque-bases?dept=bar", icone: "Layers", curto: "Bases prontas" },
-        { label: "Lista de compras", desc: "Cotações e pedidos", href: "/dashboard/operacao/compras", icone: "ShoppingCart", curto: "Compras" },
+        { label: "Lista de compras", desc: "Pesquisa de preço por mercado", href: "/dashboard/operacao/lista-de-compras?dept=bar", icone: "ShoppingCart", curto: "Compras" },
       ] },
       { titulo: "Rotina da equipe", cards: [
         { label: "Checklist operacional", desc: "Abertura e fechamento", href: "/dashboard/operacao/rotina?dept=bar", icone: "CheckSquare", curto: "Checklists" },

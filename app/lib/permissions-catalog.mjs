@@ -113,6 +113,8 @@ export const PERMISSION_MODULES = [
       { id: "recipes", label: "Fichas técnicas", route: "/dashboard/operacao/fichas?dept=cozinha", actions: [...CRUD, "view_costs", "print", "export"] },
       // Precificação separada da ficha, como no Delivery (dono, 27/11/2026).
       { id: "pricing", label: "Precificação (preço, CMV e lucro)", route: "/dashboard/operacao/precificacao?dept=cozinha", actions: ["view", "edit", "view_costs"] },
+      // Lista de compras com pesquisa de preço por lugar (dono, 28/11/2026).
+      { id: "shopping_list", label: "Lista de compras (pesquisa de preço)", route: "/dashboard/operacao/lista-de-compras?dept=cozinha", actions: ["view", "create", "edit", "view_costs"] },
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem?dept=cozinha", actions: [...CRUD, "print"] },
       { id: "portioning", label: "Porcionamento (gramas no prato)", route: "/dashboard/operacao/posicionamento", actions: [...CRUD, "print"] },
       { id: "brines", label: "Calculadora de salmoura", route: "/dashboard/operacao/salmouras", actions: CRUD },
@@ -143,6 +145,7 @@ export const PERMISSION_MODULES = [
       { id: "notes", label: "Anotações do bar", route: "/dashboard/operacao/anotacoes?dept=bar", actions: ["view", "create"] },
       { id: "recipes", label: "Fichas de drinks", route: "/dashboard/operacao/fichas?dept=bar", actions: [...CRUD, "view_costs", "print"] },
       { id: "pricing", label: "Precificação dos drinks", route: "/dashboard/operacao/precificacao?dept=bar", actions: ["view", "edit", "view_costs"] },
+      { id: "shopping_list", label: "Lista de compras do bar (pesquisa de preço)", route: "/dashboard/operacao/lista-de-compras?dept=bar", actions: ["view", "create", "edit", "view_costs"] },
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem?dept=bar", actions: [...CRUD, "print"] },
       { id: "production", label: "Produção do dia", route: "/dashboard/operacao/producao?dept=bar", actions: ["view", "create", "edit", "confirm", "cancel"] },
       // Cobre por prefixo /dashboard/bar/producao e /dashboard/bar/tablet.
@@ -213,7 +216,8 @@ export const PERMISSION_MODULES = [
   {
     id: "compras", label: "Compras",
     pages: [
-      { id: "orders", label: "Lista de compras", route: "/dashboard/operacao/compras", actions: [...CRUD, "approve", "reject", "confirm", "view_costs", "export"] },
+      { id: "price_research", label: "Lista de compras com pesquisa de preço", route: "/dashboard/operacao/lista-de-compras", actions: ["view", "create", "edit", "view_costs"] },
+      { id: "orders", label: "Pedidos aos fornecedores", route: "/dashboard/operacao/compras", actions: [...CRUD, "approve", "reject", "confirm", "view_costs", "export"] },
       { id: "invoices", label: "Entrada de notas", route: "/dashboard/operacao/notas", actions: [...CRUD, "confirm", "cancel", "view_costs"] },
       { id: "suppliers", label: "Fornecedores", route: "/dashboard/operacao/fornecedores", actions: CRUD },
     ],

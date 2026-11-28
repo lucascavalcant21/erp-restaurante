@@ -29,7 +29,7 @@ import { baixarPdfDeHtml } from "../../../../lib/pdf";
 import { logoSeldeestrelaSVG } from "../../../../lib/marca";
 import {
   TIPOS_FICHA, tipoFichaDe, estiloDoTipo, dadosDaFicha, podeVerCustosFicha, podeEditarFicha, podeImprimirFicha, categoriasDoTipo,
-  comCustoDeEmbalagens, custoPorPorcaoDaFicha, textoDeInstrucoes, ingredientesDaFicha, linhasDeArmazenamento, textoRendimento,
+  comCustoDeEmbalagens, embalagensComPrecoDoCadastro, custoPorPorcaoDaFicha, textoDeInstrucoes, ingredientesDaFicha, linhasDeArmazenamento, textoRendimento,
   textoRendimentoPrato,
   validadePrincipal, STATUS_FICHA,
 } from "../../../../lib/ficha-modelo.mjs";
@@ -108,7 +108,9 @@ export default function FichaTecnicaPage() {
     ]);
     const produtosCarregados = resProdutos.data || [];
     // Mesma conta da listagem: o custo da embalagem do cardápio entra no CMV.
-    const fichasComCusto = comCustoDeEmbalagens(lista.data || [], produtosCarregados, resEmbalagensEstoque.data || []);
+    // Preço da embalagem = o do cadastro de ingredientes ligado (dono, 28/11/2026).
+    const embalagensComPreco = embalagensComPrecoDoCadastro(resEmbalagensEstoque.data || [], resEmbalagens.data || []);
+    const fichasComCusto = comCustoDeEmbalagens(lista.data || [], produtosCarregados, embalagensComPreco);
     setTodasFichas(fichasComCusto);
     setProdutos(produtosCarregados);
     setInsumos(resInsumos.data || []);

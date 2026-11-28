@@ -442,3 +442,15 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Status:** APLICADA em 17/11/2026 (dono: "E pode criar as tabelas"). TESTADO NO SUPABASE REAL (teste)
 - **Criado em:** 2026-11-17
 - **Chave:** migracao:db/GASTOS_1_GASTOS_DETALHADOS.sql
+
+### APR-031 · APLICADA
+
+- **Missão:** Lista de compras com pesquisa de preço por lugar (pedido do dono, 28/11/2026)
+- **Ação:** Aplicar db/COMPRAS_COT_1_PESQUISA_DE_PRECO.sql no banco do restaurante (sezccspqxgklicfndwxx)
+- **Ambiente:** supabase (produção)
+- **Risco:** LOW (só aditiva: tabela compras_cotacoes com RLS pelo ingrediente, sem DELETE, só a escolha muda)
+- **Rollback:** no cabeçalho do arquivo (apaga o histórico de pesquisas; não rodar sem o dono)
+- **Evidências:** PGlite 13/13 (`app/lib/cotacoes-banco.test.mjs`). Impressão digital 872b950502869b0f1cbe6af70858aa6d igual no PGlite e no banco real; RLS ligado, 3 políticas, anon sem acesso. Teste como o dono dentro de transação desfeita: grava com a unidade do ingrediente, escolha grava a hora, preço não se altera, DELETE bloqueado; depois do teste, 0 linhas
+- **Status:** APLICADA em 28/11/2026 (dono: "Pode aplicar"). TESTADO NO SUPABASE REAL
+- **Criado em:** 2026-11-28
+- **Chave:** migracao:db/COMPRAS_COT_1_PESQUISA_DE_PRECO.sql

@@ -108,10 +108,16 @@ export default function CommandCenterModal({ isOpen, onClose, sessao }) {
       return [{ id: "resultados", titulo: r.comando ? `Abrir “${r.termo || "…"}”` : "Resultados", itens: r.itens }];
     }
     if (modo === "explorar") return explorar(acessiveis, negocio).map((g) => ({ id: g.area, titulo: g.area, itens: g.itens }));
-    const inicio = montarInicio({ acessiveis, favoritos: prefs.favoritos, recentes: prefs.recentes, uso: prefs.uso, unidadeId: negocio });
+    // Início e Menu já estão na barra de baixo: não ocupam atalho (dono,
+    // 28/11/2026: "melhorar essa tela de pesquisa"). Abaixo dos atalhos e dos
+    // recentes, todas as telas por área, sem precisar tocar em "ver todas".
+    const daBarra = (i) => ["/dashboard", "/dashboard/menu"].includes(String(i?.route || "").split("?")[0]);
+    const semBarra = acessiveis.filter((i) => !daBarra(i));
+    const inicio = montarInicio({ acessiveis: semBarra, favoritos: prefs.favoritos.filter((i) => !daBarra(i)), recentes: prefs.recentes.filter((i) => !daBarra(i)), uso: prefs.uso, unidadeId: negocio });
     return [
-      { id: "atalhos", titulo: "Atalhos", grade: true, itens: inicio.atalhos },
+      { id: "atalhos", titulo: "Mais usados", grade: true, itens: inicio.atalhos },
       ...(inicio.recentes.length ? [{ id: "recentes", titulo: "Recentes", itens: inicio.recentes }] : []),
+      ...explorar(semBarra, negocio).map((g) => ({ id: `area-${g.area}`, titulo: g.area, itens: g.itens })),
     ];
   }, [consulta, modo, sessao, prefs, acessiveis, negocio]);
 
@@ -209,9 +215,7 @@ export default function CommandCenterModal({ isOpen, onClose, sessao }) {
         {/* Rodapé */}
         <div className="flex min-h-[48px] items-center justify-between gap-3 border-t border-hf-border px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 text-xs text-hf-muted sm:px-4">
           {modo === "inicio" && !consulta ? (
-            <button type="button" onClick={() => { setModo("explorar"); setSel(0); inputRef.current?.focus(); }} className="inline-flex items-center gap-1.5 font-semibold text-hf-text-2 hover:text-hf-text">
-              <Compass size={15} />Ver todas as telas <span className="text-hf-muted">({acessiveis.length})</span>
-            </button>
+            <span className="inline-flex items-center gap-1.5"><Compass size={15} />{acessiveis.length} telas · digite para buscar</span>
           ) : <span>{planos.length} {planos.length === 1 ? "item" : "itens"}</span>}
           <span className="hidden items-center gap-3 sm:flex">
             <span className="inline-flex items-center gap-1"><ArrowUp size={11} /><ArrowDown size={11} />navegar</span>

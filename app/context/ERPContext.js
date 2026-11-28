@@ -12,6 +12,7 @@ import { supabase, isSupabaseReady } from "../lib/supabase.js";
 import { iniciarTempoReal } from "../lib/realtime";
 import { inicioDaArea } from "../lib/menu-principal.mjs";
 import { lerOrigem } from "../lib/universo-origem";
+import { atualizarPilha, temTelaAnterior } from "../lib/navegacao-pilha.mjs";
 
 const UNIDADE_KEY = "erp_unidade_ativa";
 const MAX_NOTIFICACOES_MEMORIA = 150;
@@ -96,9 +97,26 @@ export function ERPProvider({ children }) {
   const [sessao,       setSessao]            = useState(null);
   const [megaMenuOpen, setMegaMenuOpen]      = useState(false);
 
+  // Telas abertas nesta sessão: o "voltar" leva à tela anterior de verdade
+  // (dono, 28/11/2026: "toda vez que apertar em voltar ele volta para a tela
+  // do administrador").
+  useEffect(() => {
+    if (!pathname) return;
+    try {
+      const atual = pathname + (window.location.search || "");
+      const pilha = JSON.parse(sessionStorage.getItem("hf_nav_pilha") || "[]");
+      sessionStorage.setItem("hf_nav_pilha", JSON.stringify(atualizarPilha(pilha, atual)));
+    } catch { /* sem armazenamento: o voltar usa a área */ }
+  }, [pathname]);
+
   const abrirMenu = useCallback(() => {
     setMegaMenuOpen(false);
-    // a tela de cards do universo de origem, ou a página da área no menu
+    try {
+      const pilha = JSON.parse(sessionStorage.getItem("hf_nav_pilha") || "[]");
+      if (temTelaAnterior(pilha)) { router.push(pilha[pilha.length - 2]); return; }
+    } catch { /* segue para a área */ }
+    // sem tela anterior (link aberto direto): a tela de cards do universo de
+    // origem, ou a página da área no menu
     router.push(inicioDaArea(pathname, { search: window.location.search, origem: lerOrigem() }));
   }, [pathname, router]);
 

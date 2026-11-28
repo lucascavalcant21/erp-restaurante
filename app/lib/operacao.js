@@ -784,3 +784,16 @@ export async function trocarNasFichas(campo, deId, paraId) {
   const { data, error } = await supabase.from("fichas_ingredientes").update({ [campo]: paraId }).eq(campo, deId).select("ficha_id");
   return { error: error?.message || null, quantidade: (data || []).length };
 }
+
+// Histórico de preço de TODOS os ingredientes da unidade, só com o que a
+// oscilação do custo do prato precisa (custo-prato-historico.mjs). Sem o
+// limite de 400 do fetchHistoricoPrecos: o gráfico precisa do começo.
+export async function fetchHistoricoPrecosParaCusto(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  const { data, error } = await supabase.from("insumos_precos_historico")
+    .select("insumo_id, created_at, preco_normalizado_anterior, preco_normalizado_novo")
+    .eq("unidade_id", unidadeId)
+    .order("created_at", { ascending: true })
+    .limit(10000);
+  return { data: data || [], error: error?.message };
+}

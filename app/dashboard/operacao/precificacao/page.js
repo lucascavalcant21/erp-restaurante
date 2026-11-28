@@ -12,7 +12,11 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { BarChart3, Check, ChevronDown, Loader2, Search } from "lucide-react";
+import { BarChart3, Check, ChevronDown, Loader2, PieChart, Search } from "lucide-react";
+import ComposicaoDoPreco from "../../../components/precificacao/ComposicaoDoPreco";
+import CustoNoTempo from "../../../components/precificacao/CustoNoTempo";
+import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
+import { pesosDaEquipeNoMes } from "../../../lib/custo-do-dia.mjs";
 import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
@@ -23,6 +27,7 @@ import { podeEditarFicha, podeVerCustosFicha } from "../../../lib/ficha-modelo.m
 import { fmtReais } from "../../../lib/valor-percentual.mjs";
 import { salvarPrecoDaFicha } from "../../../lib/preco-da-ficha";
 import { casaBusca } from "../../../lib/busca.mjs";
+import { tipoNoBar, ROTULO_NO_BAR } from "../../../lib/ficha-calculos.mjs";
 import { supabase, isSupabaseReady } from "../../../lib/supabase";
 import { centavos, compararCanais, regrasDoCanalDelivery, regrasDoSalao, textoReais } from "../../../lib/financeiro/motor/index.mjs";
 
@@ -43,6 +48,17 @@ function Precificacao() {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("todos");
   const [taxasAbertas, setTaxasAbertas] = useState(false);
+  // Equipe para abrir o CMO pessoa por pessoa na composição (dono, 28/11/2026).
+  const [equipe, setEquipe] = useState({ colaboradores: [], recibos: [] });
+  useEffect(() => {
+    if (!podeVer || !unidadeAtiva || unidadeAtiva === "todas") return;
+    let vivo = true;
+    Promise.all([fetchColaboradores(unidadeAtiva), fetchRecibosPrestacaoUnidade(unidadeAtiva)])
+      .then(([c, r]) => { if (vivo) setEquipe({ colaboradores: c.data || [], recibos: r.data || [] }); })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [podeVer, unidadeAtiva]);
+  const pesosEquipe = useMemo(() => pesosDaEquipeNoMes({ ...equipe, encargosPct: params.encargos_folha_pct }), [equipe, params.encargos_folha_pct]);
   // Apps configurados no Delivery (comparação de canais, fase 4 da expansão):
   // a config desta unidade, ou a de outra unidade da empresa, rotulada.
   const [apps, setApps] = useState({ canais: [], tributosPct: 0, origem: null });
@@ -111,10 +127,10 @@ function Precificacao() {
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={dept === "bar" ? "Procurar drink" : "Procurar prato"} aria-label="Procurar" className="min-w-0 flex-1 bg-transparent text-[16px] outline-none" />
         </label>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {[["todos", "Todos"], ["sem_preco", "Sem preço"], ["cmv_alto", "CMV acima da meta"]].map(([id, rot]) => (
+      <div className="grid grid-cols-3 gap-2">
+        {[["todos", "Todos"], ["sem_preco", "Sem preço"], ["cmv_alto", "CMV alto"]].map(([id, rot]) => (
           <button key={id} type="button" onClick={() => setFiltro(id)} aria-pressed={filtro === id}
-            className={`min-h-[40px] rounded-full px-4 text-sm font-semibold ${filtro === id ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2"}`}>
+            className={`min-h-[40px] rounded-full px-2 text-sm font-semibold ${filtro === id ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text-2"}`}>
             {rot} <span className="opacity-60">({contagem[id]})</span>
           </button>
         ))}
@@ -128,7 +144,7 @@ function Precificacao() {
       ) : (
         <ul className="space-y-2">
           {visiveis.map(({ f, r }) => (
-            <LinhaPreco key={f.id} ficha={f} r={r} podeEditar={podeEditar} unidadeId={unidadeAtiva} params={params} apps={apps} fichas={fichas} produtos={produtos}
+            <LinhaPreco key={f.id} ficha={f} r={r} podeEditar={podeEditar} unidadeId={unidadeAtiva} params={params} apps={apps} fichas={fichas} produtos={produtos} pesosEquipe={pesosEquipe}
               onSalvo={(preco, produtoId) => setProdutos((lista) => produtosComPrecoSalvo(lista, { produtoId, fichaId: f.id, nome: f.nome_receita, preco }))} />
           ))}
         </ul>
@@ -137,8 +153,9 @@ function Precificacao() {
   );
 }
 
-function LinhaPreco({ ficha, r: rSalvo, podeEditar, unidadeId, onSalvo, params, apps, fichas, produtos }) {
+function LinhaPreco({ ficha, r: rSalvo, podeEditar, unidadeId, onSalvo, params, apps, fichas, produtos, pesosEquipe }) {
   const [comparar, setComparar] = useState(false);
+  const [composicao, setComposicao] = useState(false);
   const [valor, setValor] = useState(rSalvo.preco > 0 ? String(rSalvo.preco.toFixed(2)).replace(".", ",") : "");
   // Enquanto digita, CMV, sobra e comparação já mostram o preço novo (dono,
   // 28/11/2026: "quando digito o preço não muda automaticamente"). Só grava
@@ -162,17 +179,16 @@ function LinhaPreco({ ficha, r: rSalvo, podeEditar, unidadeId, onSalvo, params, 
     setMsg("Salvo");
     window.setTimeout(() => setMsg(""), 2000);
   };
+  const aba = composicao ? "dinheiro" : comparar ? "canais" : null;
+  const abrir = (id) => { setComposicao(id === "dinheiro" && aba !== "dinheiro"); setComparar(id === "canais" && aba !== "canais"); };
+  const meta = r.meta || 30;
+  const sugeridoDifere = r.precoSugerido > 0 && Math.abs(r.precoSugerido - (num(valor) || 0)) / r.precoSugerido > 0.01;
   return (
     <li className="rounded-2xl border border-hf-border bg-hf-surface p-3">
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-black leading-snug text-hf-text">{ficha.nome_receita}</p>
-          <p className="mt-0.5 text-xs font-semibold text-hf-text-2">
-            Custo {r.cmvValor > 0 ? fmtReais(r.cmvValor) : "—"}
-            {" · "}<span className={cmvAlto ? "text-hf-danger" : ""}>CMV {pct(r.cmvPct)}</span>
-            {margem ? ` · Sobra ${fmtReais(margem.valor)}` : ""}
-          </p>
-        </div>
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={() => abrir("dinheiro")} aria-expanded={composicao}
+          className="min-w-0 flex-1 text-left text-[15px] font-black leading-snug text-hf-text">{ficha.nome_receita}
+          {tipoNoBar(ficha) && <span className="ml-1.5 align-middle rounded-full bg-hf-elevated px-2 py-0.5 text-[10px] font-bold uppercase text-hf-text-2">{ROTULO_NO_BAR[tipoNoBar(ficha)]}</span>}</button>
         <div className="flex shrink-0 items-center gap-1.5">
           <span className="text-sm font-bold text-hf-muted">R$</span>
           <input value={valor} disabled={!podeEditar || salvando} inputMode="decimal" aria-label={`Preço de ${ficha.nome_receita}`}
@@ -185,21 +201,52 @@ function LinhaPreco({ ficha, r: rSalvo, podeEditar, unidadeId, onSalvo, params, 
           )}
         </div>
       </div>
-      {(r.precoSugerido > 0 || msg) && (
+
+      {/* Os três números que importam, lado a lado. */}
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        <div className="rounded-xl bg-hf-elevated px-2 py-1.5">
+          <p className="text-[11px] font-semibold text-hf-muted">Custo</p>
+          <p className="text-sm font-black tabular-nums text-hf-text">{r.cmvValor > 0 ? fmtReais(r.cmvValor) : "—"}</p>
+        </div>
+        <div className={`rounded-xl px-2 py-1.5 ${cmvAlto ? "bg-hf-danger/10" : "bg-hf-elevated"}`}>
+          <p className="text-[11px] font-semibold text-hf-muted">CMV</p>
+          <p className={`text-sm font-black tabular-nums ${cmvAlto ? "text-hf-danger" : "text-hf-text"}`}>{pct(r.cmvPct)} <span className="text-[10px] font-semibold text-hf-muted">meta {meta}%</span></p>
+        </div>
+        <div className="rounded-xl bg-hf-elevated px-2 py-1.5">
+          <p className="text-[11px] font-semibold text-hf-muted">Sobra</p>
+          <p className={`text-sm font-black tabular-nums ${margem && margem.valor < 0 ? "text-hf-danger" : "text-hf-text"}`}>{margem ? fmtReais(margem.valor) : "—"}</p>
+        </div>
+      </div>
+
+      {(sugeridoDifere || msg) && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          {r.precoSugerido > 0 && (
+          {sugeridoDifere && (
             <button type="button" disabled={!podeEditar} onClick={() => setValor(String(r.precoSugerido.toFixed(2)).replace(".", ","))}
-              className="rounded-full bg-hf-elevated px-3 py-1.5 font-bold text-hf-text-2">
-              Sugerido {fmtReais(r.precoSugerido)}{r.metaLucro ? ` (lucro ${r.metaLucro}%)` : ""} · usar
+              className="rounded-full bg-hf-elevated px-3 py-1.5 text-left font-semibold text-hf-text-2">
+              Preço para lucro de {r.metaLucro || 0}%: <b className="text-hf-text">{fmtReais(r.precoSugerido)}</b>
+              {(num(valor) || 0) > r.precoSugerido ? " (o seu dá mais)" : ""} · <span className="underline">usar</span>
             </button>
           )}
           {msg && <span className={`font-bold ${msg === "Salvo" ? "text-hf-success" : "text-hf-danger"}`}>{msg}</span>}
         </div>
       )}
-      <button type="button" onClick={() => setComparar((v) => !v)} aria-expanded={comparar}
-        className="mt-2 inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-hf-border px-3 text-xs font-bold text-hf-text-2">
-        <BarChart3 size={14} /> {comparar ? "Fechar comparação" : "Comparar canais"}
-      </button>
+
+      {/* Abas: uma aberta por vez. */}
+      <div className="mt-2 grid grid-cols-2 gap-1 rounded-full bg-hf-elevated p-1">
+        {[["dinheiro", PieChart, "Para onde vai"], ["canais", BarChart3, "Canais"]].map(([id, Ic, rot]) => (
+          <button key={id} type="button" onClick={() => abrir(id)} aria-pressed={aba === id}
+            className={`inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-full text-xs font-bold ${aba === id ? "bg-hf-menu text-white" : "text-hf-text-2"}`}>
+            <Ic size={14} /> {rot}
+          </button>
+        ))}
+      </div>
+      {composicao && <ComposicaoDoPreco c={r.composicao} pesosEquipe={pesosEquipe} />}
+      {composicao && (
+        <div className="mt-2 rounded-xl border border-hf-border bg-hf-bg p-3">
+          <p className="mb-1 text-sm font-bold text-hf-text">Custo do prato no tempo</p>
+          <CustoNoTempo ficha={ficha} fichas={fichas} produtos={produtos} params={params} unidadeId={unidadeId} precoVenda={r.preco} metaCmv={r.meta || 30} />
+        </div>
+      )}
       {comparar && <ComparacaoCanais r={r} params={params} apps={apps} precoAtual={num(valor) || r.preco} />}
     </li>
   );
@@ -217,33 +264,48 @@ function ComparacaoCanais({ r, params, apps, precoAtual }) {
   const m = num(margem);
   const lista = compararCanais({ custoC, canais, margemPct: m });
   if (!custoC) return <p className="mt-2 rounded-xl bg-hf-elevated px-3 py-2 text-xs font-semibold text-hf-text-2">DADOS INSUFICIENTES: a ficha ainda não tem custo.</p>;
+  const melhor = lista.filter((c) => c.margemAtualC !== null).sort((x, y) => y.margemAtualC - x.margemAtualC)[0];
   return (
-    <div className="mt-2 rounded-xl bg-hf-elevated p-3">
+    <div className="mt-2 space-y-2 rounded-xl bg-hf-elevated p-3">
+      <p className="text-xs text-hf-text-2">Vendendo a <b className="text-hf-text">{textoReais(centavos(precoAtual))}</b>, quanto sobra em cada canal depois do custo e das taxas.</p>
+      <ul className="space-y-2">
+        {lista.map((c) => {
+          const desligado = /\(desligado no Delivery\)/.test(c.nome);
+          const nome = c.nome.replace(" (desligado no Delivery)", "");
+          const negativo = c.margemAtualC !== null && c.margemAtualC < 0;
+          return (
+            <li key={c.id} className={`rounded-xl border bg-hf-surface p-2.5 ${melhor && c.id === melhor.id ? "border-hf-success" : "border-hf-border"}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-1.5 text-sm font-black text-hf-text">
+                    {nome}
+                    {melhor && c.id === melhor.id ? <span className="rounded-full bg-hf-success/15 px-2 py-0.5 text-[10px] font-bold text-hf-success">Sobra mais</span> : null}
+                    {desligado ? <span className="rounded-full bg-hf-elevated px-2 py-0.5 text-[10px] font-bold text-hf-muted">desligado</span> : null}
+                  </p>
+                  <p className="text-[11px] text-hf-muted">Taxas {c.taxasAtuaisC !== null ? textoReais(c.taxasAtuaisC) : "—"}{c.natureza === "HIPÓTESE" ? " (pela fatura)" : ""}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className={`text-base font-black tabular-nums ${negativo ? "text-hf-danger" : "text-hf-text"}`}>{c.margemAtualC !== null ? textoReais(c.margemAtualC) : "sem preço"}</p>
+                  <p className="text-[11px] tabular-nums text-hf-muted">{c.margemAtualC !== null ? `sobra ${pct(c.margemAtualPct)}` : ""}</p>
+                </div>
+              </div>
+              <p className="mt-1 border-t border-hf-border pt-1 text-[11px] text-hf-text-2">
+                {c.preco.status === "OK"
+                  ? <>{m ? `Para sobrar ${pct(m)}` : "Sem prejuízo"} a partir de <b>{textoReais(c.preco.minimoC)}</b> · preço redondo <b>{textoReais(c.preco.comercialC)}</b></>
+                  : c.preco.status === "INVIAVEL" ? "Com essa sobra não existe preço possível neste canal." : "Falta dado para o preço mínimo."}
+                {c.abaixoDoMinimo ? <span className="font-bold text-hf-danger"> · seu preço está abaixo</span> : null}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
       <label className="flex items-center justify-between gap-2 text-xs font-semibold text-hf-text-2">
         Quero que sobre (% da venda)
         <input value={margem} onChange={(e) => setMargem(e.target.value.replace(/[^0-9.,]/g, ""))} inputMode="decimal" placeholder="ex.: 30"
           className="h-10 w-20 rounded-lg border border-hf-border bg-hf-surface px-2 text-right text-[16px] font-bold text-hf-text outline-none" />
       </label>
-      <ul className="mt-2 divide-y divide-hf-border">
-        {lista.map((c) => (
-          <li key={c.id} className="py-2 text-xs">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-black text-hf-text">{c.nome}</span>
-              <span className={`font-bold tabular-nums ${c.margemAtualC !== null && c.margemAtualC < 0 ? "text-hf-danger" : "text-hf-text"}`}>
-                {c.margemAtualC !== null ? `sobra ${textoReais(c.margemAtualC)} (${pct(c.margemAtualPct)})` : "sem preço"}
-              </span>
-            </div>
-            <p className="mt-0.5 text-hf-text-2">
-              {c.taxasAtuaisC !== null ? `Taxas ${textoReais(c.taxasAtuaisC)}` : ""}
-              {c.preco.status === "OK" ? ` · mínimo ${textoReais(c.preco.minimoC)} · sugerido ${textoReais(c.preco.comercialC)}` : c.preco.status === "INVIAVEL" ? " · com essa margem não existe preço possível" : m === null ? "" : " · falta dado"}
-              {c.abaixoDoMinimo ? " · abaixo do mínimo" : ""}
-              {c.natureza === "HIPÓTESE" ? " · taxa da fatura" : ""}
-            </p>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-1 text-[11px] text-hf-muted">
-        ESTIMATIVA com o preço de hoje em todos os canais.{apps.canais.length ? ` Taxas dos apps: as configuradas no Delivery${apps.origem ? ` (unidade ${apps.origem})` : ""}.` : " Nenhum app configurado no Delivery."}
+      <p className="text-[11px] text-hf-muted">
+        ESTIMATIVA: sobra = preço − custo − taxas, antes de equipe, aluguel e lucro.{apps.canais.length ? ` Taxas dos apps: as configuradas no Delivery${apps.origem ? ` (unidade ${apps.origem})` : ""}.` : " Nenhum app configurado no Delivery."}
       </p>
     </div>
   );

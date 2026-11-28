@@ -206,3 +206,48 @@ export function oQueAVendaPagou({ venda = 0, sobraPct = 0, linhas = [] } = {}) {
     situacao: vendaC <= 0 ? "sem_venda" : custoDiaC - pagoC > 0 ? "faltou" : resta > 0 ? "lucro" : "empatou",
   };
 }
+
+/* CMO pessoa por pessoa (dono, 28/11/2026: "dentro do CMO a porcentagem de
+ * cada funcionário cadastrado ou extra também").
+ *
+ * Peso de cada pessoa no mês: contratado = salário + vale + taxa de serviço +
+ * encargos; extra = diárias PAGAS a ele no mês (recibos). O CMO que cabe num
+ * produto é repartido por esses pesos, em centavos, somando exatamente o
+ * valor do grupo. É ESTIMATIVA: o peso vem do cadastro e dos recibos de hoje.
+ */
+export function pesosDaEquipeNoMes({ colaboradores = [], recibos = [], encargosPct = 0, referencia = new Date() } = {}) {
+  const ref = new Date(referencia);
+  const de = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, "0")}-01`;
+  const ate = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, "0")}-31`;
+  const pagoNoMes = new Map();
+  for (const r of recibos || []) {
+    if (!r?.pagamento_realizado || !r.colaborador_id) continue;
+    const d = String(r.data_pagamento || r.data_trabalho || "").slice(0, 10);
+    if (d < de || d > ate) continue;
+    pagoNoMes.set(r.colaborador_id, (pagoNoMes.get(r.colaborador_id) || 0) + pos(r.valor_total));
+  }
+  const enc = pos(encargosPct);
+  const pessoas = [];
+  for (const c of colaboradores || []) {
+    if (!c || !ativo(c)) continue;
+    const base = { id: c.id, nome: c.nome || "Sem nome", cargo: c.cargo || "", extra: ehExtra(c) };
+    const mes = ehExtra(c)
+      ? pagoNoMes.get(c.id) || 0
+      : pos(c.salario) > 0 ? pos(c.salario) + pos(c.vale_alimentacao) + pos(c.taxa_servico_mes) + (pos(c.salario) * enc) / 100 : 0;
+    if (mes > 0) pessoas.push({ ...base, mes });
+  }
+  return pessoas.sort((a, b) => b.mes - a.mes);
+}
+
+/** Reparte `valorC` centavos pelos pesos `mes` (maior resto): soma exata. */
+export function repartirPorPeso(valorC, pessoas = []) {
+  const total = (pessoas || []).reduce((s, p) => s + pos(p.mes), 0);
+  const v = Math.round(num(valorC));
+  if (!(total > 0) || v === 0) return (pessoas || []).map((p) => ({ ...p, centavos: 0, parte: 0 }));
+  const exatos = pessoas.map((p) => (v * pos(p.mes)) / total);
+  const base = exatos.map((x) => Math.floor(x));
+  let falta = v - base.reduce((s, x) => s + x, 0);
+  const ordem = exatos.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0]);
+  for (let k = 0; falta > 0; k = (k + 1) % ordem.length, falta--) base[ordem[k][1]]++;
+  return pessoas.map((p, i) => ({ ...p, centavos: base[i], parte: (pos(p.mes) / total) * 100 }));
+}

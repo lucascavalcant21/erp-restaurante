@@ -789,3 +789,20 @@ export function entraNoReceituario(ficha) {
   if (tipo !== "prato" && tipo !== "pre_preparo") return false;
   return String(ficha?.status || "ativa").toLowerCase() !== "inativa";
 }
+
+/* O preço da embalagem vem do cadastro de ingredientes (dono, 28/11/2026:
+ * "isso aqui vem do cadastro de embalagens que é igual ao cadastro de
+ * ingredientes"). A embalagem do estoque (operacao_embalagens) continua sendo
+ * a referência do produto e da baixa na venda; só o PREÇO passa a ser o do
+ * ingrediente ligado (insumo_id), por unidade da embalagem de compra. Sem
+ * ingrediente ligado ou sem preço nele, fica o preço antigo. */
+export function embalagensComPrecoDoCadastro(embalagens = [], insumos = []) {
+  const porId = new Map((insumos || []).map((i) => [String(i.id), i]));
+  return (embalagens || []).map((e) => {
+    const i = e?.insumo_id ? porId.get(String(e.insumo_id)) : null;
+    const valor = Number(i?.custo_compra) || 0;
+    const tam = Number(i?.tamanho_embalagem) > 0 ? Number(i.tamanho_embalagem) : 1;
+    if (!(valor > 0)) return { ...e, preco_do_cadastro: false };
+    return { ...e, preco_unitario: valor / tam, preco_do_cadastro: true, marca: e.marca || i.marca || null };
+  });
+}

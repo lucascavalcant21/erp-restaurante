@@ -116,3 +116,27 @@ test("simulador: passou do custo vira lucro do dia", () => {
   assert.equal(r.faltouC, 0);
   assert.equal(oQueAVendaPagou({ venda: 0, sobraPct: 61, linhas: [] }).situacao, "sem_venda");
 });
+
+import { pesosDaEquipeNoMes, repartirPorPeso } from "./custo-do-dia.mjs";
+
+test("peso de cada pessoa no mês: contratado pelo cadastro, extra pelas diárias pagas", () => {
+  const p = pesosDaEquipeNoMes({
+    colaboradores: equipe,
+    recibos: [
+      { colaborador_id: "c", valor_total: 130, pagamento_realizado: true, data_pagamento: "2026-11-05" },
+      { colaborador_id: "c", valor_total: 130, pagamento_realizado: true, data_pagamento: "2026-11-12" },
+      { colaborador_id: "c", valor_total: 130, pagamento_realizado: false, data_pagamento: "2026-11-19" },
+      { colaborador_id: "c", valor_total: 130, pagamento_realizado: true, data_pagamento: "2026-10-30" },
+    ],
+    referencia: new Date("2026-11-28T12:00:00"),
+  });
+  assert.deepEqual(p.map((x) => [x.id, x.mes]), [["a", 2600], ["f", 1560], ["b", 1300], ["c", 260]]);
+});
+
+test("repartir o CMO do produto por pessoa soma exatamente", () => {
+  const r = repartirPorPeso(1001, [{ id: "a", mes: 1 }, { id: "b", mes: 1 }, { id: "c", mes: 1 }]);
+  assert.equal(r.reduce((s, x) => s + x.centavos, 0), 1001);
+  assert.deepEqual(r.map((x) => x.centavos), [334, 334, 333]);
+  assert.equal(Number(r[0].parte.toFixed(2)), 33.33);
+  assert.deepEqual(repartirPorPeso(500, []).length, 0);
+});

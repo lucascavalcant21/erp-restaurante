@@ -43,6 +43,8 @@ const POR_ICONE = Object.freeze({
   Lock: "grafite", Printer: "ciano", Flame: "laranja",
   // Menu: ponto dos funcionários (24/11/2026)
   Clock: "azul",
+  // Precificação dos pratos e drinks (27/11/2026)
+  Calculator: "verde",
 });
 
 /** Tom do ícone de um card ou área do menu: `cor` explícita vence o ícone. */

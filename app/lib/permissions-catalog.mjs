@@ -111,6 +111,8 @@ export const PERMISSION_MODULES = [
       { id: "search", label: "Busca da cozinha", route: "/dashboard/operacao/consulta?dept=cozinha", actions: ["view"] },
       { id: "notes", label: "Anotações da cozinha", route: "/dashboard/operacao/anotacoes?dept=cozinha", actions: ["view", "create"] },
       { id: "recipes", label: "Fichas técnicas", route: "/dashboard/operacao/fichas?dept=cozinha", actions: [...CRUD, "view_costs", "print", "export"] },
+      // Precificação separada da ficha, como no Delivery (dono, 27/11/2026).
+      { id: "pricing", label: "Precificação (preço, CMV e lucro)", route: "/dashboard/operacao/precificacao?dept=cozinha", actions: ["view", "edit", "view_costs"] },
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem?dept=cozinha", actions: [...CRUD, "print"] },
       { id: "portioning", label: "Porcionamento (gramas no prato)", route: "/dashboard/operacao/posicionamento", actions: [...CRUD, "print"] },
       { id: "brines", label: "Calculadora de salmoura", route: "/dashboard/operacao/salmouras", actions: CRUD },
@@ -140,6 +142,7 @@ export const PERMISSION_MODULES = [
       { id: "search", label: "Busca do bar", route: "/dashboard/operacao/consulta?dept=bar", actions: ["view"] },
       { id: "notes", label: "Anotações do bar", route: "/dashboard/operacao/anotacoes?dept=bar", actions: ["view", "create"] },
       { id: "recipes", label: "Fichas de drinks", route: "/dashboard/operacao/fichas?dept=bar", actions: [...CRUD, "view_costs", "print"] },
+      { id: "pricing", label: "Precificação dos drinks", route: "/dashboard/operacao/precificacao?dept=bar", actions: ["view", "edit", "view_costs"] },
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem?dept=bar", actions: [...CRUD, "print"] },
       { id: "production", label: "Produção do dia", route: "/dashboard/operacao/producao?dept=bar", actions: ["view", "create", "edit", "confirm", "cancel"] },
       // Cobre por prefixo /dashboard/bar/producao e /dashboard/bar/tablet.
@@ -227,6 +230,7 @@ export const PERMISSION_MODULES = [
       { id: "search", label: "Busca da equipe (todas as áreas)", route: "/dashboard/operacao/consulta", actions: ["view"] },
       { id: "notes", label: "Anotações da equipe (todas as áreas)", route: "/dashboard/operacao/anotacoes", actions: ["view", "create"] },
       { id: "recipes", label: "Fichas técnicas", route: "/dashboard/operacao/fichas", actions: [...CRUD, "view_costs", "view_margin", "print", "export", "import"] },
+      { id: "pricing", label: "Precificação", route: "/dashboard/operacao/precificacao", actions: ["view", "edit", "view_costs"] },
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem", actions: [...CRUD, "print"] },
     ],
   },

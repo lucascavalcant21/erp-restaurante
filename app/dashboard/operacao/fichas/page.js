@@ -56,6 +56,7 @@ import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
 import { fetchCategoriasFichas, salvarCategoriasFichas, fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
+import CustoNoTempo from "../../../components/precificacao/CustoNoTempo";
 import PizzaDoPrato from "./PizzaDoPrato";
 import CardFicha from "./componentes/CardFicha";
 import { resumoFinanceiroDaFicha, produtosComPrecoSalvo } from "../../../lib/ficha-financeiro.mjs";
@@ -98,7 +99,7 @@ import {
 import { fatorCorrecaoDoItem, rendimentoDoInsumo } from "../../../lib/custo-rendimento.mjs";
 // O editor trabalha em kg/L; a ficha grava na unidade do cadastro do insumo
 // (g/ml × 1000). A mesma conversão do editor novo (ficha-salvar.js).
-import { quantidadeParaGravar } from "../../../lib/ficha-modelo.mjs";
+import { quantidadeParaGravar, embalagensComPrecoDoCadastro } from "../../../lib/ficha-modelo.mjs";
 import CampoDecimal from "../../../components/CampoDecimal";
 import { fetchComSessao } from "../../../lib/api-sessao.js";
 import { casaBusca } from "../../../lib/busca.mjs";
@@ -485,6 +486,9 @@ function FichasRunner() {
   // Calculadora de desmembramento (digita uma quantidade, vê custo/peso/unidades)
   const [calcQtd, setCalcQtd] = useState("");
   const [calcUn, setCalcUn] = useState("g");
+  // Rendimento manual digitado em g/ml (dono, 28/11/2026: "medido em kg não
+  // consigo mudar para grama"). Só a tela muda: o banco guarda em kg/L.
+  const [rendMiudo, setRendMiudo] = useState(false);
 
   // Ingredientes da ficha. Cada item tem `chave` (insumo_id OU subficha_id),
   // `tipo` ('insumo'|'base'), `custo_unitario` (por unidade-base) e `unidade`.
@@ -719,7 +723,8 @@ function FichasRunner() {
        fetchEmbalagens(unidadeAtiva, deptUrl),
     ]);
     const produtosCarregados = resProd.data || [];
-    const embalagensCarregadas = resEstoqueEmbalagens.data || [];
+    // Preço da embalagem = o do cadastro de ingredientes ligado (dono, 28/11/2026).
+    const embalagensCarregadas = embalagensComPrecoDoCadastro(resEstoqueEmbalagens.data || [], resEmbalagens.data || []);
     const fichasComEmbalagens = (resFichas.data || []).map(ficha => {
       const produto = produtosCarregados.find(item => item.ficha_id === ficha.id);
       const embalagensProduto = Array.isArray(produto?.embalagens) ? produto.embalagens : [];
@@ -741,7 +746,7 @@ function FichasRunner() {
     setProdutos(produtosCarregados);
     setMontagens(resMontagens.data || []);
     setEmbalagensCat(resEmbalagens.data || []);
-    setEmbalagensEstoque(resEstoqueEmbalagens.data || []);
+    setEmbalagensEstoque(embalagensCarregadas);
     setLoading(false);
   };
 
@@ -1123,10 +1128,6 @@ function FichasRunner() {
     setNovaEmbalagem({ nome: "", custo: "" });
     setIaExplicacao("");
     setModalNovo(true);
-  };
-
-  const irSecaoEditorFicha = (id) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // ── Histórico de custos da ficha aberta em visualização ──
@@ -3400,6 +3401,14 @@ function FichasRunner() {
                         {/* ABA: HISTÓRICO DE CUSTOS */}
                         {viewTab === "custos" && (
                            <div className="space-y-4 sm:space-y-5">
+                              {/* Oscilação do custo do prato, reconstruída do histórico de preço
+                                  dos ingredientes (dono, 28/11/2026). */}
+                              {!f.eh_base && podeVerCustos && (
+                                <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
+                                  <p className="mb-2 text-2xs font-bold uppercase tracking-widest text-accent">Custo por porção mês a mês</p>
+                                  <CustoNoTempo ficha={f} fichas={fichas} produtos={produtos} params={paramsSis} unidadeId={unidadeAtiva} />
+                                </div>
+                              )}
                               {/* Linha do tempo */}
                               <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                                  <div className="flex items-center justify-between gap-2 mb-3">
@@ -3607,15 +3616,7 @@ function FichasRunner() {
                   <button onClick={() => { if (form.nome_receita?.trim() || ingFicha.length) { if (!confirm("Fechar sem salvar? O que você montou nesta ficha será descartado.")) return; } rascunhoFicha.descartar(); setModalNovo(false); }} aria-label="Fechar a ficha" className="w-12 h-12 shrink-0 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={21}/></button>
                </div>
 
-               <nav className="grid shrink-0 grid-cols-2 gap-2 border-b border-line-soft bg-transparent px-4 py-3 sm:flex sm:flex-wrap sm:px-6">
-                  {[
-                    ["ficha-dados", "1. Dados", !!form.nome_receita],
-                    ["ficha-ingredientes", "2. Ingredientes", form.produto_pronto || ingFicha.length > 0],
-                    ["ficha-rendimento", "3. Rendimento", !!form.rendimento_porcoes],
-                    ...(!form.eh_base && !form.produto_pronto ? [["ficha-custos", "4. Porção e custo", ingFicha.length > 0]] : []),
-                    ...(form.eh_base ? [["ficha-preparo", "4. Preparo", !!form.modo_preparo]] : []),
-                  ].map(([id, label, completo]) => <button key={id} type="button" onClick={() => irSecaoEditorFicha(id)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl border bg-card px-3 text-xs font-bold transition-colors ${completo ? "border-emerald-200 text-accent" : "border-line text-fg hover:border-emerald-300"}`}><span className={`h-2 w-2 rounded-full ${completo ? "bg-emerald-500" : "bg-slate-300"}`} />{label}</button>)}
-               </nav>
+               {/* A barra de passos (1. Dados … 4.) saiu (dono, 28/11/2026: "Tirar isso"). */}
 
                {/* BODY DO MODAL COM SCROLL */}
                <div className="flex-1 overflow-y-auto p-4 sm:p-7 bg-slate-50 custom-scrollbar">
@@ -3670,16 +3671,7 @@ function FichasRunner() {
                            cerveja não são receituário e não aparecem mais na ficha
                            técnica. Criar por aqui só geraria registro invisível.
                            Esses itens se cadastram no Cardápio e no Estoque. */}
-                     </div> : (
-                       <div className={`flex items-center gap-3 rounded-2xl border p-4 ${form.eh_base ? "border-amber-200 bg-amber-50" : form.produto_pronto ? "border-orange-200 bg-orange-50" : "border-emerald-200 bg-emerald-50"}`}>
-                         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-accent-fg ${form.eh_base ? "bg-amber-600" : form.produto_pronto ? "bg-orange-600" : "bg-accent"}`}>{form.eh_base ? <BookOpen size={21} /> : form.produto_pronto ? <Package size={21} /> : <UtensilsCrossed size={21} />}</span>
-                         <div>
-                           <p className="text-2xs font-bold uppercase tracking-widest text-fg">Tipo da ficha</p>
-                           <p className="text-base font-black text-fg">{form.eh_base ? "Base" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
-                           <p className="text-xs font-semibold text-fg">O tipo é definido no cadastro e não precisa ser escolhido novamente ao editar.</p>
-                         </div>
-                       </div>
-                     )}
+                     </div> : null /* Ao editar, o cartão "Tipo da ficha" saiu (dono, 28/11/2026: "Tirar isso"). */}
                       {form.produto_pronto && (
                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Tipo de produto pronto</label>
@@ -3976,18 +3968,41 @@ function FichasRunner() {
                         <div className="grid grid-cols-2 gap-3">
                            <div>
                               <label className="text-3xs font-bold text-subtle uppercase tracking-widest">Rendimento</label>
-                              <input type="number" step="0.01" placeholder="Ex: 80" value={form.rendimento_porcoes} onChange={e=>{
-                                 setForm({...form, rendimento_porcoes: e.target.value});
+                              <input type="number" step="0.01" placeholder={rendMiudo ? "Ex: 2500" : "Ex: 2,5"}
+                                 value={rendMiudo ? (form.rendimento_porcoes === "" || form.rendimento_porcoes == null ? "" : String(+(Number(form.rendimento_porcoes) * 1000).toFixed(3))) : form.rendimento_porcoes}
+                                 onChange={e=>{
+                                 const v = e.target.value;
+                                 setForm({...form, rendimento_porcoes: rendMiudo && v !== "" ? String(+(Number(v) / 1000).toFixed(6)) : v});
                                  setAutoSoma(false);
                               }} className="w-full p-3 mt-1 bg-transparent border border-line rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
                            </div>
                            <div>
                               <label className="text-3xs font-bold text-subtle uppercase tracking-widest">Medido em</label>
-                              <select value={unidadePadraoDepartamento(form.departamento || deptUrl)} disabled className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-black text-fg-soft outline-none disabled:opacity-100">
-                                 {unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? <option value="l">L (padrão do bar)</option> : <option value="kg">kg (padrão da cozinha)</option>}
+                              {/* Digita em g/ml se quiser; o banco guarda em kg/L, a unidade
+                                  em que as outras fichas usam esta base. */}
+                              <select value={rendMiudo ? "miudo" : "padrao"} onChange={e => setRendMiudo(e.target.value === "miudo")} className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-black text-fg-soft outline-none">
+                                 {unidadePadraoDepartamento(form.departamento || deptUrl) === "l"
+                                   ? <><option value="padrao">L</option><option value="miudo">ml</option></>
+                                   : <><option value="padrao">kg</option><option value="miudo">g</option></>}
                               </select>
                            </div>
                         </div>
+                        {(() => {
+                           // Rendimento muito maior que o peso dos ingredientes: quase
+                           // sempre foi digitado em gramas no campo de kg.
+                           const est = rendimentoPelosIngredientes(ingFicha, form.departamento || deptUrl);
+                           const r = Number(form.rendimento_porcoes) || 0;
+                           const somaKg = est ? est.totalG / 1000 : 0;
+                           if (!(somaKg > 0) || r <= somaKg * 50) return null;
+                           const corrigido = +(r / 1000).toFixed(3);
+                           const un = unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? "L" : "kg";
+                           return (
+                              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-bold text-amber-900">
+                                 Rende {r.toLocaleString("pt-BR")} {un}, mas os ingredientes somam {somaKg.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} {un}. Foi digitado em {un === "L" ? "ml" : "gramas"}?
+                                 <button type="button" onClick={() => setForm(f => ({ ...f, rendimento_porcoes: String(corrigido) }))} className="ml-1.5 underline">Usar {corrigido.toLocaleString("pt-BR")} {un}</button>
+                              </div>
+                           );
+                        })()}
 
                         {/* Resumo em UMA linha do que isso significa */}
                         {(() => {
@@ -4155,7 +4170,7 @@ function FichasRunner() {
                               return <div key={emb.id} className={`rounded-xl border p-3 ${selecionada ? "border-pink-400 bg-pink-50" : "border-line bg-transparent"}`}>
                                  <button type="button" onClick={() => alternarEmbalagemFicha(emb.id)} className="flex w-full items-center gap-2 text-left">
                                     <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${selecionada ? "bg-pink-600 text-white" : "bg-card text-subtle"}`}>{selecionada ? <CheckSquare2 size={16}/> : <Package size={16}/>}</span>
-                                    <span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-800">{emb.nome}</strong><small className="font-bold text-fg">{fmtBRL(emb.preco_unitario)} cada · saldo {Number(emb.quantidade_atual) || 0}</small></span>
+                                    <span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-800">{emb.nome}</strong><small className="font-bold text-fg">{fmtBRL(emb.preco_unitario)} cada{emb.preco_do_cadastro ? "" : " · sem preço no cadastro"}</small></span>
                                  </button>
                                  {selecionada && <label className="mt-2 flex items-center justify-between gap-2 border-t border-pink-200 pt-2 text-xs font-bold text-pink-800"><span>Quantidade por venda</span><input type="number" min="0.01" step="0.01" value={selecionada.qtd} onChange={e => alterarQuantidadeEmbalagem(emb.id, e.target.value)} className="h-9 w-24 rounded-lg border border-pink-300 bg-card px-2 text-right font-black outline-none" /></label>}
                               </div>;
@@ -4198,13 +4213,12 @@ function FichasRunner() {
 
                         return (
                            <div id="ficha-custos" className="bg-card border-2 border-emerald-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
-                              <div className="flex items-center justify-between mb-3">
-                                <p className="text-xs font-black uppercase tracking-widest text-emerald-800">Porção e custo</p>
-                                <span className="text-3xs font-bold text-fg bg-slate-100 px-2.5 py-1 rounded-full">Recálculo automático</span>
-                              </div>
+                              {/* Só o peso da porção (dono, 28/11/2026: "Tirar isso"; o resto
+                                  — preço, CMV e custo — fica na Precificação). */}
+                              <p className="mb-2 text-xs font-black uppercase tracking-widest text-emerald-800">Porção</p>
 
                               {/* Entradas Editáveis da Ficha */}
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                  <div>
                                     <label className="text-3xs font-bold text-fg uppercase tracking-widest">Peso da porção (g)</label>
                                     <input type="text" inputMode="decimal" placeholder="Receita inteira" value={form.peso_porcao_g ?? ""}
@@ -4215,37 +4229,16 @@ function FichasRunner() {
                                       {Number(form.peso_porcao_g) > 0 ? " (rendimento ÷ peso da porção)" : form.eh_base ? " (custo por unidade do rendimento)" : " — vazio: a receita inteira é uma porção"}
                                     </span>
                                  </div>
-                                 <div>
-                                    <label className="text-3xs font-bold text-fg uppercase tracking-widest">Embalagem (R$ / porção)</label>
+                                 {/* Campo antigo: a embalagem vem da lista de Embalagens. Só aparece
+                                     na ficha que ainda tem valor nele, para poder zerar. */}
+                                 {Number(String(form.custo_embalagem || "").replace(",", ".")) > 0 && <div>
+                                    <label className="text-3xs font-bold text-fg uppercase tracking-widest">Embalagem antiga (R$ / porção)</label>
                                     <CampoDecimal placeholder="0,00" value={form.custo_embalagem} onChange={e => setForm({ ...form, custo_embalagem: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2.5 mt-1 bg-transparent border border-line rounded-xl font-bold text-sm outline-none focus:border-emerald-500" />
-                                 </div>
+                                    <span className="mt-1 block text-3xs font-medium text-fg">Use a lista de Embalagens acima e deixe este em 0,00.</span>
+                                 </div>}
 
                               </div>
 
-                              {/* Preço, CMV, maquininha e imposto saíram da ficha: ficam na
-                                  Precificação, como no Delivery (dono, 27/11/2026; DP-FIN-1). */}
-                              {!form.eh_base && (
-                                <a href={`/dashboard/operacao/precificacao?dept=${form.departamento === "bar" ? "bar" : "cozinha"}`}
-                                  className="mb-3 flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-line bg-transparent px-3 py-2 text-sm font-bold text-slate-800 hover:border-emerald-400">
-                                  <span>Preço de venda, CMV e lucro ficam em <b>Precificação</b></span><span aria-hidden="true">→</span>
-                                </a>
-                              )}
-
-                              {/* Custo da porção (o preço e o lucro estão na Precificação) */}
-                              <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-200 p-3">
-                                <div className="rounded-lg border border-line bg-card p-2 text-center">
-                                  <p className="text-3xs font-bold uppercase text-fg">Ingredientes</p>
-                                  <p className="text-xs font-black text-slate-800">{fmtBRL(finModal.custoIngredientesPorPorcao)}</p>
-                                </div>
-                                <div className="rounded-lg border border-line bg-card p-2 text-center">
-                                  <p className="text-3xs font-bold uppercase text-fg">Embalagem</p>
-                                  <p className="text-xs font-black text-slate-800">{fmtBRL(finModal.custoEmbalagemPorPorcao)}</p>
-                                </div>
-                                <div className="rounded-lg border border-emerald-200 bg-card p-2 text-center">
-                                  <p className="text-3xs font-bold uppercase text-fg">Custo da porção</p>
-                                  <p className="text-sm font-black text-slate-900">{fmtBRL((finModal.custoIngredientesPorPorcao || 0) + (finModal.custoEmbalagemPorPorcao || 0))}</p>
-                                </div>
-                              </div>
                            </div>
                         );
                      })()}

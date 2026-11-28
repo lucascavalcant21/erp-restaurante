@@ -100,15 +100,23 @@ export function despesasOperacionaisDoMes(params = {}) {
 // ─── Rateio ─────────────────────────────────────────────────────────────────
 
 export function baseDoRateio(params = {}) {
+  const pratos = pos(params.dias_operacao_mes) * pos(params.pratos_por_dia);
   if (num(params.rateio_por_faturamento) === 1) {
     const faturamento = pos(params.faturamento_mes_ref);
-    return faturamento > 0
-      ? { metodo: "faturamento", ok: true, faturamento,
-          descricao: "proporcional ao preço: custo do mês ÷ faturamento do mês" }
-      : { metodo: "faturamento", ok: false,
-          motivo: "Rateio por faturamento sem faturamento mensal de referência: informe-o em Financeiro → Pizza do Lucro." };
+    if (faturamento > 0) {
+      return { metodo: "faturamento", ok: true, faturamento,
+        descricao: "proporcional ao preço: custo do mês ÷ faturamento do mês" };
+    }
+    // Sem faturamento de referência, mas com dias e pratos por dia: rateia por
+    // prato e diz isso (dono, 28/11/2026: a composição do produto não pode
+    // ficar com CMO, fixos e pró-labore zerados por falta de um número).
+    if (pratos > 0) {
+      return { metodo: "prato", ok: true, pratos, substituto: true,
+        descricao: `por prato (sem faturamento de referência): custo do mês ÷ ${pratos.toLocaleString("pt-BR")} pratos no mês` };
+    }
+    return { metodo: "faturamento", ok: false,
+      motivo: "Rateio por faturamento sem faturamento mensal de referência: informe-o em Financeiro → Pizza do Lucro." };
   }
-  const pratos = pos(params.dias_operacao_mes) * pos(params.pratos_por_dia);
   return pratos > 0
     ? { metodo: "prato", ok: true, pratos,
         descricao: `por prato: custo do mês ÷ ${pratos.toLocaleString("pt-BR")} pratos no mês` }

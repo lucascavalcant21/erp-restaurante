@@ -951,13 +951,14 @@ function IngredientesRunner() {
           />
         </div>
         <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 pb-4 sm:px-6 lg:px-8">
-          <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
-            <label className="flex min-w-0 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 transition-all focus-within:border-hf-accent focus-within:ring-4 focus-within:ring-hf-accent/20 sm:w-[500px]">
+          {/* Celular: só a busca e o Novo (dono, 28/11/2026: "Tire isso tudo", como nas fichas). */}
+          <div className="erp-busca-fixa flex flex-row gap-2 sm:gap-3">
+            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 transition-all focus-within:border-hf-accent focus-within:ring-4 focus-within:ring-hf-accent/20 sm:w-[500px] sm:flex-none">
               <Search size={19} className="shrink-0 text-fg-soft font-bold" />
               <input
                 value={busca}
                 onChange={event => setBusca(event.target.value)}
-                placeholder={`Buscar ${rotuloItem} por nome, marca, fornecedor...`}
+                placeholder={`Buscar ${rotuloItem}`}
                 className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-fg outline-none placeholder:font-medium placeholder:text-subtle"
               />
               {busca && (
@@ -969,11 +970,11 @@ function IngredientesRunner() {
             {/* Ação principal primeiro; importar e voz lado a lado, menores (dono, 24/11/2026: "como as marmitas") */}
             <button
               onClick={abrirNovo}
-              className="order-first flex h-12 items-center justify-center gap-2 rounded-full bg-hf-accent px-5 text-base font-semibold text-hf-accent-fg shadow-none transition sm:order-none sm:h-11 sm:text-sm"
+              className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-hf-accent px-4 text-sm font-semibold text-hf-accent-fg shadow-none transition sm:px-5"
             >
-              <Plus size={18} /> Novo {rotuloItem}
+              <Plus size={18} /> Novo<span className="hidden sm:inline"> {rotuloItem}</span>
             </button>
-            <div className="grid grid-cols-2 gap-2 sm:flex">
+            <div className="hidden gap-2 lg:flex">
               <button
                 onClick={() => { setModalMigrar(true); setItensMigracao([]); setMigrarTexto(""); setMigrarArquivos([]); setOrigemMigracaoVoz(false); setRespostaVozIngredientes(""); }}
                 className="flex h-11 items-center justify-center gap-2 rounded-full border border-hf-border bg-hf-surface px-4 text-sm font-semibold text-hf-text shadow-none transition hover:bg-hf-elevated"
@@ -1025,14 +1026,17 @@ function IngredientesRunner() {
           })}
         </section>
 
-        {/* No celular e tablet, os números viram uma linha de atalhos */}
-        <div className="flex flex-wrap gap-2 pb-1 lg:hidden">
-          <button type="button" onClick={() => setBusca("")} className="min-h-[40px] shrink-0 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text"><b>{estatisticas.total}</b> {rotuloItens}</button>
-          <button type="button" onClick={() => setOrdenacao("recentes")} className="min-h-[40px] shrink-0 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text-2"><b className="text-hf-warning">{estatisticas.semPreco}</b> sem preço recente</button>
-          <button type="button" onClick={() => router.push(`/dashboard/operacao/estoque?dept=${deptUrl || "cozinha"}`)} className="min-h-[40px] shrink-0 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text-2"><b className={estatisticas.abaixoMinimo ? "text-hf-danger" : ""}>{estatisticas.abaixoMinimo}</b> abaixo do mínimo</button>
-        </div>
-        <section className="mt-3 flex flex-col gap-2 rounded-xl border border-line bg-card p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2">
+        <section className="flex gap-2 rounded-xl lg:mt-3 lg:flex-row lg:items-center lg:justify-between lg:border lg:border-line lg:bg-card lg:p-2 lg:shadow-sm">
+          {/* Celular: categoria num seletor, sem a grade de botões. */}
+          <select
+            value={categoria}
+            onChange={event => setCategoria(event.target.value)}
+            className="h-11 min-w-0 flex-1 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text lg:hidden"
+            aria-label="Categoria"
+          >
+            {["Todas", ...categorias].map(item => <option key={item} value={item}>{item === "Todas" ? "Categoria: todas" : item}</option>)}
+          </select>
+          <div className="hidden flex-wrap gap-2 lg:flex">
             {["Todas", ...categorias].map(item => (
               <button
                 key={item}
@@ -1048,7 +1052,7 @@ function IngredientesRunner() {
           <select
             value={ordenacao}
             onChange={event => setOrdenacao(event.target.value)}
-            className="h-9 rounded-lg border border-line bg-card px-3 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500"
+            className="h-11 min-w-0 flex-1 rounded-xl border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text outline-none focus:border-hf-accent lg:h-9 lg:flex-none lg:rounded-lg lg:text-xs lg:font-bold"
             aria-label={`Ordenação dos ${rotuloItens}`}
           >
             {ORDENACOES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}

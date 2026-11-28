@@ -332,3 +332,12 @@ test("abrir e gravar devolve a quantidade na unidade do cadastro (g, ml, kg, L, 
     assert.equal(Math.round(quantidadeParaGravar(noEditor, u) * 1000) / 1000, q, `${q} ${u}`);
   }
 });
+
+import { embalagensComPrecoDoCadastro } from "./ficha-modelo.mjs";
+test("embalagem usa o preço do cadastro de ingredientes ligado", () => {
+  const r = embalagensComPrecoDoCadastro(
+    [{ id: "e1", insumo_id: "i1", preco_unitario: 1 }, { id: "e2", insumo_id: "i2", preco_unitario: 0.6 }, { id: "e3", preco_unitario: 2 }],
+    [{ id: "i1", custo_compra: 90, tamanho_embalagem: 100 }, { id: "i2", custo_compra: 0 }],
+  );
+  assert.deepEqual(r.map((e) => [e.preco_unitario, e.preco_do_cadastro]), [[0.9, true], [0.6, false], [2, false]]);
+});

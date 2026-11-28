@@ -8,3 +8,4 @@ export * from "./resultado.mjs";
 export * from "./preco.mjs";
 export * from "./promocao.mjs";
 export * from "./custo.mjs";
+export * from "./canais.mjs";

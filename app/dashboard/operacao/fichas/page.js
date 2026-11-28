@@ -84,7 +84,7 @@ import {
  *
  * Os apelidos preservam os nomes usados nesta tela: sao 22 pontos de chamada,
  * e renomear todos e como se cria `ReferenceError` de identificador orfao. */
-import { modosDeLancamento, modoInicial, pesosDoInsumo } from "../../../lib/ficha-calculos.mjs";
+import { modosDeLancamento, modoInicial, pesosDoInsumo, tipoNoBar, ROTULO_NO_BAR } from "../../../lib/ficha-calculos.mjs";
 import {
   converterParaBaseDoInsumo as converterParaBase,
   custoUnitarioEfetivoInsumo as custoUnitEfetivo,
@@ -2111,7 +2111,7 @@ function FichasRunner() {
 
       const foto = incluir("foto") && f.imagem
          ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto-box" />`
-         : incluir("foto") ? `<div class="foto-vazia-box">SEM FOTO</div>` : "";
+         : "";
 
       const codigoVal = f.codigo || `FT-${String(f.id || '').slice(0, 4).toUpperCase()}`;
       const versaoVal = f.versao || '1.0';
@@ -2861,13 +2861,14 @@ function FichasRunner() {
                       </span>
                       <span className="flex flex-1 flex-col gap-1 p-3">
                         <span className="line-clamp-2 text-sm font-bold leading-snug">{String(f.nome_receita || "").trim()}</span>
+                        {tipoNoBar(f) && <span className="w-fit rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">{ROTULO_NO_BAR[tipoNoBar(f)]}</span>}
                         {podeVerCustos ? (
                           <>
                             <span className="mt-auto text-[11px] text-white/60">{ehPrep ? `Custo por ${String(f.rendimento_unidade || "un").toLowerCase()}` : "Custo"}</span>
                             <span className="text-lg font-black tabular-nums leading-none">{fmtBRL(ehPrep ? resumo.custoPorcaoReceita : resumo.cmvValor)}</span>
                             {/* Venda e CMV ficam na Precificação (dono, 28/11/2026) */}
                           </>
-                        ) : <span className="mt-auto text-[11px] text-white/60">{ehPrep ? "Base" : deptUrl === "bar" ? "Drink" : "Prato"}</span>}
+                        ) : <span className="mt-auto text-[11px] text-white/60">{ehPrep ? "Base" : tipoNoBar(f) ? ROTULO_NO_BAR[tipoNoBar(f)] : "Prato"}</span>}
                         {statusDaFicha(f) === "inativa" && <span className="text-[11px] text-white/60">Inativa</span>}
                       </span>
                     </button>
@@ -3186,7 +3187,11 @@ function FichasRunner() {
             // R$ 2,00 (dono, 24/11/2026). O custo da linha agora sai da mesma
             // conta da ficha (custoTotalDaFicha com só esta linha).
             const un = (fi.unidade || fi.insumos?.unidade_medida || base?.rendimento_unidade || "un").toUpperCase();
-            const unCusto = (fi.insumos?.unidade_medida || base?.rendimento_unidade || "un").toUpperCase();
+            // O custo unitário é por unidade-BASE (R$/L, R$/kg): ingrediente
+            // cadastrado em ml mostrava "R$ 4,00/ml" (dono, 28/11/2026: "isso está
+            // muito confuso").
+            const unCad = String(fi.insumos?.unidade_medida || base?.rendimento_unidade || "un").toLowerCase();
+            const unCusto = ({ ml: "L", l: "L", g: "kg", kg: "kg" })[unCad] || unCad.toUpperCase();
             const liquida = Number(fi.quantidade) || 0;
             const fc = fi.insumos ? fatorCorrecaoDoItem(fi.insumos, fi.fator_correcao) : (Number(fi.fator_correcao) || 0);
             const bruta = liquida * (1 + fc / 100);
@@ -3215,7 +3220,7 @@ function FichasRunner() {
                            <h2 className="text-lg sm:text-xl font-black text-fg break-words">{f.nome_receita}</h2>
                            <span className="erp-status-ativo inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider text-emerald-700">Ativo</span>
                         </div>
-                        <p className="text-2xs font-bold text-fg mt-0.5">{f.categoria || (f.eh_base ? "Base" : "Prato")} · {setorTxt}</p>
+                        <p className="text-2xs font-bold text-fg mt-0.5">{tipoNoBar(f) ? `${ROTULO_NO_BAR[tipoNoBar(f)]}${f.categoria ? ` · ${f.categoria}` : ""}` : (f.categoria || (f.eh_base ? "Base" : "Prato"))} · {setorTxt}</p>
                      </div>
                      <div className="flex items-center gap-2 shrink-0">
                         {!f.eh_base && (
@@ -3253,7 +3258,7 @@ function FichasRunner() {
                                  {[
                                      ["Categoria", f.categoria || "—"],
                                      ["Setor", setorTxt],
-                                     ["Quantidade da receita", qtdMiuda(rend, labelUn)],
+                                     [tipoNoBar(f) === "produto" ? "Quantidade" : "Quantidade da receita", qtdMiuda(rend, labelUn)],
                                      ...(podeVerCustos ? [[`1 ${labelUn} custa`, custoKg !== null ? fmtBRL(custoKg) : "—"]] : []),
                                      ["Unidade padrão", labelUn],
                                      ["Custo total", fmtBRL(custoTotal)],
@@ -3264,14 +3269,13 @@ function FichasRunner() {
                                     </div>
                                  ))}
                               </div>
-                              <div onClick={() => { if (podeEditarFichas) { fechar(); abrirEditar(f); } }} className="w-full sm:w-40 h-32 sm:h-auto shrink-0 rounded-2xl overflow-hidden bg-card border border-line cursor-pointer relative group">
-                                 {f.imagem ? (
-                                    <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
-                                 ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-dim gap-1"><Camera size={26} /><span className="text-3xs font-bold uppercase tracking-widest">Sem foto</span></div>
-                                 )}
-                                 <div className="absolute inset-x-0 bottom-0 bg-slate-900/60 text-white text-3xs font-bold py-1 text-center opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"><Camera size={12} /> Alterar imagem</div>
-                              </div>
+                              {/* Sem foto, sem quadro (dono, 28/11/2026). */}
+                              {f.imagem ? (
+                                <div onClick={() => { if (podeEditarFichas) { fechar(); abrirEditar(f); } }} className="w-full sm:w-40 h-32 sm:h-auto shrink-0 rounded-2xl overflow-hidden bg-card border border-line cursor-pointer relative group">
+                                  <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
+                                  <div className="absolute inset-x-0 bottom-0 bg-slate-900/60 text-white text-3xs font-bold py-1 text-center opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"><Camera size={12} /> Alterar imagem</div>
+                                </div>
+                              ) : null}
                            </div>
                         </div>
 
@@ -3303,7 +3307,7 @@ function FichasRunner() {
                                         <p className="mt-0.5 text-xs font-semibold tabular-nums text-fg">
                                           {qtdMiuda(l.bruta, l.un)}
                                           {l.fc ? ` · FC ${nf(l.fc)}% · líquido ${qtdMiuda(l.liquida, l.un)}` : ""}
-                                          {podeVerCustos ? ` · ${fmtBRL(l.custoUnit)}/${String(l.unCusto || "").toLowerCase()}` : ""}
+                                          {podeVerCustos ? ` · ${fmtBRL(l.custoUnit)}/${l.unCusto === "L" ? "L" : String(l.unCusto || "").toLowerCase()}` : ""}
                                         </p>
                                       </li>
                                     ))}
@@ -3349,7 +3353,7 @@ function FichasRunner() {
                                             <td className="py-3 px-1 text-right font-bold text-fg-soft">{nf(Number(l.bruta || 0) * emMiudo(l.un)[1])}</td>
                                             <td className="py-3 px-1 text-right font-bold text-fg">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
                                             <td className="py-3 px-1 text-right font-bold text-fg-soft">{nf(Number(l.liquida || 0) * emMiudo(l.un)[1])}</td>
-                                            {podeVerCustos && <td className="py-3 px-1 text-right font-bold text-slate-900">{fmtBRL(l.custoUnit)}<span className="text-2xs font-semibold text-subtle">/{String(l.unCusto || "").toLowerCase()}</span></td>}
+                                            {podeVerCustos && <td className="py-3 px-1 text-right font-bold text-slate-900">{fmtBRL(l.custoUnit)}<span className="text-2xs font-semibold text-subtle">/{l.unCusto === "L" ? "L" : String(l.unCusto || "").toLowerCase()}</span></td>}
                                             {podeVerCustos && <td className="py-3 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>}
                                           </tr>
                                         ))}
@@ -3515,15 +3519,8 @@ function FichasRunner() {
                            )}
                         </div>
 
-                        {/* Preço, CMV, margem e preço sugerido ficam só na Precificação
-                            (dono, 28/11/2026: "tirar esse custo e precificação e deixar só
-                            no precificação"). A ficha mostra receita e custo. */}
-                        {!f.eh_base && podeVerCustos && (
-                          <a href={`/dashboard/operacao/precificacao?dept=${f.departamento === "bar" ? "bar" : "cozinha"}`}
-                            className="flex min-h-[52px] items-center justify-between gap-2 rounded-2xl border border-line bg-card px-4 py-3 text-sm font-bold text-slate-800 shadow-sm hover:border-emerald-400">
-                            <span>Preço de venda, CMV e lucro: <b>Precificação</b></span><span aria-hidden="true">→</span>
-                          </a>
-                        )}
+                        {/* O atalho para a Precificação saiu da ficha (dono, 28/11/2026:
+                            "isso não precisa estar na ficha"). */}
 
                         {/* INFORMAÇÕES ADICIONAIS */}
                         <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
@@ -3609,7 +3606,7 @@ function FichasRunner() {
                {/* HEADER DO MODAL */}
                <div className="flex justify-between items-center gap-3 p-4 sm:px-6 sm:py-5 border-b border-line-soft bg-card">
                   <div className="min-w-0">
-                     <p className={`text-3xs font-bold uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-accent"}`}>{form.eh_base ? "Base" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
+                     <p className={`text-3xs font-bold uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-accent"}`}>{form.eh_base ? "Base" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? (ingFicha.length === 1 ? "Produto (1 item)" : "Drink (receita)") : "Montagem de prato"}</p>
                      <h2 className="font-black text-2xl sm:text-3xl text-slate-800">{form.id ? "Editar ficha técnica" : "Nova ficha técnica"}</h2>
                      <p className="text-sm font-bold text-fg mt-1">{ingFicha.length} ingrediente(s) · custo atual <span className="text-success font-black">{fmtBRL(custoTotalFormulario(ingFicha))}</span></p>
                   </div>
@@ -3664,7 +3661,7 @@ function FichasRunner() {
                          <button type="button" onClick={() => setForm({ ...form, eh_base: false, produto_pronto: false, tipo_base: null, categoria: categoriasPrincipaisDisponiveis.includes(form.categoria) ? form.categoria : "", modo_preparo: "" })}
                            className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${!form.eh_base && !form.produto_pronto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-line bg-card text-fg hover:border-emerald-300"}`}>
                            <UtensilsCrossed size={24} className={!form.eh_base && !form.produto_pronto ? "text-emerald-700" : "text-subtle"} />
-                           <strong className="mt-2 block text-base">{deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</strong><span className="block text-xs font-semibold">item final do cardápio</span>
+                           <strong className="mt-2 block text-base">{deptUrl === "bar" ? "Drink ou produto" : "Montagem de prato"}</strong><span className="block text-xs font-semibold">{deptUrl === "bar" ? "1 item = produto; 2 ou mais = drink" : "item final do cardápio"}</span>
                          </button>
                        </div>
                        {/* O botão "É um produto pronto" saiu daqui: garrafa, lata e

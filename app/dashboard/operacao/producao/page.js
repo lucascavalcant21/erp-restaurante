@@ -12,8 +12,8 @@ import { fetchColaboradores } from "../../../lib/rh";
 import { fetchMemorandoOperacao } from "../../../lib/memorandos";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchEstoques, fetchItensEstoque } from "../../../lib/estoques-multiplos";
-import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, Printer, ClipboardList, Boxes, History, Search, CheckCircle2 } from "lucide-react";
-import { dataOperacional, ehEstoqueavel, unidadeProducao, totaisPorUnidade, previaProducaoSimples, registroDeProducao } from "../../../lib/producao-calculos.mjs";
+import { Flame, Droplets, X, Maximize, Printer, ClipboardList, Search, CheckCircle2 } from "lucide-react";
+import { dataOperacional, ehEstoqueavel, unidadeProducao, previaProducaoSimples, registroDeProducao } from "../../../lib/producao-calculos.mjs";
 import { salvarPlanoProducao } from "../../../lib/memorandos";
 import { fmtBRL } from "../../../components/ui";
 import { casaBusca } from "../../../lib/busca.mjs";
@@ -313,7 +313,6 @@ function ProducaoRunner() {
   };
 
   const isBar = deptUrl === 'bar';
-  const totalProduzido = Object.entries(totaisPorUnidade(producoes)).map(([un,q]) => `${q.toLocaleString("pt-BR")} ${un}`).join(" · ") || "Nenhuma produção registrada";
   const estoqueHref = `/dashboard/operacao/estoque?dept=${deptUrl}`;
   const fichasDoSetor = fichas.filter(f => f.departamento === deptUrl);
   const fichasFiltradas = fichasDoSetor.filter(f => incluirPratos || ehEstoqueavel(f)).filter(ficha => casaBusca(ficha.nome_receita, buscaFicha));
@@ -335,32 +334,19 @@ function ProducaoRunner() {
               {itensPlanejados.length > 0 && <span className="rounded-full bg-hf-accent px-1.5 py-0.5 text-3xs font-bold text-hf-accent-fg">{itensPlanejados.length}</span>}
             </button>
             {cmvMedio !== null && (
-              <div className={`rounded-full border px-3.5 py-1.5 ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
+              <div className={`hidden rounded-full border px-3.5 py-1.5 sm:block ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
                 <p className={`text-sm font-semibold ${corCmv(cmvMedio).text}`}>CMV médio {cmvMedio.toFixed(1)}%</p>
               </div>
             )}
-            <button onClick={toggleFullscreen} className="grid h-11 w-11 place-items-center rounded-full border border-hf-border bg-hf-surface text-hf-text-2 shadow-none hover:bg-hf-elevated" title="Tela cheia" aria-label="Tela cheia">
+            <button onClick={toggleFullscreen} className="hidden h-11 w-11 place-items-center sm:grid rounded-full border border-hf-border bg-hf-surface text-hf-text-2 shadow-none hover:bg-hf-elevated" title="Tela cheia" aria-label="Tela cheia">
               <Maximize size={18}/>
             </button>
           </CabecalhoTela>
         </div>
       </div>
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 px-4 pt-4 text-sm font-medium text-hf-text-2 sm:px-6 lg:px-8">
-        <label className="flex items-center gap-2">Dia do planejamento <input type="date" value={dataPlano} onChange={e => setDataPlano(e.target.value)} className="h-11 rounded-full border border-hf-border bg-hf-surface px-4 text-hf-text" /></label>
-        <label className="flex min-h-[44px] items-center gap-2"><input type="checkbox" checked={incluirPratos} onChange={e => setIncluirPratos(e.target.checked)} className="h-5 w-5 accent-[rgb(var(--hf-accent))]" /> Incluir pratos para consumo imediato</label>
-      </div>
-
-      <section className="mx-auto mt-4 max-w-5xl px-4 sm:px-6">
-        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-card p-2 shadow-sm lg:grid-cols-4">
-          {[
-            ["1", "Ver o que está pronto", `${saldosProntos.length} item(ns) disponíveis`],
-            ["2", "Planejar a produção", `${itensPlanejados.length} item(ns) no plano`],
-            ["3", "Conferir ingredientes", "Cálculo automático"],
-            ["4", "Produzir e salvar", "Baixa e histórico juntos"],
-          ].map(([numeroEtapa, titulo, texto]) => <div key={numeroEtapa} className="flex min-w-0 items-center gap-3 rounded-xl bg-card p-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent font-black text-accent-fg">{numeroEtapa}</span><span className="min-w-0"><b className="block truncate text-xs text-slate-800 sm:text-sm">{titulo}</b><small className="block truncate font-bold text-fg">{texto}</small></span></div>)}
-        </div>
-      </section>
-
+      {/* Tela limpa (dono, 28/11/2026: "deixe mais limpa, simples, que eu consiga
+          visualizar tudo assim que eu entrar"): a data do plano fica no
+          planejador; os 4 passos explicativos saíram. */}
       {/* MEMORANDO DE HOJE: o que a gerência planejou para este setor */}
       {(() => {
          if (!memoHoje) return null;
@@ -405,99 +391,121 @@ function ProducaoRunner() {
          );
       })()}
 
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 mt-6">
-         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <button onClick={() => setModalPlanejar(true)} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-               <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-amber-700"><ClipboardList size={17}/> Produção planejada</span>
-               <strong className="mt-2 block text-2xl font-black text-fg">{itensPlanejados.length} item(ns)</strong>
-               <span className="mt-1 block text-xs font-bold text-slate-900">Para {dataPlano ? dataPlano.split("-").reverse().join("/") : "a data escolhida"}</span>
+      <section className="mx-auto mt-4 max-w-5xl space-y-3 px-4 sm:px-6">
+         {/* Três números, uma linha */}
+         <div className="grid grid-cols-3 gap-2">
+            <button onClick={() => setModalPlanejar(true)} className="rounded-2xl border border-hf-border bg-hf-surface p-3 text-left">
+               <span className="block text-[11px] font-semibold text-hf-muted">Planejado</span>
+               <strong className="block text-xl font-black text-hf-text">{itensPlanejados.length}</strong>
+               <span className="block truncate text-[11px] text-hf-muted">{dataPlano ? dataPlano.split("-").reverse().slice(0, 2).join("/") : "hoje"}</span>
             </button>
-            <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-               <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-accent"><History size={17}/> Produzido nos últimos 30 dias</span>
-               <strong className="mt-2 block text-2xl font-black text-fg">{totalProduzido} porções</strong>
-               <span className="mt-1 block text-xs font-bold text-slate-900">{producoes.length} lançamento(s) registrado(s)</span>
-            </article>
-            <button onClick={() => router.push(estoqueHref)} className="rounded-2xl border border-slate-300 bg-slate-900 p-4 text-left text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-               <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-dim"><Boxes size={17}/> Estoque produzido</span>
-               <strong className="mt-2 block text-xl font-black">{saldosProntos.length} item(ns) prontos</strong>
-               <span className="mt-1 block text-xs font-bold text-dim">Toque para ver quantidades e locais</span>
+            <button onClick={() => router.push(estoqueHref)} className="rounded-2xl border border-hf-border bg-hf-surface p-3 text-left">
+               <span className="block text-[11px] font-semibold text-hf-muted">Pronto</span>
+               <strong className="block text-xl font-black text-hf-text">{saldosProntos.length}</strong>
+               <span className="block truncate text-[11px] text-hf-muted">itens no estoque</span>
             </button>
+            <div className="rounded-2xl border border-hf-border bg-hf-surface p-3">
+               <span className="block text-[11px] font-semibold text-hf-muted">Feito em 30 dias</span>
+               <strong className="block text-xl font-black text-hf-text">{producoes.length}</strong>
+               <span className="block truncate text-[11px] text-hf-muted">produções</span>
+            </div>
          </div>
 
-         {saldosProntos.length > 0 && <div className="mt-3 rounded-2xl border border-line bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-black text-fg"><CheckCircle2 size={18} className="text-success"/>Já temos pronto</h2><button onClick={() => router.push(estoqueHref)} className="text-xs font-bold text-accent">Ver estoque completo</button></div><div className="flex gap-2 overflow-x-auto pb-1">{saldosProntos.slice(0, 12).map(item => <div key={item.id} className="min-w-40 rounded-xl bg-emerald-50 px-3 py-2"><b className="block truncate text-sm text-slate-800">{item.nome}</b><span className="text-xs font-bold text-accent">{Number(item.quantidade_atual || 0).toLocaleString("pt-BR")} {item.unidade_medida || "un"}</span>{item.local_interno && <small className="block truncate font-bold text-fg">{item.local_interno}</small>}</div>)}</div></div>}
+         {/* O que já está pronto: lista que quebra linha, sem arrastar de lado */}
+         {saldosProntos.length > 0 && (
+            <div className="rounded-2xl border border-hf-border bg-hf-surface p-3">
+               <div className="mb-2 flex items-center justify-between gap-2">
+                  <h2 className="flex items-center gap-1.5 text-sm font-bold text-hf-text"><CheckCircle2 size={16} className="text-hf-success"/>Já temos pronto</h2>
+                  <button onClick={() => router.push(estoqueHref)} className="text-xs font-semibold text-hf-text-2 underline">Ver tudo</button>
+               </div>
+               <div className="flex flex-wrap gap-1.5">
+                  {saldosProntos.slice(0, 12).map(item => (
+                     <span key={item.id} className="rounded-full bg-hf-elevated px-2.5 py-1 text-xs text-hf-text">
+                        <b>{item.nome}</b> · {Number(item.quantidade_atual || 0).toLocaleString("pt-BR")} {item.unidade_medida || "un"}{item.local_interno ? ` · ${item.local_interno}` : ""}
+                     </span>
+                  ))}
+               </div>
+            </div>
+         )}
 
-         {(itensPlanejados.length > 0 || producoes.length > 0) && (
-            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-               <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                     <h2 className="text-base font-black text-fg">O que quero produzir</h2>
-                     <button onClick={() => setModalPlanejar(true)} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold text-amber-800">Editar plano</button>
-                  </div>
-                  {itensPlanejados.length === 0 ? <p className="text-sm font-bold text-fg">Nenhuma produção planejada.</p> : (
-                     <div className="space-y-2">
-                        {itensPlanejados.slice(0, 6).map(item => <div key={item.ficha.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2"><span className="truncate text-sm font-black text-fg-soft">{item.ficha.nome_receita}</span><strong className="shrink-0 text-sm text-amber-700">{Number(String(item.qtd).replace(",", ".")).toLocaleString("pt-BR")} porções</strong></div>)}
-                     </div>
-                  )}
+         {/* Plano do dia, se houver */}
+         {itensPlanejados.length > 0 && (
+            <div className="rounded-2xl border border-hf-border bg-hf-surface p-3">
+               <div className="mb-2 flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-bold text-hf-text">Para produzir hoje</h2>
+                  <button onClick={() => setModalPlanejar(true)} className="text-xs font-semibold text-hf-text-2 underline">Editar plano</button>
                </div>
-               <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
-                  <h2 className="mb-3 text-base font-black text-fg">Últimas produções feitas</h2>
-                  {producoes.length === 0 ? <p className="text-sm font-bold text-fg">Ainda não há produção registrada.</p> : (
-                     <div className="space-y-2">
-                        {producoes.slice(0, 6).map(item => <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2"><span className="min-w-0"><strong className="block truncate text-sm text-fg-soft">{item.fichas_tecnicas?.nome_receita || "Base"}</strong><small className="font-bold text-subtle">{new Date(item.created_at).toLocaleString("pt-BR")} · {item.colaboradores?.nome || "Responsável não informado"}</small></span><strong className="shrink-0 text-sm text-accent">{Number(item.quantidade_produzida || 0).toLocaleString("pt-BR")} porções</strong></div>)}
-                     </div>
-                  )}
-               </div>
+               <ul className="divide-y divide-hf-border">
+                  {itensPlanejados.map(item => (
+                     <li key={item.ficha.id} className="flex items-center justify-between gap-2 py-2">
+                        <span className="min-w-0 truncate text-sm font-semibold text-hf-text">{item.ficha.nome_receita}</span>
+                        <span className="flex shrink-0 items-center gap-2">
+                           <b className="text-sm tabular-nums text-hf-text">{Number(String(item.qtd).replace(",", ".")).toLocaleString("pt-BR")} {unidadeProducao(item.ficha)}</b>
+                           <button onClick={() => abrirProduzir(item.ficha)} className="min-h-[36px] rounded-full bg-hf-menu px-3 text-xs font-bold text-white">Produzir</button>
+                        </span>
+                     </li>
+                  ))}
+               </ul>
             </div>
          )}
       </section>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
-         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div><h2 className="text-xl font-black text-slate-800 mb-1">Produzir agora</h2><p className="text-fg font-medium">Escolha a receita; os ingredientes e a baixa aparecem antes da confirmação.</p></div>
-            <label className="relative block w-full sm:w-80"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle"/><input value={buscaFicha} onChange={e => setBuscaFicha(e.target.value)} placeholder="Buscar receita..." className="h-12 w-full rounded-xl border border-line bg-card pl-10 pr-4 font-bold outline-none focus:border-emerald-500"/></label>
+      {/* Receitas: busca + lista compacta, cada uma com o rendimento */}
+      <div className="mx-auto mt-4 max-w-5xl px-4 sm:px-6">
+         <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 className="text-base font-black text-hf-text">Produzir</h2>
+            <label className="flex min-h-[40px] items-center gap-2 text-xs font-semibold text-hf-text-2">
+               <input type="checkbox" checked={incluirPratos} onChange={e => setIncluirPratos(e.target.checked)} className="h-5 w-5 accent-[rgb(var(--hf-accent))]" /> Mostrar pratos
+            </label>
          </div>
+         <label className="relative mb-2 block"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-hf-muted"/><input value={buscaFicha} onChange={e => setBuscaFicha(e.target.value)} placeholder="Buscar receita" className="h-12 w-full rounded-xl border border-hf-border bg-hf-surface pl-10 pr-4 text-base outline-none focus:border-hf-accent"/></label>
 
          {loading ? (
-            <p className="font-bold text-fg">Carregando fichas...</p>
+            <p className="py-6 text-center text-sm text-hf-muted">Carregando receitas…</p>
          ) : fichas.length === 0 ? (
-            <div className="text-center p-10 bg-card border border-line rounded-3xl">
-               <h3 className="text-xl font-black text-fg-soft">Nenhuma ficha cadastrada</h3>
-               <p className="text-fg mt-2 font-medium">Crie suas Fichas Técnicas primeiro para poder produzir.</p>
+            <div className="rounded-2xl border border-hf-border bg-hf-surface p-6 text-center">
+               <h3 className="text-base font-bold text-hf-text">Nenhuma ficha cadastrada</h3>
+               <p className="mt-1 text-sm text-hf-muted">Crie as fichas técnicas para poder produzir.</p>
             </div>
+         ) : fichasFiltradas.length === 0 ? (
+            <p className="rounded-2xl border border-hf-border bg-hf-surface p-4 text-center text-sm text-hf-muted">
+               {buscaFicha ? "Nenhuma receita com esse nome." : "Nenhuma base para produzir."}{!incluirPratos ? " Marque Mostrar pratos para ver os pratos também." : ""}
+            </p>
          ) : (
-            <div className="flex flex-col gap-3">
+            <ul className="divide-y divide-hf-border overflow-hidden rounded-2xl border border-hf-border bg-hf-surface">
                {fichasFiltradas.map(f => {
-                  const cmv = calcCmv(f, fichas, produtoDaFicha);
+                  const rend = Number(f.rendimento_porcoes) || 0;
                   return (
-                  <button
-                     key={f.id}
-                     onClick={() => abrirProduzir(f)}
-                     className="bg-card p-3 sm:p-4 rounded-2xl border border-line shadow-sm hover:shadow-md transition-all relative group text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full"
-                  >
-                     <div className="flex items-center gap-4 w-full sm:w-auto min-w-0">
-                        <span className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center border border-line bg-slate-50 text-emerald-600`}>
-                           {f.departamento === 'bar' ? <Wine size={20}/> : <UtensilsCrossed size={20}/>}
-                        </span>
-                        <div className="flex flex-col min-w-0">
-                           <h3 className="text-base sm:text-lg font-black text-slate-900 truncate">{f.nome_receita}</h3>
-                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{f.fichas_ingredientes?.length || 0} Ingredientes</p>
-                        </div>
-                     </div>
-
-                     <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto shrink-0 mt-2 sm:mt-0 pt-3 sm:pt-0 border-t border-line-soft sm:border-0">
-                        {cmv !== null && (
-                           <span className={`px-3 py-1 rounded-xl text-xs font-bold ${corCmv(cmv).bg} ${corCmv(cmv).text} border ${corCmv(cmv).border}`}>
-                              CMV {cmv.toFixed(1)}%
+                     <li key={f.id}>
+                        <button onClick={() => abrirProduzir(f)} className="flex min-h-[60px] w-full items-center gap-3 px-3 py-2 text-left hover:bg-hf-elevated">
+                           <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[15px] font-semibold text-hf-text">{f.nome_receita}</span>
+                              <span className="block truncate text-xs text-hf-muted">
+                                 {rend > 0 ? `Rende ${rend.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${unidadeProducao(f)} por receita` : "Rendimento não informado"} · {f.fichas_ingredientes?.length || 0} ingredientes
+                              </span>
                            </span>
-                        )}
-                        <span className={`inline-flex items-center gap-2 font-bold text-sm text-emerald-700 bg-emerald-50 px-4 py-2 rounded-xl group-hover:bg-emerald-100 transition-colors`}>
-                           {isBar ? <Droplets size={16}/> : <Flame size={16}/>} Iniciar
-                        </span>
-                     </div>
-                  </button>
+                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-hf-menu px-3 py-2 text-xs font-bold text-white">
+                              {isBar ? <Droplets size={14}/> : <Flame size={14}/>} Produzir
+                           </span>
+                        </button>
+                     </li>
                   );
                })}
-            </div>
+            </ul>
+         )}
+
+         {producoes.length > 0 && (
+            <details className="mt-3 rounded-2xl border border-hf-border bg-hf-surface">
+               <summary className="flex min-h-[48px] cursor-pointer items-center px-3 text-sm font-semibold text-hf-text">Últimas produções ({producoes.length})</summary>
+               <ul className="divide-y divide-hf-border px-3">
+                  {producoes.slice(0, 10).map(item => (
+                     <li key={item.id} className="flex items-center justify-between gap-2 py-2">
+                        <span className="min-w-0"><b className="block truncate text-sm text-hf-text">{item.fichas_tecnicas?.nome_receita || "Base"}</b><small className="text-xs text-hf-muted">{new Date(item.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} · {item.colaboradores?.nome || "sem responsável"}</small></span>
+                        <b className="shrink-0 text-sm tabular-nums text-hf-text">{Number(item.quantidade_produzida || 0).toLocaleString("pt-BR")} {item.fichas_tecnicas?.rendimento_unidade || ""}</b>
+                     </li>
+                  ))}
+               </ul>
+            </details>
          )}
       </div>
 
@@ -599,6 +607,23 @@ function ProducaoRunner() {
                         />
                         <button onClick={()=>setQtdProd(p => Number(p)+1)} className="w-14 h-14 rounded-full bg-card border border-line flex items-center justify-center text-3xl font-black text-fg hover:text-slate-800">+</button>
                      </div>
+                     {/* Pela receita (dono, 28/11/2026: "a quantidade é baseada no
+                         rendimento de cada receita"). */}
+                     {Number(fichaAtual.rendimento_porcoes) > 0 && (
+                        <div className="mt-4 grid grid-cols-4 gap-2">
+                           {[0.5, 1, 2, 3].map(m => {
+                              const v = +(Number(fichaAtual.rendimento_porcoes) * m).toFixed(3);
+                              const ativo = Math.abs(Number(String(qtdProd).replace(",", ".")) - v) < 0.0005;
+                              return (
+                                 <button key={m} type="button" onClick={() => setQtdProd(String(v))}
+                                    className={`min-h-[52px] rounded-xl border px-1 text-center ${ativo ? "border-hf-menu bg-hf-menu text-white" : "border-line bg-card text-slate-800"}`}>
+                                    <b className="block text-sm">{m === 0.5 ? "½" : m} {m > 1 ? "receitas" : "receita"}</b>
+                                    <span className="block text-[11px]">{v.toLocaleString("pt-BR")} {unidadeProducao(fichaAtual)}</span>
+                                 </button>
+                              );
+                           })}
+                        </div>
+                     )}
                   </div>
 
                   {/* Valor Total Médio da Produção + CMV desta ficha */}

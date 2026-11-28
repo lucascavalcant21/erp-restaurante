@@ -27,6 +27,7 @@ import { podeEditarFicha, podeVerCustosFicha } from "../../../lib/ficha-modelo.m
 import { fmtReais } from "../../../lib/valor-percentual.mjs";
 import { salvarPrecoDaFicha } from "../../../lib/preco-da-ficha";
 import { casaBusca } from "../../../lib/busca.mjs";
+import { tipoNoBar, ROTULO_NO_BAR } from "../../../lib/ficha-calculos.mjs";
 import { supabase, isSupabaseReady } from "../../../lib/supabase";
 import { centavos, compararCanais, regrasDoCanalDelivery, regrasDoSalao, textoReais } from "../../../lib/financeiro/motor/index.mjs";
 
@@ -186,7 +187,8 @@ function LinhaPreco({ ficha, r: rSalvo, podeEditar, unidadeId, onSalvo, params, 
     <li className="rounded-2xl border border-hf-border bg-hf-surface p-3">
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => abrir("dinheiro")} aria-expanded={composicao}
-          className="min-w-0 flex-1 text-left text-[15px] font-black leading-snug text-hf-text">{ficha.nome_receita}</button>
+          className="min-w-0 flex-1 text-left text-[15px] font-black leading-snug text-hf-text">{ficha.nome_receita}
+          {tipoNoBar(ficha) && <span className="ml-1.5 align-middle rounded-full bg-hf-elevated px-2 py-0.5 text-[10px] font-bold uppercase text-hf-text-2">{ROTULO_NO_BAR[tipoNoBar(ficha)]}</span>}</button>
         <div className="flex shrink-0 items-center gap-1.5">
           <span className="text-sm font-bold text-hf-muted">R$</span>
           <input value={valor} disabled={!podeEditar || salvando} inputMode="decimal" aria-label={`Preço de ${ficha.nome_receita}`}

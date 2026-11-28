@@ -728,3 +728,13 @@ export function contaDoPacote({ pesoPacoteG, precoPacote, unidadesNoPacote = nul
     porcao: parseNumero(porcaoG) > 0 ? { pesoG: parseNumero(porcaoG), preco: r2((preco / peso) * parseNumero(porcaoG)), porPacote: Math.round((peso / parseNumero(porcaoG)) * 10) / 10 } : null,
   };
 }
+
+// No bar, ficha com UM item só é produto individual (água com gás, refrigerante);
+// com mais de um, é drink (dono, 28/11/2026: "se eu puser mais de um item na
+// ficha do bar é receita; se eu puser só 1 item é um produto individual").
+export function tipoNoBar(ficha) {
+  if (!ficha || ficha.eh_base || ficha.tipo_base === "produto_pronto") return null;
+  if (String(ficha.departamento || "").toLowerCase() !== "bar") return null;
+  return (ficha.fichas_ingredientes || []).length === 1 ? "produto" : "drink";
+}
+export const ROTULO_NO_BAR = { produto: "Produto", drink: "Drink" };

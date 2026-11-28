@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    COMPRAS-COT-1 · PESQUISA DE PREÇO DA LISTA DE COMPRAS
 
-   STATUS: ESCRITA e testada no PGlite (app/lib/cotacoes-banco.test.mjs).
-   NÃO APLICADA. Aplicar só com o OK do dono no chat.
+   STATUS: APLICADA no banco do restaurante em 28/11/2026 (APR-031, dono:
+   "Pode aplicar"). Impressão digital 872b950502869b0f1cbe6af70858aa6d.
 
    PEDIDO DO DONO (28/11/2026): "vou no supermercado X, esse produto custa 30;
    no Y custa 28; no Z custa tanto. O sistema compara esses locais com o que

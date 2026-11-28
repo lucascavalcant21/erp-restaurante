@@ -12,7 +12,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Check, ChevronDown, Loader2, Search } from "lucide-react";
+import { BarChart3, Check, ChevronDown, Loader2, Search } from "lucide-react";
 import CabecalhoTela from "../../../components/ui/CabecalhoTela";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
@@ -23,6 +23,8 @@ import { podeEditarFicha, podeVerCustosFicha } from "../../../lib/ficha-modelo.m
 import { fmtReais } from "../../../lib/valor-percentual.mjs";
 import { salvarPrecoDaFicha } from "../../../lib/preco-da-ficha";
 import { casaBusca } from "../../../lib/busca.mjs";
+import { supabase, isSupabaseReady } from "../../../lib/supabase";
+import { centavos, compararCanais, regrasDoCanalDelivery, regrasDoSalao, textoReais } from "../../../lib/financeiro/motor/index.mjs";
 
 const pct = (v) => (v === null || v === undefined || !Number.isFinite(Number(v)) ? "—" : `${Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`);
 const num = (t) => { const n = Number(String(t ?? "").replace(",", ".")); return Number.isFinite(n) ? n : null; };
@@ -41,6 +43,18 @@ function Precificacao() {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("todos");
   const [taxasAbertas, setTaxasAbertas] = useState(false);
+  // Apps configurados no Delivery (comparação de canais, fase 4 da expansão):
+  // a config desta unidade, ou a de outra unidade da empresa, rotulada.
+  const [apps, setApps] = useState({ canais: [], tributosPct: 0, origem: null });
+  useEffect(() => {
+    if (!isSupabaseReady() || !unidadeAtiva) return;
+    supabase.from("marmitaria_configuracoes").select("unidade_id, canais, tributos_pct").then(({ data }) => {
+      const linhas = (data || []).filter((l) => Array.isArray(l.canais) && l.canais.some((c) => c.ativo !== false));
+      const escolhida = linhas.find((l) => l.unidade_id === unidadeAtiva) || linhas[0];
+      if (!escolhida) return;
+      setApps({ canais: escolhida.canais.filter((c) => c.ativo !== false), tributosPct: Number(escolhida.tributos_pct) || 0, origem: escolhida.unidade_id === unidadeAtiva ? null : escolhida.unidade_id });
+    });
+  }, [unidadeAtiva]);
 
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
@@ -112,7 +126,7 @@ function Precificacao() {
       ) : (
         <ul className="space-y-2">
           {visiveis.map(({ f, r }) => (
-            <LinhaPreco key={f.id} ficha={f} r={r} podeEditar={podeEditar} unidadeId={unidadeAtiva}
+            <LinhaPreco key={f.id} ficha={f} r={r} podeEditar={podeEditar} unidadeId={unidadeAtiva} params={params} apps={apps}
               onSalvo={(preco, produtoId) => setProdutos((lista) => produtosComPrecoSalvo(lista, { produtoId, fichaId: f.id, nome: f.nome_receita, preco }))} />
           ))}
         </ul>
@@ -121,7 +135,8 @@ function Precificacao() {
   );
 }
 
-function LinhaPreco({ ficha, r, podeEditar, unidadeId, onSalvo }) {
+function LinhaPreco({ ficha, r, podeEditar, unidadeId, onSalvo, params, apps }) {
+  const [comparar, setComparar] = useState(false);
   const [valor, setValor] = useState(r.preco > 0 ? String(r.preco.toFixed(2)).replace(".", ",") : "");
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
@@ -172,7 +187,56 @@ function LinhaPreco({ ficha, r, podeEditar, unidadeId, onSalvo }) {
           {msg && <span className={`font-bold ${msg === "Salvo" ? "text-hf-success" : "text-hf-danger"}`}>{msg}</span>}
         </div>
       )}
+      <button type="button" onClick={() => setComparar((v) => !v)} aria-expanded={comparar}
+        className="mt-2 inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-hf-border px-3 text-xs font-bold text-hf-text-2">
+        <BarChart3 size={14} /> {comparar ? "Fechar comparação" : "Comparar canais"}
+      </button>
+      {comparar && <ComparacaoCanais r={r} params={params} apps={apps} precoAtual={num(valor) || r.preco} />}
     </li>
+  );
+}
+
+// Quanto sobra e qual o preço mínimo em cada canal ao mesmo tempo (item 10 do
+// documento da expansão). Contas do motor central (lib/financeiro/motor).
+function ComparacaoCanais({ r, params, apps, precoAtual }) {
+  const [margem, setMargem] = useState("");
+  const custoC = r.cmvValor > 0 ? centavos(r.cmvValor) : null;
+  const canais = [
+    { ...regrasDoSalao({ taxaCartaoPct: params.taxa_cartao_pct, impostoPct: params.imposto_pct }), precoAtualC: centavos(precoAtual) },
+    ...apps.canais.map((c) => ({ ...regrasDoCanalDelivery(c, apps.tributosPct), precoAtualC: centavos(precoAtual) })),
+  ];
+  const m = num(margem);
+  const lista = compararCanais({ custoC, canais, margemPct: m });
+  if (!custoC) return <p className="mt-2 rounded-xl bg-hf-elevated px-3 py-2 text-xs font-semibold text-hf-text-2">DADOS INSUFICIENTES: a ficha ainda não tem custo.</p>;
+  return (
+    <div className="mt-2 rounded-xl bg-hf-elevated p-3">
+      <label className="flex items-center justify-between gap-2 text-xs font-semibold text-hf-text-2">
+        Quero que sobre (% da venda)
+        <input value={margem} onChange={(e) => setMargem(e.target.value.replace(/[^0-9.,]/g, ""))} inputMode="decimal" placeholder="ex.: 30"
+          className="h-10 w-20 rounded-lg border border-hf-border bg-hf-surface px-2 text-right text-[16px] font-bold text-hf-text outline-none" />
+      </label>
+      <ul className="mt-2 divide-y divide-hf-border">
+        {lista.map((c) => (
+          <li key={c.id} className="py-2 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-black text-hf-text">{c.nome}</span>
+              <span className={`font-bold tabular-nums ${c.margemAtualC !== null && c.margemAtualC < 0 ? "text-hf-danger" : "text-hf-text"}`}>
+                {c.margemAtualC !== null ? `sobra ${textoReais(c.margemAtualC)} (${pct(c.margemAtualPct)})` : "sem preço"}
+              </span>
+            </div>
+            <p className="mt-0.5 text-hf-text-2">
+              {c.taxasAtuaisC !== null ? `Taxas ${textoReais(c.taxasAtuaisC)}` : ""}
+              {c.preco.status === "OK" ? ` · mínimo ${textoReais(c.preco.minimoC)} · sugerido ${textoReais(c.preco.comercialC)}` : c.preco.status === "INVIAVEL" ? " · com essa margem não existe preço possível" : m === null ? "" : " · falta dado"}
+              {c.abaixoDoMinimo ? " · abaixo do mínimo" : ""}
+              {c.natureza === "HIPÓTESE" ? " · taxa da fatura" : ""}
+            </p>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1 text-[11px] text-hf-muted">
+        ESTIMATIVA com o preço de hoje em todos os canais.{apps.canais.length ? ` Taxas dos apps: as configuradas no Delivery${apps.origem ? ` (unidade ${apps.origem})` : ""}.` : " Nenhum app configurado no Delivery."}
+      </p>
+    </div>
   );
 }
 

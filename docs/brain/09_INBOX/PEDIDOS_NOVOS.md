@@ -253,3 +253,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 27/11/2026 | "Poder excluir molhos" | Lixeira em cada molho, com as regras das Bases | FEITO (TESTADO LOCAL) |
 | 27/11/2026 | Decisões da expansão financeira + "continue e mude" | DP-FIN-1; motor financeiro central (fase 2) com 12 testes; FIN-EXP-0 escrita e não aplicada | FASE 2 EM ANDAMENTO |
 | 27/11/2026 | "Separe a ficha técnica do restaurante da precificação como no delivery" | Nova tela Precificação (Cozinha e Bar): preço por prato/drink, CMV, sobra, preço sugerido e taxas da casa; editor da ficha fica só com porção e custo | FEITO (TESTADO LOCAL) |
+| 28/11/2026 | "Continue" (expansão financeira) | Fase 4 sem tabela nova: comparação de canais na Precificação (salão + apps do Delivery) pelo motor central; motor confere com a conta do Delivery (≤ 1 centavo) | FEITO (TESTADO LOCAL) |

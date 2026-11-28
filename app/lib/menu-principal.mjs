@@ -39,6 +39,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       ] },
       { titulo: "Receitas", cards: [
         { label: "Fichas técnicas", desc: "Receitas, rendimento e custo", href: "/dashboard/operacao/fichas?dept=cozinha", icone: "BookOpen", curto: "Fichas" },
+        { label: "Precificação", desc: "Preço, CMV e lucro de cada prato", href: "/dashboard/operacao/precificacao?dept=cozinha", icone: "Calculator", curto: "Preços" },
         { label: "Guia de montagem", desc: "Fotos e passo a passo", href: "/dashboard/operacao/montagem?dept=cozinha", icone: "Salad", curto: "Montagem" },
         { label: "Bases", desc: "Arroz branco, vatapá, molhos… (base)", href: "/dashboard/operacao/fichas?dept=cozinha&modo=bases", icone: "Layers" },
         { label: "Molhos", desc: "Receitas e quanto rende cada um", href: "/dashboard/operacao/molhos?dept=cozinha", icone: "Soup" },
@@ -80,6 +81,7 @@ export const MENU_PRINCIPAL = Object.freeze([
       ] },
       { titulo: "Drinks", cards: [
         { label: "Fichas de drinks", desc: "Receitas, rendimento e custo", href: "/dashboard/operacao/fichas?dept=bar", icone: "Martini", curto: "Fichas" },
+        { label: "Precificação", desc: "Preço, CMV e lucro de cada drink", href: "/dashboard/operacao/precificacao?dept=bar", icone: "Calculator", curto: "Preços" },
         { label: "Guia de montagem", desc: "Fotos e passo a passo", href: "/dashboard/operacao/montagem?dept=bar", icone: "Citrus", curto: "Montagem" },
         { label: "Criação de drinks", desc: "Novos produtos de venda", href: "/dashboard/operacao/produtos?dept=bar", icone: "WandSparkles", curto: "Criar drink" },
         { label: "Engenharia de cardápio", desc: "Margem e giro dos drinks", href: "/dashboard/operacao/engenharia?dept=bar", icone: "Star", curto: "Engenharia", mais: true },

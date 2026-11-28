@@ -3635,7 +3635,7 @@ function FichasRunner() {
                     ["ficha-dados", "1. Dados", !!form.nome_receita],
                     ["ficha-ingredientes", "2. Ingredientes", form.produto_pronto || ingFicha.length > 0],
                     ["ficha-rendimento", "3. Rendimento", !!form.rendimento_porcoes],
-                    ...(!form.eh_base && !form.produto_pronto ? [["ficha-custos", "4. Custos e preço", Number(form.preco_venda) > 0]] : []),
+                    ...(!form.eh_base && !form.produto_pronto ? [["ficha-custos", "4. Porção e custo", ingFicha.length > 0]] : []),
                     ...(form.eh_base ? [["ficha-preparo", "4. Preparo", !!form.modo_preparo]] : []),
                   ].map(([id, label, completo]) => <button key={id} type="button" onClick={() => irSecaoEditorFicha(id)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl border bg-card px-3 text-xs font-bold transition-colors ${completo ? "border-emerald-200 text-accent" : "border-line text-fg hover:border-emerald-300"}`}><span className={`h-2 w-2 rounded-full ${completo ? "bg-emerald-500" : "bg-slate-300"}`} />{label}</button>)}
                </nav>
@@ -4222,7 +4222,7 @@ function FichasRunner() {
                         return (
                            <div id="ficha-custos" className="bg-card border-2 border-emerald-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                               <div className="flex items-center justify-between mb-3">
-                                <p className="text-xs font-black uppercase tracking-widest text-emerald-800">Custos e Precificação</p>
+                                <p className="text-xs font-black uppercase tracking-widest text-emerald-800">Porção e custo</p>
                                 <span className="text-3xs font-bold text-fg bg-slate-100 px-2.5 py-1 rounded-full">Recálculo automático</span>
                               </div>
 
@@ -4242,85 +4242,31 @@ function FichasRunner() {
                                     <label className="text-3xs font-bold text-fg uppercase tracking-widest">Embalagem (R$ / porção)</label>
                                     <CampoDecimal placeholder="0,00" value={form.custo_embalagem} onChange={e => setForm({ ...form, custo_embalagem: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2.5 mt-1 bg-transparent border border-line rounded-xl font-bold text-sm outline-none focus:border-emerald-500" />
                                  </div>
-                                 <div>
-                                    <label className="text-3xs font-bold text-fg uppercase tracking-widest">Preço de venda (R$)</label>
-                                    <CampoDecimal placeholder={sugerido > 0 ? sugerido.toFixed(2).replace(".", ",") : "0,00"} value={form.preco_venda} onChange={e => setForm({ ...form, preco_venda: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2.5 mt-1 bg-emerald-50/60 border-2 border-emerald-400/80 rounded-xl font-black text-emerald-900 text-sm outline-none focus:border-emerald-600" />
-                                 </div>
+
                               </div>
 
-                              {/* Configurações secundárias (CMV Meta, Taxa Maquininha, Imposto) */}
-                              <div className="grid grid-cols-3 gap-2.5 mb-3 bg-transparent/70 p-3 rounded-xl border border-line-soft">
-                                 <div>
-                                    <label className="text-3xs font-bold text-fg uppercase tracking-widest">CMV meta (%)</label>
-                                    <input type="number" min="1" max="90" value={form.cmv_meta} onChange={e => setForm({ ...form, cmv_meta: e.target.value })} className="w-full p-2 mt-1 bg-card border border-line rounded-lg font-bold text-xs outline-none focus:border-emerald-500" />
-                                 </div>
-                                 <div>
-                                    <label className="text-3xs font-bold text-fg uppercase tracking-widest">Taxa Maquininha (%)</label>
-                                    <CampoDecimal placeholder={String(paramsSis?.taxaMaquininha ?? 2.5).replace(".", ",")} value={form.taxa_maquininha} onChange={e => setForm({ ...form, taxa_maquininha: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2 mt-1 bg-card border border-line rounded-lg font-bold text-xs outline-none focus:border-emerald-500" />
-                                 </div>
-                                 <div>
-                                    <label className="text-3xs font-bold text-fg uppercase tracking-widest">Imposto (%)</label>
-                                    <CampoDecimal placeholder={String(paramsSis?.impostoPct ?? 4.0).replace(".", ",")} value={form.imposto_pct} onChange={e => setForm({ ...form, imposto_pct: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2 mt-1 bg-card border border-line rounded-lg font-bold text-xs outline-none focus:border-emerald-500" />
-                                 </div>
-                              </div>
-
-                              {sugerido > 0 && (
-                                 <button type="button" onClick={() => setForm({ ...form, preco_venda: sugerido.toFixed(2) })} className="mb-3 w-full text-left bg-emerald-50/50 border border-emerald-200 rounded-xl p-2.5 hover:bg-emerald-100/50 transition-colors flex items-center justify-between">
-                                    <div>
-                                       <span className="text-3xs font-bold text-emerald-800 uppercase tracking-widest block">Preço sugerido (CMV Meta {meta}%)</span>
-                                       <span className="text-base font-black text-slate-800">{fmtBRL(sugerido)}</span>
-                                    </div>
-                                    <span className="text-2xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg">Toque para usar</span>
-                                 </button>
+                              {/* Preço, CMV, maquininha e imposto saíram da ficha: ficam na
+                                  Precificação, como no Delivery (dono, 27/11/2026; DP-FIN-1). */}
+                              {!form.eh_base && (
+                                <a href={`/dashboard/operacao/precificacao?dept=${form.departamento === "bar" ? "bar" : "cozinha"}`}
+                                  className="mb-3 flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-line bg-transparent px-3 py-2 text-sm font-bold text-slate-800 hover:border-emerald-400">
+                                  <span>Preço de venda, CMV e lucro ficam em <b>Precificação</b></span><span aria-hidden="true">→</span>
+                                </a>
                               )}
 
-                              {/* Quadro RESULTADO DA FICHA */}
-                              <div className="bg-transparent border border-slate-200 rounded-xl p-3">
-                                <p className="text-3xs font-black uppercase tracking-widest text-slate-900 mb-2.5">Resultado da Ficha (Por Porção)</p>
-
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2.5">
-                                  <div className="bg-card border border-line rounded-lg p-2 text-center">
-                                    <p className="text-3xs font-bold text-fg uppercase">Ingredientes</p>
-                                    <p className="text-xs font-black text-slate-800">{fmtBRL(finModal.custoIngredientesPorPorcao)}</p>
-                                  </div>
-                                  <div className="bg-card border border-line rounded-lg p-2 text-center">
-                                    <p className="text-3xs font-bold text-fg uppercase">Embalagem</p>
-                                    <p className="text-xs font-black text-slate-800">{fmtBRL(finModal.custoEmbalagemPorPorcao)}</p>
-                                  </div>
-                                  <div className="bg-card border border-line rounded-lg p-2 text-center">
-                                    <p className="text-3xs font-bold text-fg uppercase">Maquininha ({finModal.taxaMaquininhaPct}%)</p>
-                                    <p className="text-xs font-black text-slate-800">{finModal.precoVenda > 0 ? fmtBRL(finModal.valorMaquininha) : "—"}</p>
-                                  </div>
-                                  <div className="bg-card border border-line rounded-lg p-2 text-center">
-                                    <p className="text-3xs font-bold text-fg uppercase">Imposto ({finModal.impostoPct}%)</p>
-                                    <p className="text-xs font-black text-slate-800">{finModal.precoVenda > 0 ? fmtBRL(finModal.valorImposto) : "—"}</p>
-                                  </div>
+                              {/* Custo da porção (o preço e o lucro estão na Precificação) */}
+                              <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-200 p-3">
+                                <div className="rounded-lg border border-line bg-card p-2 text-center">
+                                  <p className="text-3xs font-bold uppercase text-fg">Ingredientes</p>
+                                  <p className="text-xs font-black text-slate-800">{fmtBRL(finModal.custoIngredientesPorPorcao)}</p>
                                 </div>
-
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                  <div className="bg-card border border-emerald-200 rounded-lg p-2 text-center">
-                                    <p className="text-3xs font-bold text-fg uppercase">Custo Total</p>
-                                    <p className="text-sm font-black text-slate-900">{fmtBRL(finModal.custoTotal)}</p>
-                                  </div>
-                                  <div className="bg-card border border-emerald-200 rounded-lg p-2 text-center">
-                                    <p className="text-3xs font-bold text-fg uppercase">Preço Venda</p>
-                                    <p className="text-sm font-black text-emerald-700">{finModal.precoVenda > 0 ? fmtBRL(finModal.precoVenda) : "—"}</p>
-                                  </div>
-                                  <div className={`bg-card border rounded-lg p-2 text-center ${finModal.lucroPorPorcao !== null && finModal.lucroPorPorcao < 0 ? 'border-red-300 bg-red-50' : 'border-emerald-200'}`}>
-                                    <p className="text-3xs font-bold text-fg uppercase">Lucro/porção</p>
-                                    <p className={`text-sm font-black ${finModal.lucroPorPorcao !== null && finModal.lucroPorPorcao < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
-                                      {finModal.lucroPorPorcao !== null ? fmtBRL(finModal.lucroPorPorcao) : "—"}
-                                    </p>
-                                  </div>
-                                  <div className={`bg-card border rounded-lg p-2 text-center ${finModal.cmv !== null && finModal.cmv > meta ? 'border-red-300 bg-red-50' : 'border-emerald-200'}`}>
-                                    <p className="text-3xs font-bold text-fg uppercase">CMV</p>
-                                    <p className={`text-sm font-black ${finModal.cmv !== null && finModal.cmv > meta ? 'text-red-600' : 'text-emerald-700'}`}>
-                                      {finModal.cmv !== null ? `${finModal.cmv.toFixed(1)}%` : "—"}
-                                    </p>
-                                    {finModal.margem !== null && (
-                                      <span className="text-3xs font-bold text-subtle block">Margem {finModal.margem.toFixed(1)}%</span>
-                                    )}
-                                  </div>
+                                <div className="rounded-lg border border-line bg-card p-2 text-center">
+                                  <p className="text-3xs font-bold uppercase text-fg">Embalagem</p>
+                                  <p className="text-xs font-black text-slate-800">{fmtBRL(finModal.custoEmbalagemPorPorcao)}</p>
+                                </div>
+                                <div className="rounded-lg border border-emerald-200 bg-card p-2 text-center">
+                                  <p className="text-3xs font-bold uppercase text-fg">Custo da porção</p>
+                                  <p className="text-sm font-black text-slate-900">{fmtBRL((finModal.custoIngredientesPorPorcao || 0) + (finModal.custoEmbalagemPorPorcao || 0))}</p>
                                 </div>
                               </div>
                            </div>

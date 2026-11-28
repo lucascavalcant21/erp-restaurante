@@ -2603,16 +2603,18 @@ function FichasRunner() {
                 )}
               </div>
             </div>
-            <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
+            <div className="erp-busca-fixa flex flex-row gap-2 sm:gap-3">
               <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-card px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px]">
                 <Search size={19} className="shrink-0 text-fg-soft" />
                 <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-fg outline-none placeholder:font-medium placeholder:text-subtle" />
                 {busca && <button onClick={() => setBusca("")} className="text-subtle hover:text-fg-soft" title="Limpar busca"><X size={16} /></button>}
               </label>
-              {podeEditarFichas && <button onClick={abrirOpcaoNovo} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20 hover:bg-accent"><Plus size={18} /> {modoFicha === "preparos" ? "Criar receita" : deptUrl === "bar" ? "Criar drink" : "Criar prato"}</button>}
+              {podeEditarFichas && <button onClick={abrirOpcaoNovo} className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-accent px-3 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20 hover:bg-accent sm:px-5"><Plus size={18} /> {modoFicha === "preparos" ? "Criar receita" : deptUrl === "bar" ? "Criar drink" : "Criar prato"}</button>}
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
+          {/* Celular: só a busca e o Criar (dono, 27/11/2026). As ferramentas
+              (IA, livro, PDF, custos, pizza, importar) ficam no computador. */}
+          <div className="mt-3 hidden flex-wrap gap-2 lg:flex">
             {podeEditarFichas && <button onClick={abrirModalIAFicha} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text"><Sparkles size={14} /> Criar com IA</button>}
             <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text"><BarChart3 size={14} /> {mostrarIndicadores ? "Ocultar indicadores" : "Indicadores"}</button>
             {podeImprimirFichas && <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-card"><Printer size={14} /> Livro de receitas</button>}
@@ -2743,7 +2745,7 @@ function FichasRunner() {
             </div>
          )}
          {/* Bases / Pratos e Ativas numa linha só (dono, 24/11/2026: "como as marmitas") */}
-         <div className="mb-3 flex flex-wrap items-center gap-2">
+         <div className="mb-3 flex flex-nowrap items-center gap-2 lg:flex-wrap">
            {[
              { id: "Pratos principais", modo: "principais", titulo: deptUrl === "bar" ? "Drinks" : "Pratos", quantidade: fichas.filter(f => !f.eh_base).length },
              { id: "Bases", modo: "preparos", titulo: "Bases", quantidade: fichas.filter(f => !!f.eh_base).length },
@@ -2754,16 +2756,21 @@ function FichasRunner() {
                {item.titulo} <span className="opacity-70">({item.quantidade})</span>
              </button>
            ))}
+           <select value={tipoFiltro} onChange={e => setTipoFiltro(e.target.value)} aria-label="Categoria"
+             className="min-h-[44px] min-w-0 flex-1 rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text lg:hidden">
+             <option value={modoFicha === "preparos" ? "Bases" : "Pratos principais"}>Categoria: todas</option>
+             {categoriasDisponiveis.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+           </select>
            <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} aria-label="Mostrar fichas"
-             className="ml-auto min-h-[44px] rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text">
+             className="ml-auto hidden min-h-[44px] rounded-full border border-hf-border bg-hf-surface px-3 text-sm font-semibold text-hf-text lg:block">
              <option value="ativas">Ativas</option>
              <option value="inativas">Inativas</option>
              <option value="todas">Todas</option>
            </select>
          </div>
 
-         {/* Categorias numa linha de pílulas, como nas marmitas */}
-         <div className="mb-3 flex flex-wrap items-center gap-2">
+         {/* Categorias em pílulas só no computador; no celular é a caixa acima */}
+         <div className="mb-3 hidden flex-wrap items-center gap-2 lg:flex">
            {(modoFicha === "preparos"
              ? [["Bases", "Todas", fichas.filter(f => !!f.eh_base).length]]
              : [["Pratos principais", "Todos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length]]
@@ -3187,6 +3194,10 @@ function FichasRunner() {
             return { nome, un, unCusto, liquida, fc, bruta, custoUnit, custoTot, base: !!base };
          });
          const nf = (n) => (+Number(n || 0).toFixed(3)).toLocaleString("pt-BR");
+         // Quantidade da receita em g e ml, nunca em kg ou L (dono, 27/11/2026:
+         // "tudo que estiver em kg aparecer em g"). O preço continua por kg/L.
+         const emMiudo = (un) => { const u = String(un || "").toLowerCase(); return u === "kg" ? ["g", 1000] : u === "l" ? ["ml", 1000] : [u, 1]; };
+         const qtdMiuda = (n, un) => { const [u, f] = emMiudo(un); return `${nf(Number(n || 0) * f)} ${u}`; };
          const setorTxt = f.departamento === "bar" ? "Bar" : "Cozinha";
          const fechar = () => setFichaView(null);
          return (
@@ -3241,7 +3252,7 @@ function FichasRunner() {
                                  {[
                                      ["Categoria", f.categoria || "—"],
                                      ["Setor", setorTxt],
-                                     ["Quantidade da receita", `${nf(rend)} ${labelUn}`],
+                                     ["Quantidade da receita", qtdMiuda(rend, labelUn)],
                                      ...(podeVerCustos ? [[`1 ${labelUn} custa`, custoKg !== null ? fmtBRL(custoKg) : "—"]] : []),
                                      ["Unidade padrão", labelUn],
                                      ["Custo total", fmtBRL(custoTotal)],
@@ -3289,8 +3300,8 @@ function FichasRunner() {
                                           {podeVerCustos && <span className="shrink-0 font-black tabular-nums text-slate-800">{fmtBRL(l.custoTot)}</span>}
                                         </div>
                                         <p className="mt-0.5 text-xs font-semibold tabular-nums text-fg">
-                                          {nf(l.bruta)} {String(l.un || "").toLowerCase()}
-                                          {l.fc ? ` · FC ${nf(l.fc)}% · líquido ${nf(l.liquida)}` : ""}
+                                          {qtdMiuda(l.bruta, l.un)}
+                                          {l.fc ? ` · FC ${nf(l.fc)}% · líquido ${qtdMiuda(l.liquida, l.un)}` : ""}
                                           {podeVerCustos ? ` · ${fmtBRL(l.custoUnit)}/${String(l.unCusto || "").toLowerCase()}` : ""}
                                         </p>
                                       </li>
@@ -3333,10 +3344,10 @@ function FichasRunner() {
                                         {grupo.itens.map((l, i) => (
                                           <tr key={`${grupo.titulo}-${i}`} className="border-b border-slate-50">
                                             <td className="py-3 pr-2 text-[15px] font-bold text-slate-800">{l.nome}{l.base && <span className="ml-1.5 text-3xs font-bold uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Preparo</span>}</td>
-                                            <td className="py-3 px-1 text-center font-bold text-fg">{l.un}</td>
-                                            <td className="py-3 px-1 text-right font-bold text-fg-soft">{nf(l.bruta)}</td>
+                                            <td className="py-3 px-1 text-center font-bold text-fg">{emMiudo(l.un)[0].toUpperCase()}</td>
+                                            <td className="py-3 px-1 text-right font-bold text-fg-soft">{nf(Number(l.bruta || 0) * emMiudo(l.un)[1])}</td>
                                             <td className="py-3 px-1 text-right font-bold text-fg">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
-                                            <td className="py-3 px-1 text-right font-bold text-fg-soft">{nf(l.liquida)}</td>
+                                            <td className="py-3 px-1 text-right font-bold text-fg-soft">{nf(Number(l.liquida || 0) * emMiudo(l.un)[1])}</td>
                                             {podeVerCustos && <td className="py-3 px-1 text-right font-bold text-slate-900">{fmtBRL(l.custoUnit)}<span className="text-2xs font-semibold text-subtle">/{String(l.unCusto || "").toLowerCase()}</span></td>}
                                             {podeVerCustos && <td className="py-3 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>}
                                           </tr>

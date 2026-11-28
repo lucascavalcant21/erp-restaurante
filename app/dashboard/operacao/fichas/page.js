@@ -49,7 +49,7 @@ import {
   CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Copy, Download, Edit3,
   FileDown, FolderPlus, GripVertical, LayoutList, Loader2, Package, Plus, Printer, Save,
   Search, Sparkles, Trash2, UtensilsCrossed, Wine, X,
-  Clock, Thermometer, MoreVertical, PieChart,
+  Clock, Thermometer, MoreVertical, MoreHorizontal, PieChart,
 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
@@ -366,7 +366,7 @@ function FichasRunner() {
   const [titulosLote, setTitulosLote] = useState("");
   const [salvandoTitulosLote, setSalvandoTitulosLote] = useState(false);
   const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
-  const abrirFicha = (f) => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); };
+  const abrirFicha = (f) => { setSimPesoView(""); setViewTab("ficha"); setMaisFicha(false); setFichaView(f); };
   // A ficha aberta fica no endereço (?ver=id): recarregar volta nela (dono, 24/11/2026).
   // Só mexe no endereço depois da primeira carga: antes, este efeito apagava o
   // ?ver= ao abrir a tela, e a carga não achava mais qual ficha reabrir.
@@ -485,6 +485,7 @@ function FichasRunner() {
 
   // Calculadora de desmembramento (digita uma quantidade, vê custo/peso/unidades)
   const [calcQtd, setCalcQtd] = useState("");
+  const [maisFicha, setMaisFicha] = useState(false); // menu "Mais" da ficha aberta
   const [calcUn, setCalcUn] = useState("g");
   // Rendimento manual digitado em g/ml (dono, 28/11/2026: "medido em kg não
   // consigo mudar para grama"). Só a tela muda: o banco guarda em kg/L.
@@ -2856,11 +2857,14 @@ function FichasRunner() {
                   <li key={f.id} className="relative">
                     <button type="button" onClick={() => abrirFicha(f)} aria-label={`Abrir ficha ${f.nome_receita}`}
                       className={`hf-manter-dourado flex h-full w-full flex-col overflow-hidden rounded-2xl bg-hf-menu text-left text-white shadow-sm transition active:scale-[0.98] ${marcada ? "ring-4 ring-hf-accent" : ""}`}>
-                      <span className="grid aspect-[4/3] w-full place-items-center overflow-hidden bg-white/10 text-white/60">
-                        {img ? <img src={img} alt="" className="h-full w-full object-cover" /> : <UtensilsCrossed size={28} />}
-                      </span>
+                      {/* Sem foto: só nome, custo e rendimento (dono, 28/11/2026). */}
+                      {img && (
+                        <span className="grid aspect-[4/3] w-full place-items-center overflow-hidden bg-white/10">
+                          <img src={img} alt="" className="h-full w-full object-cover" />
+                        </span>
+                      )}
                       <span className="flex flex-1 flex-col gap-1 p-3">
-                        <span className="line-clamp-2 text-sm font-bold leading-snug">{String(f.nome_receita || "").trim()}</span>
+                        <span className={`line-clamp-2 text-sm font-bold leading-snug ${!img && podeEditarFichas ? "pr-[92px]" : ""}`}>{String(f.nome_receita || "").trim()}</span>
                         {tipoNoBar(f) && <span className="w-fit rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">{ROTULO_NO_BAR[tipoNoBar(f)]}</span>}
                         {podeVerCustos ? (
                           <>
@@ -2869,11 +2873,12 @@ function FichasRunner() {
                             {/* Venda e CMV ficam na Precificação (dono, 28/11/2026) */}
                           </>
                         ) : <span className="mt-auto text-[11px] text-white/60">{ehPrep ? "Base" : tipoNoBar(f) ? ROTULO_NO_BAR[tipoNoBar(f)] : "Prato"}</span>}
+                        {Number(f.rendimento_porcoes) > 0 && <span className="text-[11px] text-white/70">Rende {textoRendimentoPadronizado(f)}</span>}
                         {statusDaFicha(f) === "inativa" && <span className="text-[11px] text-white/60">Inativa</span>}
                       </span>
                     </button>
                     {podeEditarFichas && (
-                      <span className="absolute right-2 top-2 flex flex-col gap-1.5">
+                      <span className={`absolute right-2 top-2 flex gap-1.5 ${img ? "flex-col" : "flex-row"}`}>
                         <button type="button" onClick={() => abrirEditar(f)} aria-label={`Editar ${f.nome_receita}`}
                           className="grid h-10 w-10 place-items-center rounded-full bg-white/90 text-hf-text shadow"><Edit3 size={16} /></button>
                         <button type="button" onClick={() => pedirExclusao([f])} aria-label={`Excluir ${f.nome_receita}`}
@@ -2971,7 +2976,7 @@ function FichasRunner() {
 
             <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
               <div className="space-y-5 border-b border-line bg-transparent p-4 sm:p-6 lg:border-b-0 lg:border-r">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3">
                   <label className="text-xs font-bold text-slate-900">Modelo
                     <select value={configImpressao.modelo} onChange={e => {
                       const modelo = e.target.value;
@@ -2995,6 +3000,13 @@ function FichasRunner() {
                       <option value="livro">Livro completo</option>
                     </select>
                   </label>
+                </div>
+
+                {/* O resto fica guardado (dono, 28/11/2026: "isso é muito extenso"). */}
+                <details className="rounded-xl border border-line bg-card">
+                  <summary className="flex min-h-[48px] cursor-pointer items-center px-3 text-sm font-bold text-fg-soft">Mais opções: ordem, formato e conteúdo</summary>
+                  <div className="space-y-4 border-t border-line p-3">
+                    <div className="grid grid-cols-2 gap-3">
                   <label className="text-xs font-bold text-slate-900">Ordem
                     <select value={configImpressao.ordem} onChange={e => setConfigImpressao(atual => ({...atual, ordem: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 text-sm outline-none">
                       <option value="selecao">Ordem da seleção</option>
@@ -3010,8 +3022,7 @@ function FichasRunner() {
                       <option value="a4-paisagem">A4 paisagem</option>
                     </select>
                   </label>
-                </div>
-
+                    </div>
                 <div>
                   <p className="mb-2 text-xs font-bold uppercase tracking-wider text-fg">Conteúdo incluído</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -3033,6 +3044,10 @@ function FichasRunner() {
                     ))}
                   </div>
                 </div>
+                    <button onClick={salvarModeloImpressao} className="flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-black text-fg-soft"><Save size={17}/> Salvar como padrão</button>
+                  </div>
+                </details>
+
 
                 {configImpressao.ordem === "personalizada" && modalImpressao.lista.length > 1 && (
                   <div>
@@ -3051,7 +3066,7 @@ function FichasRunner() {
                 )}
               </div>
 
-              <div className="bg-card p-4 sm:p-6">
+              <div className="hidden bg-card p-4 sm:p-6 lg:block">
                 <div className={`mx-auto min-h-[420px] max-w-2xl rounded-lg border border-slate-300 bg-card p-5 shadow-xl ${configImpressao.formato === "a4-paisagem" ? "aspect-[1.414/1]" : "aspect-[1/1.414]"}`}>
                   <div className="flex items-start justify-between gap-3 border-b-2 border-emerald-700 pb-3">
                     <div>
@@ -3079,11 +3094,9 @@ function FichasRunner() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-card p-4 sm:px-6">
-              <button onClick={() => setModalImpressao(null)} className="mr-auto flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-slate-900 hover:bg-card"><ArrowLeft size={17}/> Voltar</button>
-              <button onClick={salvarModeloImpressao} className="flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-black text-fg-soft"><Save size={17}/> Salvar modelo</button>
-              <button onClick={() => gerarDocumentoConfigurado("pdf")} className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-accent-soft px-4 py-2.5 text-sm font-black text-accent-strong"><Download size={17}/> Gerar PDF</button>
-              <button onClick={() => gerarDocumentoConfigurado("imprimir")} className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-accent-fg hover:opacity-90"><Printer size={17}/> Imprimir</button>
+            <div className="grid grid-cols-2 gap-2 border-t border-line bg-card p-4 sm:flex sm:justify-end sm:px-6">
+              <button onClick={() => gerarDocumentoConfigurado("pdf")} className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-accent-soft px-4 py-2.5 text-sm font-black text-accent-strong"><Download size={17}/> Gerar PDF</button>
+              <button onClick={() => gerarDocumentoConfigurado("imprimir")} className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-accent-fg hover:opacity-90"><Printer size={17}/> Imprimir</button>
             </div>
           </div>
         </div>
@@ -3209,35 +3222,38 @@ function FichasRunner() {
          return (
             <div className="fixed inset-0 z-[55] bg-slate-900/50 backdrop-blur-sm flex items-start justify-center p-0 sm:p-4 overflow-y-auto overscroll-contain">
                <div className="erp-ficha erp-ficha-ver bg-slate-50 w-full max-w-6xl min-h-full sm:min-h-0 sm:rounded-[28px] shadow-2xl flex flex-col animate-in fade-in zoom-in-95 sm:my-8 overflow-hidden">
-                  {/* CABEÇALHO */}
-                  <div className="bg-card border-b border-line-soft px-4 sm:px-6 py-4 flex flex-wrap items-center gap-3">
-                     <button onClick={fechar} className="w-10 h-10 rounded-full bg-card hover:bg-slate-200 flex items-center justify-center text-slate-900 shrink-0"><ArrowLeft size={19} /></button>
-                     <div className="w-11 h-11 rounded-2xl bg-accent text-accent-fg flex items-center justify-center shrink-0">
-                        {f.departamento === "bar" ? <Wine size={20} /> : <UtensilsCrossed size={20} />}
-                     </div>
-                     <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                           <h2 className="text-lg sm:text-xl font-black text-fg break-words">{f.nome_receita}</h2>
-                           <span className="erp-status-ativo inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider text-emerald-700">Ativo</span>
+                  {/* CABEÇALHO enxuto (dono, 28/11/2026: "muito informação"): voltar,
+                      nome, tipo · setor; Editar e um "Mais" com o resto. */}
+                  <div className="bg-card border-b border-line-soft px-4 sm:px-6 py-3">
+                     <div className="flex items-center gap-2">
+                        <button onClick={fechar} aria-label="Voltar" className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-900 hover:bg-slate-100"><ArrowLeft size={19} /></button>
+                        <div className="min-w-0 flex-1">
+                           <h2 className="truncate text-lg font-black text-fg sm:text-xl">{f.nome_receita}</h2>
+                           <p className="text-2xs font-bold text-fg">
+                              {tipoNoBar(f) ? `${ROTULO_NO_BAR[tipoNoBar(f)]}${f.categoria ? ` · ${f.categoria}` : ""}` : (f.categoria || (f.eh_base ? "Base" : "Prato"))} · {setorTxt}
+                              {statusDaFicha(f) === "inativa" && <span className="ml-1.5 rounded-full bg-slate-200 px-2 py-0.5 text-3xs font-bold uppercase">Inativa</span>}
+                           </p>
                         </div>
-                        <p className="text-2xs font-bold text-fg mt-0.5">{tipoNoBar(f) ? `${ROTULO_NO_BAR[tipoNoBar(f)]}${f.categoria ? ` · ${f.categoria}` : ""}` : (f.categoria || (f.eh_base ? "Base" : "Prato"))} · {setorTxt}</p>
+                        {podeEditarFichas && <button onClick={() => { fechar(); abrirEditar(f); }} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-accent px-3 text-sm font-black text-accent-fg shadow-sm"><Edit3 size={16} /> Editar</button>}
+                        <button onClick={() => setMaisFicha((v) => !v)} aria-expanded={maisFicha} aria-label="Mais ações" className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border ${maisFicha ? "border-hf-menu bg-hf-menu text-white" : "border-line bg-card text-slate-900"}`}><MoreHorizontal size={18} /></button>
                      </div>
-                     <div className="flex items-center gap-2 shrink-0">
-                        {!f.eh_base && (
-                           <>
-                              {podeImprimirFichas && <button onClick={() => abrirPreviaImpressao("imprimir", [f])} title="Imprimir" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-900 hover:border-emerald-400 flex items-center justify-center"><Printer size={17} /></button>}
-                              {podeImprimirFichas && <button onClick={() => abrirPreviaImpressao("pdf", [f])} title="Gerar PDF" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-900 hover:border-emerald-400 flex items-center justify-center"><Download size={17} /></button>}
-                              <button onClick={() => abrirSimulacao(f)} title="Simular rendimento" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-900 hover:border-emerald-400 flex items-center justify-center"><Calculator size={17} /></button>
-                           </>
-                        )}
-                        {podeEditarFichas && <button onClick={async () => { if (await pedirExclusao([f])) fechar(); }} title={f.eh_base ? "Excluir base" : "Excluir ficha"} aria-label={f.eh_base ? "Excluir base" : "Excluir ficha"} className="w-10 h-10 rounded-xl border border-red-200 bg-card text-red-600 hover:bg-red-50 flex items-center justify-center"><Trash2 size={17} /></button>}
-                        {podeEditarFichas && <button onClick={() => { fechar(); abrirEditar(f); }} className="inline-flex items-center gap-2 rounded-xl bg-accent hover:bg-accent text-accent-fg font-black text-sm px-4 h-10 shadow-sm"><Edit3 size={16} /> Editar ficha</button>}
-                     </div>
+                     {maisFicha && (
+                        <div className="mt-2 grid grid-cols-2 gap-1.5">
+                           {!f.eh_base && podeImprimirFichas && <button onClick={() => { setMaisFicha(false); abrirPreviaImpressao("imprimir", [f]); }} className="flex min-h-[44px] items-center gap-2 rounded-xl bg-slate-100 px-3 text-sm font-bold text-slate-900"><Printer size={16} /> Imprimir</button>}
+                           {!f.eh_base && podeImprimirFichas && <button onClick={() => { setMaisFicha(false); abrirPreviaImpressao("pdf", [f]); }} className="flex min-h-[44px] items-center gap-2 rounded-xl bg-slate-100 px-3 text-sm font-bold text-slate-900"><Download size={16} /> PDF</button>}
+                           {!f.eh_base && <button onClick={() => { setMaisFicha(false); abrirSimulacao(f); }} className="flex min-h-[44px] items-center gap-2 rounded-xl bg-slate-100 px-3 text-sm font-bold text-slate-900"><Calculator size={16} /> Simular rendimento</button>}
+                           {podeEditarFichas && <button onClick={async () => { setMaisFicha(false); if (await pedirExclusao([f])) fechar(); }} className="flex min-h-[44px] items-center gap-2 rounded-xl bg-red-50 px-3 text-sm font-bold text-red-600"><Trash2 size={16} /> Excluir</button>}
+                        </div>
+                     )}
                   </div>
 
                   {/* ABAS */}
                   <div className="bg-card border-b border-line-soft px-4 sm:px-6 flex gap-1 overflow-x-auto">
-                     {[["ficha", "Ficha técnica"], ["preparo", f.eh_base ? "Modo de preparo" : "Montagem e guarnição"], ["custos", "Histórico de custos"]].map(([id, rot]) => (
+                     {/* Base: modo de preparo; prato da cozinha: sem montagem; drink do bar:
+                         montagem do drink (dono, 28/11/2026). */}
+                     {[["ficha", "Ficha técnica"],
+                       ...(f.eh_base ? [["preparo", "Modo de preparo"]] : tipoNoBar(f) === "drink" ? [["preparo", "Montagem do drink"]] : []),
+                       ["custos", "Histórico de custos"]].map(([id, rot]) => (
                         <button key={id} onClick={() => setViewTab(id)}
                            className={`shrink-0 px-3 py-3 text-sm font-black border-b-2 transition-colors ${viewTab === id ? "border-emerald-600 text-accent" : "border-transparent text-subtle hover:text-slate-900"}`}>
                            {rot}
@@ -3335,7 +3351,6 @@ function FichasRunner() {
                                  </tbody>
                               </table>
                            </div>
-                           {podeEditarFichas && <button onClick={() => { fechar(); abrirEditar(f); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 text-accent-strong font-black text-sm px-4 py-2.5 hover:bg-accent-soft"><Plus size={16} /> Adicionar ingrediente</button>}
                            <div className="mt-4 pt-3 border-t border-line flex flex-col items-end gap-1 text-sm">
                               {podeVerCustos && <span className="text-fg font-bold">Custo total da receita: <b className="text-accent font-black">{fmtBRL(custoTotal)}</b></span>}
                               {podeVerCustos && custoKg !== null && <span className="text-fg font-bold">1 {labelUn} custa: <b className="text-accent font-black">{fmtBRL(custoKg)}</b></span>}
@@ -3344,13 +3359,35 @@ function FichasRunner() {
                            </div>
                         </div>
                         )}
+                        {/* Composição do custo na página principal (dono, 28/11/2026). */}
+                        {podeVerCustos && linhas.length > 0 && (
+                              <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
+                                 <p className="text-2xs font-bold uppercase tracking-widest text-accent mb-1">Composição do custo atual</p>
+                                 <p className="text-2xs font-medium text-subtle mb-3">Participação de cada ingrediente no custo total ({fmtBRL(custoTotal)}).</p>
+                                 <div className="space-y-2.5">
+                                    {[...linhas].sort((a, b) => b.custoTot - a.custoTot).map((l, i) => {
+                                       const pct = custoTotal > 0 ? (l.custoTot / custoTotal) * 100 : 0;
+                                       return (
+                                          <div key={i}>
+                                             <div className="flex items-center justify-between text-sm mb-1">
+                                                <span className="font-bold text-fg-soft truncate pr-2">{l.nome}</span>
+                                                <span className="font-black text-slate-800 shrink-0">{fmtBRL(l.custoTot)} <span className="text-subtle font-bold">· {pct.toFixed(1)}%</span></span>
+                                             </div>
+                                             <div className="h-2 rounded-full bg-card overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} /></div>
+                                          </div>
+                                       );
+                                    })}
+                                    {linhas.length === 0 && <p className="text-sm text-subtle font-medium">Sem ingredientes para compor o custo.</p>}
+                                 </div>
+                              </div>
+                        )}
                         </>)}
 
                         {/* ABA: MODO DE PREPARO / MONTAGEM E GUARNIÇÃO */}
                         {viewTab === "preparo" && (
                            <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                               <p className="text-2xs font-bold uppercase tracking-widest text-accent mb-3">
-                                 {f.eh_base ? "Modo de preparo" : "Montagem do prato e guarnição"}
+                                 {f.eh_base ? "Modo de preparo" : "Montagem do drink"}
                               </p>
                               {f.guarnicao ? (
                                  <div className="mb-4 p-3 rounded-xl bg-transparent border border-line">
@@ -3431,26 +3468,6 @@ function FichasRunner() {
                                  )}
                               </div>
 
-                              {/* Composição atual */}
-                              <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
-                                 <p className="text-2xs font-bold uppercase tracking-widest text-accent mb-1">Composição do custo atual</p>
-                                 <p className="text-2xs font-medium text-subtle mb-3">Participação de cada ingrediente no custo total ({fmtBRL(custoTotal)}).</p>
-                                 <div className="space-y-2.5">
-                                    {[...linhas].sort((a, b) => b.custoTot - a.custoTot).map((l, i) => {
-                                       const pct = custoTotal > 0 ? (l.custoTot / custoTotal) * 100 : 0;
-                                       return (
-                                          <div key={i}>
-                                             <div className="flex items-center justify-between text-sm mb-1">
-                                                <span className="font-bold text-fg-soft truncate pr-2">{l.nome}</span>
-                                                <span className="font-black text-slate-800 shrink-0">{fmtBRL(l.custoTot)} <span className="text-subtle font-bold">· {pct.toFixed(1)}%</span></span>
-                                             </div>
-                                             <div className="h-2 rounded-full bg-card overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} /></div>
-                                          </div>
-                                       );
-                                    })}
-                                    {linhas.length === 0 && <p className="text-sm text-subtle font-medium">Sem ingredientes para compor o custo.</p>}
-                                 </div>
-                              </div>
                            </div>
                         )}
                      </div>
@@ -3970,7 +3987,26 @@ function FichasRunner() {
                            const est = rendimentoPelosIngredientes(ingFicha, form.departamento || deptUrl);
                            const r = Number(form.rendimento_porcoes) || 0;
                            const somaKg = est ? est.totalG / 1000 : 0;
-                           if (!(somaKg > 0) || r <= somaKg * 50) return null;
+                           if (!(somaKg > 0) || !(r > 0)) return null;
+                           if (r <= somaKg * 50) {
+                              // Perda ou ganho do preparo (dono, 28/11/2026: "se digitei menor que a
+                              // somatória, foi perda ou ganho: quanto, em %, gramas e reais").
+                              const difKg = r - somaKg;
+                              if (Math.abs(difKg) < 0.0005) return null;
+                              const pctDif = (difKg / somaKg) * 100;
+                              const custoTot = calcularCustoTotal(ingFicha);
+                              const reais = custoTot * (Math.abs(difKg) / somaKg);
+                              const unM = unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? ["ml", "L"] : ["g", "kg"];
+                              const qtd = Math.abs(difKg) < 1 ? `${Math.round(Math.abs(difKg) * 1000).toLocaleString("pt-BR")} ${unM[0]}` : `${Math.abs(difKg).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${unM[1]}`;
+                              const perda = difKg < 0;
+                              return (
+                                 <div className={`mt-3 rounded-xl border px-3.5 py-2.5 text-sm font-bold ${perda ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
+                                    {perda ? "Perda" : "Ganho"} no preparo: {qtd} ({perda ? "" : "+"}{pctDif.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%)
+                                    {perda ? ` · ${fmtBRL(reais)} de ingredientes que somem` : " · água ou absorção no preparo"}
+                                    <span className="block text-xs font-semibold opacity-80">Ingredientes somam {somaKg.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} {unM[1]}; você informou {r.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} {unM[1]}.</span>
+                                 </div>
+                              );
+                           }
                            const corrigido = +(r / 1000).toFixed(3);
                            const un = unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? "L" : "kg";
                            return (
@@ -4136,28 +4172,39 @@ function FichasRunner() {
                      })()}
 
                      {/* CMV E PRECIFICAÇÃO — o preço de venda vive AQUI (Produtos e Preços saiu do menu) */}
-                     {!form.eh_base && <div className="rounded-2xl border-2 border-pink-200 bg-card p-4 shadow-sm">
-                        <div className="flex items-start justify-between gap-3">
-                           <div><p className="text-xs font-bold uppercase tracking-widest text-pink-700">Embalagens</p><p className="mt-1 text-xs font-medium text-fg">Selecione o que acompanha cada prato ou drink. O custo entra automaticamente no CMV.</p></div>
-                           <span className="shrink-0 rounded-lg bg-pink-50 px-3 py-2 text-sm font-black text-pink-700">{fmtBRL(custoEmbalagensPorPorcao())}/porcao</span>
+                     {/* Embalagens como os ingredientes: escolhe do cadastro, mostra só as
+                         escolhidas (dono, 28/11/2026: "isso vem do cadastro de embalagens, que é
+                         igual ao cadastro de ingredientes"). Nova embalagem se cadastra em
+                         Ingredientes, setor Embalagens. */}
+                     {!form.eh_base && <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
+                        <div className="flex items-center justify-between gap-3">
+                           <p className="text-xs font-bold uppercase tracking-widest text-fg">Embalagens</p>
+                           <span className="shrink-0 text-sm font-black text-slate-800">{fmtBRL(custoEmbalagensPorPorcao())} por porção</span>
                         </div>
-                        {embalagensEstoque.length > 0 ? <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                           {embalagensEstoque.map(emb => {
-                              const selecionada = fichaEmbalagens.find(item => String(item.embalagem_id) === String(emb.id));
-                              return <div key={emb.id} className={`rounded-xl border p-3 ${selecionada ? "border-pink-400 bg-pink-50" : "border-line bg-transparent"}`}>
-                                 <button type="button" onClick={() => alternarEmbalagemFicha(emb.id)} className="flex w-full items-center gap-2 text-left">
-                                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${selecionada ? "bg-pink-600 text-white" : "bg-card text-subtle"}`}>{selecionada ? <CheckSquare2 size={16}/> : <Package size={16}/>}</span>
-                                    <span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-800">{emb.nome}</strong><small className="font-bold text-fg">{fmtBRL(emb.preco_unitario)} cada{emb.preco_do_cadastro ? "" : " · sem preço no cadastro"}</small></span>
-                                 </button>
-                                 {selecionada && <label className="mt-2 flex items-center justify-between gap-2 border-t border-pink-200 pt-2 text-xs font-bold text-pink-800"><span>Quantidade por venda</span><input type="number" min="0.01" step="0.01" value={selecionada.qtd} onChange={e => alterarQuantidadeEmbalagem(emb.id, e.target.value)} className="h-9 w-24 rounded-lg border border-pink-300 bg-card px-2 text-right font-black outline-none" /></label>}
-                              </div>;
-                           })}
-                        </div> : <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-transparent p-3 text-center text-xs font-bold text-fg">Nenhuma embalagem cadastrada neste setor.</p>}
-                        <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-dashed border-pink-300 bg-pink-50 p-3 sm:grid-cols-[1fr_140px_auto]">
-                           <input value={novaEmbalagem.nome} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, nome: e.target.value })} placeholder="Nova embalagem (ex.: Marmita 500 ml)" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-card px-3 text-sm font-bold outline-none focus:border-pink-500" />
-                           <CampoDecimal value={novaEmbalagem.custo} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, custo: e.target.value.replace(/[^0-9.,]/g, "") })} placeholder="Custo R$" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-card px-3 text-sm font-bold outline-none focus:border-pink-500" />
-                           <button type="button" disabled={salvandoEmbalagem} onClick={cadastrarEmbalagemDaFicha} className="h-11 rounded-lg bg-pink-600 px-4 text-sm font-black text-white disabled:opacity-50">{salvandoEmbalagem ? "Salvando..." : "Cadastrar e usar"}</button>
-                        </div>
+                        {fichaEmbalagens.length > 0 && (
+                           <ul className="mt-2 divide-y divide-[color:var(--line-soft)]">
+                              {fichaEmbalagens.map(item => {
+                                 const emb = embalagensEstoque.find(e => String(e.id) === String(item.embalagem_id));
+                                 return (
+                                    <li key={item.embalagem_id} className="flex items-center gap-2 py-2">
+                                       <span className="min-w-0 flex-1"><b className="block truncate text-sm text-slate-800">{emb?.nome || "Embalagem"}</b><small className="font-bold text-fg">{fmtBRL(emb?.preco_unitario || 0)} cada</small></span>
+                                       <input type="number" min="0.01" step="0.01" value={item.qtd} onChange={e => alterarQuantidadeEmbalagem(item.embalagem_id, e.target.value)} aria-label="Quantidade por venda" className="h-11 w-16 rounded-lg border border-line bg-transparent text-center font-black outline-none" />
+                                       <button type="button" onClick={() => alternarEmbalagemFicha(item.embalagem_id)} aria-label="Tirar embalagem" className="grid h-11 w-11 place-items-center rounded-lg border border-line text-red-600"><Trash2 size={16}/></button>
+                                    </li>
+                                 );
+                              })}
+                           </ul>
+                        )}
+                        {embalagensEstoque.some(e => !fichaEmbalagens.some(i => String(i.embalagem_id) === String(e.id))) ? (
+                           <select value="" onChange={e => { if (e.target.value) alternarEmbalagemFicha(e.target.value); }} className="mt-2 h-12 w-full rounded-xl border border-line bg-transparent px-3 text-sm font-bold text-fg-soft outline-none">
+                              <option value="">+ Adicionar embalagem</option>
+                              {embalagensEstoque.filter(e => !fichaEmbalagens.some(i => String(i.embalagem_id) === String(e.id))).map(e => (
+                                 <option key={e.id} value={e.id}>{e.nome} · {fmtBRL(e.preco_unitario)}</option>
+                              ))}
+                           </select>
+                        ) : embalagensEstoque.length === 0 ? (
+                           <p className="mt-2 text-xs font-bold text-fg">Nenhuma embalagem cadastrada. Cadastre em Ingredientes, setor Embalagens.</p>
+                        ) : null}
                      </div>}
 
                      {(() => {
@@ -4202,8 +4249,11 @@ function FichasRunner() {
                                       onChange={e => setForm({ ...form, peso_porcao_g: e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".") })}
                                       className="w-full p-2.5 mt-1 bg-transparent border border-line rounded-xl font-bold text-sm outline-none focus:border-emerald-500" />
                                     <span className="mt-1 block text-3xs font-medium text-fg">
-                                      = {rendForm.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} {rendForm === 1 ? "porção" : "porções"}
-                                      {Number(form.peso_porcao_g) > 0 ? " (rendimento ÷ peso da porção)" : form.eh_base ? " (custo por unidade do rendimento)" : " — vazio: a receita inteira é uma porção"}
+                                      {/* Frase direta (dono, 28/11/2026: "não entendi"). */}
+                                      {Number(form.peso_porcao_g) > 0
+                                        ? `Rende ${rendForm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${rendForm === 1 ? "porção" : "porções"} de ${Number(form.peso_porcao_g).toLocaleString("pt-BR")} g.`
+                                        : rendForm === 1 ? "Sem peso: a receita inteira conta como 1 porção."
+                                        : `Sem peso: conta ${rendForm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} porções (o rendimento da receita). Confira o rendimento.`}
                                     </span>
                                  </div>
                                  {/* Campo antigo: a embalagem vem da lista de Embalagens. Só aparece

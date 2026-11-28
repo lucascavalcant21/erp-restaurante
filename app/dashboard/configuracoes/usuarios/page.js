@@ -56,6 +56,8 @@ export default function UsuariosAcessosPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [acoesDe, setAcoesDe] = useState(null);
   const [filters, setFilters] = useState({ text: "", profile: "", sector: "", unit: "", status: "", last: "" });
   const [modal, setModal] = useState(null);
   // "Montar um tablet" da Área do administrador abre direto a conta rápida (14/11/2026).
@@ -198,8 +200,13 @@ export default function UsuariosAcessosPage() {
       {notice && <div className="mb-4 flex items-center justify-between rounded-xl bg-accent-soft px-4 py-3 text-sm font-bold text-accent-strong">{notice}<button onClick={() => setNotice("")}><X size={16}/></button></div>}
       {!!data?.legacyCount && <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-amber-900">{data.legacyCount} acessos antigos precisam ser protegidos</p><p className="text-sm text-amber-700">Migre-os para o Supabase Auth e remova as senhas em texto puro.</p></div><button disabled={saving} onClick={migrate} className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-black text-white">Migrar agora</button></div>}
 
-      <div className="mb-5 grid grid-cols-1 gap-2 rounded-2xl border border-line bg-card p-3 sm:grid-cols-2 xl:grid-cols-7">
-        <label className="relative xl:col-span-2"><Search size={15} className="absolute left-3 top-3 text-subtle"/><input value={filters.text} onChange={(e) => setFilters({...filters,text:e.target.value})} placeholder="Nome ou login" className={INPUT+" pl-9"}/></label>
+      {/* Celular: só a busca e um botão Filtros (dono, 28/11/2026: "deixe mais prático"). */}
+      <div className="mb-3 flex gap-2 sm:hidden">
+        <label className="relative min-w-0 flex-1"><Search size={15} className="absolute left-3 top-3.5 text-subtle"/><input value={filters.text} onChange={(e) => setFilters({...filters,text:e.target.value})} placeholder="Nome ou login" className={`${INPUT} pl-9`}/></label>
+        <button type="button" onClick={() => setFiltrosAbertos((v) => !v)} aria-expanded={filtrosAbertos} className={`shrink-0 rounded-xl border px-3 text-sm font-bold ${filtrosAbertos || filters.profile || filters.sector || filters.unit || filters.status || filters.last ? "border-hf-menu bg-hf-menu text-white" : "border-line bg-card text-fg"}`}>Filtros</button>
+      </div>
+      <div className={`mb-5 grid-cols-1 gap-2 rounded-2xl border border-line bg-card p-3 sm:grid sm:grid-cols-2 xl:grid-cols-7 ${filtrosAbertos ? "grid" : "hidden"}`}>
+        <label className="relative hidden sm:block xl:col-span-2"><Search size={15} className="absolute left-3 top-3 text-subtle"/><input value={filters.text} onChange={(e) => setFilters({...filters,text:e.target.value})} placeholder="Nome ou login" className={INPUT+" pl-9"}/></label>
         <select value={filters.profile} onChange={(e) => setFilters({...filters,profile:e.target.value})} className={INPUT}><option value="">Todos os perfis</option>{profiles.map((p)=><option key={p.id} value={p.id}>{p.nome}</option>)}</select>
         <select value={filters.sector} onChange={(e) => setFilters({...filters,sector:e.target.value})} className={INPUT}><option value="">Todos os setores</option>{data?.sectors.map((s)=><option key={s.id} value={s.id}>{s.nome}</option>)}</select>
         <select value={filters.unit} onChange={(e) => setFilters({...filters,unit:e.target.value})} className={INPUT}><option value="">Todas as unidades</option>{data?.units.map((u)=><option key={u.id} value={u.id}>{u.nome}</option>)}</select>
@@ -223,17 +230,27 @@ export default function UsuariosAcessosPage() {
                 <p className="text-xs text-subtle">Último acesso: {formatLastAccess(user.ultimo_acesso_em)}</p>
               </div>
             </div>
-            <div className="mt-2 flex flex-wrap gap-1 border-t border-line pt-2">
-              <button title="Visualizar" aria-label="Visualizar" onClick={()=>{setForm(user);setModal("view")}} className="grid h-11 w-11 place-items-center rounded-lg text-fg hover:bg-card"><Eye size={17}/></button>
-              <button title="Editar" aria-label="Editar" onClick={()=>openForm(user)} className="grid h-11 w-11 place-items-center rounded-lg text-emerald-700 hover:bg-zinc-100"><Pencil size={17}/></button>
-              <button title="Alterar permissões" aria-label="Alterar permissões" onClick={()=>openPermissions(user)} className="grid h-11 w-11 place-items-center rounded-lg text-emerald-700 hover:bg-zinc-100"><ShieldCheck size={17}/></button>
-              <button title="Redefinir senha" aria-label="Redefinir senha" onClick={()=>{setForm({...user,password:"",confirmPassword:""});setModal("password")}} className="grid h-11 w-11 place-items-center rounded-lg text-amber-600 hover:bg-amber-50"><KeyRound size={17}/></button>
-              {user.status==="ativo"?<button title="Bloquear" aria-label="Bloquear" onClick={()=>status(user,"bloqueado")} className="grid h-11 w-11 place-items-center rounded-lg text-amber-600 hover:bg-amber-50"><Lock size={17}/></button>:<button title="Desbloquear" aria-label="Desbloquear" onClick={()=>status(user,"ativo")} className="grid h-11 w-11 place-items-center rounded-lg text-accent-strong hover:bg-accent-soft"><CheckCircle2 size={17}/></button>}
-              <button title="Desativar" aria-label="Desativar" onClick={()=>status(user,"desativado")} className="grid h-11 w-11 place-items-center rounded-lg text-fg hover:bg-card"><Ban size={17}/></button>
-              <button title="Duplicar" aria-label="Duplicar" onClick={()=>openForm(user,true)} className="grid h-11 w-11 place-items-center rounded-lg text-emerald-700 hover:bg-zinc-100"><Copy size={17}/></button>
-              <button title="Histórico" aria-label="Histórico" onClick={()=>{setForm(user);setModal("history")}} className="grid h-11 w-11 place-items-center rounded-lg text-fg hover:bg-card"><History size={17}/></button>
-              <button title="Excluir" aria-label="Excluir" onClick={()=>remove(user)} className="grid h-11 w-11 place-items-center rounded-lg text-rose-600 hover:bg-rose-50"><Trash2 size={17}/></button>
+            {/* Três ações à mão; o resto em "Mais" (dono, 28/11/2026). */}
+            <div className="mt-2 grid grid-cols-3 gap-2 border-t border-line pt-2">
+              <button onClick={()=>openForm(user)} className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-line text-sm font-bold text-fg"><Pencil size={15}/>Editar</button>
+              <button onClick={()=>{setForm({...user,password:"",confirmPassword:""});setModal("password")}} className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-line text-sm font-bold text-fg"><KeyRound size={15}/>Senha</button>
+              <button onClick={()=>setAcoesDe(acoesDe===user.id?null:user.id)} aria-expanded={acoesDe===user.id} className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border text-sm font-bold ${acoesDe===user.id?"border-hf-menu bg-hf-menu text-white":"border-line text-fg"}`}>Mais</button>
             </div>
+            {acoesDe===user.id && (
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                {[
+                  ["Ver dados", Eye, ()=>{setForm(user);setModal("view")}, "text-fg"],
+                  ["Permissões", ShieldCheck, ()=>openPermissions(user), "text-fg"],
+                  user.status==="ativo" ? ["Bloquear", Lock, ()=>status(user,"bloqueado"), "text-amber-700"] : ["Desbloquear", CheckCircle2, ()=>status(user,"ativo"), "text-accent-strong"],
+                  ["Desativar", Ban, ()=>status(user,"desativado"), "text-fg"],
+                  ["Duplicar", Copy, ()=>openForm(user,true), "text-fg"],
+                  ["Histórico", History, ()=>{setForm(user);setModal("history")}, "text-fg"],
+                  ["Excluir", Trash2, ()=>remove(user), "text-rose-600"],
+                ].map(([rot, Ic, fn, cor]) => (
+                  <button key={rot} onClick={fn} className={`flex min-h-[44px] items-center gap-2 rounded-xl bg-hf-elevated px-3 text-sm font-semibold ${cor}`}><Ic size={15}/>{rot}</button>
+                ))}
+              </div>
+            )}
           </li>
         ))}
         {!users.length && <li className="rounded-2xl border border-line bg-card p-8 text-center text-sm font-bold text-subtle">Nenhum usuário encontrado.</li>}

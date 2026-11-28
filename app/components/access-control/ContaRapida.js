@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Check, ChefHat, Clock, ConciergeBell, Copy, KeyRound, Loader2, Martini, Minus, Sparkles, Users, Wine, X } from "lucide-react";
 import { accessCommand } from "../../lib/access-control";
+import { previaDaConta } from "../../lib/conta-previa.mjs";
+import IconeModulo from "../ui/IconeModulo";
 import { useERP } from "../../context/ERPContext";
 import { CONTAS_RAPIDAS, MODULOS_CONTA, contaDosModulos, contaRapidaPorId, loginDoRestaurante, senhaDoRestaurante } from "../../lib/contas-rapidas.mjs";
 
@@ -122,6 +124,8 @@ export default function ContaRapida({ onFechar, onCriada, modeloInicial = null, 
                 </ul>
               </div>}
 
+              {modulos.length > 0 && <Previa modelo={modelo} />}
+
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-bold text-hf-text-2">Nome
                   <input value={nome} onChange={(e) => mudarNome(e.target.value)} placeholder={modelo.nome || "Ex.: Tablet da cozinha"} autoComplete="off" className={`${CAMPO} mt-1`} />
@@ -144,6 +148,55 @@ export default function ContaRapida({ onFechar, onCriada, modeloInicial = null, 
               </button>
             </footer>
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+// Prévia do que a conta vê ao entrar (dono, 28/11/2026: "aqui eu quero
+// pré-visualizar como vai ser"). Mesmas regras do menu e das permissões.
+function Previa({ modelo }) {
+  const p = previaDaConta(modelo);
+  if (!p) return null;
+  return (
+    <div>
+      <p className="mb-2 text-sm font-bold text-hf-text-2">Prévia: o que aparece ao entrar</p>
+      <div className="mx-auto w-full max-w-[300px] rounded-[28px] border-4 border-hf-menu bg-hf-bg p-3 shadow-sm">
+        <div className="mb-2 flex items-center justify-between border-b border-hf-border pb-2">
+          <span className="text-sm font-black text-hf-text">{p.titulo}</span>
+          <span className="rounded-full border border-hf-border px-2 py-0.5 text-[10px] font-semibold text-hf-text-2">Sair</span>
+        </div>
+        {p.tipo === "ponto" && (
+          <div className="space-y-2 text-center">
+            <p className="text-2xl font-black tabular-nums text-hf-text">10:48</p>
+            <p className="text-xs text-hf-muted">Toque no seu nome e digite o PIN</p>
+            {["Funcionário 1", "Funcionário 2", "Funcionário 3"].map((n) => (
+              <div key={n} className="flex items-center gap-2 rounded-xl border border-hf-border bg-hf-surface px-2 py-1.5 text-left text-xs font-semibold text-hf-text">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-hf-elevated text-[10px]">{n.slice(-1)}</span>{n}
+              </div>
+            ))}
+            <p className="text-[10px] text-hf-muted">Só isso: sem menu, sem outras telas.</p>
+          </div>
+        )}
+        {p.tipo === "nico" && (
+          <div className="space-y-2">
+            <div className="rounded-2xl rounded-bl-sm bg-hf-elevated px-3 py-2 text-xs text-hf-text">Oi! Pergunte como fazer um prato ou uma base.</div>
+            <div className="flex items-center gap-2 rounded-full border border-hf-border bg-hf-surface px-3 py-2 text-xs text-hf-muted"><Sparkles size={14} aria-hidden="true" />Toque, digite ou fale…</div>
+          </div>
+        )}
+        {(p.tipo === "cards" || p.tipo === "inicio") && (
+          p.cards.length ? (
+            <div className="grid grid-cols-3 gap-1.5">
+              {p.cards.map((c) => (
+                <div key={c.label} className="flex flex-col items-center gap-1 rounded-xl border border-hf-border bg-hf-surface p-1.5 text-center">
+                  <IconeModulo item={c} tamanho="sm" />
+                  <span className="line-clamp-2 text-[10px] font-semibold leading-tight text-hf-text">{c.label}</span>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-xs text-hf-muted">Nenhuma tela liberada.</p>
         )}
       </div>
     </div>

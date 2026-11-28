@@ -8,7 +8,9 @@
 // no lucro".
 //
 // As contas vêm de custo-do-dia.mjs (testado). Os valores das contas da casa
-// são os mesmos que a Pizza do Lucro grava; a equipe vem do RH.
+// são os mesmos que a Pizza do Lucro grava; a equipe contratada vem do RH.
+// Dono, 28/11/2026: um canal por vez no topo (salão/balcão ou cada app do
+// Delivery) e extra só como custo da noite, pelo recibo gerado.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -18,8 +20,7 @@ import CampoDecimal from "../../../components/CampoDecimal";
 import { useERP } from "../../../context/ERPContext";
 import { fetchParamsDaCasa, PARAMS_PADRAO } from "../../../lib/parametros";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
-import { calcularCMO } from "../../../lib/cmo.mjs";
-import { custoDoDia, oQueAVendaPagou } from "../../../lib/custo-do-dia.mjs";
+import { custoDoDia, oQueAVendaPagou, extrasDoDia } from "../../../lib/custo-do-dia.mjs";
 import { regrasDoCanalDelivery } from "../../../lib/financeiro/motor/canais.mjs";
 import { supabase, isSupabaseReady } from "../../../lib/supabase";
 
@@ -43,7 +44,7 @@ function Linha({ rotulo, detalhe, dia, mes, forte }) {
 }
 
 function Turno({ t, aberto, alternar }) {
-  const n = t.fixos.length + t.extras.length;
+  const n = t.fixos.length;
   return (
     <div className="rounded-xl border border-hf-border bg-hf-surface">
       <button type="button" onClick={alternar} aria-expanded={aberto}
@@ -53,27 +54,25 @@ function Turno({ t, aberto, alternar }) {
           <p className="text-xs text-hf-muted">{n} {n === 1 ? "pessoa" : "pessoas"} · {t.ajuda}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <div className="text-right">
-            <p className="text-sm font-bold tabular-nums text-hf-text">{t.fixoDia == null ? "—" : !t.fixos.length ? "Só extras" : `${brl(t.fixoDia)}/dia`}</p>
-            {t.extrasDiaria > 0 ? <p className="text-xs tabular-nums text-hf-muted">+ {brl(t.extrasDiaria)} se vierem os extras</p> : null}
-          </div>
+          <p className="text-sm font-bold tabular-nums text-hf-text">{t.fixoDia == null ? "—" : `${brl(t.fixoDia)}/dia`}</p>
           <ChevronDown size={18} className={`text-hf-muted transition ${aberto ? "rotate-180" : ""}`} />
         </div>
       </button>
       {aberto ? (
         <div className="divide-y divide-hf-border border-t border-hf-border px-3">
           {t.fixos.map((p) => <Linha key={p.id} rotulo={p.nome} detalhe={p.cargo || "Contratado"} dia={p.dia} mes={p.mes} />)}
-          {t.extras.map((p) => (
-            <div key={p.id} className="flex items-baseline justify-between gap-3 py-2">
-              <div className="min-w-0"><p className="truncate text-sm text-hf-text">{p.nome}</p><p className="truncate text-xs text-hf-muted">Extra{p.cargo ? ` · ${p.cargo}` : ""}</p></div>
-              <p className="shrink-0 text-sm font-semibold tabular-nums text-hf-text">{brl(p.diaria)} <span className="text-xs font-normal text-hf-muted">no dia que vem</span></p>
-            </div>
-          ))}
         </div>
       ) : null}
     </div>
   );
 }
+
+const hojeISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const lerTicket = (id) => { try { return localStorage.getItem(`hf_ticket_${id}`) || ""; } catch { return ""; } };
+const gravarTicket = (id, v) => { try { localStorage.setItem(`hf_ticket_${id}`, v); } catch { /* sem armazenamento: fica só na tela */ } };
 
 const ICONE = { pago: CheckCircle2, parcial: CircleDashed, falta: CircleAlert };
 const COR = { pago: "text-hf-success", parcial: "text-hf-warning", falta: "text-hf-danger" };
@@ -82,7 +81,8 @@ export default function CustoDoDiaPage() {
   const { unidadeAtiva } = useERP();
   const [params, setParams] = useState(PARAMS_PADRAO);
   const [equipe, setEquipe] = useState([]);
-  const [extrasMes, setExtrasMes] = useState(0);
+  const [recibos, setRecibos] = useState([]);
+  const [ticket, setTicket] = useState("");
   const [apps, setApps] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -99,7 +99,7 @@ export default function CustoDoDiaPage() {
         if (!vivo) return;
         setParams({ ...PARAMS_PADRAO, ...(rP.data || {}) });
         setEquipe(rE.data || []);
-        setExtrasMes(calcularCMO({ colaboradores: rE.data || [], recibos: rR.data || [] }).extras || 0);
+        setRecibos(rR.data || []);
         setErro(rP.error || rE.error || "");
       })
       .catch(() => vivo && setErro("Não deu para carregar os custos agora."))
@@ -122,12 +122,15 @@ export default function CustoDoDiaPage() {
   }, [unidadeAtiva]);
 
   const canal = canalId === "salao" ? null : apps.find((a) => String(a.id) === canalId) || null;
-  // O quadro do topo é sempre o salão; o simulador usa o canal escolhido.
-  const r = useMemo(() => custoDoDia({ params, colaboradores: equipe, extrasPagosMes: extrasMes }), [params, equipe, extrasMes]);
-  const rCanal = useMemo(() => (canal ? custoDoDia({ params, colaboradores: equipe, extrasPagosMes: extrasMes, canal }) : r), [params, equipe, extrasMes, canal, r]);
-  const sim = useMemo(() => oQueAVendaPagou({ venda: Number(venda) || 0, sobraPct: rCanal.descontos.sobraPct, linhas: rCanal.linhas }), [venda, rCanal]);
+  useEffect(() => { setTicket(lerTicket(canalId)); }, [canalId]);
+  const extras = useMemo(() => extrasDoDia(recibos, equipe, hojeISO()), [recibos, equipe]);
+  const r = useMemo(() => custoDoDia({ params, colaboradores: equipe, extrasHoje: extras.total, canal, ticketMedio: Number(ticket) || 0 }),
+    [params, equipe, extras.total, canal, ticket]);
+  const sim = useMemo(() => oQueAVendaPagou({ venda: Number(venda) || 0, sobraPct: r.descontos.sobraPct, linhas: r.linhasHoje }), [venda, r]);
   const daCasa = r.linhas.filter((l) => l.grupo === "casa");
   const proLabore = r.linhas.filter((l) => l.grupo === "prolabore");
+  const temBalcao = apps.some((a) => /balc/i.test(a.nome || ""));
+  const onde = canal ? `no ${canal.nome}` : temBalcao ? "no salão" : "no salão e balcão";
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
@@ -147,13 +150,36 @@ export default function CustoDoDiaPage() {
         <>
           {erro ? <p className="rounded-xl border border-hf-warning/40 bg-hf-warning/10 p-3 text-sm text-hf-text">{erro}</p> : null}
 
+          {/* Um canal por vez: cada um tem as suas taxas. */}
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+            {[{ id: "salao", nome: temBalcao ? "Salão" : "Salão e balcão" }, ...apps].map((a) => (
+              <button key={a.id} type="button" onClick={() => setCanalId(String(a.id))}
+                className={`min-h-[44px] shrink-0 rounded-full px-4 text-sm font-semibold ${canalId === String(a.id) ? "bg-hf-menu text-white" : "border border-hf-border bg-hf-surface text-hf-text"}`}>
+                {a.nome}
+              </button>
+            ))}
+          </div>
+          {canal && (r.descontos.fixosPorPedido > 0 || ticket) ? (
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-hf-border bg-hf-surface p-3">
+              <span className="min-w-0 text-sm text-hf-text">
+                Pedido médio no {canal.nome}
+                <span className="block text-xs text-hf-muted">O {canal.nome} cobra {brl(r.descontos.fixosPorPedido)} fixos por pedido. Com o pedido médio isso vira % da venda.</span>
+              </span>
+              <CampoDecimal value={ticket} onChange={(e) => { setTicket(e.target.value); gravarTicket(canalId, e.target.value); }} placeholder="0,00"
+                className="min-h-[48px] w-28 shrink-0 rounded-xl border border-hf-border bg-hf-bg px-3 text-right text-base tabular-nums text-hf-text" />
+            </label>
+          ) : null}
+
           {/* A resposta primeiro: quanto vender e quanto custa abrir. */}
           <section className="rounded-2xl bg-hf-menu p-4 text-white">
-            <p className="text-sm text-white/70">Para pagar tudo, você precisa vender por dia</p>
+            <p className="text-sm text-white/70">Para pagar tudo vendendo só {onde}, você precisa vender por dia</p>
             <p className="mt-1 text-3xl font-bold tabular-nums">{r.vendaMinimaDia != null ? brl(r.vendaMinimaDia) : "DADOS INSUFICIENTES"}</p>
             {r.vendaMinimaDia != null ? (
               <p className="mt-1 text-xs text-white/70">{brl(r.vendaMinimaMes)} no mês · {r.dias} dias de operação · ESTIMATIVA</p>
             ) : <p className="mt-1 text-xs text-white/80">{r.motivo}</p>}
+            {r.extrasHoje > 0 && r.vendaMinimaHoje != null ? (
+              <p className="mt-1 text-xs text-white/90">Hoje, com {brl(r.extrasHoje)} de extras: {brl(r.vendaMinimaHoje)}</p>
+            ) : null}
             <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-3">
               <div>
                 <p className="text-xs text-white/70">Custo do dia, antes do lucro</p>
@@ -165,30 +191,51 @@ export default function CustoDoDiaPage() {
               </div>
             </div>
             <p className="mt-2 text-xs text-white/70">
-              Saem antes {pct(r.descontos.pct)}: {r.descontos.partes.map((p) => `${p.rotulo} ${pct(p.pct)}`).join(" · ") || "nenhum desconto cadastrado"}.
+              Saem antes {pct(r.descontos.pct)}: {r.descontos.partes.map((p) => `${canal ? p.rotulo.replace(` (${canal.nome})`, "") : p.rotulo} ${pct(p.pct)}`).join(" · ") || "nenhum desconto cadastrado"}.
               {!r.descontos.temMetaCmv ? " Sem meta de CMV: a conta fica otimista." : ""}
+              {r.descontos.fixosSemTicket ? ` Faltam os ${brl(r.descontos.fixosPorPedido)} fixos por pedido: informe o pedido médio acima.` : ""}
             </p>
           </section>
 
           {/* Equipe por turno. */}
           <section className="space-y-2">
             <div className="flex items-baseline justify-between">
-              <h2 className="text-[13px] font-medium text-hf-muted">Equipe</h2>
+              <h2 className="text-[13px] font-medium text-hf-muted">Equipe contratada</h2>
               <p className="text-sm font-semibold tabular-nums text-hf-text">{r.equipe.fixoDia != null ? `${brl(r.equipe.fixoDia)}/dia` : "—"}</p>
             </div>
             {r.equipe.turnos.length ? r.equipe.turnos.map((t) => (
               <Turno key={t.id} t={t} aberto={!!aberto[t.id]} alternar={() => setAberto((a) => ({ ...a, [t.id]: !a[t.id] }))} />
             )) : <p className="rounded-xl border border-hf-border bg-hf-surface p-3 text-sm text-hf-muted">DADOS INSUFICIENTES: nenhum funcionário ativo com salário no RH.</p>}
-            {r.extrasMes > 0 ? (
-              <p className="text-xs text-hf-muted">Extras pagos neste mês: {brl(r.extrasMes)}, em média {brl(r.extrasDia)} por dia (ESTIMATIVA). Entra no custo do dia.</p>
-            ) : null}
             {r.equipe.semSalario.length ? (
               <p className="rounded-xl border border-hf-warning/40 bg-hf-warning/10 p-3 text-xs text-hf-text">
-                {r.equipe.semSalario.length} {r.equipe.semSalario.length === 1 ? "pessoa está" : "pessoas estão"} sem salário ou diária no RH e não {r.equipe.semSalario.length === 1 ? "entra" : "entram"} na conta: {r.equipe.semSalario.map((p) => p.nome).join(", ")}.{" "}
+                {r.equipe.semSalario.length} {r.equipe.semSalario.length === 1 ? "pessoa contratada está" : "pessoas contratadas estão"} sem salário no RH e não {r.equipe.semSalario.length === 1 ? "entra" : "entram"} na conta: {r.equipe.semSalario.map((p) => p.nome).join(", ")}.{" "}
                 <Link href="/dashboard/rh/equipe" className="font-semibold underline">Completar no RH</Link>
               </p>
             ) : null}
-            <p className="text-xs text-hf-muted">A equipe sai do horário de entrada no RH. Contratado: salário + vale + taxa de serviço{Number(params.encargos_folha_pct) > 0 ? ` + ${pct(params.encargos_folha_pct)} de encargos` : ""} ÷ {r.dias || "?"} dias.</p>
+            <p className="text-xs text-hf-muted">Contrato definitivo ou provisório, pelo horário de entrada no RH: salário + vale + taxa de serviço{Number(params.encargos_folha_pct) > 0 ? ` + ${pct(params.encargos_folha_pct)} de encargos` : ""} ÷ {r.dias || "?"} dias.</p>
+          </section>
+
+          {/* Extras: só o recibo da noite. */}
+          <section className="rounded-2xl border border-hf-border bg-hf-surface px-3">
+            <div className="flex items-baseline justify-between border-b border-hf-border py-3">
+              <h2 className="text-[13px] font-medium text-hf-muted">Extras desta noite</h2>
+              <p className="text-sm font-semibold tabular-nums text-hf-text">{brl(extras.total)}</p>
+            </div>
+            {extras.recibos.length ? (
+              <div className="divide-y divide-hf-border">
+                {extras.recibos.map((x) => (
+                  <div key={x.id} className="flex items-baseline justify-between gap-3 py-2">
+                    <p className="min-w-0 truncate text-sm text-hf-text">{x.nome}</p>
+                    <p className="shrink-0 text-sm font-semibold tabular-nums text-hf-text">{brl(x.valor)} <span className="text-xs font-normal text-hf-muted">{x.pago ? "pago" : "a pagar"}</span></p>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="py-3 text-sm text-hf-muted">Nenhum recibo de extra hoje. O custo do extra aparece quando você gera o recibo dele.</p>}
+            <p className="border-t border-hf-border py-2 text-xs text-hf-muted">
+              {extras.mesRecibos ? `No mês: ${brl(extras.mesTotal)} em ${extras.mesRecibos} ${extras.mesRecibos === 1 ? "recibo" : "recibos"}. ` : ""}
+              {r.equipe.pessoasExtras ? `${r.equipe.pessoasExtras} ${r.equipe.pessoasExtras === 1 ? "extra cadastrado; não entra" : "extras cadastrados; não entram"} no custo fixo. ` : ""}
+              <Link href="/dashboard/rh/extra" className="font-semibold text-hf-text underline">Gerar recibo</Link>
+            </p>
           </section>
 
           {/* Contas da casa. */}
@@ -213,23 +260,13 @@ export default function CustoDoDiaPage() {
           <section className="space-y-3 rounded-2xl border border-hf-border bg-hf-surface p-3">
             <div>
               <h2 className="text-sm font-semibold text-hf-text">Simular o dia</h2>
-              <p className="text-xs text-hf-muted">Quanto você vendeu hoje? O sistema mostra o que essa venda pagou.</p>
+              <p className="text-xs text-hf-muted">O sistema mostra o que a venda de hoje pagou, com os extras desta noite.</p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="block">
-                <span className="text-xs text-hf-muted">Vendi (R$)</span>
-                <CampoDecimal value={venda} onChange={(e) => setVenda(e.target.value)} placeholder="0,00"
-                  className="mt-1 min-h-[48px] w-full rounded-xl border border-hf-border bg-hf-bg px-3 text-base tabular-nums text-hf-text" />
-              </label>
-              <label className="block">
-                <span className="text-xs text-hf-muted">Onde</span>
-                <select value={canalId} onChange={(e) => setCanalId(e.target.value)}
-                  className="mt-1 min-h-[48px] w-full rounded-xl border border-hf-border bg-hf-bg px-3 text-base text-hf-text">
-                  <option value="salao">Salão / balcão</option>
-                  {apps.map((a) => <option key={a.id} value={String(a.id)}>{a.nome}</option>)}
-                </select>
-              </label>
-            </div>
+            <label className="block">
+              <span className="text-xs text-hf-muted">Vendi hoje {onde} (R$)</span>
+              <CampoDecimal value={venda} onChange={(e) => setVenda(e.target.value)} placeholder="0,00"
+                className="mt-1 min-h-[48px] w-full rounded-xl border border-hf-border bg-hf-bg px-3 text-base tabular-nums text-hf-text" />
+            </label>
 
             {sim.situacao === "sem_venda" ? (
               <p className="text-sm text-hf-muted">Digite o valor vendido para ver.</p>
@@ -245,8 +282,8 @@ export default function CustoDoDiaPage() {
                     De {brlC(sim.vendaC)} vendidos, {brlC(sim.saiuAntesC)} vão para CMV e taxas; sobram {brlC(sim.sobraC)} para o custo do dia de {brlC(sim.custoDiaC)}.
                     {sim.pctCoberto != null ? ` Cobriu ${pct(sim.pctCoberto)} do dia.` : ""}
                   </p>
-                  {sim.situacao === "faltou" && rCanal.vendaMinimaDia != null ? (
-                    <p className="mt-1 text-xs text-hf-muted">Para empatar vendendo só {canal ? `no ${canal.nome}` : "no salão"}: {brl(rCanal.vendaMinimaDia)} no dia.</p>
+                  {sim.situacao === "faltou" && r.vendaMinimaHoje != null ? (
+                    <p className="mt-1 text-xs text-hf-muted">Para empatar hoje vendendo só {onde}: {brl(r.vendaMinimaHoje)}.</p>
                   ) : null}
                 </div>
                 <ul className="divide-y divide-hf-border">
@@ -264,7 +301,7 @@ export default function CustoDoDiaPage() {
                     );
                   })}
                 </ul>
-                <p className="text-xs text-hf-muted">{canal ? `Taxas do ${canal.nome}: ${rCanal.descontos.partes.filter((x) => !/CMV|Imposto/.test(x.rotulo)).map((x) => `${x.rotulo.replace(` (${canal.nome})`, "")} ${pct(x.pct)}`).join(" · ") || "nenhuma"}. ` : ""}SIMULAÇÃO com a meta de CMV, não o CMV real do dia. {canal ? "Taxa fixa por pedido e entrega paga pela loja não entram." : ""}</p>
+                <p className="text-xs text-hf-muted">SIMULAÇÃO com a meta de CMV, não o CMV real do dia.{r.descontos.fixosSemTicket ? " Sem o pedido médio, as taxas fixas por pedido não entram." : ""}</p>
               </>
             )}
           </section>
